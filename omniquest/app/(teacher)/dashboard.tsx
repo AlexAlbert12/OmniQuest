@@ -27,19 +27,21 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <View className="flex-1 items-center justify-center bg-slate-900 px-6">
-      <Text className="text-white text-3xl font-bold mb-3">Panel del Profesor</Text>
-      <Text className="text-slate-300 text-base mb-8 text-center">
-        {email ? `Sesion iniciada como ${email}` : 'Sesion iniciada correctamente.'}
+    <View className="flex-1 items-center justify-center bg-[#0F2854] px-6">
+      <Text style={{ fontFamily: 'Pacifico_400Regular' }} className="text-4xl text-[#BDE8F5] mb-3">
+        Panel del Profesor
+      </Text>
+      <Text className="text-[#EAF6FB] text-base mb-8 text-center max-w-md">
+        {email ? `Sesión iniciada como ${email}` : 'Sesión iniciada correctamente.'}
       </Text>
 
       <Pressable
         onPress={handleSignOut}
         disabled={loading}
-        className={`w-full max-w-sm rounded-xl border border-slate-700 bg-slate-800 py-4 items-center ${loading ? 'opacity-70' : 'active:bg-slate-700'}`}
+        className={`w-full max-w-sm rounded-3xl border border-[#4988C4] bg-[#13315F] py-4 items-center ${loading ? 'opacity-70' : 'active:bg-[#1C4D8D]'}`}
       >
-        <Text className="text-white font-semibold text-lg">
-          {loading ? 'Cerrando sesion...' : 'Cerrar sesión'}
+        <Text className="text-[#F5FBFE] font-semibold text-lg">
+          {loading ? 'Cerrando sesión...' : 'Cerrar sesión'}
         </Text>
       </Pressable>
     </View>

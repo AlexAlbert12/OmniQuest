@@ -94,75 +94,78 @@ export default function RegisterScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="bg-slate-900">
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="bg-[#0F2854]">
       <View className="flex-1 justify-center px-6 py-12">
-        <View className="items-center mb-10">
-          <Text style={{ fontFamily: 'Pacifico_400Regular' }} className="text-4xl text-white mb-2">
+        <View className="items-center mb-8">
+          <Text style={{ fontFamily: 'Pacifico_400Regular' }} className="text-6xl text-[#BDE8F5] mb-4">
             OmniQuest
           </Text>
-          <Text className="text-slate-400 text-lg">Crea tu cuenta para empezar.</Text>
+          <Text style={{ fontFamily: 'Pacifico_400Regular' }} className="text-[#4988C4] text-xl text-center">
+            Crea tu cuenta para empezar.
+          </Text>
         </View>
+        <View className="rounded-3xl border border-[#4988C4] bg-[#13315F] p-6 shadow-xl">
+          <View className="space-y-5">
+            <View>
+              <Text className="text-[#EAF6FB] font-medium mb-1 ml-1">Alias (Nombre de usuario)</Text>
+              <TextInput
+                className="w-full bg-[#16366A] border border-[#4988C4] rounded-2xl px-4 py-3.5 text-[#EAF6FB]"
+                placeholder="Jugador123"
+                placeholderTextColor="#9FC7E2"
+                value={alias}
+                onChangeText={setAlias}
+                autoCapitalize="none"
+              />
+            </View>
 
-        <View className="space-y-4">
-          <View>
-            <Text className="text-slate-300 font-medium mb-1.5 ml-1">Alias (Nombre de usuario)</Text>
-            <TextInput
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white"
-              placeholder="Jugador123"
-              placeholderTextColor="#64748b"
-              value={alias}
-              onChangeText={setAlias}
-              autoCapitalize="none"
-            />
-          </View>
+            <View>
+              <Text className="text-[#EAF6FB] font-medium mb-1 ml-1">Correo Electrónico</Text>
+              <TextInput
+                className="w-full bg-[#16366A] border border-[#4988C4] rounded-2xl px-4 py-3.5 text-[#EAF6FB]"
+                placeholder="alumno@omniquest.com"
+                placeholderTextColor="#9FC7E2"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+              />
+            </View>
 
-          <View>
-            <Text className="text-slate-300 font-medium mb-1.5 ml-1">Correo Electrónico</Text>
-            <TextInput
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white"
-              placeholder="alumno@omniquest.com"
-              placeholderTextColor="#64748b"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-            />
-          </View>
+            <View>
+              <Text className="text-[#EAF6FB] font-medium mb-1 ml-1">Contraseña</Text>
+              <TextInput
+                className="w-full bg-[#16366A] border border-[#4988C4] rounded-2xl px-4 py-3.5 text-[#EAF6FB]"
+                placeholder="••••••••"
+                placeholderTextColor="#9FC7E2"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+            </View>
 
-          <View className="mb-6">
-            <Text className="text-slate-300 font-medium mb-1.5 ml-1">Contraseña</Text>
-            <TextInput
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white"
-              placeholder="••••••••"
-              placeholderTextColor="#64748b"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-          </View>
+            <Pressable
+              onPress={signUpWithEmail}
+              disabled={loading}
+              className={`w-full rounded-2xl py-4 items-center ${loading ? 'opacity-70' : 'bg-[#1C4D8D] active:bg-[#4988C4]'}`}
+            >
+              <Text className="text-[#F5FBFE] font-semibold text-lg">
+                {loading ? 'Creando cuenta...' : 'Registrarse'}
+              </Text>
+            </Pressable>
 
-          <Pressable 
-            onPress={signUpWithEmail}
-            disabled={loading}
-            className={`w-full bg-indigo-500 rounded-xl py-4 items-center mt-2 ${loading ? 'opacity-70' : 'active:bg-indigo-600'}`}
-          >
-            <Text className="text-white font-semibold text-lg">
-              {loading ? 'Creando cuenta...' : 'Registrarse'}
-            </Text>
-          </Pressable>
+            {statusMessage ? (
+              <Text className="text-center text-sm text-[#BDE8F5] mt-4">{statusMessage}</Text>
+            ) : null}
 
-          {statusMessage ? (
-            <Text className="text-center text-sm text-amber-300 mt-4">{statusMessage}</Text>
-          ) : null}
-
-          <View className="flex-row justify-center mt-6">
-            <Text className="text-slate-400">¿Ya tienes cuenta? </Text>
-            <Link href="/login" asChild>
-              <Pressable>
-                <Text className="text-indigo-400 font-semibold">Inicia Sesión.</Text>
-              </Pressable>
-            </Link>
+            <View className="flex-row justify-center mt-6">
+              <Text className="text-[#9FC7E2]">¿Ya tienes cuenta? </Text>
+              <Link href="/login" asChild>
+                <Pressable>
+                  <Text className="text-[#4988C4] font-semibold">Inicia Sesión.</Text>
+                </Pressable>
+              </Link>
+            </View>
           </View>
         </View>
       </View>
