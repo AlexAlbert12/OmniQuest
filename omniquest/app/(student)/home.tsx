@@ -90,7 +90,13 @@ export default function StudentHome() {
         </View>
       </View>
 
-      <Link href={`/(student)/play/${item.id}`} asChild>
+      <Link
+        href={{
+          pathname: '/(student)/play/[id]',
+          params: { id: String(item.id) },
+        }}
+        asChild
+      >
         <Pressable className="bg-emerald-500 py-3 rounded-xl items-center active:bg-emerald-600 flex-row justify-center shadow-lg shadow-emerald-500/30">
           <Ionicons name="play" size={20} color="white" className="mr-2" />
           <Text className="text-white font-bold text-lg ml-2">Jugar Retos</Text>
