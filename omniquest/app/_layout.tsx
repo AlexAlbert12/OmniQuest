@@ -17,8 +17,8 @@ export default function RootLayout() {
     let isMounted = true
 
     const redirectToLogin = () => {
-      if (pathname !== '/login') {
-        router.replace('/login' as any)
+      if (pathname !== '/login' && pathname !== '/(auth)/login') {
+        router.replace('/(auth)/login' as any)
       }
     }
 
@@ -31,7 +31,12 @@ export default function RootLayout() {
     }
 
     const syncNavigation = async (session: any) => {
-      const isAuthRoute = pathname === '/login' || pathname === '/register'
+      const isAuthRoute = 
+        pathname === '/' || 
+        pathname === '/login' || 
+        pathname === '/register' || 
+        pathname === '/(auth)/login' || 
+        pathname === '/(auth)/register'
 
       if (!session) {
         if (!isAuthRoute) {
@@ -65,28 +70,20 @@ export default function RootLayout() {
         return
       }
 
-      if (profileError) {
-        console.error('[auth] failed to fetch profile', profileError)
+      if (profileError || !profile) {
+        console.error('[auth] failed to fetch profile or profile not found', profileError)
         await clearInvalidSession()
         redirectToLogin()
         setIsInitialized(true)
         return
       }
 
-      if (!profile) {
-        console.warn('[auth] profile not found for user', session.user.id)
-        await clearInvalidSession()
-        redirectToLogin()
-        setIsInitialized(true)
-        return
-      }
-
-      if (profile?.role_id === 'teacher') {
-        if (pathname !== '/dashboard') {
-          router.replace('/dashboard' as any)
+      if (isAuthRoute) {
+        if (profile.role_id === 'teacher') {
+          router.replace('/(teacher)/dashboard' as any)
+        } else {
+          router.replace('/(student)/home' as any)
         }
-      } else if (pathname !== '/home') {
-        router.replace('/home' as any)
       }
 
       setIsInitialized(true)
