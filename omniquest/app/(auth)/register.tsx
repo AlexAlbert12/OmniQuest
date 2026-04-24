@@ -1,16 +1,34 @@
 import React, { useState } from 'react'
-import { View, Text, TextInput, Pressable, Alert, ScrollView } from 'react-native'
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import { Link, useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { getAuthErrorMessage, getEmailRedirectTo, isValidEmail, normalizeEmail } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
+import SpaceBackground from '../../components/SpaceBackground'
 
 export default function RegisterScreen() {
+  const { width, height } = useWindowDimensions()
   const [alias, setAlias] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const router = useRouter()
+
+  const isDesktop = width >= 1100
+  const isTablet = width >= 760
+  const isWeb = Platform.OS === 'web'
 
   async function signUpWithEmail() {
     console.log('[register] button pressed')
@@ -94,77 +112,181 @@ export default function RegisterScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="bg-[#0F2854]">
-      <View className="flex-1 justify-center px-6 py-12">
-        <View className="items-center mb-8">
-          <Text style={{ fontFamily: 'Pacifico_400Regular' }} className="text-6xl text-[#BDE8F5] mb-4">
-            OmniQuest
-          </Text>
-          <Text style={{ fontFamily: 'Pacifico_400Regular' }} className="text-[#4988C4] text-xl text-center">
-            Crea tu cuenta para empezar.
-          </Text>
-        </View>
-        <View className="rounded-3xl border border-[#4988C4] bg-[#13315F] p-6 shadow-xl">
-          <View className="space-y-5">
-            <View>
-              <Text className="text-[#EAF6FB] font-medium mb-1 ml-1">Alias (Nombre de usuario)</Text>
-              <TextInput
-                className="w-full bg-[#16366A] border border-[#4988C4] rounded-2xl px-4 py-3.5 text-[#EAF6FB]"
-                placeholder="Jugador123"
-                placeholderTextColor="#9FC7E2"
-                value={alias}
-                onChangeText={setAlias}
-                autoCapitalize="none"
-              />
-            </View>
+    <ScrollView className="flex-1 bg-[#04112A]" contentContainerStyle={{ flexGrow: 1 }}>
+      <View
+        className="overflow-hidden rounded-[34px] border border-[#27436F] bg-[#071630]"
+        style={{
+          minHeight: isDesktop ? Math.max(height, 760) : Math.max(height - 28, 760),
+          shadowColor: '#132C59',
+          shadowOpacity: isWeb ? 0 : 0.35,
+          shadowRadius: isWeb ? 0 : 28,
+          shadowOffset: { width: 0, height: isWeb ? 0 : 18 },
+          elevation: isWeb ? 0 : 12,
+          borderRadius: isWeb ? 0 : 34,
+        }}
+      >
+        <SpaceBackground isDesktop={isDesktop} />
 
-            <View>
-              <Text className="text-[#EAF6FB] font-medium mb-1 ml-1">Correo Electrónico</Text>
-              <TextInput
-                className="w-full bg-[#16366A] border border-[#4988C4] rounded-2xl px-4 py-3.5 text-[#EAF6FB]"
-                placeholder="alumno@omniquest.com"
-                placeholderTextColor="#9FC7E2"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-              />
-            </View>
-
-            <View>
-              <Text className="text-[#EAF6FB] font-medium mb-1 ml-1">Contraseña</Text>
-              <TextInput
-                className="w-full bg-[#16366A] border border-[#4988C4] rounded-2xl px-4 py-3.5 text-[#EAF6FB]"
-                placeholder="••••••••"
-                placeholderTextColor="#9FC7E2"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-            </View>
-
-            <Pressable
-              onPress={signUpWithEmail}
-              disabled={loading}
-              className={`w-full rounded-2xl py-4 items-center ${loading ? 'opacity-70' : 'bg-[#1C4D8D] active:bg-[#4988C4]'}`}
+        <View
+          className="z-10 flex-1 items-center justify-center"
+          style={{
+            paddingHorizontal: isDesktop ? 32 : 18,
+            paddingVertical: isDesktop ? 42 : 28,
+          }}
+        >
+          <View className="items-center px-2">
+            <Text
+              style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 72 : 40 }}
+              className="text-center text-[#CDEFFF]"
             >
-              <Text className="text-[#F5FBFE] font-semibold text-lg">
-                {loading ? 'Creando cuenta...' : 'Registrarse'}
-              </Text>
-            </Pressable>
+              OmniQuest
+            </Text>
 
-            {statusMessage ? (
-              <Text className="text-center text-sm text-[#BDE8F5] mt-4">{statusMessage}</Text>
-            ) : null}
+            <Text
+              style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 22 : 16 }}
+              className="text-center text-[#4FB8FF]"
+            >
+              Crea tu cuenta para empezar.
+            </Text>
 
-            <View className="flex-row justify-center mt-6">
-              <Text className="text-[#9FC7E2]">¿Ya tienes cuenta? </Text>
-              <Link href="/login" asChild>
-                <Pressable>
-                  <Text className="text-[#4988C4] font-semibold">Inicia Sesión.</Text>
-                </Pressable>
-              </Link>
+            <View className="mt-4 mb-4 flex-row items-center gap-3">
+              <View className="h-px w-16 bg-[#3B6FA5]" />
+              <Ionicons name="rocket" size={18} color="#8CD5FF" />
+              <View className="h-px w-16 bg-[#3B6FA5]" />
+            </View>
+          </View>
+
+          <View
+            className="w-full overflow-hidden rounded-[20px] border border-[#3B6FA5] bg-[#081D3D]/92"
+            style={{
+              maxWidth: isTablet ? 620 : 440,
+              shadowColor: '#1B75D8',
+              shadowOpacity: isWeb ? 0 : 0.28,
+              shadowRadius: isWeb ? 0 : 24,
+              shadowOffset: { width: 0, height: isWeb ? 0 : 12 },
+              elevation: isWeb ? 0 : 10,
+            }}
+          >
+            <View style={{ padding: isDesktop ? 30 : 20, gap: 20 }}>
+              <View style={{ gap: 8 }}>
+                <Text className="ml-1 text-[13px] font-bold text-[#D9EEFF]">
+                  Alias
+                </Text>
+                <View className="flex-row items-center rounded-lg border border-[#35557C] bg-[#0B2145]">
+                  <Ionicons className="ml-4 mr-4" name="person-outline" size={18} color="#8AAED0" />
+                  <TextInput
+                    className="flex-1 px-3 py-4 text-[15px] text-[#F5FBFF]"
+                    placeholder="Jugador123"
+                    placeholderTextColor="#8AAED0"
+                    value={alias}
+                    onChangeText={setAlias}
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+
+              <View style={{ gap: 8 }}>
+                <Text className="ml-1 text-[13px] font-bold text-[#D9EEFF]">
+                  Correo Electrónico
+                </Text>
+                <View className="flex-row items-center rounded-lg border border-[#35557C] bg-[#0B2145]">
+                  <Ionicons className="ml-4 mr-4" name="mail-outline" size={18} color="#8AAED0" />
+                  <TextInput
+                    className="flex-1 px-3 py-4 text-[15px] text-[#F5FBFF]"
+                    placeholder="Introduzca su correo"
+                    placeholderTextColor="#8AAED0"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                  />
+                </View>
+              </View>
+
+              <View style={{ gap: 8 }}>
+                <Text className="ml-1 text-[13px] font-bold text-[#D9EEFF]">
+                  Contraseña
+                </Text>
+                <View className="flex-row items-center rounded-lg border border-[#35557C] bg-[#0B2145] px-4">
+                  <Ionicons className="mr-4" name="lock-closed-outline" size={18} color="#8AAED0" />
+                  <TextInput
+                    className="flex-1 px-3 py-4 text-[15px] text-[#F5FBFF]"
+                    placeholder="Introduzca su contraseña"
+                    placeholderTextColor="#8AAED0"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                  />
+                  <Pressable
+                    onPress={() => setShowPassword(!showPassword)}
+                    className="items-center justify-center rounded-full p-2"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
+                  >
+                    <Ionicons
+                      className="ml-2"
+                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={18}
+                      color="#9FC7E2"
+                    />
+                  </Pressable>
+                </View>
+              </View>
+
+              <View className="rounded-xl border border-[#17365F] bg-[#061A38] px-4 py-3">
+                <View className="flex-row items-start gap-3">
+                  <Ionicons name="shield-checkmark-outline" size={18} color="#8CD5FF" />
+                  <Text className="flex-1 text-[13px] leading-5 text-[#AFCBE3]">
+                    Tu contraseña debe tener al menos 6 caracteres. Usaremos tu alias para mostrarte en retos y rankings.
+                  </Text>
+                </View>
+              </View>
+
+              <Pressable
+                onPress={signUpWithEmail}
+                disabled={loading}
+                className="w-full flex-row items-center justify-center rounded-xl bg-[#1C4D8D] px-5 py-4"
+                style={({ pressed }) => ({
+                  opacity: loading ? 0.7 : pressed ? 0.86 : 1,
+                  shadowColor: '#4FB8FF',
+                  shadowOpacity: isWeb ? 0 : 0.22,
+                  shadowRadius: isWeb ? 0 : 14,
+                  shadowOffset: { width: 0, height: isWeb ? 0 : 8 },
+                  elevation: isWeb ? 0 : 6,
+                })}
+              >
+                <View className="flex-row items-center gap-3">
+                  {loading ? <ActivityIndicator color="#F5FBFF" /> : null}
+                  <Text className="text-[16px] font-bold text-[#F5FBFF]">
+                    {loading ? 'Creando cuenta...' : 'Registrarse'}
+                  </Text>
+                </View>
+                {!loading && (
+                  <Ionicons
+                    name="arrow-forward"
+                    size={20}
+                    color="#F5FBFF"
+                    style={{ position: 'absolute', right: 22 }}
+                  />
+                )}
+              </Pressable>
+
+              {statusMessage ? (
+                <Text className="text-center text-[13px] text-[#8CD5FF]">{statusMessage}</Text>
+              ) : null}
+            </View>
+
+            <View className="border-t border-[#17365F] bg-[#06162F] px-5 py-5">
+              <View className="flex-row flex-wrap items-center justify-center gap-1">
+                <Text className="text-[13px] text-[#AFCBE3]">¿Ya tienes cuenta?</Text>
+                <Link href="/login" asChild>
+                  <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.76 : 1 })}>
+                    <Text className="text-[13px] font-bold text-[#4FB8FF]">
+                      Inicia Sesión.
+                    </Text>
+                  </Pressable>
+                </Link>
+              </View>
             </View>
           </View>
         </View>

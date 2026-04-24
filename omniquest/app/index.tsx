@@ -1,37 +1,73 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
-import {
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native'
+import { useRouter, Link } from 'expo-router'
+import { Alert, Platform, Pressable, ScrollView, Text, useWindowDimensions, View, } from 'react-native'
 import Footer from '../components/Footer'
+import Header from '../components/Header'
+import SpaceBackground from '../components/SpaceBackground'
 
-type Benefit = {
+type Feature = {
   icon: keyof typeof Ionicons.glyphMap
   title: string
   description: string
+  iconColor: string
+  iconBackground: string
+  iconBorder: string
 }
 
-const benefits: Benefit[] = [
+const features: Feature[] = [
   {
-    icon: 'book-outline',
+    icon: 'book',
     title: 'Aprende a tu ritmo',
-    description: 'Contenido diseñado para ti',
+    description:
+      'Accede a contenidos interactivos y estructurados por niveles. Estudia cuando quieras y desde cualquier dispositivo.',
+    iconColor: '#7FCBFF',
+    iconBackground: 'rgba(40, 114, 212, 0.22)',
+    iconBorder: 'rgba(116, 188, 255, 0.5)',
   },
   {
-    icon: 'rocket-outline',
-    title: 'Alcanza tus metas',
-    description: 'Supera tus límites cada día',
+    icon: 'ribbon',
+    title: 'Supera retos',
+    description:
+      'Resuelve desafíos y cuestionarios para poner a prueba lo que sabes. ¡Cada reto superado te acerca más a tus metas!',
+    iconColor: '#8ED6FF',
+    iconBackground: 'rgba(28, 88, 188, 0.24)',
+    iconBorder: 'rgba(110, 178, 255, 0.52)',
   },
   {
-    icon: 'trophy-outline',
-    title: 'Logra más',
-    description: 'Tu éxito es nuestra misión',
+    icon: 'stats-chart',
+    title: 'Sigue tu progreso',
+    description:
+      'Visualiza tu avance con estadísticas detallas y obtiene recomendaciones pesonalizadas para mejorar cada día.',
+    iconColor: '#82C5FF',
+    iconBackground: 'rgba(37, 104, 204, 0.22)',
+    iconBorder: 'rgba(111, 185, 255, 0.5)',
+  },
+  {
+    icon: 'trophy',
+    title: 'Compite y destaca',
+    description:
+      'Participa en el ranking, gana experiencia y demuestra tus conocimientos frente a otros estudiantes.',
+    iconColor: '#B29CFF',
+    iconBackground: 'rgba(112, 71, 246, 0.2)',
+    iconBorder: 'rgba(175, 145, 255, 0.52)',
+  },
+  {
+    icon: 'flash',
+    title: 'Mantén tu racha',
+    description:
+      'Aprende cada día, suma días consecutivos y desbloquea recompensas exclusivas.',
+    iconColor: '#A991FF',
+    iconBackground: 'rgba(124, 79, 255, 0.2)',
+    iconBorder: 'rgba(170, 142, 255, 0.54)',
+  },
+  {
+    icon: 'gift',
+    title: 'Gana recompensas',
+    description:
+      'Obtén medallas, logros y premios por tu esfuerzo y constancia en el aprendizaje.',
+    iconColor: '#B29CFF',
+    iconBackground: 'rgba(112, 71, 246, 0.2)',
+    iconBorder: 'rgba(175, 145, 255, 0.52)',
   },
 ]
 
@@ -40,6 +76,7 @@ export default function IndexScreen() {
   const router = useRouter()
 
   const isDesktop = width >= 1100
+  const isTablet = width >= 760
   const isWeb = Platform.OS === 'web'
 
   const showComingSoon = (feature: string) => {
@@ -56,12 +93,13 @@ export default function IndexScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-[#04112A]" contentContainerStyle={{ flexGrow: 1, }}
+      className="flex-1 bg-[#04112A]"
+      contentContainerStyle={{ flexGrow: 1 }}
     >
       <View
         className="overflow-hidden rounded-[34px] border border-[#27436F] bg-[#071630]"
         style={{
-          minHeight: isDesktop ? Math.max(height, 760) : Math.max(height - 28, 720),
+          minHeight: isDesktop ? Math.max(height, 860) : Math.max(height - 28, 780),
           shadowColor: '#132C59',
           shadowOpacity: isWeb ? 0 : 0.35,
           shadowRadius: isWeb ? 0 : 28,
@@ -70,9 +108,11 @@ export default function IndexScreen() {
           borderRadius: isWeb ? 0 : 34,
         }}
       >
+
+        <SpaceBackground isDesktop={isDesktop} />
         <View
           style={{
-            flexGrow: 1, // CORRECCIÓN
+            flexGrow: 1,
             paddingHorizontal: isDesktop ? 32 : 18,
             paddingTop: isDesktop ? 20 : 18,
             paddingBottom: isDesktop ? 40 : 28,
@@ -85,7 +125,7 @@ export default function IndexScreen() {
 
           <View
             style={{
-              flexGrow: 1, // CORRECCIÓN
+              flexGrow: 1,
               alignItems: 'center',
               justifyContent: 'center',
             }}
@@ -93,16 +133,15 @@ export default function IndexScreen() {
             <View
               style={{
                 width: '100%',
-                maxWidth: isDesktop ? 1040 : 920,
+                maxWidth: isDesktop ? 1080 : 960,
                 alignSelf: 'center',
               }}
             >
-              <DesktopPanel
+              <LandingPanel
                 isDesktop={isDesktop}
+                isTablet={isTablet}
                 onLoginPress={() => router.push('/login')}
-                onGuestPress={() => showComingSoon('El acceso como invitado')}
-                onRegisterPress={() => router.push('/register')}
-                onSocialPress={(label) => showComingSoon(`El acceso con ${label}`)}
+                onGuestPress={() => router.push('/register')}
               />
             </View>
           </View>
@@ -113,267 +152,150 @@ export default function IndexScreen() {
   )
 }
 
-function Header({
+function LandingPanel({
   isDesktop,
-  onThemePress,
-}: {
-  isDesktop: boolean
-  onThemePress: () => void
-}) {
-  return (
-    <View
-      className="z-10 mb-5 flex-row items-center justify-between"
-      style={{ marginBottom: isDesktop ? 10 : 12 }}
-    >
-      <Text
-        style={{ fontFamily: 'Pacifico_400Regular' }}
-        className="text-[#D7F5FF]"
-      >
-        <Text style={{ fontSize: isDesktop ? 28 : 25 }}>OmniQuest</Text>
-      </Text>
-
-      <Pressable
-        onPress={onThemePress}
-        className="flex-row items-center gap-2 rounded-full border border-[#4988C4] bg-[#4988C4]/15 px-4 py-3"
-        style={({ pressed }) => ({
-          opacity: pressed ? 0.82 : 1,
-          paddingHorizontal: isDesktop ? 18 : 16,
-          paddingVertical: isDesktop ? 10 : 12,
-        })}
-      >
-        <Ionicons name="moon-outline" size={18} color="#4988C4" />
-        <Text className="text-[15px] font-semibold text-[#E7F7FF]">Tema</Text>
-      </Pressable>
-    </View>
-  )
-}
-
-function DesktopPanel({
-  isDesktop,
+  isTablet,
   onLoginPress,
   onGuestPress,
-  onRegisterPress,
 }: {
   isDesktop: boolean
+  isTablet: boolean
   onLoginPress: () => void
   onGuestPress: () => void
-  onRegisterPress: () => void
-  onSocialPress: (label: string) => void
 }) {
-  const isWeb = Platform.OS === 'web'
-  
+  const actionsDirection = isTablet ? 'row' : 'column'
+
   return (
     <View
       style={{
         alignSelf: 'center',
-        paddingTop: isDesktop ? 20 : 8,
+        paddingTop: isDesktop ? 4 : 4,
+        paddingBottom: isDesktop ? 18 : 8,
       }}
     >
-      <View className="items-center px-4">
-        <View className="flex-row items-center gap-3 mb-4">
-          <Ionicons name="sparkles" size={20} color="#7DC7FF" />
-          <Text
-            style={{ fontFamily: 'Pacifico_400Regular' }}
-            className={`text-white text-center ${isWeb ? 'text-6xl' : 'text-4xl'}`}
-          >
-            ¡Bienvenido a OmniQuest!
-          </Text>
-          <Ionicons name="sparkles" size={20} color="#7DC7FF" />
-        </View>
+      <View className="items-center px-2">
+        <Text
+          style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 72 : 32 }}
+          className="text-center text-[#CDEFFF]"
+        >
+          OmniQuest
+        </Text>
 
         <Text
-          className={`mt-4 text-center text-[#3DAAFF] ${isWeb ? 'text-2xl' : 'text-xl'}`}
-          style={{ fontFamily: 'Pacifico_400Regular' }}
-        >
+          style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 28 : 16 }}
+          className="text-center text-[#4FB8FF]">
           Tu viaje de aprendizaje comienza aquí.
         </Text>
+
+        <View className="mt-4 mb-2 flex-row items-center gap-3">
+          <View className="h-px w-10 bg-[#3B6FA5]" />
+          <Ionicons name="rocket" size={18} color="#8CD5FF" />
+          <View className="h-px w-10 bg-[#3B6FA5]" />
+        </View>
       </View>
 
       <View
         style={{
-          marginTop: isDesktop ? 42 : 28,
-          flexDirection: isDesktop ? 'row' : 'column',
+          marginTop: isDesktop ? 24 : 20,
+          flexDirection: 'row',
+          flexWrap: 'wrap',
           justifyContent: 'center',
-          alignItems: 'center',
-          gap: 24,
+          gap: 16,
         }}
       >
-        <View
-          className="rounded-[30px] border border-[#34557E] bg-[#102548]/88"
-          style={{
-            width: 290,
-            minHeight: 300,
-            paddingHorizontal: 18,
-            paddingVertical: 20,
-            shadowColor: '#0C1F45',
-            shadowOpacity: 0.26,
-            shadowRadius: 14,
-            shadowOffset: { width: 0, height: 10 },
-            elevation: 8,
-          }}
-        >
-          <View className="items-center gap-2">
-            <View
-              className="items-center justify-center rounded-full border"
-              style={{
-                width: 62,
-                height: 62,
-                backgroundColor: 'rgba(57, 135, 255, 0.18)',
-                borderColor: 'rgba(88, 175, 255, 0.55)',
-              }}
-            >
-              <Ionicons name="person" size={28} color="#58AFFF" />
-            </View>
-
-            <Text className="text-center text-[17px] font-bold text-white">
-              Iniciar Sesión
-            </Text>
-            <Text className="text-center text-[14px] leading-7 text-[#D8E7F6]">
-              Accede a tu cuenta para continuar tu viaje de aprendizaje.
-            </Text>
-          </View>
-
-          <View style={{ flex: 1 }} />
-
-          <Pressable
-            onPress={onLoginPress}
-            className="mt-4 w-full rounded-2xl py-4 flex-row items-center justify-center gap-2 bg-[#1C4D8D] active:bg-[#4988C4]"
-          >
-            <Text className="text-white font-bold text-sm">Inicia Sesión</Text>
-          </Pressable>
-
-          <View
-            style={{ marginTop: 22, minHeight: 28 }}
-            className="flex-row items-center justify-center gap-1"
-          >
-            <Text className="text-center text-[15px] text-[#D3E3F6]">
-              ¿No tienes cuenta?
-            </Text>
-            <Pressable onPress={onRegisterPress}>
-              <Text className="text-[15px] font-bold text-[#48B8FF]">
-                Regístrate aquí.
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-
-        <View
-          className="rounded-[30px] border border-[#34557E] bg-[#102548]/88"
-          style={{
-            width: 290,
-            minHeight: 300,
-            paddingHorizontal: 18,
-            paddingVertical: 20,
-            shadowColor: '#0C1F45',
-            shadowOpacity: 0.26,
-            shadowRadius: 14,
-            shadowOffset: { width: 0, height: 10 },
-            elevation: 8,
-          }}
-        >
-          <View className="items-center gap-2">
-            <View
-              className="items-center justify-center rounded-full border"
-              style={{
-                width: 62,
-                height: 62,
-                backgroundColor: 'rgba(138, 93, 255, 0.2)',
-                borderColor: 'rgba(169, 128, 255, 0.55)',
-              }}
-            >
-              <Ionicons name="glasses" size={28} color="#A980FF" />
-            </View>
-
-            <Text className="text-center text-[17px] font-bold text-white">
-              Entrar como Invitado
-            </Text>
-            <Text className="text-center text-[14px] leading-7 text-[#D8E7F6]">
-              Explora el contenido sin crear una cuenta. Tu progreso no se guardará.
-            </Text>
-          </View>
-
-          <View style={{ flex: 1 }} />
-
-          <Pressable
-            onPress={onGuestPress}
-            className="mt-4 w-full rounded-2xl py-4 flex-row items-center justify-center gap-2 bg-[#1C4D8D] active:bg-[#4988C4]"
-          >
-            <Text className="text-white font-bold text-sm">Entrar como Invitado</Text>
-          </Pressable>
-
-          <View
-            style={{ marginTop: 22, minHeight: 28 }}
-            className="items-center justify-center"
-          >
-            <Text className="text-center text-[15px] text-transparent"></Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={{ marginTop: isDesktop ? 34 : 34 }}>
-        <Divider label="o continúa con" />
-      </View>
-
-      <View
-        style={{
-          marginTop: 24,
-          flexDirection: isDesktop ? 'row' : 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: 18,
-          paddingBottom: 20,
-        }}
-      >
-        {benefits.map((benefit) => (
-          <BenefitPill
-            key={benefit.title}
-            benefit={benefit}
-            wide={isDesktop}
+        {features.map((feature) => (
+          <FeatureCard
+            key={feature.title}
+            feature={feature}
           />
         ))}
       </View>
+
+      <View
+        style={{
+          marginTop: isDesktop ? 26 : 20,
+          flexDirection: actionsDirection,
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 14,
+          maxWidth: isDesktop ? 400 : '100%',
+          alignSelf: 'center',
+        }}
+      >
+        <Pressable
+          onPress={onLoginPress}
+          className="justify-between w-full rounded-2xl p-4 flex-row items-center gap-2 bg-[#1C4D8D] hover:bg-[#18437b] transition-all duration-200 hover:scale-[1.02] "
+        >
+          <View className="flex-row items-center gap-3">
+            <Ionicons name="person" size={20} color="#F5FBFF" />
+            <Text className="text-[16px] text-white">Iniciar sesión</Text>
+          </View>
+          <Ionicons name="arrow-forward" size={18} color="#F5FBFF" />
+        </Pressable>
+
+        <Pressable
+          onPress={onGuestPress}
+          className="justify-between w-full rounded-2xl p-4 flex-row items-center gap-2 bg-[#7942DFeB] hover:bg-[#6b3ac6eb] transition-all duration-200 hover:scale-[1.02] "
+        >
+          <View className="flex-row items-center gap-3">
+            <Ionicons name="glasses" size={20} color="#F5FBFF" />
+            <Text className="text-[16px] text-white">Entrar como Invitado</Text>
+          </View>
+          <Ionicons name="arrow-forward" size={18} color="#F5FBFF" />
+        </Pressable>
+      </View>
+      <View className="mt-6 border-t border-[#17365F] bg-[#06162F] px-5 py-5">
+        <View className="flex-row flex-wrap items-center justify-center gap-1">
+          <Text className="text-[13px] text-[#AFCBE3]">¿No tienes cuenta?</Text>
+          <Link href="/register" asChild>
+            <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.76 : 1 })}>
+              <Text className="text-[13px] font-bold text-[#4FB8FF]">
+                Regístrate aquí.
+              </Text>
+            </Pressable>
+          </Link>
+        </View>
+      </View>
     </View>
   )
 }
 
-function Divider({ label }: { label: string }) {
-  return (
-    <View className="flex-row items-center gap-3">
-      <View className="h-px flex-1 bg-[#355276]" />
-    </View>
-  )
-}
-
-function BenefitPill({
-  benefit,
-  wide,
+function FeatureCard({
+  feature,
 }: {
-  benefit: Benefit
-  wide: boolean
+  feature: Feature
 }) {
   return (
     <View
-      className="flex-row items-center rounded-full border border-[#325072] bg-[#0A1D3E]/76"
+      className="items-center rounded-[24px] border border-[#35557C] bg-[#102548]/88"
       style={{
-        width: wide ? 250 : '100%',
-        maxWidth: 340,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
+        width: 280,
+        minHeight: 208,
+        paddingHorizontal: 18,
+        paddingVertical: 20,
+        shadowColor: '#0C1F45',
+        shadowOpacity: 0.26,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 8,
       }}
     >
-      <View className="mr-4 items-center justify-center rounded-full bg-[#173B70]">
-        <View
-          className="items-center justify-center rounded-full border border-[#4F78A8]"
-          style={{ width: 50, height: 50 }}
-        >
-          <Ionicons name={benefit.icon} size={24} color="#7CC9FF" />
-        </View>
+      <View
+        className="items-center justify-center rounded-full border"
+        style={{
+          width: 62,
+          height: 62,
+          backgroundColor: feature.iconBackground,
+          borderColor: feature.iconBorder,
+        }}
+      >
+        <Ionicons name={feature.icon} size={28} color={feature.iconColor} />
       </View>
 
-      <View style={{ flex: 1 }}>
-        <Text className="text-[16px] font-bold text-[#F6FBFF]">{benefit.title}</Text>
-        <Text className="mt-1 text-[13px] text-[#D0DFF1]">{benefit.description}</Text>
-      </View>
+      <Text className="mt-2 text-[18px] font-bold text-white">{feature.title}</Text>
+      <Text className="mt-2 text-[14px] leading-6 text-center text-[#D8E7F6]">
+        {feature.description}
+      </Text>
     </View>
   )
 }
