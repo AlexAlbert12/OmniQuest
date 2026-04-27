@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native'
@@ -21,9 +22,11 @@ type Profile = {
   points: number | null
 }
 
+type IoniconName = React.ComponentProps<typeof Ionicons>['name']
+
 const accentColors = ['#7C5CFF', '#3B82F6', '#38BDF8', '#58D17A', '#F6A64A', '#EF5350', '#D94A9A'] as const
 
-const privacyRows = [
+const privacyRows: { icon: IoniconName; title: string; detail: string }[] = [
   {
     icon: 'shield-checkmark-outline',
     title: 'Privacidad',
@@ -34,9 +37,9 @@ const privacyRows = [
     title: 'Datos y almacenamiento',
     detail: 'Gestiona tus datos y espacio',
   },
-] as const
+]
 
-const supportRows = [
+const supportRows: { icon: IoniconName; title: string; detail: string }[] = [
   {
     icon: 'help-circle-outline',
     title: 'Centro de ayuda',
@@ -57,7 +60,7 @@ const supportRows = [
     title: 'Acerca de OmniQuest',
     detail: 'Versión 1.2.0',
   },
-] as const
+]
 
 export default function SettingsScreen() {
   const { width } = useWindowDimensions()
@@ -71,6 +74,12 @@ export default function SettingsScreen() {
   const [pushNotifications, setPushNotifications] = useState(true)
   const [studyReminders, setStudyReminders] = useState(true)
   const [updates, setUpdates] = useState(false)
+  const [newAlias, setNewAlias] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changingAlias, setChangingAlias] = useState(false)
+  const [changingPassword, setChangingPassword] = useState(false)
 
   const isDesktop = width >= 1024
   const isTwoColumn = width >= 900
@@ -111,6 +120,60 @@ export default function SettingsScreen() {
     }, [fetchSettings])
   )
 
+  const handleChangeAlias = async () => {
+    if (!newAlias.trim() || !profile) return
+
+    setChangingAlias(true)
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ alias: newAlias.trim() })
+        .eq('id', profile.id)
+
+      if (error) throw error
+
+      setProfile({ ...profile, alias: newAlias.trim() })
+      setNewAlias('')
+      showAlert('Éxito', 'Alias actualizado correctamente.')
+    } catch (error: any) {
+      showAlert('Error', error.message)
+    } finally {
+      setChangingAlias(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || newPassword !== confirmPassword) {
+      showAlert('Error', 'Verifica que las contraseñas coincidan y estén completas.')
+      return
+    }
+
+    setChangingPassword(true)
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+
+      if (error) throw error
+
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      showAlert('Éxito', 'Contraseña actualizada correctamente.')
+    } catch (error: any) {
+      showAlert('Error', error.message)
+    } finally {
+      setChangingPassword(false)
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      router.replace('/(auth)/login')
+    } catch (error: any) {
+      showAlert('Error', 'No se pudo cerrar sesión.')
+    }
+  }
+
   const showAlert = (title: string, message: string) => {
     if (Platform.OS === 'web') {
       window.alert(`${title}\n${message}`)
@@ -122,11 +185,6 @@ export default function SettingsScreen() {
 
   const showComingSoon = (feature: string) => {
     showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)
-  }
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.replace('/login' as any)
   }
 
   if (loading) {
@@ -145,6 +203,7 @@ export default function SettingsScreen() {
           <StudentSidebar
             activeSection="settings"
             alias={alias}
+            avatar={profile?.avatar}
             level={level}
             points={points}
             nextLevelProgress={nextLevelProgress}
@@ -305,8 +364,72 @@ export default function SettingsScreen() {
                   </Pressable>
                 </View>
 
+                <View className="mb-4 gap-3">
+                  <Text className="text-[14px] font-bold text-white">Cambiar Alias</Text>
+                  <View className="flex-row gap-3">
+                    <TextInput
+                      className="min-w-0 flex-1 rounded-lg border border-[#35557C] bg-[#0B2145] px-4 py-3 text-[15px] text-[#F5FBFF]"
+                      placeholder="Nuevo alias"
+                      placeholderTextColor="#8AAED0"
+                      value={newAlias}
+                      onChangeText={setNewAlias}
+                    />
+                    <Pressable
+                      onPress={handleChangeAlias}
+                      disabled={changingAlias || !newAlias.trim()}
+                      className="items-center justify-center rounded-lg bg-[#4FB8FF] px-4 py-3"
+                      style={({ pressed }) => ({ opacity: changingAlias ? 0.7 : pressed ? 0.86 : 1 })}
+                    >
+                      {changingAlias ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text className="font-bold text-white">Guardar</Text>
+                      )}
+                    </Pressable>
+                  </View>
+                </View>
+
                 <View className="overflow-hidden rounded-xl border border-[#172A4A] bg-[#0D1D3B]">
-                  <AccountRow icon="lock-closed-outline" title="Cambiar contraseña" onPress={() => showComingSoon('Cambiar contraseña')} />
+                  <AccountRow icon="lock-closed-outline" title="Cambiar contraseña" onPress={() => { }} expandable>
+                    <View className="gap-3 px-4 pb-4">
+                      <TextInput
+                        className="rounded-lg border border-[#35557C] bg-[#0B2145] px-4 py-3 text-[15px] text-[#F5FBFF]"
+                        placeholder="Contraseña actual"
+                        placeholderTextColor="#8AAED0"
+                        secureTextEntry
+                        value={currentPassword}
+                        onChangeText={setCurrentPassword}
+                      />
+                      <TextInput
+                        className="rounded-lg border border-[#35557C] bg-[#0B2145] px-4 py-3 text-[15px] text-[#F5FBFF]"
+                        placeholder="Nueva contraseña"
+                        placeholderTextColor="#8AAED0"
+                        secureTextEntry
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                      />
+                      <TextInput
+                        className="rounded-lg border border-[#35557C] bg-[#0B2145] px-4 py-3 text-[15px] text-[#F5FBFF]"
+                        placeholder="Confirmar nueva contraseña"
+                        placeholderTextColor="#8AAED0"
+                        secureTextEntry
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                      />
+                      <Pressable
+                        onPress={handleChangePassword}
+                        disabled={changingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword}
+                        className="items-center justify-center rounded-lg bg-[#4FB8FF] py-3"
+                        style={({ pressed }) => ({ opacity: changingPassword ? 0.7 : pressed ? 0.86 : 1 })}
+                      >
+                        {changingPassword ? (
+                          <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                          <Text className="font-bold text-white">Cambiar Contraseña</Text>
+                        )}
+                      </Pressable>
+                    </View>
+                  </AccountRow>
                   <AccountRow icon="mail-outline" title="Correo electrónico" value={email} onPress={() => showComingSoon('Cambiar correo electrónico')} />
                   <LinkedAccountRow onPress={() => showComingSoon('Cuentas vinculadas')} />
                   <Pressable onPress={handleSignOut} className="flex-row items-center gap-3 px-4 py-4">
@@ -393,9 +516,8 @@ function ThemeOption({
   return (
     <Pressable
       onPress={onPress}
-      className={`min-w-[220px] flex-1 flex-row items-center gap-4 rounded-xl border p-5 ${
-        active ? 'border-[#7C5CFF] bg-[#121B4C]' : 'border-[#172A4A] bg-[#0D1D3B]'
-      }`}
+      className={`min-w-[220px] flex-1 flex-row items-center gap-4 rounded-xl border p-5 ${active ? 'border-[#7C5CFF] bg-[#121B4C]' : 'border-[#172A4A] bg-[#0D1D3B]'
+        }`}
     >
       <Ionicons name={icon} size={34} color={icon === 'sunny-outline' ? '#FBBF24' : '#6170A5'} />
       <View className="min-w-0 flex-1">
@@ -531,23 +653,30 @@ function AccountRow({
   title,
   value,
   onPress,
+  expandable = false,
+  children,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   title: string
   value?: string
   onPress: () => void
+  expandable?: boolean
+  children?: React.ReactNode
 }) {
   return (
-    <Pressable onPress={onPress} className="flex-row items-center gap-3 border-b border-[#172A4A] px-4 py-4">
-      <Ionicons name={icon} size={20} color="#C5D0E2" />
-      <Text className="min-w-0 flex-1 font-semibold text-white">{title}</Text>
-      {value ? (
-        <Text className="max-w-[180px] text-[12px] text-[#B7C4D7]" numberOfLines={1}>
-          {value}
-        </Text>
-      ) : null}
-      <Ionicons name="chevron-forward" size={18} color="#B7C4D7" />
-    </Pressable>
+    <>
+      <Pressable onPress={onPress} className="flex-row items-center gap-3 border-b border-[#172A4A] px-4 py-4">
+        <Ionicons name={icon} size={20} color="#C5D0E2" />
+        <Text className="min-w-0 flex-1 font-semibold text-white">{title}</Text>
+        {value ? (
+          <Text className="max-w-[180px] text-[12px] text-[#B7C4D7]" numberOfLines={1}>
+            {value}
+          </Text>
+        ) : null}
+        <Ionicons name="chevron-forward" size={18} color="#B7C4D7" />
+      </Pressable>
+      {expandable && children ? <View>{children}</View> : null}
+    </>
   )
 }
 

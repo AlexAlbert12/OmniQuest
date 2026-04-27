@@ -8,9 +8,11 @@ import {
   Text,
   useWindowDimensions,
   View,
+  Image,
 } from 'react-native'
 import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as ImagePicker from 'expo-image-picker'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
 
@@ -93,6 +95,7 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState('')
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
 
   const isDesktop = width >= 1024
   const points = profile?.points ?? 0
@@ -145,6 +148,61 @@ export default function ProfileScreen() {
     }, [fetchProfile])
   )
 
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (status !== 'granted') {
+      Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para subir fotos.')
+      return
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    })
+
+    if (!result.canceled) {
+      await uploadImage(result.assets[0].uri)
+    }
+  }
+
+  const uploadImage = async (uri: string) => {
+    if (!profile) return
+
+    setUploading(true)
+    try {
+      const response = await fetch(uri)
+      const blob = await response.blob()
+      const fileName = `${profile.id}.jpg`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, blob, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      const { data: publicUrl } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName)
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar: publicUrl.publicUrl })
+        .eq('id', profile.id)
+
+      if (updateError) throw updateError
+
+      setProfile({ ...profile, avatar: publicUrl.publicUrl })
+      Alert.alert('Éxito', 'Foto de perfil actualizada.')
+    } catch (error: any) {
+      console.error('Error uploading image:', error)
+      Alert.alert('Error', 'No se pudo subir la imagen.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const showAlert = (title: string, message: string) => {
     if (Platform.OS === 'web') {
       window.alert(`${title}\n${message}`)
@@ -179,6 +237,7 @@ export default function ProfileScreen() {
           <StudentSidebar
             activeSection="profile"
             alias={alias}
+            avatar={profile?.avatar}
             level={level}
             points={points}
             nextLevelProgress={nextLevelProgress}
@@ -239,6 +298,9 @@ export default function ProfileScreen() {
               level={level}
               points={points}
               nextLevelProgress={nextLevelProgress}
+              profile={profile}
+              uploading={uploading}
+              onPickImage={pickImage}
             />
 
             <View className={isDesktop ? 'flex-[1.5] flex-row gap-4' : 'flex-row flex-wrap gap-4'}>
@@ -337,11 +399,17 @@ function ProfileHero({
   level,
   points,
   nextLevelProgress,
+  profile,
+  uploading,
+  onPickImage,
 }: {
   alias: string
   level: number
   points: number
   nextLevelProgress: number
+  profile: Profile | null
+  uploading: boolean
+  onPickImage: () => void
 }) {
   return (
     <View className="flex-1 overflow-hidden rounded-2xl border border-[#1C3762] bg-[#0B1B48] p-7">
@@ -352,12 +420,20 @@ function ProfileHero({
       <View className="absolute right-2 top-10 h-8 w-28 rounded-full border border-[#7B68FF]/45" style={{ transform: [{ rotate: '-18deg' }] }} />
 
       <View className="relative flex-row items-center gap-6">
-        <View className="h-28 w-28 items-center justify-center rounded-full border-4 border-[#91B8FF] bg-[#D8E7FF]">
-          <Text className="text-6xl">🧑‍🎓</Text>
+        <Pressable onPress={onPickImage} disabled={uploading} className="h-28 w-28 items-center justify-center rounded-full border-4 border-[#91B8FF] bg-[#D8E7FF]">
+          {profile?.avatar && profile.avatar.startsWith('http') ? (
+            <Image source={{ uri: profile.avatar }} className="h-full w-full rounded-full" />
+          ) : (
+            <Text className="text-6xl">🧑</Text>
+          )}
           <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-[#7C5CFF]">
-            <Ionicons name="create" size={15} color="#FFFFFF" />
+            {uploading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Ionicons name="create" size={15} color="#FFFFFF" />
+            )}
           </View>
-        </View>
+        </Pressable>
 
         <View className="min-w-0 flex-1">
           <Text className="text-[28px] font-black text-white">{alias}</Text>

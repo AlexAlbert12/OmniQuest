@@ -1,6 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Alert, Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
+
+// Fisher-Yates shuffle
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
 
 export function useGame(subjectId: string) {
   const [questions, setQuestions] = useState<any[]>([]);
@@ -28,13 +39,20 @@ export function useGame(subjectId: string) {
         return;
       }
 
+      const shuffledQuestions = shuffleArray(data);
+
+      const questionsWithShuffledAnswers = shuffledQuestions.map((q) => ({
+        ...q,
+        answers: shuffleArray(q.answers),
+      }));
+
       scoreRef.current = 0;
       setScore(0);
       setCurrentIndex(0);
       setLives(3);
       setStreak(0);
-      setQuestions(data);
-      setTimeLeft(data[0].time_limit_seconds ?? 30);
+      setQuestions(questionsWithShuffledAnswers);
+      setTimeLeft(questionsWithShuffledAnswers[0].time_limit_seconds ?? 30);
       setStatus('playing');
     } catch (error: any) {
       console.error(error);
@@ -64,8 +82,15 @@ export function useGame(subjectId: string) {
   }, [status, selectedAnswerId, currentIndex]);
 
   const handleTimeOut = () => {
-    setAnswerStatus('incorrect');
+    const currentQ = questions[currentIndex];
+    const correctAnswer = currentQ.answers.find((a: any) => a.is_correct);
+
+    // Marcar la respuesta correcta en verde
+    setSelectedAnswerId(correctAnswer?.id ?? null);
+    setAnswerStatus('correct');
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     setStreak(0);
+
     setLives((prev) => {
       const newLives = prev - 1;
       if (newLives <= 0) setTimeout(() => setStatus('gameOver'), 1500);
@@ -83,6 +108,7 @@ export function useGame(subjectId: string) {
 
     if (isCorrect) {
       setAnswerStatus('correct');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const timeBonus = Math.floor(timeLeft / 2);
       const streakMultiplier = 1 + (streak * 0.1);
       const earned = Math.floor(((currentQ.points_base ?? 10) + timeBonus) * streakMultiplier);
@@ -95,6 +121,7 @@ export function useGame(subjectId: string) {
       setStreak((prev) => prev + 1);
     } else {
       setAnswerStatus('incorrect');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setStreak(0);
       setLives((prev) => {
         const newLives = prev - 1;

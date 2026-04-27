@@ -21,7 +21,15 @@ type Profile = {
   role_id?: string | null
 }
 
-const activityItems = [
+type ActivityItem = {
+  icon: string
+  color: string
+  title: string
+  detail: string
+  time: string
+}
+
+const defaultActivityItems: ActivityItem[] = [
   {
     icon: 'checkmark',
     color: '#70E0A5',
@@ -43,7 +51,19 @@ const activityItems = [
     detail: 'Superaste tu puntaje en una clase',
     time: 'Ayer',
   },
-] as const
+]
+
+const getTimeAgo = (date: Date): string => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffHours < 1) return 'Hace menos de 1h';
+  if (diffHours < 24) return `Hace ${diffHours}h`;
+  if (diffDays === 1) return 'Ayer';
+  return `Hace ${diffDays} días`;
+};
 
 export default function StudentHome() {
   const { width } = useWindowDimensions()
@@ -55,6 +75,7 @@ export default function StudentHome() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
+  const [activityItems, setActivityItems] = useState<ActivityItem[]>(defaultActivityItems)
   const router = useRouter()
 
   const isDesktop = width >= 1024
@@ -88,7 +109,7 @@ export default function StudentHome() {
 
       setCurrentUserId(userId);
 
-      const [profileResult, enrollmentsResult, scoresResult, rankingResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, scoresResult, rankingResult, activityResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, points, role_id').eq('id', userId).single(),
         supabase
           .from('enrollments')
@@ -105,12 +126,20 @@ export default function StudentHome() {
           .eq('role_id', 'student')
           .order('points', { ascending: false })
           .limit(5),
+        supabase
+          .from('subject_scores')
+          .select('subject_id, max_score, played_at, subjects(name)')
+          .eq('student_id', userId)
+          .not('played_at', 'is', null)
+          .order('played_at', { ascending: false })
+          .limit(3),
       ]);
 
       if (profileResult.error) throw profileResult.error;
       if (enrollmentsResult.error) throw enrollmentsResult.error;
       if (scoresResult.error) throw scoresResult.error;
       if (rankingResult.error) throw rankingResult.error;
+      if (activityResult.error) throw activityResult.error;
 
       setProfile(profileResult.data);
       setEnrolledSubjects(enrollmentsResult.data?.map(e => e.subjects).filter(Boolean) || []);
@@ -121,6 +150,22 @@ export default function StudentHome() {
         scoreMap[s.subject_id] = s.max_score;
       });
       setSubjectScores(scoreMap);
+
+      const activities: ActivityItem[] = activityResult.data?.map((score) => {
+        const timeAgo = getTimeAgo(new Date(score.played_at));
+        
+        const subjectData = score.subjects as any;
+        const subjectName = Array.isArray(subjectData) ? subjectData[0]?.name : subjectData?.name;
+
+        return {
+          icon: 'trophy',
+          color: '#8B5CF6',
+          title: `Obtuviste ${score.max_score} XP`,
+          detail: subjectName || 'Materia desconocida',
+          time: timeAgo,
+        };
+      }) || [];
+      setActivityItems(activities.length > 0 ? activities : defaultActivityItems);
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -202,6 +247,7 @@ export default function StudentHome() {
           <StudentSidebar
             activeSection="home"
             alias={alias}
+            avatar={profile?.avatar}
             level={level}
             points={points}
             nextLevelProgress={nextLevelProgress}
@@ -536,7 +582,7 @@ function EmptyClasses() {
   )
 }
 
-function ActivityRow({ item }: { item: (typeof activityItems)[number] }) {
+function ActivityRow({ item }: { item: ActivityItem }) {
   return (
     <View className="flex-row items-start gap-3">
       <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: `${item.color}29` }}>

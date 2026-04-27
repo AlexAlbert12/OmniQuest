@@ -153,6 +153,7 @@ export default function RankingScreen() {
           <StudentSidebar
             activeSection="ranking"
             alias={alias}
+            avatar={currentProfile?.avatar}
             level={level}
             points={points}
             nextLevelProgress={nextLevelProgress}

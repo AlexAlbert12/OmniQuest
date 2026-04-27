@@ -1,5 +1,5 @@
 import React from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { Pressable, Text, View, Image } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 
@@ -8,6 +8,7 @@ export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'prof
 type StudentSidebarProps = {
   activeSection: StudentSection
   alias: string
+  avatar?: string | null
   level: number
   points: number
   nextLevelProgress: number
@@ -32,6 +33,7 @@ const navItems: {
 export default function StudentSidebar({
   activeSection,
   alias,
+  avatar,
   level,
   points,
   nextLevelProgress,
@@ -59,7 +61,7 @@ export default function StudentSidebar({
               <Ionicons
                 name={item.icon}
                 size={20}
-                color={isActive ? '#B09BFF' : '#94A7C4'}
+                color={isActive ? '#9FD6FF' : '#94A7C4'}
               />
               <Text className={`text-[14px] font-semibold ${isActive ? 'text-white' : 'text-[#A7B6CE]'}`}>
                 {item.label}
@@ -85,8 +87,12 @@ export default function StudentSidebar({
 
       <View className="mt-auto rounded-2xl border border-[#162B50] bg-[#091A35] p-4">
         <View className="flex-row items-center gap-3">
-          <View className="h-12 w-12 items-center justify-center rounded-full bg-[#192C62]">
-            <Text className="text-2xl">🧑</Text>
+          <View className="h-12 w-12 items-center justify-center rounded-full bg-[#192C62] overflow-hidden">
+            {avatar && avatar.startsWith('http') ? (
+              <Image source={{ uri: avatar }} className="h-full w-full" />
+            ) : (
+          <Ionicons name="person" size={16} color="#9FD6FF" />
+            )}
           </View>
           <View className="min-w-0 flex-1">
             <Text className="text-[14px] font-bold text-white">{alias}</Text>

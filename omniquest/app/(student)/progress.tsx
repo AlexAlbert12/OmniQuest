@@ -129,6 +129,7 @@ export default function ProgressScreen() {
           <StudentSidebar
             activeSection="progress"
             alias={alias}
+            avatar={profile?.avatar}
             level={level}
             points={points}
             nextLevelProgress={nextLevelProgress}

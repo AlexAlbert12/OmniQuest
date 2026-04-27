@@ -193,6 +193,7 @@ export default function ClassesScreen() {
           <StudentSidebar
             activeSection="classes"
             alias={alias}
+            avatar={profile?.avatar}
             level={level}
             points={points}
             nextLevelProgress={nextLevelProgress}
