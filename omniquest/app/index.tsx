@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter, Link } from 'expo-router'
-import { Alert, Platform, Pressable, ScrollView, Text, useWindowDimensions, View, } from 'react-native'
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, useWindowDimensions, View, } from 'react-native'
+import { useState } from 'react'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
 import SpaceBackground from '../components/SpaceBackground'
+import { supabase } from '../lib/supabase'
 
 type Feature = {
   icon: keyof typeof Ionicons.glyphMap
@@ -74,6 +76,7 @@ const features: Feature[] = [
 export default function IndexScreen() {
   const { width, height } = useWindowDimensions()
   const router = useRouter()
+  const [guestLoading, setGuestLoading] = useState(false)
 
   const isDesktop = width >= 1100
   const isTablet = width >= 760
@@ -89,6 +92,45 @@ export default function IndexScreen() {
     }
 
     Alert.alert(title, message)
+  }
+
+  const enterAsGuest = async () => {
+    setGuestLoading(true)
+    try {
+      const guestAlias = `Invitado${Math.floor(1000 + Math.random() * 9000)}`
+      const { data, error } = await supabase.auth.signInAnonymously({
+        options: {
+          data: {
+            alias: guestAlias,
+            role_id: 'guest',
+          },
+        },
+      })
+
+      if (error) throw error
+
+      if (data.user) {
+        await supabase
+          .from('profiles')
+          .upsert({
+            id: data.user.id,
+            alias: guestAlias,
+            role_id: 'guest',
+            points: 0,
+          })
+      }
+
+      router.replace('/(student)/home' as any)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo entrar como invitado.'
+      if (Platform.OS === 'web') {
+        window.alert(`Error\n\n${message}`)
+      } else {
+        Alert.alert('Error', message)
+      }
+    } finally {
+      setGuestLoading(false)
+    }
   }
 
   return (
@@ -141,7 +183,8 @@ export default function IndexScreen() {
                 isDesktop={isDesktop}
                 isTablet={isTablet}
                 onLoginPress={() => router.push('/login')}
-                onGuestPress={() => router.push('/register')}
+                onGuestPress={enterAsGuest}
+                guestLoading={guestLoading}
               />
             </View>
           </View>
@@ -157,11 +200,13 @@ function LandingPanel({
   isTablet,
   onLoginPress,
   onGuestPress,
+  guestLoading,
 }: {
   isDesktop: boolean
   isTablet: boolean
   onLoginPress: () => void
   onGuestPress: () => void
+  guestLoading: boolean
 }) {
   const actionsDirection = isTablet ? 'row' : 'column'
 
@@ -235,13 +280,15 @@ function LandingPanel({
 
         <Pressable
           onPress={onGuestPress}
+          disabled={guestLoading}
           className="justify-between w-full rounded-2xl p-4 flex-row items-center gap-2 bg-[#7942DFeB] hover:bg-[#6b3ac6eb] transition-all duration-200 hover:scale-[1.02] "
+          style={({ pressed }) => ({ opacity: guestLoading ? 0.7 : pressed ? 0.86 : 1 })}
         >
           <View className="flex-row items-center gap-3">
-            <Ionicons name="glasses" size={20} color="#F5FBFF" />
-            <Text className="text-[16px] text-white">Entrar como Invitado</Text>
+            {guestLoading ? <ActivityIndicator color="#F5FBFF" /> : <Ionicons name="glasses" size={20} color="#F5FBFF" />}
+            <Text className="text-[16px] text-white">{guestLoading ? 'Entrando...' : 'Entrar como Invitado'}</Text>
           </View>
-          <Ionicons name="arrow-forward" size={18} color="#F5FBFF" />
+          {!guestLoading ? <Ionicons name="arrow-forward" size={18} color="#F5FBFF" /> : null}
         </Pressable>
       </View>
       <View className="mt-6 border-t border-[#17365F] bg-[#06162F] px-5 py-5">

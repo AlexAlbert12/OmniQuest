@@ -509,6 +509,13 @@ function BottomNav() {
           <Text className="mt-1 text-[11px] text-[#AFC2DB]">Perfil</Text>
         </Pressable>
       </Link>
+
+      <Link href="/(student)/settings" asChild>
+        <Pressable className="items-center opacity-70">
+          <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
+          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Configuración</Text>
+        </Pressable>
+      </Link>
     </View>
   )
 }

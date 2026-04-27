@@ -554,6 +554,13 @@ function BottomNav() {
         <Ionicons name="person" size={22} color="#B09BFF" />
         <Text className="mt-1 text-[11px] font-bold text-[#B09BFF]">Perfil</Text>
       </Pressable>
+
+      <Link href="/(student)/settings" asChild>
+        <Pressable className="items-center opacity-70">
+          <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
+          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Configuración</Text>
+        </Pressable>
+      </Link>
     </View>
   )
 }

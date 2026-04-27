@@ -35,13 +35,27 @@ export default function RootLayout() {
         pathname === '/' || 
         pathname === '/login' || 
         pathname === '/register' || 
+        pathname === '/forgot-password' ||
+        pathname === '/update-password' ||
         pathname === '/(auth)/login' || 
-        pathname === '/(auth)/register'
+        pathname === '/(auth)/register' ||
+        pathname === '/(auth)/forgot-password' ||
+        pathname === '/(auth)/update-password'
+      const isPasswordRecoveryRoute =
+        pathname === '/update-password' ||
+        pathname === '/(auth)/update-password'
 
       if (!session) {
         if (!isAuthRoute) {
           redirectToLogin()
         }
+        if (isMounted) {
+          setIsInitialized(true)
+        }
+        return
+      }
+
+      if (isPasswordRecoveryRoute) {
         if (isMounted) {
           setIsInitialized(true)
         }
@@ -60,11 +74,27 @@ export default function RootLayout() {
         return
       }
 
-      const { data: profile, error: profileError } = await supabase
+      let { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role_id')
         .eq('id', session.user.id)
         .maybeSingle()
+
+      if (!profile && userData.user.is_anonymous) {
+        const { data: guestProfile, error: guestProfileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: session.user.id,
+            alias: session.user.user_metadata?.alias || 'Invitado',
+            role_id: 'guest',
+            points: 0,
+          })
+          .select('role_id')
+          .single()
+
+        profile = guestProfile
+        profileError = guestProfileError
+      }
 
       if (!isMounted) {
         return

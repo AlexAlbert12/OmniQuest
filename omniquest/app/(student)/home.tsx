@@ -1,15 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native'
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View, } from 'react-native'
 import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
@@ -28,6 +18,7 @@ type Profile = {
   alias: string
   avatar: string | null
   points: number | null
+  role_id?: string | null
 }
 
 const activityItems = [
@@ -58,6 +49,7 @@ export default function StudentHome() {
   const { width } = useWindowDimensions()
   const [inviteCode, setInviteCode] = useState('')
   const [enrolledSubjects, setEnrolledSubjects] = useState<Subject[]>([])
+  const [subjectScores, setSubjectScores] = useState<Record<number, number>>({});
   const [profile, setProfile] = useState<Profile | null>(null)
   const [ranking, setRanking] = useState<Profile[]>([])
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
@@ -76,59 +68,72 @@ export default function StudentHome() {
 
   const topRanking = useMemo(() => {
     if (ranking.length > 0) return ranking.slice(0, 5)
+    const isGuest = profile?.role_id === 'guest'
 
     return [
       { id: 'demo-1', alias: 'Sofia_R', avatar: null, points: 4250 },
       { id: 'demo-2', alias: 'Mateo09', avatar: null, points: 3890 },
-      { id: currentUserId || 'demo-me', alias, avatar: null, points: Math.max(points, 3210) },
+      isGuest
+        ? { id: 'demo-3', alias: 'CamilaStar', avatar: null, points: 3450 }
+        : { id: currentUserId || 'demo-me', alias, avatar: null, points: Math.max(points, 3210) },
       { id: 'demo-4', alias: 'Lucho94', avatar: null, points: 2980 },
     ]
-  }, [alias, currentUserId, points, ranking])
+  }, [alias, currentUserId, points, profile?.role_id, ranking])
 
-  const fetchDashboard = useCallback(async () => {
-    setLoading(true)
-
+  const fetchMySubjectsAndScores = async () => {
     try {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
-      setCurrentUserId(userId || null)
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+      const userId = session.session.user.id;
 
-      if (!userId) return
+      setCurrentUserId(userId);
 
-      const [enrollmentsResult, profileResult, rankingResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, scoresResult, rankingResult] = await Promise.all([
+        supabase.from('profiles').select('id, alias, avatar, points, role_id').eq('id', userId).single(),
         supabase
           .from('enrollments')
           .select('*, subjects(*)')
           .eq('student_id', userId)
           .order('joined_at', { ascending: false }),
-        supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
+        supabase
+          .from('subject_scores')
+          .select('subject_id, max_score')
+          .eq('student_id', userId),
         supabase
           .from('profiles')
-          .select('id, alias, points, avatar')
+          .select('id, alias, avatar, points')
           .eq('role_id', 'student')
           .order('points', { ascending: false })
           .limit(5),
-      ])
+      ]);
 
-      if (enrollmentsResult.error) throw enrollmentsResult.error
-      if (profileResult.error) throw profileResult.error
-      if (rankingResult.error) throw rankingResult.error
+      if (profileResult.error) throw profileResult.error;
+      if (enrollmentsResult.error) throw enrollmentsResult.error;
+      if (scoresResult.error) throw scoresResult.error;
+      if (rankingResult.error) throw rankingResult.error;
 
-      setEnrolledSubjects(enrollmentsResult.data?.map((enrollment: any) => enrollment.subjects) || [])
-      setProfile(profileResult.data)
-      setRanking(rankingResult.data || [])
+      setProfile(profileResult.data);
+      setEnrolledSubjects(enrollmentsResult.data?.map(e => e.subjects).filter(Boolean) || []);
+      setRanking(rankingResult.data || []);
+
+      const scoreMap: Record<number, number> = {};
+      scoresResult.data?.forEach(s => {
+        scoreMap[s.subject_id] = s.max_score;
+      });
+      setSubjectScores(scoreMap);
+
     } catch (error) {
-      console.error('Error fetching student dashboard:', error)
+      console.error('Error fetching data:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  };
 
   useFocusEffect(
     useCallback(() => {
-      fetchDashboard()
-    }, [fetchDashboard])
-  )
+      fetchMySubjectsAndScores();
+    }, [])
+  );
 
   const showAlert = (title: string, message: string) => {
     if (Platform.OS === 'web') {
@@ -173,7 +178,7 @@ export default function StudentHome() {
 
       showAlert('¡Éxito!', `Te has unido a ${subject.name}`)
       setInviteCode('')
-      fetchDashboard()
+      fetchMySubjectsAndScores()
     } catch (error: any) {
       showAlert('Error', error.message)
     } finally {
@@ -284,7 +289,12 @@ export default function StudentHome() {
               <View style={{ gap: 10 }}>
                 {enrolledSubjects.length > 0 ? (
                   enrolledSubjects.slice(0, 3).map((subject, index) => (
-                    <SubjectRow key={subject.id} subject={subject} index={index} />
+                    <SubjectRow
+                      key={subject.id}
+                      subject={subject}
+                      index={index}
+                      score={subjectScores[subject.id]}
+                    />
                   ))
                 ) : (
                   <EmptyClasses />
@@ -459,9 +469,10 @@ function MetricCard({
   )
 }
 
-function SubjectRow({ subject, index }: { subject: Subject; index: number }) {
+function SubjectRow({ subject, index, score }: { subject: Subject; index: number; score?: number }) {
   const colors = ['#4ADE80', '#8B5CF6', '#3B82F6']
-  const progress = [75, 50, 30][index] || 35
+  const hasScore = typeof score === 'number'
+  const progress = hasScore ? 100 : [75, 50, 30][index] || 35
   const color = subject.theme_color || colors[index] || '#58B5FF'
 
   return (
@@ -485,12 +496,29 @@ function SubjectRow({ subject, index }: { subject: Subject; index: number }) {
           <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>
             {subject.description || 'Retos y ejercicios disponibles'}
           </Text>
+          <View className="mt-2 flex-row flex-wrap items-center gap-2">
+            <View className={`rounded-md px-2 py-1 ${hasScore ? 'bg-[#221B58]' : 'bg-[#122544]'}`}>
+              <Text className={`text-[10px] font-bold ${hasScore ? 'text-[#B9A7FF]' : 'text-[#8FA7C7]'}`}>
+                {hasScore ? `Mejor nota: ${score.toLocaleString()} XP` : 'Sin puntuación'}
+              </Text>
+            </View>
+            {hasScore ? (
+              <View className="rounded-md bg-[#0F2F2B] px-2 py-1">
+                <Text className="text-[10px] font-bold text-[#43D991]">Completada</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
         <View className="mx-3 h-2 w-16 overflow-hidden rounded-full bg-[#182D50]">
           <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: color }} />
         </View>
         <Text className="mr-3 text-[11px] text-[#8FA7C7]">{progress}%</Text>
-        <Ionicons name="arrow-forward" size={16} color="#7F91AD" />
+        <View className="ml-2 flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-3 py-2">
+          <Ionicons name={hasScore ? 'refresh' : 'play'} size={14} color="#FFFFFF" />
+          <Text className="hidden text-[12px] font-bold text-white sm:flex">
+            {hasScore ? 'Volver a jugar' : 'Jugar'}
+          </Text>
+        </View>
       </Pressable>
     </Link>
   )
@@ -602,6 +630,13 @@ function BottomNav() {
         <Pressable className="items-center opacity-70">
           <Ionicons name="person-outline" size={22} color="#AFC2DB" />
           <Text className="mt-1 text-[11px] text-[#AFC2DB]">Perfil</Text>
+        </Pressable>
+      </Link>
+
+      <Link href="/(student)/settings" asChild>
+        <Pressable className="items-center opacity-70">
+          <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
+          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Configuración</Text>
         </Pressable>
       </Link>
     </View>

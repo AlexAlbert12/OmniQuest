@@ -8,36 +8,60 @@ export default function SubjectDetailScreen() {
     const { id } = useLocalSearchParams();
     const [subject, setSubject] = useState<any>(null);
     const [questions, setQuestions] = useState<any[]>([]);
+    const [studentCount, setStudentCount] = useState(0);
+    const [averageScore, setAverageScore] = useState(0);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
+        setLoading(true);
         try {
-            const { data: subjectData } = await supabase
-                .from('subjects')
-                .select('*')
-                .eq('id', id)
-                .single();
-            setSubject(subjectData);
+            const [subjectResult, questionsResult, enrollmentsResult, scoresResult] = await Promise.all([
+                supabase
+                    .from('subjects')
+                    .select('*')
+                    .eq('id', id)
+                    .single(),
+                supabase
+                    .from('questions')
+                    .select('*, answers(*)')
+                    .eq('subject_id', id)
+                    .order('created_at', { ascending: false }),
+                supabase
+                    .from('enrollments')
+                    .select('student_id')
+                    .eq('subject_id', id),
+                supabase
+                    .from('subject_scores')
+                    .select('max_score')
+                    .eq('subject_id', id),
+            ]);
 
-            const { data: questionsData } = await supabase
-                .from('questions')
-                .select('*, answers(*)')
-                .eq('subject_id', id)
-                .order('created_at', { ascending: false });
+            if (subjectResult.error) throw subjectResult.error;
+            if (questionsResult.error) throw questionsResult.error;
+            if (enrollmentsResult.error) throw enrollmentsResult.error;
+            if (scoresResult.error) throw scoresResult.error;
 
-            setQuestions(questionsData || []);
+            setSubject(subjectResult.data);
+            setQuestions(questionsResult.data || []);
+            setStudentCount(enrollmentsResult.data?.length || 0);
+
+            const scores = scoresResult.data
+                ?.map((item) => item.max_score)
+                .filter((score): score is number => typeof score === 'number') || [];
+            const totalScore = scores.reduce((total, score) => total + score, 0);
+            setAverageScore(scores.length > 0 ? Math.round(totalScore / scores.length) : 0);
         } catch (error) {
             console.error('Error fetching details:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
 
     useFocusEffect(
         useCallback(() => {
             fetchData();
-        }, [id])
+        }, [fetchData])
     );
 
     const executeDelete = async (questionId: number) => {
@@ -129,6 +153,25 @@ export default function SubjectDetailScreen() {
                 </View>
             </View>
 
+            <View className="mb-5 flex-row flex-wrap gap-3">
+                <SummaryCard icon="help-circle-outline" value={String(questions.length)} label="Preguntas" color="#818cf8" />
+                <SummaryCard icon="people-outline" value={String(studentCount)} label="Alumnos inscritos" color="#38bdf8" />
+                <SummaryCard icon="analytics-outline" value={`${averageScore} XP`} label="Nota media" color="#a78bfa" />
+            </View>
+
+            <View className="mb-5 flex-row rounded-2xl border border-slate-700 bg-slate-800 p-1">
+                <Pressable className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-3">
+                    <Ionicons name="help-circle" size={18} color="#FFFFFF" />
+                    <Text className="font-bold text-white">Preguntas</Text>
+                </Pressable>
+                <Link href={`/(teacher)/subject/students?subjectId=${id}`} asChild>
+                    <Pressable className="flex-1 flex-row items-center justify-center gap-2 rounded-xl px-4 py-3">
+                        <Ionicons name="people-outline" size={18} color="#cbd5e1" />
+                        <Text className="font-bold text-slate-300">Alumnos</Text>
+                    </Pressable>
+                </Link>
+            </View>
+
             <Text className="text-slate-400 mb-4 font-semibold">PREGUNTAS DE LA ASIGNATURA</Text>
 
             <FlatList
@@ -149,6 +192,28 @@ export default function SubjectDetailScreen() {
                     <Ionicons name="add" size={32} color="white" />
                 </Pressable>
             </Link>
+        </View>
+    );
+}
+
+function SummaryCard({
+    icon,
+    value,
+    label,
+    color,
+}: {
+    icon: keyof typeof Ionicons.glyphMap
+    value: string
+    label: string
+    color: string
+}) {
+    return (
+        <View className="min-w-[150px] flex-1 rounded-2xl border border-slate-700 bg-slate-800 p-4">
+            <View className="mb-3 h-10 w-10 items-center justify-center rounded-xl bg-slate-900">
+                <Ionicons name={icon} size={21} color={color} />
+            </View>
+            <Text className="text-2xl font-black text-white">{value}</Text>
+            <Text className="mt-1 text-xs font-semibold text-slate-400">{label}</Text>
         </View>
     );
 }

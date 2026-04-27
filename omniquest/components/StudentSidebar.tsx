@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 
-export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'profile'
+export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'profile' | 'settings'
 
 type StudentSidebarProps = {
   activeSection: StudentSection
@@ -26,7 +26,7 @@ const navItems: {
   { section: 'progress', label: 'Progreso', icon: 'stats-chart-outline', href: '/(student)/progress' },
   { section: 'ranking', label: 'Ranking', icon: 'trophy-outline', href: '/(student)/ranking' },
   { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(student)/profile' },
-  { label: 'Ajustes', icon: 'settings-outline' },
+  { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(student)/settings' },
 ]
 
 export default function StudentSidebar({

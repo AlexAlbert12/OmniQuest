@@ -22,7 +22,11 @@ export function getEmailRedirectTo(path = '/login') {
   return Linking.createURL(path)
 }
 
-export function getAuthErrorMessage(error: AuthErrorLike, mode: 'signIn' | 'signUp') {
+export function getPasswordRecoveryRedirectTo() {
+  return getEmailRedirectTo('/update-password')
+}
+
+export function getAuthErrorMessage(error: AuthErrorLike, mode: 'signIn' | 'signUp' | 'resetPassword' | 'updatePassword') {
   switch (error.code) {
     case 'email_not_confirmed':
       return 'Debes confirmar tu correo antes de iniciar sesion.'
@@ -32,6 +36,8 @@ export function getAuthErrorMessage(error: AuthErrorLike, mode: 'signIn' | 'sign
       return 'Supabase esta rechazando ese correo. Usa un email real y revisa la configuracion de Email Auth en Supabase.'
     case 'user_already_exists':
       return 'Ya existe una cuenta con ese correo.'
+    case 'weak_password':
+      return 'La contrasena debe ser mas segura.'
     default:
       if (mode === 'signUp' && error.message?.includes('User already registered')) {
         return 'Ya existe una cuenta con ese correo.'

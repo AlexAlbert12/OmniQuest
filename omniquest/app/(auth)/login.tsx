@@ -19,18 +19,6 @@ export default function LoginScreen() {
   const isTablet = width >= 760
   const isWeb = Platform.OS === 'web'
 
-  const showPasswordRecoverySoon = () => {
-    const title = 'Próximamente'
-    const message = 'La recuperación de contraseña estará disponible pronto.'
-
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n\n${message}`)
-      return
-    }
-
-    Alert.alert(title, message)
-  }
-
   async function signInWithEmail() {
     console.log('[login] button pressed')
     setStatusMessage('Boton pulsado')
@@ -97,6 +85,7 @@ export default function LoginScreen() {
           borderRadius: isWeb ? 0 : 34,
         }}
       >
+
         <SpaceBackground isDesktop={isDesktop} />
 
         <View
@@ -106,6 +95,15 @@ export default function LoginScreen() {
             paddingVertical: isDesktop ? 42 : 28,
           }}
         >
+          <Link href="/" asChild className="absolute top-5 left-5">
+            <Pressable
+              className="rounded-full border border-[#4FB8FF] p-4"
+              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+            >
+              <Ionicons name="home" size={18} color="#8CD5FF" />
+            </Pressable>
+          </Link>
+
           <View className="items-center px-2">
             <Text
               style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 72 : 40 }}
@@ -126,6 +124,7 @@ export default function LoginScreen() {
               <Ionicons name="rocket" size={18} color="#8CD5FF" />
               <View className="h-px w-16 bg-[#3B6FA5]" />
             </View>
+
           </View>
 
           <View
@@ -179,7 +178,7 @@ export default function LoginScreen() {
                     style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
                   >
                     <Ionicons
-                     className="ml-2"
+                      className="ml-2"
                       name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                       size={18}
                       color="#9FC7E2"
@@ -208,14 +207,13 @@ export default function LoginScreen() {
                   <Text className="text-[13px] text-[#D8E7F6]">Recordarme</Text>
                 </Pressable>
 
-                <Pressable
-                  onPress={showPasswordRecoverySoon}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.74 : 1 })}
-                >
-                  <Text className="text-[13px] font-semibold text-[#8CD5FF]">
-                    ¿Olvidaste tu contraseña?
-                  </Text>
-                </Pressable>
+                <Link href="/forgot-password" asChild>
+                  <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.74 : 1 })}>
+                    <Text className="text-[13px] font-semibold text-[#8CD5FF]">
+                      ¿Olvidaste tu contraseña?
+                    </Text>
+                  </Pressable>
+                </Link>
               </View>
 
               <Pressable
@@ -252,7 +250,7 @@ export default function LoginScreen() {
               ) : null}
             </View>
 
-            <View className="border-t border-[#17365F] bg-[#06162F] px-5 py-5">
+            <View className="border-t border-[#17365F] px-5 pt-5">
               <View className="flex-row flex-wrap items-center justify-center gap-1">
                 <Text className="text-[13px] text-[#AFCBE3]">¿No tienes cuenta?</Text>
                 <Link href="/register" asChild>

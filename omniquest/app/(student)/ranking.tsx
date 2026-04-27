@@ -19,6 +19,7 @@ type Profile = {
   alias: string
   avatar: string | null
   points: number | null
+  role_id?: string | null
 }
 
 const fallbackRanking: Profile[] = [
@@ -42,20 +43,22 @@ export default function RankingScreen() {
   const isDesktop = width >= 1024
   const rankingRows = useMemo(() => {
     if (profiles.length > 0) return profiles
+    const isGuest = currentProfile?.role_id === 'guest'
 
     return fallbackRanking.map((item) =>
-      item.alias === 'Alex' && currentUserId
+      item.alias === 'Alex' && currentUserId && !isGuest
         ? { ...item, id: currentUserId, alias: currentProfile?.alias || item.alias, points: currentProfile?.points ?? item.points }
         : item
     )
-  }, [currentProfile?.alias, currentProfile?.points, currentUserId, profiles])
+  }, [currentProfile?.alias, currentProfile?.points, currentProfile?.role_id, currentUserId, profiles])
 
   const points = currentProfile?.points ?? rankingRows.find((item) => item.id === currentUserId)?.points ?? 3210
   const alias = currentProfile?.alias || 'Alex'
   const level = Math.floor(points / 100) + 1
   const nextLevelProgress = points % 100
+  const isGuest = currentProfile?.role_id === 'guest'
   const currentRankIndex = rankingRows.findIndex((item) => item.id === currentUserId)
-  const currentRank = currentRankIndex >= 0 ? currentRankIndex + 1 : 4
+  const currentRank = !isGuest && currentRankIndex >= 0 ? currentRankIndex + 1 : 4
   const maxPoints = Math.max(...rankingRows.map((item) => item.points ?? 0), 1)
 
   const fetchRanking = useCallback(async () => {
@@ -69,7 +72,7 @@ export default function RankingScreen() {
       if (userId) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('id, alias, points, avatar')
+          .select('id, alias, points, avatar, role_id')
           .eq('id', userId)
           .single()
 
@@ -239,7 +242,7 @@ export default function RankingScreen() {
             </View>
 
             <View className={isDesktop ? 'flex-1 gap-5' : 'gap-5'}>
-              <PositionCard rank={currentRank} points={points} />
+              <PositionCard rank={currentRank} points={points} isGuest={isGuest} />
               <LeagueCard />
               <WeeklyChallenge points={points} />
             </View>
@@ -336,7 +339,7 @@ function RankingRow({
   )
 }
 
-function PositionCard({ rank, points }: { rank: number; points: number }) {
+function PositionCard({ rank, points, isGuest }: { rank: number; points: number; isGuest: boolean }) {
   const nextProgress = Math.min(100, (points % 2000) / 20)
 
   return (
@@ -344,11 +347,11 @@ function PositionCard({ rank, points }: { rank: number; points: number }) {
       <Text className="text-[16px] font-black text-white">Tu posición</Text>
       <View className="items-center py-5">
         <View className="h-36 w-36 items-center justify-center rounded-[38px] border-[8px] border-[#5364F5] bg-[#15235A]">
-          <Text className="text-[56px] font-black text-white">{rank}</Text>
+          <Text className="text-[56px] font-black text-white">{isGuest ? '-' : rank}</Text>
         </View>
-        <Text className="mt-4 text-[16px] font-black text-white">¡Sigue así!</Text>
+        <Text className="mt-4 text-[16px] font-black text-white">{isGuest ? 'Modo invitado' : '¡Sigue así!'}</Text>
         <Text className="mt-1 text-center text-[13px] text-[#AFC2DB]">
-          Estás en el top 10% de estudiantes 🚀
+          {isGuest ? 'Crea una cuenta para aparecer en el ranking.' : 'Estás en el top 10% de estudiantes 🚀'}
         </Text>
       </View>
       <View className="rounded-xl border border-[#172A4A] bg-[#0A1A34] p-4">
@@ -442,6 +445,13 @@ function BottomNav() {
         <Pressable className="items-center opacity-70">
           <Ionicons name="person-outline" size={22} color="#AFC2DB" />
           <Text className="mt-1 text-[11px] text-[#AFC2DB]">Perfil</Text>
+        </Pressable>
+      </Link>
+
+      <Link href="/(student)/settings" asChild>
+        <Pressable className="items-center opacity-70">
+          <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
+          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Configuración</Text>
         </Pressable>
       </Link>
     </View>

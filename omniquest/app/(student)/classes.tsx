@@ -42,6 +42,7 @@ export default function ClassesScreen() {
   const { width } = useWindowDimensions()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [subjectScores, setSubjectScores] = useState<Record<number, number>>({})
   const [inviteCode, setInviteCode] = useState('')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -63,9 +64,14 @@ export default function ClassesScreen() {
   const alias = profile?.alias || 'Alex'
   const level = Math.floor(points / 100) + 1
   const nextLevelProgress = points % 100
-  const activeClasses = Math.max(subjects.length, 5)
-  const averageProgress = Math.min(96, Math.max(42, 48 + subjects.length * 6 + Math.floor(points / 200)))
-  const completedLessons = Math.max(12, subjects.length * 3 + Math.floor(points / 180))
+  const realScores = useMemo(() => Object.values(subjectScores), [subjectScores])
+  const activeClasses = Math.max(subjects.length, subjects.length > 0 ? 0 : 5)
+  const averageScore = realScores.length > 0
+    ? Math.round(realScores.reduce((total, score) => total + score, 0) / realScores.length)
+    : 0
+  const averageProgress = subjects.length > 0
+    ? Math.round((realScores.length / subjects.length) * 100)
+    : 0
 
   const fetchClasses = useCallback(async () => {
     setLoading(true)
@@ -76,17 +82,22 @@ export default function ClassesScreen() {
 
       if (!userId) return
 
-      const [profileResult, enrollmentsResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, scoresResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
         supabase
           .from('enrollments')
           .select('*, subjects(id, name, description, icon, theme_color)')
           .eq('student_id', userId)
           .order('joined_at', { ascending: false }),
+        supabase
+          .from('subject_scores')
+          .select('subject_id, max_score')
+          .eq('student_id', userId),
       ])
 
       if (profileResult.error) throw profileResult.error
       if (enrollmentsResult.error) throw enrollmentsResult.error
+      if (scoresResult.error) throw scoresResult.error
 
       setProfile(profileResult.data)
       setSubjects(
@@ -94,6 +105,14 @@ export default function ClassesScreen() {
           ?.map((enrollment: any) => enrollment.subjects)
           .filter(Boolean) || []
       )
+
+      const scoreMap: Record<number, number> = {}
+      scoresResult.data?.forEach((score) => {
+        if (score.subject_id !== null && score.max_score !== null) {
+          scoreMap[score.subject_id] = score.max_score
+        }
+      })
+      setSubjectScores(scoreMap)
     } catch (error) {
       console.error('Error fetching classes:', error)
     } finally {
@@ -230,9 +249,9 @@ export default function ClassesScreen() {
 
           <View className={isDesktop ? 'flex-row gap-4' : 'gap-4'}>
             <StatCard icon="school" color="#6574FF" value={String(activeClasses)} label="Clases activas" detail="Sigue aprendiendo 🚀" />
-            <StatCard icon="checkmark-circle" color="#43D991" value={`${averageProgress}%`} label="Promedio general" detail="¡Vas por buen camino!" />
-            <StatCard icon="star" color="#F6A64A" value={String(completedLessons)} label="Lecciones completadas" detail="Sigue así, crack 💪" />
-            <StatCard icon="time" color="#58B5FF" value="24h 35m" label="Tiempo de estudio" detail="Esta semana" />
+            <StatCard icon="checkmark-circle" color="#43D991" value={`${averageProgress}%`} label="Clases completadas" detail="Con puntuación guardada" />
+            <StatCard icon="star" color="#F6A64A" value={averageScore > 0 ? `${averageScore} XP` : '0 XP'} label="Promedio de nota" detail="Basado en tus mejores notas" />
+            <StatCard icon="time" color="#58B5FF" value={`${points.toLocaleString()} XP`} label="XP global" detail="Acumulada en tu perfil" />
           </View>
 
           <View className="mt-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
@@ -273,6 +292,7 @@ export default function ClassesScreen() {
                   subject={subject}
                   index={index}
                   isFallback={subject.id < 0}
+                  score={subjectScores[subject.id]}
                   onComingSoon={showComingSoon}
                 />
               ))}
@@ -324,11 +344,13 @@ function ClassRow({
   subject,
   index,
   isFallback,
+  score,
   onComingSoon,
 }: {
   subject: Subject
   index: number
   isFallback: boolean
+  score?: number
   onComingSoon: (feature: string) => void
 }) {
   const colors = ['#43D991', '#8B5CF6', '#3B82F6', '#F6A64A', '#718096']
@@ -336,10 +358,11 @@ function ClassRow({
   const teacherNames = ['Laura Smith', 'Carlos Ruiz', 'Ana Gómez', 'Miguel Torres', 'Sofía Hernández']
   const progressValues = [75, 60, 45, 50, 30]
   const lessons = ['15 / 20', '12 / 20', '9 / 20', '10 / 20', '6 / 20']
-  const xps = ['2,250 XP', '1,800 XP', '1,350 XP', '1,050 XP', '500 XP']
   const activity = ['Hoy', 'Ayer', 'Ayer', '2 días atrás', '3 días atrás']
   const color = subject.theme_color || colors[index] || '#58B5FF'
-  const progress = progressValues[index] || 35
+  const hasScore = typeof score === 'number'
+  const progress = hasScore ? 100 : progressValues[index] || 35
+  const scoreLabel = hasScore ? `${score.toLocaleString()} XP` : isFallback ? 'Demo' : 'Sin nota'
 
   const content = (
     <View className="flex-row items-center rounded-xl border border-[#172A4A] bg-[#0B1A32] p-4">
@@ -357,7 +380,7 @@ function ClassRow({
           {subject.description || fallbackClasses[index]?.description || 'Retos y ejercicios disponibles'}
         </Text>
         <View className="mt-2 self-start rounded bg-[#122544] px-2 py-1">
-          <Text className="text-[10px] text-[#AFC2DB]">Profesora: {teacherNames[index] || 'OmniQuest'}</Text>
+          <Text className="text-[10px] text-[#AFC2DB]">Profesor/a: {teacherNames[index] || 'OmniQuest'}</Text>
         </View>
       </View>
 
@@ -375,8 +398,8 @@ function ClassRow({
       </View>
 
       <View className="hidden w-28 border-l border-[#172A4A] pl-5 lg:flex">
-        <Text className="text-[11px] text-[#8FA7C7]">XP obtenidos</Text>
-        <Text className="mt-1 font-bold text-[#9B6CFF]">{xps[index] || '650 XP'}</Text>
+        <Text className="text-[11px] text-[#8FA7C7]">Mejor nota</Text>
+        <Text className="mt-1 font-bold text-[#9B6CFF]">{scoreLabel}</Text>
       </View>
 
       <View className="ml-4 items-end">
@@ -398,8 +421,8 @@ function ClassRow({
               asChild
             >
               <Pressable className="flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-4 py-3">
-                <Ionicons name="play" size={15} color="#FFFFFF" />
-                <Text className="font-bold text-white">Continuar</Text>
+                <Ionicons name={hasScore ? 'refresh' : 'play'} size={15} color="#FFFFFF" />
+                <Text className="font-bold text-white">{hasScore ? 'Volver a jugar' : 'Continuar'}</Text>
               </Pressable>
             </Link>
           )}
@@ -407,7 +430,9 @@ function ClassRow({
             <Ionicons name="ellipsis-vertical" size={18} color="#7F91AD" />
           </Pressable>
         </View>
-        <Text className="mt-2 text-[10px] text-[#8FA7C7]">Última actividad: {activity[index] || 'Hoy'}</Text>
+        <Text className="mt-2 text-[10px] text-[#8FA7C7]">
+          {hasScore ? `Mejor nota: ${score.toLocaleString()} XP` : `Última actividad: ${activity[index] || 'Hoy'}`}
+        </Text>
       </View>
     </View>
   )
@@ -480,6 +505,13 @@ function BottomNav() {
         <Pressable className="items-center opacity-70">
           <Ionicons name="person-outline" size={22} color="#AFC2DB" />
           <Text className="mt-1 text-[11px] text-[#AFC2DB]">Perfil</Text>
+        </Pressable>
+      </Link>
+
+      <Link href="/(student)/settings" asChild>
+        <Pressable className="items-center opacity-70">
+          <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
+          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Configuración</Text>
         </Pressable>
       </Link>
     </View>
