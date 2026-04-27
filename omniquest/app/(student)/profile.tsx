@@ -612,7 +612,7 @@ function CardLink({ label, onPress }: { label: string; onPress: () => void }) {
 function BottomNav() {
   return (
     <View className="absolute bottom-3 left-4 right-4 flex-row justify-around rounded-2xl border border-[#1A3155] bg-[#09162C] py-3">
-      <Link href="/(student)/home" asChild>
+      <Link href="/(student)/homeStudent" asChild>
         <Pressable className="items-center opacity-70">
           <Ionicons name="home-outline" size={22} color="#AFC2DB" />
           <Text className="mt-1 text-[11px] text-[#AFC2DB]">Inicio</Text>

@@ -110,9 +110,9 @@ export default function RootLayout() {
 
       if (isAuthRoute) {
         if (profile.role_id === 'teacher') {
-          router.replace('/(teacher)/dashboard' as any)
+          router.replace('/(teacher)/homeTeacher' as any)
         } else {
-          router.replace('/(student)/home' as any)
+          router.replace('/(student)/homeStudent' as any)
         }
       }
 

@@ -120,7 +120,7 @@ export default function IndexScreen() {
           })
       }
 
-      router.replace('/(student)/home' as any)
+      router.replace('/(student)/homeStudent' as any)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo entrar como invitado.'
       if (Platform.OS === 'web') {

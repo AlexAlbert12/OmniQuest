@@ -22,7 +22,7 @@ const navItems: {
   icon: keyof typeof Ionicons.glyphMap
   href?: string
 }[] = [
-  { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(student)/home' },
+  { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(student)/homeStudent' },
   { section: 'classes', label: 'Mis Clases', icon: 'book-outline', href: '/(student)/classes' },
   { section: 'progress', label: 'Progreso', icon: 'stats-chart-outline', href: '/(student)/progress' },
   { section: 'ranking', label: 'Ranking', icon: 'trophy-outline', href: '/(student)/ranking' },

@@ -95,14 +95,17 @@ export default function LoginScreen() {
             paddingVertical: isDesktop ? 42 : 28,
           }}
         >
-          <Link href="/" asChild className="absolute top-5 left-5">
-            <Pressable
-              className="rounded-full border border-[#4FB8FF] p-4"
-              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-            >
-              <Ionicons name="home" size={18} color="#8CD5FF" />
-            </Pressable>
-          </Link>
+          <View className="absolute left-5 top-5">
+            <Link href="/" asChild>
+              <Pressable
+                className="flex-row items-center gap-2 rounded-full border border-[#35557C] bg-[#081D3D]/88 px-4 py-3"
+                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+              >
+                <Ionicons name="home-outline" size={18} color="#8CD5FF" />
+                <Text className="font-bold text-[#D9EEFF]">Volver al inicio</Text>
+              </Pressable>
+            </Link>
+          </View>
 
           <View className="items-center px-2">
             <Text

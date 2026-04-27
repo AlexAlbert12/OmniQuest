@@ -22,7 +22,7 @@ type Profile = {
 }
 
 type ActivityItem = {
-  icon: string
+  icon: keyof typeof Ionicons.glyphMap
   color: string
   title: string
   detail: string
@@ -275,7 +275,7 @@ export default function StudentHome() {
                   OmniQuest
                 </Text>
               ) : null}
-              <Text className="text-[30px] font-black text-white">¡Hola, {alias}! 👋</Text>
+              <Text style={{ fontFamily: 'Pacifico_400Regular' }} className="text-4xl text-white mb-2">¡Hola, {alias}! 👋</Text>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">
                 ¿Listo para seguir aprendiendo y alcanzar tus metas?
               </Text>

@@ -101,7 +101,7 @@ export default function RegisterScreen() {
 
       setStatusMessage('Registro completado')
       Alert.alert('Exito', 'Cuenta creada correctamente.')
-      router.replace('/home' as any)
+      router.replace('/homeStudent' as any)
     } catch (error) {
       console.error('[register] unexpected error', error)
       setStatusMessage(`Excepcion: ${error instanceof Error ? error.message : 'Error desconocido'}`)
