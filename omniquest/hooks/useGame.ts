@@ -13,7 +13,7 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return shuffled;
 };
 
-export function useGame(subjectId: string) {
+export function useGame(subjectId: string, topicId?: string) {
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -27,11 +27,19 @@ export function useGame(subjectId: string) {
 
   const loadGame = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('questions')
         .select('*, answers(*)')
         .eq('subject_id', subjectId)
         .order('created_at', { ascending: true });
+
+      if (topicId && topicId !== 'general') {
+        query = query.eq('topic_id', Number(topicId));
+      } else if (topicId === 'general') {
+        query = query.is('topic_id', null);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       if (!data || data.length === 0) {
@@ -58,7 +66,7 @@ export function useGame(subjectId: string) {
       console.error(error);
       Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
     }
-  }, [subjectId]);
+  }, [subjectId, topicId]);
 
   useEffect(() => {
     loadGame();
@@ -154,6 +162,36 @@ export function useGame(subjectId: string) {
     const userId = session.session.user.id;
 
     try {
+      let pointsToAdd = 0;
+
+      if (topicId && topicId !== 'general') {
+        const { data: existingTopicScore, error: topicScoreError } = await supabase
+          .from('topic_scores')
+          .select('id, max_score')
+          .eq('student_id', userId)
+          .eq('topic_id', Number(topicId))
+          .maybeSingle();
+
+        if (topicScoreError) throw topicScoreError;
+
+        if (!existingTopicScore) {
+          pointsToAdd = finalScore;
+          await supabase.from('topic_scores').insert([
+            { student_id: userId, subject_id: subjectId, topic_id: Number(topicId), max_score: finalScore }
+          ]);
+        } else {
+          const previousBest = existingTopicScore.max_score ?? 0;
+
+          if (finalScore > previousBest) {
+            pointsToAdd = finalScore - previousBest;
+            await supabase
+              .from('topic_scores')
+              .update({ max_score: finalScore, played_at: new Date() })
+              .eq('id', existingTopicScore.id);
+          }
+        }
+      }
+
       const { data: existingScore, error: scoreError } = await supabase
         .from('subject_scores')
         .select('id, max_score')
@@ -163,22 +201,17 @@ export function useGame(subjectId: string) {
 
       if (scoreError) throw scoreError;
 
-      let pointsToAdd = 0;
-
       if (!existingScore) {
-        pointsToAdd = finalScore;
+        if (!pointsToAdd) pointsToAdd = finalScore;
         await supabase.from('subject_scores').insert([
           { student_id: userId, subject_id: subjectId, max_score: finalScore }
         ]);
-      } else {
-        const previousBest = existingScore.max_score ?? 0;
-
-        if (finalScore > previousBest) {
-          await supabase
-            .from('subject_scores')
-            .update({ max_score: finalScore, played_at: new Date() })
-            .eq('id', existingScore.id);
-        }
+      } else if (finalScore > (existingScore.max_score ?? 0)) {
+        if (!pointsToAdd) pointsToAdd = finalScore - (existingScore.max_score ?? 0);
+        await supabase
+          .from('subject_scores')
+          .update({ max_score: finalScore, played_at: new Date() })
+          .eq('id', existingScore.id);
       }
 
       if (pointsToAdd > 0) {

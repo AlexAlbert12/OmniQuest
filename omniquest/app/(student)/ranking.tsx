@@ -405,7 +405,7 @@ function WeeklyChallenge({ points }: { points: number }) {
 
       <View className="relative">
         <View className="flex-row items-center justify-between">
-          <Text className="text-[16px] font-black text-white">Reto semanal</Text>
+          <Text className="text-[16px] font-black text-white">Pregunta semanal</Text>
           <View className="flex-row items-center gap-2">
             <Ionicons name="time-outline" size={14} color="#C4B5FD" />
             <Text className="text-[12px] text-[#C4B5FD]">5d 12h restantes</Text>
@@ -419,7 +419,7 @@ function WeeklyChallenge({ points }: { points: number }) {
           <Text className="text-[12px] text-[#C4B5FD]">{earned} / 250 XP</Text>
         </View>
         <Pressable className="mt-5 flex-row items-center justify-center gap-2">
-          <Text className="text-[13px] font-bold text-[#C4B5FD]">Ver todos los retos</Text>
+          <Text className="text-[13px] font-bold text-[#C4B5FD]">Ver todas las preguntas</Text>
           <Ionicons name="arrow-forward" size={14} color="#C4B5FD" />
         </Pressable>
       </View>

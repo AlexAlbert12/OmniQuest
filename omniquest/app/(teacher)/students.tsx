@@ -318,7 +318,7 @@ export default function TeacherStudentsScreen() {
                   <TableHeader label="Estudiante" flex={1.6} />
                   <TableHeader label="Progreso general" flex={1.2} />
                   <TableHeader label="XP" flex={0.65} />
-                  <TableHeader label="Retos" flex={0.5} />
+                  <TableHeader label="Preguntas" flex={0.5} />
                   <TableHeader label="Nota media" flex={0.7} />
                   <TableHeader label="Estado" flex={0.9} />
                   <TableHeader label="Acciones" flex={0.65} align="right" />
@@ -371,7 +371,7 @@ export default function TeacherStudentsScreen() {
 
               <Panel title="Actividad esta semana" action="Ver todo">
                 <ProgressStat label="Estudiantes activos" value={stats.active} total={Math.max(stats.total, 1)} color="#8B5CF6" />
-                <ProgressStat label="Retos completados" value={stats.completedChallenges} total={Math.max(stats.completedChallenges + 6, 1)} color="#7C5CFF" />
+                <ProgressStat label="Preguntas completadas" value={stats.completedChallenges} total={Math.max(stats.completedChallenges + 6, 1)} color="#7C5CFF" />
                 <ProgressStat label="XP ganada" value={stats.averageXp} total={Math.max(stats.averageXp + 650, 1)} color="#3B82F6" />
               </Panel>
 

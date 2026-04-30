@@ -11,6 +11,8 @@ export default function EditQuestionScreen() {
   const [questionText, setQuestionText] = useState('');
   const [timeLimit, setTimeLimit] = useState('30');
   const [points, setPoints] = useState('10');
+  const [topics, setTopics] = useState<{ id: number; title: string }[]>([]);
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -24,17 +26,32 @@ export default function EditQuestionScreen() {
   useEffect(() => {
     const fetchQuestionDetails = async () => {
       try {
-        const { data, error } = await supabase
-          .from('questions')
-          .select('*, answers(*)')
-          .eq('id', questionId)
-          .single();
+        const [questionResult, topicsResult] = await Promise.all([
+          supabase
+            .from('questions')
+            .select('*, answers(*)')
+            .eq('id', questionId)
+            .single(),
+          subjectId
+            ? supabase
+              .from('subject_topics')
+              .select('id, title')
+              .eq('subject_id', subjectId)
+              .eq('active', true)
+              .order('sort_order', { ascending: true })
+              .order('created_at', { ascending: true })
+            : Promise.resolve({ data: [], error: null }),
+        ]);
 
-        if (error) throw error;
+        if (questionResult.error) throw questionResult.error;
+        if (topicsResult.error) throw topicsResult.error;
 
+        const data = questionResult.data;
         setQuestionText(data.text);
         setTimeLimit(data.time_limit_seconds.toString());
         setPoints(data.points_base.toString());
+        setSelectedTopicId(data.topic_id ? String(data.topic_id) : null);
+        setTopics(topicsResult.data || []);
         
         if (data.answers) {
           const sortedAnswers = data.answers.sort((a: any, b: any) => a.sort_order - b.sort_order);
@@ -44,7 +61,7 @@ export default function EditQuestionScreen() {
             isCorrect: a.is_correct
           })));
         }
-      } catch (error: any) {
+      } catch {
         Alert.alert('Error', 'No se pudo cargar la pregunta');
         router.back();
       } finally {
@@ -53,7 +70,7 @@ export default function EditQuestionScreen() {
     };
 
     fetchQuestionDetails();
-  }, [questionId]);
+  }, [questionId, router, subjectId]);
 
   const updateAnswerText = (text: string, index: number) => {
     const newAnswers = [...answers];
@@ -80,6 +97,7 @@ export default function EditQuestionScreen() {
           text: questionText,
           points_base: parseInt(points),
           time_limit_seconds: parseInt(timeLimit),
+          topic_id: selectedTopicId ? Number(selectedTopicId) : null,
         })
         .eq('id', questionId);
 
@@ -114,10 +132,34 @@ export default function EditQuestionScreen() {
         <Pressable onPress={() => router.back()} className="mr-4 p-2 bg-slate-800 rounded-full">
           <Ionicons name="close" size={24} color="#cbd5e1" />
         </Pressable>
-        <Text className="text-2xl font-bold text-white">Editar Reto</Text>
+        <Text className="text-2xl font-bold text-white">Editar Pregunta</Text>
       </View>
 
       <View className="mb-6">
+        <Text className="text-slate-300 font-medium mb-2 ml-1">Tema</Text>
+        {topics.length > 0 ? (
+          <View className="flex-row flex-wrap mb-5">
+            <Pressable
+              onPress={() => setSelectedTopicId(null)}
+              className={`mr-2 mb-2 rounded-lg border px-4 py-2 ${selectedTopicId === null ? 'border-indigo-400 bg-indigo-500' : 'border-slate-700 bg-slate-800'}`}
+            >
+              <Text className={`font-semibold ${selectedTopicId === null ? 'text-white' : 'text-slate-300'}`}>Tema general</Text>
+            </Pressable>
+            {topics.map((topic) => {
+              const active = selectedTopicId === String(topic.id);
+              return (
+                <Pressable
+                  key={topic.id}
+                  onPress={() => setSelectedTopicId(String(topic.id))}
+                  className={`mr-2 mb-2 rounded-lg border px-4 py-2 ${active ? 'border-indigo-400 bg-indigo-500' : 'border-slate-700 bg-slate-800'}`}
+                >
+                  <Text className={`font-semibold ${active ? 'text-white' : 'text-slate-300'}`}>{topic.title}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+
         <Text className="text-slate-300 font-medium mb-2 ml-1">Pregunta</Text>
         <TextInput
           className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-lg"

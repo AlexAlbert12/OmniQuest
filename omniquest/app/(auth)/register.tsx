@@ -237,7 +237,7 @@ export default function RegisterScreen() {
                 <View className="flex-row items-start gap-3">
                   <Ionicons name="shield-checkmark-outline" size={18} color="#8CD5FF" />
                   <Text className="flex-1 text-[13px] leading-5 text-[#AFCBE3]">
-                    Tu contraseña debe tener al menos 6 caracteres. Usaremos tu alias para mostrarte en retos y rankings.
+                    Tu contraseña debe tener al menos 6 caracteres. Usaremos tu alias para mostrarte en preguntas y rankings.
                   </Text>
                 </View>
               </View>

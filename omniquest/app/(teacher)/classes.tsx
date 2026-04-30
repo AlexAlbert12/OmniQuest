@@ -30,6 +30,7 @@ type SubjectAnalytics = {
   playedCount: number
   averageScore: number
   questionsCount: number
+  topicsCount: number
 }
 
 const upcomingActivities = [
@@ -39,7 +40,7 @@ const upcomingActivities = [
 ] as const
 
 const recentActivity = [
-  { icon: 'people', color: '#8B5CF6', title: 'Mateo G. completó el reto', detail: '"Verbos en pasado" en Inglés', time: 'Hace 2h' },
+  { icon: 'people', color: '#8B5CF6', title: 'Mateo G. completó la pregunta', detail: '"Verbos en pasado" en Inglés', time: 'Hace 2h' },
   { icon: 'checkmark', color: '#34D399', title: 'Mateo G. respondió correctamente', detail: '10 preguntas en Matemáticas', time: 'Hace 4h' },
   { icon: 'person-add', color: '#3B82F6', title: 'Nueva inscripción en Matemáticas', detail: 'Mateo G.', time: 'Hace 6h' },
 ] as const
@@ -102,15 +103,17 @@ export default function TeacherClassesScreen() {
         return;
       }
 
-      const [enrollmentsResult, scoresResult, questionsResult] = await Promise.all([
+      const [enrollmentsResult, scoresResult, questionsResult, topicsResult] = await Promise.all([
         supabase.from('enrollments').select('subject_id').in('subject_id', subjectIds),
         supabase.from('subject_scores').select('subject_id, max_score').in('subject_id', subjectIds),
         supabase.from('questions').select('subject_id').in('subject_id', subjectIds),
+        supabase.from('subject_topics').select('subject_id').in('subject_id', subjectIds).eq('active', true),
       ]);
 
       if (enrollmentsResult.error) throw enrollmentsResult.error;
       if (scoresResult.error) throw scoresResult.error;
       if (questionsResult.error) throw questionsResult.error;
+      if (topicsResult.error) throw topicsResult.error;
 
       const nextAnalytics: Record<number, SubjectAnalytics> = {};
       subjectIds.forEach((subjectId) => {
@@ -119,6 +122,7 @@ export default function TeacherClassesScreen() {
           (item) => item.subject_id === subjectId && typeof item.max_score === 'number'
         ) || [];
         const subjectQuestions = questionsResult.data?.filter((item) => item.subject_id === subjectId) || [];
+        const subjectTopics = topicsResult.data?.filter((item) => item.subject_id === subjectId) || [];
         const totalScore = subjectScores.reduce((total, item) => total + (item.max_score ?? 0), 0);
 
         nextAnalytics[subjectId] = {
@@ -126,6 +130,7 @@ export default function TeacherClassesScreen() {
           playedCount: subjectScores.length,
           averageScore: subjectScores.length > 0 ? Math.round(totalScore / subjectScores.length) : 0,
           questionsCount: subjectQuestions.length,
+          topicsCount: subjectTopics.length,
         };
       });
       setAnalyticsBySubject(nextAnalytics);
@@ -266,7 +271,7 @@ export default function TeacherClassesScreen() {
                     key={subject.id}
                     subject={subject}
                     index={index}
-                    analytics={analyticsBySubject[subject.id] || { enrolledCount: 0, playedCount: 0, averageScore: 0, questionsCount: 0 }}
+                    analytics={analyticsBySubject[subject.id] || { enrolledCount: 0, playedCount: 0, averageScore: 0, questionsCount: 0, topicsCount: 0 }}
                     onComingSoon={showComingSoon}
                   />
                 ))}
@@ -299,7 +304,7 @@ export default function TeacherClassesScreen() {
               <SidePanel title="Participación por clase" action="Ver informe">
                 <View style={{ gap: 14 }}>
                   {subjects.slice(0, 3).map((subject) => {
-                    const analytics = analyticsBySubject[subject.id] || { enrolledCount: 0, playedCount: 0, averageScore: 0, questionsCount: 0 };
+                    const analytics = analyticsBySubject[subject.id] || { enrolledCount: 0, playedCount: 0, averageScore: 0, questionsCount: 0, topicsCount: 0 };
                     const progress = analytics.enrolledCount > 0 ? Math.round((analytics.playedCount / analytics.enrolledCount) * 100) : 0;
                     return <ProgressRow key={subject.id} label={subject.name} value={progress} color={subject.theme_color || '#8B5CF6'} />;
                   })}
@@ -390,6 +395,7 @@ function ClassCard({
               <Text className="rounded-full bg-[#111E3C] px-2 py-1 font-mono text-[12px] font-bold text-[#9B8CFF]">{subject.code}</Text>
             </View>
             <View className="mt-3 flex-row flex-wrap gap-2">
+              <SmallPill icon="albums-outline" label={`${analytics.topicsCount} temas`} color="#F6A64A" />
               <SmallPill icon="people-outline" label={`${analytics.enrolledCount} alumnos`} color="#38bdf8" />
               <SmallPill icon="trophy-outline" label={`${analytics.averageScore} XP media`} color="#B9A7FF" />
               <SmallPill icon="checkmark-circle-outline" label={`${analytics.playedCount} con nota`} color="#58E28B" />

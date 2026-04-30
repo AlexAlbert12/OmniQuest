@@ -33,7 +33,7 @@ const defaultActivityItems: ActivityItem[] = [
   {
     icon: 'checkmark',
     color: '#70E0A5',
-    title: 'Completaste el reto "Verbos en pasado"',
+    title: 'Completaste la pregunta "Verbos en pasado"',
     detail: 'Ingles',
     time: 'Hace 2h',
   },
@@ -41,7 +41,7 @@ const defaultActivityItems: ActivityItem[] = [
     icon: 'trophy',
     color: '#8B5CF6',
     title: 'Obtuviste 100 XP',
-    detail: 'Por completar un reto',
+    detail: 'Por completar una pregunta',
     time: 'Ayer',
   },
   {
@@ -312,12 +312,12 @@ export default function StudentHome() {
                 onPress={() => router.push('/(student)/profile' as any)}
               />
               <MetricCard
-                title="Retos completados"
+                title="Preguntas completadas"
                 value={String(Math.max(3, Math.floor(points / 100) + enrolledSubjects.length * 4))}
                 detail="¡Sigue así!"
                 icon="trophy"
                 color="#8B5CF6"
-                onPress={() => showComingSoon('El historial de retos')}
+                onPress={() => showComingSoon('El historial de preguntas')}
               />
               <MetricCard
                 title="Días de racha"
@@ -410,7 +410,7 @@ export default function StudentHome() {
 function HeroCard({ isWide, firstSubject }: { isWide: boolean; firstSubject?: Subject }) {
   const playHref = firstSubject
     ? {
-      pathname: '/(student)/play/[id]',
+      pathname: '/(student)/class/[id]',
       params: { id: String(firstSubject.id) },
     }
     : undefined
@@ -436,14 +436,14 @@ function HeroCard({ isWide, firstSubject }: { isWide: boolean; firstSubject?: Su
       <View className="relative flex-1 justify-center p-8">
         <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: 30 }} className="max-w-[400px] text-[24px] leading-10 text-white">Tu viaje de aprendizaje continúa</Text>
         <Text className="mt-3 max-w-[360px] text-[14px] leading-6 text-[#B4C4DA]">
-          Sigue explorando, completando retos y superando tus límites cada día.
+          Sigue explorando, completando preguntas y superando tus límites cada día.
         </Text>
 
         {playHref ? (
           <Link href={playHref as any} asChild>
             <Pressable className="mt-5 w-[154px] flex-row items-center justify-center gap-2 rounded-xl bg-[#5865F2] px-4 py-3">
               <Ionicons name="play" size={18} color="#FFFFFF" />
-              <Text className="font-bold text-white">Jugar Retos</Text>
+              <Text className="font-bold text-white">Elegir tema</Text>
             </Pressable>
           </Link>
         ) : (
@@ -524,7 +524,7 @@ function SubjectRow({ subject, index, score }: { subject: Subject; index: number
   return (
     <Link
       href={{
-        pathname: '/(student)/play/[id]',
+        pathname: '/(student)/class/[id]',
         params: { id: String(subject.id) },
       }}
       asChild
@@ -540,7 +540,7 @@ function SubjectRow({ subject, index, score }: { subject: Subject; index: number
         <View className="ml-3 min-w-0 flex-1">
           <Text className="font-black text-white">{subject.name}</Text>
           <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>
-            {subject.description || 'Retos y ejercicios disponibles'}
+            {subject.description || 'Preguntas y ejercicios disponibles'}
           </Text>
           <View className="mt-2 flex-row flex-wrap items-center gap-2">
             <View className={`rounded-md px-2 py-1 ${hasScore ? 'bg-[#221B58]' : 'bg-[#122544]'}`}>
@@ -560,9 +560,9 @@ function SubjectRow({ subject, index, score }: { subject: Subject; index: number
         </View>
         <Text className="mr-3 text-[11px] text-[#8FA7C7]">{progress}%</Text>
         <View className="ml-2 flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-3 py-2">
-          <Ionicons name={hasScore ? 'refresh' : 'play'} size={14} color="#FFFFFF" />
+          <Ionicons name="albums" size={14} color="#FFFFFF" />
           <Text className="hidden text-[12px] font-bold text-white sm:flex">
-            {hasScore ? 'Volver a jugar' : 'Jugar'}
+            Temas
           </Text>
         </View>
       </Pressable>
@@ -576,7 +576,7 @@ function EmptyClasses() {
       <Ionicons name="school-outline" size={34} color="#60799C" />
       <Text className="mt-3 text-center font-bold text-white">Aún no tienes clases</Text>
       <Text className="mt-1 text-center text-[12px] leading-5 text-[#8FA7C7]">
-        Introduce el código de tu profesor para empezar a jugar retos.
+        Introduce el código de tu profesor para empezar a responder preguntas.
       </Text>
     </View>
   )
@@ -644,7 +644,7 @@ function WeeklyGoal({ completed }: { completed: number }) {
       </View>
       <View className="ml-4 min-w-0 flex-1">
         <Text className="font-black text-white">Meta semanal</Text>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]">Completa 10 retos esta semana</Text>
+        <Text className="mt-1 text-[12px] text-[#AFC2DB]">Completa 10 preguntas esta semana</Text>
       </View>
       <View className="mx-5 hidden h-2 flex-[1.6] overflow-hidden rounded-full bg-[#182D50] md:flex">
         <View className="h-full rounded-full bg-[#9B6CFF]" style={{ width: `${percent}%` }} />

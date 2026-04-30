@@ -39,8 +39,8 @@ const statBars = [
 
 const recentBadges = [
   {
-    title: 'Maestro de retos',
-    detail: 'Completa 50 retos',
+    title: 'Maestro de preguntas',
+    detail: 'Completa 50 preguntas',
     time: 'Hace 2 días',
     icon: 'trophy',
     color: '#8B5CF6',
@@ -65,7 +65,7 @@ const activityItems = [
   {
     icon: 'checkmark',
     color: '#70E0A5',
-    title: 'Completaste el reto "Verbos en pasado"',
+    title: 'Completaste la pregunta "Verbos en pasado"',
     detail: 'Inglés',
     time: 'Hace 2h',
     xp: '+100 XP',
@@ -306,11 +306,11 @@ export default function ProfileScreen() {
             <View className={isDesktop ? 'flex-[1.5] flex-row gap-4' : 'flex-row flex-wrap gap-4'}>
               <SummaryTile title="Logros" value="18" icon="star" color="#F6A64A" link="Ver todos" />
               <SummaryTile
-                title="Retos completados"
+                title="Preguntas completadas"
                 value={String(challengesCompleted)}
                 icon="trophy"
                 color="#8B5CF6"
-                link="Ver retos"
+                link="Ver preguntas"
               />
               <SummaryTile
                 title="Clases completadas"

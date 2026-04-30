@@ -272,8 +272,8 @@ export default function TeacherSettingsScreen() {
                   />
                   <NotificationRow
                     icon="clipboard-outline"
-                    title="Actividades y retos"
-                    description="Alertas sobre actividades y retos de tus clases."
+                    title="Actividades y preguntas"
+                    description="Alertas sobre actividades y preguntas de tus clases."
                     enabled={toggles.activities}
                     onPress={() => updateToggle('activities')}
                   />

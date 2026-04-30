@@ -33,7 +33,7 @@ type SubjectAnalytics = {
 
 const recentActivity = [
   { icon: 'people', color: '#8B5CF6', title: 'Nueva inscripción en una clase', time: 'Hace 2h' },
-  { icon: 'checkmark', color: '#34D399', title: 'Un alumno completó un reto', time: 'Hace 4h' },
+  { icon: 'checkmark', color: '#34D399', title: 'Un alumno completó una pregunta', time: 'Hace 4h' },
   { icon: 'trophy', color: '#F6A64A', title: 'Nueva mejor puntuación registrada', time: 'Ayer' },
 ] as const
 
@@ -208,7 +208,7 @@ export default function TeacherHomeScreen() {
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
             <MetricCard icon="school" title="Clases activas" value={String(subjects.length)} color="#8B5CF6" />
             <MetricCard icon="people" title="Estudiantes" value={String(totals.students)} color="#43D991" />
-            <MetricCard icon="clipboard" title="Retos creados" value={String(totals.questions)} color="#3B82F6" />
+            <MetricCard icon="clipboard" title="Preguntas creadas" value={String(totals.questions)} color="#3B82F6" />
             <MetricCard icon="trophy" title="Nota media" value={`${totals.averageScore} XP`} color="#F6A64A" />
           </View>
 
@@ -245,7 +245,7 @@ export default function TeacherHomeScreen() {
                   <Ionicons name="add-circle-outline" size={52} color="#9B8CFF" />
                   <Text className="mt-4 text-lg font-black text-white">Crea tu primera clase</Text>
                   <Text className="mt-2 text-center text-[#B7C4D7]">
-                    Añade una asignatura para empezar a gestionar alumnos y retos.
+                    Añade una asignatura para empezar a gestionar alumnos y preguntas.
                   </Text>
                 </Pressable>
               ) : null}

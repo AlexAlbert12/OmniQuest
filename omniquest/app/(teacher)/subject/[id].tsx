@@ -7,6 +7,7 @@ import {
   RefreshControl,
   ScrollView,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -32,8 +33,22 @@ type Question = {
   id: number
   text: string
   points_base: number | null
+  topic_id: number | null
   created_at?: string | null
   answers?: { text: string; is_correct: boolean }[]
+}
+
+type Topic = {
+  id: number
+  title: string
+  description: string | null
+  icon: string | null
+  sort_order: number | null
+}
+
+type TopicScore = {
+  topic_id: number
+  max_score: number | null
 }
 
 type Enrollment = {
@@ -65,7 +80,7 @@ const tabItems: { label: string; icon: IconName; href?: string }[] = [
   { label: 'Resumen', icon: 'document-text-outline' },
   { label: 'Estudiantes', icon: 'people-outline', href: 'students' },
   { label: 'Actividades', icon: 'calendar-outline' },
-  { label: 'Retos', icon: 'checkmark-circle-outline' },
+  { label: 'Preguntas', icon: 'checkmark-circle-outline' },
   { label: 'Informes', icon: 'bar-chart-outline' },
   { label: 'Recursos', icon: 'book-outline' },
   { label: 'Configuración', icon: 'settings-outline' },
@@ -77,16 +92,33 @@ export default function SubjectDetailScreen() {
   const { width } = useWindowDimensions();
   const [subject, setSubject] = useState<Subject | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [topicScores, setTopicScores] = useState<TopicScore[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [scores, setScores] = useState<SubjectScore[]>([]);
   const [profilesById, setProfilesById] = useState<Record<string, StudentProfile>>({});
   const [subjectsCount, setSubjectsCount] = useState(0);
+  const [selectedTopicId, setSelectedTopicId] = useState<number | 'all' | 'general'>('all');
+  const [newTopicTitle, setNewTopicTitle] = useState('');
+  const [newTopicDescription, setNewTopicDescription] = useState('');
+  const [creatingTopic, setCreatingTopic] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const isDesktop = width >= 1080;
   const isWide = width >= 900;
   const subjectId = Array.isArray(id) ? id[0] : id;
+  const questionsWithoutTopic = useMemo(() => questions.filter((question) => question.topic_id === null), [questions]);
+  const selectedTopicLabel = selectedTopicId === 'all'
+    ? 'Todos los temas'
+    : selectedTopicId === 'general'
+      ? 'Tema general'
+      : topics.find((topic) => topic.id === selectedTopicId)?.title || 'Tema';
+  const filteredQuestions = useMemo(() => {
+    if (selectedTopicId === 'all') return questions;
+    if (selectedTopicId === 'general') return questionsWithoutTopic;
+    return questions.filter((question) => question.topic_id === selectedTopicId);
+  }, [questions, questionsWithoutTopic, selectedTopicId]);
 
   const scoreValues = useMemo(
     () => scores.map((item) => item.max_score).filter((score): score is number => typeof score === 'number'),
@@ -99,7 +131,50 @@ export default function SubjectDetailScreen() {
   const participation = enrollments.length > 0 ? Math.min(100, Math.round((scores.length / enrollments.length) * 100)) : 0;
   const progress = Math.round((participation + Math.min(100, questions.length * 8)) / 2);
   const completedChallenges = scores.length;
-  const activeChallenge = questions[0];
+  const activeChallenge = filteredQuestions[0] || questions[0];
+  const topicRows = useMemo(() => {
+    const rows: {
+      id: number | 'general'
+      title: string
+      description: string | null
+      icon: string | null
+      questionsCount: number
+      playedCount: number
+      averageScore: number
+    }[] = topics.map((topic) => {
+      const topicQuestions = questions.filter((question) => question.topic_id === topic.id);
+      const topicScoreValues = topicScores
+        .filter((score) => Number(score.topic_id) === topic.id && typeof score.max_score === 'number')
+        .map((score) => score.max_score || 0);
+      const average = topicScoreValues.length > 0
+        ? Math.round(topicScoreValues.reduce((total, score) => total + score, 0) / topicScoreValues.length)
+        : 0;
+
+      return {
+        id: topic.id,
+        title: topic.title,
+        description: topic.description,
+        icon: topic.icon,
+        questionsCount: topicQuestions.length,
+        playedCount: topicScoreValues.length,
+        averageScore: average,
+      };
+    });
+
+    if (questionsWithoutTopic.length > 0) {
+      rows.unshift({
+        id: 'general' as const,
+        title: 'Tema general',
+        description: 'Preguntas creadas antes de organizar la clase por temas.',
+        icon: 'layers-outline',
+        questionsCount: questionsWithoutTopic.length,
+        playedCount: scores.length,
+        averageScore: averageXp,
+      });
+    }
+
+    return rows;
+  }, [averageXp, questions, questionsWithoutTopic.length, scores.length, topicScores, topics]);
 
   const gradeDistribution = useMemo(() => {
     const base = [
@@ -127,7 +202,7 @@ export default function SubjectDetailScreen() {
       return {
         icon: points >= averageXp ? 'trophy' : 'checkmark',
         color: points >= averageXp ? '#8B5CF6' : '#34D399',
-        title: `${studentName} completó un reto`,
+        title: `${studentName} completó una pregunta`,
         detail: activeChallenge?.text || subject?.name || 'Actividad de clase',
         meta: `+${points} XP`,
         time: formatRelative(score.played_at, index),
@@ -150,8 +225,8 @@ export default function SubjectDetailScreen() {
       {
         icon: 'help-circle',
         color: '#F59E0B',
-        title: `${questions.length} reto${questions.length === 1 ? '' : 's'} disponible${questions.length === 1 ? '' : 's'}`,
-        detail: activeChallenge?.text || 'Añade retos para activar la clase',
+        title: `${questions.length} pregunta${questions.length === 1 ? '' : 's'} disponible${questions.length === 1 ? '' : 's'}`,
+        detail: activeChallenge?.text || 'Añade preguntas para activar la clase',
         meta: '',
         time: 'Ahora',
         warning: questions.length === 0,
@@ -164,13 +239,24 @@ export default function SubjectDetailScreen() {
       const { data: sessionData } = await supabase.auth.getSession();
       const teacherId = sessionData.session?.user.id;
 
-      const [subjectResult, questionsResult, enrollmentsResult, scoresResult, subjectsCountResult] = await Promise.all([
+      const [subjectResult, questionsResult, topicsResult, topicScoresResult, enrollmentsResult, scoresResult, subjectsCountResult] = await Promise.all([
         supabase.from('subjects').select('*').eq('id', subjectId).single(),
         supabase
           .from('questions')
           .select('*, answers(*)')
           .eq('subject_id', subjectId)
           .order('created_at', { ascending: false }),
+        supabase
+          .from('subject_topics')
+          .select('id, title, description, icon, sort_order')
+          .eq('subject_id', subjectId)
+          .eq('active', true)
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('topic_scores')
+          .select('topic_id, max_score')
+          .eq('subject_id', subjectId),
         supabase.from('enrollments').select('student_id').eq('subject_id', subjectId),
         supabase
           .from('subject_scores')
@@ -184,6 +270,8 @@ export default function SubjectDetailScreen() {
 
       if (subjectResult.error) throw subjectResult.error;
       if (questionsResult.error) throw questionsResult.error;
+      if (topicsResult.error) throw topicsResult.error;
+      if (topicScoresResult.error) throw topicScoresResult.error;
       if (enrollmentsResult.error) throw enrollmentsResult.error;
       if (scoresResult.error) throw scoresResult.error;
       if (subjectsCountResult.error) throw subjectsCountResult.error;
@@ -212,6 +300,8 @@ export default function SubjectDetailScreen() {
 
       setSubject(subjectResult.data as Subject);
       setQuestions((questionsResult.data || []) as Question[]);
+      setTopics((topicsResult.data || []) as Topic[]);
+      setTopicScores((topicScoresResult.data || []) as TopicScore[]);
       setEnrollments(nextEnrollments);
       setScores(nextScores);
       setSubjectsCount(subjectsCountResult.data?.length || 0);
@@ -248,6 +338,39 @@ export default function SubjectDetailScreen() {
     showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`);
   };
 
+  const handleCreateTopic = async () => {
+    if (!newTopicTitle.trim()) {
+      showAlert('Tema sin nombre', 'Escribe un nombre para el tema.');
+      return;
+    }
+
+    setCreatingTopic(true);
+    try {
+      const { data, error } = await supabase
+        .from('subject_topics')
+        .insert([{
+          subject_id: subjectId,
+          title: newTopicTitle.trim(),
+          description: newTopicDescription.trim() || null,
+          icon: '📘',
+          sort_order: topics.length + 1,
+        }])
+        .select('id, title, description, icon, sort_order')
+        .single();
+
+      if (error) throw error;
+
+      setTopics((prevTopics) => [...prevTopics, data as Topic]);
+      setSelectedTopicId(Number(data.id));
+      setNewTopicTitle('');
+      setNewTopicDescription('');
+    } catch (error: any) {
+      showAlert('No se pudo crear el tema', error.message);
+    } finally {
+      setCreatingTopic(false);
+    }
+  };
+
   const executeDelete = async (questionId: number) => {
     try {
       const { error } = await supabase.from('questions').delete().eq('id', questionId);
@@ -265,7 +388,7 @@ export default function SubjectDetailScreen() {
       return;
     }
 
-    Alert.alert('Borrar reto', '¿Estás seguro de que quieres eliminar esta pregunta? Esta acción no se puede deshacer.', [
+    Alert.alert('Borrar pregunta', '¿Estás seguro de que quieres eliminar esta pregunta? Esta acción no se puede deshacer.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Sí, borrar', style: 'destructive', onPress: () => executeDelete(questionId) },
     ]);
@@ -369,9 +492,79 @@ export default function SubjectDetailScreen() {
             <MetricCard icon="people" label="Progreso medio" value={`${progress}%`} color="#8B5CF6" detail="+ 12% vs semana pasada" />
             <MetricCard icon="shield-checkmark" label="Nota media" value={`${averageGrade.toFixed(1)}`} suffix="/10" color="#F59E0B" detail="+ 0.6 vs semana pasada" />
             <MetricCard icon="star" label="XP media" value={`${averageXp.toLocaleString('es-ES')} XP`} color="#3B82F6" detail="+ 15% vs semana pasada" />
-            <MetricCard icon="radio-button-on" label="Retos completados" value={String(completedChallenges)} color="#F43F5E" detail="+ 4 vs semana pasada" />
+            <MetricCard icon="radio-button-on" label="Preguntas completadas" value={String(completedChallenges)} color="#F43F5E" detail="+ 4 vs semana pasada" />
             <MetricCard icon="trending-up" label="Participación" value={`${participation}%`} color="#8B5CF6" detail="+ 10% vs semana pasada" />
           </View>
+
+          <Panel title="Temas de la clase">
+            <View className="mb-4 flex-row flex-wrap gap-3">
+              <TopicFilterChip
+                label="Todos"
+                icon="albums-outline"
+                active={selectedTopicId === 'all'}
+                onPress={() => setSelectedTopicId('all')}
+              />
+              {topicRows.map((topic) => (
+                <TopicFilterChip
+                  key={topic.id}
+                  label={topic.title}
+                  icon={topic.icon && topic.icon.includes('-outline') ? topic.icon as IconName : 'book-outline'}
+                  active={selectedTopicId === topic.id}
+                  onPress={() => setSelectedTopicId(topic.id)}
+                />
+              ))}
+            </View>
+
+            <View style={{ gap: 12 }}>
+              {topicRows.length === 0 ? (
+                <View className="rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-5">
+                  <Text className="font-bold text-white">Todavía no hay temas</Text>
+                  <Text className="mt-1 text-[12px] text-[#8FA7C7]">Crea el primer tema para agrupar las preguntas de esta clase.</Text>
+                </View>
+              ) : (
+                topicRows.map((topic) => (
+                  <TopicSummaryRow
+                    key={topic.id}
+                    topic={topic}
+                    active={selectedTopicId === topic.id}
+                    onPress={() => setSelectedTopicId(topic.id)}
+                  />
+                ))
+              )}
+            </View>
+
+            <View className="mt-5 flex-row flex-wrap items-end gap-3 border-t border-[#13284A] pt-4">
+              <View className="min-w-[220px] flex-1">
+                <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Nuevo tema</Text>
+                <TextInput
+                  className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3 text-white"
+                  placeholder="Ej. Ecuaciones de primer grado"
+                  placeholderTextColor="#60799C"
+                  value={newTopicTitle}
+                  onChangeText={setNewTopicTitle}
+                />
+              </View>
+              <View className="min-w-[240px] flex-1">
+                <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Descripción</Text>
+                <TextInput
+                  className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3 text-white"
+                  placeholder="Opcional"
+                  placeholderTextColor="#60799C"
+                  value={newTopicDescription}
+                  onChangeText={setNewTopicDescription}
+                />
+              </View>
+              <Pressable
+                onPress={handleCreateTopic}
+                disabled={creatingTopic}
+                className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-5 py-3"
+                style={({ pressed }) => ({ opacity: creatingTopic ? 0.65 : pressed ? 0.82 : 1 })}
+              >
+                {creatingTopic ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="add" size={16} color="#FFFFFF" />}
+                <Text className="text-[12px] font-bold text-white">{creatingTopic ? 'Creando...' : 'Crear tema'}</Text>
+              </Pressable>
+            </View>
+          </Panel>
 
           <View className="mb-5 flex-row flex-wrap rounded-xl border border-[#183052] bg-[#07162D] p-2">
             {tabItems.map((tab) => {
@@ -417,14 +610,17 @@ export default function SubjectDetailScreen() {
                     <Ionicons name="radio-button-on" size={27} color="#F43F5E" />
                   </View>
                   <View className="min-w-[220px] flex-1">
-                    <Text className="text-[12px] font-semibold text-[#B7C4D7]">Reto activo de la clase</Text>
-                    <Text className="mt-1 text-[20px] font-black text-white">{activeChallenge?.text || 'Crea el primer reto'}</Text>
+                    <Text className="text-[12px] font-semibold text-[#B7C4D7]">Pregunta activa de la clase</Text>
+                    <Text className="mt-1 text-[20px] font-black text-white">{activeChallenge?.text || 'Crea la primera pregunta'}</Text>
                   </View>
                   <InfoStack label="Progreso de la clase" value={`${progress}%`} />
                   <InfoStack label="Participación" value={`${scores.length} / ${Math.max(enrollments.length, 1)}`} />
-                  <Link href={`/(teacher)/subject/add-question?subjectId=${subject.id}`} asChild>
+                  <Link
+                    href={`/(teacher)/subject/add-question?subjectId=${subject.id}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}`}
+                    asChild
+                  >
                     <Pressable className="rounded-xl bg-[#1A1E55] px-5 py-3">
-                      <Text className="text-[12px] font-bold text-white">Nuevo reto</Text>
+                      <Text className="text-[12px] font-bold text-white">Nueva pregunta</Text>
                     </Pressable>
                   </Link>
                 </View>
@@ -434,26 +630,30 @@ export default function SubjectDetailScreen() {
                 <Text className="mt-3 text-[12px] text-[#8FA7C7]">Finaliza en 3 días</Text>
               </View>
 
-              <Panel title="Retos de la clase">
-                {questions.length === 0 ? (
+              <Panel title={`Preguntas: ${selectedTopicLabel}`}>
+                {filteredQuestions.length === 0 ? (
                   <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
                     <Ionicons name="help-circle-outline" size={44} color="#64748B" />
-                    <Text className="mt-3 text-center font-bold text-white">No hay retos todavía</Text>
-                    <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primer reto para activar la clase.</Text>
-                    <Link href={`/(teacher)/subject/add-question?subjectId=${subject.id}`} asChild>
+                    <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
+                    <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primera pregunta para activar este tema.</Text>
+                    <Link
+                      href={`/(teacher)/subject/add-question?subjectId=${subject.id}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}`}
+                      asChild
+                    >
                       <Pressable className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
-                        <Text className="font-bold text-white">Crear reto</Text>
+                        <Text className="font-bold text-white">Crear pregunta</Text>
                       </Pressable>
                     </Link>
                   </View>
                 ) : (
                   <View className="gap-3">
-                    {questions.map((question, index) => (
+                    {filteredQuestions.map((question, index) => (
                       <QuestionRow
                         key={question.id}
                         question={question}
-                        index={questions.length - index}
+                        index={filteredQuestions.length - index}
                         subjectId={subject.id}
+                        topicName={question.topic_id ? topics.find((topic) => topic.id === question.topic_id)?.title : 'Tema general'}
                         onDelete={() => handleDelete(question.id)}
                       />
                     ))}
@@ -490,7 +690,7 @@ export default function SubjectDetailScreen() {
               >
                 <UpcomingRow icon="calendar" color="#3B82F6" title="Repaso de Gramática" detail="Tiempos verbales" date="25 May" />
                 <UpcomingRow icon="briefcase" color="#F97316" title="Examen: Unit 3" detail="Evaluación escrita" date="28 May" />
-                <UpcomingRow icon="trophy" color="#F59E0B" title="Reto: Speaking Challenge" detail="Participación oral" date="30 May" />
+                <UpcomingRow icon="trophy" color="#F59E0B" title="Pregunta: Speaking Challenge" detail="Participación oral" date="30 May" />
               </Panel>
 
               <View className="rounded-xl border border-[#4733B7] bg-[#1A1E55] p-5">
@@ -579,6 +779,74 @@ function Panel({
   );
 }
 
+function TopicFilterChip({
+  label,
+  icon,
+  active,
+  onPress,
+}: {
+  label: string
+  icon: IconName
+  active: boolean
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className={`flex-row items-center gap-2 rounded-lg px-4 py-3 ${active ? 'bg-[#4F46E5]' : 'border border-[#20375E] bg-[#09162C]'}`}
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+    >
+      <Ionicons name={icon} size={15} color={active ? '#FFFFFF' : '#AFC2DB'} />
+      <Text className={`text-[12px] font-bold ${active ? 'text-white' : 'text-[#DDE7F4]'}`}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function TopicSummaryRow({
+  topic,
+  active,
+  onPress,
+}: {
+  topic: {
+    id: number | 'general'
+    title: string
+    description: string | null
+    icon: string | null
+    questionsCount: number
+    playedCount: number
+    averageScore: number
+  }
+  active: boolean
+  onPress: () => void
+}) {
+  const icon = topic.icon && topic.icon.includes('-outline') ? topic.icon as IconName : 'book-outline';
+
+  return (
+    <Pressable
+      onPress={onPress}
+      className={`flex-row flex-wrap items-center gap-4 rounded-xl border p-4 ${active ? 'border-[#6D5AF6] bg-[#1A1E55]' : 'border-[#183052] bg-[#09162C]'}`}
+      style={({ pressed }) => ({ opacity: pressed ? 0.86 : 1 })}
+    >
+      <View className="h-12 w-12 items-center justify-center rounded-xl bg-[#13284A]">
+        {topic.icon && !topic.icon.includes('-outline') ? (
+          <Text className="text-[22px]">{topic.icon}</Text>
+        ) : (
+          <Ionicons name={icon} size={24} color="#A78BFA" />
+        )}
+      </View>
+      <View className="min-w-[220px] flex-1">
+        <Text className="font-black text-white">{topic.title}</Text>
+        <Text className="mt-1 text-[12px] text-[#8FA7C7]" numberOfLines={1}>
+          {topic.description || 'Tema de la clase'}
+        </Text>
+      </View>
+      <InfoStack label="Preguntas" value={String(topic.questionsCount)} />
+      <InfoStack label="Jugados" value={String(topic.playedCount)} />
+      <InfoStack label="XP media" value={`${topic.averageScore}`} />
+    </Pressable>
+  );
+}
+
 function ActivityRow({
   icon,
   color,
@@ -631,11 +899,13 @@ function QuestionRow({
   question,
   index,
   subjectId,
+  topicName,
   onDelete,
 }: {
   question: Question
   index: number
   subjectId: number
+  topicName?: string
   onDelete: () => void
 }) {
   const answer = question.answers?.find((item) => item.is_correct)?.text || 'Sin respuesta marcada';
@@ -649,6 +919,7 @@ function QuestionRow({
         <View className="min-w-[220px] flex-1">
           <Text className="font-black text-white">{question.text}</Text>
           <Text className="mt-2 text-[12px] text-[#34D399]">✓ {answer}</Text>
+          {topicName ? <Text className="mt-1 text-[11px] font-semibold text-[#8FA7C7]">{topicName}</Text> : null}
         </View>
         <View className="rounded-lg bg-[#13284A] px-3 py-2">
           <Text className="text-[11px] font-black text-[#C4D0E3]">{question.points_base ?? 0} pts</Text>

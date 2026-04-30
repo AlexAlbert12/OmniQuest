@@ -28,9 +28,9 @@ const features: Feature[] = [
   },
   {
     icon: 'ribbon',
-    title: 'Supera retos',
+    title: 'Supera preguntas',
     description:
-      'Resuelve desafíos y cuestionarios para poner a prueba lo que sabes. ¡Cada reto superado te acerca más a tus metas!',
+      'Resuelve desafíos y cuestionarios para poner a prueba lo que sabes. ¡Cada pregunta superada te acerca más a tus metas!',
     iconColor: '#8ED6FF',
     iconBackground: 'rgba(28, 88, 188, 0.24)',
     iconBorder: 'rgba(110, 178, 255, 0.52)',

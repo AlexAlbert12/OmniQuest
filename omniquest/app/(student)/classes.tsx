@@ -43,6 +43,7 @@ export default function ClassesScreen() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [subjectScores, setSubjectScores] = useState<Record<number, number>>({})
+  const [topicsBySubject, setTopicsBySubject] = useState<Record<number, number>>({})
   const [inviteCode, setInviteCode] = useState('')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -105,6 +106,28 @@ export default function ClassesScreen() {
           ?.map((enrollment: any) => enrollment.subjects)
           .filter(Boolean) || []
       )
+
+      const subjectIds = enrollmentsResult.data
+        ?.map((enrollment: any) => enrollment.subjects?.id)
+        .filter(Boolean) || []
+
+      if (subjectIds.length > 0) {
+        const { data: topicsData, error: topicsError } = await supabase
+          .from('subject_topics')
+          .select('subject_id')
+          .in('subject_id', subjectIds)
+          .eq('active', true)
+
+        if (topicsError) throw topicsError
+
+        const nextTopicsBySubject: Record<number, number> = {}
+        subjectIds.forEach((subjectId: number) => {
+          nextTopicsBySubject[subjectId] = topicsData?.filter((topic) => Number(topic.subject_id) === Number(subjectId)).length || 0
+        })
+        setTopicsBySubject(nextTopicsBySubject)
+      } else {
+        setTopicsBySubject({})
+      }
 
       const scoreMap: Record<number, number> = {}
       scoresResult.data?.forEach((score) => {
@@ -294,6 +317,7 @@ export default function ClassesScreen() {
                   index={index}
                   isFallback={subject.id < 0}
                   score={subjectScores[subject.id]}
+                  topicsCount={topicsBySubject[subject.id] || 0}
                   onComingSoon={showComingSoon}
                 />
               ))}
@@ -346,12 +370,14 @@ function ClassRow({
   index,
   isFallback,
   score,
+  topicsCount,
   onComingSoon,
 }: {
   subject: Subject
   index: number
   isFallback: boolean
   score?: number
+  topicsCount: number
   onComingSoon: (feature: string) => void
 }) {
   const colors = ['#43D991', '#8B5CF6', '#3B82F6', '#F6A64A', '#718096']
@@ -378,10 +404,12 @@ function ClassRow({
       <View className="ml-4 min-w-0 flex-[1.25]">
         <Text className="text-[18px] font-black text-white">{subject.name}</Text>
         <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>
-          {subject.description || fallbackClasses[index]?.description || 'Retos y ejercicios disponibles'}
+          {subject.description || fallbackClasses[index]?.description || 'Preguntas y ejercicios disponibles'}
         </Text>
         <View className="mt-2 self-start rounded bg-[#122544] px-2 py-1">
-          <Text className="text-[10px] text-[#AFC2DB]">Profesor/a: {teacherNames[index] || 'OmniQuest'}</Text>
+          <Text className="text-[10px] text-[#AFC2DB]">
+            {isFallback ? `Profesor/a: ${teacherNames[index] || 'OmniQuest'}` : `${topicsCount} tema${topicsCount === 1 ? '' : 's'} disponible${topicsCount === 1 ? '' : 's'}`}
+          </Text>
         </View>
       </View>
 
@@ -407,7 +435,7 @@ function ClassRow({
         <View className="flex-row items-center gap-3">
           {isFallback ? (
             <Pressable
-              onPress={() => onComingSoon('Los retos de ejemplo')}
+              onPress={() => onComingSoon('Las preguntas de ejemplo')}
               className="flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-4 py-3"
             >
               <Ionicons name="play" size={15} color="#FFFFFF" />
@@ -416,14 +444,14 @@ function ClassRow({
           ) : (
             <Link
               href={{
-                pathname: '/(student)/play/[id]',
+                pathname: '/(student)/class/[id]',
                 params: { id: String(subject.id) },
               }}
               asChild
             >
               <Pressable className="flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-4 py-3">
-                <Ionicons name={hasScore ? 'refresh' : 'play'} size={15} color="#FFFFFF" />
-                <Text className="font-bold text-white">{hasScore ? 'Volver a jugar' : 'Continuar'}</Text>
+                <Ionicons name="albums" size={15} color="#FFFFFF" />
+                <Text className="font-bold text-white">Ver temas</Text>
               </Pressable>
             </Link>
           )}

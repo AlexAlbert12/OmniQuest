@@ -272,7 +272,7 @@ function StudentRankingRow({ student, index }: { student: StudentRow; index: num
       <View className="ml-4 min-w-0 flex-1">
         <Text className="text-base font-black text-white" numberOfLines={1}>{student.alias}</Text>
         <Text className="mt-1 text-xs text-slate-400">
-          {hasScore ? `Último intento: ${formatDate(student.playedAt)}` : 'Todavía no ha completado el reto'}
+          {hasScore ? `Último intento: ${formatDate(student.playedAt)}` : 'Todavía no ha completado la pregunta'}
         </Text>
       </View>
 

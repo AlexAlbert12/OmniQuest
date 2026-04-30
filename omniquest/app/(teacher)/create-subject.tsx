@@ -34,7 +34,7 @@ export default function CreateSubjectScreen() {
 
       const code = generateInviteCode();
 
-      const { error } = await supabase.from('subjects').insert([
+      const { data: subject, error } = await supabase.from('subjects').insert([
         {
           name: name,
           description: description,
@@ -42,9 +42,21 @@ export default function CreateSubjectScreen() {
           code: code,
           teacher_id: session.session.user.id,
         }
-      ]);
+      ]).select('id').single();
 
       if (error) throw error;
+
+      const { error: topicError } = await supabase.from('subject_topics').insert([
+        {
+          subject_id: subject.id,
+          title: 'Tema 1',
+          description: 'Primer tema de la clase',
+          icon: '📘',
+          sort_order: 1,
+        }
+      ]);
+
+      if (topicError) throw topicError;
 
       Alert.alert('¡Éxito!', `Asignatura creada.\nCódigo de invitación: ${code}`);
       router.back();

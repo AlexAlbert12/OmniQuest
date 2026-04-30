@@ -22,10 +22,10 @@ type Answer = {
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
 export default function PlayScreen() {
-  const { id } = useLocalSearchParams()
+  const { id, topicId, topicName } = useLocalSearchParams<{ id: string; topicId?: string; topicName?: string }>()
   const { width } = useWindowDimensions()
   const router = useRouter()
-  const game = useGame(id as string)
+  const game = useGame(id as string, Array.isArray(topicId) ? topicId[0] : topicId)
 
   const isDesktop = width >= 1024
   const isWide = width >= 760
@@ -47,7 +47,7 @@ export default function PlayScreen() {
       <GameShell>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#8B5CF6" />
-          <Text className="mt-4 text-[#B8C7E0]">Preparando el reto...</Text>
+          <Text className="mt-4 text-[#B8C7E0]">Preparando la pregunta...</Text>
         </View>
       </GameShell>
     )
@@ -59,8 +59,8 @@ export default function PlayScreen() {
         <ResultState
           icon="construct-outline"
           iconColor="#8FA7C7"
-          title="Todavía no hay retos"
-          detail="El profesor aún no ha añadido preguntas a esta clase."
+          title="Todavía no hay preguntas"
+          detail="El profesor aún no ha añadido preguntas a este tema."
           action="Volver al inicio"
           onPress={() => router.back()}
         />
@@ -90,8 +90,8 @@ export default function PlayScreen() {
         <ResultState
           icon="trophy"
           iconColor="#FBBF24"
-          title="Retos completados"
-          detail="Has superado todas las preguntas de esta clase."
+          title="Preguntas completadas"
+          detail="Has superado todas las preguntas de este tema."
           score={game.score}
           action="Volver al inicio"
           onPress={() => router.back()}
@@ -108,7 +108,8 @@ export default function PlayScreen() {
   const displayLevel = Math.max(1, Math.floor(game.score / 300) + 8)
   const nextLevelTotal = 3000
   const nextLevelPoints = Math.min(nextLevelTotal, Math.max(2450, game.score + 450))
-  const category = currentQuestion?.category || currentQuestion?.subject || 'Deportes'
+  const selectedTopicName = Array.isArray(topicName) ? topicName[0] : topicName
+  const category = selectedTopicName || currentQuestion?.category || currentQuestion?.subject || 'Tema'
 
   return (
     <GameShell>
@@ -135,7 +136,7 @@ export default function PlayScreen() {
             <View className="min-w-0 flex-1">
               <View className="mb-3 flex-row items-center justify-between gap-4">
                 <Text className="text-[18px] font-black text-white">
-                  Reto {game.currentIndex + 1} de {totalQuestions}
+                  Pregunta {game.currentIndex + 1} de {totalQuestions}
                 </Text>
                 <View className="flex-row items-center gap-4">
                   <Text className="text-[18px] font-black text-[#9B6CFF]">{game.score} pts</Text>

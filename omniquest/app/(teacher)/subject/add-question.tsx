@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, Alert, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AddQuestionScreen() {
-  const { subjectId } = useLocalSearchParams();
+  const { subjectId, topicId } = useLocalSearchParams<{ subjectId: string; topicId?: string }>();
   const router = useRouter();
   
   const [questionText, setQuestionText] = useState('');
   const [timeLimit, setTimeLimit] = useState('30');
   const [points, setPoints] = useState('10');
+  const [topics, setTopics] = useState<{ id: number; title: string }[]>([]);
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(
+    Array.isArray(topicId) ? topicId[0] : topicId || null
+  );
   const [loading, setLoading] = useState(false);
 
   const [answers, setAnswers] = useState([
@@ -19,6 +23,32 @@ export default function AddQuestionScreen() {
     { text: '', isCorrect: false },
     { text: '', isCorrect: false },
   ]);
+
+  useEffect(() => {
+    const fetchTopics = async () => {
+      if (!subjectId) return;
+
+      const { data, error } = await supabase
+        .from('subject_topics')
+        .select('id, title')
+        .eq('subject_id', subjectId)
+        .eq('active', true)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        Alert.alert('Error', 'No se pudieron cargar los temas');
+        return;
+      }
+
+      setTopics(data || []);
+      if (!selectedTopicId && data && data.length > 0) {
+        setSelectedTopicId(String(data[0].id));
+      }
+    };
+
+    fetchTopics();
+  }, [selectedTopicId, subjectId]);
 
   const updateAnswerText = (text: string, index: number) => {
     const newAnswers = [...answers];
@@ -44,6 +74,7 @@ export default function AddQuestionScreen() {
         .from('questions')
         .insert([{
           subject_id: subjectId,
+          topic_id: selectedTopicId ? Number(selectedTopicId) : null,
           type: 'multiple_choice',
           text: questionText,
           points_base: parseInt(points) || 10,
@@ -79,10 +110,34 @@ export default function AddQuestionScreen() {
         <Pressable onPress={() => router.back()} className="mr-4 p-2 bg-slate-800 rounded-full">
           <Ionicons name="close" size={24} color="#cbd5e1" />
         </Pressable>
-        <Text className="text-2xl font-bold text-white">Nuevo Reto</Text>
+        <Text className="text-2xl font-bold text-white">Nueva Pregunta</Text>
       </View>
 
       <View className="mb-6">
+        <Text className="text-slate-300 font-medium mb-2 ml-1">Tema</Text>
+        {topics.length > 0 ? (
+          <View className="flex-row flex-wrap mb-5">
+            {topics.map((topic) => {
+              const active = selectedTopicId === String(topic.id);
+              return (
+                <Pressable
+                  key={topic.id}
+                  onPress={() => setSelectedTopicId(String(topic.id))}
+                  className={`mr-2 mb-2 rounded-lg border px-4 py-2 ${active ? 'border-indigo-400 bg-indigo-500' : 'border-slate-700 bg-slate-800'}`}
+                >
+                  <Text className={`font-semibold ${active ? 'text-white' : 'text-slate-300'}`}>{topic.title}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <View className="mb-5 rounded-xl border border-amber-500/40 bg-amber-900/20 p-4">
+            <Text className="text-amber-200 text-sm">
+              Esta clase aún no tiene temas. Puedes guardar la pregunta en el tema general o volver a la clase y crear uno.
+            </Text>
+          </View>
+        )}
+
         <Text className="text-slate-300 font-medium mb-2 ml-1">Enunciado de la Pregunta</Text>
         <TextInput
           className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-lg"

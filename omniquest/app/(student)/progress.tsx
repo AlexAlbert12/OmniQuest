@@ -38,7 +38,7 @@ const fallbackSubjects = [
 ] as const
 
 const achievements = [
-  { title: 'Maestro de retos', detail: 'Completa 50 retos', time: 'Hace 2 días', xp: '+200 XP', icon: 'trophy', color: '#8B5CF6' },
+  { title: 'Maestro de preguntas', detail: 'Completa 50 preguntas', time: 'Hace 2 días', xp: '+200 XP', icon: 'trophy', color: '#8B5CF6' },
   { title: 'Científico curioso', detail: 'Completa 10 clases de Ciencias', time: 'Hace 5 días', xp: '+150 XP', icon: 'flask', color: '#34D399' },
   { title: 'Constante', detail: 'Mantén una racha de 7 días', time: 'Hoy', xp: '+100 XP', icon: 'star', color: '#F6A64A' },
   { title: 'Aprendiz dedicado', detail: 'Estudia 5 horas en total', time: 'Ayer', xp: '+120 XP', icon: 'radio-button-on', color: '#3B82F6' },
@@ -253,7 +253,7 @@ function SummaryCard({
         </View>
         <View className="min-w-0 flex-1" style={{ gap: 12 }}>
           <SummaryStat icon="checkmark-done" color="#3B82F6" label="Clases completadas" value={`${completedClasses} / ${totalClasses}`} />
-          <SummaryStat icon="trophy" color="#EC4899" label="Retos completados" value={`${completedChallenges} / 72`} />
+          <SummaryStat icon="trophy" color="#EC4899" label="Preguntas completadas" value={`${completedChallenges} / 72`} />
           <SummaryStat icon="timer" color="#F6A64A" label="Horas de estudio" value="24h 35m" />
           <SummaryStat icon="flash" color="#FBBF24" label="XP total acumulada" value={`${Math.max(points, 8450).toLocaleString()} XP`} />
         </View>
@@ -457,7 +457,7 @@ function WeeklyGoal({ completed }: { completed: number }) {
       <View className="absolute bottom-[-24px] right-[-10px] h-28 w-36 rounded-full bg-[#4F2BC0]/50" />
       <Text className="text-[15px] font-black text-white">Meta semanal</Text>
       <View className="mt-3 flex-row items-center justify-between">
-        <Text className="font-bold text-white">Completa 10 retos esta semana</Text>
+        <Text className="font-bold text-white">Completa 10 preguntas esta semana</Text>
         <View className="flex-row items-center gap-2">
           <Ionicons name="time-outline" size={14} color="#C4B5FD" />
           <Text className="text-[12px] text-[#C4B5FD]">5d 12h restantes</Text>
@@ -530,7 +530,7 @@ function buildSubjectRows(subjects: Subject[]) {
   return [
     ...subjects.slice(0, 5).map((subject, index) => ({
       name: subject.name,
-      detail: subject.description || 'Retos y ejercicios disponibles',
+      detail: subject.description || 'Preguntas y ejercicios disponibles',
       icon: icons[index] || 'book',
       color: subject.theme_color || colors[index] || '#43D991',
       progress: [75, 60, 45, 50, 30][index] || 35,

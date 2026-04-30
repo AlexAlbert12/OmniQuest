@@ -34,13 +34,13 @@ export default function LoginScreen() {
 
     if (!password) {
       console.log('[login] validation failed: missing password')
-      setStatusMessage('Falta la contrasena')
-      Alert.alert('Error', 'Introduce tu contrasena.')
+      setStatusMessage('Falta la contraseña')
+      Alert.alert('Error', 'Introduce tu contraseña.')
       return
     }
 
     console.log('[login] starting signIn', { email: normalizedEmail })
-    setStatusMessage('Iniciando sesion...')
+    setStatusMessage('Iniciando sesión...')
     setLoading(true)
 
     try {
@@ -65,7 +65,7 @@ export default function LoginScreen() {
     } catch (error) {
       console.error('[login] unexpected error', error)
       setStatusMessage(`Excepcion: ${error instanceof Error ? error.message : 'Error desconocido'}`)
-      Alert.alert('Error', error instanceof Error ? error.message : 'Error inesperado al iniciar sesion')
+      Alert.alert('Error', error instanceof Error ? error.message : 'Error inesperado al iniciar sesión')
     } finally {
       setLoading(false)
     }

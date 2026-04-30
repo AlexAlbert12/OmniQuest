@@ -317,7 +317,7 @@ export default function SettingsScreen() {
                     icon="notifications-outline"
                     color="#7C5CFF"
                     title="Notificaciones push"
-                    detail="Recibe notificaciones sobre retos, logros y recordatorios"
+                    detail="Recibe notificaciones sobre preguntas, logros y recordatorios"
                     active={pushNotifications}
                     onPress={() => setPushNotifications((value) => !value)}
                   />
