@@ -105,7 +105,7 @@ export default function AddQuestionScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-slate-900 px-6 pt-12" contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView className="flex-1 bg-[#061126] px-6 pt-12" contentContainerStyle={{ paddingBottom: 40 }}>
       <View className="flex-row items-center mb-6">
         <Pressable onPress={() => router.back()} className="mr-4 p-2 bg-slate-800 rounded-full">
           <Ionicons name="close" size={24} color="#cbd5e1" />

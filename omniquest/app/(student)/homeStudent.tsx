@@ -275,10 +275,7 @@ export default function StudentHome() {
                   OmniQuest
                 </Text>
               ) : null}
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="home" size={40} color="#9FD6FF" />
-                <Text className="text-[40px] font-black text-white">¡Hola, {alias}! 👋</Text>
-              </View>
+              <Text className="text-[40px] font-black text-white">¡Hola, {alias}! 👋</Text>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">
                 ¿Listo para seguir aprendiendo y alcanzar tus metas?
               </Text>

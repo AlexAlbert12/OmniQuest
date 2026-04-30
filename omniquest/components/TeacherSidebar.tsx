@@ -1,7 +1,8 @@
 import React from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { Animated, Easing, Pressable, Text, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 
 export type TeacherSection = 'home' | 'classes' | 'students' | 'settings'
 
@@ -31,67 +32,232 @@ export default function TeacherSidebar({
   onComingSoon,
 }: TeacherSidebarProps) {
   return (
-    <View className="w-[250px] border-r border-[#183052] bg-[#041024] px-5 py-8">
-      <View className="mb-8 flex-row items-center gap-2">
+    <View className="w-[244px] border-r border-[#183052] bg-[#041024] px-4 py-7">
+      <View className="mb-7 flex-row items-center gap-2 px-2">
         <Text className="text-[#9FD6FF]" style={{ fontFamily: 'Pacifico_400Regular', fontSize: 30 }}>
           OmniQuest
         </Text>
-        <Ionicons name="rocket" size={22} color="#7FCBFF" />
+        <Ionicons name="rocket" size={18} color="#9FD6FF" />
       </View>
 
-      <View style={{ gap: 8 }}>
+      <View style={{ gap: 10 }}>
         {navItems.map((item) => {
           const isActive = item.section === activeSection
-          const content = (
-            <View
-              className={`flex-row items-center gap-4 rounded-xl px-4 py-4 ${
-                isActive ? 'border border-[#6D5AF6] bg-[#1A1E55]' : ''
-              }`}
-            >
-              <Ionicons name={item.icon} size={22} color={isActive ? '#9FD6FF' : '#AFC2DB'} />
-              <Text className={`text-[15px] font-semibold ${isActive ? 'text-white' : 'text-[#C4D0E3]'}`}>
-                {item.label}
-              </Text>
-            </View>
-          )
-
-          if (item.href && !isActive) {
-            return (
-              <Link href={item.href as any} asChild key={item.label}>
-                <Pressable>{content}</Pressable>
-              </Link>
-            )
-          }
-
           return (
-            <Pressable key={item.label} onPress={() => !isActive && onComingSoon(item.label)}>
-              {content}
-            </Pressable>
+            <TeacherNavButton
+              key={item.label}
+              item={item}
+              isActive={isActive}
+              onComingSoon={onComingSoon}
+            />
           )
         })}
       </View>
 
-      <View className="mt-auto gap-5">
-        <View className="rounded-2xl border border-[#183052] bg-[#09162C] p-4">
-          <View className="flex-row items-center gap-3">
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-[#5B4BC4]">
-              <Text className="font-black text-white">PR</Text>
-            </View>
-            <View className="min-w-0 flex-1">
-              <Text className="font-black text-white">Profesor</Text>
-              <Text className="text-[12px] text-[#B7C4D7]">Nivel {Math.max(1, subjectsCount + 6)}</Text>
-            </View>
+      <View className="mt-auto rounded-2xl border border-[#162B50] bg-[#091A35] p-4">
+        <View className="flex-row items-center gap-3">
+          <View className="h-12 w-12 items-center justify-center rounded-full bg-[#192C62]">
+            <Text className="font-black text-white">PR</Text>
           </View>
-          <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
-            <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: '65%' }} />
+          <View className="min-w-0 flex-1">
+            <Text className="text-[14px] font-bold text-white">Profesor</Text>
+            <Text className="text-[12px] text-[#9BAEC9]">Nivel {Math.max(1, subjectsCount + 6)}</Text>
           </View>
-          <Text className="mt-2 text-[11px] text-[#AFC2DB]">2,450 / 3,000 XP</Text>
-          <Pressable onPress={onSignOut} className="mt-4 flex-row items-center gap-2">
-            <Ionicons name="log-out-outline" size={16} color="#F87171" />
-            <Text className="text-[12px] font-semibold text-[#FCA5A5]">Cerrar sesión</Text>
-          </Pressable>
         </View>
+        <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
+          <View className="h-full rounded-full bg-[#6574FF]" style={{ width: '65%' }} />
+        </View>
+        <Text className="mt-2 text-[11px] text-[#8FA7C7]">2,450 / 3,000 XP</Text>
       </View>
     </View>
   )
+}
+
+function TeacherNavButton({
+  item,
+  isActive,
+  onComingSoon,
+}: {
+  item: { section: TeacherSection; label: string; icon: keyof typeof Ionicons.glyphMap; href?: string }
+  isActive: boolean
+  onComingSoon: (feature: string) => void
+}) {
+  const [isHovered, setIsHovered] = React.useState(false)
+  const [isPressed, setIsPressed] = React.useState(false)
+  const hoverProgress = React.useRef(new Animated.Value(isActive ? 1 : 0)).current
+  const isInteractive = isActive || isHovered || isPressed
+
+  React.useEffect(() => {
+    Animated.timing(hoverProgress, {
+      toValue: isInteractive ? 1 : 0,
+      duration: isInteractive ? 180 : 140,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start()
+  }, [hoverProgress, isInteractive])
+
+  const iconName = isActive ? filledIconFor(item.icon) : item.icon
+  const iconColor = isActive ? '#D7F0FF' : isInteractive ? '#C9E8FF' : '#94A7C4'
+  const textColor = hoverProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#AFC0D8', '#FFFFFF'],
+  })
+
+  const content = (
+    <Pressable
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      onPressIn={() => setIsPressed(true)}
+      onPressOut={() => setIsPressed(false)}
+      onPress={!item.href && !isActive ? () => onComingSoon(item.label) : undefined}
+      style={({ pressed }) => ({
+        transform: [{ scale: pressed ? 0.985 : 1 }],
+      })}
+    >
+      <Animated.View
+        className="relative overflow-hidden border"
+        style={{
+          height: 52,
+          borderRadius: 14,
+          paddingHorizontal: 10,
+          borderColor: hoverProgress.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['rgba(83,100,245,0)', isActive ? '#5364F5' : 'rgba(159,214,255,0.22)'],
+          }),
+          backgroundColor: hoverProgress.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['rgba(8,24,51,0)', isActive ? 'rgba(26,35,92,0.92)' : 'rgba(11,30,61,0.82)'],
+          }),
+          shadowColor: '#6574FF',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: hoverProgress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, isActive ? 0.25 : 0.15],
+          }),
+          shadowRadius: hoverProgress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 20],
+          }),
+          transform: [
+            {
+              translateX: hoverProgress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, isActive ? 0 : 3],
+              }),
+            },
+          ],
+        }}
+      >
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: hoverProgress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, isActive ? 1 : 0.6],
+            }),
+          }}
+        >
+          <LinearGradient
+            colors={isActive ? ['#142864', '#202B67'] : ['rgba(16,33,87,0.48)', 'rgba(35,53,111,0.5)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ flex: 1, borderRadius: 14 }}
+          />
+        </Animated.View>
+        <Animated.View
+          className="absolute left-0 top-3 h-7 w-1 rounded-r-full bg-[#9FD6FF]"
+          style={{
+            opacity: hoverProgress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, isActive ? 1 : 0.72],
+            }),
+            transform: [
+              {
+                scaleY: hoverProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.35, 1],
+                }),
+              },
+            ],
+          }}
+        />
+        <View className="h-full flex-row items-center">
+          <Animated.View
+            className="h-10 w-10 items-center justify-center rounded-xl"
+            style={{
+              transform: [
+                {
+                  translateX: hoverProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, isActive ? 0 : 2],
+                  }),
+                },
+                {
+                  scale: hoverProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.08],
+                  }),
+                },
+              ],
+            }}
+          >
+            <Ionicons name={iconName} size={24} color={iconColor} />
+          </Animated.View>
+          <Animated.View
+            className="min-w-0 flex-1"
+            style={{
+              marginLeft: 12,
+              opacity: hoverProgress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.9, 1],
+              }),
+              transform: [
+                {
+                  translateX: hoverProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 4],
+                  }),
+                },
+                {
+                  scale: hoverProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.02],
+                  }),
+                },
+              ],
+            }}
+          >
+            <Animated.Text
+              numberOfLines={1}
+              style={{
+                color: textColor,
+                fontSize: 15,
+                fontWeight: '700',
+              }}
+            >
+              {item.label}
+            </Animated.Text>
+          </Animated.View>
+        </View>
+      </Animated.View>
+    </Pressable>
+  )
+
+  if (item.href && !isActive) {
+    return (
+      <Link href={item.href as any} asChild>
+        {content}
+      </Link>
+    )
+  }
+
+  return content
+}
+
+function filledIconFor(icon: keyof typeof Ionicons.glyphMap): keyof typeof Ionicons.glyphMap {
+  return icon.endsWith('-outline') ? (icon.replace('-outline', '') as keyof typeof Ionicons.glyphMap) : icon
 }

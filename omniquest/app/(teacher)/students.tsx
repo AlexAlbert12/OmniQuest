@@ -259,8 +259,8 @@ export default function TeacherStudentsScreen() {
                 </Text>
               ) : null}
               <View className="flex-row items-center gap-3">
-                <Text className="text-[28px] font-black text-white">Estudiantes</Text>
-                <Ionicons name="people-outline" size={25} color="#58B5FF" />
+                <Ionicons name="people" size={40} color="#9FD6FF" />
+                <Text className="text-[40px] font-black text-white">Estudiantes</Text>
               </View>
               <Text className="mt-2 text-[13px] text-[#B7C4D7]">
                 Gestiona y haz seguimiento del progreso de tus estudiantes.

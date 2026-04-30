@@ -204,7 +204,10 @@ export default function TeacherClassesScreen() {
                   OmniQuest
                 </Text>
               ) : null}
-              <Text className="text-[28px] font-black text-white">Mis Clases 📖</Text>
+              <View className="flex-row items-center gap-3">
+                <Ionicons name="book" size={40} color="#9FD6FF" />
+                <Text className="text-[40px] font-black text-white">Mis Clases</Text>
+              </View>
               <Text className="mt-2 text-[14px] text-[#B7C4D7]">
                 Gestiona tus asignaturas, estudiantes y actividades.
               </Text>

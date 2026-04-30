@@ -175,9 +175,9 @@ export default function TeacherSettingsScreen() {
                   OmniQuest
                 </Text>
               ) : null}
-              <View className="flex-row items-center gap-2">
-                <Text className="text-[25px] font-black text-white">Configuración</Text>
-                <Ionicons name="settings-outline" size={22} color="#8B5CF6" />
+              <View className="flex-row items-center gap-3">
+                <Ionicons name="settings" size={40} color="#9FD6FF" />
+                <Text className="text-[40px] font-black text-white">Configuración</Text>
               </View>
               <Text className="mt-2 text-[13px] text-[#B7C4D7]">
                 Personaliza tu experiencia y gestiona los ajustes de tu cuenta.
@@ -371,17 +371,15 @@ export default function TeacherSettingsScreen() {
 function SettingsMenu({ onSignOut, isDesktop }: { onSignOut: () => void; isDesktop: boolean }) {
   return (
     <View
-      className={`rounded-xl border border-[#183052] bg-[#07162D] p-3 ${
-        isDesktop ? 'w-[205px] self-start' : ''
-      }`}
+      className={`rounded-xl border border-[#183052] bg-[#07162D] p-3 ${isDesktop ? 'w-[205px] self-start' : ''
+        }`}
     >
       <View className={isDesktop ? 'gap-1' : 'flex-row flex-wrap gap-2'}>
         {settingsSections.map((section) => (
           <Pressable
             key={section.label}
-            className={`flex-row items-center gap-3 rounded-lg px-3 py-3 ${
-              section.active ? 'border border-[#6D5AF6] bg-[#1A1E55]' : ''
-            }`}
+            className={`flex-row items-center gap-3 rounded-lg px-3 py-3 ${section.active ? 'border border-[#6D5AF6] bg-[#1A1E55]' : ''
+              }`}
           >
             <Ionicons name={section.icon} size={16} color={section.active ? '#9FD6FF' : '#AFC2DB'} />
             <Text className={`text-[12px] font-semibold ${section.active ? 'text-white' : 'text-[#B7C4D7]'}`}>

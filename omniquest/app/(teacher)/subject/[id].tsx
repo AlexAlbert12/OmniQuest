@@ -527,7 +527,13 @@ export default function SubjectDetailScreen() {
                     key={topic.id}
                     topic={topic}
                     active={selectedTopicId === topic.id}
-                    onPress={() => setSelectedTopicId(topic.id)}
+                    onPress={() => {
+                      if (typeof topic.id === 'number') {
+                        router.push(`/(teacher)/topic/${topic.id}` as any);
+                      } else {
+                        setSelectedTopicId(topic.id);
+                      }
+                    }}
                   />
                 ))
               )}

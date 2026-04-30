@@ -182,7 +182,7 @@ export default function TeacherHomeScreen() {
                   OmniQuest
                 </Text>
               ) : null}
-              <Text className="text-[28px] font-black text-white">¡Bienvenido de nuevo, Profesor! 👋</Text>
+              <Text className="text-[40px] font-black text-white">¡Bienvenido de nuevo, Profesor! 👋</Text>
               <Text className="mt-2 text-[14px] text-[#B7C4D7]">
                 Aquí tienes un resumen de tus clases y estudiantes.
               </Text>
