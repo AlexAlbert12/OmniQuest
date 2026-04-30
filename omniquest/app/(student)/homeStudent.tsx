@@ -153,7 +153,7 @@ export default function StudentHome() {
 
       const activities: ActivityItem[] = activityResult.data?.map((score) => {
         const timeAgo = getTimeAgo(new Date(score.played_at));
-        
+
         const subjectData = score.subjects as any;
         const subjectName = Array.isArray(subjectData) ? subjectData[0]?.name : subjectData?.name;
 
@@ -275,7 +275,10 @@ export default function StudentHome() {
                   OmniQuest
                 </Text>
               ) : null}
-              <Text style={{ fontFamily: 'Pacifico_400Regular' }} className="text-4xl text-white mb-2">¡Hola, {alias}! 👋</Text>
+              <View className="flex-row items-center gap-3">
+                <Ionicons name="home" size={40} color="#9FD6FF" />
+                <Text className="text-[40px] font-black text-white">¡Hola, {alias}! 👋</Text>
+              </View>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">
                 ¿Listo para seguir aprendiendo y alcanzar tus metas?
               </Text>

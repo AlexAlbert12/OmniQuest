@@ -30,14 +30,6 @@ type Subject = {
   theme_color: string | null
 }
 
-const fallbackClasses = [
-  { id: -1, name: 'Inglés', description: 'Unit 4: Daily Activities', icon: 'book', theme_color: '#43D991' },
-  { id: -2, name: 'Matemáticas', description: 'Ecuaciones de primer grado', icon: 'calculator', theme_color: '#8B5CF6' },
-  { id: -3, name: 'Ciencias', description: 'El sistema solar', icon: 'flask', theme_color: '#3B82F6' },
-  { id: -4, name: 'Historia', description: 'La Edad Media', icon: 'business', theme_color: '#F6A64A' },
-  { id: -5, name: 'Arte', description: 'El Renacimiento', icon: 'color-palette', theme_color: '#718096' },
-] satisfies Subject[]
-
 export default function ClassesScreen() {
   const { width } = useWindowDimensions()
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -48,15 +40,15 @@ export default function ClassesScreen() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
+  const [leavingSubjectId, setLeavingSubjectId] = useState<number | null>(null)
 
   const isDesktop = width >= 1024
   const classRows = useMemo(() => {
-    const rows = subjects.length > 0 ? subjects : fallbackClasses
     const normalizedSearch = search.trim().toLowerCase()
 
-    if (!normalizedSearch) return rows
+    if (!normalizedSearch) return subjects
 
-    return rows.filter((subject) =>
+    return subjects.filter((subject) =>
       `${subject.name} ${subject.description || ''}`.toLowerCase().includes(normalizedSearch)
     )
   }, [search, subjects])
@@ -66,7 +58,7 @@ export default function ClassesScreen() {
   const level = Math.floor(points / 100) + 1
   const nextLevelProgress = points % 100
   const realScores = useMemo(() => Object.values(subjectScores), [subjectScores])
-  const activeClasses = Math.max(subjects.length, subjects.length > 0 ? 0 : 5)
+  const activeClasses = subjects.length
   const averageScore = realScores.length > 0
     ? Math.round(realScores.reduce((total, score) => total + score, 0) / realScores.length)
     : 0
@@ -200,6 +192,54 @@ export default function ClassesScreen() {
     }
   }
 
+  const executeLeaveClass = async (subject: Subject) => {
+    setLeavingSubjectId(subject.id)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+
+      if (!userId) {
+        throw new Error('No hay sesión activa.')
+      }
+
+      const { error } = await supabase
+        .from('enrollments')
+        .delete()
+        .eq('student_id', userId)
+        .eq('subject_id', subject.id)
+
+      if (error) throw error
+
+      showAlert('Clase abandonada', `Has salido de ${subject.name}.`)
+      fetchClasses()
+    } catch (error: any) {
+      showAlert('Error', error.message || 'No se pudo abandonar la clase.')
+    } finally {
+      setLeavingSubjectId(null)
+    }
+  }
+
+  const handleLeaveClass = (subject: Subject) => {
+    const message = `Vas a abandonar ${subject.name}. Si quieres volver, necesitarás de nuevo el código de invitación.`
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(message)) {
+        void executeLeaveClass(subject)
+      }
+      return
+    }
+
+    Alert.alert('Abandonar clase', message, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Abandonar',
+        style: 'destructive',
+        onPress: () => void executeLeaveClass(subject),
+      },
+    ])
+  }
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
@@ -245,8 +285,8 @@ export default function ClassesScreen() {
                 </Text>
               ) : null}
               <View className="flex-row items-center gap-3">
-                <Ionicons name="book-outline" size={30} color="#DDE7F4" />
-                <Text className="text-[30px] font-black text-white">Mis Clases</Text>
+                <Ionicons name="book" size={40} color="#9FD6FF" />
+                <Text className="text-[40px] font-black text-white">Mis Clases</Text>
               </View>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">
                 Administra tus clases y continúa aprendiendo
@@ -310,17 +350,23 @@ export default function ClassesScreen() {
             </View>
 
             <View style={{ gap: 8 }}>
-              {classRows.map((subject, index) => (
-                <ClassRow
-                  key={subject.id}
-                  subject={subject}
-                  index={index}
-                  isFallback={subject.id < 0}
-                  score={subjectScores[subject.id]}
-                  topicsCount={topicsBySubject[subject.id] || 0}
-                  onComingSoon={showComingSoon}
-                />
-              ))}
+              {classRows.length > 0 ? (
+                classRows.map((subject, index) => (
+                  <ClassRow
+                    key={subject.id}
+                    subject={subject}
+                    index={index}
+                    isFallback={false}
+                    score={subjectScores[subject.id]}
+                    topicsCount={topicsBySubject[subject.id] || 0}
+                    onComingSoon={showComingSoon}
+                    onLeave={handleLeaveClass}
+                    leaving={leavingSubjectId === subject.id}
+                  />
+                ))
+              ) : (
+                <EmptyClasses />
+              )}
             </View>
 
             <JoinClassCard
@@ -372,6 +418,8 @@ function ClassRow({
   score,
   topicsCount,
   onComingSoon,
+  onLeave,
+  leaving,
 }: {
   subject: Subject
   index: number
@@ -379,6 +427,8 @@ function ClassRow({
   score?: number
   topicsCount: number
   onComingSoon: (feature: string) => void
+  onLeave: (subject: Subject) => void
+  leaving: boolean
 }) {
   const colors = ['#43D991', '#8B5CF6', '#3B82F6', '#F6A64A', '#718096']
   const iconNames: (keyof typeof Ionicons.glyphMap)[] = ['book', 'calculator', 'flask', 'business', 'color-palette']
@@ -404,7 +454,7 @@ function ClassRow({
       <View className="ml-4 min-w-0 flex-[1.25]">
         <Text className="text-[18px] font-black text-white">{subject.name}</Text>
         <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>
-          {subject.description || fallbackClasses[index]?.description || 'Preguntas y ejercicios disponibles'}
+          {subject.description || 'Preguntas y ejercicios disponibles'}
         </Text>
         <View className="mt-2 self-start rounded bg-[#122544] px-2 py-1">
           <Text className="text-[10px] text-[#AFC2DB]">
@@ -442,18 +492,33 @@ function ClassRow({
               <Text className="font-bold text-white">Continuar</Text>
             </Pressable>
           ) : (
-            <Link
-              href={{
-                pathname: '/(student)/class/[id]',
-                params: { id: String(subject.id) },
-              }}
-              asChild
-            >
-              <Pressable className="flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-4 py-3">
-                <Ionicons name="albums" size={15} color="#FFFFFF" />
-                <Text className="font-bold text-white">Ver temas</Text>
+            <>
+              <Link
+                href={{
+                  pathname: '/(student)/class/[id]',
+                  params: { id: String(subject.id) },
+                }}
+                asChild
+              >
+                <Pressable className="flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-4 py-3">
+                  <Ionicons name="albums" size={15} color="#FFFFFF" />
+                  <Text className="font-bold text-white">Ver temas</Text>
+                </Pressable>
+              </Link>
+              <Pressable
+                onPress={() => onLeave(subject)}
+                disabled={leaving}
+                className="flex-row items-center gap-2 rounded-lg border border-[#7F1D1D] bg-[#2A0B18] px-4 py-3"
+                style={({ pressed }) => ({ opacity: leaving ? 0.7 : pressed ? 0.84 : 1 })}
+              >
+                {leaving ? (
+                  <ActivityIndicator color="#FF6B6B" />
+                ) : (
+                  <Ionicons name="exit-outline" size={15} color="#FF6B6B" />
+                )}
+                <Text className="font-bold text-[#FF6B6B]">Abandonar clase</Text>
               </Pressable>
-            </Link>
+            </>
           )}
           <Pressable onPress={() => onComingSoon('Más opciones de clase')}>
             <Ionicons name="ellipsis-vertical" size={18} color="#7F91AD" />
@@ -511,6 +576,18 @@ function JoinClassCard({
           {!joining ? <Ionicons name="arrow-forward" size={16} color="#8290FF" /> : null}
         </Pressable>
       </View>
+    </View>
+  )
+}
+
+function EmptyClasses() {
+  return (
+    <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B] px-4 py-6">
+      <Ionicons name="school-outline" size={34} color="#60799C" />
+      <Text className="mt-3 text-center font-bold text-white">Aún no tienes clases</Text>
+      <Text className="mt-1 text-center text-[12px] leading-5 text-[#8FA7C7]">
+        Introduce el código de tu profesor para unirte a una clase real.
+      </Text>
     </View>
   )
 }

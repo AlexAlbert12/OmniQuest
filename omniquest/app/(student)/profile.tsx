@@ -15,6 +15,12 @@ import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
+import {
+  buildStudentBadges,
+  getStudentBadgeMetrics,
+  type StudentBadge,
+  type StudentBadgeScore,
+} from '../../lib/studentBadges'
 
 type Profile = {
   id: string
@@ -29,64 +35,29 @@ type Subject = {
   name: string
 }
 
-const statBars = [
-  { label: 'Conocimiento general', value: 75, color: '#8B5CF6' },
-  { label: 'Matemáticas', value: 60, color: '#3B82F6' },
-  { label: 'Ciencias', value: 45, color: '#43D991' },
-  { label: 'Inglés', value: 80, color: '#FBBF24' },
-  { label: 'Historia', value: 50, color: '#FF7B45' },
-] as const
+type SubjectScore = {
+  subject_id: number | null
+  max_score: number | null
+  played_at: string | null
+  played_days: string[] | null
+  correct_answers: number | null
+  subjects?: { name: string } | { name: string }[] | null
+}
 
-const recentBadges = [
-  {
-    title: 'Maestro de preguntas',
-    detail: 'Completa 50 preguntas',
-    time: 'Hace 2 días',
-    icon: 'trophy',
-    color: '#8B5CF6',
-  },
-  {
-    title: 'Científico curioso',
-    detail: 'Completa 10 clases de Ciencias',
-    time: 'Hace 5 días',
-    icon: 'flask',
-    color: '#34D399',
-  },
-  {
-    title: 'Constante',
-    detail: 'Mantén una racha de 7 días',
-    time: 'Hoy',
-    icon: 'star',
-    color: '#F6A64A',
-  },
-] as const
+type StatBarItem = {
+  label: string
+  value: number
+  color: string
+}
 
-const activityItems = [
-  {
-    icon: 'checkmark',
-    color: '#70E0A5',
-    title: 'Completaste la pregunta "Verbos en pasado"',
-    detail: 'Inglés',
-    time: 'Hace 2h',
-    xp: '+100 XP',
-  },
-  {
-    icon: 'trophy',
-    color: '#8B5CF6',
-    title: 'Subiste al puesto #4 en el ranking semanal',
-    detail: 'Ranking',
-    time: 'Ayer',
-    xp: '+150 XP',
-  },
-  {
-    icon: 'star',
-    color: '#F6A64A',
-    title: 'Completaste la clase "El sistema solar"',
-    detail: 'Ciencias',
-    time: '2 días atrás',
-    xp: '+120 XP',
-  },
-] as const
+type ActivityItem = {
+  icon: keyof typeof Ionicons.glyphMap
+  color: string
+  title: string
+  detail: string
+  time: string
+  xp: string
+}
 
 export default function ProfileScreen() {
   const { width } = useWindowDimensions()
@@ -94,6 +65,7 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [email, setEmail] = useState('')
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [scores, setScores] = useState<SubjectScore[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
 
@@ -102,9 +74,16 @@ export default function ProfileScreen() {
   const alias = profile?.alias || 'Alex'
   const level = Math.floor(points / 100) + 1
   const nextLevelProgress = points % 100
-  const challengesCompleted = Math.max(8, Math.floor(points / 100) + subjects.length * 4)
-  const completedClasses = Math.max(subjects.length, 12)
-  const streakDays = 7
+  const badgeMetrics = getStudentBadgeMetrics({
+    scores: scores as StudentBadgeScore[],
+    totalPoints: points,
+    subjectsCount: subjects.length,
+  })
+  const { correctAnswers, completedClasses, streakDays } = badgeMetrics
+  const statBars = buildStatBars(subjects, scores)
+  const badges = buildStudentBadges(badgeMetrics)
+  const unlockedBadges = badges.filter((badge) => badge.unlocked).length
+  const activityItems = buildActivityItems(scores)
   const memberSince = formatProfileDate(profile?.created_at)
 
   const fetchProfile = useCallback(async () => {
@@ -118,16 +97,22 @@ export default function ProfileScreen() {
 
       if (!userId) return
 
-      const [profileResult, enrollmentsResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, scoresResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, created_at, points').eq('id', userId).single(),
         supabase
           .from('enrollments')
           .select('subjects(id, name)')
           .eq('student_id', userId),
+        supabase
+          .from('subject_scores')
+          .select('subject_id, max_score, played_at, played_days, correct_answers, subjects(name)')
+          .eq('student_id', userId)
+          .order('played_at', { ascending: false }),
       ])
 
       if (profileResult.error) throw profileResult.error
       if (enrollmentsResult.error) throw enrollmentsResult.error
+      if (scoresResult.error) throw scoresResult.error
 
       setProfile(profileResult.data)
       setSubjects(
@@ -135,6 +120,7 @@ export default function ProfileScreen() {
           ?.map((enrollment: any) => enrollment.subjects)
           .filter(Boolean) || []
       )
+      setScores((scoresResult.data || []) as SubjectScore[])
     } catch (error) {
       console.error('Error fetching profile:', error)
     } finally {
@@ -266,8 +252,8 @@ export default function ProfileScreen() {
                 </Text>
               ) : null}
               <View className="flex-row items-center gap-3">
-                <Ionicons name="person-outline" size={30} color="#8B5CF6" />
-                <Text className="text-[30px] font-black text-white">Perfil</Text>
+                <Ionicons name="person" size={40} color="#9FD6FF" />
+                <Text className="text-[40px] font-black text-white">Perfil</Text>
               </View>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">
                 Gestiona tu información y revisa tus logros
@@ -304,10 +290,17 @@ export default function ProfileScreen() {
             />
 
             <View className={isDesktop ? 'flex-[1.5] flex-row gap-4' : 'flex-row flex-wrap gap-4'}>
-              <SummaryTile title="Logros" value="18" icon="star" color="#F6A64A" link="Ver todos" />
               <SummaryTile
-                title="Preguntas completadas"
-                value={String(challengesCompleted)}
+                title="Logros"
+                value={String(unlockedBadges)}
+                icon="star"
+                color="#F6A64A"
+                link="Ver todos"
+                onPress={() => router.push('/(student)/badges' as any)}
+              />
+              <SummaryTile
+                title="Preguntas correctas"
+                value={String(correctAnswers)}
                 icon="trophy"
                 color="#8B5CF6"
                 link="Ver preguntas"
@@ -346,22 +339,30 @@ export default function ProfileScreen() {
 
             <DashboardCard title="Mis estadísticas" className={isDesktop ? 'flex-[1.18]' : ''}>
               <View style={{ gap: 14 }}>
-                {statBars.map((item) => (
-                  <StatBar key={item.label} item={item} />
-                ))}
+                {statBars.length > 0 ? (
+                  statBars.map((item) => (
+                    <StatBar key={item.label} item={item} />
+                  ))
+                ) : (
+                  <EmptyState icon="analytics-outline" message="Juega una clase para ver tus estadísticas." />
+                )}
               </View>
               <CardLink label="Ver estadísticas detalladas" onPress={() => showComingSoon('Las estadísticas detalladas')} />
             </DashboardCard>
 
             <DashboardCard
-              title="Insignias recientes"
+              title="Logros"
               actionLabel="Ver todas"
-              onAction={() => showComingSoon('Todas las insignias')}
+              onAction={() => router.push('/(student)/badges' as any)}
               className={isDesktop ? 'flex-[1.36]' : ''}
             >
               <View style={{ gap: 12 }}>
-                {recentBadges.map((badge) => (
-                  <BadgeRow key={badge.title} badge={badge} />
+                {badges.map((badge) => (
+                  <BadgeRow
+                    key={badge.title}
+                    badge={badge}
+                    onPress={() => router.push('/(student)/badges' as any)}
+                  />
                 ))}
               </View>
             </DashboardCard>
@@ -370,20 +371,14 @@ export default function ProfileScreen() {
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
             <DashboardCard title="Historial de actividad" className={isDesktop ? 'flex-[1.55]' : ''}>
               <View style={{ gap: 14 }}>
-                {activityItems.map((item) => (
-                  <ActivityRow key={item.title} item={item} />
-                ))}
+                {activityItems.length > 0 ? (
+                  activityItems.map((item) => (
+                    <ActivityRow key={`${item.title}-${item.time}`} item={item} />
+                  ))
+                ) : (
+                  <EmptyState icon="sparkles-outline" message="Completa una partida para llenar tu historial." />
+                )}
               </View>
-            </DashboardCard>
-
-            <DashboardCard title="Personaliza tu experiencia" className={isDesktop ? 'flex-1' : ''}>
-              <SettingsRow icon="moon-outline" label="Tema de la aplicación" value="Oscuro" />
-              <SettingsRow icon="notifications-outline" label="Notificaciones" value="Activadas" />
-              <SettingsRow icon="lock-closed-outline" label="Privacidad" value="Gestionar" />
-              <Pressable onPress={handleSignOut} className="mt-4 flex-row items-center gap-3">
-                <Ionicons name="log-out-outline" size={18} color="#F87171" />
-                <Text className="font-bold text-[#F87171]">Cerrar sesión</Text>
-              </Pressable>
             </DashboardCard>
           </View>
         </ScrollView>
@@ -424,7 +419,7 @@ function ProfileHero({
           {profile?.avatar && profile.avatar.startsWith('http') ? (
             <Image source={{ uri: profile.avatar }} className="h-full w-full rounded-full" />
           ) : (
-            <Text className="text-6xl">🧑</Text>
+            <Ionicons name="person" size={50} color="#9FD6FF" />
           )}
           <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-[#7C5CFF]">
             {uploading ? (
@@ -458,15 +453,22 @@ function SummaryTile({
   icon,
   color,
   link,
+  onPress,
 }: {
   title: string
   value: string
   icon: keyof typeof Ionicons.glyphMap
   color: string
   link: string
+  onPress?: () => void
 }) {
+  const Container = onPress ? Pressable : View
+
   return (
-    <View className="min-w-[135px] flex-1 items-center border-r border-[#172A4A] bg-[#09162C] px-3 py-5 first:rounded-l-2xl last:rounded-r-2xl">
+    <Container
+      onPress={onPress}
+      className="min-w-[135px] flex-1 items-center border-r border-[#172A4A] bg-[#09162C] px-3 py-5 first:rounded-l-2xl last:rounded-r-2xl"
+    >
       <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
         <Ionicons name={icon} size={28} color={color} />
       </View>
@@ -476,7 +478,7 @@ function SummaryTile({
         <Text className="text-[12px] font-bold text-[#9B6CFF]">{link}</Text>
         <Ionicons name="arrow-forward" size={13} color="#9B6CFF" />
       </View>
-    </View>
+    </Container>
   )
 }
 
@@ -531,7 +533,7 @@ function InfoRow({
   )
 }
 
-function StatBar({ item }: { item: (typeof statBars)[number] }) {
+function StatBar({ item }: { item: StatBarItem }) {
   return (
     <View>
       <View className="mb-2 flex-row items-center justify-between">
@@ -545,25 +547,25 @@ function StatBar({ item }: { item: (typeof statBars)[number] }) {
   )
 }
 
-function BadgeRow({ badge }: { badge: (typeof recentBadges)[number] }) {
+function BadgeRow({ badge, onPress }: { badge: StudentBadge; onPress: () => void }) {
   return (
-    <View className="flex-row items-center gap-4 rounded-xl bg-[#0D1D3B] p-3">
+    <Pressable onPress={onPress} className={`flex-row items-center gap-4 rounded-xl bg-[#0D1D3B] p-3 ${badge.unlocked ? '' : 'opacity-70'}`}>
       <View
         className="h-14 w-14 items-center justify-center rounded-2xl border-2"
         style={{ backgroundColor: `${badge.color}20`, borderColor: badge.color }}
       >
-        <Ionicons name={badge.icon} size={26} color={badge.color} />
+        <Ionicons name={badge.unlocked ? badge.icon : 'lock-closed'} size={26} color={badge.color} />
       </View>
       <View className="min-w-0 flex-1">
         <Text className="font-black text-white">{badge.title}</Text>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]">{badge.detail}</Text>
+        <Text className="mt-1 text-[12px] text-[#AFC2DB]">{badge.requirement}</Text>
       </View>
-      <Text className="text-[11px] text-[#8FA7C7]">{badge.time}</Text>
-    </View>
+      <Text className="text-[11px] text-[#8FA7C7]">{badge.statusLabel}</Text>
+    </Pressable>
   )
 }
 
-function ActivityRow({ item }: { item: (typeof activityItems)[number] }) {
+function ActivityRow({ item }: { item: ActivityItem }) {
   return (
     <View className="flex-row items-center gap-3">
       <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: `${item.color}29` }}>
@@ -581,22 +583,12 @@ function ActivityRow({ item }: { item: (typeof activityItems)[number] }) {
   )
 }
 
-function SettingsRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  label: string
-  value: string
-}) {
+function EmptyState({ icon, message }: { icon: keyof typeof Ionicons.glyphMap; message: string }) {
   return (
-    <Pressable className="flex-row items-center gap-3 rounded-xl bg-[#0D1D3B] px-4 py-3">
-      <Ionicons name={icon} size={18} color="#AFC2DB" />
-      <Text className="min-w-0 flex-1 font-semibold text-[#DDE7F4]">{label}</Text>
-      <Text className="text-[12px] text-[#AFC2DB]">{value}</Text>
-      <Ionicons name="chevron-forward" size={15} color="#AFC2DB" />
-    </Pressable>
+    <View className="items-center rounded-xl border border-dashed border-[#1A3155] bg-[#0D1D3B] px-4 py-6">
+      <Ionicons name={icon} size={24} color="#8FA7C7" />
+      <Text className="mt-2 text-center text-[12px] text-[#8FA7C7]">{message}</Text>
+    </View>
   )
 }
 
@@ -649,4 +641,60 @@ function formatProfileDate(date?: string) {
     month: 'long',
     year: 'numeric',
   }).format(new Date(date))
+}
+
+function buildStatBars(subjects: Subject[], scores: SubjectScore[]): StatBarItem[] {
+  const colors = ['#8B5CF6', '#3B82F6', '#43D991', '#FBBF24', '#FF7B45']
+  const scoresBySubject = new Map(scores.map((score) => [score.subject_id, score]))
+
+  return subjects
+    .slice(0, 5)
+    .map((subject, index) => {
+      const score = scoresBySubject.get(subject.id)
+      const value = Math.min(100, Math.round(((score?.max_score ?? 0) / 1000) * 100))
+
+      return {
+        label: subject.name,
+        value,
+        color: colors[index % colors.length],
+      }
+    })
+    .filter((item) => item.value > 0)
+}
+
+function buildActivityItems(scores: SubjectScore[]): ActivityItem[] {
+  return scores
+    .filter((score) => score.played_at)
+    .slice(0, 4)
+    .map((score) => {
+      const subject = Array.isArray(score.subjects) ? score.subjects[0] : score.subjects
+      const correctAnswers = score.correct_answers ?? 0
+
+      return {
+        icon: correctAnswers > 0 ? 'checkmark' : 'game-controller',
+        color: correctAnswers > 0 ? '#70E0A5' : '#8B5CF6',
+        title: correctAnswers > 0
+          ? `${correctAnswers} respuestas correctas acumuladas`
+          : 'Completaste una partida',
+        detail: subject?.name || 'Clase',
+        time: formatRelativeDate(score.played_at),
+        xp: `+${(score.max_score ?? 0).toLocaleString()} XP`,
+      }
+    })
+}
+
+function formatRelativeDate(date?: string | null) {
+  if (!date) return 'Sin fecha'
+
+  const target = startOfLocalDay(new Date(date))
+  const today = startOfLocalDay(new Date())
+  const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000)
+
+  if (diffDays <= 0) return 'Hoy'
+  if (diffDays === 1) return 'Ayer'
+  return `${diffDays} días atrás`
+}
+
+function startOfLocalDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }

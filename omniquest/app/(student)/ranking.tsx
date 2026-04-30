@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -102,25 +103,44 @@ export default function RankingScreen() {
   )
 
   useEffect(() => {
-    const subscription = supabase
-      .channel('public:profiles')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-        setProfiles((currentProfiles) => {
-          const updated = currentProfiles.map((profile) =>
-            profile.id === payload.new.id ? { ...profile, ...payload.new } : profile
+    let isMounted = true
+    let subscription: any = null
+
+    const setupSubscription = async () => {
+      try {
+        subscription = supabase
+          .channel('public:profiles')
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'profiles' },
+            (payload) => {
+              if (!isMounted) return
+
+              setProfiles((currentProfiles) => {
+                const updated = currentProfiles.map((profile) =>
+                  profile.id === payload.new.id ? { ...profile, ...payload.new } : profile
+                )
+                return updated.sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+              })
+
+              if (payload.new.id === currentUserId) {
+                setCurrentProfile((profile) => (profile ? { ...profile, ...payload.new } : profile))
+              }
+            }
           )
+          .subscribe()
+      } catch (error) {
+        console.error('Error setting up Realtime subscription:', error)
+      }
+    }
 
-          return updated.sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
-        })
-
-        if (payload.new.id === currentUserId) {
-          setCurrentProfile((profile) => profile ? { ...profile, ...payload.new } : profile)
-        }
-      })
-      .subscribe()
+    setupSubscription()
 
     return () => {
-      supabase.removeChannel(subscription)
+      isMounted = false
+      if (subscription) {
+        supabase.removeChannel(subscription)
+      }
     }
   }, [currentUserId])
 
@@ -182,8 +202,8 @@ export default function RankingScreen() {
                 </Text>
               ) : null}
               <View className="flex-row items-center gap-3">
-                <Ionicons name="trophy-outline" size={30} color="#9B6CFF" />
-                <Text className="text-[30px] font-black text-white">Ranking</Text>
+                <Ionicons name="trophy" size={40} color="#9FD6FF" />
+                <Text className="text-[40px] font-black text-white">Ranking</Text>
               </View>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">
                 Compite, aprende y sube posiciones 🚀
@@ -270,9 +290,8 @@ function RankingTabs({ onComingSoon }: { onComingSoon: (feature: string) => void
         <Pressable
           key={tab.label}
           onPress={() => !tab.active && onComingSoon(`Ranking de ${tab.label.toLowerCase()}`)}
-          className={`min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-4 py-4 ${
-            tab.active ? 'border-[#5D64FF] bg-[#4F46E5]' : 'border-[#172A4A] bg-[#09162C]'
-          }`}
+          className={`min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-4 py-4 ${tab.active ? 'border-[#5D64FF] bg-[#4F46E5]' : 'border-[#172A4A] bg-[#09162C]'
+            }`}
         >
           <Ionicons name={tab.icon} size={18} color={tab.active ? '#FFFFFF' : '#AFC2DB'} />
           <Text className={`font-bold ${tab.active ? 'text-white' : 'text-[#AFC2DB]'}`}>{tab.label}</Text>
@@ -301,9 +320,8 @@ function RankingRow({
 
   return (
     <View
-      className={`flex-row items-center rounded-xl px-3 py-3 ${
-        isMe ? 'border border-[#5364F5] bg-[#1D2B68]' : ''
-      }`}
+      className={`flex-row items-center rounded-xl px-3 py-3 ${isMe ? 'border border-[#5364F5] bg-[#1D2B68]' : ''
+        }`}
     >
       <View className="w-20 flex-row items-center justify-center">
         {index < 3 ? (
@@ -315,8 +333,12 @@ function RankingRow({
         )}
       </View>
 
-      <View className="h-12 w-12 items-center justify-center rounded-full bg-[#17315E]">
-        <Text className="text-2xl">🧑‍🎓</Text>
+      <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#17315E]">
+        {item.avatar && item.avatar.startsWith('http') ? (
+          <Image source={{ uri: item.avatar }} className="h-full w-full" />
+        ) : (
+          <Ionicons name="person" size={20} color="#9FD6FF" />
+        )}
       </View>
 
       <View className="ml-4 min-w-0 flex-1">

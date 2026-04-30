@@ -1,9 +1,10 @@
 import React from 'react'
-import { Pressable, Text, View, Image } from 'react-native'
+import { Animated, Easing, Image, Pressable, Text, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 
-export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'profile' | 'settings'
+export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'profile' | 'settings'
 
 type StudentSidebarProps = {
   activeSection: StudentSection
@@ -16,16 +17,21 @@ type StudentSidebarProps = {
   onComingSoon: (feature: string) => void
 }
 
-const navItems: {
+type IoniconName = keyof typeof Ionicons.glyphMap
+
+type NavItem = {
   section?: StudentSection
   label: string
-  icon: keyof typeof Ionicons.glyphMap
+  icon: IoniconName
   href?: string
-}[] = [
+}
+
+const navItems: NavItem[] = [
   { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(student)/homeStudent' },
   { section: 'classes', label: 'Mis Clases', icon: 'book-outline', href: '/(student)/classes' },
   { section: 'progress', label: 'Progreso', icon: 'stats-chart-outline', href: '/(student)/progress' },
   { section: 'ranking', label: 'Ranking', icon: 'trophy-outline', href: '/(student)/ranking' },
+  { section: 'badges', label: 'Logros', icon: 'ribbon-outline', href: '/(student)/badges' },  
   { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(student)/profile' },
   { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(student)/settings' },
 ]
@@ -49,38 +55,16 @@ export default function StudentSidebar({
         <Ionicons name="rocket" size={18} color="#9FD6FF" />
       </View>
 
-      <View style={{ gap: 8 }}>
+      <View style={{ gap: 10 }}>
         {navItems.map((item) => {
           const isActive = item.section === activeSection
-          const content = (
-            <View
-              className={`flex-row items-center gap-4 rounded-xl px-4 py-4 ${
-                isActive ? 'border border-[#5364F5] bg-[#102157]' : ''
-              }`}
-            >
-              <Ionicons
-                name={item.icon}
-                size={20}
-                color={isActive ? '#9FD6FF' : '#94A7C4'}
-              />
-              <Text className={`text-[14px] font-semibold ${isActive ? 'text-white' : 'text-[#A7B6CE]'}`}>
-                {item.label}
-              </Text>
-            </View>
-          )
-
-          if (item.href && !isActive) {
-            return (
-              <Link href={item.href as any} asChild key={item.label}>
-                <Pressable>{content}</Pressable>
-              </Link>
-            )
-          }
-
           return (
-            <Pressable key={item.label} onPress={() => !isActive && onComingSoon(item.label)}>
-              {content}
-            </Pressable>
+            <StudentNavButton
+              key={item.label}
+              item={item}
+              isActive={isActive}
+              onComingSoon={onComingSoon}
+            />
           )
         })}
       </View>
@@ -91,7 +75,7 @@ export default function StudentSidebar({
             {avatar && avatar.startsWith('http') ? (
               <Image source={{ uri: avatar }} className="h-full w-full" />
             ) : (
-          <Ionicons name="person" size={16} color="#9FD6FF" />
+              <Ionicons name="person" size={16} color="#9FD6FF" />
             )}
           </View>
           <View className="min-w-0 flex-1">
@@ -103,12 +87,196 @@ export default function StudentSidebar({
           <View className="h-full rounded-full bg-[#6574FF]" style={{ width: `${nextLevelProgress}%` }} />
         </View>
         <Text className="mt-2 text-[11px] text-[#8FA7C7]">{points.toLocaleString()} XP</Text>
-
-        <Pressable onPress={onSignOut} className="mt-4 flex-row items-center gap-2">
-          <Ionicons name="log-out-outline" size={16} color="#F87171" />
-          <Text className="text-[12px] font-semibold text-[#FCA5A5]">Cerrar sesión</Text>
-        </Pressable>
       </View>
     </View>
   )
+}
+
+function StudentNavButton({
+  item,
+  isActive,
+  onComingSoon,
+}: {
+  item: NavItem
+  isActive: boolean
+  onComingSoon: (feature: string) => void
+}) {
+  const [isHovered, setIsHovered] = React.useState(false)
+  const [isPressed, setIsPressed] = React.useState(false)
+  const hoverProgress = React.useRef(new Animated.Value(isActive ? 1 : 0)).current
+  const isInteractive = isActive || isHovered || isPressed
+
+  React.useEffect(() => {
+    Animated.timing(hoverProgress, {
+      toValue: isInteractive ? 1 : 0,
+      duration: isInteractive ? 180 : 140,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start()
+  }, [hoverProgress, isInteractive])
+
+  const iconName = isActive ? filledIconFor(item.icon) : item.icon
+  const iconColor = isActive ? '#D7F0FF' : isInteractive ? '#C9E8FF' : '#94A7C4'
+  const textColor = hoverProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#AFC0D8', '#FFFFFF'],
+  })
+
+  const content = (
+    <Pressable
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      onPressIn={() => setIsPressed(true)}
+      onPressOut={() => setIsPressed(false)}
+      onPress={!item.href && !isActive ? () => onComingSoon(item.label) : undefined}
+      style={({ pressed }) => ({
+        transform: [{ scale: pressed ? 0.985 : 1 }],
+      })}
+    >
+      <Animated.View
+        className="relative overflow-hidden border"
+        style={{
+          height: 52,
+          borderRadius: 14,
+          paddingHorizontal: 10,
+          borderColor: hoverProgress.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['rgba(83,100,245,0)', isActive ? '#5364F5' : 'rgba(159,214,255,0.22)'],
+          }),
+          backgroundColor: hoverProgress.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['rgba(8,24,51,0)', isActive ? 'rgba(26,35,92,0.92)' : 'rgba(11,30,61,0.82)'],
+          }),
+          shadowColor: '#6574FF',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: hoverProgress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, isActive ? 0.25 : 0.15],
+          }),
+          shadowRadius: hoverProgress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 20],
+          }),
+          transform: [
+            {
+              translateX: hoverProgress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, isActive ? 0 : 3],
+              }),
+            },
+          ],
+        }}
+      >
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: hoverProgress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, isActive ? 1 : 0.6],
+            }),
+          }}
+        >
+          <LinearGradient
+            colors={isActive ? ['#142864', '#202B67'] : ['rgba(16,33,87,0.48)', 'rgba(35,53,111,0.5)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ flex: 1, borderRadius: 14 }}
+          />
+        </Animated.View>
+        <Animated.View
+          className="absolute left-0 top-3 h-7 w-1 rounded-r-full bg-[#9FD6FF]"
+          style={{
+            opacity: hoverProgress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, isActive ? 1 : 0.72],
+            }),
+            transform: [
+              {
+                scaleY: hoverProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.35, 1],
+                }),
+              },
+            ],
+          }}
+        />
+        <View className="h-full flex-row items-center">
+          <Animated.View
+            className="h-10 w-10 items-center justify-center rounded-xl"
+            style={{
+              transform: [
+                {
+                  translateX: hoverProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, isActive ? 0 : 2],
+                  }),
+                },
+                {
+                  scale: hoverProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.08],
+                  }),
+                },
+              ],
+            }}
+          >
+            <Ionicons name={iconName} size={24} color={iconColor} />
+          </Animated.View>
+          <Animated.View
+            className="min-w-0 flex-1"
+            style={{
+              marginLeft: 12,
+              opacity: hoverProgress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.9, 1],
+              }),
+              transform: [
+                {
+                  translateX: hoverProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 4],
+                  }),
+                },
+                {
+                  scale: hoverProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.02],
+                  }),
+                },
+              ],
+            }}
+          >
+            <Animated.Text
+              numberOfLines={1}
+              style={{
+                color: textColor,
+                fontSize: 15,
+                fontWeight: '700',
+              }}
+            >
+              {item.label}
+            </Animated.Text>
+          </Animated.View>
+        </View>
+      </Animated.View>
+    </Pressable>
+  )
+
+  if (item.href && !isActive) {
+    return (
+      <Link href={item.href as any} asChild>
+        {content}
+      </Link>
+    )
+  }
+
+  return content
+}
+
+function filledIconFor(icon: IoniconName): IoniconName {
+  return icon.endsWith('-outline') ? (icon.replace('-outline', '') as IoniconName) : icon
 }

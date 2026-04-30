@@ -80,6 +80,7 @@ export default function SettingsScreen() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [changingAlias, setChangingAlias] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
 
   const isDesktop = width >= 1024
   const isTwoColumn = width >= 900
@@ -107,6 +108,7 @@ export default function SettingsScreen() {
 
       if (error) throw error
       setProfile(data)
+      setNewAlias(data.alias)
     } catch (error) {
       console.error('Error fetching settings:', error)
     } finally {
@@ -121,19 +123,30 @@ export default function SettingsScreen() {
   )
 
   const handleChangeAlias = async () => {
-    if (!newAlias.trim() || !profile) return
+    const cleanAlias = newAlias.trim()
+    if (!cleanAlias || !profile) return
+
+    if (cleanAlias.length < 3) {
+      showAlert('Error', 'El alias debe tener al menos 3 caracteres.')
+      return
+    }
 
     setChangingAlias(true)
     try {
-      const { error } = await supabase
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { alias: cleanAlias },
+      })
+
+      if (authError) throw authError
+
+      const { error: profileError } = await supabase
         .from('profiles')
-        .update({ alias: newAlias.trim() })
+        .update({ alias: cleanAlias })
         .eq('id', profile.id)
 
-      if (error) throw error
+      if (profileError) throw profileError
 
-      setProfile({ ...profile, alias: newAlias.trim() })
-      setNewAlias('')
+      setProfile({ ...profile, alias: cleanAlias })
       showAlert('Éxito', 'Alias actualizado correctamente.')
     } catch (error: any) {
       showAlert('Error', error.message)
@@ -148,8 +161,27 @@ export default function SettingsScreen() {
       return
     }
 
+    if (newPassword.length < 6) {
+      showAlert('Error', 'La nueva contraseña debe tener al menos 6 caracteres.')
+      return
+    }
+
+    if (!email) {
+      showAlert('Error', 'No se ha podido verificar tu correo actual.')
+      return
+    }
+
     setChangingPassword(true)
     try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: currentPassword,
+      })
+
+      if (signInError) {
+        throw new Error('La contraseña actual no es correcta.')
+      }
+
       const { error } = await supabase.auth.updateUser({ password: newPassword })
 
       if (error) throw error
@@ -165,11 +197,52 @@ export default function SettingsScreen() {
     }
   }
 
+  const executeDeleteAccount = async () => {
+    setDeletingAccount(true)
+
+    try {
+      const { error } = await supabase.rpc('delete_my_account')
+
+      if (error) throw error
+
+      await supabase.auth.signOut({ scope: 'local' })
+      showAlert('Cuenta borrada', 'Tu cuenta se ha eliminado correctamente.')
+      router.replace('/(auth)/login')
+    } catch (error: any) {
+      showAlert(
+        'No se pudo borrar la cuenta',
+        error.message || 'Revisa que la función delete_my_account exista en Supabase.'
+      )
+    } finally {
+      setDeletingAccount(false)
+    }
+  }
+
+  const handleDeleteAccount = () => {
+    const message = 'Esta acción eliminará tu usuario, perfil, clases y progreso. No se puede deshacer.'
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(message)) {
+        void executeDeleteAccount()
+      }
+      return
+    }
+
+    Alert.alert('Borrar mi cuenta', message, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Borrar cuenta',
+        style: 'destructive',
+        onPress: () => void executeDeleteAccount(),
+      },
+    ])
+  }
+
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut()
       router.replace('/(auth)/login')
-    } catch (error: any) {
+    } catch {
       showAlert('Error', 'No se pudo cerrar sesión.')
     }
   }
@@ -232,8 +305,8 @@ export default function SettingsScreen() {
                 </Text>
               ) : null}
               <View className="flex-row items-center gap-3">
-                <Ionicons name="settings-outline" size={32} color="#8B5CF6" />
-                <Text className="text-[30px] font-black text-white">Configuración</Text>
+                <Ionicons name="settings" size={40} color="#9FD6FF" />
+                <Text className="text-[40px] font-black text-white">Configuración</Text>
               </View>
               <Text className="mt-1 text-[13px] text-[#DDE7F4]">
                 Personaliza tu experiencia en OmniQuest
@@ -346,7 +419,7 @@ export default function SettingsScreen() {
               <Panel title="Cuenta" icon="person-outline">
                 <View className="mb-4 flex-row items-center gap-4">
                   <View className="h-16 w-16 items-center justify-center rounded-full border-2 border-[#9AB9FF] bg-[#D8E7FF]">
-                    <Text className="text-4xl">🧑</Text>
+                    <Ionicons name="person" size={40} color="#9FD6FF" />
                   </View>
                   <View className="min-w-0 flex-1">
                     <Text className="text-[20px] font-black text-white" numberOfLines={1}>
@@ -376,9 +449,11 @@ export default function SettingsScreen() {
                     />
                     <Pressable
                       onPress={handleChangeAlias}
-                      disabled={changingAlias || !newAlias.trim()}
+                      disabled={changingAlias || !newAlias.trim() || newAlias.trim() === alias}
                       className="items-center justify-center rounded-lg bg-[#4FB8FF] px-4 py-3"
-                      style={({ pressed }) => ({ opacity: changingAlias ? 0.7 : pressed ? 0.86 : 1 })}
+                      style={({ pressed }) => ({
+                        opacity: changingAlias || !newAlias.trim() || newAlias.trim() === alias ? 0.7 : pressed ? 0.86 : 1,
+                      })}
                     >
                       {changingAlias ? (
                         <ActivityIndicator color="#FFFFFF" />
@@ -435,6 +510,16 @@ export default function SettingsScreen() {
                   <Pressable onPress={handleSignOut} className="flex-row items-center gap-3 px-4 py-4">
                     <Ionicons name="log-out-outline" size={20} color="#FF4D4D" />
                     <Text className="min-w-0 flex-1 font-bold text-[#FF4D4D]">Cerrar sesión</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleDeleteAccount}
+                    disabled={deletingAccount}
+                    className="flex-row items-center gap-3 border-t border-[#3D1A2A] bg-[#2A0B18] px-4 py-4"
+                    style={({ pressed }) => ({ opacity: deletingAccount ? 0.7 : pressed ? 0.86 : 1 })}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+                    <Text className="min-w-0 flex-1 font-bold text-[#FF6B6B]">Borrar mi cuenta</Text>
+                    {deletingAccount ? <ActivityIndicator color="#FF6B6B" /> : null}
                   </Pressable>
                 </View>
               </Panel>

@@ -9,10 +9,16 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { Link, useFocusEffect } from 'expo-router'
+import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
+import {
+  buildStudentBadges,
+  getStudentBadgeMetrics,
+  type StudentBadge,
+  type StudentBadgeScore,
+} from '../../lib/studentBadges'
 
 type Profile = {
   id: string
@@ -29,25 +35,39 @@ type Subject = {
   theme_color: string | null
 }
 
-const fallbackSubjects = [
-  { name: 'Inglés', detail: 'Unit 4: Daily Activities', icon: 'book', color: '#43D991', progress: 75, completed: '15 / 20', xp: '2,250' },
-  { name: 'Matemáticas', detail: 'Ecuaciones de primer grado', icon: 'calculator', color: '#8B5CF6', progress: 60, completed: '12 / 20', xp: '1,800' },
-  { name: 'Ciencias', detail: 'El sistema solar', icon: 'flask', color: '#3B82F6', progress: 45, completed: '9 / 20', xp: '1,350' },
-  { name: 'Historia', detail: 'La Edad Media', icon: 'business', color: '#F6A64A', progress: 50, completed: '10 / 20', xp: '1,050' },
-  { name: 'Otras asignaturas', detail: 'Arte, Tecnología, etc.', icon: 'ellipsis-horizontal', color: '#718096', progress: 30, completed: '6 / 20', xp: '500' },
-] as const
+type ScoreRow = {
+  subject_id: number | null
+  max_score: number | null
+  played_at?: string | null
+  played_days?: string[] | null
+  correct_answers?: number | null
+  subjects?: { name: string } | { name: string }[] | null
+}
 
-const achievements = [
-  { title: 'Maestro de preguntas', detail: 'Completa 50 preguntas', time: 'Hace 2 días', xp: '+200 XP', icon: 'trophy', color: '#8B5CF6' },
-  { title: 'Científico curioso', detail: 'Completa 10 clases de Ciencias', time: 'Hace 5 días', xp: '+150 XP', icon: 'flask', color: '#34D399' },
-  { title: 'Constante', detail: 'Mantén una racha de 7 días', time: 'Hoy', xp: '+100 XP', icon: 'star', color: '#F6A64A' },
-  { title: 'Aprendiz dedicado', detail: 'Estudia 5 horas en total', time: 'Ayer', xp: '+120 XP', icon: 'radio-button-on', color: '#3B82F6' },
-] as const
+type SubjectProgress = {
+  id: number
+  name: string
+  detail: string
+  icon: keyof typeof Ionicons.glyphMap
+  color: string
+  averageScore: number | null
+  bestScore: number | null
+  scoreCount: number
+  barPercent: number
+}
+
+type RecentScore = {
+  label: string
+  value: number
+}
 
 export default function ProgressScreen() {
   const { width } = useWindowDimensions()
+  const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [subjectProgress, setSubjectProgress] = useState<SubjectProgress[]>([])
+  const [recentScores, setRecentScores] = useState<RecentScore[]>([])
+  const [scores, setScores] = useState<ScoreRow[]>([])
   const [loading, setLoading] = useState(true)
 
   const isDesktop = width >= 1024
@@ -55,11 +75,21 @@ export default function ProgressScreen() {
   const alias = profile?.alias || 'Alex'
   const level = Math.floor(points / 100) + 1
   const nextLevelProgress = points % 100
-  const totalClasses = Math.max(subjects.length, 18)
-  const completedClasses = Math.min(totalClasses, Math.max(subjects.length, 12))
-  const completedChallenges = Math.max(18, Math.floor(points / 100) + subjects.length * 4)
-  const progressPercent = Math.min(96, Math.max(38, 48 + subjects.length * 7 + Math.floor(points / 180)))
-  const weeklyCompleted = Math.min(10, Math.max(3, Math.floor(points / 350) + subjects.length))
+  const scoredSubjects = subjectProgress.filter((subject) => subject.averageScore !== null)
+  const totalClasses = subjectProgress.length
+  const completedClasses = scoredSubjects.length
+  const savedScores = subjectProgress.reduce((total, subject) => total + subject.scoreCount, 0)
+  const progressPercent = totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0
+  const averageScore = scoredSubjects.length > 0
+    ? Math.round(scoredSubjects.reduce((total, subject) => total + (subject.averageScore || 0), 0) / scoredSubjects.length)
+    : null
+  const weeklyCompleted = Math.min(10, savedScores)
+  const badgeMetrics = getStudentBadgeMetrics({
+    scores: scores as StudentBadgeScore[],
+    totalPoints: points,
+    subjectsCount: totalClasses,
+  })
+  const badges = buildStudentBadges(badgeMetrics)
 
   const fetchProgress = useCallback(async () => {
     setLoading(true)
@@ -70,23 +100,34 @@ export default function ProgressScreen() {
 
       if (!userId) return
 
-      const [profileResult, enrollmentsResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, scoresResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
         supabase
           .from('enrollments')
           .select('subjects(id, name, description, icon, theme_color)')
           .eq('student_id', userId),
+        supabase
+          .from('subject_scores')
+          .select('subject_id, max_score, played_at, played_days, correct_answers, subjects(name)')
+          .eq('student_id', userId)
+          .order('played_at', { ascending: false }),
       ])
 
       if (profileResult.error) throw profileResult.error
       if (enrollmentsResult.error) throw enrollmentsResult.error
+      if (scoresResult.error) throw scoresResult.error
 
       setProfile(profileResult.data)
-      setSubjects(
+      const enrolledSubjects = (
         enrollmentsResult.data
           ?.map((enrollment: any) => enrollment.subjects)
           .filter(Boolean) || []
       )
+      const scores = (scoresResult.data || []) as ScoreRow[]
+
+      setSubjectProgress(buildSubjectRows(enrolledSubjects, scores))
+      setRecentScores(buildRecentScores(scores))
+      setScores(scores)
     } catch (error) {
       console.error('Error fetching progress:', error)
     } finally {
@@ -158,8 +199,8 @@ export default function ProgressScreen() {
                 </Text>
               ) : null}
               <View className="flex-row items-center gap-3">
-                <Ionicons name="stats-chart" size={30} color="#8B5CF6" />
-                <Text className="text-[30px] font-black text-white">Progreso</Text>
+                <Ionicons name="stats-chart" size={40} color="#9FD6FF" />
+                <Text className="text-[40px] font-black text-white">Progreso</Text>
               </View>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">
                 Analiza tu aprendizaje y sigue mejorando cada día.
@@ -189,19 +230,24 @@ export default function ProgressScreen() {
               progressPercent={progressPercent}
               completedClasses={completedClasses}
               totalClasses={totalClasses}
-              completedChallenges={completedChallenges}
+              savedScores={savedScores}
+              averageScore={averageScore}
               points={points}
             />
-            <XpEvolution />
-            <DistributionCard />
+            <XpEvolution scores={recentScores} />
+            <DistributionCard subjects={subjectProgress} />
           </View>
 
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
             <DashboardCard title="Progreso por asignatura" className={isDesktop ? 'flex-[1.55]' : ''}>
               <View style={{ gap: 10 }}>
-                {buildSubjectRows(subjects).map((subject) => (
-                  <SubjectProgressRow key={subject.name} subject={subject} />
-                ))}
+                {subjectProgress.length > 0 ? (
+                  subjectProgress.map((subject) => (
+                    <SubjectProgressRow key={subject.id} subject={subject} />
+                  ))
+                ) : (
+                  <EmptyProgress />
+                )}
               </View>
               <CardLink label="Ver todas mis clases" onPress={() => showComingSoon('Todas tus clases')} />
             </DashboardCard>
@@ -210,11 +256,15 @@ export default function ProgressScreen() {
               <DashboardCard
                 title="Logros recientes"
                 actionLabel="Ver todos"
-                onAction={() => showComingSoon('Todos los logros')}
+                onAction={() => router.push('/(student)/badges' as any)}
               >
                 <View style={{ gap: 12 }}>
-                  {achievements.map((achievement) => (
-                    <AchievementRow key={achievement.title} achievement={achievement} />
+                  {badges.slice(0, 4).map((achievement) => (
+                    <AchievementRow
+                      key={achievement.title}
+                      achievement={achievement}
+                      onPress={() => router.push('/(student)/badges' as any)}
+                    />
                   ))}
                 </View>
               </DashboardCard>
@@ -234,13 +284,15 @@ function SummaryCard({
   progressPercent,
   completedClasses,
   totalClasses,
-  completedChallenges,
+  savedScores,
+  averageScore,
   points,
 }: {
   progressPercent: number
   completedClasses: number
   totalClasses: number
-  completedChallenges: number
+  savedScores: number
+  averageScore: number | null
   points: number
 }) {
   return (
@@ -252,10 +304,10 @@ function SummaryCard({
           <Text className="mt-1 text-center text-[11px] text-[#AFC2DB]">Progreso general</Text>
         </View>
         <View className="min-w-0 flex-1" style={{ gap: 12 }}>
-          <SummaryStat icon="checkmark-done" color="#3B82F6" label="Clases completadas" value={`${completedClasses} / ${totalClasses}`} />
-          <SummaryStat icon="trophy" color="#EC4899" label="Preguntas completadas" value={`${completedChallenges} / 72`} />
-          <SummaryStat icon="timer" color="#F6A64A" label="Horas de estudio" value="24h 35m" />
-          <SummaryStat icon="flash" color="#FBBF24" label="XP total acumulada" value={`${Math.max(points, 8450).toLocaleString()} XP`} />
+          <SummaryStat icon="checkmark-done" color="#3B82F6" label="Materias con nota" value={`${completedClasses} / ${totalClasses}`} />
+          <SummaryStat icon="trophy" color="#EC4899" label="Notas guardadas" value={String(savedScores)} />
+          <SummaryStat icon="analytics" color="#F6A64A" label="Media general" value={averageScore === null ? 'Sin notas' : `${averageScore.toLocaleString()} XP`} />
+          <SummaryStat icon="flash" color="#FBBF24" label="XP total acumulada" value={`${points.toLocaleString()} XP`} />
         </View>
       </View>
       <Text className="mt-5 text-center text-[12px] text-[#AFC2DB]">¡Vas por muy buen camino! 🚀</Text>
@@ -287,75 +339,77 @@ function SummaryStat({
   )
 }
 
-function XpEvolution() {
-  const points = [420, 620, 890, 650, 820, 1180, 1250]
-  const labels = ['Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom', 'Hoy']
+function XpEvolution({ scores }: { scores: RecentScore[] }) {
+  const maxScore = Math.max(...scores.map((score) => score.value), 1)
 
   return (
     <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
       <View className="mb-5 flex-row items-center justify-between">
-        <Text className="text-[15px] font-black text-white">Evolución de XP</Text>
+        <Text className="text-[15px] font-black text-white">Últimas notas</Text>
         <View className="flex-row items-center gap-2 rounded-lg border border-[#1A3155] bg-[#0D1D3B] px-3 py-2">
-          <Text className="text-[12px] text-[#AFC2DB]">Últimos 7 días</Text>
+          <Text className="text-[12px] text-[#AFC2DB]">subject_scores</Text>
           <Ionicons name="chevron-down" size={13} color="#AFC2DB" />
         </View>
       </View>
-      <View className="h-44 justify-end border-b border-l border-[#183052]">
-        <View className="absolute left-2 top-0">
-          {['2k', '1.5k', '1k', '500', '0'].map((label) => (
-            <Text key={label} className="mb-[18px] text-[11px] text-[#60799C]">{label}</Text>
-          ))}
-        </View>
-        <View className="ml-12 flex-row items-end justify-between">
-          {points.map((value, index) => (
-            <View key={labels[index]} className="items-center">
-              <View className="w-8 justify-end" style={{ height: 132 }}>
-                <View
-                  className="w-full rounded-t-md bg-[#5D5FEF]"
-                  style={{ height: Math.max(18, value / 12), opacity: index === points.length - 1 ? 1 : 0.68 }}
-                />
-              </View>
-              <View className="mt-2 h-3 w-3 rounded-full bg-[#8B5CF6]" />
+      {scores.length > 0 ? (
+        <>
+          <View className="h-44 justify-end border-b border-l border-[#183052]">
+            <View className="ml-5 flex-row items-end justify-between">
+              {scores.map((score, index) => (
+                <View key={`${score.label}-${index}`} className="items-center">
+                  <Text className="mb-2 text-[11px] font-bold text-[#DDE7F4]">{score.value.toLocaleString()}</Text>
+                  <View className="w-8 justify-end" style={{ height: 132 }}>
+                    <View
+                      className="w-full rounded-t-md bg-[#5D5FEF]"
+                      style={{ height: Math.max(18, (score.value / maxScore) * 132), opacity: index === 0 ? 1 : 0.68 }}
+                    />
+                  </View>
+                </View>
+              ))}
             </View>
-          ))}
+          </View>
+          <View className="ml-5 mt-2 flex-row justify-between">
+            {scores.map((score, index) => (
+              <Text key={`${score.label}-label-${index}`} className="max-w-[58px] text-[10px] text-[#8FA7C7]" numberOfLines={1}>
+                {score.label}
+              </Text>
+            ))}
+          </View>
+        </>
+      ) : (
+        <View className="h-44 items-center justify-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B]">
+          <Ionicons name="analytics-outline" size={30} color="#60799C" />
+          <Text className="mt-3 text-center text-[12px] text-[#AFC2DB]">Aún no hay notas guardadas.</Text>
         </View>
-      </View>
-      <View className="ml-12 mt-2 flex-row justify-between">
-        {labels.map((label) => (
-          <Text key={label} className="text-[11px] text-[#8FA7C7]">{label}</Text>
-        ))}
-      </View>
+      )}
     </View>
   )
 }
 
-function DistributionCard() {
-  const subjects = [
-    { label: 'Inglés', value: 75, color: '#43D991' },
-    { label: 'Matemáticas', value: 60, color: '#8B5CF6' },
-    { label: 'Ciencias', value: 45, color: '#3B82F6' },
-    { label: 'Historia', value: 50, color: '#F6A64A' },
-    { label: 'Otras', value: 30, color: '#718096' },
-  ]
-
+function DistributionCard({ subjects }: { subjects: SubjectProgress[] }) {
   return (
     <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
       <Text className="mb-5 text-[15px] font-black text-white">Distribución por asignatura</Text>
-      <View className="flex-row items-center gap-7">
-        <View className="h-32 w-32 items-center justify-center rounded-full border-[24px] border-[#43D991] bg-[#061126]">
-          <View className="h-12 w-12 rounded-full bg-[#09162C]" />
+      {subjects.length > 0 ? (
+        <View className="flex-row items-center gap-7">
+          <View className="h-32 w-32 items-center justify-center rounded-full border-[24px] border-[#43D991] bg-[#061126]">
+            <Text className="text-center text-[11px] font-bold text-[#AFC2DB]">Media real</Text>
+          </View>
+          <View className="min-w-0 flex-1" style={{ gap: 11 }}>
+            {subjects.slice(0, 5).map((subject) => (
+              <View key={subject.id} className="flex-row items-center gap-3">
+                <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: subject.color }} />
+                <Text className="min-w-0 flex-1 text-[12px] font-semibold text-[#DDE7F4]" numberOfLines={1}>{subject.name}</Text>
+                <Text className="text-[12px] text-[#AFC2DB]">
+                  {subject.averageScore === null ? 'Sin nota' : `${subject.averageScore.toLocaleString()} XP`}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
-        <View className="min-w-0 flex-1" style={{ gap: 11 }}>
-          {subjects.map((subject) => (
-            <View key={subject.label} className="flex-row items-center gap-3">
-              <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: subject.color }} />
-              <Text className="min-w-0 flex-1 text-[12px] font-semibold text-[#DDE7F4]">{subject.label}</Text>
-              <Text className="text-[12px] text-[#AFC2DB]">{subject.value}%</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-      <CardLink label="Ver todas las estadísticas" onPress={() => undefined} />
+      ) : (
+        <EmptyProgress />
+      )}
     </View>
   )
 }
@@ -392,15 +446,7 @@ function DashboardCard({
 function SubjectProgressRow({
   subject,
 }: {
-  subject: {
-    name: string
-    detail: string
-    icon: keyof typeof Ionicons.glyphMap
-    color: string
-    progress: number
-    completed: string
-    xp: string
-  }
+  subject: SubjectProgress
 }) {
   return (
     <View className="flex-row items-center rounded-xl bg-[#0D1D3B] p-3">
@@ -412,40 +458,56 @@ function SubjectProgressRow({
         <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>{subject.detail}</Text>
       </View>
       <View className="mx-4 hidden h-2 flex-[0.9] overflow-hidden rounded-full bg-[#13294C] md:flex">
-        <View className="h-full rounded-full" style={{ width: `${subject.progress}%`, backgroundColor: subject.color }} />
+        <View className="h-full rounded-full" style={{ width: `${subject.barPercent}%`, backgroundColor: subject.color }} />
       </View>
-      <Text className="w-10 text-right text-[12px] text-[#AFC2DB]">{subject.progress}%</Text>
+      <Text className="w-24 text-right text-[12px] text-[#AFC2DB]">
+        {subject.averageScore === null ? 'Sin nota' : `${subject.averageScore.toLocaleString()} XP`}
+      </Text>
       <View className="mx-4 hidden w-28 border-l border-[#172A4A] pl-4 lg:flex">
-        <Text className="text-[10px] text-[#60799C]">Completadas</Text>
-        <Text className="text-[12px] font-bold text-[#DDE7F4]">{subject.completed}</Text>
+        <Text className="text-[10px] text-[#60799C]">Notas</Text>
+        <Text className="text-[12px] font-bold text-[#DDE7F4]">{subject.scoreCount}</Text>
       </View>
       <View className="hidden w-16 lg:flex">
-        <Text className="text-[10px] text-[#60799C]">XP</Text>
-        <Text className="text-[12px] font-bold text-[#DDE7F4]">{subject.xp}</Text>
+        <Text className="text-[10px] text-[#60799C]">Mejor</Text>
+        <Text className="text-[12px] font-bold text-[#DDE7F4]">
+          {subject.bestScore === null ? '-' : subject.bestScore.toLocaleString()}
+        </Text>
       </View>
       <Ionicons name="arrow-forward" size={16} color="#7F91AD" />
     </View>
   )
 }
 
-function AchievementRow({ achievement }: { achievement: (typeof achievements)[number] }) {
+function EmptyProgress() {
   return (
-    <View className="flex-row items-center gap-4 rounded-xl bg-[#0D1D3B] p-3">
+    <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B] px-4 py-6">
+      <Ionicons name="stats-chart-outline" size={34} color="#60799C" />
+      <Text className="mt-3 text-center font-bold text-white">Sin progreso real todavía</Text>
+      <Text className="mt-1 text-center text-[12px] leading-5 text-[#8FA7C7]">
+        Cuando completes una partida, se guardará tu nota en subject_scores.
+      </Text>
+    </View>
+  )
+}
+
+function AchievementRow({ achievement, onPress }: { achievement: StudentBadge; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} className={`flex-row items-center gap-4 rounded-xl bg-[#0D1D3B] p-3 ${achievement.unlocked ? '' : 'opacity-70'}`}>
       <View
         className="h-14 w-14 items-center justify-center rounded-2xl border-2"
         style={{ backgroundColor: `${achievement.color}20`, borderColor: achievement.color }}
       >
-        <Ionicons name={achievement.icon} size={26} color={achievement.color} />
+        <Ionicons name={achievement.unlocked ? achievement.icon : 'lock-closed'} size={26} color={achievement.color} />
       </View>
       <View className="min-w-0 flex-1">
         <Text className="font-black text-white">{achievement.title}</Text>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]">{achievement.detail}</Text>
+        <Text className="mt-1 text-[12px] text-[#AFC2DB]">{achievement.requirement}</Text>
       </View>
       <View className="items-end">
-        <Text className="text-[11px] text-[#8FA7C7]">{achievement.time}</Text>
+        <Text className="text-[11px] text-[#8FA7C7]">{achievement.statusLabel}</Text>
         <Text className="mt-1 text-[11px] font-bold text-[#9B6CFF]">{achievement.xp}</Text>
       </View>
-    </View>
+    </Pressable>
   )
 }
 
@@ -521,22 +583,55 @@ function BottomNav() {
   )
 }
 
-function buildSubjectRows(subjects: Subject[]) {
+function buildSubjectRows(subjects: Subject[], scores: ScoreRow[]): SubjectProgress[] {
   const colors = ['#43D991', '#8B5CF6', '#3B82F6', '#F6A64A', '#718096']
   const icons: (keyof typeof Ionicons.glyphMap)[] = ['book', 'calculator', 'flask', 'business', 'ellipsis-horizontal']
+  const scoresBySubject = scores.reduce<Record<number, number[]>>((acc, score) => {
+    if (score.subject_id === null || score.max_score === null) return acc
+    if (!acc[score.subject_id]) acc[score.subject_id] = []
+    acc[score.subject_id].push(score.max_score)
+    return acc
+  }, {})
 
-  if (subjects.length === 0) return fallbackSubjects
+  const averages = subjects.map((subject) => {
+    const subjectScores = scoresBySubject[subject.id] || []
+    if (subjectScores.length === 0) return 0
+    return Math.round(subjectScores.reduce((total, score) => total + score, 0) / subjectScores.length)
+  })
+  const maxAverage = Math.max(...averages, 1)
 
-  return [
-    ...subjects.slice(0, 5).map((subject, index) => ({
+  return subjects.map((subject, index) => {
+    const subjectScores = scoresBySubject[subject.id] || []
+    const averageScore = subjectScores.length > 0
+      ? Math.round(subjectScores.reduce((total, score) => total + score, 0) / subjectScores.length)
+      : null
+    const bestScore = subjectScores.length > 0 ? Math.max(...subjectScores) : null
+
+    return {
+      id: subject.id,
       name: subject.name,
       detail: subject.description || 'Preguntas y ejercicios disponibles',
       icon: icons[index] || 'book',
       color: subject.theme_color || colors[index] || '#43D991',
-      progress: [75, 60, 45, 50, 30][index] || 35,
-      completed: [`15 / 20`, `12 / 20`, `9 / 20`, `10 / 20`, `6 / 20`][index] || '7 / 20',
-      xp: [`2,250`, `1,800`, `1,350`, `1,050`, `500`][index] || '650',
-    })),
-    ...fallbackSubjects.slice(subjects.length, 5),
-  ]
+      averageScore,
+      bestScore,
+      scoreCount: subjectScores.length,
+      barPercent: averageScore === null ? 0 : Math.max(8, Math.round((averageScore / maxAverage) * 100)),
+    }
+  })
+}
+
+function buildRecentScores(scores: ScoreRow[]): RecentScore[] {
+  return scores
+    .filter((score) => score.max_score !== null)
+    .slice(0, 7)
+    .map((score, index) => {
+      const subjectData = score.subjects
+      const subjectName = Array.isArray(subjectData) ? subjectData[0]?.name : subjectData?.name
+
+      return {
+        label: subjectName || `Nota ${index + 1}`,
+        value: score.max_score || 0,
+      }
+    })
 }

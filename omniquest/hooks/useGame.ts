@@ -18,6 +18,8 @@ export function useGame(subjectId: string, topicId?: string) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const scoreRef = useRef(0);
+  const correctAnswersRef = useRef(0);
+  const hasSavedScoreRef = useRef(false);
   const [lives, setLives] = useState(3);
   const [streak, setStreak] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -55,6 +57,8 @@ export function useGame(subjectId: string, topicId?: string) {
       }));
 
       scoreRef.current = 0;
+      correctAnswersRef.current = 0;
+      hasSavedScoreRef.current = false;
       setScore(0);
       setCurrentIndex(0);
       setLives(3);
@@ -101,7 +105,7 @@ export function useGame(subjectId: string, topicId?: string) {
 
     setLives((prev) => {
       const newLives = prev - 1;
-      if (newLives <= 0) setTimeout(() => setStatus('gameOver'), 1500);
+      if (newLives <= 0) setTimeout(() => finishGame('gameOver'), 1500);
       else setTimeout(nextQuestion, 1500);
       return newLives;
     });
@@ -126,6 +130,7 @@ export function useGame(subjectId: string, topicId?: string) {
         scoreRef.current = nextScore;
         return nextScore;
       });
+      correctAnswersRef.current += 1;
       setStreak((prev) => prev + 1);
     } else {
       setAnswerStatus('incorrect');
@@ -133,7 +138,7 @@ export function useGame(subjectId: string, topicId?: string) {
       setStreak(0);
       setLives((prev) => {
         const newLives = prev - 1;
-        if (newLives <= 0) setTimeout(() => setStatus('gameOver'), 1500);
+        if (newLives <= 0) setTimeout(() => finishGame('gameOver'), 1500);
         return newLives;
       });
     }
@@ -151,12 +156,20 @@ export function useGame(subjectId: string, topicId?: string) {
       setCurrentIndex((prev) => prev + 1);
       setTimeLeft(questions[currentIndex + 1].time_limit_seconds ?? 30);
     } else {
-      setStatus('finished');
-      saveScore(scoreRef.current);
+      finishGame('finished');
     }
   };
 
-  const saveScore = async (finalScore: number) => {
+  const finishGame = (nextStatus: 'gameOver' | 'finished') => {
+    setStatus(nextStatus);
+
+    if (hasSavedScoreRef.current) return;
+
+    hasSavedScoreRef.current = true;
+    saveScore(scoreRef.current, correctAnswersRef.current);
+  };
+
+  const saveScore = async (finalScore: number, correctAnswers: number) => {
     const { data: session } = await supabase.auth.getSession();
     if (!session?.session?.user.id) return;
     const userId = session.session.user.id;
@@ -194,7 +207,7 @@ export function useGame(subjectId: string, topicId?: string) {
 
       const { data: existingScore, error: scoreError } = await supabase
         .from('subject_scores')
-        .select('id, max_score')
+        .select('id, max_score, correct_answers, played_days')
         .eq('student_id', userId)
         .eq('subject_id', subjectId)
         .maybeSingle();
@@ -203,14 +216,37 @@ export function useGame(subjectId: string, topicId?: string) {
 
       if (!existingScore) {
         if (!pointsToAdd) pointsToAdd = finalScore;
+        const todayKey = getLocalDateKey(new Date());
+
         await supabase.from('subject_scores').insert([
-          { student_id: userId, subject_id: subjectId, max_score: finalScore }
+          {
+            student_id: userId,
+            subject_id: subjectId,
+            max_score: finalScore,
+            correct_answers: correctAnswers,
+            played_days: [todayKey],
+            played_at: new Date(),
+          }
         ]);
-      } else if (finalScore > (existingScore.max_score ?? 0)) {
-        if (!pointsToAdd) pointsToAdd = finalScore - (existingScore.max_score ?? 0);
+      } else {
+        const previousBest = existingScore.max_score ?? 0;
+        const nextBest = Math.max(previousBest, finalScore);
+        const todayKey = getLocalDateKey(new Date());
+        const playedDays = Array.isArray(existingScore.played_days) ? existingScore.played_days : [];
+        const nextPlayedDays = Array.from(new Set([...playedDays, todayKey])).sort();
+
+        if (finalScore > previousBest) {
+          if (!pointsToAdd) pointsToAdd = finalScore - previousBest;
+        }
+
         await supabase
           .from('subject_scores')
-          .update({ max_score: finalScore, played_at: new Date() })
+          .update({
+            max_score: nextBest,
+            correct_answers: (existingScore.correct_answers ?? 0) + correctAnswers,
+            played_days: nextPlayedDays,
+            played_at: new Date(),
+          })
           .eq('id', existingScore.id);
       }
 
@@ -246,4 +282,11 @@ export function useGame(subjectId: string, topicId?: string) {
     answerStatus,
     submitAnswer
   };
+}
+
+function getLocalDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
