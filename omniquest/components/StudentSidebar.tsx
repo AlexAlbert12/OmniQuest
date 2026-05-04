@@ -31,7 +31,7 @@ const navItems: NavItem[] = [
   { section: 'classes', label: 'Mis Clases', icon: 'book-outline', href: '/(student)/classes' },
   { section: 'progress', label: 'Progreso', icon: 'stats-chart-outline', href: '/(student)/progress' },
   { section: 'ranking', label: 'Ranking', icon: 'trophy-outline', href: '/(student)/ranking' },
-  { section: 'badges', label: 'Logros', icon: 'ribbon-outline', href: '/(student)/badges' },  
+  { section: 'badges', label: 'Logros', icon: 'ribbon-outline', href: '/(student)/badges' },
   { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(student)/profile' },
   { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(student)/settings' },
 ]

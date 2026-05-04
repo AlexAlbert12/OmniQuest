@@ -201,17 +201,27 @@ export default function SettingsScreen() {
     setDeletingAccount(true)
 
     try {
-      const { error } = await supabase.rpc('delete_my_account')
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+
+      if (!userId) {
+        throw new Error('No se ha podido identificar tu sesión.')
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId)
 
       if (error) throw error
 
-      await supabase.auth.signOut({ scope: 'local' })
+      await supabase.auth.signOut()
       showAlert('Cuenta borrada', 'Tu cuenta se ha eliminado correctamente.')
       router.replace('/(auth)/login')
     } catch (error: any) {
       showAlert(
         'No se pudo borrar la cuenta',
-        error.message || 'Revisa que la función delete_my_account exista en Supabase.'
+        error.message || 'No se pudo eliminar tu perfil. Revisa las políticas RLS de Supabase.'
       )
     } finally {
       setDeletingAccount(false)

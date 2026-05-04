@@ -1,5 +1,5 @@
 import React from 'react'
-import { Animated, Easing, Pressable, Text, View } from 'react-native'
+import { Animated, Easing, Image, Pressable, Text, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -11,6 +11,9 @@ type TeacherSidebarProps = {
   subjectsCount: number
   onSignOut: () => void
   onComingSoon: (feature: string) => void
+  alias?: string | null
+  avatar?: string | null
+  points?: number | null
 }
 
 const navItems: {
@@ -30,7 +33,14 @@ export default function TeacherSidebar({
   subjectsCount,
   onSignOut,
   onComingSoon,
+  alias,
+  avatar,
+  points,
 }: TeacherSidebarProps) {
+  const displayAlias = alias?.trim() || 'Profesor'
+  const level = Math.max(1, Math.floor((points ?? 0) / 100) + subjectsCount + 1)
+  const progress = Math.min(100, ((points ?? 0) % 100) || 65)
+
   return (
     <View className="w-[244px] border-r border-[#183052] bg-[#041024] px-4 py-7">
       <View className="mb-7 flex-row items-center gap-2 px-2">
@@ -56,18 +66,22 @@ export default function TeacherSidebar({
 
       <View className="mt-auto rounded-2xl border border-[#162B50] bg-[#091A35] p-4">
         <View className="flex-row items-center gap-3">
-          <View className="h-12 w-12 items-center justify-center rounded-full bg-[#192C62]">
-            <Text className="font-black text-white">PR</Text>
+          <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#192C62]">
+            {avatar && avatar.startsWith('http') ? (
+              <Image source={{ uri: avatar }} className="h-full w-full" />
+            ) : (
+              <Text className="font-black text-white">{getInitials(displayAlias)}</Text>
+            )}
           </View>
           <View className="min-w-0 flex-1">
-            <Text className="text-[14px] font-bold text-white">Profesor</Text>
-            <Text className="text-[12px] text-[#9BAEC9]">Nivel {Math.max(1, subjectsCount + 6)}</Text>
+            <Text className="text-[14px] font-bold text-white" numberOfLines={1}>{displayAlias}</Text>
+            <Text className="text-[12px] text-[#9BAEC9]">Nivel {level}</Text>
           </View>
         </View>
         <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full bg-[#6574FF]" style={{ width: '65%' }} />
+          <View className="h-full rounded-full bg-[#6574FF]" style={{ width: `${progress}%` }} />
         </View>
-        <Text className="mt-2 text-[11px] text-[#8FA7C7]">2,450 / 3,000 XP</Text>
+        <Text className="mt-2 text-[11px] text-[#8FA7C7]">{(points ?? 0).toLocaleString()} XP</Text>
       </View>
     </View>
   )
@@ -260,4 +274,9 @@ function TeacherNavButton({
 
 function filledIconFor(icon: keyof typeof Ionicons.glyphMap): keyof typeof Ionicons.glyphMap {
   return icon.endsWith('-outline') ? (icon.replace('-outline', '') as keyof typeof Ionicons.glyphMap) : icon
+}
+
+function getInitials(value: string) {
+  const parts = value.trim().split(/\s+/).slice(0, 2)
+  return parts.map((part) => part[0]?.toUpperCase()).join('') || 'PR'
 }

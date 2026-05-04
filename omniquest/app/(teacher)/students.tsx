@@ -385,22 +385,6 @@ export default function TeacherStudentsScreen() {
                   ) : null}
                 </View>
               </Panel>
-
-              <View className="rounded-2xl border border-[#31266C] bg-[#1A1751] p-5">
-                <View className="flex-row items-start gap-3">
-                  <Ionicons name="bulb" size={24} color="#FBBF24" />
-                  <View className="min-w-0 flex-1">
-                    <Text className="font-black text-white">Consejo docente</Text>
-                    <Text className="mt-2 text-[12px] leading-5 text-[#B7C4D7]">
-                      Revisa las actividades pendientes para ayudar a tus estudiantes a mejorar.
-                    </Text>
-                    <Pressable className="mt-3 flex-row items-center gap-2">
-                      <Text className="text-[12px] font-bold text-[#B9A7FF]">Ver actividades pendientes</Text>
-                      <Ionicons name="arrow-forward" size={13} color="#B9A7FF" />
-                    </Pressable>
-                  </View>
-                </View>
-              </View>
             </View>
           </View>
         </ScrollView>

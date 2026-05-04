@@ -49,6 +49,11 @@ export default function TeacherSettingsScreen() {
   const [subjectsCount, setSubjectsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [toggles, setToggles] = useState<Record<ToggleKey, boolean>>({
     push: true,
     daily: true,
@@ -59,6 +64,7 @@ export default function TeacherSettingsScreen() {
 
   const isDesktop = width >= 1080;
   const isWide = width >= 820;
+  const teacherInitials = getInitials(name);
 
   const showAlert = (title: string, message: string) => {
     if (Platform.OS === 'web') {
@@ -117,9 +123,21 @@ export default function TeacherSettingsScreen() {
     try {
       setSaving(true);
       const cleanName = name.trim() || 'Profesor';
+      if (cleanName.length < 3) {
+        showAlert('Alias demasiado corto', 'El nombre visible debe tener al menos 3 caracteres.');
+        return;
+      }
+
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { alias: cleanName },
+      });
+
+      if (authError) throw authError;
+
       const { error } = await supabase.from('profiles').update({ alias: cleanName }).eq('id', profile.id);
       if (error) throw error;
       setName(cleanName);
+      setProfile({ ...profile, alias: cleanName });
       showAlert('Perfil actualizado', 'Tu información de profesor se ha guardado correctamente.');
     } catch (error: any) {
       console.error('Error actualizando perfil del profesor:', error.message);
@@ -127,6 +145,85 @@ export default function TeacherSettingsScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleChangePassword = async () => {
+    if (!email || !currentPassword || !newPassword || newPassword !== confirmPassword) {
+      showAlert('Error', 'Verifica que las contraseñas coincidan y estén completas.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      showAlert('Error', 'La nueva contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        throw new Error('La contraseña actual no es correcta.');
+      }
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      showAlert('Contraseña actualizada', 'Tu contraseña se ha actualizado correctamente.');
+    } catch (error: any) {
+      showAlert('No se pudo actualizar', error.message || 'Inténtalo de nuevo.');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const executeDeleteAccount = async () => {
+    try {
+      setDeletingAccount(true);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+
+      if (!userId) {
+        throw new Error('No se ha podido identificar tu sesión.');
+      }
+
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      if (error) throw error;
+
+      await supabase.auth.signOut();
+      showAlert('Cuenta borrada', 'Tu cuenta se ha eliminado correctamente.');
+      router.replace('/(auth)/login' as any);
+    } catch (error: any) {
+      showAlert('No se pudo borrar la cuenta', error.message || 'No se pudo eliminar tu perfil.');
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    const message = 'Esta acción eliminará tu perfil de profesor y cerrará la sesión. No se puede deshacer.';
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(message)) {
+        void executeDeleteAccount();
+      }
+      return;
+    }
+
+    Alert.alert('Borrar mi cuenta', message, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Borrar cuenta',
+        style: 'destructive',
+        onPress: () => void executeDeleteAccount(),
+      },
+    ]);
   };
 
   const handleSignOut = async () => {
@@ -156,6 +253,9 @@ export default function TeacherSettingsScreen() {
             subjectsCount={subjectsCount}
             onSignOut={handleSignOut}
             onComingSoon={showComingSoon}
+            alias={name}
+            avatar={profile?.avatar}
+            points={profile?.points}
           />
         ) : null}
 
@@ -192,7 +292,7 @@ export default function TeacherSettingsScreen() {
                 </View>
               </Pressable>
               <View className="h-11 w-11 items-center justify-center rounded-full bg-[#5B4BC4]">
-                <Text className="font-black text-white">PR</Text>
+                <Text className="font-black text-white">{teacherInitials}</Text>
               </View>
               <Ionicons name="chevron-down" size={18} color="#AFC2DB" />
             </View>
@@ -207,7 +307,7 @@ export default function TeacherSettingsScreen() {
                   <View className={width >= 520 ? 'flex-row gap-5' : 'gap-4'}>
                     <View className="items-center">
                       <View className="h-24 w-24 items-center justify-center rounded-full bg-[#4E3CB7]">
-                        <Text className="text-[28px] font-black text-white">PR</Text>
+                        <Text className="text-[28px] font-black text-white">{teacherInitials}</Text>
                         <View className="absolute bottom-1 right-1 h-7 w-7 items-center justify-center rounded-full border border-[#20375E] bg-[#09162C]">
                           <Ionicons name="camera-outline" size={14} color="#DCE7F8" />
                         </View>
@@ -320,12 +420,55 @@ export default function TeacherSettingsScreen() {
 
               <View className={isWide ? 'flex-row gap-5' : 'gap-5'}>
                 <Panel title="Seguridad" className={isWide ? 'flex-1' : ''}>
-                  <ActionRow
-                    icon="lock-closed-outline"
-                    title="Cambiar contraseña"
-                    description="Actualiza tu contraseña regularmente."
-                    onPress={() => router.push('/(auth)/forgot-password' as any)}
-                  />
+                  <View className="gap-3 border-b border-[#13284A] pb-4">
+                    <View className="flex-row items-center gap-3">
+                      <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10233F]">
+                        <Ionicons name="lock-closed-outline" size={18} color="#AFC2DB" />
+                      </View>
+                      <View className="min-w-0 flex-1">
+                        <Text className="font-bold text-white">Cambiar contraseña</Text>
+                        <Text className="mt-1 text-[12px] text-[#B7C4D7]">Actualiza tu contraseña de acceso.</Text>
+                      </View>
+                    </View>
+                    <TextInput
+                      value={currentPassword}
+                      onChangeText={setCurrentPassword}
+                      secureTextEntry
+                      placeholder="Contraseña actual"
+                      placeholderTextColor="#64748B"
+                      className="rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3 text-[13px] text-white"
+                    />
+                    <TextInput
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry
+                      placeholder="Nueva contraseña"
+                      placeholderTextColor="#64748B"
+                      className="rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3 text-[13px] text-white"
+                    />
+                    <TextInput
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry
+                      placeholder="Confirmar nueva contraseña"
+                      placeholderTextColor="#64748B"
+                      className="rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3 text-[13px] text-white"
+                    />
+                    <Pressable
+                      onPress={handleChangePassword}
+                      disabled={changingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword}
+                      className="items-center justify-center rounded-lg bg-[#5A46D8] px-5 py-3"
+                      style={({ pressed }) => ({
+                        opacity: changingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword ? 0.65 : pressed ? 0.86 : 1,
+                      })}
+                    >
+                      {changingPassword ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text className="text-[12px] font-bold text-white">Actualizar contraseña</Text>
+                      )}
+                    </Pressable>
+                  </View>
                   <NotificationRow
                     icon="shield-checkmark-outline"
                     title="Verificación en dos pasos"
@@ -333,6 +476,19 @@ export default function TeacherSettingsScreen() {
                     enabled={toggles.twoFactor}
                     onPress={() => updateToggle('twoFactor')}
                   />
+                  <Pressable
+                    onPress={handleDeleteAccount}
+                    disabled={deletingAccount}
+                    className="mt-3 flex-row items-center gap-3 rounded-xl border border-[#4A1E2B] bg-[#2A0B18] p-4"
+                    style={({ pressed }) => ({ opacity: deletingAccount ? 0.7 : pressed ? 0.86 : 1 })}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+                    <View className="min-w-0 flex-1">
+                      <Text className="font-bold text-[#FF6B6B]">Borrar mi cuenta</Text>
+                      <Text className="mt-1 text-[12px] text-[#FCA5A5]">Elimina tu perfil y cierra sesión.</Text>
+                    </View>
+                    {deletingAccount ? <ActivityIndicator color="#FF6B6B" /> : null}
+                  </Pressable>
                 </Panel>
 
                 <Panel title="Integraciones" className={isWide ? 'flex-1' : ''}>
@@ -541,4 +697,9 @@ function IntegrationRow({
       </Pressable>
     </View>
   );
+}
+
+function getInitials(value: string) {
+  const parts = value.trim().split(/\s+/).slice(0, 2);
+  return parts.map((part) => part[0]?.toUpperCase()).join('') || 'PR';
 }

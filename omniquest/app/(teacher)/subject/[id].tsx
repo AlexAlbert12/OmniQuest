@@ -689,16 +689,6 @@ export default function SubjectDetailScreen() {
                 </View>
               </Panel>
 
-              <Panel
-                title="Próximas actividades"
-                actionLabel="Ver todas"
-                onAction={() => showComingSoon('Próximas actividades')}
-              >
-                <UpcomingRow icon="calendar" color="#3B82F6" title="Repaso de Gramática" detail="Tiempos verbales" date="25 May" />
-                <UpcomingRow icon="briefcase" color="#F97316" title="Examen: Unit 3" detail="Evaluación escrita" date="28 May" />
-                <UpcomingRow icon="trophy" color="#F59E0B" title="Pregunta: Speaking Challenge" detail="Participación oral" date="30 May" />
-              </Panel>
-
               <View className="rounded-xl border border-[#4733B7] bg-[#1A1E55] p-5">
                 <View className="mb-3 flex-row items-center gap-3">
                   <Ionicons name="qr-code-outline" size={24} color="#D8B4FE" />
