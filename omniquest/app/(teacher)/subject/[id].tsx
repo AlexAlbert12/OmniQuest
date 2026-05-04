@@ -25,6 +25,7 @@ type Subject = {
   icon: string | null
   code: string
   theme_color: string | null
+  is_archived?: boolean | null
   teacher_id?: string | null
   created_at?: string | null
 }
@@ -76,14 +77,16 @@ type ActivityItem = {
   warning: boolean
 }
 
-const tabItems: { label: string; icon: IconName; href?: string }[] = [
-  { label: 'Resumen', icon: 'document-text-outline' },
-  { label: 'Estudiantes', icon: 'people-outline', href: 'students' },
-  { label: 'Actividades', icon: 'calendar-outline' },
-  { label: 'Preguntas', icon: 'checkmark-circle-outline' },
-  { label: 'Informes', icon: 'bar-chart-outline' },
-  { label: 'Recursos', icon: 'book-outline' },
-  { label: 'Configuración', icon: 'settings-outline' },
+type SubjectTabKey = 'summary' | 'students' | 'activities' | 'questions' | 'reports' | 'resources' | 'settings'
+
+const tabItems: { key: SubjectTabKey; label: string; icon: IconName; href?: string }[] = [
+  { key: 'summary', label: 'Resumen', icon: 'document-text-outline' },
+  { key: 'students', label: 'Estudiantes', icon: 'people-outline', href: 'students' },
+  { key: 'activities', label: 'Actividades', icon: 'calendar-outline' },
+  { key: 'questions', label: 'Preguntas', icon: 'checkmark-circle-outline' },
+  { key: 'reports', label: 'Informes', icon: 'bar-chart-outline' },
+  { key: 'resources', label: 'Recursos', icon: 'book-outline' },
+  { key: 'settings', label: 'Configuración', icon: 'settings-outline' },
 ]
 
 export default function SubjectDetailScreen() {
@@ -99,6 +102,7 @@ export default function SubjectDetailScreen() {
   const [profilesById, setProfilesById] = useState<Record<string, StudentProfile>>({});
   const [subjectsCount, setSubjectsCount] = useState(0);
   const [selectedTopicId, setSelectedTopicId] = useState<number | 'all' | 'general'>('all');
+  const [activeTab, setActiveTab] = useState<SubjectTabKey>('summary');
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [newTopicDescription, setNewTopicDescription] = useState('');
   const [creatingTopic, setCreatingTopic] = useState(false);
@@ -234,6 +238,393 @@ export default function SubjectDetailScreen() {
     ];
   }, [activeChallenge?.text, averageXp, enrollments.length, profilesById, questions.length, scores, subject?.name]);
 
+  const topStudents = useMemo(() => {
+    return scores
+      .filter((item) => typeof item.max_score === 'number')
+      .slice()
+      .sort((a, b) => (b.max_score || 0) - (a.max_score || 0))
+      .slice(0, 5)
+      .map((item, index) => ({
+        id: item.student_id,
+        rank: index + 1,
+        name: profilesById[item.student_id]?.alias || `Alumno ${index + 1}`,
+        score: item.max_score || 0,
+      }));
+  }, [profilesById, scores]);
+
+  const upcomingActivities = useMemo(() => {
+    const today = new Date();
+    const plusDays = (days: number) => {
+      const nextDate = new Date(today);
+      nextDate.setDate(today.getDate() + days);
+      return formatDate(nextDate.toISOString());
+    };
+
+    return [
+      {
+        icon: 'checkmark-circle-outline' as IconName,
+        color: '#8B5CF6',
+        title: 'Revisión de preguntas',
+        detail: 'Valida enunciados y respuestas antes de publicar.',
+        date: plusDays(1),
+      },
+      {
+        icon: 'school-outline' as IconName,
+        color: '#3B82F6',
+        title: 'Seguimiento semanal',
+        detail: 'Revisa progreso y participación de la clase.',
+        date: plusDays(2),
+      },
+      {
+        icon: 'bar-chart-outline' as IconName,
+        color: '#34D399',
+        title: 'Informe de rendimiento',
+        detail: 'Comparativa de notas por tema.',
+        date: plusDays(4),
+      },
+    ];
+  }, []);
+
+  const renderTabContent = (currentSubject: Subject) => {
+    if (activeTab === 'activities') {
+      return (
+        <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
+          <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
+            <Panel title="Actividad reciente">
+              {recentActivity.map((item, index) => (
+                <ActivityRow key={`${item.title}-${index}`} {...item} />
+              ))}
+            </Panel>
+            <Panel title="Próximas actividades">
+              {upcomingActivities.map((activity) => (
+                <UpcomingRow
+                  key={activity.title}
+                  icon={activity.icon}
+                  color={activity.color}
+                  title={activity.title}
+                  detail={activity.detail}
+                  date={activity.date}
+                />
+              ))}
+            </Panel>
+          </View>
+
+          <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
+            <Panel title="Actividad por tema">
+              {topicRows.length > 0 ? (
+                topicRows.map((topic) => (
+                  <View key={String(topic.id)} className="flex-row items-center justify-between border-b border-[#13284A] py-3">
+                    <View className="min-w-0 flex-1 pr-3">
+                      <Text className="font-semibold text-white">{topic.title}</Text>
+                      <Text className="mt-1 text-[11px] text-[#8FA7C7]">{topic.questionsCount} preguntas</Text>
+                    </View>
+                    <Text className="text-[12px] font-bold text-[#A78BFA]">{topic.playedCount} jugados</Text>
+                  </View>
+                ))
+              ) : (
+                <Text className="text-[12px] text-[#8FA7C7]">Aún no hay temas para analizar actividad.</Text>
+              )}
+            </Panel>
+          </View>
+        </View>
+      );
+    }
+
+    if (activeTab === 'questions') {
+      return (
+        <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
+          <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
+            <Panel title={`Preguntas: ${selectedTopicLabel}`}>
+              {filteredQuestions.length === 0 ? (
+                <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
+                  <Ionicons name="help-circle-outline" size={44} color="#64748B" />
+                  <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
+                  <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primera pregunta para activar este tema.</Text>
+                  <Link
+                    href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}`}
+                    asChild
+                  >
+                    <Pressable className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
+                      <Text className="font-bold text-white">Crear pregunta</Text>
+                    </Pressable>
+                  </Link>
+                </View>
+              ) : (
+                <View className="gap-3">
+                  {filteredQuestions.map((question, index) => (
+                    <QuestionRow
+                      key={question.id}
+                      question={question}
+                      index={filteredQuestions.length - index}
+                      subjectId={currentSubject.id}
+                      topicName={question.topic_id ? topics.find((topic) => topic.id === question.topic_id)?.title : 'Tema general'}
+                      onDelete={() => handleDelete(question.id)}
+                    />
+                  ))}
+                </View>
+              )}
+            </Panel>
+          </View>
+
+          <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
+            <Panel title="Gestión rápida">
+              <Link
+                href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}`}
+                asChild
+              >
+                <Pressable className="mb-3 rounded-xl bg-[#5A46D8] px-4 py-3">
+                  <Text className="text-center font-bold text-white">Nueva pregunta</Text>
+                </Pressable>
+              </Link>
+              <Text className="text-[12px] text-[#8FA7C7]">
+                Total preguntas: <Text className="font-bold text-white">{questions.length}</Text>
+              </Text>
+            </Panel>
+          </View>
+        </View>
+      );
+    }
+
+    if (activeTab === 'reports') {
+      return (
+        <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
+          <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
+            <Panel title="Distribución de notas">
+              <View className="flex-row items-center gap-5">
+                <DonutCard value={scoreValues.length || enrollments.length} />
+                <View className="min-w-0 flex-1 gap-2">
+                  {gradeDistribution.map((item) => {
+                    const percent = scoreValues.length > 0 ? Math.round((item.count / scoreValues.length) * 100) : 0;
+                    return (
+                      <View key={item.label} className="flex-row items-center gap-2">
+                        <View className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
+                        <Text className="min-w-0 flex-1 text-[11px] text-[#C4D0E3]">{item.label}</Text>
+                        <Text className="text-[11px] font-bold text-white">
+                          {item.count} ({percent}%)
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            </Panel>
+          </View>
+
+          <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
+            <Panel title="Top alumnos">
+              {topStudents.length > 0 ? (
+                topStudents.map((student) => (
+                  <View key={student.id} className="flex-row items-center justify-between border-b border-[#13284A] py-3">
+                    <Text className="text-[12px] font-semibold text-white">
+                      #{student.rank} {student.name}
+                    </Text>
+                    <Text className="text-[12px] font-bold text-[#A78BFA]">{student.score} XP</Text>
+                  </View>
+                ))
+              ) : (
+                <Text className="text-[12px] text-[#8FA7C7]">Aún no hay datos de rendimiento.</Text>
+              )}
+            </Panel>
+          </View>
+        </View>
+      );
+    }
+
+    if (activeTab === 'resources') {
+      return (
+        <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
+          <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
+            <Panel title="Recursos de la clase">
+              <View className="gap-3">
+                <Pressable
+                  onPress={() => router.push(`/(teacher)/edit-subject?id=${currentSubject.id}` as any)}
+                  className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
+                >
+                  <Text className="font-bold text-white">Editar información de la clase</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => router.push(`/(teacher)/subject/students?subjectId=${currentSubject.id}` as any)}
+                  className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
+                >
+                  <Text className="font-bold text-white">Gestionar alumnos</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => showAlert('Código de la clase', currentSubject.code)}
+                  className="rounded-xl border border-[#6D5AF6] bg-[#1A1E55] px-4 py-3"
+                >
+                  <Text className="font-bold text-[#D8B4FE]">Ver código de acceso</Text>
+                </Pressable>
+              </View>
+            </Panel>
+          </View>
+
+          <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
+            <Panel title="Temas disponibles">
+              {topicRows.length > 0 ? (
+                topicRows.map((topic) => (
+                  <View key={String(topic.id)} className="border-b border-[#13284A] py-3">
+                    <Text className="font-semibold text-white">{topic.title}</Text>
+                    <Text className="mt-1 text-[11px] text-[#8FA7C7]">{topic.questionsCount} preguntas</Text>
+                  </View>
+                ))
+              ) : (
+                <Text className="text-[12px] text-[#8FA7C7]">Sin temas todavía.</Text>
+              )}
+            </Panel>
+          </View>
+        </View>
+      );
+    }
+
+    if (activeTab === 'settings') {
+      return (
+        <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
+          <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
+            <Panel title="Configuración de la clase">
+              <View className="gap-3">
+                <Pressable
+                  onPress={() => router.push(`/(teacher)/edit-subject?id=${currentSubject.id}` as any)}
+                  className="rounded-xl bg-[#5A46D8] px-4 py-3"
+                >
+                  <Text className="text-center font-bold text-white">Editar clase</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => router.push(`/(teacher)/subject/students?subjectId=${currentSubject.id}` as any)}
+                  className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
+                >
+                  <Text className="text-center font-bold text-white">Gestionar estudiantes</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => showAlert('Código de clase', `Comparte este código con tus alumnos: ${currentSubject.code}`)}
+                  className="rounded-xl border border-[#6D5AF6] bg-[#1A1E55] px-4 py-3"
+                >
+                  <Text className="text-center font-bold text-[#D8B4FE]">Compartir código</Text>
+                </Pressable>
+              </View>
+            </Panel>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
+        <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
+          <Panel
+            title="Actividad reciente"
+            actionLabel="Ver todo"
+            onAction={() => setActiveTab('activities')}
+          >
+            {recentActivity.map((item, index) => (
+              <ActivityRow key={`${item.title}-${index}`} {...item} />
+            ))}
+          </Panel>
+
+          <View className="rounded-xl border border-[#183052] bg-[#07162D] p-5">
+            <View className="flex-row flex-wrap items-center gap-4">
+              <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#B91C4C33]">
+                <Ionicons name="radio-button-on" size={27} color="#F43F5E" />
+              </View>
+              <View className="min-w-[220px] flex-1">
+                <Text className="text-[12px] font-semibold text-[#B7C4D7]">Pregunta activa de la clase</Text>
+                <Text className="mt-1 text-[20px] font-black text-white">{activeChallenge?.text || 'Crea la primera pregunta'}</Text>
+              </View>
+              <InfoStack label="Progreso de la clase" value={`${progress}%`} />
+              <InfoStack label="Participación" value={`${scores.length} / ${Math.max(enrollments.length, 1)}`} />
+              <Link
+                href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}`}
+                asChild
+              >
+                <Pressable className="rounded-xl bg-[#1A1E55] px-5 py-3">
+                  <Text className="text-[12px] font-bold text-white">Nueva pregunta</Text>
+                </Pressable>
+              </Link>
+            </View>
+            <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#13294C]">
+              <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${Math.min(progress, 100)}%` }} />
+            </View>
+            <Text className="mt-3 text-[12px] text-[#8FA7C7]">Finaliza en 3 días</Text>
+          </View>
+
+          <Panel title={`Preguntas: ${selectedTopicLabel}`}>
+            {filteredQuestions.length === 0 ? (
+              <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
+                <Ionicons name="help-circle-outline" size={44} color="#64748B" />
+                <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
+                <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primera pregunta para activar este tema.</Text>
+                <Link
+                  href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}`}
+                  asChild
+                >
+                  <Pressable className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
+                    <Text className="font-bold text-white">Crear pregunta</Text>
+                  </Pressable>
+                </Link>
+              </View>
+            ) : (
+              <View className="gap-3">
+                {filteredQuestions.map((question, index) => (
+                  <QuestionRow
+                    key={question.id}
+                    question={question}
+                    index={filteredQuestions.length - index}
+                    subjectId={currentSubject.id}
+                    topicName={question.topic_id ? topics.find((topic) => topic.id === question.topic_id)?.title : 'Tema general'}
+                    onDelete={() => handleDelete(question.id)}
+                  />
+                ))}
+              </View>
+            )}
+          </Panel>
+        </View>
+
+        <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
+          <Panel title="Distribución de notas">
+            <View className="flex-row items-center gap-5">
+              <DonutCard value={scoreValues.length || enrollments.length} />
+              <View className="min-w-0 flex-1 gap-2">
+                {gradeDistribution.map((item) => {
+                  const percent = scoreValues.length > 0 ? Math.round((item.count / scoreValues.length) * 100) : 0;
+                  return (
+                    <View key={item.label} className="flex-row items-center gap-2">
+                      <View className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <Text className="min-w-0 flex-1 text-[11px] text-[#C4D0E3]">{item.label}</Text>
+                      <Text className="text-[11px] font-bold text-white">
+                        {item.count} ({percent}%)
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          </Panel>
+
+          <View className="rounded-xl border border-[#4733B7] bg-[#1A1E55] p-5">
+            <View className="mb-3 flex-row items-center gap-3">
+              <Ionicons name="qr-code-outline" size={24} color="#D8B4FE" />
+              <Text className="font-black text-white">Código de la clase</Text>
+            </View>
+            <Text className="text-[12px] leading-5 text-[#C4D0E3]">
+              Comparte este código con tus alumnos para que se unan a la clase.
+            </Text>
+            <View className="mt-4 flex-row items-center gap-3">
+              <View className="rounded-lg bg-[#07162D] px-4 py-3">
+                <Text className="font-mono font-black text-[#A78BFA]">{currentSubject.code}</Text>
+              </View>
+              <Pressable
+                onPress={() => showAlert('Código de clase', currentSubject.code)}
+                className="flex-row items-center gap-2 rounded-lg border border-[#6D5AF6] px-4 py-3"
+              >
+                <Text className="text-[12px] font-bold text-[#C4B5FD]">Copiar</Text>
+                <Ionicons name="copy-outline" size={15} color="#C4B5FD" />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   const fetchData = useCallback(async () => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -264,7 +655,7 @@ export default function SubjectDetailScreen() {
           .eq('subject_id', subjectId)
           .order('played_at', { ascending: false }),
         teacherId
-          ? supabase.from('subjects').select('id').eq('teacher_id', teacherId)
+          ? supabase.from('subjects').select('id').eq('teacher_id', teacherId).eq('is_archived', false)
           : Promise.resolve({ data: [], error: null }),
       ]);
 
@@ -336,6 +727,386 @@ export default function SubjectDetailScreen() {
 
   const showComingSoon = (feature: string) => {
     showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`);
+  };
+
+  const generateInviteCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let index = 0; index < 6; index += 1) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  const generateUniqueClassCode = async () => {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const candidate = generateInviteCode();
+      const { data, error } = await supabase
+        .from('subjects')
+        .select('id')
+        .eq('code', candidate)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) return candidate;
+    }
+
+    throw new Error('No se pudo generar un código único. Inténtalo de nuevo.');
+  };
+
+  const handleEditClass = () => {
+    if (!subject) return;
+    router.push(`/(teacher)/edit-subject?id=${subject.id}` as any);
+  };
+
+  const handleArchiveClass = async () => {
+    if (!subject) return;
+
+    const executeArchive = async () => {
+      try {
+        const { error } = await supabase
+          .from('subjects')
+          .update({ is_archived: true })
+          .eq('id', subject.id);
+
+        if (error) {
+          if (error.code === '42703') {
+            throw new Error('Falta la columna is_archived en subjects. Aplica la migración de archivado.');
+          }
+          throw error;
+        }
+
+        showAlert('Clase archivada', 'La clase se archivó correctamente.');
+        router.replace('/(teacher)/classes' as any);
+      } catch (archiveError: any) {
+        showAlert('No se pudo archivar', archiveError.message || 'Inténtalo de nuevo.');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmArchive = window.confirm('¿Seguro que quieres archivar esta clase? Se ocultará de la lista activa.');
+      if (confirmArchive) {
+        await executeArchive();
+      }
+      return;
+    }
+
+    Alert.alert('Archivar clase', 'La clase se ocultará de las clases activas.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Archivar',
+        style: 'destructive',
+        onPress: () => {
+          void executeArchive();
+        },
+      },
+    ]);
+  };
+
+  const handleDuplicateClass = async () => {
+    if (!subject) return;
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const teacherId = sessionData.session?.user.id;
+      if (!teacherId) {
+        throw new Error('No se encontró una sesión activa.');
+      }
+
+      const duplicateCode = await generateUniqueClassCode();
+
+      const { data: duplicatedSubject, error: duplicatedSubjectError } = await supabase
+        .from('subjects')
+        .insert([
+          {
+            name: `${subject.name} (Copia)`,
+            description: subject.description,
+            icon: subject.icon,
+            code: duplicateCode,
+            teacher_id: teacherId,
+            theme_color: subject.theme_color,
+            is_archived: false,
+          },
+        ])
+        .select('id')
+        .single();
+
+      if (duplicatedSubjectError) {
+        if (duplicatedSubjectError.code === '42703') {
+          throw new Error('Falta la columna is_archived en subjects. Aplica la migración de archivado.');
+        }
+        throw duplicatedSubjectError;
+      }
+
+      const duplicatedSubjectId = duplicatedSubject.id as number;
+
+      const { data: sourceTopics, error: sourceTopicsError } = await supabase
+        .from('subject_topics')
+        .select('id, title, description, icon, sort_order, active')
+        .eq('subject_id', subject.id);
+
+      if (sourceTopicsError) throw sourceTopicsError;
+
+      const topicIdMap = new Map<number, number>();
+      for (const topic of sourceTopics || []) {
+        const { data: newTopic, error: newTopicError } = await supabase
+          .from('subject_topics')
+          .insert([
+            {
+              subject_id: duplicatedSubjectId,
+              title: topic.title,
+              description: topic.description,
+              icon: topic.icon,
+              sort_order: topic.sort_order,
+              active: topic.active,
+            },
+          ])
+          .select('id')
+          .single();
+
+        if (newTopicError) throw newTopicError;
+        topicIdMap.set(Number(topic.id), Number(newTopic.id));
+      }
+
+      const { data: sourceQuestions, error: sourceQuestionsError } = await supabase
+        .from('questions')
+        .select('id, type, text, points_base, time_limit_seconds, topic_id')
+        .eq('subject_id', subject.id)
+        .order('created_at', { ascending: true });
+
+      if (sourceQuestionsError) throw sourceQuestionsError;
+
+      const questionIdMap = new Map<number, number>();
+      for (const question of sourceQuestions || []) {
+        const duplicatedTopicId = question.topic_id ? topicIdMap.get(Number(question.topic_id)) || null : null;
+        const { data: newQuestion, error: newQuestionError } = await supabase
+          .from('questions')
+          .insert([
+            {
+              subject_id: duplicatedSubjectId,
+              topic_id: duplicatedTopicId,
+              type: question.type,
+              text: question.text,
+              points_base: question.points_base,
+              time_limit_seconds: question.time_limit_seconds,
+            },
+          ])
+          .select('id')
+          .single();
+
+        if (newQuestionError) throw newQuestionError;
+        questionIdMap.set(Number(question.id), Number(newQuestion.id));
+      }
+
+      if (questionIdMap.size > 0) {
+        const sourceQuestionIds = Array.from(questionIdMap.keys());
+        const { data: sourceAnswers, error: sourceAnswersError } = await supabase
+          .from('answers')
+          .select('question_id, text, is_correct, sort_order')
+          .in('question_id', sourceQuestionIds);
+
+        if (sourceAnswersError) throw sourceAnswersError;
+
+        const answersToInsert = (sourceAnswers || [])
+          .map((answer) => {
+            const duplicatedQuestionId = questionIdMap.get(Number(answer.question_id));
+            if (!duplicatedQuestionId) return null;
+            return {
+              question_id: duplicatedQuestionId,
+              text: answer.text,
+              is_correct: answer.is_correct,
+              sort_order: answer.sort_order,
+            };
+          })
+          .filter(Boolean);
+
+        if (answersToInsert.length > 0) {
+          const { error: insertAnswersError } = await supabase.from('answers').insert(answersToInsert as any[]);
+          if (insertAnswersError) throw insertAnswersError;
+        }
+      }
+
+      showAlert('Clase duplicada', 'Se creó una copia completa con temas, preguntas y respuestas.');
+      router.push(`/(teacher)/subject/${duplicatedSubjectId}` as any);
+    } catch (duplicateError: any) {
+      showAlert('No se pudo duplicar', duplicateError.message || 'Inténtalo de nuevo.');
+    }
+  };
+
+  const handleRegenerateClassCode = async () => {
+    if (!subject) return;
+
+    try {
+      const nextCode = await generateUniqueClassCode();
+      const { error } = await supabase
+        .from('subjects')
+        .update({ code: nextCode })
+        .eq('id', subject.id);
+
+      if (error) throw error;
+      setSubject((current) => (current ? { ...current, code: nextCode } : current));
+      showAlert('Código actualizado', `Nuevo código de clase: ${nextCode}`);
+    } catch (regenerateError: any) {
+      showAlert('No se pudo regenerar el código', regenerateError.message || 'Inténtalo de nuevo.');
+    }
+  };
+
+  const handleManageAccess = () => {
+    if (!subject) return;
+
+    if (Platform.OS === 'web') {
+      const choice = window.prompt(
+        `Gestionar acceso\n1) Ver estudiantes\n2) Ver código\n3) Regenerar código\n\nCódigo actual: ${subject.code}\nEscribe 1, 2 o 3`
+      );
+
+      if (choice === '1') {
+        router.push(`/(teacher)/subject/students?subjectId=${subject.id}` as any);
+        return;
+      }
+      if (choice === '2') {
+        showAlert('Código de clase', subject.code);
+        return;
+      }
+      if (choice === '3') {
+        void handleRegenerateClassCode();
+      }
+      return;
+    }
+
+    if (Platform.OS === 'android') {
+      Alert.alert('Gestionar acceso', `Código actual: ${subject.code}`, [
+        {
+          text: 'Ver estudiantes',
+          onPress: () => router.push(`/(teacher)/subject/students?subjectId=${subject.id}` as any),
+        },
+        {
+          text: 'Más opciones',
+          onPress: () => {
+            Alert.alert('Opciones de acceso', 'Elige una acción', [
+              { text: 'Ver código', onPress: () => showAlert('Código de clase', subject.code) },
+              {
+                text: 'Regenerar código',
+                onPress: () => {
+                  void handleRegenerateClassCode();
+                },
+              },
+              { text: 'Cancelar', style: 'cancel' },
+            ]);
+          },
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ]);
+      return;
+    }
+
+    Alert.alert('Gestionar acceso', `Código actual: ${subject.code}`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Ver estudiantes',
+        onPress: () => router.push(`/(teacher)/subject/students?subjectId=${subject.id}` as any),
+      },
+      {
+        text: 'Ver código',
+        onPress: () => showAlert('Código de clase', subject.code),
+      },
+      {
+        text: 'Regenerar código',
+        style: 'destructive',
+        onPress: () => {
+          void handleRegenerateClassCode();
+        },
+      },
+    ]);
+  };
+
+  const handleClassMenu = () => {
+    if (!subject) return;
+
+    if (Platform.OS === 'web') {
+      const choice = window.prompt(
+        `Menú de clase\n1) Editar clase\n2) Archivar clase\n3) Duplicar clase\n4) Regenerar código\n5) Gestionar acceso\n\nEscribe una opción (1-5)`
+      );
+
+      if (choice === '1') {
+        handleEditClass();
+        return;
+      }
+      if (choice === '2') {
+        void handleArchiveClass();
+        return;
+      }
+      if (choice === '3') {
+        void handleDuplicateClass();
+        return;
+      }
+      if (choice === '4') {
+        void handleRegenerateClassCode();
+        return;
+      }
+      if (choice === '5') {
+        handleManageAccess();
+      }
+      return;
+    }
+
+    if (Platform.OS === 'android') {
+      Alert.alert('Menú de clase', 'Elige una acción', [
+        { text: 'Editar clase', onPress: handleEditClass },
+        { text: 'Gestionar acceso', onPress: handleManageAccess },
+        {
+          text: 'Más acciones',
+          onPress: () => {
+            Alert.alert('Más acciones', 'Selecciona una opción', [
+              {
+                text: 'Duplicar clase',
+                onPress: () => {
+                  void handleDuplicateClass();
+                },
+              },
+              {
+                text: 'Regenerar código',
+                onPress: () => {
+                  void handleRegenerateClassCode();
+                },
+              },
+              {
+                text: 'Archivar clase',
+                style: 'destructive',
+                onPress: () => {
+                  void handleArchiveClass();
+                },
+              },
+            ]);
+          },
+        },
+      ]);
+      return;
+    }
+
+    Alert.alert('Menú de clase', 'Elige una acción', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Editar clase', onPress: handleEditClass },
+      {
+        text: 'Archivar clase',
+        style: 'destructive',
+        onPress: () => {
+          void handleArchiveClass();
+        },
+      },
+      {
+        text: 'Duplicar clase',
+        onPress: () => {
+          void handleDuplicateClass();
+        },
+      },
+      {
+        text: 'Regenerar código',
+        onPress: () => {
+          void handleRegenerateClassCode();
+        },
+      },
+      { text: 'Gestionar acceso', onPress: handleManageAccess },
+    ]);
   };
 
   const handleCreateTopic = async () => {
@@ -420,6 +1191,8 @@ export default function SubjectDetailScreen() {
     );
   }
 
+  const currentSubject = subject;
+
   return (
     <View className="flex-1 bg-[#061126]">
       <View className="flex-1 flex-row">
@@ -449,18 +1222,18 @@ export default function SubjectDetailScreen() {
             </Pressable>
 
             <View className="flex-row flex-wrap items-center gap-3">
-              <Pressable onPress={() => showComingSoon('Menú de clase')} className="rounded-xl border border-[#20375E] bg-[#09162C] p-3">
+              <Pressable onPress={handleClassMenu} className="rounded-xl border border-[#20375E] bg-[#09162C] p-3">
                 <Ionicons name="ellipsis-horizontal" size={19} color="#C4D0E3" />
               </Pressable>
               <Pressable
-                onPress={() => showAlert('Código de clase', `Comparte este código con tus alumnos: ${subject.code}`)}
+                onPress={() => showAlert('Código de clase', `Comparte este código con tus alumnos: ${currentSubject.code}`)}
                 className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
               >
                 <Ionicons name="share-social-outline" size={16} color="#AFC2DB" />
                 <Text className="text-[12px] font-bold text-[#DCE7F8]">Compartir código</Text>
               </Pressable>
               <Pressable
-                onPress={() => router.push(`/(teacher)/edit-subject?id=${subject.id}` as any)}
+                onPress={() => router.push(`/(teacher)/edit-subject?id=${currentSubject.id}` as any)}
                 className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-5 py-3"
               >
                 <Ionicons name="create-outline" size={16} color="#FFFFFF" />
@@ -471,19 +1244,19 @@ export default function SubjectDetailScreen() {
 
           <View className="mb-6 flex-row flex-wrap items-center gap-4">
             <View className="h-20 w-20 items-center justify-center rounded-2xl border border-[#6D5AF6] bg-[#2A1C61]">
-              <Ionicons name={iconForSubject(subject.icon)} size={42} color="#D8B4FE" />
+              <Ionicons name={iconForSubject(currentSubject.icon)} size={42} color="#D8B4FE" />
             </View>
             <View className="min-w-[230px] flex-1">
               <View className="flex-row items-center gap-2">
-                <Text className="text-[26px] font-black text-white">{subject.name}</Text>
+                <Text className="text-[26px] font-black text-white">{currentSubject.name}</Text>
                 <Ionicons name="pencil-outline" size={16} color="#8FA7C7" />
               </View>
               <Text className="mt-1 text-[13px] font-semibold text-[#B7C4D7]">
-                {subject.description || 'Clase sin descripción'} · Código:{' '}
-                <Text className="font-mono text-[#A78BFA]">{subject.code}</Text>
+                {currentSubject.description || 'Clase sin descripción'} · Código:{' '}
+                <Text className="font-mono text-[#A78BFA]">{currentSubject.code}</Text>
               </Text>
               <Text className="mt-1 text-[12px] text-[#8FA7C7]">
-                {enrollments.length} alumno{enrollments.length === 1 ? '' : 's'} · Creada {formatDate(subject.created_at)}
+                {enrollments.length} alumno{enrollments.length === 1 ? '' : 's'} · Creada {formatDate(currentSubject.created_at)}
               </Text>
             </View>
           </View>
@@ -574,7 +1347,7 @@ export default function SubjectDetailScreen() {
 
           <View className="mb-5 flex-row flex-wrap rounded-xl border border-[#183052] bg-[#07162D] p-2">
             {tabItems.map((tab) => {
-              const isActive = tab.label === 'Resumen';
+              const isActive = activeTab === tab.key;
               const content = (
                 <View className={`flex-row items-center gap-2 rounded-lg px-4 py-3 ${isActive ? 'border-b-2 border-[#8B5CF6]' : ''}`}>
                   <Ionicons name={isActive ? tab.icon.replace('-outline', '') as IconName : tab.icon} size={15} color={isActive ? '#A78BFA' : '#AFC2DB'} />
@@ -584,134 +1357,21 @@ export default function SubjectDetailScreen() {
 
               if (tab.href === 'students') {
                 return (
-                  <Link href={`/(teacher)/subject/students?subjectId=${subject.id}`} asChild key={tab.label}>
+                  <Link href={`/(teacher)/subject/students?subjectId=${currentSubject.id}`} asChild key={tab.label}>
                     <Pressable>{content}</Pressable>
                   </Link>
                 );
               }
 
               return (
-                <Pressable key={tab.label} onPress={() => !isActive && showComingSoon(tab.label)}>
+                <Pressable key={tab.label} onPress={() => setActiveTab(tab.key)}>
                   {content}
                 </Pressable>
               );
             })}
           </View>
 
-          <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
-            <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
-              <Panel
-                title="Actividad reciente"
-                actionLabel="Ver todo"
-                onAction={() => showComingSoon('Actividad reciente')}
-              >
-                {recentActivity.map((item, index) => (
-                  <ActivityRow key={`${item.title}-${index}`} {...item} />
-                ))}
-              </Panel>
-
-              <View className="rounded-xl border border-[#183052] bg-[#07162D] p-5">
-                <View className="flex-row flex-wrap items-center gap-4">
-                  <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#B91C4C33]">
-                    <Ionicons name="radio-button-on" size={27} color="#F43F5E" />
-                  </View>
-                  <View className="min-w-[220px] flex-1">
-                    <Text className="text-[12px] font-semibold text-[#B7C4D7]">Pregunta activa de la clase</Text>
-                    <Text className="mt-1 text-[20px] font-black text-white">{activeChallenge?.text || 'Crea la primera pregunta'}</Text>
-                  </View>
-                  <InfoStack label="Progreso de la clase" value={`${progress}%`} />
-                  <InfoStack label="Participación" value={`${scores.length} / ${Math.max(enrollments.length, 1)}`} />
-                  <Link
-                    href={`/(teacher)/subject/add-question?subjectId=${subject.id}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}`}
-                    asChild
-                  >
-                    <Pressable className="rounded-xl bg-[#1A1E55] px-5 py-3">
-                      <Text className="text-[12px] font-bold text-white">Nueva pregunta</Text>
-                    </Pressable>
-                  </Link>
-                </View>
-                <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#13294C]">
-                  <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${Math.min(progress, 100)}%` }} />
-                </View>
-                <Text className="mt-3 text-[12px] text-[#8FA7C7]">Finaliza en 3 días</Text>
-              </View>
-
-              <Panel title={`Preguntas: ${selectedTopicLabel}`}>
-                {filteredQuestions.length === 0 ? (
-                  <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
-                    <Ionicons name="help-circle-outline" size={44} color="#64748B" />
-                    <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
-                    <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primera pregunta para activar este tema.</Text>
-                    <Link
-                      href={`/(teacher)/subject/add-question?subjectId=${subject.id}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}`}
-                      asChild
-                    >
-                      <Pressable className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
-                        <Text className="font-bold text-white">Crear pregunta</Text>
-                      </Pressable>
-                    </Link>
-                  </View>
-                ) : (
-                  <View className="gap-3">
-                    {filteredQuestions.map((question, index) => (
-                      <QuestionRow
-                        key={question.id}
-                        question={question}
-                        index={filteredQuestions.length - index}
-                        subjectId={subject.id}
-                        topicName={question.topic_id ? topics.find((topic) => topic.id === question.topic_id)?.title : 'Tema general'}
-                        onDelete={() => handleDelete(question.id)}
-                      />
-                    ))}
-                  </View>
-                )}
-              </Panel>
-            </View>
-
-            <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
-              <Panel title="Distribución de notas">
-                <View className="flex-row items-center gap-5">
-                  <DonutCard value={scoreValues.length || enrollments.length} />
-                  <View className="min-w-0 flex-1 gap-2">
-                    {gradeDistribution.map((item) => {
-                      const percent = scoreValues.length > 0 ? Math.round((item.count / scoreValues.length) * 100) : 0;
-                      return (
-                        <View key={item.label} className="flex-row items-center gap-2">
-                          <View className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                          <Text className="min-w-0 flex-1 text-[11px] text-[#C4D0E3]">{item.label}</Text>
-                          <Text className="text-[11px] font-bold text-white">
-                            {item.count} ({percent}%)
-                          </Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-              </Panel>
-
-              <View className="rounded-xl border border-[#4733B7] bg-[#1A1E55] p-5">
-                <View className="mb-3 flex-row items-center gap-3">
-                  <Ionicons name="qr-code-outline" size={24} color="#D8B4FE" />
-                  <Text className="font-black text-white">Código de la clase</Text>
-                </View>
-                <Text className="text-[12px] leading-5 text-[#C4D0E3]">
-                  Comparte este código con tus alumnos para que se unan a la clase.
-                </Text>
-                <View className="mt-4 flex-row items-center gap-3">
-                  <View className="rounded-lg bg-[#07162D] px-4 py-3">
-                    <Text className="font-mono font-black text-[#A78BFA]">{subject.code}</Text>
-                  </View>
-                  <Pressable
-                    onPress={() => showAlert('Código de clase', subject.code)}
-                    className="flex-row items-center gap-2 rounded-lg border border-[#6D5AF6] px-4 py-3"
-                  >
-                    <Text className="text-[12px] font-bold text-[#C4B5FD]">Copiar</Text>
-                    <Ionicons name="copy-outline" size={15} color="#C4B5FD" />
-                  </Pressable>
-                </View>
-              </View>
-            </View>
-          </View>
+          {renderTabContent(currentSubject)}
         </ScrollView>
       </View>
     </View>

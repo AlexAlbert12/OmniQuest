@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
-import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 
@@ -184,12 +184,6 @@ export default function SubjectStudentsScreen() {
       </View>
 
       <View className="mb-5 flex-row rounded-2xl border border-slate-700 bg-slate-800 p-1">
-        <Link href={`/(teacher)/subject/${normalizedSubjectId}`} asChild>
-          <Pressable className="flex-1 flex-row items-center justify-center gap-2 rounded-xl px-4 py-3">
-            <Ionicons name="help-circle-outline" size={18} color="#cbd5e1" />
-            <Text className="font-bold text-slate-300">Preguntas</Text>
-          </Pressable>
-        </Link>
         <Pressable className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-3">
           <Ionicons name="people" size={18} color="#FFFFFF" />
           <Text className="font-bold text-white">Alumnos</Text>

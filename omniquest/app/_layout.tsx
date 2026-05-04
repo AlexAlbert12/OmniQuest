@@ -5,6 +5,17 @@ import { Stack, usePathname, useRouter } from 'expo-router'
 import { supabase } from '../lib/supabase'
 import { View, ActivityIndicator } from 'react-native'
 
+const AUTH_ROUTE_ALIASES: Record<string, string> = {
+  '/login': '/(auth)/login',
+  '/register': '/(auth)/register',
+  '/forgot-password': '/(auth)/forgot-password',
+  '/update-password': '/(auth)/update-password',
+}
+
+function normalizeAuthPath(path: string) {
+  return AUTH_ROUTE_ALIASES[path] || path
+}
+
 export default function RootLayout() {
   const [isInitialized, setIsInitialized] = useState(false)
   const [fontsLoaded, fontError] = useFonts({
@@ -15,9 +26,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     let isMounted = true
+    const normalizedPath = normalizeAuthPath(pathname)
 
     const redirectToLogin = () => {
-      if (pathname !== '/login' && pathname !== '/(auth)/login') {
+      if (normalizedPath !== '/(auth)/login') {
         router.replace('/(auth)/login' as any)
       }
     }
@@ -32,18 +44,13 @@ export default function RootLayout() {
 
     const syncNavigation = async (session: any) => {
       const isAuthRoute = 
-        pathname === '/' || 
-        pathname === '/login' || 
-        pathname === '/register' || 
-        pathname === '/forgot-password' ||
-        pathname === '/update-password' ||
-        pathname === '/(auth)/login' || 
-        pathname === '/(auth)/register' ||
-        pathname === '/(auth)/forgot-password' ||
-        pathname === '/(auth)/update-password'
+        normalizedPath === '/' ||
+        normalizedPath === '/(auth)/login' || 
+        normalizedPath === '/(auth)/register' ||
+        normalizedPath === '/(auth)/forgot-password' ||
+        normalizedPath === '/(auth)/update-password'
       const isPasswordRecoveryRoute =
-        pathname === '/update-password' ||
-        pathname === '/(auth)/update-password'
+        normalizedPath === '/(auth)/update-password'
 
       if (!session) {
         if (!isAuthRoute) {

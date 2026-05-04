@@ -1,7 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -25,24 +28,134 @@ type TeacherProfile = {
   points: number | null
 }
 
-type ToggleKey = 'push' | 'daily' | 'activities' | 'news' | 'twoFactor'
+type ToggleKey = 'twoFactor'
+type PreferenceKey = 'language' | 'timezone' | 'dateFormat' | 'timeFormat' | 'weekStart'
+type NotificationSettingKey = 'push' | 'email' | 'daily' | 'activities' | 'news'
+type NotificationFrequency = 'instant' | 'daily' | 'weekly'
+type SettingsMenuSectionKey =
+  | 'general'
+  | 'profile'
+  | 'notifications'
+  | 'privacy'
+  | 'security'
+  | 'integrations'
+  | 'appearance'
+  | 'languageRegion'
+  | 'billing'
+  | 'about'
+type SettingsAnchorKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'integrations' | 'about'
 
-const settingsSections: { label: string; icon: IconName; active?: boolean }[] = [
-  { label: 'General', icon: 'settings-outline', active: true },
-  { label: 'Perfil', icon: 'person-outline' },
-  { label: 'Notificaciones', icon: 'notifications-outline' },
-  { label: 'Privacidad', icon: 'shield-checkmark-outline' },
-  { label: 'Seguridad', icon: 'lock-closed-outline' },
-  { label: 'Integraciones', icon: 'extension-puzzle-outline' },
-  { label: 'Apariencia', icon: 'color-palette-outline' },
-  { label: 'Idioma y región', icon: 'globe-outline' },
-  { label: 'Plan y facturación', icon: 'card-outline' },
-  { label: 'Acerca de', icon: 'information-circle-outline' },
+type UserPreferencesState = {
+  language: string
+  timezone: string
+  dateFormat: string
+  timeFormat: string
+  weekStart: string
+}
+
+type UserPreferencesRow = {
+  language: string | null
+  timezone: string | null
+  date_format: string | null
+  time_format: string | null
+  week_start: string | null
+}
+
+type NotificationSettingsState = {
+  push: boolean
+  email: boolean
+  daily: boolean
+  activities: boolean
+  news: boolean
+  frequency: NotificationFrequency
+}
+
+type NotificationSettingsRow = {
+  push_enabled: boolean | null
+  email_enabled: boolean | null
+  daily_summary_enabled: boolean | null
+  activity_enabled: boolean | null
+  news_enabled: boolean | null
+  frequency: string | null
+}
+
+const DEFAULT_PREFERENCES: UserPreferencesState = {
+  language: 'es-ES',
+  timezone: 'Europe/Madrid',
+  dateFormat: 'DD/MM/YYYY',
+  timeFormat: '24h',
+  weekStart: 'monday',
+}
+
+const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsState = {
+  push: true,
+  email: false,
+  daily: true,
+  activities: true,
+  news: false,
+  frequency: 'daily',
+}
+
+const notificationFrequencyOptions: NotificationFrequency[] = ['instant', 'daily', 'weekly']
+
+const notificationFrequencyLabels: Record<NotificationFrequency, string> = {
+  instant: 'Inmediata',
+  daily: 'Diaria',
+  weekly: 'Semanal',
+}
+
+const preferenceOptions: Record<PreferenceKey, string[]> = {
+  language: ['es-ES', 'en-US'],
+  timezone: ['Europe/Madrid', 'UTC', 'America/Mexico_City', 'America/Bogota'],
+  dateFormat: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'],
+  timeFormat: ['24h', '12h'],
+  weekStart: ['monday', 'sunday'],
+}
+
+const preferenceLabels = {
+  language: {
+    'es-ES': '🇪🇸 Español',
+    'en-US': '🇺🇸 English',
+  },
+  timezone: {
+    'Europe/Madrid': '(GMT+02:00) Madrid, España',
+    UTC: 'UTC',
+    'America/Mexico_City': '(GMT-06:00) Ciudad de México',
+    'America/Bogota': '(GMT-05:00) Bogotá',
+  },
+  dateFormat: {
+    'DD/MM/YYYY': 'DD/MM/YYYY',
+    'MM/DD/YYYY': 'MM/DD/YYYY',
+    'YYYY-MM-DD': 'YYYY-MM-DD',
+  },
+  timeFormat: {
+    '24h': '24 horas',
+    '12h': '12 horas',
+  },
+  weekStart: {
+    monday: 'Lunes',
+    sunday: 'Domingo',
+  },
+} as const
+
+const settingsSections: { key: SettingsMenuSectionKey; label: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
+  { key: 'general', label: 'General', icon: 'settings-outline', anchor: 'general' },
+  { key: 'profile', label: 'Perfil', icon: 'person-outline', anchor: 'profile' },
+  { key: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', anchor: 'notifications' },
+  { key: 'privacy', label: 'Privacidad', icon: 'shield-checkmark-outline', anchor: 'privacy' },
+  { key: 'security', label: 'Seguridad', icon: 'lock-closed-outline', anchor: 'security' },
+  { key: 'integrations', label: 'Integraciones', icon: 'extension-puzzle-outline', anchor: 'integrations' },
+  { key: 'appearance', label: 'Apariencia', icon: 'color-palette-outline', anchor: 'preferences' },
+  { key: 'languageRegion', label: 'Idioma y región', icon: 'globe-outline', anchor: 'preferences' },
+  { key: 'billing', label: 'Plan y facturación', icon: 'card-outline', anchor: 'security' },
+  { key: 'about', label: 'Acerca de', icon: 'information-circle-outline', anchor: 'about' },
 ]
 
 export default function TeacherSettingsScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
+  const scrollRef = useRef<ScrollView | null>(null);
+  const sectionPositionsRef = useRef<Partial<Record<SettingsAnchorKey, number>>>({});
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
   const [name, setName] = useState('Profesor');
   const [email, setEmail] = useState('profesor@omniquest.com');
@@ -54,17 +167,25 @@ export default function TeacherSettingsScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [preferences, setPreferences] = useState<UserPreferencesState>(DEFAULT_PREFERENCES);
+  const [savingPreference, setSavingPreference] = useState<PreferenceKey | null>(null);
+  const [openPreferenceKey, setOpenPreferenceKey] = useState<PreferenceKey | null>(null);
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettingsState>(DEFAULT_NOTIFICATION_SETTINGS);
+  const [savingNotificationKey, setSavingNotificationKey] = useState<NotificationSettingKey | 'frequency' | null>(null);
+  const [openNotificationFrequency, setOpenNotificationFrequency] = useState(false);
+  const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsMenuSectionKey>('general');
   const [toggles, setToggles] = useState<Record<ToggleKey, boolean>>({
-    push: true,
-    daily: true,
-    activities: true,
-    news: false,
     twoFactor: false,
   });
 
   const isDesktop = width >= 1080;
   const isWide = width >= 820;
   const teacherInitials = getInitials(name);
+  const orderedAnchors = useMemo(
+    () => ['general', 'profile', 'preferences', 'notifications', 'privacy', 'security', 'integrations', 'about'] as SettingsAnchorKey[],
+    []
+  );
 
   const showAlert = (title: string, message: string) => {
     if (Platform.OS === 'web') {
@@ -79,6 +200,131 @@ export default function TeacherSettingsScreen() {
     showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`);
   };
 
+  const isMissingPreferencesTableError = (errorCode?: string) => errorCode === '42P01';
+  const isMissingNotificationPreferencesTableError = (errorCode?: string) => errorCode === '42P01';
+
+  const formatPreferenceLabel = (key: PreferenceKey, value: string) => {
+    const labelsByKey = preferenceLabels[key] as Record<string, string>;
+    return labelsByKey[value] || value;
+  };
+
+  const toPreferenceState = (row: UserPreferencesRow | null): UserPreferencesState => ({
+    language: row?.language || DEFAULT_PREFERENCES.language,
+    timezone: row?.timezone || DEFAULT_PREFERENCES.timezone,
+    dateFormat: row?.date_format || DEFAULT_PREFERENCES.dateFormat,
+    timeFormat: row?.time_format || DEFAULT_PREFERENCES.timeFormat,
+    weekStart: row?.week_start || DEFAULT_PREFERENCES.weekStart,
+  });
+
+  const toNotificationSettingsState = (row: NotificationSettingsRow | null): NotificationSettingsState => {
+    const rowFrequency = row?.frequency as NotificationFrequency | null;
+    const frequency = rowFrequency && notificationFrequencyOptions.includes(rowFrequency)
+      ? rowFrequency
+      : DEFAULT_NOTIFICATION_SETTINGS.frequency;
+
+    return {
+      push: row?.push_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.push,
+      email: row?.email_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.email,
+      daily: row?.daily_summary_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.daily,
+      activities: row?.activity_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.activities,
+      news: row?.news_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.news,
+      frequency,
+    };
+  };
+
+  const formatNotificationFrequencyLabel = (value: NotificationFrequency) => {
+    return notificationFrequencyLabels[value] || value;
+  };
+
+  const menuKeyFromAnchor = (anchor: SettingsAnchorKey): SettingsMenuSectionKey => {
+    switch (anchor) {
+      case 'general':
+        return 'general';
+      case 'profile':
+        return 'profile';
+      case 'preferences':
+        return 'languageRegion';
+      case 'notifications':
+        return 'notifications';
+      case 'privacy':
+        return 'privacy';
+      case 'security':
+        return 'security';
+      case 'integrations':
+        return 'integrations';
+      case 'about':
+        return 'about';
+      default:
+        return 'general';
+    }
+  };
+
+  const handleSectionLayout = (key: SettingsAnchorKey) => (event: LayoutChangeEvent) => {
+    sectionPositionsRef.current[key] = event.nativeEvent.layout.y;
+  };
+
+  const scrollToAnchor = (anchor: SettingsAnchorKey, menuKey: SettingsMenuSectionKey) => {
+    const y = sectionPositionsRef.current[anchor];
+    if (typeof y === 'number') {
+      scrollRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
+    }
+    setActiveSettingsSection(menuKey);
+  };
+
+  const handleMenuSectionPress = (section: { key: SettingsMenuSectionKey; anchor: SettingsAnchorKey }) => {
+    scrollToAnchor(section.anchor, section.key);
+  };
+
+  const handleSettingsScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = event.nativeEvent.contentOffset.y + 90;
+    let currentAnchor: SettingsAnchorKey = 'general';
+
+    for (const anchor of orderedAnchors) {
+      const y = sectionPositionsRef.current[anchor];
+      if (typeof y === 'number' && offsetY >= y) {
+        currentAnchor = anchor;
+      }
+    }
+
+    const nextMenuKey = menuKeyFromAnchor(currentAnchor);
+    if (nextMenuKey !== activeSettingsSection) {
+      setActiveSettingsSection(nextMenuKey);
+    }
+  };
+
+  const savePreferences = async (targetUserId: string, next: UserPreferencesState) => {
+    const { error } = await supabase.from('user_preferences').upsert(
+      {
+        user_id: targetUserId,
+        language: next.language,
+        timezone: next.timezone,
+        date_format: next.dateFormat,
+        time_format: next.timeFormat,
+        week_start: next.weekStart,
+      },
+      { onConflict: 'user_id' }
+    );
+
+    if (error) throw error;
+  };
+
+  const saveNotificationSettings = async (targetUserId: string, next: NotificationSettingsState) => {
+    const { error } = await supabase.from('user_notification_preferences').upsert(
+      {
+        user_id: targetUserId,
+        push_enabled: next.push,
+        email_enabled: next.email,
+        daily_summary_enabled: next.daily,
+        activity_enabled: next.activities,
+        news_enabled: next.news,
+        frequency: next.frequency,
+      },
+      { onConflict: 'user_id' }
+    );
+
+    if (error) throw error;
+  };
+
   const fetchSettings = useCallback(async () => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -89,20 +335,41 @@ export default function TeacherSettingsScreen() {
         return;
       }
 
+      setUserId(session.user.id);
       setEmail(session.user.email || 'profesor@omniquest.com');
 
-      const [profileResult, subjectsResult] = await Promise.all([
+      const [profileResult, subjectsResult, preferencesResult, notificationSettingsResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, points').eq('id', session.user.id).single(),
-        supabase.from('subjects').select('id').eq('teacher_id', session.user.id),
+        supabase.from('subjects').select('id').eq('teacher_id', session.user.id).eq('is_archived', false),
+        supabase
+          .from('user_preferences')
+          .select('language, timezone, date_format, time_format, week_start')
+          .eq('user_id', session.user.id)
+          .maybeSingle(),
+        supabase
+          .from('user_notification_preferences')
+          .select('push_enabled, email_enabled, daily_summary_enabled, activity_enabled, news_enabled, frequency')
+          .eq('user_id', session.user.id)
+          .maybeSingle(),
       ]);
 
       if (profileResult.error && profileResult.error.code !== 'PGRST116') throw profileResult.error;
       if (subjectsResult.error) throw subjectsResult.error;
+      if (preferencesResult.error && !isMissingPreferencesTableError(preferencesResult.error.code)) {
+        throw preferencesResult.error;
+      }
+      if (notificationSettingsResult.error && !isMissingNotificationPreferencesTableError(notificationSettingsResult.error.code)) {
+        throw notificationSettingsResult.error;
+      }
 
       const nextProfile = profileResult.data as TeacherProfile | null;
       setProfile(nextProfile);
       setName(nextProfile?.alias || 'Profesor');
       setSubjectsCount(subjectsResult.data?.length || 0);
+      setPreferences(toPreferenceState((preferencesResult.data as UserPreferencesRow | null) || null));
+      setNotificationSettings(
+        toNotificationSettingsState((notificationSettingsResult.data as NotificationSettingsRow | null) || null)
+      );
     } catch (error: any) {
       console.error('Error cargando configuración del profesor:', error.message);
       showAlert('No se pudo cargar la configuración', 'Inténtalo de nuevo en unos segundos.');
@@ -186,28 +453,32 @@ export default function TeacherSettingsScreen() {
   const executeDeleteAccount = async () => {
     try {
       setDeletingAccount(true);
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user.id;
+      const { error } = await supabase.functions.invoke('delete-account', {
+        body: {},
+      });
 
-      if (!userId) {
-        throw new Error('No se ha podido identificar tu sesión.');
+      if (error) {
+        throw new Error(error.message || 'No se pudo completar el borrado en el servidor.');
       }
 
-      const { error } = await supabase.from('profiles').delete().eq('id', userId);
-      if (error) throw error;
-
-      await supabase.auth.signOut();
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) {
+        console.warn('No se pudo cerrar sesión tras borrar cuenta:', signOutError.message);
+      }
       showAlert('Cuenta borrada', 'Tu cuenta se ha eliminado correctamente.');
       router.replace('/(auth)/login' as any);
     } catch (error: any) {
-      showAlert('No se pudo borrar la cuenta', error.message || 'No se pudo eliminar tu perfil.');
+      showAlert(
+        'No se pudo borrar la cuenta',
+        error.message || 'No se pudo eliminar tu cuenta completa. Revisa la función delete-account de Supabase.'
+      );
     } finally {
       setDeletingAccount(false);
     }
   };
 
   const handleDeleteAccount = () => {
-    const message = 'Esta acción eliminará tu perfil de profesor y cerrará la sesión. No se puede deshacer.';
+    const message = 'Esta acción eliminará tu usuario, perfil y datos académicos. No se puede deshacer.';
 
     if (Platform.OS === 'web') {
       if (window.confirm(message)) {
@@ -235,6 +506,110 @@ export default function TeacherSettingsScreen() {
     setToggles((current) => ({ ...current, [key]: !current[key] }));
   };
 
+  const updateNotificationToggle = async (key: NotificationSettingKey) => {
+    if (!userId) {
+      showAlert('Sesión no disponible', 'No se pudo identificar el usuario para guardar notificaciones.');
+      return;
+    }
+
+    const previous = notificationSettings;
+    const next = { ...previous, [key]: !previous[key] };
+
+    setNotificationSettings(next);
+    setSavingNotificationKey(key);
+
+    try {
+      await saveNotificationSettings(userId, next);
+    } catch (error: any) {
+      setNotificationSettings(previous);
+      if (isMissingNotificationPreferencesTableError(error?.code)) {
+        showAlert(
+          'Configuración pendiente',
+          'Falta la tabla user_notification_preferences en Supabase. Aplica la migración para guardar notificaciones.'
+        );
+      } else {
+        showAlert('No se pudo guardar', error.message || 'No se pudieron guardar tus notificaciones.');
+      }
+    } finally {
+      setSavingNotificationKey(null);
+    }
+  };
+
+  const toggleNotificationFrequencyMenu = () => {
+    setOpenPreferenceKey(null);
+    setOpenNotificationFrequency((current) => !current);
+  };
+
+  const selectNotificationFrequency = async (value: NotificationFrequency) => {
+    if (!userId) {
+      showAlert('Sesión no disponible', 'No se pudo identificar el usuario para guardar notificaciones.');
+      return;
+    }
+
+    const previous = notificationSettings;
+    if (previous.frequency === value) {
+      setOpenNotificationFrequency(false);
+      return;
+    }
+
+    const next = { ...previous, frequency: value };
+    setOpenNotificationFrequency(false);
+    setNotificationSettings(next);
+    setSavingNotificationKey('frequency');
+
+    try {
+      await saveNotificationSettings(userId, next);
+    } catch (error: any) {
+      setNotificationSettings(previous);
+      if (isMissingNotificationPreferencesTableError(error?.code)) {
+        showAlert(
+          'Configuración pendiente',
+          'Falta la tabla user_notification_preferences en Supabase. Aplica la migración para guardar notificaciones.'
+        );
+      } else {
+        showAlert('No se pudo guardar', error.message || 'No se pudieron guardar tus notificaciones.');
+      }
+    } finally {
+      setSavingNotificationKey(null);
+    }
+  };
+
+  const togglePreferenceMenu = (key: PreferenceKey) => {
+    setOpenNotificationFrequency(false);
+    setOpenPreferenceKey((current) => (current === key ? null : key));
+  };
+
+  const selectPreference = async (key: PreferenceKey, value: string) => {
+    if (!userId) {
+      showAlert('Sesión no disponible', 'No se pudo identificar el usuario para guardar preferencias.');
+      return;
+    }
+
+    setOpenPreferenceKey(null);
+    const previousPreferences = preferences;
+    if (previousPreferences[key] === value) return;
+    const nextPreferences = { ...previousPreferences, [key]: value };
+
+    setPreferences(nextPreferences);
+    setSavingPreference(key);
+
+    try {
+      await savePreferences(userId, nextPreferences);
+    } catch (error: any) {
+      setPreferences(previousPreferences);
+      if (isMissingPreferencesTableError(error?.code)) {
+        showAlert(
+          'Configuración pendiente',
+          'Falta la tabla user_preferences en Supabase. Aplica la migración para guardar estas preferencias.'
+        );
+      } else {
+        showAlert('No se pudo guardar', error.message || 'No se pudieron guardar tus preferencias.');
+      }
+    } finally {
+      setSavingPreference(null);
+    }
+  };
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
@@ -260,15 +635,18 @@ export default function TeacherSettingsScreen() {
         ) : null}
 
         <ScrollView
+          ref={scrollRef}
           className="flex-1"
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 14,
             paddingTop: isDesktop ? 24 : 18,
             paddingBottom: 32,
           }}
+          onScroll={handleSettingsScroll}
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-5 flex-row flex-wrap items-start justify-between gap-4">
+          <View onLayout={handleSectionLayout('general')} className="mb-5 flex-row flex-wrap items-start justify-between gap-4">
             <View className="min-w-[260px] flex-1">
               {!isDesktop ? (
                 <Text className="mb-3 text-[#9FD6FF]" style={{ fontFamily: 'Pacifico_400Regular', fontSize: 30 }}>
@@ -299,11 +677,17 @@ export default function TeacherSettingsScreen() {
           </View>
 
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
-            <SettingsMenu onSignOut={handleSignOut} isDesktop={isDesktop} />
+            <SettingsMenu
+              onSignOut={handleSignOut}
+              isDesktop={isDesktop}
+              activeSection={activeSettingsSection}
+              onSectionPress={handleMenuSectionPress}
+            />
 
             <View className="flex-1 gap-5">
               <View className={isWide ? 'flex-row gap-5' : 'gap-5'}>
-                <Panel title="Información del profesor" className={isWide ? 'flex-1' : ''}>
+                <View onLayout={handleSectionLayout('profile')} className={isWide ? 'flex-1' : ''}>
+                  <Panel title="Información del profesor">
                   <View className={width >= 520 ? 'flex-row gap-5' : 'gap-4'}>
                     <View className="items-center">
                       <View className="h-24 w-24 items-center justify-center rounded-full bg-[#4E3CB7]">
@@ -340,54 +724,152 @@ export default function TeacherSettingsScreen() {
                         />
                       </Field>
                       <Field label="Idioma preferido">
-                        <SelectPill value="🇪🇸  Español" onPress={() => showComingSoon('Idioma preferido')} />
+                        <SelectPill
+                          value={formatPreferenceLabel('language', preferences.language)}
+                          selectedValue={preferences.language}
+                          open={openPreferenceKey === 'language'}
+                          onToggle={() => togglePreferenceMenu('language')}
+                          options={preferenceOptions.language}
+                          onSelect={(value) => void selectPreference('language', value)}
+                          optionLabel={(value) => formatPreferenceLabel('language', value)}
+                          disabled={Boolean(savingPreference)}
+                          loading={savingPreference === 'language'}
+                        />
                       </Field>
                     </View>
                   </View>
-                </Panel>
+                  </Panel>
+                </View>
 
-                <Panel title="Preferencias generales" className={isWide ? 'flex-1' : ''}>
-                  <PreferenceRow label="Zona horaria" value="(GMT+02:00) Madrid, España" onPress={() => showComingSoon('Zona horaria')} />
-                  <PreferenceRow label="Formato de fecha" value="DD/MM/YYYY" onPress={() => showComingSoon('Formato de fecha')} />
-                  <PreferenceRow label="Formato de hora" value="24 horas" onPress={() => showComingSoon('Formato de hora')} />
-                  <PreferenceRow label="Inicio de semana" value="Lunes" onPress={() => showComingSoon('Inicio de semana')} />
-                </Panel>
+                <View onLayout={handleSectionLayout('preferences')} className={isWide ? 'flex-1' : ''}>
+                  <Panel title="Preferencias generales">
+                  <PreferenceRow
+                    label="Zona horaria"
+                    value={formatPreferenceLabel('timezone', preferences.timezone)}
+                    selectedValue={preferences.timezone}
+                    open={openPreferenceKey === 'timezone'}
+                    onToggle={() => togglePreferenceMenu('timezone')}
+                    options={preferenceOptions.timezone}
+                    onSelect={(value) => void selectPreference('timezone', value)}
+                    optionLabel={(value) => formatPreferenceLabel('timezone', value)}
+                    disabled={Boolean(savingPreference)}
+                    loading={savingPreference === 'timezone'}
+                  />
+                  <PreferenceRow
+                    label="Formato de fecha"
+                    value={formatPreferenceLabel('dateFormat', preferences.dateFormat)}
+                    selectedValue={preferences.dateFormat}
+                    open={openPreferenceKey === 'dateFormat'}
+                    onToggle={() => togglePreferenceMenu('dateFormat')}
+                    options={preferenceOptions.dateFormat}
+                    onSelect={(value) => void selectPreference('dateFormat', value)}
+                    optionLabel={(value) => formatPreferenceLabel('dateFormat', value)}
+                    disabled={Boolean(savingPreference)}
+                    loading={savingPreference === 'dateFormat'}
+                  />
+                  <PreferenceRow
+                    label="Formato de hora"
+                    value={formatPreferenceLabel('timeFormat', preferences.timeFormat)}
+                    selectedValue={preferences.timeFormat}
+                    open={openPreferenceKey === 'timeFormat'}
+                    onToggle={() => togglePreferenceMenu('timeFormat')}
+                    options={preferenceOptions.timeFormat}
+                    onSelect={(value) => void selectPreference('timeFormat', value)}
+                    optionLabel={(value) => formatPreferenceLabel('timeFormat', value)}
+                    disabled={Boolean(savingPreference)}
+                    loading={savingPreference === 'timeFormat'}
+                  />
+                  <PreferenceRow
+                    label="Inicio de semana"
+                    value={formatPreferenceLabel('weekStart', preferences.weekStart)}
+                    selectedValue={preferences.weekStart}
+                    open={openPreferenceKey === 'weekStart'}
+                    onToggle={() => togglePreferenceMenu('weekStart')}
+                    options={preferenceOptions.weekStart}
+                    onSelect={(value) => void selectPreference('weekStart', value)}
+                    optionLabel={(value) => formatPreferenceLabel('weekStart', value)}
+                    disabled={Boolean(savingPreference)}
+                    loading={savingPreference === 'weekStart'}
+                  />
+                  </Panel>
+                </View>
               </View>
 
               <View className={isWide ? 'flex-row gap-5' : 'gap-5'}>
-                <Panel title="Notificaciones" className={isWide ? 'flex-1' : ''}>
+                <View onLayout={handleSectionLayout('notifications')} className={isWide ? 'flex-1' : ''}>
+                  <Panel title="Notificaciones">
+                  <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
+                    <Text className="text-[12px] font-bold text-white">Reglas de envío</Text>
+                    <Text className="mt-1 text-[11px] text-[#AFC2DB]">Configura canal y frecuencia de envío.</Text>
+                    <View className="mt-3">
+                      <PreferenceRow
+                        label="Frecuencia"
+                        value={formatNotificationFrequencyLabel(notificationSettings.frequency)}
+                        selectedValue={notificationSettings.frequency}
+                        open={openNotificationFrequency}
+                        onToggle={toggleNotificationFrequencyMenu}
+                        options={notificationFrequencyOptions}
+                        onSelect={(value) => void selectNotificationFrequency(value as NotificationFrequency)}
+                        optionLabel={(value) => formatNotificationFrequencyLabel(value as NotificationFrequency)}
+                        disabled={Boolean(savingNotificationKey)}
+                        loading={savingNotificationKey === 'frequency'}
+                      />
+                    </View>
+                  </View>
                   <NotificationRow
                     icon="notifications-outline"
                     title="Notificaciones push"
                     description="Recibe notificaciones en tu dispositivo."
-                    enabled={toggles.push}
-                    onPress={() => updateToggle('push')}
+                    enabled={notificationSettings.push}
+                    onPress={() => void updateNotificationToggle('push')}
+                    disabled={Boolean(savingNotificationKey)}
+                    loading={savingNotificationKey === 'push'}
+                  />
+                  <NotificationRow
+                    icon="mail-outline"
+                    title="Notificaciones por email"
+                    description="Recibe resúmenes y avisos en tu correo."
+                    enabled={notificationSettings.email}
+                    onPress={() => void updateNotificationToggle('email')}
+                    disabled={Boolean(savingNotificationKey)}
+                    loading={savingNotificationKey === 'email'}
                   />
                   <NotificationRow
                     icon="calendar-outline"
                     title="Resumen diario"
                     description="Recibe un resumen diario de la actividad."
-                    enabled={toggles.daily}
-                    onPress={() => updateToggle('daily')}
+                    enabled={notificationSettings.daily}
+                    onPress={() => void updateNotificationToggle('daily')}
+                    disabled={Boolean(savingNotificationKey)}
+                    loading={savingNotificationKey === 'daily'}
                   />
                   <NotificationRow
                     icon="clipboard-outline"
                     title="Actividades y preguntas"
                     description="Alertas sobre actividades y preguntas de tus clases."
-                    enabled={toggles.activities}
-                    onPress={() => updateToggle('activities')}
+                    enabled={notificationSettings.activities}
+                    onPress={() => void updateNotificationToggle('activities')}
+                    disabled={Boolean(savingNotificationKey)}
+                    loading={savingNotificationKey === 'activities'}
                   />
                   <NotificationRow
                     icon="megaphone-outline"
                     title="Actualizaciones y novedades"
                     description="Novedades, funciones y mejoras de OmniQuest."
-                    enabled={toggles.news}
-                    onPress={() => updateToggle('news')}
+                    enabled={notificationSettings.news}
+                    onPress={() => void updateNotificationToggle('news')}
+                    disabled={Boolean(savingNotificationKey)}
+                    loading={savingNotificationKey === 'news'}
                   />
-                  <FooterLink label="Gestionar notificaciones" onPress={() => showComingSoon('Gestión de notificaciones')} />
-                </Panel>
+                  <FooterLink
+                    label="Se guarda automáticamente"
+                    onPress={() => showAlert('Notificaciones', 'Tus reglas de notificación se guardan automáticamente.')}
+                  />
+                  </Panel>
+                </View>
 
-                <Panel title="Privacidad y datos" className={isWide ? 'flex-1' : ''}>
+                <View onLayout={handleSectionLayout('privacy')} className={isWide ? 'flex-1' : ''}>
+                  <Panel title="Privacidad y datos">
                   <ActionRow
                     icon="lock-closed-outline"
                     title="Privacidad"
@@ -415,11 +897,13 @@ export default function TeacherSettingsScreen() {
                       </View>
                     </View>
                   </View>
-                </Panel>
+                  </Panel>
+                </View>
               </View>
 
               <View className={isWide ? 'flex-row gap-5' : 'gap-5'}>
-                <Panel title="Seguridad" className={isWide ? 'flex-1' : ''}>
+                <View onLayout={handleSectionLayout('security')} className={isWide ? 'flex-1' : ''}>
+                  <Panel title="Seguridad">
                   <View className="gap-3 border-b border-[#13284A] pb-4">
                     <View className="flex-row items-center gap-3">
                       <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10233F]">
@@ -489,31 +973,32 @@ export default function TeacherSettingsScreen() {
                     </View>
                     {deletingAccount ? <ActivityIndicator color="#FF6B6B" /> : null}
                   </Pressable>
-                </Panel>
+                  </Panel>
+                </View>
 
-                <Panel title="Integraciones" className={isWide ? 'flex-1' : ''}>
-                  <IntegrationRow
-                    icon="school-outline"
-                    color="#34D399"
-                    title="Google Classroom"
-                    description="Conecta tus clases y sincroniza estudiantes."
-                    onPress={() => showComingSoon('Google Classroom')}
-                  />
-                  <IntegrationRow
-                    icon="people-circle-outline"
-                    color="#60A5FA"
-                    title="Microsoft Teams"
-                    description="Importa tus clases y equipos."
-                    onPress={() => showComingSoon('Microsoft Teams')}
-                  />
-                </Panel>
+                <View onLayout={handleSectionLayout('integrations')} className={isWide ? 'flex-1' : ''}>
+                  <Panel title="Integraciones">
+                    <ActionRow
+                      icon="school-outline"
+                      title="Google Classroom"
+                      description="Conecta tus clases y sincroniza estudiantes."
+                      onPress={() => showComingSoon('Google Classroom')}
+                    />
+                    <ActionRow
+                      icon="people-circle-outline"
+                      title="Microsoft Teams"
+                      description="Importa tus clases y equipos."
+                      onPress={() => showComingSoon('Microsoft Teams')}
+                    />
+                  </Panel>
+                </View>
               </View>
             </View>
           </View>
 
-          <View className="mt-6 flex-row flex-wrap items-center justify-end gap-6">
+          <View onLayout={handleSectionLayout('about')} className="mt-6 flex-row flex-wrap items-center justify-end gap-6">
             <Text className="text-[12px] text-[#8FA7C7]">Versión 2.4.0</Text>
-            <Pressable onPress={() => showComingSoon('Centro de ayuda')} className="flex-row items-center gap-2">
+            <Pressable onPress={() => router.push('/(teacher)/help-center' as any)} className="flex-row items-center gap-2">
               <Ionicons name="help-circle-outline" size={16} color="#A78BFA" />
               <Text className="text-[12px] font-semibold text-[#A78BFA]">Centro de ayuda</Text>
             </Pressable>
@@ -524,7 +1009,17 @@ export default function TeacherSettingsScreen() {
   );
 }
 
-function SettingsMenu({ onSignOut, isDesktop }: { onSignOut: () => void; isDesktop: boolean }) {
+function SettingsMenu({
+  onSignOut,
+  isDesktop,
+  activeSection,
+  onSectionPress,
+}: {
+  onSignOut: () => void
+  isDesktop: boolean
+  activeSection: SettingsMenuSectionKey
+  onSectionPress: (section: { key: SettingsMenuSectionKey; anchor: SettingsAnchorKey }) => void
+}) {
   return (
     <View
       className={`rounded-xl border border-[#183052] bg-[#07162D] p-3 ${isDesktop ? 'w-[205px] self-start' : ''
@@ -534,11 +1029,12 @@ function SettingsMenu({ onSignOut, isDesktop }: { onSignOut: () => void; isDeskt
         {settingsSections.map((section) => (
           <Pressable
             key={section.label}
-            className={`flex-row items-center gap-3 rounded-lg px-3 py-3 ${section.active ? 'border border-[#6D5AF6] bg-[#1A1E55]' : ''
+            onPress={() => onSectionPress(section)}
+            className={`flex-row items-center gap-3 rounded-lg px-3 py-3 ${section.key === activeSection ? 'border border-[#6D5AF6] bg-[#1A1E55]' : ''
               }`}
           >
-            <Ionicons name={section.icon} size={16} color={section.active ? '#9FD6FF' : '#AFC2DB'} />
-            <Text className={`text-[12px] font-semibold ${section.active ? 'text-white' : 'text-[#B7C4D7]'}`}>
+            <Ionicons name={section.icon} size={16} color={section.key === activeSection ? '#9FD6FF' : '#AFC2DB'} />
+            <Text className={`text-[12px] font-semibold ${section.key === activeSection ? 'text-white' : 'text-[#B7C4D7]'}`}>
               {section.label}
             </Text>
           </Pressable>
@@ -581,24 +1077,103 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function SelectPill({ value, onPress }: { value: string; onPress: () => void }) {
+function SelectPill({
+  value,
+  selectedValue,
+  open = false,
+  onToggle,
+  options,
+  onSelect,
+  optionLabel,
+  disabled = false,
+  loading = false,
+}: {
+  value: string
+  selectedValue: string
+  open?: boolean
+  onToggle: () => void
+  options: string[]
+  onSelect: (value: string) => void
+  optionLabel: (value: string) => string
+  disabled?: boolean
+  loading?: boolean
+}) {
   return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center justify-between rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3"
-    >
-      <Text className="text-[13px] font-semibold text-white">{value}</Text>
-      <Ionicons name="chevron-down" size={16} color="#AFC2DB" />
-    </Pressable>
+    <View>
+      <Pressable
+        onPress={onToggle}
+        disabled={disabled}
+        className="flex-row items-center justify-between rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3"
+        style={({ pressed }) => ({
+          opacity: disabled ? 0.7 : pressed ? 0.86 : 1,
+        })}
+      >
+        <Text className="min-w-0 flex-1 text-[13px] font-semibold text-white">{value}</Text>
+        {loading ? (
+          <ActivityIndicator size="small" color="#AFC2DB" />
+        ) : (
+          <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color="#AFC2DB" />
+        )}
+      </Pressable>
+
+      {open ? (
+        <View className="mt-2 overflow-hidden rounded-lg border border-[#243E63] bg-[#0A2042]">
+          {options.map((option, index) => (
+            <Pressable
+              key={option}
+              onPress={() => onSelect(option)}
+              className={`flex-row items-center justify-between px-4 py-3 ${index < options.length - 1 ? 'border-b border-[#1B3357]' : ''}`}
+            >
+              <Text className="min-w-0 flex-1 text-[13px] text-[#DDE7F4]">{optionLabel(option)}</Text>
+              {option === selectedValue ? (
+                <Ionicons name="checkmark" size={16} color="#A78BFA" />
+              ) : null}
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+    </View>
   );
 }
 
-function PreferenceRow({ label, value, onPress }: { label: string; value: string; onPress: () => void }) {
+function PreferenceRow({
+  label,
+  value,
+  selectedValue,
+  open = false,
+  onToggle,
+  options,
+  onSelect,
+  optionLabel,
+  disabled = false,
+  loading = false,
+}: {
+  label: string
+  value: string
+  selectedValue: string
+  open?: boolean
+  onToggle: () => void
+  options: string[]
+  onSelect: (value: string) => void
+  optionLabel: (value: string) => string
+  disabled?: boolean
+  loading?: boolean
+}) {
   return (
-    <View className="mb-4 flex-row items-center gap-4">
+    <View className="mb-4 flex-row items-start gap-4">
       <Text className="w-[125px] text-[12px] font-semibold text-[#B7C4D7]">{label}</Text>
       <View className="min-w-0 flex-1">
-        <SelectPill value={value} onPress={onPress} />
+        <SelectPill
+          value={value}
+          selectedValue={selectedValue}
+          open={open}
+          onToggle={onToggle}
+          options={options}
+          onSelect={onSelect}
+          optionLabel={optionLabel}
+          disabled={disabled}
+          loading={loading}
+        />
       </View>
     </View>
   );
@@ -610,12 +1185,16 @@ function NotificationRow({
   description,
   enabled,
   onPress,
+  disabled = false,
+  loading = false,
 }: {
   icon: IconName
   title: string
   description: string
   enabled: boolean
   onPress: () => void
+  disabled?: boolean
+  loading?: boolean
 }) {
   return (
     <View className="flex-row items-center gap-3 border-b border-[#13284A] py-3">
@@ -626,12 +1205,16 @@ function NotificationRow({
         <Text className="font-bold text-white">{title}</Text>
         <Text className="mt-1 text-[12px] text-[#B7C4D7]">{description}</Text>
       </View>
-      <Switch
-        value={enabled}
-        onValueChange={onPress}
-        trackColor={{ false: '#223554', true: '#6D5AF6' }}
-        thumbColor="#FFFFFF"
-      />
+      <View className="items-end">
+        {loading ? <ActivityIndicator size="small" color="#AFC2DB" /> : null}
+        <Switch
+          value={enabled}
+          onValueChange={onPress}
+          disabled={disabled || loading}
+          trackColor={{ false: '#223554', true: '#6D5AF6' }}
+          thumbColor="#FFFFFF"
+        />
+      </View>
     </View>
   );
 }
@@ -667,35 +1250,6 @@ function FooterLink({ label, onPress }: { label: string; onPress: () => void }) 
       <Text className="text-[12px] font-semibold text-[#A78BFA]">{label}</Text>
       <Ionicons name="chevron-forward" size={15} color="#A78BFA" />
     </Pressable>
-  );
-}
-
-function IntegrationRow({
-  icon,
-  color,
-  title,
-  description,
-  onPress,
-}: {
-  icon: IconName
-  color: string
-  title: string
-  description: string
-  onPress: () => void
-}) {
-  return (
-    <View className="flex-row items-center gap-3 py-3">
-      <View className="h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}26` }}>
-        <Ionicons name={icon} size={20} color={color} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="font-bold text-white">{title}</Text>
-        <Text className="mt-1 text-[12px] text-[#B7C4D7]">{description}</Text>
-      </View>
-      <Pressable onPress={onPress} className="rounded-lg border border-[#6D5AF6] px-4 py-2">
-        <Text className="text-[12px] font-bold text-[#A78BFA]">Conectar</Text>
-      </Pressable>
-    </View>
   );
 }
 

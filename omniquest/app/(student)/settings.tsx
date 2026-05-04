@@ -201,27 +201,24 @@ export default function SettingsScreen() {
     setDeletingAccount(true)
 
     try {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
+      const { error } = await supabase.functions.invoke('delete-account', {
+        body: {},
+      })
 
-      if (!userId) {
-        throw new Error('No se ha podido identificar tu sesión.')
+      if (error) {
+        throw new Error(error.message || 'No se pudo completar el borrado en el servidor.')
       }
 
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId)
-
-      if (error) throw error
-
-      await supabase.auth.signOut()
+      const { error: signOutError } = await supabase.auth.signOut()
+      if (signOutError) {
+        console.warn('No se pudo cerrar sesión tras borrar cuenta:', signOutError.message)
+      }
       showAlert('Cuenta borrada', 'Tu cuenta se ha eliminado correctamente.')
       router.replace('/(auth)/login')
     } catch (error: any) {
       showAlert(
         'No se pudo borrar la cuenta',
-        error.message || 'No se pudo eliminar tu perfil. Revisa las políticas RLS de Supabase.'
+        error.message || 'No se pudo eliminar tu cuenta completa. Revisa la función delete-account de Supabase.'
       )
     } finally {
       setDeletingAccount(false)

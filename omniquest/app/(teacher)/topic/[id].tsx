@@ -109,7 +109,7 @@ export default function TopicDetailScreen() {
           .eq('topic_id', topicId),
         supabase.from('enrollments').select('student_id').eq('subject_id', subjectId),
         teacherId
-          ? supabase.from('subjects').select('id').eq('teacher_id', teacherId)
+          ? supabase.from('subjects').select('id').eq('teacher_id', teacherId).eq('is_archived', false)
           : Promise.resolve({ data: [], error: null }),
       ]);
 

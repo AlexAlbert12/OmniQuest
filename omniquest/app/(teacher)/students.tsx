@@ -112,6 +112,7 @@ export default function TeacherStudentsScreen() {
         .from('subjects')
         .select('id, name')
         .eq('teacher_id', session.session.user.id)
+        .eq('is_archived', false)
         .order('created_at', { ascending: false });
 
       if (subjectsError) throw subjectsError;

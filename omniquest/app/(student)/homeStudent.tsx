@@ -4,6 +4,7 @@ import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
+import { calculateStreakDays } from '../../lib/studentBadges'
 
 type Subject = {
   id: number
@@ -27,6 +28,13 @@ type ActivityItem = {
   title: string
   detail: string
   time: string
+}
+
+type SubjectScore = {
+  subject_id: number | null
+  max_score: number | null
+  played_at: string | null
+  played_days: string[] | null
 }
 
 const defaultActivityItems: ActivityItem[] = [
@@ -76,6 +84,7 @@ export default function StudentHome() {
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
   const [activityItems, setActivityItems] = useState<ActivityItem[]>(defaultActivityItems)
+  const [streakDays, setStreakDays] = useState(0)
   const router = useRouter()
 
   const isDesktop = width >= 1024
@@ -118,7 +127,7 @@ export default function StudentHome() {
           .order('joined_at', { ascending: false }),
         supabase
           .from('subject_scores')
-          .select('subject_id, max_score')
+          .select('subject_id, max_score, played_at, played_days')
           .eq('student_id', userId),
         supabase
           .from('profiles')
@@ -145,11 +154,19 @@ export default function StudentHome() {
       setEnrolledSubjects(enrollmentsResult.data?.map(e => e.subjects).filter(Boolean) || []);
       setRanking(rankingResult.data || []);
 
+      const scoreRows = (scoresResult.data || []) as SubjectScore[];
       const scoreMap: Record<number, number> = {};
-      scoresResult.data?.forEach(s => {
-        scoreMap[s.subject_id] = s.max_score;
+      scoreRows.forEach((score) => {
+        if (score.subject_id !== null && score.max_score !== null) {
+          scoreMap[score.subject_id] = score.max_score;
+        }
       });
       setSubjectScores(scoreMap);
+      const playedDays = scoreRows.flatMap((score) => [
+        ...(score.played_days || []),
+        ...(score.played_at ? [score.played_at] : []),
+      ]);
+      setStreakDays(calculateStreakDays(playedDays));
 
       const activities: ActivityItem[] = activityResult.data?.map((score) => {
         const timeAgo = getTimeAgo(new Date(score.played_at));
@@ -285,7 +302,7 @@ export default function StudentHome() {
               <View className="flex-row items-center gap-3 rounded-2xl border border-[#162B50] bg-[#0B1933] px-4 py-3">
                 <Ionicons name="flash" size={20} color="#FFD34D" />
                 <View>
-                  <Text className="text-[16px] font-black text-white">7</Text>
+                  <Text className="text-[16px] font-black text-white">{streakDays}</Text>
                   <Text className="text-[11px] text-[#8FA7C7]">Días de racha</Text>
                 </View>
               </View>
@@ -321,8 +338,8 @@ export default function StudentHome() {
               />
               <MetricCard
                 title="Días de racha"
-                value="7"
-                detail="¡Increíble racha!"
+                value={String(streakDays)}
+                detail={streakDays > 0 ? '¡Sigue así!' : 'Juega hoy para iniciar tu racha'}
                 icon="flame"
                 color="#FF7B45"
                 onPress={() => showComingSoon('La vista de rachas')}

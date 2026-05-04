@@ -72,6 +72,7 @@ export default function TeacherHomeScreen() {
         .from('subjects')
         .select('id, name, description, icon, code, theme_color')
         .eq('teacher_id', session.session.user.id)
+        .eq('is_archived', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

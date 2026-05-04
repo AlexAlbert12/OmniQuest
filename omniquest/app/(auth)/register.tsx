@@ -95,13 +95,13 @@ export default function RegisterScreen() {
           'Revisa tu correo',
           'Cuenta creada. Si la confirmacion de email esta activada en Supabase, primero debes confirmar tu correo antes de iniciar sesion.'
         )
-        router.replace('/login' as any)
+        router.replace('/(auth)/login' as any)
         return
       }
 
       setStatusMessage('Registro completado')
       Alert.alert('Exito', 'Cuenta creada correctamente.')
-      router.replace('/homeStudent' as any)
+      router.replace('/(student)/homeStudent' as any)
     } catch (error) {
       console.error('[register] unexpected error', error)
       setStatusMessage(`Excepcion: ${error instanceof Error ? error.message : 'Error desconocido'}`)
@@ -279,7 +279,7 @@ export default function RegisterScreen() {
             <View className="border-t border-[#17365F] bg-[#06162F] px-5 py-5">
               <View className="flex-row flex-wrap items-center justify-center gap-1">
                 <Text className="text-[13px] text-[#AFCBE3]">¿Ya tienes cuenta?</Text>
-                <Link href="/login" asChild>
+                <Link href="/(auth)/login" asChild>
                   <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.76 : 1 })}>
                     <Text className="text-[13px] font-bold text-[#4FB8FF]">
                       Inicia Sesión.

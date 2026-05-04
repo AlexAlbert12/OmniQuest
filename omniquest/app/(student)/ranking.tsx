@@ -14,6 +14,7 @@ import { Link, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
+import { calculateStreakDays } from '../../lib/studentBadges'
 
 type Profile = {
   id: string
@@ -23,43 +24,24 @@ type Profile = {
   role_id?: string | null
 }
 
-const fallbackRanking: Profile[] = [
-  { id: 'demo-1', alias: 'Sofia_R', avatar: null, points: 4250 },
-  { id: 'demo-2', alias: 'Mateo09', avatar: null, points: 3890 },
-  { id: 'demo-3', alias: 'CamilaStar', avatar: null, points: 3450 },
-  { id: 'demo-4', alias: 'Alex', avatar: null, points: 3210 },
-  { id: 'demo-5', alias: 'Lucho94', avatar: null, points: 2980 },
-  { id: 'demo-6', alias: 'Valen_21', avatar: null, points: 2450 },
-  { id: 'demo-7', alias: 'DiegoPro', avatar: null, points: 2150 },
-  { id: 'demo-8', alias: 'MatiCodes', avatar: null, points: 1950 },
-]
-
 export default function RankingScreen() {
   const { width } = useWindowDimensions()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [streakDays, setStreakDays] = useState(0)
 
   const isDesktop = width >= 1024
-  const rankingRows = useMemo(() => {
-    if (profiles.length > 0) return profiles
-    const isGuest = currentProfile?.role_id === 'guest'
+  const rankingRows = useMemo(() => profiles, [profiles])
 
-    return fallbackRanking.map((item) =>
-      item.alias === 'Alex' && currentUserId && !isGuest
-        ? { ...item, id: currentUserId, alias: currentProfile?.alias || item.alias, points: currentProfile?.points ?? item.points }
-        : item
-    )
-  }, [currentProfile?.alias, currentProfile?.points, currentProfile?.role_id, currentUserId, profiles])
-
-  const points = currentProfile?.points ?? rankingRows.find((item) => item.id === currentUserId)?.points ?? 3210
-  const alias = currentProfile?.alias || 'Alex'
+  const points = currentProfile?.points ?? rankingRows.find((item) => item.id === currentUserId)?.points ?? 0
+  const alias = currentProfile?.alias || 'Usuario'
   const level = Math.floor(points / 100) + 1
   const nextLevelProgress = points % 100
   const isGuest = currentProfile?.role_id === 'guest'
   const currentRankIndex = rankingRows.findIndex((item) => item.id === currentUserId)
-  const currentRank = !isGuest && currentRankIndex >= 0 ? currentRankIndex + 1 : 4
+  const currentRank = !isGuest && currentRankIndex >= 0 ? currentRankIndex + 1 : null
   const maxPoints = Math.max(...rankingRows.map((item) => item.points ?? 0), 1)
 
   const fetchRanking = useCallback(async () => {
@@ -71,13 +53,25 @@ export default function RankingScreen() {
       setCurrentUserId(userId)
 
       if (userId) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id, alias, points, avatar, role_id')
-          .eq('id', userId)
-          .single()
+        const [profileResult, scoresResult] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('id, alias, points, avatar, role_id')
+            .eq('id', userId)
+            .single(),
+          supabase.from('subject_scores').select('played_at, played_days').eq('student_id', userId),
+        ])
 
-        setCurrentProfile(profileData || null)
+        if (profileResult.error) throw profileResult.error
+        if (scoresResult.error) throw scoresResult.error
+
+        setCurrentProfile(profileResult.data || null)
+
+        const playedDays = (scoresResult.data || []).flatMap((score: { played_at: string | null; played_days: string[] | null }) => [
+          ...(score.played_days || []),
+          ...(score.played_at ? [score.played_at] : []),
+        ])
+        setStreakDays(calculateStreakDays(playedDays))
       }
 
       const { data, error } = await supabase
@@ -214,7 +208,7 @@ export default function RankingScreen() {
               <View className="flex-row items-center gap-3 rounded-2xl border border-[#162B50] bg-[#0B1933] px-4 py-3">
                 <Ionicons name="flash" size={20} color="#FFD34D" />
                 <View>
-                  <Text className="text-[16px] font-black text-white">7</Text>
+                  <Text className="text-[16px] font-black text-white">{streakDays}</Text>
                   <Text className="text-[11px] text-[#8FA7C7]">Días de racha</Text>
                 </View>
               </View>
@@ -241,15 +235,24 @@ export default function RankingScreen() {
                 </View>
 
                 <View style={{ gap: 6 }}>
-                  {rankingRows.slice(0, 8).map((item, index) => (
-                    <RankingRow
-                      key={item.id}
-                      item={item}
-                      index={index}
-                      isMe={item.id === currentUserId}
-                      maxPoints={maxPoints}
-                    />
-                  ))}
+                  {rankingRows.length > 0 ? (
+                    rankingRows.slice(0, 8).map((item, index) => (
+                      <RankingRow
+                        key={item.id}
+                        item={item}
+                        index={index}
+                        isMe={item.id === currentUserId}
+                        maxPoints={maxPoints}
+                      />
+                    ))
+                  ) : (
+                    <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-8">
+                      <Ionicons name="trophy-outline" size={34} color="#8FA7C7" />
+                      <Text className="mt-2 text-center text-[13px] text-[#AFC2DB]">
+                        Aún no hay estudiantes con puntuación en el ranking.
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 <Pressable
@@ -263,9 +266,8 @@ export default function RankingScreen() {
             </View>
 
             <View className={isDesktop ? 'flex-1 gap-5' : 'gap-5'}>
-              <PositionCard rank={currentRank} points={points} isGuest={isGuest} />
-              <LeagueCard />
-              <WeeklyChallenge points={points} />
+              <PositionCard rank={currentRank} points={points} isGuest={isGuest} totalRanked={rankingRows.length} />
+              <RankingSummaryCard points={points} rankingRows={rankingRows} />
             </View>
           </View>
         </ScrollView>
@@ -362,19 +364,37 @@ function RankingRow({
   )
 }
 
-function PositionCard({ rank, points, isGuest }: { rank: number; points: number; isGuest: boolean }) {
+function PositionCard({
+  rank,
+  points,
+  isGuest,
+  totalRanked,
+}: {
+  rank: number | null
+  points: number
+  isGuest: boolean
+  totalRanked: number
+}) {
   const nextProgress = Math.min(100, (points % 2000) / 20)
+  const hasRank = typeof rank === 'number'
+  const percentile = hasRank && totalRanked > 0 ? Math.max(1, Math.ceil((rank / totalRanked) * 100)) : null
 
   return (
     <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-6">
       <Text className="text-[16px] font-black text-white">Tu posición</Text>
       <View className="items-center py-5">
         <View className="h-36 w-36 items-center justify-center rounded-[38px] border-[8px] border-[#5364F5] bg-[#15235A]">
-          <Text className="text-[56px] font-black text-white">{isGuest ? '-' : rank}</Text>
+          <Text className="text-[56px] font-black text-white">{isGuest || !hasRank ? '-' : rank}</Text>
         </View>
-        <Text className="mt-4 text-[16px] font-black text-white">{isGuest ? 'Modo invitado' : '¡Sigue así!'}</Text>
+        <Text className="mt-4 text-[16px] font-black text-white">
+          {isGuest ? 'Modo invitado' : hasRank ? '¡Sigue así!' : 'Sin posición todavía'}
+        </Text>
         <Text className="mt-1 text-center text-[13px] text-[#AFC2DB]">
-          {isGuest ? 'Crea una cuenta para aparecer en el ranking.' : 'Estás en el top 10% de estudiantes 🚀'}
+          {isGuest
+            ? 'Crea una cuenta para aparecer en el ranking.'
+            : hasRank
+              ? `Estás en el top ${percentile}% de estudiantes`
+              : 'Completa actividades para entrar en el ranking.'}
         </Text>
       </View>
       <View className="rounded-xl border border-[#172A4A] bg-[#0A1A34] p-4">
@@ -390,60 +410,34 @@ function PositionCard({ rank, points, isGuest }: { rank: number; points: number;
   )
 }
 
-function LeagueCard() {
+function RankingSummaryCard({ points, rankingRows }: { points: number; rankingRows: Profile[] }) {
+  const totalStudents = rankingRows.length
+  const bestPoints = rankingRows.length > 0 ? Math.max(...rankingRows.map((item) => item.points ?? 0)) : 0
+  const averagePoints =
+    rankingRows.length > 0
+      ? Math.round(rankingRows.reduce((sum, item) => sum + (item.points ?? 0), 0) / rankingRows.length)
+      : 0
+
   return (
     <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-6">
-      <View className="mb-5 flex-row items-center justify-between">
-        <Text className="text-[16px] font-black text-white">Tu liga actual</Text>
-        <Pressable className="flex-row items-center gap-2">
-          <Text className="text-[12px] font-bold text-[#9B6CFF]">Ver ligas</Text>
-          <Ionicons name="arrow-forward" size={13} color="#9B6CFF" />
-        </Pressable>
-      </View>
-      <View className="flex-row items-center gap-5">
-        <View className="h-20 w-20 items-center justify-center rounded-2xl border-4 border-[#6D7BFF] bg-[#18286A]">
-          <Ionicons name="diamond" size={34} color="#9FD6FF" />
+      <Text className="text-[16px] font-black text-white">Resumen real del ranking</Text>
+      <View className="mt-5 gap-3">
+        <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
+          <Text className="text-[13px] text-[#AFC2DB]">Estudiantes en ranking</Text>
+          <Text className="text-[14px] font-black text-white">{totalStudents.toLocaleString()}</Text>
         </View>
-        <View className="min-w-0 flex-1">
-          <Text className="text-[24px] font-black text-white">Diamante II</Text>
-          <Text className="mt-1 font-bold text-[#DDE7F4]">Top 10%</Text>
+        <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
+          <Text className="text-[13px] text-[#AFC2DB]">Tu XP actual</Text>
+          <Text className="text-[14px] font-black text-white">{points.toLocaleString()} XP</Text>
         </View>
-      </View>
-      <Text className="mt-5 text-[13px] font-bold text-[#DDE7F4]">Mantén tu posición</Text>
-      <Text className="mt-1 text-[12px] text-[#AFC2DB]">¡Sigue aprendiendo para subir de liga!</Text>
-    </View>
-  )
-}
-
-function WeeklyChallenge({ points }: { points: number }) {
-  const earned = Math.min(250, Math.max(90, points % 250))
-  const progress = (earned / 250) * 100
-
-  return (
-    <View className="overflow-hidden rounded-2xl border border-[#3E2A8E] bg-[#221052] p-6">
-      <View className="absolute bottom-[-24px] right-[-10px] h-28 w-36 rounded-full bg-[#4F2BC0]/50" />
-      <View className="absolute bottom-5 right-8 h-16 w-20 rounded-xl bg-[#7C3AED]/50" />
-      <Ionicons name="cube" size={62} color="#A78BFA" style={{ position: 'absolute', bottom: 22, right: 44 }} />
-
-      <View className="relative">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-[16px] font-black text-white">Pregunta semanal</Text>
-          <View className="flex-row items-center gap-2">
-            <Ionicons name="time-outline" size={14} color="#C4B5FD" />
-            <Text className="text-[12px] text-[#C4B5FD]">5d 12h restantes</Text>
-          </View>
+        <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
+          <Text className="text-[13px] text-[#AFC2DB]">Mejor XP global</Text>
+          <Text className="text-[14px] font-black text-white">{bestPoints.toLocaleString()} XP</Text>
         </View>
-        <Text className="mt-5 text-[16px] font-bold text-white">Gana 250 XP esta semana</Text>
-        <View className="mt-4 flex-row items-center gap-4">
-          <View className="h-2 flex-1 overflow-hidden rounded-full bg-[#3B2A78]">
-            <View className="h-full rounded-full bg-[#58B5FF]" style={{ width: `${progress}%` }} />
-          </View>
-          <Text className="text-[12px] text-[#C4B5FD]">{earned} / 250 XP</Text>
+        <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
+          <Text className="text-[13px] text-[#AFC2DB]">Media del ranking</Text>
+          <Text className="text-[14px] font-black text-white">{averagePoints.toLocaleString()} XP</Text>
         </View>
-        <Pressable className="mt-5 flex-row items-center justify-center gap-2">
-          <Text className="text-[13px] font-bold text-[#C4B5FD]">Ver todas las preguntas</Text>
-          <Ionicons name="arrow-forward" size={14} color="#C4B5FD" />
-        </Pressable>
       </View>
     </View>
   )

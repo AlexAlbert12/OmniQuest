@@ -301,7 +301,7 @@ function StatsRail({
       </View>
 
       <RailDivider />
-      <RailMetric label="Racha" value={String(Math.max(streak, 7))} icon="flame" iconColor="#FF7B45" />
+      <RailMetric label="Racha" value={String(streak)} icon="flame" iconColor="#FF7B45" />
       <RailDivider />
       <RailMetric label="Posición" value={position} valueColor="#9B6CFF" />
       <RailDivider />
@@ -356,7 +356,7 @@ function CompactStats({
   return (
     <View className="flex-row flex-wrap justify-center gap-3">
       <MiniStat icon="flash" color="#FBBF24" label={`${points} XP`} />
-      <MiniStat icon="flame" color="#FF7B45" label={`Racha ${Math.max(streak, 7)}`} />
+      <MiniStat icon="flame" color="#FF7B45" label={`Racha ${streak}`} />
       <MiniStat icon="heart" color="#FF647C" label={`${lives} vidas`} />
       <MiniStat icon="football" color="#9B6CFF" label={category} />
     </View>
