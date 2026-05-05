@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -68,6 +68,7 @@ export default function ProgressScreen() {
   const [subjectProgress, setSubjectProgress] = useState<SubjectProgress[]>([])
   const [recentScores, setRecentScores] = useState<RecentScore[]>([])
   const [scores, setScores] = useState<ScoreRow[]>([])
+  const [weeklyCompleted, setWeeklyCompleted] = useState(0)
   const [loading, setLoading] = useState(true)
 
   const isDesktop = width >= 1024
@@ -83,7 +84,7 @@ export default function ProgressScreen() {
   const averageScore = scoredSubjects.length > 0
     ? Math.round(scoredSubjects.reduce((total, subject) => total + (subject.averageScore || 0), 0) / scoredSubjects.length)
     : null
-  const weeklyCompleted = Math.min(10, savedScores)
+  const weeklyRemainingText = useMemo(() => getTimeUntilSundayLabel(), [])
   const badgeMetrics = getStudentBadgeMetrics({
     scores: scores as StudentBadgeScore[],
     totalPoints: points,
@@ -100,7 +101,12 @@ export default function ProgressScreen() {
 
       if (!userId) return
 
-      const [profileResult, enrollmentsResult, scoresResult] = await Promise.all([
+      const now = new Date()
+      const weekStart = getStartOfWeekMonday(now)
+      const weekStartIso = weekStart.toISOString()
+      const nowIso = now.toISOString()
+
+      const [profileResult, enrollmentsResult, scoresResult, weeklyScoresResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
         supabase
           .from('enrollments')
@@ -111,11 +117,19 @@ export default function ProgressScreen() {
           .select('subject_id, max_score, played_at, played_days, correct_answers, subjects(name)')
           .eq('student_id', userId)
           .order('played_at', { ascending: false }),
+        supabase
+          .from('subject_scores')
+          .select('subject_id', { count: 'exact', head: true })
+          .eq('student_id', userId)
+          .not('played_at', 'is', null)
+          .gte('played_at', weekStartIso)
+          .lte('played_at', nowIso),
       ])
 
       if (profileResult.error) throw profileResult.error
       if (enrollmentsResult.error) throw enrollmentsResult.error
       if (scoresResult.error) throw scoresResult.error
+      if (weeklyScoresResult.error) throw weeklyScoresResult.error
 
       setProfile(profileResult.data)
       const enrolledSubjects = (
@@ -128,6 +142,7 @@ export default function ProgressScreen() {
       setSubjectProgress(buildSubjectRows(enrolledSubjects, scores))
       setRecentScores(buildRecentScores(scores))
       setScores(scores)
+      setWeeklyCompleted(weeklyScoresResult.count || 0)
     } catch (error) {
       console.error('Error fetching progress:', error)
     } finally {
@@ -269,7 +284,7 @@ export default function ProgressScreen() {
                 </View>
               </DashboardCard>
 
-              <WeeklyGoal completed={weeklyCompleted} />
+              <WeeklyGoal completed={weeklyCompleted} remainingText={weeklyRemainingText} />
             </View>
           </View>
         </ScrollView>
@@ -511,7 +526,7 @@ function AchievementRow({ achievement, onPress }: { achievement: StudentBadge; o
   )
 }
 
-function WeeklyGoal({ completed }: { completed: number }) {
+function WeeklyGoal({ completed, remainingText }: { completed: number; remainingText: string }) {
   const percent = Math.min(100, (completed / 10) * 100)
 
   return (
@@ -522,7 +537,7 @@ function WeeklyGoal({ completed }: { completed: number }) {
         <Text className="font-bold text-white">Completa 10 preguntas esta semana</Text>
         <View className="flex-row items-center gap-2">
           <Ionicons name="time-outline" size={14} color="#C4B5FD" />
-          <Text className="text-[12px] text-[#C4B5FD]">5d 12h restantes</Text>
+          <Text className="text-[12px] text-[#C4B5FD]">{remainingText}</Text>
         </View>
       </View>
       <View className="mt-5 flex-row items-center gap-4">
@@ -634,4 +649,29 @@ function buildRecentScores(scores: ScoreRow[]): RecentScore[] {
         value: score.max_score || 0,
       }
     })
+}
+
+function getTimeUntilSundayLabel() {
+  const now = new Date()
+  const endOfSunday = new Date(now)
+  const daysUntilSunday = (7 - now.getDay()) % 7
+  endOfSunday.setDate(now.getDate() + daysUntilSunday)
+  endOfSunday.setHours(23, 59, 59, 999)
+
+  const diffMs = Math.max(0, endOfSunday.getTime() - now.getTime())
+  const totalHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const days = Math.floor(totalHours / 24)
+  const hours = totalHours % 24
+
+  if (days <= 0) return `${hours}h restantes`
+  return `${days}d ${hours}h restantes`
+}
+
+function getStartOfWeekMonday(date: Date) {
+  const day = date.getDay()
+  const diffToMonday = day === 0 ? -6 : 1 - day
+  const monday = new Date(date)
+  monday.setDate(date.getDate() + diffToMonday)
+  monday.setHours(0, 0, 0, 0)
+  return monday
 }

@@ -1,10 +1,14 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
+  Switch,
   Text,
   TextInput,
   useWindowDimensions,
@@ -14,107 +18,382 @@ import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
+import TeacherSidebar from '../../components/TeacherSidebar'
+import { useAppTheme } from '../../lib/appTheme'
 
-type Profile = {
+type IconName = keyof typeof Ionicons.glyphMap
+type AppRole = 'student' | 'teacher'
+type ToggleKey = 'twoFactor'
+type PreferenceKey = 'language' | 'timezone' | 'dateFormat' | 'timeFormat' | 'weekStart'
+type NotificationSettingKey = 'push' | 'email' | 'daily' | 'activities' | 'news'
+type NotificationFrequency = 'instant' | 'daily' | 'weekly'
+type SettingsMenuSectionKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'integrations' | 'about'
+type SettingsAnchorKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'integrations' | 'about'
+
+type UserProfile = {
   id: string
-  alias: string
+  alias: string | null
   avatar: string | null
   points: number | null
+  role_id?: string | null
 }
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name']
+type UserPreferencesState = {
+  language: string
+  timezone: string
+  dateFormat: string
+  timeFormat: string
+  weekStart: string
+}
 
+type UserPreferencesRow = {
+  language: string | null
+  timezone: string | null
+  date_format: string | null
+  time_format: string | null
+  week_start: string | null
+}
+
+type NotificationSettingsState = {
+  push: boolean
+  email: boolean
+  daily: boolean
+  activities: boolean
+  news: boolean
+  frequency: NotificationFrequency
+}
+
+type NotificationSettingsRow = {
+  push_enabled: boolean | null
+  email_enabled: boolean | null
+  daily_summary_enabled: boolean | null
+  activity_enabled: boolean | null
+  news_enabled: boolean | null
+  frequency: string | null
+}
+
+const DEFAULT_PREFERENCES: UserPreferencesState = {
+  language: 'es-ES',
+  timezone: 'Europe/Madrid',
+  dateFormat: 'DD/MM/YYYY',
+  timeFormat: '24h',
+  weekStart: 'monday',
+}
+
+const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsState = {
+  push: true,
+  email: false,
+  daily: true,
+  activities: true,
+  news: false,
+  frequency: 'daily',
+}
+
+const notificationFrequencyOptions: NotificationFrequency[] = ['instant', 'daily', 'weekly']
+
+const notificationFrequencyLabels: Record<NotificationFrequency, string> = {
+  instant: 'Inmediata',
+  daily: 'Diaria',
+  weekly: 'Semanal',
+}
+
+const preferenceOptions: Record<PreferenceKey, string[]> = {
+  language: ['es-ES', 'en-US'],
+  timezone: ['Europe/Madrid', 'UTC', 'America/Mexico_City', 'America/Bogota'],
+  dateFormat: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'],
+  timeFormat: ['24h', '12h'],
+  weekStart: ['monday', 'sunday'],
+}
+
+const preferenceLabels = {
+  language: {
+    'es-ES': '🇪🇸 Español',
+    'en-US': '🇺🇸 English',
+  },
+  timezone: {
+    'Europe/Madrid': '(GMT+02:00) Madrid, España',
+    UTC: 'UTC',
+    'America/Mexico_City': '(GMT-06:00) Ciudad de México',
+    'America/Bogota': '(GMT-05:00) Bogotá',
+  },
+  dateFormat: {
+    'DD/MM/YYYY': 'DD/MM/YYYY',
+    'MM/DD/YYYY': 'MM/DD/YYYY',
+    'YYYY-MM-DD': 'YYYY-MM-DD',
+  },
+  timeFormat: {
+    '24h': '24 horas',
+    '12h': '12 horas',
+  },
+  weekStart: {
+    monday: 'Lunes',
+    sunday: 'Domingo',
+  },
+} as const
+
+const studentSettingsSections: { key: SettingsMenuSectionKey; label: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
+  { key: 'general', label: 'General', icon: 'settings-outline', anchor: 'general' },
+  { key: 'profile', label: 'Perfil', icon: 'person-outline', anchor: 'profile' },
+  { key: 'preferences', label: 'Idioma y región', icon: 'globe-outline', anchor: 'preferences' },
+  { key: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', anchor: 'notifications' },
+  { key: 'privacy', label: 'Privacidad', icon: 'shield-checkmark-outline', anchor: 'privacy' },
+  { key: 'security', label: 'Seguridad', icon: 'lock-closed-outline', anchor: 'security' },
+  { key: 'about', label: 'Acerca de', icon: 'information-circle-outline', anchor: 'about' },
+]
+
+const teacherSettingsSections: { key: SettingsMenuSectionKey; label: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
+  ...studentSettingsSections.slice(0, 6),
+  { key: 'integrations', label: 'Integraciones', icon: 'extension-puzzle-outline', anchor: 'integrations' },
+  studentSettingsSections[6],
+]
 const accentColors = ['#7C5CFF', '#3B82F6', '#38BDF8', '#58D17A', '#F6A64A', '#EF5350', '#D94A9A'] as const
 
-const privacyRows: { icon: IoniconName; title: string; detail: string }[] = [
-  {
-    icon: 'shield-checkmark-outline',
-    title: 'Privacidad',
-    detail: 'Gestiona tu privacidad',
-  },
-  {
-    icon: 'server-outline',
-    title: 'Datos y almacenamiento',
-    detail: 'Gestiona tus datos y espacio',
-  },
-]
-
-const supportRows: { icon: IoniconName; title: string; detail: string }[] = [
-  {
-    icon: 'help-circle-outline',
-    title: 'Centro de ayuda',
-    detail: 'Preguntas frecuentes y guías',
-  },
-  {
-    icon: 'mail-outline',
-    title: 'Contactar soporte',
-    detail: 'Envíanos un mensaje',
-  },
-  {
-    icon: 'document-text-outline',
-    title: 'Términos y condiciones',
-    detail: 'Lee nuestros términos de uso',
-  },
-  {
-    icon: 'information-circle-outline',
-    title: 'Acerca de OmniQuest',
-    detail: 'Versión 1.2.0',
-  },
-]
-
-export default function SettingsScreen() {
+export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) {
   const { width } = useWindowDimensions()
   const router = useRouter()
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [email, setEmail] = useState('')
+  const { theme, setTheme, accentColor, setAccentColor } = useAppTheme()
+  const scrollRef = useRef<ScrollView | null>(null)
+  const sectionPositionsRef = useRef<Partial<Record<SettingsAnchorKey, number>>>({})
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [role, setRole] = useState<AppRole>(forcedRole || 'student')
+  const [subjectsCount, setSubjectsCount] = useState(0)
+  const [name, setName] = useState('Alumno')
+  const [email, setEmail] = useState('alumno@omniquest.com')
   const [loading, setLoading] = useState(true)
-  const [accentColor, setAccentColor] = useState<(typeof accentColors)[number]>('#7C5CFF')
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
-  const [animations, setAnimations] = useState(true)
-  const [pushNotifications, setPushNotifications] = useState(true)
-  const [studyReminders, setStudyReminders] = useState(true)
-  const [updates, setUpdates] = useState(false)
-  const [newAlias, setNewAlias] = useState('')
+  const [saving, setSaving] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [changingAlias, setChangingAlias] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [preferences, setPreferences] = useState<UserPreferencesState>(DEFAULT_PREFERENCES)
+  const [savingPreference, setSavingPreference] = useState<PreferenceKey | null>(null)
+  const [openPreferenceKey, setOpenPreferenceKey] = useState<PreferenceKey | null>(null)
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettingsState>(DEFAULT_NOTIFICATION_SETTINGS)
+  const [savingNotificationKey, setSavingNotificationKey] = useState<NotificationSettingKey | 'frequency' | null>(null)
+  const [openNotificationFrequency, setOpenNotificationFrequency] = useState(false)
+  const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsMenuSectionKey>('general')
+  const [toggles, setToggles] = useState<Record<ToggleKey, boolean>>({
+    twoFactor: false,
+  })
 
-  const isDesktop = width >= 1024
-  const isTwoColumn = width >= 900
+  const isDesktop = width >= 1080
+  const isWide = width >= 820
+  const isTeacher = role === 'teacher'
+  const isDark = theme === 'dark'
+  const settingsSections = isTeacher ? teacherSettingsSections : studentSettingsSections
   const points = profile?.points ?? 0
-  const alias = profile?.alias || 'Alex'
+  const alias = profile?.alias || (isTeacher ? 'Profesor' : 'Alumno')
   const level = Math.floor(points / 100) + 1
   const nextLevelProgress = points % 100
+  const userInitials = getInitials(name)
+  const orderedAnchors = useMemo(
+    () =>
+      (isTeacher
+        ? ['general', 'profile', 'preferences', 'notifications', 'privacy', 'security', 'integrations', 'about']
+        : ['general', 'profile', 'preferences', 'notifications', 'privacy', 'security', 'about']) as SettingsAnchorKey[],
+    [isTeacher]
+  )
+
+  useEffect(() => {
+    if (!settingsSections.some((section) => section.key === activeSettingsSection)) {
+      setActiveSettingsSection('general')
+    }
+  }, [activeSettingsSection, settingsSections])
+
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n${message}`)
+      return
+    }
+
+    Alert.alert(title, message)
+  }
+
+  const showComingSoon = (feature: string) => {
+    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)
+  }
+
+  const isMissingPreferencesTableError = (errorCode?: string) => errorCode === '42P01'
+  const isMissingNotificationPreferencesTableError = (errorCode?: string) => errorCode === '42P01'
+
+  const formatPreferenceLabel = (key: PreferenceKey, value: string) => {
+    const labelsByKey = preferenceLabels[key] as Record<string, string>
+    return labelsByKey[value] || value
+  }
+
+  const toPreferenceState = (row: UserPreferencesRow | null): UserPreferencesState => ({
+    language: row?.language || DEFAULT_PREFERENCES.language,
+    timezone: row?.timezone || DEFAULT_PREFERENCES.timezone,
+    dateFormat: row?.date_format || DEFAULT_PREFERENCES.dateFormat,
+    timeFormat: row?.time_format || DEFAULT_PREFERENCES.timeFormat,
+    weekStart: row?.week_start || DEFAULT_PREFERENCES.weekStart,
+  })
+
+  const toNotificationSettingsState = (row: NotificationSettingsRow | null): NotificationSettingsState => {
+    const rowFrequency = row?.frequency as NotificationFrequency | null
+    const frequency = rowFrequency && notificationFrequencyOptions.includes(rowFrequency)
+      ? rowFrequency
+      : DEFAULT_NOTIFICATION_SETTINGS.frequency
+
+    return {
+      push: row?.push_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.push,
+      email: row?.email_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.email,
+      daily: row?.daily_summary_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.daily,
+      activities: row?.activity_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.activities,
+      news: row?.news_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.news,
+      frequency,
+    }
+  }
+
+  const formatNotificationFrequencyLabel = (value: NotificationFrequency) => {
+    return notificationFrequencyLabels[value] || value
+  }
+
+  const menuKeyFromAnchor = (anchor: SettingsAnchorKey): SettingsMenuSectionKey => {
+    switch (anchor) {
+      case 'general':
+        return 'general'
+      case 'profile':
+        return 'profile'
+      case 'preferences':
+        return 'preferences'
+      case 'notifications':
+        return 'notifications'
+      case 'privacy':
+        return 'privacy'
+      case 'security':
+        return 'security'
+      case 'integrations':
+        return 'integrations'
+      case 'about':
+        return 'about'
+      default:
+        return 'general'
+    }
+  }
+
+  const handleSectionLayout = (key: SettingsAnchorKey) => (event: LayoutChangeEvent) => {
+    sectionPositionsRef.current[key] = event.nativeEvent.layout.y
+  }
+
+  const scrollToAnchor = (anchor: SettingsAnchorKey, menuKey: SettingsMenuSectionKey) => {
+    const y = sectionPositionsRef.current[anchor]
+    if (typeof y === 'number') {
+      scrollRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true })
+    }
+    setActiveSettingsSection(menuKey)
+  }
+
+  const handleMenuSectionPress = (section: { key: SettingsMenuSectionKey; anchor: SettingsAnchorKey }) => {
+    scrollToAnchor(section.anchor, section.key)
+  }
+
+  const handleSettingsScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = event.nativeEvent.contentOffset.y + 90
+    let currentAnchor: SettingsAnchorKey = 'general'
+
+    for (const anchor of orderedAnchors) {
+      const y = sectionPositionsRef.current[anchor]
+      if (typeof y === 'number' && offsetY >= y) {
+        currentAnchor = anchor
+      }
+    }
+
+    const nextMenuKey = menuKeyFromAnchor(currentAnchor)
+    if (nextMenuKey !== activeSettingsSection) {
+      setActiveSettingsSection(nextMenuKey)
+    }
+  }
+
+  const savePreferences = async (targetUserId: string, next: UserPreferencesState) => {
+    const { error } = await supabase.from('user_preferences').upsert(
+      {
+        user_id: targetUserId,
+        language: next.language,
+        timezone: next.timezone,
+        date_format: next.dateFormat,
+        time_format: next.timeFormat,
+        week_start: next.weekStart,
+      },
+      { onConflict: 'user_id' }
+    )
+
+    if (error) throw error
+  }
+
+  const saveNotificationSettings = async (targetUserId: string, next: NotificationSettingsState) => {
+    const { error } = await supabase.from('user_notification_preferences').upsert(
+      {
+        user_id: targetUserId,
+        push_enabled: next.push,
+        email_enabled: next.email,
+        daily_summary_enabled: next.daily,
+        activity_enabled: next.activities,
+        news_enabled: next.news,
+        frequency: next.frequency,
+      },
+      { onConflict: 'user_id' }
+    )
+
+    if (error) throw error
+  }
 
   const fetchSettings = useCallback(async () => {
-    setLoading(true)
-
     try {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
+      const { data: sessionData } = await supabase.auth.getSession()
+      const session = sessionData.session
 
-      setEmail(session.session?.user.email || 'alex@example.com')
+      if (!session) {
+        router.replace('/(auth)/login' as any)
+        return
+      }
 
-      if (!userId) return
+      setUserId(session.user.id)
+      setEmail(session.user.email || 'alumno@omniquest.com')
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, alias, points, avatar')
-        .eq('id', userId)
-        .single()
+      const [profileResult, preferencesResult, notificationSettingsResult, subjectsResult] = await Promise.all([
+        supabase.from('profiles').select('id, alias, avatar, points, role_id').eq('id', session.user.id).single(),
+        supabase
+          .from('user_preferences')
+          .select('language, timezone, date_format, time_format, week_start')
+          .eq('user_id', session.user.id)
+          .maybeSingle(),
+        supabase
+          .from('user_notification_preferences')
+          .select('push_enabled, email_enabled, daily_summary_enabled, activity_enabled, news_enabled, frequency')
+          .eq('user_id', session.user.id)
+          .maybeSingle(),
+        supabase.from('subjects').select('id').eq('teacher_id', session.user.id).eq('is_archived', false),
+      ])
 
-      if (error) throw error
-      setProfile(data)
-      setNewAlias(data.alias)
-    } catch (error) {
-      console.error('Error fetching settings:', error)
+      if (profileResult.error && profileResult.error.code !== 'PGRST116') throw profileResult.error
+      if (preferencesResult.error && !isMissingPreferencesTableError(preferencesResult.error.code)) {
+        throw preferencesResult.error
+      }
+      if (notificationSettingsResult.error && !isMissingNotificationPreferencesTableError(notificationSettingsResult.error.code)) {
+        throw notificationSettingsResult.error
+      }
+      if (subjectsResult.error) throw subjectsResult.error
+
+      const nextProfile = profileResult.data as UserProfile | null
+      setProfile(nextProfile)
+      const detectedRole = nextProfile?.role_id === 'teacher' ? 'teacher' : 'student'
+      setRole(detectedRole)
+      setName(nextProfile?.alias || (detectedRole === 'teacher' ? 'Profesor' : 'Alumno'))
+      setSubjectsCount(subjectsResult.data?.length || 0)
+      setPreferences(toPreferenceState((preferencesResult.data as UserPreferencesRow | null) || null))
+      setNotificationSettings(
+        toNotificationSettingsState((notificationSettingsResult.data as NotificationSettingsRow | null) || null)
+      )
+    } catch (error: any) {
+      console.error('Error cargando configuración del estudiante:', error.message)
+      showAlert('No se pudo cargar la configuración', 'Inténtalo de nuevo en unos segundos.')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [router])
 
   useFocusEffect(
     useCallback(() => {
@@ -122,41 +401,38 @@ export default function SettingsScreen() {
     }, [fetchSettings])
   )
 
-  const handleChangeAlias = async () => {
-    const cleanAlias = newAlias.trim()
-    if (!cleanAlias || !profile) return
+  const handleSaveProfile = async () => {
+    if (!profile?.id) return
 
-    if (cleanAlias.length < 3) {
-      showAlert('Error', 'El alias debe tener al menos 3 caracteres.')
-      return
-    }
-
-    setChangingAlias(true)
     try {
+      setSaving(true)
+      const cleanName = name.trim() || (isTeacher ? 'Profesor' : 'Alumno')
+      if (cleanName.length < 3) {
+        showAlert('Alias demasiado corto', 'El nombre visible debe tener al menos 3 caracteres.')
+        return
+      }
+
       const { error: authError } = await supabase.auth.updateUser({
-        data: { alias: cleanAlias },
+        data: { alias: cleanName },
       })
 
       if (authError) throw authError
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ alias: cleanAlias })
-        .eq('id', profile.id)
-
-      if (profileError) throw profileError
-
-      setProfile({ ...profile, alias: cleanAlias })
-      showAlert('Éxito', 'Alias actualizado correctamente.')
+      const { error } = await supabase.from('profiles').update({ alias: cleanName }).eq('id', profile.id)
+      if (error) throw error
+      setName(cleanName)
+      setProfile({ ...profile, alias: cleanName })
+      showAlert('Perfil actualizado', `Tu información de ${isTeacher ? 'profesor' : 'alumno'} se ha actualizado correctamente.`)
     } catch (error: any) {
-      showAlert('Error', error.message)
+      console.error('Error actualizando perfil del estudiante:', error.message)
+      showAlert('No se pudo guardar', 'Revisa la conexión e inténtalo de nuevo.')
     } finally {
-      setChangingAlias(false)
+      setSaving(false)
     }
   }
 
   const handleChangePassword = async () => {
-    if (!currentPassword || !newPassword || newPassword !== confirmPassword) {
+    if (!email || !currentPassword || !newPassword || newPassword !== confirmPassword) {
       showAlert('Error', 'Verifica que las contraseñas coincidan y estén completas.')
       return
     }
@@ -166,13 +442,8 @@ export default function SettingsScreen() {
       return
     }
 
-    if (!email) {
-      showAlert('Error', 'No se ha podido verificar tu correo actual.')
-      return
-    }
-
-    setChangingPassword(true)
     try {
+      setChangingPassword(true)
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password: currentPassword,
@@ -183,24 +454,22 @@ export default function SettingsScreen() {
       }
 
       const { error } = await supabase.auth.updateUser({ password: newPassword })
-
       if (error) throw error
 
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
-      showAlert('Éxito', 'Contraseña actualizada correctamente.')
+      showAlert('Contraseña actualizada', 'Tu contraseña se ha actualizado correctamente.')
     } catch (error: any) {
-      showAlert('Error', error.message)
+      showAlert('No se pudo actualizar', error.message || 'Inténtalo de nuevo.')
     } finally {
       setChangingPassword(false)
     }
   }
 
   const executeDeleteAccount = async () => {
-    setDeletingAccount(true)
-
     try {
+      setDeletingAccount(true)
       const { error } = await supabase.functions.invoke('delete-account', {
         body: {},
       })
@@ -214,7 +483,7 @@ export default function SettingsScreen() {
         console.warn('No se pudo cerrar sesión tras borrar cuenta:', signOutError.message)
       }
       showAlert('Cuenta borrada', 'Tu cuenta se ha eliminado correctamente.')
-      router.replace('/(auth)/login')
+      router.replace('/(auth)/login' as any)
     } catch (error: any) {
       showAlert(
         'No se pudo borrar la cuenta',
@@ -226,7 +495,7 @@ export default function SettingsScreen() {
   }
 
   const handleDeleteAccount = () => {
-    const message = 'Esta acción eliminará tu usuario, perfil, clases y progreso. No se puede deshacer.'
+    const message = 'Esta acción eliminará tu usuario, perfil y progreso académico. No se puede deshacer.'
 
     if (Platform.OS === 'web') {
       if (window.confirm(message)) {
@@ -246,68 +515,171 @@ export default function SettingsScreen() {
   }
 
   const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut()
-      router.replace('/(auth)/login')
-    } catch {
-      showAlert('Error', 'No se pudo cerrar sesión.')
-    }
+    await supabase.auth.signOut()
+    router.replace('/(auth)/login' as any)
   }
 
-  const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`)
+  const updateToggle = (key: ToggleKey) => {
+    setToggles((current) => ({ ...current, [key]: !current[key] }))
+  }
+
+  const updateNotificationToggle = async (key: NotificationSettingKey) => {
+    if (!userId) {
+      showAlert('Sesión no disponible', 'No se pudo identificar el usuario para guardar notificaciones.')
       return
     }
 
-    Alert.alert(title, message)
+    const previous = notificationSettings
+    const next = { ...previous, [key]: !previous[key] }
+
+    setNotificationSettings(next)
+    setSavingNotificationKey(key)
+
+    try {
+      await saveNotificationSettings(userId, next)
+    } catch (error: any) {
+      setNotificationSettings(previous)
+      if (isMissingNotificationPreferencesTableError(error?.code)) {
+        showAlert(
+          'Configuración pendiente',
+          'Falta la tabla user_notification_preferences en Supabase. Aplica la migración para guardar notificaciones.'
+        )
+      } else {
+        showAlert('No se pudo guardar', error.message || 'No se pudieron guardar tus notificaciones.')
+      }
+    } finally {
+      setSavingNotificationKey(null)
+    }
   }
 
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)
+  const toggleNotificationFrequencyMenu = () => {
+    setOpenPreferenceKey(null)
+    setOpenNotificationFrequency((current) => !current)
+  }
+
+  const selectNotificationFrequency = async (value: NotificationFrequency) => {
+    if (!userId) {
+      showAlert('Sesión no disponible', 'No se pudo identificar el usuario para guardar notificaciones.')
+      return
+    }
+
+    const previous = notificationSettings
+    if (previous.frequency === value) {
+      setOpenNotificationFrequency(false)
+      return
+    }
+
+    const next = { ...previous, frequency: value }
+    setOpenNotificationFrequency(false)
+    setNotificationSettings(next)
+    setSavingNotificationKey('frequency')
+
+    try {
+      await saveNotificationSettings(userId, next)
+    } catch (error: any) {
+      setNotificationSettings(previous)
+      if (isMissingNotificationPreferencesTableError(error?.code)) {
+        showAlert(
+          'Configuración pendiente',
+          'Falta la tabla user_notification_preferences en Supabase. Aplica la migración para guardar notificaciones.'
+        )
+      } else {
+        showAlert('No se pudo guardar', error.message || 'No se pudieron guardar tus notificaciones.')
+      }
+    } finally {
+      setSavingNotificationKey(null)
+    }
+  }
+
+  const togglePreferenceMenu = (key: PreferenceKey) => {
+    setOpenNotificationFrequency(false)
+    setOpenPreferenceKey((current) => (current === key ? null : key))
+  }
+
+  const selectPreference = async (key: PreferenceKey, value: string) => {
+    if (!userId) {
+      showAlert('Sesión no disponible', 'No se pudo identificar el usuario para guardar preferencias.')
+      return
+    }
+
+    setOpenPreferenceKey(null)
+    const previousPreferences = preferences
+    if (previousPreferences[key] === value) return
+    const nextPreferences = { ...previousPreferences, [key]: value }
+
+    setPreferences(nextPreferences)
+    setSavingPreference(key)
+
+    try {
+      await savePreferences(userId, nextPreferences)
+    } catch (error: any) {
+      setPreferences(previousPreferences)
+      if (isMissingPreferencesTableError(error?.code)) {
+        showAlert(
+          'Configuración pendiente',
+          'Falta la tabla user_preferences en Supabase. Aplica la migración para guardar estas preferencias.'
+        )
+      } else {
+        showAlert('No se pudo guardar', error.message || 'No se pudieron guardar tus preferencias.')
+      }
+    } finally {
+      setSavingPreference(null)
+    }
   }
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color="#6574FF" />
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: isDark ? '#061126' : '#0F2442' }}>
+        <ActivityIndicator size="large" color="#8B5CF6" />
         <Text className="mt-4 text-[#8FA7C7]">Cargando configuración...</Text>
       </View>
     )
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1" style={{ backgroundColor: isDark ? '#061126' : '#0F2442' }}>
       <View className="flex-1 flex-row">
         {isDesktop ? (
-          <StudentSidebar
-            activeSection="settings"
-            alias={alias}
-            avatar={profile?.avatar}
-            level={level}
-            points={points}
-            nextLevelProgress={nextLevelProgress}
-            onSignOut={handleSignOut}
-            onComingSoon={showComingSoon}
-          />
+          isTeacher ? (
+            <TeacherSidebar
+              activeSection="settings"
+              subjectsCount={subjectsCount}
+              onSignOut={handleSignOut}
+              onComingSoon={showComingSoon}
+              alias={alias}
+              avatar={profile?.avatar}
+              points={points}
+            />
+          ) : (
+            <StudentSidebar
+              activeSection="settings"
+              alias={alias}
+              avatar={profile?.avatar}
+              level={level}
+              points={points}
+              nextLevelProgress={nextLevelProgress}
+              onSignOut={handleSignOut}
+              onComingSoon={showComingSoon}
+            />
+          )
         ) : null}
 
         <ScrollView
+          ref={scrollRef}
           className="flex-1"
           contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 28 : 18,
-            paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 28 : 104,
+            paddingHorizontal: isDesktop ? 28 : 14,
+            paddingTop: isDesktop ? 24 : 18,
+            paddingBottom: 96,
           }}
+          onScroll={handleSettingsScroll}
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row items-start justify-between gap-4">
-            <View className="min-w-0 flex-1">
+          <View onLayout={handleSectionLayout('general')} className="mb-5 flex-row flex-wrap items-start justify-between gap-4">
+            <View className="min-w-[260px] flex-1">
               {!isDesktop ? (
-                <Text
-                  className="mb-3 text-[#9FD6FF]"
-                  style={{ fontFamily: 'Pacifico_400Regular', fontSize: 30 }}
-                >
+                <Text className="mb-3 text-[#9FD6FF]" style={{ fontFamily: 'Pacifico_400Regular', fontSize: 30 }}>
                   OmniQuest
                 </Text>
               ) : null}
@@ -315,529 +687,643 @@ export default function SettingsScreen() {
                 <Ionicons name="settings" size={40} color="#9FD6FF" />
                 <Text className="text-[40px] font-black text-white">Configuración</Text>
               </View>
-              <Text className="mt-1 text-[13px] text-[#DDE7F4]">
-                Personaliza tu experiencia en OmniQuest
+              <Text className="mt-2 text-[13px] text-[#B7C4D7]">
+                Personaliza tu experiencia y controla tu cuenta de {isTeacher ? 'profesor' : 'alumno'}.
               </Text>
             </View>
 
             <View className="flex-row items-center gap-3">
-              <View className="flex-row items-center gap-3 rounded-2xl border border-[#162B50] bg-[#0B1933] px-4 py-3">
-                <Ionicons name="flash" size={20} color="#FFD34D" />
-                <View>
-                  <Text className="text-[16px] font-black text-white">7</Text>
-                  <Text className="text-[11px] text-[#8FA7C7]">Días de racha</Text>
-                </View>
-              </View>
-              <Pressable
-                onPress={() => showComingSoon('Las notificaciones')}
-                className="rounded-2xl border border-[#162B50] bg-[#0B1933] p-3"
-              >
-                <Ionicons name="notifications-outline" size={22} color="#AFC2DB" />
-                <View className="absolute right-3 top-2 h-2.5 w-2.5 rounded-full bg-[#FF5D6C]" />
+              <Pressable className="relative rounded-2xl border border-[#20375E] bg-[#09162C] p-3">
+                <Ionicons name="notifications-outline" size={21} color="#AFC2DB" />
               </Pressable>
+              <View className="h-11 w-11 items-center justify-center rounded-full bg-[#5B4BC4]">
+                <Text className="font-black text-white">{userInitials}</Text>
+              </View>
+              <Ionicons name="chevron-down" size={18} color="#AFC2DB" />
             </View>
           </View>
 
-          <View className={isTwoColumn ? 'flex-row gap-5' : 'gap-5'}>
-            <View className={isTwoColumn ? 'flex-[1.3] gap-4' : 'gap-4'}>
-              <Panel title="Apariencia" icon="color-palette-outline">
-                <View className={width >= 700 ? 'flex-row gap-4' : 'gap-4'}>
-                  <ThemeOption
-                    title="Tema claro"
-                    detail="Interfaz clara y luminosa"
-                    icon="sunny-outline"
-                    active={theme === 'light'}
-                    onPress={() => setTheme('light')}
-                  />
-                  <ThemeOption
-                    title="Tema oscuro"
-                    detail="Interfaz oscura y relajante"
-                    icon="moon"
-                    active={theme === 'dark'}
-                    onPress={() => setTheme('dark')}
-                  />
+          <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
+            <SettingsMenu
+              onSignOut={handleSignOut}
+              isDesktop={isDesktop}
+              activeSection={activeSettingsSection}
+              onSectionPress={handleMenuSectionPress}
+              sections={settingsSections}
+            />
+
+            <View className="flex-1 gap-5">
+              <View className={isWide ? 'flex-row gap-5' : 'gap-5'}>
+                <View onLayout={handleSectionLayout('profile')} className={isWide ? 'flex-1' : ''}>
+                  <Panel title={`Información del ${isTeacher ? 'profesor' : 'alumno'}`}>
+                    <View className={width >= 520 ? 'flex-row gap-5' : 'gap-4'}>
+                      <View className="items-center">
+                        <View className="h-24 w-24 items-center justify-center rounded-full bg-[#4E3CB7]">
+                          <Text className="text-[28px] font-black text-white">{userInitials}</Text>
+                          <View className="absolute bottom-1 right-1 h-7 w-7 items-center justify-center rounded-full border border-[#20375E] bg-[#09162C]">
+                            <Ionicons name="camera-outline" size={14} color="#DCE7F8" />
+                          </View>
+                        </View>
+                        <Pressable
+                          onPress={handleSaveProfile}
+                          disabled={saving}
+                          className="mt-5 rounded-lg px-5 py-3"
+                          style={{ backgroundColor: accentColor }}
+                        >
+                          <Text className="text-[12px] font-bold text-white">{saving ? 'Guardando...' : 'Editar perfil'}</Text>
+                        </Pressable>
+                      </View>
+
+                      <View className="min-w-0 flex-1 gap-3">
+                        <Field label="Alias">
+                          <TextInput
+                            value={name}
+                            onChangeText={setName}
+                            placeholder={isTeacher ? 'Profesor' : 'Alumno'}
+                            placeholderTextColor="#64748B"
+                            className="rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3 text-[13px] text-white"
+                          />
+                        </Field>
+                        <Field label="Correo electrónico">
+                          <TextInput
+                            value={email}
+                            editable={false}
+                            placeholderTextColor="#64748B"
+                            className="rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3 text-[13px] text-[#B7C4D7]"
+                          />
+                        </Field>
+                        <Field label="Idioma preferido">
+                          <SelectPill
+                            value={formatPreferenceLabel('language', preferences.language)}
+                            selectedValue={preferences.language}
+                            open={openPreferenceKey === 'language'}
+                            onToggle={() => togglePreferenceMenu('language')}
+                            options={preferenceOptions.language}
+                            onSelect={(value) => void selectPreference('language', value)}
+                            optionLabel={(value) => formatPreferenceLabel('language', value)}
+                            disabled={Boolean(savingPreference)}
+                            loading={savingPreference === 'language'}
+                          />
+                        </Field>
+                      </View>
+                    </View>
+                  </Panel>
                 </View>
 
-                <View className="mt-5">
-                  <Text className="mb-3 text-[13px] text-white">Color de acento</Text>
-                  <View className="flex-row flex-wrap items-center gap-4">
-                    {accentColors.map((color) => (
-                      <Pressable
-                        key={color}
-                        onPress={() => setAccentColor(color)}
-                        className="h-9 w-9 items-center justify-center rounded-full"
-                        style={{
-                          backgroundColor: color,
-                          borderColor: accentColor === color ? '#B9C7FF' : 'transparent',
-                          borderWidth: accentColor === color ? 2 : 0,
-                        }}
-                      >
-                        {accentColor === color ? <Ionicons name="checkmark" size={22} color="#FFFFFF" /> : null}
-                      </Pressable>
-                    ))}
-                  </View>
+                <View onLayout={handleSectionLayout('preferences')} className={isWide ? 'flex-1' : ''}>
+                  <Panel title="Preferencias generales">
+                    <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
+                      <Text className="text-[12px] font-bold text-white">Apariencia</Text>
+                      <View className="mt-3 flex-row gap-3">
+                        <Pressable
+                          onPress={() => setTheme('light')}
+                          className={`flex-1 rounded-lg border px-3 py-2 ${theme === 'light' ? 'bg-[#1A1E55]' : 'border-[#2A456A] bg-[#0A2042]'}`}
+                          style={theme === 'light' ? { borderColor: accentColor } : undefined}
+                        >
+                          <Text className="text-center font-semibold text-white">Tema claro</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => setTheme('dark')}
+                          className={`flex-1 rounded-lg border px-3 py-2 ${theme === 'dark' ? 'bg-[#1A1E55]' : 'border-[#2A456A] bg-[#0A2042]'}`}
+                          style={theme === 'dark' ? { borderColor: accentColor } : undefined}
+                        >
+                          <Text className="text-center font-semibold text-white">Tema oscuro</Text>
+                        </Pressable>
+                      </View>
+                      <Text className="mt-3 text-[11px] text-[#AFC2DB]">Color de acento</Text>
+                      <View className="mt-2 flex-row flex-wrap gap-3">
+                        {accentColors.map((color) => (
+                          <Pressable
+                            key={color}
+                            onPress={() => setAccentColor(color)}
+                            className="h-8 w-8 items-center justify-center rounded-full"
+                            style={{
+                              backgroundColor: color,
+                              borderWidth: accentColor === color ? 2 : 0,
+                              borderColor: '#DDE7F4',
+                            }}
+                          >
+                            {accentColor === color ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+                    <PreferenceRow
+                      label="Zona horaria"
+                      value={formatPreferenceLabel('timezone', preferences.timezone)}
+                      selectedValue={preferences.timezone}
+                      open={openPreferenceKey === 'timezone'}
+                      onToggle={() => togglePreferenceMenu('timezone')}
+                      options={preferenceOptions.timezone}
+                      onSelect={(value) => void selectPreference('timezone', value)}
+                      optionLabel={(value) => formatPreferenceLabel('timezone', value)}
+                      disabled={Boolean(savingPreference)}
+                      loading={savingPreference === 'timezone'}
+                    />
+                    <PreferenceRow
+                      label="Formato de fecha"
+                      value={formatPreferenceLabel('dateFormat', preferences.dateFormat)}
+                      selectedValue={preferences.dateFormat}
+                      open={openPreferenceKey === 'dateFormat'}
+                      onToggle={() => togglePreferenceMenu('dateFormat')}
+                      options={preferenceOptions.dateFormat}
+                      onSelect={(value) => void selectPreference('dateFormat', value)}
+                      optionLabel={(value) => formatPreferenceLabel('dateFormat', value)}
+                      disabled={Boolean(savingPreference)}
+                      loading={savingPreference === 'dateFormat'}
+                    />
+                    <PreferenceRow
+                      label="Formato de hora"
+                      value={formatPreferenceLabel('timeFormat', preferences.timeFormat)}
+                      selectedValue={preferences.timeFormat}
+                      open={openPreferenceKey === 'timeFormat'}
+                      onToggle={() => togglePreferenceMenu('timeFormat')}
+                      options={preferenceOptions.timeFormat}
+                      onSelect={(value) => void selectPreference('timeFormat', value)}
+                      optionLabel={(value) => formatPreferenceLabel('timeFormat', value)}
+                      disabled={Boolean(savingPreference)}
+                      loading={savingPreference === 'timeFormat'}
+                    />
+                    <PreferenceRow
+                      label="Inicio de semana"
+                      value={formatPreferenceLabel('weekStart', preferences.weekStart)}
+                      selectedValue={preferences.weekStart}
+                      open={openPreferenceKey === 'weekStart'}
+                      onToggle={() => togglePreferenceMenu('weekStart')}
+                      options={preferenceOptions.weekStart}
+                      onSelect={(value) => void selectPreference('weekStart', value)}
+                      optionLabel={(value) => formatPreferenceLabel('weekStart', value)}
+                      disabled={Boolean(savingPreference)}
+                      loading={savingPreference === 'weekStart'}
+                    />
+                  </Panel>
+                </View>
+              </View>
+
+              <View className={isWide ? 'flex-row gap-5' : 'gap-5'}>
+                <View onLayout={handleSectionLayout('notifications')} className={isWide ? 'flex-1' : ''}>
+                  <Panel title="Notificaciones">
+                    <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
+                      <Text className="text-[12px] font-bold text-white">Reglas de envío</Text>
+                      <Text className="mt-1 text-[11px] text-[#AFC2DB]">Configura canal y frecuencia de envío.</Text>
+                      <View className="mt-3">
+                        <PreferenceRow
+                          label="Frecuencia"
+                          value={formatNotificationFrequencyLabel(notificationSettings.frequency)}
+                          selectedValue={notificationSettings.frequency}
+                          open={openNotificationFrequency}
+                          onToggle={toggleNotificationFrequencyMenu}
+                          options={notificationFrequencyOptions}
+                          onSelect={(value) => void selectNotificationFrequency(value as NotificationFrequency)}
+                          optionLabel={(value) => formatNotificationFrequencyLabel(value as NotificationFrequency)}
+                          disabled={Boolean(savingNotificationKey)}
+                          loading={savingNotificationKey === 'frequency'}
+                        />
+                      </View>
+                    </View>
+                    <NotificationRow
+                      icon="notifications-outline"
+                      title="Notificaciones push"
+                      description="Recibe avisos de clases, logros y actividad."
+                      enabled={notificationSettings.push}
+                      onPress={() => void updateNotificationToggle('push')}
+                      disabled={Boolean(savingNotificationKey)}
+                      loading={savingNotificationKey === 'push'}
+                    />
+                    <NotificationRow
+                      icon="mail-outline"
+                      title="Notificaciones por email"
+                      description="Recibe resúmenes y avisos en tu correo."
+                      enabled={notificationSettings.email}
+                      onPress={() => void updateNotificationToggle('email')}
+                      disabled={Boolean(savingNotificationKey)}
+                      loading={savingNotificationKey === 'email'}
+                    />
+                    <NotificationRow
+                      icon="calendar-outline"
+                      title="Resumen diario"
+                      description="Recibe un resumen diario de tu progreso."
+                      enabled={notificationSettings.daily}
+                      onPress={() => void updateNotificationToggle('daily')}
+                      disabled={Boolean(savingNotificationKey)}
+                      loading={savingNotificationKey === 'daily'}
+                    />
+                    <NotificationRow
+                      icon="clipboard-outline"
+                      title="Actividades y preguntas"
+                      description="Alertas de nuevas actividades en tus clases."
+                      enabled={notificationSettings.activities}
+                      onPress={() => void updateNotificationToggle('activities')}
+                      disabled={Boolean(savingNotificationKey)}
+                      loading={savingNotificationKey === 'activities'}
+                    />
+                    <NotificationRow
+                      icon="megaphone-outline"
+                      title="Actualizaciones y novedades"
+                      description="Novedades, funciones y mejoras de OmniQuest."
+                      enabled={notificationSettings.news}
+                      onPress={() => void updateNotificationToggle('news')}
+                      disabled={Boolean(savingNotificationKey)}
+                      loading={savingNotificationKey === 'news'}
+                    />
+                    <FooterLink
+                      label="Se guarda automáticamente"
+                      onPress={() => showAlert('Notificaciones', 'Tus reglas de notificación se guardan automáticamente.')}
+                    />
+                  </Panel>
                 </View>
 
-                <Divider />
-                <SelectRow icon="globe-outline" title="Idioma" value="Español (España)" />
-                <Divider />
-                <FontSizeRow />
-                <Divider />
-                <SettingLine
-                  icon="sparkles-outline"
-                  title="Animaciones"
-                  detail="Habilitar animaciones en la aplicación"
-                  trailing={<Toggle active={animations} onPress={() => setAnimations((value) => !value)} />}
-                />
-              </Panel>
-
-              <Panel title="Notificaciones" icon="notifications-outline">
-                <View className="overflow-hidden rounded-xl border border-[#172A4A] bg-[#0D1D3B]">
-                  <NotificationRow
-                    icon="notifications-outline"
-                    color="#7C5CFF"
-                    title="Notificaciones push"
-                    detail="Recibe notificaciones sobre preguntas, logros y recordatorios"
-                    active={pushNotifications}
-                    onPress={() => setPushNotifications((value) => !value)}
-                  />
-                  <NotificationRow
-                    icon="alarm-outline"
-                    color="#F6A64A"
-                    title="Recordatorios de estudio"
-                    detail="Te avisaremos para que mantengas tu racha activa"
-                    active={studyReminders}
-                    onPress={() => setStudyReminders((value) => !value)}
-                  />
-                  <NotificationRow
-                    icon="megaphone"
-                    color="#43D991"
-                    title="Novedades y actualizaciones"
-                    detail="Información sobre nuevas funciones y mejoras"
-                    active={updates}
-                    onPress={() => setUpdates((value) => !value)}
-                    last
-                  />
+                <View onLayout={handleSectionLayout('privacy')} className={isWide ? 'flex-1' : ''}>
+                  <Panel title="Privacidad y datos">
+                    <ActionRow
+                      icon="lock-closed-outline"
+                      title="Privacidad"
+                      description="Gestiona la visibilidad de tu perfil y actividad."
+                      onPress={() => showComingSoon('Privacidad')}
+                    />
+                    <ActionRow
+                      icon="archive-outline"
+                      title="Gestión de datos"
+                      description="Solicita descarga o eliminación de datos personales."
+                      onPress={() => showComingSoon('Gestión de datos')}
+                    />
+                    <View className="mt-3 rounded-xl border border-[#4733B7] bg-[#151A47] p-4">
+                      <View className="flex-row gap-3">
+                        <Ionicons name="shield-checkmark-outline" size={22} color="#8B5CF6" />
+                        <View className="min-w-0 flex-1">
+                          <Text className="font-black text-white">Tu privacidad es importante</Text>
+                          <Text className="mt-1 text-[12px] leading-5 text-[#B7C4D7]">
+                            Protegemos tu información y tu historial académico.
+                          </Text>
+                          <Pressable onPress={() => showComingSoon('Centro de privacidad')} className="mt-2 flex-row items-center gap-1">
+                            <Text className="text-[12px] font-bold text-[#A78BFA]">Saber más</Text>
+                            <Ionicons name="open-outline" size={13} color="#A78BFA" />
+                          </Pressable>
+                        </View>
+                      </View>
+                    </View>
+                  </Panel>
                 </View>
-              </Panel>
-            </View>
+              </View>
 
-            <View className={isTwoColumn ? 'flex-1 gap-4' : 'gap-4'}>
-              <Panel title="Cuenta" icon="person-outline">
-                <View className="mb-4 flex-row items-center gap-4">
-                  <View className="h-16 w-16 items-center justify-center rounded-full border-2 border-[#9AB9FF] bg-[#D8E7FF]">
-                    <Ionicons name="person" size={40} color="#9FD6FF" />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-[20px] font-black text-white" numberOfLines={1}>
-                      {alias}
-                    </Text>
-                    <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>
-                      {email}
-                    </Text>
-                  </View>
-                  <Pressable
-                    onPress={() => showComingSoon('La edición de perfil')}
-                    className="rounded-lg bg-[#5A46D8] px-4 py-3"
-                  >
-                    <Text className="font-bold text-white">Editar perfil</Text>
-                  </Pressable>
-                </View>
-
-                <View className="mb-4 gap-3">
-                  <Text className="text-[14px] font-bold text-white">Cambiar Alias</Text>
-                  <View className="flex-row gap-3">
+              <View onLayout={handleSectionLayout('security')}>
+                <Panel title="Seguridad">
+                  <View className="gap-3 border-b border-[#13284A] pb-4">
+                    <View className="flex-row items-center gap-3">
+                      <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10233F]">
+                        <Ionicons name="lock-closed-outline" size={18} color="#AFC2DB" />
+                      </View>
+                      <View className="min-w-0 flex-1">
+                        <Text className="font-bold text-white">Cambiar contraseña</Text>
+                        <Text className="mt-1 text-[12px] text-[#B7C4D7]">Actualiza tu contraseña de acceso.</Text>
+                      </View>
+                    </View>
                     <TextInput
-                      className="min-w-0 flex-1 rounded-lg border border-[#35557C] bg-[#0B2145] px-4 py-3 text-[15px] text-[#F5FBFF]"
-                      placeholder="Nuevo alias"
-                      placeholderTextColor="#8AAED0"
-                      value={newAlias}
-                      onChangeText={setNewAlias}
+                      value={currentPassword}
+                      onChangeText={setCurrentPassword}
+                      secureTextEntry
+                      placeholder="Contraseña actual"
+                      placeholderTextColor="#64748B"
+                      className="rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3 text-[13px] text-white"
+                    />
+                    <TextInput
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry
+                      placeholder="Nueva contraseña"
+                      placeholderTextColor="#64748B"
+                      className="rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3 text-[13px] text-white"
+                    />
+                    <TextInput
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry
+                      placeholder="Confirmar nueva contraseña"
+                      placeholderTextColor="#64748B"
+                      className="rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3 text-[13px] text-white"
                     />
                     <Pressable
-                      onPress={handleChangeAlias}
-                      disabled={changingAlias || !newAlias.trim() || newAlias.trim() === alias}
-                      className="items-center justify-center rounded-lg bg-[#4FB8FF] px-4 py-3"
+                      onPress={handleChangePassword}
+                      disabled={changingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword}
+                      className="items-center justify-center rounded-lg px-5 py-3"
                       style={({ pressed }) => ({
-                        opacity: changingAlias || !newAlias.trim() || newAlias.trim() === alias ? 0.7 : pressed ? 0.86 : 1,
+                        backgroundColor: accentColor,
+                        opacity: changingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword ? 0.65 : pressed ? 0.86 : 1,
                       })}
                     >
-                      {changingAlias ? (
+                      {changingPassword ? (
                         <ActivityIndicator color="#FFFFFF" />
                       ) : (
-                        <Text className="font-bold text-white">Guardar</Text>
+                        <Text className="text-[12px] font-bold text-white">Actualizar contraseña</Text>
                       )}
                     </Pressable>
                   </View>
-                </View>
-
-                <View className="overflow-hidden rounded-xl border border-[#172A4A] bg-[#0D1D3B]">
-                  <AccountRow icon="lock-closed-outline" title="Cambiar contraseña" onPress={() => { }} expandable>
-                    <View className="gap-3 px-4 pb-4">
-                      <TextInput
-                        className="rounded-lg border border-[#35557C] bg-[#0B2145] px-4 py-3 text-[15px] text-[#F5FBFF]"
-                        placeholder="Contraseña actual"
-                        placeholderTextColor="#8AAED0"
-                        secureTextEntry
-                        value={currentPassword}
-                        onChangeText={setCurrentPassword}
-                      />
-                      <TextInput
-                        className="rounded-lg border border-[#35557C] bg-[#0B2145] px-4 py-3 text-[15px] text-[#F5FBFF]"
-                        placeholder="Nueva contraseña"
-                        placeholderTextColor="#8AAED0"
-                        secureTextEntry
-                        value={newPassword}
-                        onChangeText={setNewPassword}
-                      />
-                      <TextInput
-                        className="rounded-lg border border-[#35557C] bg-[#0B2145] px-4 py-3 text-[15px] text-[#F5FBFF]"
-                        placeholder="Confirmar nueva contraseña"
-                        placeholderTextColor="#8AAED0"
-                        secureTextEntry
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                      />
-                      <Pressable
-                        onPress={handleChangePassword}
-                        disabled={changingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword}
-                        className="items-center justify-center rounded-lg bg-[#4FB8FF] py-3"
-                        style={({ pressed }) => ({ opacity: changingPassword ? 0.7 : pressed ? 0.86 : 1 })}
-                      >
-                        {changingPassword ? (
-                          <ActivityIndicator color="#FFFFFF" />
-                        ) : (
-                          <Text className="font-bold text-white">Cambiar Contraseña</Text>
-                        )}
-                      </Pressable>
-                    </View>
-                  </AccountRow>
-                  <AccountRow icon="mail-outline" title="Correo electrónico" value={email} onPress={() => showComingSoon('Cambiar correo electrónico')} />
-                  <LinkedAccountRow onPress={() => showComingSoon('Cuentas vinculadas')} />
-                  <Pressable onPress={handleSignOut} className="flex-row items-center gap-3 px-4 py-4">
-                    <Ionicons name="log-out-outline" size={20} color="#FF4D4D" />
-                    <Text className="min-w-0 flex-1 font-bold text-[#FF4D4D]">Cerrar sesión</Text>
-                  </Pressable>
+                  <NotificationRow
+                    icon="shield-checkmark-outline"
+                    title="Verificación en dos pasos"
+                    description="Añade una capa extra de seguridad a tu cuenta."
+                    enabled={toggles.twoFactor}
+                    onPress={() => updateToggle('twoFactor')}
+                  />
                   <Pressable
                     onPress={handleDeleteAccount}
                     disabled={deletingAccount}
-                    className="flex-row items-center gap-3 border-t border-[#3D1A2A] bg-[#2A0B18] px-4 py-4"
+                    className="mt-3 flex-row items-center gap-3 rounded-xl border border-[#4A1E2B] bg-[#2A0B18] p-4"
                     style={({ pressed }) => ({ opacity: deletingAccount ? 0.7 : pressed ? 0.86 : 1 })}
                   >
                     <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-                    <Text className="min-w-0 flex-1 font-bold text-[#FF6B6B]">Borrar mi cuenta</Text>
+                    <View className="min-w-0 flex-1">
+                      <Text className="font-bold text-[#FF6B6B]">Borrar mi cuenta</Text>
+                      <Text className="mt-1 text-[12px] text-[#FCA5A5]">Elimina tu perfil y cierra sesión.</Text>
+                    </View>
                     {deletingAccount ? <ActivityIndicator color="#FF6B6B" /> : null}
                   </Pressable>
-                </View>
-              </Panel>
+                </Panel>
+              </View>
 
-              <Panel title="Privacidad y seguridad" icon="shield-checkmark-outline">
-                <View>
-                  {privacyRows.map((row, index) => (
-                    <MenuRow
-                      key={row.title}
-                      icon={row.icon}
-                      title={row.title}
-                      detail={row.detail}
-                      onPress={() => showComingSoon(row.title)}
-                      last={index === privacyRows.length - 1}
+              {isTeacher ? (
+                <View onLayout={handleSectionLayout('integrations')}>
+                  <Panel title="Integraciones">
+                    <ActionRow
+                      icon="school-outline"
+                      title="Google Classroom"
+                      description="Conecta tus clases y sincroniza estudiantes."
+                      onPress={() => showComingSoon('Google Classroom')}
                     />
-                  ))}
-                </View>
-              </Panel>
-
-              <Panel title="Soporte e información" icon="help-circle-outline">
-                <View>
-                  {supportRows.map((row, index) => (
-                    <MenuRow
-                      key={row.title}
-                      icon={row.icon}
-                      title={row.title}
-                      detail={row.detail}
-                      onPress={() => showComingSoon(row.title)}
-                      last={index === supportRows.length - 1}
+                    <ActionRow
+                      icon="people-circle-outline"
+                      title="Microsoft Teams"
+                      description="Importa tus clases y equipos."
+                      onPress={() => showComingSoon('Microsoft Teams')}
                     />
-                  ))}
+                  </Panel>
                 </View>
-              </Panel>
+              ) : null}
             </View>
           </View>
 
-          {isDesktop ? <DesktopNav /> : null}
+          <View onLayout={handleSectionLayout('about')} className="mt-6 flex-row flex-wrap items-center justify-end gap-6">
+            <Text className="text-[12px] text-[#8FA7C7]">Versión 2.4.0</Text>
+            <Pressable onPress={() => router.push((isTeacher ? '/(teacher)/help-center' : '/(student)/help-center') as any)} className="flex-row items-center gap-2">
+              <Ionicons name="help-circle-outline" size={16} color="#A78BFA" />
+              <Text className="text-[12px] font-semibold text-[#A78BFA]">Centro de ayuda</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       </View>
 
-      {!isDesktop ? <BottomNav /> : null}
+      {!isDesktop && !isTeacher ? <BottomNav /> : null}
+    </View>
+  )
+}
+
+export default function StudentSettingsScreen() {
+  return <UnifiedSettingsScreen />
+}
+
+function SettingsMenu({
+  onSignOut,
+  isDesktop,
+  activeSection,
+  onSectionPress,
+  sections,
+}: {
+  onSignOut: () => void
+  isDesktop: boolean
+  activeSection: SettingsMenuSectionKey
+  onSectionPress: (section: { key: SettingsMenuSectionKey; anchor: SettingsAnchorKey }) => void
+  sections: { key: SettingsMenuSectionKey; label: string; icon: IconName; anchor: SettingsAnchorKey }[]
+}) {
+  return (
+    <View
+      className={`rounded-xl border border-[#183052] bg-[#07162D] p-3 ${isDesktop ? 'w-[205px] self-start' : ''
+        }`}
+    >
+      <View className={isDesktop ? 'gap-1' : 'flex-row flex-wrap gap-2'}>
+        {sections.map((section) => (
+          <Pressable
+            key={section.label}
+            onPress={() => onSectionPress(section)}
+            className={`flex-row items-center gap-3 rounded-lg px-3 py-3 ${section.key === activeSection ? 'border border-[#6D5AF6] bg-[#1A1E55]' : ''
+              }`}
+          >
+            <Ionicons name={section.icon} size={16} color={section.key === activeSection ? '#9FD6FF' : '#AFC2DB'} />
+            <Text className={`text-[12px] font-semibold ${section.key === activeSection ? 'text-white' : 'text-[#B7C4D7]'}`}>
+              {section.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <Pressable
+        onPress={onSignOut}
+        className="mt-4 flex-row items-center gap-2 rounded-lg border border-[#20375E] bg-[#071326] px-3 py-3"
+      >
+        <Ionicons name="log-out-outline" size={15} color="#F87171" />
+        <Text className="text-[12px] font-bold text-[#F87171]">Cerrar sesión</Text>
+      </Pressable>
     </View>
   )
 }
 
 function Panel({
   title,
-  icon,
   children,
+  className = '',
 }: {
   title: string
-  icon: keyof typeof Ionicons.glyphMap
   children: React.ReactNode
+  className?: string
 }) {
   return (
-    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <View className="mb-5 flex-row items-center gap-3">
-        <Ionicons name={icon} size={22} color="#C5D0E2" />
-        <Text className="text-[16px] font-black text-white">{title}</Text>
-      </View>
+    <View className={`rounded-xl border border-[#183052] bg-[#07162D] p-5 ${className}`}>
+      <Text className="mb-4 text-[16px] font-black text-white">{title}</Text>
       {children}
     </View>
   )
 }
 
-function ThemeOption({
-  title,
-  detail,
-  icon,
-  active,
-  onPress,
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <View>
+      <Text className="mb-2 text-[11px] font-semibold text-[#B7C4D7]">{label}</Text>
+      {children}
+    </View>
+  )
+}
+
+function SelectPill({
+  value,
+  selectedValue,
+  open = false,
+  onToggle,
+  options,
+  onSelect,
+  optionLabel,
+  disabled = false,
+  loading = false,
 }: {
-  title: string
-  detail: string
-  icon: keyof typeof Ionicons.glyphMap
-  active: boolean
-  onPress: () => void
+  value: string
+  selectedValue: string
+  open?: boolean
+  onToggle: () => void
+  options: string[]
+  onSelect: (value: string) => void
+  optionLabel: (value: string) => string
+  disabled?: boolean
+  loading?: boolean
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      className={`min-w-[220px] flex-1 flex-row items-center gap-4 rounded-xl border p-5 ${active ? 'border-[#7C5CFF] bg-[#121B4C]' : 'border-[#172A4A] bg-[#0D1D3B]'
-        }`}
-    >
-      <Ionicons name={icon} size={34} color={icon === 'sunny-outline' ? '#FBBF24' : '#6170A5'} />
-      <View className="min-w-0 flex-1">
-        <Text className="font-black text-white">{title}</Text>
-        <Text className="mt-1 text-[12px] text-[#B7C4D7]">{detail}</Text>
-      </View>
-      {active ? (
-        <View className="h-6 w-6 items-center justify-center rounded-full bg-white">
-          <Ionicons name="checkmark" size={17} color="#4F46E5" />
+    <View>
+      <Pressable
+        onPress={onToggle}
+        disabled={disabled}
+        className="flex-row items-center justify-between rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3"
+        style={({ pressed }) => ({
+          opacity: disabled ? 0.7 : pressed ? 0.86 : 1,
+        })}
+      >
+        <Text className="min-w-0 flex-1 text-[13px] font-semibold text-white">{value}</Text>
+        {loading ? (
+          <ActivityIndicator size="small" color="#AFC2DB" />
+        ) : (
+          <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color="#AFC2DB" />
+        )}
+      </Pressable>
+
+      {open ? (
+        <View className="mt-2 overflow-hidden rounded-lg border border-[#243E63] bg-[#0A2042]">
+          {options.map((option, index) => (
+            <Pressable
+              key={option}
+              onPress={() => onSelect(option)}
+              className={`flex-row items-center justify-between px-4 py-3 ${index < options.length - 1 ? 'border-b border-[#1B3357]' : ''}`}
+            >
+              <Text className="min-w-0 flex-1 text-[13px] text-[#DDE7F4]">{optionLabel(option)}</Text>
+              {option === selectedValue ? (
+                <Ionicons name="checkmark" size={16} color="#A78BFA" />
+              ) : null}
+            </Pressable>
+          ))}
         </View>
       ) : null}
-    </Pressable>
+    </View>
   )
 }
 
-function Divider() {
-  return <View className="my-4 h-px bg-[#172A4A]" />
-}
-
-function SelectRow({
-  icon,
-  title,
+function PreferenceRow({
+  label,
   value,
+  selectedValue,
+  open = false,
+  onToggle,
+  options,
+  onSelect,
+  optionLabel,
+  disabled = false,
+  loading = false,
 }: {
-  icon: keyof typeof Ionicons.glyphMap
-  title: string
+  label: string
   value: string
+  selectedValue: string
+  open?: boolean
+  onToggle: () => void
+  options: string[]
+  onSelect: (value: string) => void
+  optionLabel: (value: string) => string
+  disabled?: boolean
+  loading?: boolean
 }) {
   return (
-    <View className="flex-row flex-wrap items-center gap-4">
-      <View className="flex-row items-center gap-3">
-        <Ionicons name={icon} size={22} color="#C5D0E2" />
-        <Text className="text-[15px] font-black text-white">{title}</Text>
-      </View>
-      <Pressable className="min-w-[220px] flex-1 flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0D1D3B] px-4 py-3">
-        <Text className="font-semibold text-white">{value}</Text>
-        <Ionicons name="chevron-down" size={18} color="#B7C4D7" />
-      </Pressable>
-    </View>
-  )
-}
-
-function FontSizeRow() {
-  return (
-    <View className="flex-row flex-wrap items-center gap-4">
-      <View className="w-[130px] flex-row items-center gap-3">
-        <Text className="text-[22px] font-semibold text-[#C5D0E2]">Aa</Text>
-        <Text className="text-[15px] font-black text-white">Fuente</Text>
-      </View>
-      <Text className="min-w-[160px] flex-1 text-[12px] text-[#B7C4D7]">Tamaño de la fuente</Text>
-      <View className="h-11 min-w-[260px] flex-row overflow-hidden rounded-xl border border-[#172A4A] bg-[#0D1D3B]">
-        <Pressable className="w-14 items-center justify-center border-r border-[#213556]">
-          <Text className="text-[18px] font-semibold text-[#C5D0E2]">A</Text>
-        </Pressable>
-        <View className="flex-1 items-center justify-center">
-          <Text className="font-semibold text-white">Mediano</Text>
-        </View>
-        <Pressable className="w-14 items-center justify-center border-l border-[#213556]">
-          <Text className="text-[20px] font-semibold text-[#C5D0E2]">A</Text>
-        </Pressable>
+    <View className="mb-4 flex-row items-start gap-4">
+      <Text className="w-[125px] text-[12px] font-semibold text-[#B7C4D7]">{label}</Text>
+      <View className="min-w-0 flex-1">
+        <SelectPill
+          value={value}
+          selectedValue={selectedValue}
+          open={open}
+          onToggle={onToggle}
+          options={options}
+          onSelect={onSelect}
+          optionLabel={optionLabel}
+          disabled={disabled}
+          loading={loading}
+        />
       </View>
     </View>
-  )
-}
-
-function SettingLine({
-  icon,
-  title,
-  detail,
-  trailing,
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  title: string
-  detail: string
-  trailing: React.ReactNode
-}) {
-  return (
-    <View className="flex-row flex-wrap items-center gap-4">
-      <View className="flex-row items-center gap-3">
-        <Ionicons name={icon} size={22} color="#C5D0E2" />
-        <Text className="text-[15px] font-black text-white">{title}</Text>
-      </View>
-      <Text className="min-w-[220px] flex-1 text-[12px] text-[#B7C4D7]">{detail}</Text>
-      {trailing}
-    </View>
-  )
-}
-
-function Toggle({ active, onPress }: { active: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className={`h-8 w-14 justify-center rounded-full px-1 ${active ? 'items-end bg-[#6D5AF6]' : 'items-start bg-[#243555]'}`}
-    >
-      <View className="h-6 w-6 rounded-full bg-white" />
-    </Pressable>
   )
 }
 
 function NotificationRow({
   icon,
-  color,
   title,
-  detail,
-  active,
+  description,
+  enabled,
   onPress,
-  last = false,
+  disabled = false,
+  loading = false,
 }: {
-  icon: keyof typeof Ionicons.glyphMap
-  color: string
+  icon: IconName
   title: string
-  detail: string
-  active: boolean
+  description: string
+  enabled: boolean
   onPress: () => void
-  last?: boolean
+  disabled?: boolean
+  loading?: boolean
 }) {
   return (
-    <View className={`flex-row items-center gap-4 px-4 py-3 ${last ? '' : 'border-b border-[#172A4A]'}`}>
-      <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `${color}36` }}>
-        <Ionicons name={icon} size={22} color="#FFFFFF" />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="font-black text-white">{title}</Text>
-        <Text className="mt-1 text-[12px] text-[#B7C4D7]">{detail}</Text>
-      </View>
-      <Toggle active={active} onPress={onPress} />
-    </View>
-  )
-}
-
-function AccountRow({
-  icon,
-  title,
-  value,
-  onPress,
-  expandable = false,
-  children,
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  title: string
-  value?: string
-  onPress: () => void
-  expandable?: boolean
-  children?: React.ReactNode
-}) {
-  return (
-    <>
-      <Pressable onPress={onPress} className="flex-row items-center gap-3 border-b border-[#172A4A] px-4 py-4">
-        <Ionicons name={icon} size={20} color="#C5D0E2" />
-        <Text className="min-w-0 flex-1 font-semibold text-white">{title}</Text>
-        {value ? (
-          <Text className="max-w-[180px] text-[12px] text-[#B7C4D7]" numberOfLines={1}>
-            {value}
-          </Text>
-        ) : null}
-        <Ionicons name="chevron-forward" size={18} color="#B7C4D7" />
-      </Pressable>
-      {expandable && children ? <View>{children}</View> : null}
-    </>
-  )
-}
-
-function LinkedAccountRow({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} className="flex-row items-center gap-3 border-b border-[#172A4A] px-4 py-4">
-      <Ionicons name="link-outline" size={20} color="#C5D0E2" />
-      <Text className="min-w-0 flex-1 font-semibold text-white">Cuenta vinculada</Text>
-      <Text className="text-[18px] font-black text-white">G</Text>
-      <View className="h-4 w-4 rounded-sm bg-[#F25022]" />
-      <Ionicons name="logo-apple" size={18} color="#FFFFFF" />
-      <Ionicons name="chevron-forward" size={18} color="#B7C4D7" />
-    </Pressable>
-  )
-}
-
-function MenuRow({
-  icon,
-  title,
-  detail,
-  onPress,
-  last = false,
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  title: string
-  detail: string
-  onPress: () => void
-  last?: boolean
-}) {
-  return (
-    <Pressable onPress={onPress} className={`flex-row items-center gap-3 py-3 ${last ? '' : 'border-b border-[#172A4A]'}`}>
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-[#10213E]">
-        <Ionicons name={icon} size={18} color="#C5D0E2" />
+    <View className="flex-row items-center gap-3 border-b border-[#13284A] py-3">
+      <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10233F]">
+        <Ionicons name={icon} size={18} color="#AFC2DB" />
       </View>
       <View className="min-w-0 flex-1">
         <Text className="font-bold text-white">{title}</Text>
-        <Text className="mt-1 text-[12px] text-[#B7C4D7]">{detail}</Text>
+        <Text className="mt-1 text-[12px] text-[#B7C4D7]">{description}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#B7C4D7" />
+      <View className="items-end">
+        {loading ? <ActivityIndicator size="small" color="#AFC2DB" /> : null}
+        <Switch
+          value={enabled}
+          onValueChange={onPress}
+          disabled={disabled || loading}
+          trackColor={{ false: '#223554', true: '#6D5AF6' }}
+          thumbColor="#FFFFFF"
+        />
+      </View>
+    </View>
+  )
+}
+
+function ActionRow({
+  icon,
+  title,
+  description,
+  onPress,
+}: {
+  icon: IconName
+  title: string
+  description: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable onPress={onPress} className="flex-row items-center gap-3 border-b border-[#13284A] py-3">
+      <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10233F]">
+        <Ionicons name={icon} size={18} color="#AFC2DB" />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="font-bold text-white">{title}</Text>
+        <Text className="mt-1 text-[12px] text-[#B7C4D7]">{description}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={19} color="#AFC2DB" />
     </Pressable>
   )
 }
 
-function DesktopNav() {
+function FooterLink({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <View className="mt-4 flex-row justify-around rounded-2xl border border-[#1A3155] bg-[#09162C] py-3">
-      <Link href="/(student)/homeStudent" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="home-outline" size={24} color="#AFC2DB" />
-          <Text className="mt-1 text-[12px] text-[#AFC2DB]">Inicio</Text>
-        </Pressable>
-      </Link>
-      <Link href="/(student)/ranking" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="trophy-outline" size={24} color="#AFC2DB" />
-          <Text className="mt-1 text-[12px] text-[#AFC2DB]">Ranking</Text>
-        </Pressable>
-      </Link>
-      <Link href="/(student)/profile" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="person-outline" size={24} color="#AFC2DB" />
-          <Text className="mt-1 text-[12px] text-[#AFC2DB]">Perfil</Text>
-        </Pressable>
-      </Link>
-      <Pressable className="items-center">
-        <Ionicons name="settings" size={24} color="#B09BFF" />
-        <Text className="mt-1 text-[12px] font-bold text-[#B09BFF]">Configuración</Text>
-      </Pressable>
-    </View>
+    <Pressable onPress={onPress} className="mt-2 flex-row items-center justify-between py-2">
+      <Text className="text-[12px] font-semibold text-[#A78BFA]">{label}</Text>
+      <Ionicons name="chevron-forward" size={15} color="#A78BFA" />
+    </Pressable>
   )
 }
 
@@ -871,4 +1357,9 @@ function BottomNav() {
       </Pressable>
     </View>
   )
+}
+
+function getInitials(value: string) {
+  const parts = value.trim().split(/\s+/).slice(0, 2)
+  return parts.map((part) => part[0]?.toUpperCase()).join('') || 'AL'
 }

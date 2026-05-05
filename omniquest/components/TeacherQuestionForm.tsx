@@ -39,12 +39,12 @@ type TeacherQuestionFormProps = {
 
 const questionTypes: QuestionTypeCard[] = [
   { id: 'multiple', title: 'Opción múltiple', detail: 'Una pregunta con varias opciones de respuesta.', icon: 'list', accent: '#8B5CF6', supported: true },
-  { id: 'boolean', title: 'Verdadero / Falso', detail: 'Los alumnos eligen entre verdadero o falso.', icon: 'checkmark-done', accent: '#43D991', supported: false },
-  { id: 'dragdrop', title: 'Arrastrar y soltar', detail: 'Arrastra elementos a la posición correcta.', icon: 'move', accent: '#A78BFA', supported: false },
-  { id: 'match', title: 'Unir con flechas', detail: 'Conecta elementos de ambas columnas.', icon: 'git-compare', accent: '#F6A64A', supported: false },
-  { id: 'fill', title: 'Rellenar espacios', detail: 'Completa los espacios en blanco.', icon: 'grid', accent: '#60A5FA', supported: false },
-  { id: 'order', title: 'Ordenar elementos', detail: 'Ordena los elementos en el orden correcto.', icon: 'reorder-three', accent: '#EC4899', supported: false },
-  { id: 'open', title: 'Respuesta abierta', detail: 'El alumno escribe su propia respuesta.', icon: 'chatbox-ellipses', accent: '#38BDF8', supported: false },
+  { id: 'boolean', title: 'Verdadero / Falso', detail: 'Los alumnos eligen entre verdadero o falso.', icon: 'checkmark-done', accent: '#43D991', supported: true },
+  { id: 'dragdrop', title: 'Arrastrar y soltar', detail: 'Arrastra elementos a la posición correcta.', icon: 'move', accent: '#A78BFA', supported: true },
+  { id: 'match', title: 'Unir con flechas', detail: 'Conecta elementos de ambas columnas.', icon: 'git-compare', accent: '#F6A64A', supported: true },
+  { id: 'fill', title: 'Rellenar espacios', detail: 'Completa los espacios en blanco.', icon: 'grid', accent: '#60A5FA', supported: true },
+  { id: 'order', title: 'Ordenar elementos', detail: 'Ordena los elementos en el orden correcto.', icon: 'reorder-three', accent: '#EC4899', supported: true },
+  { id: 'open', title: 'Respuesta abierta', detail: 'El alumno escribe su propia respuesta.', icon: 'chatbox-ellipses', accent: '#38BDF8', supported: true },
 ];
 
 export default function TeacherQuestionForm({
@@ -79,12 +79,20 @@ export default function TeacherQuestionForm({
     { text: '', isCorrect: false },
     { text: '', isCorrect: false },
   ]);
+  const [openExpectedAnswer, setOpenExpectedAnswer] = useState('');
+  const [fillAnswersText, setFillAnswersText] = useState('');
+  const [orderItemsText, setOrderItemsText] = useState('');
+  const [matchPairsText, setMatchPairsText] = useState('');
+  const [dragdropPairsText, setDragdropPairsText] = useState('');
 
   const isDesktop = width >= 1080;
   const isWide = width >= 900;
   const typeColumns = width >= 1320 ? 3 : width >= 720 ? 2 : 1;
   const selectedTypeCard = questionTypes.find((item) => item.id === selectedType) || questionTypes[0];
-  const visibleAnswers = answers.slice(0, optionsCount);
+  const isMultipleType = selectedType === 'multiple';
+  const isBooleanType = selectedType === 'boolean';
+  const isChoiceType = isMultipleType || isBooleanType;
+  const visibleAnswers = isBooleanType ? answers.slice(0, 2) : answers.slice(0, optionsCount);
 
   useEffect(() => {
     const loadFormData = async () => {
@@ -107,7 +115,7 @@ export default function TeacherQuestionForm({
           isEdit && normalizedQuestionId
             ? supabase
                 .from('questions')
-                .select('id, text, points_base, time_limit_seconds, topic_id, answers(text, is_correct, sort_order)')
+                .select('id, text, type, points_base, time_limit_seconds, topic_id, answers(text, is_correct, sort_order)')
                 .eq('id', normalizedQuestionId)
                 .single()
             : Promise.resolve({ data: null, error: null }),
@@ -123,6 +131,8 @@ export default function TeacherQuestionForm({
 
         if (isEdit && questionResult.data) {
           const questionData: any = questionResult.data;
+          const parsedQuestionType = fromDatabaseType(questionData.type);
+          setSelectedType(parsedQuestionType);
           setQuestionText(questionData.text || '');
           setTimeLimit(String(questionData.time_limit_seconds || 30));
           setPoints(String(questionData.points_base || 10));
@@ -147,8 +157,46 @@ export default function TeacherQuestionForm({
           if (!paddedAnswers.some((answer) => answer.isCorrect)) {
             paddedAnswers[0].isCorrect = true;
           }
-          setAnswers(paddedAnswers);
-          setOptionsCount(safeCount);
+
+          if (parsedQuestionType === 'boolean') {
+            const boolAnswers = ensureBooleanAnswers(parsedAnswers);
+            setAnswers(boolAnswers);
+            setOptionsCount(2);
+          } else {
+            setAnswers(paddedAnswers);
+            setOptionsCount(safeCount);
+          }
+
+          if (parsedQuestionType === 'open') {
+            const correctOpen = parsedAnswers.find((answer) => answer.isCorrect)?.text || parsedAnswers[0]?.text || '';
+            setOpenExpectedAnswer(correctOpen);
+          }
+
+          if (parsedQuestionType === 'fill') {
+            const fillValues = parsedAnswers.map((answer) => answer.text).filter(Boolean);
+            setFillAnswersText(fillValues.join('\n'));
+          }
+
+          if (parsedQuestionType === 'order') {
+            const orderValues = fetchedAnswers.map((answer: any) => answer.text || '').filter(Boolean);
+            setOrderItemsText(orderValues.join('\n'));
+          }
+
+          if (parsedQuestionType === 'match') {
+            const pairLines = parsedAnswers
+              .map((answer) => decodePairAnswer(answer.text))
+              .filter(Boolean)
+              .map((pair) => `${pair!.left} | ${pair!.right}`);
+            setMatchPairsText(pairLines.join('\n'));
+          }
+
+          if (parsedQuestionType === 'dragdrop') {
+            const pairLines = parsedAnswers
+              .map((answer) => decodePairAnswer(answer.text))
+              .filter(Boolean)
+              .map((pair) => `${pair!.left} | ${pair!.right}`);
+            setDragdropPairsText(pairLines.join('\n'));
+          }
         }
 
         if (nextSelectedTopicId && !fetchedTopics.some((topic) => String(topic.id) === nextSelectedTopicId)) {
@@ -192,6 +240,7 @@ export default function TeacherQuestionForm({
   };
 
   const handleOptionsCountChange = (nextCount: number) => {
+    if (!isMultipleType) return;
     const clampedCount = Math.max(2, Math.min(6, nextCount));
     const expandedAnswers =
       answers.length >= clampedCount
@@ -217,6 +266,20 @@ export default function TeacherQuestionForm({
       showAlert('Próximamente', 'Este tipo de pregunta estará disponible en una próxima iteración.');
       return;
     }
+
+    if (typeId === 'boolean') {
+      setAnswers(ensureBooleanAnswers(answers));
+      setOptionsCount(2);
+    } else if (selectedType === 'boolean' && typeId === 'multiple') {
+      setAnswers([
+        { text: '', isCorrect: true },
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false },
+      ]);
+      setOptionsCount(4);
+    }
+
     setSelectedType(typeId);
   };
 
@@ -236,8 +299,38 @@ export default function TeacherQuestionForm({
       return;
     }
 
-    if (visibleAnswers.some((answer) => !answer.text.trim())) {
-      showAlert('Error', `Rellena las ${optionsCount} opciones de respuesta.`);
+    if (isChoiceType && visibleAnswers.some((answer) => !answer.text.trim())) {
+      showAlert('Error', `Rellena todas las opciones de respuesta.`);
+      return;
+    }
+
+    const fillLines = parseLines(fillAnswersText);
+    const orderLines = parseLines(orderItemsText);
+    const matchPairs = parsePairLines(matchPairsText);
+    const dragdropPairs = parsePairLines(dragdropPairsText);
+
+    if (selectedType === 'open' && !openExpectedAnswer.trim()) {
+      showAlert('Error', 'Añade una respuesta esperada para la pregunta abierta.');
+      return;
+    }
+
+    if (selectedType === 'fill' && fillLines.length === 0) {
+      showAlert('Error', 'Añade al menos una respuesta correcta para rellenar espacios.');
+      return;
+    }
+
+    if (selectedType === 'order' && orderLines.length < 2) {
+      showAlert('Error', 'Añade al menos dos elementos para ordenar.');
+      return;
+    }
+
+    if (selectedType === 'match' && matchPairs.length < 1) {
+      showAlert('Error', 'Añade al menos un par para unir con flechas (formato: izquierda | derecha).');
+      return;
+    }
+
+    if (selectedType === 'dragdrop' && dragdropPairs.length < 1) {
+      showAlert('Error', 'Añade al menos un par para arrastrar y soltar (formato: elemento | destino).');
       return;
     }
 
@@ -255,7 +348,7 @@ export default function TeacherQuestionForm({
           .update({
             subject_id: normalizedSubjectId,
             topic_id: validTopicId,
-            type: 'multiple_choice',
+            type: toDatabaseType(selectedType),
             text: questionText.trim(),
             points_base: parsedPoints,
             time_limit_seconds: parsedTimeLimit,
@@ -277,7 +370,7 @@ export default function TeacherQuestionForm({
             {
               subject_id: normalizedSubjectId,
               topic_id: validTopicId,
-              type: 'multiple_choice',
+              type: toDatabaseType(selectedType),
               text: questionText.trim(),
               points_base: parsedPoints,
               time_limit_seconds: parsedTimeLimit,
@@ -290,12 +383,16 @@ export default function TeacherQuestionForm({
         targetQuestionId = newQuestion.id;
       }
 
-      const answersToInsert = visibleAnswers.map((answer, index) => ({
-        question_id: targetQuestionId,
-        text: answer.text.trim(),
-        is_correct: answer.isCorrect,
-        sort_order: index + 1,
-      }));
+      const answersToInsert = buildAnswersForType({
+        selectedType,
+        questionId: targetQuestionId,
+        visibleAnswers,
+        openExpectedAnswer,
+        fillLines,
+        orderLines,
+        matchPairs,
+        dragdropPairs,
+      });
 
       const { error: upsertAnswersError } = await supabase.from('answers').insert(answersToInsert);
       if (upsertAnswersError) throw upsertAnswersError;
@@ -398,6 +495,79 @@ export default function TeacherQuestionForm({
                       value={questionText}
                       onChangeText={setQuestionText}
                     />
+
+                    {selectedType === 'open' ? (
+                      <>
+                        <FieldLabel label="Respuesta esperada" />
+                        <TextInput
+                          className="rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
+                          placeholder="Escribe una posible respuesta correcta"
+                          placeholderTextColor="#7F95B7"
+                          value={openExpectedAnswer}
+                          onChangeText={setOpenExpectedAnswer}
+                        />
+                      </>
+                    ) : null}
+
+                    {selectedType === 'fill' ? (
+                      <>
+                        <FieldLabel label="Respuestas correctas (una por línea)" />
+                        <TextInput
+                          className="min-h-[96px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
+                          placeholder={'París\nMadrid\nRoma'}
+                          placeholderTextColor="#7F95B7"
+                          multiline
+                          textAlignVertical="top"
+                          value={fillAnswersText}
+                          onChangeText={setFillAnswersText}
+                        />
+                      </>
+                    ) : null}
+
+                    {selectedType === 'order' ? (
+                      <>
+                        <FieldLabel label="Elementos a ordenar (uno por línea, orden correcto)" />
+                        <TextInput
+                          className="min-h-[96px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
+                          placeholder={'Paso 1\nPaso 2\nPaso 3'}
+                          placeholderTextColor="#7F95B7"
+                          multiline
+                          textAlignVertical="top"
+                          value={orderItemsText}
+                          onChangeText={setOrderItemsText}
+                        />
+                      </>
+                    ) : null}
+
+                    {selectedType === 'match' ? (
+                      <>
+                        <FieldLabel label="Pares para unir (izquierda | derecha)" />
+                        <TextInput
+                          className="min-h-[96px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
+                          placeholder={'Francia | París\nItalia | Roma'}
+                          placeholderTextColor="#7F95B7"
+                          multiline
+                          textAlignVertical="top"
+                          value={matchPairsText}
+                          onChangeText={setMatchPairsText}
+                        />
+                      </>
+                    ) : null}
+
+                    {selectedType === 'dragdrop' ? (
+                      <>
+                        <FieldLabel label="Pares para arrastrar (elemento | destino)" />
+                        <TextInput
+                          className="min-h-[96px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
+                          placeholder={'Planeta rojo | Marte\nSatélite natural de la Tierra | Luna'}
+                          placeholderTextColor="#7F95B7"
+                          multiline
+                          textAlignVertical="top"
+                          value={dragdropPairsText}
+                          onChangeText={setDragdropPairsText}
+                        />
+                      </>
+                    ) : null}
                   </View>
                 </View>
 
@@ -425,7 +595,8 @@ export default function TeacherQuestionForm({
                       </View>
                     </View>
 
-                    <View>
+                    {isMultipleType ? (
+                      <View>
                       <FieldLabel label="Número de opciones" />
                       <View className="mt-2 flex-row flex-wrap gap-2">
                         {[2, 3, 4, 5, 6].map((count) => {
@@ -441,7 +612,8 @@ export default function TeacherQuestionForm({
                           );
                         })}
                       </View>
-                    </View>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
               </View>
@@ -468,18 +640,30 @@ export default function TeacherQuestionForm({
                       {questionText.trim() || '¿Cuál es la capital de Francia?'}
                     </Text>
 
-                    <View className="mt-5 gap-3">
-                      {visibleAnswers.map((answer, index) => (
-                        <PreviewAnswerRow
-                          key={index}
-                          index={index}
-                          text={answer.text}
-                          correct={index === correctIndex}
-                          onMarkCorrect={() => markAsCorrect(index)}
-                          onChangeText={(text) => updateAnswerText(text, index)}
-                        />
-                      ))}
-                    </View>
+                    {isChoiceType ? (
+                      <View className="mt-5 gap-3">
+                        {visibleAnswers.map((answer, index) => (
+                          <PreviewAnswerRow
+                            key={index}
+                            index={index}
+                            text={answer.text}
+                            correct={index === correctIndex}
+                            onMarkCorrect={() => markAsCorrect(index)}
+                            onChangeText={(text) => updateAnswerText(text, index)}
+                            editable={isMultipleType}
+                          />
+                        ))}
+                      </View>
+                    ) : (
+                      <TypePreview
+                        selectedType={selectedType}
+                        openExpectedAnswer={openExpectedAnswer}
+                        fillAnswersText={fillAnswersText}
+                        orderItemsText={orderItemsText}
+                        matchPairsText={matchPairsText}
+                        dragdropPairsText={dragdropPairsText}
+                      />
+                    )}
 
                     <View className="mt-5 rounded-xl border border-[#2A456A] bg-[#0A2042] p-4">
                       <View className="flex-row items-center justify-between gap-2">
@@ -614,12 +798,14 @@ function PreviewAnswerRow({
   correct,
   onMarkCorrect,
   onChangeText,
+  editable = true,
 }: {
   index: number;
   text: string;
   correct: boolean;
   onMarkCorrect: () => void;
   onChangeText: (text: string) => void;
+  editable?: boolean;
 }) {
   const letter = String.fromCharCode(65 + index);
 
@@ -638,6 +824,7 @@ function PreviewAnswerRow({
           placeholder={`Opción ${letter}`}
           placeholderTextColor="#7F95B7"
           value={text}
+          editable={editable}
           onChangeText={onChangeText}
         />
 
@@ -645,6 +832,206 @@ function PreviewAnswerRow({
       </View>
     </View>
   );
+}
+
+function TypePreview({
+  selectedType,
+  openExpectedAnswer,
+  fillAnswersText,
+  orderItemsText,
+  matchPairsText,
+  dragdropPairsText,
+}: {
+  selectedType: QuestionTypeId;
+  openExpectedAnswer: string;
+  fillAnswersText: string;
+  orderItemsText: string;
+  matchPairsText: string;
+  dragdropPairsText: string;
+}) {
+  const textMap: Record<QuestionTypeId, string> = {
+    multiple: '',
+    boolean: '',
+    open: openExpectedAnswer,
+    fill: fillAnswersText,
+    order: orderItemsText,
+    match: matchPairsText,
+    dragdrop: dragdropPairsText,
+  };
+
+  const lines = parseLines(textMap[selectedType] || '');
+  const title = getTypePreviewTitle(selectedType);
+
+  return (
+    <View className="mt-5 rounded-xl border border-[#2A456A] bg-[#0A2042] p-4">
+      <Text className="font-bold text-[#A78BFA]">{title}</Text>
+      {lines.length > 0 ? (
+        <View className="mt-2 gap-2">
+          {lines.slice(0, 6).map((line, index) => (
+            <Text key={`${line}-${index}`} className="text-[14px] text-[#DDE7F4]">
+              {index + 1}. {line}
+            </Text>
+          ))}
+        </View>
+      ) : (
+        <Text className="mt-2 text-[13px] text-[#8FA7C7]">Completa la configuración para ver la vista previa de este tipo.</Text>
+      )}
+    </View>
+  );
+}
+
+function toDatabaseType(typeId: QuestionTypeId) {
+  const map: Record<QuestionTypeId, string> = {
+    multiple: 'multiple_choice',
+    boolean: 'true_false',
+    dragdrop: 'drag_drop',
+    match: 'match_pairs',
+    fill: 'fill_blank',
+    order: 'ordering',
+    open: 'open_answer',
+  };
+  return map[typeId];
+}
+
+function fromDatabaseType(typeValue: string | null | undefined): QuestionTypeId {
+  const normalized = (typeValue || '').toLowerCase();
+  if (normalized === 'multiple_choice') return 'multiple';
+  if (normalized === 'true_false') return 'boolean';
+  if (normalized === 'drag_drop') return 'dragdrop';
+  if (normalized === 'match_pairs') return 'match';
+  if (normalized === 'fill_blank') return 'fill';
+  if (normalized === 'ordering') return 'order';
+  if (normalized === 'open_answer') return 'open';
+  return 'multiple';
+}
+
+function parseLines(value: string) {
+  return value
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parsePairLines(value: string) {
+  return parseLines(value)
+    .map((line) => {
+      const [left, ...rest] = line.split('|');
+      const right = rest.join('|').trim();
+      return {
+        left: left?.trim() || '',
+        right,
+      };
+    })
+    .filter((pair) => pair.left.length > 0 && pair.right.length > 0);
+}
+
+function encodePairAnswer(left: string, right: string) {
+  return `${left}|||${right}`;
+}
+
+function decodePairAnswer(text: string) {
+  const [left, ...rest] = (text || '').split('|||');
+  const right = rest.join('|||');
+  if (!left?.trim() || !right?.trim()) return null;
+  return {
+    left: left.trim(),
+    right: right.trim(),
+  };
+}
+
+function buildAnswersForType({
+  selectedType,
+  questionId,
+  visibleAnswers,
+  openExpectedAnswer,
+  fillLines,
+  orderLines,
+  matchPairs,
+  dragdropPairs,
+}: {
+  selectedType: QuestionTypeId;
+  questionId: number | null;
+  visibleAnswers: AnswerItem[];
+  openExpectedAnswer: string;
+  fillLines: string[];
+  orderLines: string[];
+  matchPairs: { left: string; right: string }[];
+  dragdropPairs: { left: string; right: string }[];
+}) {
+  if (!questionId) return [];
+
+  if (selectedType === 'multiple' || selectedType === 'boolean') {
+    return visibleAnswers.map((answer, index) => ({
+      question_id: questionId,
+      text: answer.text.trim(),
+      is_correct: answer.isCorrect,
+      sort_order: index + 1,
+    }));
+  }
+
+  if (selectedType === 'open') {
+    return [
+      {
+        question_id: questionId,
+        text: openExpectedAnswer.trim(),
+        is_correct: true,
+        sort_order: 1,
+      },
+    ];
+  }
+
+  if (selectedType === 'fill') {
+    return fillLines.map((line, index) => ({
+      question_id: questionId,
+      text: line,
+      is_correct: true,
+      sort_order: index + 1,
+    }));
+  }
+
+  if (selectedType === 'order') {
+    return orderLines.map((line, index) => ({
+      question_id: questionId,
+      text: line,
+      is_correct: true,
+      sort_order: index + 1,
+    }));
+  }
+
+  if (selectedType === 'match') {
+    return matchPairs.map((pair, index) => ({
+      question_id: questionId,
+      text: encodePairAnswer(pair.left, pair.right),
+      is_correct: true,
+      sort_order: index + 1,
+    }));
+  }
+
+  return dragdropPairs.map((pair, index) => ({
+    question_id: questionId,
+    text: encodePairAnswer(pair.left, pair.right),
+    is_correct: true,
+    sort_order: index + 1,
+  }));
+}
+
+function ensureBooleanAnswers(currentAnswers: AnswerItem[]) {
+  const hasTrueCorrect = currentAnswers.find((answer) => answer.text.trim().toLowerCase() === 'verdadero' && answer.isCorrect);
+  const hasFalseCorrect = currentAnswers.find((answer) => answer.text.trim().toLowerCase() === 'falso' && answer.isCorrect);
+  const trueIsCorrect = Boolean(hasTrueCorrect) || (!hasTrueCorrect && !hasFalseCorrect);
+  return [
+    { text: 'Verdadero', isCorrect: trueIsCorrect },
+    { text: 'Falso', isCorrect: !trueIsCorrect },
+  ];
+}
+
+function getTypePreviewTitle(type: QuestionTypeId) {
+  if (type === 'open') return 'Respuesta esperada';
+  if (type === 'fill') return 'Respuestas válidas';
+  if (type === 'order') return 'Orden correcto';
+  if (type === 'match') return 'Pares a unir';
+  if (type === 'dragdrop') return 'Relaciones arrastrar/destino';
+  return 'Vista previa';
 }
 
 function isNumericId(value: string | null | undefined): value is string {

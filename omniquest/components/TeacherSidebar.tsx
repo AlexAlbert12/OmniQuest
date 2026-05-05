@@ -3,6 +3,7 @@ import { Animated, Easing, Image, Pressable, Text, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+import { useAppTheme } from '../lib/appTheme'
 
 export type TeacherSection = 'home' | 'classes' | 'students' | 'settings'
 
@@ -37,12 +38,20 @@ export default function TeacherSidebar({
   avatar,
   points,
 }: TeacherSidebarProps) {
+  const { theme, accentColor } = useAppTheme()
+  const isDark = theme === 'dark'
   const displayAlias = alias?.trim() || 'Profesor'
   const level = Math.max(1, Math.floor((points ?? 0) / 100) + subjectsCount + 1)
   const progress = Math.min(100, ((points ?? 0) % 100) || 65)
 
   return (
-    <View className="w-[244px] border-r border-[#183052] bg-[#041024] px-4 py-7">
+    <View
+      className="w-[244px] border-r px-4 py-7"
+      style={{
+        borderColor: isDark ? '#183052' : '#29466F',
+        backgroundColor: isDark ? '#041024' : '#0E1E38',
+      }}
+    >
       <View className="mb-7 flex-row items-center gap-2 px-2">
         <Text className="text-[#9FD6FF]" style={{ fontFamily: 'Pacifico_400Regular', fontSize: 30 }}>
           OmniQuest
@@ -59,12 +68,17 @@ export default function TeacherSidebar({
               item={item}
               isActive={isActive}
               onComingSoon={onComingSoon}
+              accentColor={accentColor}
+              isDark={isDark}
             />
           )
         })}
       </View>
 
-      <View className="mt-auto rounded-2xl border border-[#162B50] bg-[#091A35] p-4">
+      <View
+        className="mt-auto rounded-2xl border p-4"
+        style={{ borderColor: isDark ? '#162B50' : '#2E4E78', backgroundColor: isDark ? '#091A35' : '#132A4D' }}
+      >
         <View className="flex-row items-center gap-3">
           <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#192C62]">
             {avatar && avatar.startsWith('http') ? (
@@ -79,7 +93,7 @@ export default function TeacherSidebar({
           </View>
         </View>
         <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full bg-[#6574FF]" style={{ width: `${progress}%` }} />
+          <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: accentColor }} />
         </View>
         <Text className="mt-2 text-[11px] text-[#8FA7C7]">{(points ?? 0).toLocaleString()} XP</Text>
       </View>
@@ -91,10 +105,14 @@ function TeacherNavButton({
   item,
   isActive,
   onComingSoon,
+  accentColor,
+  isDark,
 }: {
   item: { section: TeacherSection; label: string; icon: keyof typeof Ionicons.glyphMap; href?: string }
   isActive: boolean
   onComingSoon: (feature: string) => void
+  accentColor: string
+  isDark: boolean
 }) {
   const [isHovered, setIsHovered] = React.useState(false)
   const [isPressed, setIsPressed] = React.useState(false)
@@ -136,7 +154,7 @@ function TeacherNavButton({
           paddingHorizontal: 10,
           borderColor: hoverProgress.interpolate({
             inputRange: [0, 1],
-            outputRange: ['rgba(83,100,245,0)', isActive ? '#5364F5' : 'rgba(159,214,255,0.22)'],
+            outputRange: ['rgba(83,100,245,0)', isActive ? accentColor : isDark ? 'rgba(159,214,255,0.22)' : 'rgba(96,122,167,0.35)'],
           }),
           backgroundColor: hoverProgress.interpolate({
             inputRange: [0, 1],
@@ -183,8 +201,9 @@ function TeacherNavButton({
           />
         </Animated.View>
         <Animated.View
-          className="absolute left-0 top-3 h-7 w-1 rounded-r-full bg-[#9FD6FF]"
+          className="absolute left-0 top-3 h-7 w-1 rounded-r-full"
           style={{
+            backgroundColor: accentColor,
             opacity: hoverProgress.interpolate({
               inputRange: [0, 1],
               outputRange: [0, isActive ? 1 : 0.72],

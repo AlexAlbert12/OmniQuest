@@ -221,6 +221,76 @@ export default function TeacherStudentsScreen() {
     showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`);
   };
 
+  const handleExportStudentsCsv = () => {
+    if (visibleStudents.length === 0) {
+      showAlert('Sin datos', 'No hay estudiantes visibles para exportar.');
+      return;
+    }
+
+    if (Platform.OS !== 'web') {
+      showAlert('Exportación disponible en web', 'Por ahora la descarga CSV está disponible en la versión web.');
+      return;
+    }
+
+    const escapeCsv = (value: string | number) => {
+      const text = String(value ?? '');
+      if (/[",\n]/.test(text)) {
+        return `"${text.replace(/"/g, '""')}"`;
+      }
+      return text;
+    };
+
+    const statusLabel = (status: StudentRow['status']) => {
+      if (status === 'active') return 'Activo';
+      if (status === 'inactive') return 'Inactivo';
+      return 'Necesita apoyo';
+    };
+
+    const headers = [
+      'ID',
+      'Alias',
+      'Usuario',
+      'XP_Clase',
+      'XP_Global',
+      'Progreso_Porcentaje',
+      'Preguntas_Completadas',
+      'Nota_Media',
+      'Estado',
+      'Asignaturas_IDs',
+    ];
+
+    const rows = visibleStudents.map((student) => [
+      student.id,
+      student.alias,
+      student.handle,
+      student.subjectScore,
+      student.globalPoints,
+      student.progress,
+      student.challenges,
+      student.averageScore.toFixed(1),
+      statusLabel(student.status),
+      student.subjectIds.join('|'),
+    ]);
+
+    const csvBody = [headers, ...rows]
+      .map((row) => row.map((cell) => escapeCsv(cell)).join(','))
+      .join('\n');
+
+    const csvText = `\uFEFF${csvBody}`;
+    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `omniquest_estudiantes_${selectedSubjectId === 'all' ? 'todas' : selectedSubjectId}_${date}.csv`;
+
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
@@ -308,7 +378,14 @@ export default function TeacherStudentsScreen() {
                 </View>
                 <FilterButton label="Todos los estados" icon="chevron-down" />
                 <FilterButton label="Ordenar por: XP" icon="chevron-down" />
-                <Pressable onPress={() => showComingSoon('Exportar estudiantes')} className="h-12 flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4">
+                <Pressable
+                  onPress={handleExportStudentsCsv}
+                  disabled={visibleStudents.length === 0}
+                  className="h-12 flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4"
+                  style={({ pressed }) => ({
+                    opacity: visibleStudents.length === 0 ? 0.55 : pressed ? 0.86 : 1,
+                  })}
+                >
                   <Ionicons name="download-outline" size={16} color="#AFC2DB" />
                   <Text className="font-semibold text-[#DDE7F4]">Exportar</Text>
                 </Pressable>

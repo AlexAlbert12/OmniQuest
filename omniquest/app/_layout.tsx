@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Stack, usePathname, useRouter } from 'expo-router'
 import { supabase } from '../lib/supabase'
 import { View, ActivityIndicator } from 'react-native'
+import { AppThemeProvider, useAppTheme } from '../lib/appTheme'
 
 const AUTH_ROUTE_ALIASES: Record<string, string> = {
   '/login': '/(auth)/login',
@@ -17,12 +18,21 @@ function normalizeAuthPath(path: string) {
 }
 
 export default function RootLayout() {
+  return (
+    <AppThemeProvider>
+      <RootNavigator />
+    </AppThemeProvider>
+  )
+}
+
+function RootNavigator() {
   const [isInitialized, setIsInitialized] = useState(false)
   const [fontsLoaded, fontError] = useFonts({
     Pacifico_400Regular,
   })
   const router = useRouter()
   const pathname = usePathname()
+  const { theme, ready } = useAppTheme()
 
   useEffect(() => {
     let isMounted = true
@@ -140,13 +150,23 @@ export default function RootLayout() {
     }
   }, [pathname, router])
 
-  if (!isInitialized || (!fontsLoaded && !fontError)) {
+  if (!isInitialized || (!fontsLoaded && !fontError) || !ready) {
     return (
-      <View className="flex-1 justify-center items-center bg-[#0F2854]">
+      <View
+        className="flex-1 justify-center items-center"
+        style={{ backgroundColor: theme === 'dark' ? '#0F2854' : '#17345D' }}
+      >
         <ActivityIndicator size="large" color="#BDE8F5" />
       </View>
     )
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: theme === 'dark' ? '#061126' : '#0F2442' },
+      }}
+    />
+  )
 }
