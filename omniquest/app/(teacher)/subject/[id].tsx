@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -59,6 +59,8 @@ type Enrollment = {
 type SubjectScore = {
   student_id: string
   max_score: number | null
+  correct_answers?: number | null
+  played_days?: string[] | null
   played_at?: string | null
 }
 
@@ -77,6 +79,33 @@ type ActivityItem = {
   warning: boolean
 }
 
+type StudentReport = {
+  id: string
+  name: string
+  score: number
+  grade: number
+  correctAnswers: number
+  failedAnswers: number
+  participation: number
+  playedSessions: number
+  lastActivity?: string | null
+  hasActivity: boolean
+}
+
+type FailedQuestionReport = {
+  id: number
+  text: string
+  topic: string
+  estimatedFailures: number
+  risk: number
+}
+
+type EvolutionReport = {
+  label: string
+  activityCount: number
+  averageScore: number
+}
+
 type SubjectTabKey = 'summary' | 'students' | 'activities' | 'questions' | 'reports' | 'resources' | 'settings'
 
 const tabItems: { key: SubjectTabKey; label: string; icon: IconName; href?: string }[] = [
@@ -90,7 +119,7 @@ const tabItems: { key: SubjectTabKey; label: string; icon: IconName; href?: stri
 ]
 
 export default function SubjectDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [subject, setSubject] = useState<Subject | null>(null);
@@ -102,7 +131,7 @@ export default function SubjectDetailScreen() {
   const [profilesById, setProfilesById] = useState<Record<string, StudentProfile>>({});
   const [subjectsCount, setSubjectsCount] = useState(0);
   const [selectedTopicId, setSelectedTopicId] = useState<number | 'all' | 'general'>('all');
-  const [activeTab, setActiveTab] = useState<SubjectTabKey>('summary');
+  const [activeTab, setActiveTab] = useState<SubjectTabKey>(() => getSubjectTabFromParam(tab));
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [newTopicDescription, setNewTopicDescription] = useState('');
   const [creatingTopic, setCreatingTopic] = useState(false);
@@ -112,6 +141,12 @@ export default function SubjectDetailScreen() {
   const isDesktop = width >= 1080;
   const isWide = width >= 900;
   const subjectId = Array.isArray(id) ? id[0] : id;
+  const requestedTab = getSubjectTabFromParam(tab);
+
+  useEffect(() => {
+    setActiveTab(requestedTab);
+  }, [requestedTab]);
+
   const questionsWithoutTopic = useMemo(() => questions.filter((question) => question.topic_id === null), [questions]);
   const selectedTopicLabel = selectedTopicId === 'all'
     ? 'Todos los temas'
@@ -238,19 +273,32 @@ export default function SubjectDetailScreen() {
     ];
   }, [activeChallenge?.text, averageXp, enrollments.length, profilesById, questions.length, scores, subject?.name]);
 
-  const topStudents = useMemo(() => {
-    return scores
-      .filter((item) => typeof item.max_score === 'number')
-      .slice()
-      .sort((a, b) => (b.max_score || 0) - (a.max_score || 0))
-      .slice(0, 5)
-      .map((item, index) => ({
-        id: item.student_id,
-        rank: index + 1,
-        name: profilesById[item.student_id]?.alias || `Alumno ${index + 1}`,
-        score: item.max_score || 0,
-      }));
-  }, [profilesById, scores]);
+  const studentReportRows = useMemo(
+    () => buildStudentReportRows(enrollments, scores, profilesById, questions.length),
+    [enrollments, profilesById, questions.length, scores]
+  );
+  const reportSummary = useMemo(() => {
+    const answeredStudents = studentReportRows.filter((student) => student.hasActivity);
+    const failedAnswers = studentReportRows.reduce((total, student) => total + student.failedAnswers, 0);
+    const correctAnswers = studentReportRows.reduce((total, student) => total + student.correctAnswers, 0);
+
+    return {
+      enrolled: enrollments.length,
+      answered: answeredStudents.length,
+      participation: enrollments.length > 0 ? Math.round((answeredStudents.length / enrollments.length) * 100) : 0,
+      averageGrade,
+      failedAnswers,
+      correctAnswers,
+    };
+  }, [averageGrade, enrollments.length, studentReportRows]);
+  const failedQuestionRows = useMemo(
+    () => buildFailedQuestionRows(questions, topicRows, reportSummary.failedAnswers),
+    [questions, reportSummary.failedAnswers, topicRows]
+  );
+  const temporalEvolution = useMemo(
+    () => buildTemporalEvolution(scores, questions.length),
+    [questions.length, scores]
+  );
 
   const upcomingActivities = useMemo(() => {
     const today = new Date();
@@ -293,18 +341,6 @@ export default function SubjectDetailScreen() {
             <Panel title="Actividad reciente">
               {recentActivity.map((item, index) => (
                 <ActivityRow key={`${item.title}-${index}`} {...item} />
-              ))}
-            </Panel>
-            <Panel title="Próximas actividades">
-              {upcomingActivities.map((activity) => (
-                <UpcomingRow
-                  key={activity.title}
-                  icon={activity.icon}
-                  color={activity.color}
-                  title={activity.title}
-                  detail={activity.detail}
-                  date={activity.date}
-                />
               ))}
             </Panel>
           </View>
@@ -386,46 +422,80 @@ export default function SubjectDetailScreen() {
     }
 
     if (activeTab === 'reports') {
+      const latestEvolution = temporalEvolution[temporalEvolution.length - 1];
+
       return (
-        <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
-          <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
-            <Panel title="Distribución de notas">
-              <View className="flex-row items-center gap-5">
-                <DonutCard value={scoreValues.length || enrollments.length} />
-                <View className="min-w-0 flex-1 gap-2">
-                  {gradeDistribution.map((item) => {
-                    const percent = scoreValues.length > 0 ? Math.round((item.count / scoreValues.length) * 100) : 0;
-                    return (
-                      <View key={item.label} className="flex-row items-center gap-2">
-                        <View className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                        <Text className="min-w-0 flex-1 text-[11px] text-[#C4D0E3]">{item.label}</Text>
-                        <Text className="text-[11px] font-bold text-white">
-                          {item.count} ({percent}%)
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-            </Panel>
+        <View className="gap-5">
+          <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
+            <ReportMetricCard icon="people" label="Alumnos evaluados" value={`${reportSummary.answered}/${reportSummary.enrolled}`} color="#38BDF8" detail={`${reportSummary.participation}% participación`} />
+            <ReportMetricCard icon="shield-checkmark" label="Nota media" value={reportSummary.averageGrade.toFixed(1)} suffix="/10" color="#F59E0B" detail={`${averageXp.toLocaleString('es-ES')} XP media`} />
+            <ReportMetricCard icon="close-circle" label="Preguntas falladas" value={String(reportSummary.failedAnswers)} color="#F43F5E" detail={`${reportSummary.correctAnswers} correctas registradas`} />
+            <ReportMetricCard icon="trending-up" label="Evolución" value={`${latestEvolution?.activityCount || 0}`} color="#34D399" detail="activos en el último tramo" />
           </View>
 
-          <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
-            <Panel title="Top alumnos">
-              {topStudents.length > 0 ? (
-                topStudents.map((student) => (
-                  <View key={student.id} className="flex-row items-center justify-between border-b border-[#13284A] py-3">
-                    <Text className="text-[12px] font-semibold text-white">
-                      #{student.rank} {student.name}
-                    </Text>
-                    <Text className="text-[12px] font-bold text-[#A78BFA]">{student.score} XP</Text>
+          <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
+            <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
+              <Panel title="Métricas por alumno">
+                {studentReportRows.length > 0 ? (
+                  <View className="gap-3">
+                    {studentReportRows.map((student, index) => (
+                      <StudentReportRow key={student.id} student={student} index={index} />
+                    ))}
                   </View>
-                ))
-              ) : (
-                <Text className="text-[12px] text-[#8FA7C7]">Aún no hay datos de rendimiento.</Text>
-              )}
-            </Panel>
+                ) : (
+                  <Text className="text-[12px] text-[#8FA7C7]">Aún no hay alumnos inscritos para generar métricas.</Text>
+                )}
+              </Panel>
+
+              <Panel title="Evolución temporal">
+                <View className="gap-3">
+                  {temporalEvolution.map((item) => (
+                    <EvolutionRow key={item.label} item={item} maxValue={Math.max(1, reportSummary.enrolled)} />
+                  ))}
+                </View>
+              </Panel>
+            </View>
+
+            <View className={isDesktop ? 'w-[380px] gap-5' : 'gap-5'}>
+              <Panel title="Preguntas falladas">
+                {failedQuestionRows.length > 0 ? (
+                  <View className="gap-3">
+                    {failedQuestionRows.map((question) => (
+                      <FailedQuestionRow key={question.id} question={question} />
+                    ))}
+                  </View>
+                ) : (
+                  <Text className="text-[12px] text-[#8FA7C7]">No hay fallos registrados todavía.</Text>
+                )}
+              </Panel>
+
+              <Panel title="Distribución de notas">
+                <View className="flex-row items-center gap-5">
+                  <DonutCard value={scoreValues.length || enrollments.length} />
+                  <View className="min-w-0 flex-1 gap-2">
+                    {gradeDistribution.map((item) => {
+                      const percent = scoreValues.length > 0 ? Math.round((item.count / scoreValues.length) * 100) : 0;
+                      return (
+                        <View key={item.label} className="flex-row items-center gap-2">
+                          <View className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
+                          <Text className="min-w-0 flex-1 text-[11px] text-[#C4D0E3]">{item.label}</Text>
+                          <Text className="text-[11px] font-bold text-white">
+                            {item.count} ({percent}%)
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              </Panel>
+            </View>
           </View>
+
+          {/*
+            Los datos guardados por partida viven agregados por alumno. Cuando exista un
+            histórico por pregunta, este bloque podrá mostrar fallos exactos en vez de
+            estimaciones repartidas por riesgo.
+          */}
         </View>
       );
     }
@@ -651,7 +721,7 @@ export default function SubjectDetailScreen() {
         supabase.from('enrollments').select('student_id').eq('subject_id', subjectId),
         supabase
           .from('subject_scores')
-          .select('student_id, max_score, played_at')
+          .select('student_id, max_score, correct_answers, played_days, played_at')
           .eq('subject_id', subjectId)
           .order('played_at', { ascending: false }),
         teacherId
@@ -1409,6 +1479,37 @@ function MetricCard({
   );
 }
 
+function ReportMetricCard({
+  icon,
+  label,
+  value,
+  suffix,
+  color,
+  detail,
+}: {
+  icon: IconName
+  label: string
+  value: string
+  suffix?: string
+  color: string
+  detail: string
+}) {
+  return (
+    <View className="min-w-[180px] flex-1 rounded-xl border border-[#183052] bg-[#07162D] p-4">
+      <View className="mb-3 flex-row items-center gap-3">
+        <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: `${color}26` }}>
+          <Ionicons name={icon} size={21} color={color} />
+        </View>
+        <Text className="min-w-0 flex-1 text-[12px] font-semibold text-[#B7C4D7]">{label}</Text>
+      </View>
+      <Text className="text-[25px] font-black text-white">
+        {value} {suffix ? <Text className="text-[12px] text-[#B7C4D7]">{suffix}</Text> : null}
+      </Text>
+      <Text className="mt-2 text-[11px] font-semibold text-[#8FA7C7]">{detail}</Text>
+    </View>
+  );
+}
+
 function Panel({
   title,
   actionLabel,
@@ -1551,6 +1652,80 @@ function InfoStack({ label, value }: { label: string; value: string }) {
   );
 }
 
+function StudentReportRow({ student, index }: { student: StudentReport; index: number }) {
+  const statusColor = student.hasActivity ? '#34D399' : '#F59E0B';
+  const statusLabel = student.hasActivity ? 'Activo' : 'Pendiente';
+
+  return (
+    <View className="flex-row flex-wrap items-center gap-4 rounded-xl border border-[#183052] bg-[#09162C] p-4">
+      <View className="h-10 w-10 items-center justify-center rounded-lg bg-[#1A1E55]">
+        <Text className="font-black text-[#A78BFA]">{index + 1}</Text>
+      </View>
+      <View className="min-w-[180px] flex-1">
+        <Text className="font-black text-white" numberOfLines={1}>{student.name}</Text>
+        <Text className="mt-1 text-[11px] text-[#8FA7C7]">
+          {student.lastActivity ? `Última actividad: ${formatDate(student.lastActivity)}` : 'Sin actividad registrada'}
+        </Text>
+      </View>
+      <ReportStack label="Participación" value={`${student.participation}%`} color={statusColor} meta={statusLabel} />
+      <ReportStack label="Nota media" value={student.hasActivity ? student.grade.toFixed(1) : '-'} color="#F59E0B" meta={student.hasActivity ? `${student.score} XP` : 'Sin nota'} />
+      <ReportStack label="Correctas" value={String(student.correctAnswers)} color="#34D399" meta={`${student.playedSessions} sesión${student.playedSessions === 1 ? '' : 'es'}`} />
+      <ReportStack label="Falladas" value={String(student.failedAnswers)} color="#F43F5E" meta="estimadas" />
+    </View>
+  );
+}
+
+function ReportStack({ label, value, color, meta }: { label: string; value: string; color: string; meta: string }) {
+  return (
+    <View className="min-w-[100px]">
+      <Text className="text-[11px] text-[#8FA7C7]">{label}</Text>
+      <Text className="mt-1 text-[18px] font-black" style={{ color }}>{value}</Text>
+      <Text className="mt-1 text-[10px] font-semibold text-[#B7C4D7]">{meta}</Text>
+    </View>
+  );
+}
+
+function FailedQuestionRow({ question }: { question: FailedQuestionReport }) {
+  return (
+    <View className="rounded-xl border border-[#183052] bg-[#09162C] p-4">
+      <View className="flex-row items-start gap-3">
+        <View className="h-10 w-10 items-center justify-center rounded-lg bg-[#3B1020]">
+          <Ionicons name="close-circle-outline" size={20} color="#FB7185" />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="font-bold text-white" numberOfLines={2}>{question.text}</Text>
+          <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>{question.topic}</Text>
+        </View>
+        <View className="items-end">
+          <Text className="text-[18px] font-black text-[#FB7185]">{question.estimatedFailures}</Text>
+          <Text className="text-[10px] font-semibold text-[#8FA7C7]">fallos</Text>
+        </View>
+      </View>
+      <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13284A]">
+        <View className="h-full rounded-full bg-[#FB7185]" style={{ width: `${question.risk}%` }} />
+      </View>
+    </View>
+  );
+}
+
+function EvolutionRow({ item, maxValue }: { item: EvolutionReport; maxValue: number }) {
+  const progress = Math.min(100, Math.round((item.activityCount / maxValue) * 100));
+
+  return (
+    <View className="rounded-xl border border-[#183052] bg-[#09162C] p-4">
+      <View className="mb-3 flex-row items-center justify-between gap-3">
+        <Text className="font-bold text-white">{item.label}</Text>
+        <Text className="text-[12px] font-semibold text-[#C4D0E3]">
+          {item.activityCount} activos · {item.averageScore} XP
+        </Text>
+      </View>
+      <View className="h-3 overflow-hidden rounded-full bg-[#13284A]">
+        <View className="h-full rounded-full bg-[#34D399]" style={{ width: `${progress}%` }} />
+      </View>
+    </View>
+  );
+}
+
 function QuestionRow({
   question,
   index,
@@ -1658,4 +1833,160 @@ function formatRelative(value: string | null | undefined, index: number) {
   if (diffHours < 24) return `Hace ${diffHours}h`;
   if (diffHours < 48) return 'Ayer';
   return `Hace ${Math.round(diffHours / 24)} días`;
+}
+
+function getSubjectTabFromParam(value: string | string[] | undefined): SubjectTabKey {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  const tab = tabItems.find((item) => item.key === rawValue);
+  return tab && tab.key !== 'students' ? tab.key : 'summary';
+}
+
+function buildStudentReportRows(
+  enrollments: Enrollment[],
+  scores: SubjectScore[],
+  profilesById: Record<string, StudentProfile>,
+  questionsCount: number
+): StudentReport[] {
+  const scoreByStudentId = new Map<string, SubjectScore>();
+  scores.forEach((score) => {
+    if (!scoreByStudentId.has(score.student_id)) {
+      scoreByStudentId.set(score.student_id, score);
+    }
+  });
+  const maxSessions = Math.max(1, ...scores.map((score) => getPlayedSessions(score, questionsCount)));
+
+  return enrollments
+    .map((enrollment, index) => {
+      const score = scoreByStudentId.get(enrollment.student_id);
+      const hasActivity = Boolean(score?.played_at || typeof score?.max_score === 'number');
+      const playedSessions = getPlayedSessions(score, questionsCount);
+      const answeredQuestions = questionsCount > 0 ? playedSessions * questionsCount : 0;
+      const correctAnswers = score?.correct_answers ?? 0;
+      const failedAnswers = hasActivity ? Math.max(0, answeredQuestions - correctAnswers) : 0;
+
+      return {
+        id: enrollment.student_id,
+        name: profilesById[enrollment.student_id]?.alias || `Alumno ${index + 1}`,
+        score: score?.max_score ?? 0,
+        grade: xpToGrade(score?.max_score ?? 0),
+        correctAnswers,
+        failedAnswers,
+        participation: hasActivity ? Math.min(100, Math.round((playedSessions / maxSessions) * 100)) : 0,
+        playedSessions,
+        lastActivity: score?.played_at,
+        hasActivity,
+      };
+    })
+    .sort((a, b) => Number(b.hasActivity) - Number(a.hasActivity) || b.score - a.score || a.name.localeCompare(b.name));
+}
+
+function buildFailedQuestionRows(
+  questions: Question[],
+  topicRows: {
+    id: number | 'general'
+    title: string
+    questionsCount: number
+    averageScore: number
+  }[],
+  totalFailedAnswers: number
+): FailedQuestionReport[] {
+  if (questions.length === 0 || totalFailedAnswers === 0) return [];
+
+  const topicById = new Map(topicRows.map((topic) => [topic.id, topic]));
+  const weightedQuestions = questions.map((question) => {
+    const topic = question.topic_id ? topicById.get(question.topic_id) : topicById.get('general');
+    const questionsInTopic = Math.max(1, topic?.questionsCount || questions.length);
+    const expectedTopicScore = questionsInTopic * 160;
+    const topicWeakness = Math.max(0.18, 1 - ((topic?.averageScore || 0) / expectedTopicScore));
+    const weight = (question.points_base || 100) * topicWeakness;
+
+    return { question, topic, weight };
+  });
+  const totalWeight = weightedQuestions.reduce((total, item) => total + item.weight, 0) || 1;
+
+  return weightedQuestions
+    .map(({ question, topic, weight }) => {
+      const estimatedFailures = Math.max(1, Math.round((totalFailedAnswers * weight) / totalWeight));
+
+      return {
+        id: question.id,
+        text: question.text,
+        topic: topic?.title || 'Tema general',
+        estimatedFailures,
+        risk: Math.min(100, Math.max(12, Math.round((weight / totalWeight) * 100 * Math.min(questions.length, 6)))),
+      };
+    })
+    .sort((a, b) => b.estimatedFailures - a.estimatedFailures || b.risk - a.risk)
+    .slice(0, 5);
+}
+
+function buildTemporalEvolution(scores: SubjectScore[], questionsCount: number): EvolutionReport[] {
+  const today = new Date();
+  const periods = Array.from({ length: 6 }, (_, index) => {
+    const start = startOfDay(addDays(today, -35 + index * 7));
+    const end = endOfDay(addDays(start, 6));
+
+    return { start, end, label: `${formatShortDate(start)} - ${formatShortDate(end)}` };
+  });
+
+  return periods.map((period) => {
+    const activeScores = scores.filter((score) =>
+      getPlayedDateKeys(score).some((dateKey) => {
+        const date = new Date(`${dateKey}T12:00:00`);
+        return date >= period.start && date <= period.end;
+      })
+    );
+    const averageScore = activeScores.length > 0
+      ? Math.round(activeScores.reduce((total, score) => total + (score.max_score ?? 0), 0) / activeScores.length)
+      : 0;
+
+    return {
+      label: period.label,
+      activityCount: activeScores.length,
+      averageScore: questionsCount > 0 ? averageScore : 0,
+    };
+  });
+}
+
+function getPlayedSessions(score: SubjectScore | undefined, questionsCount: number) {
+  if (!score) return 0;
+  const playedDays = Array.isArray(score.played_days) ? score.played_days.filter(Boolean).length : 0;
+  const sessionsFromCorrectAnswers = questionsCount > 0 ? Math.ceil((score.correct_answers ?? 0) / questionsCount) : 0;
+  return Math.max(score.played_at ? 1 : 0, playedDays, sessionsFromCorrectAnswers);
+}
+
+function getPlayedDateKeys(score: SubjectScore) {
+  const playedDays = Array.isArray(score.played_days) ? score.played_days.filter(Boolean) : [];
+  if (playedDays.length > 0) return playedDays;
+  if (!score.played_at) return [];
+  return [toDateKey(new Date(score.played_at))];
+}
+
+function addDays(date: Date, days: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+}
+
+function startOfDay(date: Date) {
+  const nextDate = new Date(date);
+  nextDate.setHours(0, 0, 0, 0);
+  return nextDate;
+}
+
+function endOfDay(date: Date) {
+  const nextDate = new Date(date);
+  nextDate.setHours(23, 59, 59, 999);
+  return nextDate;
+}
+
+function toDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatShortDate(date: Date) {
+  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(date);
 }

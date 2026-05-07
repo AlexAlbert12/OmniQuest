@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native'
@@ -17,6 +18,19 @@ type Answer = {
   id: number
   text: string
   is_correct?: boolean
+  sort_order?: number | null
+}
+
+type QuestionType = 'multiple_choice' | 'true_false' | 'open_answer' | 'fill_blank' | 'ordering' | 'match_pairs' | 'drag_drop'
+
+type Question = {
+  id: number
+  text: string
+  type?: string | null
+  points_base?: number | null
+  category?: string | null
+  subject?: string | null
+  answers: Answer[]
 }
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -29,18 +43,6 @@ export default function PlayScreen() {
 
   const isDesktop = width >= 1024
   const isWide = width >= 760
-
-  const showComingSoon = (feature: string) => {
-    const title = 'Próximamente'
-    const message = `${feature} estará disponible en una próxima iteración.`
-
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`)
-      return
-    }
-
-    Alert.alert(title, message)
-  }
 
   if (game.status === 'loading') {
     return (
@@ -100,7 +102,8 @@ export default function PlayScreen() {
     )
   }
 
-  const currentQuestion = game.currentQuestion
+  const currentQuestion = game.currentQuestion as Question | undefined
+  const questionType = getQuestionType(currentQuestion?.type)
   const totalQuestions = Math.max(game.questions.length, 1)
   const progressPercentage = ((game.currentIndex + 1) / totalQuestions) * 100
   const pointsBase = currentQuestion?.points_base ?? 150
@@ -110,6 +113,37 @@ export default function PlayScreen() {
   const nextLevelPoints = Math.min(nextLevelTotal, Math.max(2450, game.score + 450))
   const selectedTopicName = Array.isArray(topicName) ? topicName[0] : topicName
   const category = selectedTopicName || currentQuestion?.category || currentQuestion?.subject || 'Tema'
+
+  const handleHint = () => {
+    if (!currentQuestion) return
+    const used = game.useHint()
+    if (!used) {
+      Alert.alert('Pista', 'No puedes usar la pista en este momento.')
+      return
+    }
+
+    const hintText = currentQuestion.answers.find((answer) => answer.is_correct)?.text
+    const message = hintText
+      ? `Se ha activado la pista y se ha restado 10 pts. La respuesta correcta está resaltada.`
+      : 'Se ha activado la pista y se ha restado 10 pts.'
+
+    if (Platform.OS === 'web') {
+      window.alert(`Pista\n${message}`)
+    } else {
+      Alert.alert('Pista', message)
+    }
+  }
+
+  const handleSkip = () => {
+    if (!currentQuestion) return
+    game.skipQuestion()
+
+    if (Platform.OS === 'web') {
+      window.alert('Pregunta saltada\nHas saltado la pregunta y perdido 20 pts.')
+    } else {
+      Alert.alert('Pregunta saltada', 'Has saltado la pregunta y perdido 20 pts.')
+    }
+  }
 
   return (
     <GameShell>
@@ -186,8 +220,17 @@ export default function PlayScreen() {
                 </Text>
                 <View className="mt-4 flex-row items-center gap-2">
                   <Ionicons name="star" size={20} color="#76A7FF" />
-                  <Text className="text-[15px] text-[#C7D6ED]">Elige la opción correcta</Text>
+                  <Text className="text-[15px] text-[#C7D6ED]">{getQuestionInstruction(questionType)}</Text>
                 </View>
+
+                {game.hintedAnswerId ? (
+                  <View className="mt-3 rounded-2xl border border-[#FBBF24] bg-[#2A210F]/90 p-4">
+                    <Text className="font-black uppercase tracking-[0.04em] text-[#FBBF24]">Pista activa</Text>
+                    <Text className="mt-2 text-[13px] text-[#F4E3B8]">
+                      La respuesta correcta está resaltada en las opciones. Usa esto para avanzar con más seguridad.
+                    </Text>
+                  </View>
+                ) : null}
               </View>
 
               {!isWide ? (
@@ -211,17 +254,18 @@ export default function PlayScreen() {
                   elevation: 12,
                 }}
               >
-                <View style={{ gap: 12 }}>
-                  {currentQuestion?.answers.map((answer: Answer, index: number) => (
-                    <AnswerOption
-                      key={answer.id}
-                      answer={answer}
-                      index={index}
-                      selectedAnswerId={game.selectedAnswerId}
-                      onPress={() => game.submitAnswer(answer.id)}
-                    />
-                  ))}
-                </View>
+                {currentQuestion ? (
+                  <QuestionInteraction
+                    question={currentQuestion}
+                    questionType={questionType}
+                    selectedAnswerId={game.selectedAnswerId}
+                    hintedAnswerId={game.hintedAnswerId}
+                    hasAnswered={game.hasAnswered}
+                    answerStatus={game.answerStatus}
+                    onChoiceAnswer={game.submitAnswer}
+                    onStructuredAnswer={game.submitStructuredAnswer}
+                  />
+                ) : null}
               </View>
             </View>
           </View>
@@ -231,12 +275,385 @@ export default function PlayScreen() {
             levelProgress={levelProgress}
             points={nextLevelPoints}
             total={nextLevelTotal}
-            onHint={() => showComingSoon('Las pistas')}
-            onSkip={() => showComingSoon('Saltar pregunta')}
+            onHint={handleHint}
+            onSkip={handleSkip}
           />
         </View>
       </ScrollView>
     </GameShell>
+  )
+}
+
+function QuestionInteraction({
+  question,
+  questionType,
+  selectedAnswerId,
+  hintedAnswerId,
+  hasAnswered,
+  answerStatus,
+  onChoiceAnswer,
+  onStructuredAnswer,
+}: {
+  question: Question
+  questionType: QuestionType
+  selectedAnswerId: number | null
+  hintedAnswerId: number | null
+  hasAnswered: boolean
+  answerStatus: 'correct' | 'incorrect' | null
+  onChoiceAnswer: (answerId: number) => void
+  onStructuredAnswer: (isCorrect: boolean) => void
+}) {
+  if (isChoiceQuestion(questionType)) {
+    return (
+      <View style={{ gap: 12 }}>
+        {question.answers.map((answer, index) => (
+          <AnswerOption
+            key={answer.id}
+            answer={answer}
+            index={index}
+            selectedAnswerId={selectedAnswerId}
+            hintedAnswerId={hintedAnswerId}
+            hasAnswered={hasAnswered}
+            onPress={() => onChoiceAnswer(answer.id)}
+          />
+        ))}
+      </View>
+    )
+  }
+
+  if (questionType === 'open_answer' || questionType === 'fill_blank') {
+    return (
+      <TextAnswerQuestion
+        key={question.id}
+        question={question}
+        questionType={questionType}
+        hasAnswered={hasAnswered}
+        answerStatus={answerStatus}
+        onSubmit={onStructuredAnswer}
+      />
+    )
+  }
+
+  if (questionType === 'ordering') {
+    return (
+      <OrderingQuestion
+        key={question.id}
+        question={question}
+        hasAnswered={hasAnswered}
+        answerStatus={answerStatus}
+        onSubmit={onStructuredAnswer}
+      />
+    )
+  }
+
+  return (
+    <PairingQuestion
+      key={question.id}
+      question={question}
+      questionType={questionType}
+      hasAnswered={hasAnswered}
+      answerStatus={answerStatus}
+      onSubmit={onStructuredAnswer}
+    />
+  )
+}
+
+function TextAnswerQuestion({
+  question,
+  questionType,
+  hasAnswered,
+  answerStatus,
+  onSubmit,
+}: {
+  question: Question
+  questionType: 'open_answer' | 'fill_blank'
+  hasAnswered: boolean
+  answerStatus: 'correct' | 'incorrect' | null
+  onSubmit: (isCorrect: boolean) => void
+}) {
+  const [value, setValue] = useState('')
+  const expectedAnswers = useMemo(() => getSortedAnswers(question.answers).map((answer) => answer.text), [question.answers])
+  const isFill = questionType === 'fill_blank'
+
+  useEffect(() => {
+    setValue('')
+  }, [question.id])
+
+  const handleSubmit = () => {
+    if (hasAnswered || !value.trim()) return
+
+    if (isFill) {
+      const submittedParts = splitAnswerParts(value)
+      const expectedParts = expectedAnswers.map(normalizeAnswerText).filter(Boolean)
+      const isCorrect =
+        submittedParts.length > 0 &&
+        expectedParts.length > 0 &&
+        submittedParts.every((submitted) => expectedParts.includes(submitted))
+      onSubmit(isCorrect)
+      return
+    }
+
+    const submitted = normalizeAnswerText(value)
+    onSubmit(expectedAnswers.some((answer) => normalizeAnswerText(answer) === submitted))
+  }
+
+  const feedbackColor = answerStatus === 'correct' ? '#34D399' : '#FB7185'
+
+  return (
+    <View className="gap-4 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
+      <View className="flex-row items-center gap-3">
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-[#18275A]">
+          <Ionicons name={isFill ? 'text-outline' : 'chatbox-ellipses-outline'} size={21} color="#A78BFA" />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="font-black text-white">{isFill ? 'Completa la respuesta' : 'Escribe tu respuesta'}</Text>
+          <Text className="mt-1 text-[12px] text-[#AFC2DB]">
+            {isFill && expectedAnswers.length > 1 ? 'Separa varias respuestas con comas.' : 'No importan mayúsculas ni acentos.'}
+          </Text>
+        </View>
+      </View>
+
+      <TextInput
+        value={value}
+        onChangeText={setValue}
+        editable={!hasAnswered}
+        multiline={isFill}
+        textAlignVertical="top"
+        placeholder={isFill ? 'Respuesta 1, respuesta 2...' : 'Tu respuesta'}
+        placeholderTextColor="#7388A7"
+        className={`min-h-[74px] rounded-2xl border px-5 py-4 text-[18px] font-semibold text-white ${
+          hasAnswered ? 'border-[#28456B] bg-[#071426]' : 'border-[#314E78] bg-[#081A37]'
+        }`}
+      />
+
+      {hasAnswered && answerStatus ? (
+        <View className="rounded-2xl border px-4 py-3" style={{ borderColor: feedbackColor, backgroundColor: `${feedbackColor}1F` }}>
+          <Text className="font-black" style={{ color: feedbackColor }}>
+            {answerStatus === 'correct' ? 'Respuesta correcta' : 'Respuesta incorrecta'}
+          </Text>
+          {answerStatus === 'incorrect' ? (
+            <Text className="mt-1 text-[13px] text-[#DDE7F4]">
+              Respuesta esperada: {expectedAnswers.join(', ')}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      <SubmitAnswerButton disabled={hasAnswered || !value.trim()} onPress={handleSubmit} />
+    </View>
+  )
+}
+
+function OrderingQuestion({
+  question,
+  hasAnswered,
+  answerStatus,
+  onSubmit,
+}: {
+  question: Question
+  hasAnswered: boolean
+  answerStatus: 'correct' | 'incorrect' | null
+  onSubmit: (isCorrect: boolean) => void
+}) {
+  const [orderedAnswers, setOrderedAnswers] = useState<Answer[]>(question.answers)
+  const correctOrder = useMemo(() => getSortedAnswers(question.answers), [question.answers])
+
+  useEffect(() => {
+    setOrderedAnswers(question.answers)
+  }, [question.id, question.answers])
+
+  const moveAnswer = (index: number, direction: -1 | 1) => {
+    if (hasAnswered) return
+    const nextIndex = index + direction
+    if (nextIndex < 0 || nextIndex >= orderedAnswers.length) return
+
+    const nextAnswers = [...orderedAnswers]
+    const current = nextAnswers[index]
+    nextAnswers[index] = nextAnswers[nextIndex]
+    nextAnswers[nextIndex] = current
+    setOrderedAnswers(nextAnswers)
+  }
+
+  const handleSubmit = () => {
+    const correctIds = correctOrder.map((answer) => answer.id).join('|')
+    const submittedIds = orderedAnswers.map((answer) => answer.id).join('|')
+    onSubmit(correctIds === submittedIds)
+  }
+
+  return (
+    <View className="gap-3 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
+      <Text className="text-[13px] font-bold text-[#AFC2DB]">Ordena los elementos de arriba a abajo.</Text>
+      {orderedAnswers.map((answer, index) => {
+        const isInCorrectPlace = correctOrder[index]?.id === answer.id
+        const rowColor = !hasAnswered ? '#1E355C' : isInCorrectPlace ? '#34D399' : '#FB7185'
+
+        return (
+          <View
+            key={answer.id}
+            className="flex-row items-center gap-3 rounded-2xl border bg-[#081A37] p-3"
+            style={{ borderColor: rowColor }}
+          >
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-[#18275A]">
+              <Text className="font-black text-white">{index + 1}</Text>
+            </View>
+            <Text className="min-w-0 flex-1 text-[17px] font-semibold text-white">{answer.text}</Text>
+            <View className="flex-row gap-2">
+              <MoveButton icon="chevron-up" disabled={hasAnswered || index === 0} onPress={() => moveAnswer(index, -1)} />
+              <MoveButton icon="chevron-down" disabled={hasAnswered || index === orderedAnswers.length - 1} onPress={() => moveAnswer(index, 1)} />
+            </View>
+          </View>
+        )
+      })}
+
+      {hasAnswered && answerStatus === 'incorrect' ? (
+        <CorrectAnswerBox label="Orden correcto" values={correctOrder.map((answer) => answer.text)} />
+      ) : null}
+
+      <SubmitAnswerButton disabled={hasAnswered || orderedAnswers.length < 2} onPress={handleSubmit} />
+    </View>
+  )
+}
+
+function PairingQuestion({
+  question,
+  questionType,
+  hasAnswered,
+  answerStatus,
+  onSubmit,
+}: {
+  question: Question
+  questionType: 'match_pairs' | 'drag_drop'
+  hasAnswered: boolean
+  answerStatus: 'correct' | 'incorrect' | null
+  onSubmit: (isCorrect: boolean) => void
+}) {
+  const pairs = useMemo(
+    () => getSortedAnswers(question.answers).map((answer) => decodePairAnswer(answer.text)).filter(Boolean) as { left: string; right: string }[],
+    [question.answers]
+  )
+  const options = useMemo(
+    () => question.answers.map((answer) => decodePairAnswer(answer.text)?.right).filter(Boolean) as string[],
+    [question.answers]
+  )
+  const [selections, setSelections] = useState<Record<number, string>>({})
+  const isDragDrop = questionType === 'drag_drop'
+
+  useEffect(() => {
+    setSelections({})
+  }, [question.id])
+
+  const cycleSelection = (index: number) => {
+    if (hasAnswered || options.length === 0) return
+    const currentValue = selections[index]
+    const currentIndex = currentValue ? options.indexOf(currentValue) : -1
+    const nextValue = options[(currentIndex + 1) % options.length]
+    setSelections((current) => ({ ...current, [index]: nextValue }))
+  }
+
+  const handleSubmit = () => {
+    const isComplete = pairs.every((_, index) => Boolean(selections[index]))
+    const isCorrect = isComplete && pairs.every((pair, index) => selections[index] === pair.right)
+    onSubmit(isCorrect)
+  }
+
+  return (
+    <View className="gap-4 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
+      <Text className="text-[13px] font-bold text-[#AFC2DB]">
+        {isDragDrop ? 'Asigna cada elemento a su destino.' : 'Une cada elemento con su pareja.'}
+      </Text>
+
+      {pairs.map((pair, index) => {
+        const selected = selections[index]
+        const isCorrect = selected === pair.right
+        const rowColor = !hasAnswered ? '#1E355C' : isCorrect ? '#34D399' : '#FB7185'
+
+        return (
+          <Pressable
+            key={`${pair.left}-${index}`}
+            onPress={() => cycleSelection(index)}
+            disabled={hasAnswered}
+            className="rounded-2xl border bg-[#081A37] p-4"
+            style={({ pressed }) => ({ borderColor: rowColor, opacity: pressed ? 0.84 : 1 })}
+          >
+            <View className="flex-row flex-wrap items-center gap-3">
+              <View className="min-w-[190px] flex-1 rounded-xl border border-[#28456B] bg-[#0D1D3B] px-4 py-3">
+                <Text className="text-[11px] font-bold uppercase text-[#8FA7C7]">{isDragDrop ? 'Elemento' : 'Origen'}</Text>
+                <Text className="mt-1 text-[16px] font-black text-white">{pair.left}</Text>
+              </View>
+              <Ionicons name={isDragDrop ? 'arrow-forward-circle' : 'git-compare'} size={24} color="#A78BFA" />
+              <View className="min-w-[190px] flex-1 rounded-xl border border-[#3A4F83] bg-[#111E45] px-4 py-3">
+                <Text className="text-[11px] font-bold uppercase text-[#8FA7C7]">{isDragDrop ? 'Destino' : 'Pareja'}</Text>
+                <Text className="mt-1 text-[16px] font-black text-white">{selected || 'Toca para elegir'}</Text>
+              </View>
+            </View>
+          </Pressable>
+        )
+      })}
+
+      <View className="flex-row flex-wrap gap-2">
+        {options.map((option) => (
+          <View key={option} className="rounded-full border border-[#28456B] bg-[#0D1D3B] px-3 py-2">
+            <Text className="text-[12px] font-bold text-[#C7D6ED]">{option}</Text>
+          </View>
+        ))}
+      </View>
+
+      {hasAnswered && answerStatus === 'incorrect' ? (
+        <CorrectAnswerBox label="Relaciones correctas" values={pairs.map((pair) => `${pair.left} -> ${pair.right}`)} />
+      ) : null}
+
+      <SubmitAnswerButton disabled={hasAnswered || pairs.length === 0} onPress={handleSubmit} />
+    </View>
+  )
+}
+
+function SubmitAnswerButton({ disabled, onPress }: { disabled: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      className="mt-1 flex-row items-center justify-center gap-2 rounded-2xl bg-[#5A46D8] px-6 py-4"
+      style={({ pressed }) => ({ opacity: disabled ? 0.55 : pressed ? 0.84 : 1 })}
+    >
+      <Text className="text-[16px] font-black text-white">Comprobar</Text>
+      <Ionicons name="checkmark-circle" size={19} color="#FFFFFF" />
+    </Pressable>
+  )
+}
+
+function MoveButton({
+  icon,
+  disabled,
+  onPress,
+}: {
+  icon: 'chevron-up' | 'chevron-down'
+  disabled: boolean
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      className="h-10 w-10 items-center justify-center rounded-xl border border-[#28456B] bg-[#0D1D3B]"
+      style={({ pressed }) => ({ opacity: disabled ? 0.35 : pressed ? 0.78 : 1 })}
+    >
+      <Ionicons name={icon} size={18} color="#DDE7F4" />
+    </Pressable>
+  )
+}
+
+function CorrectAnswerBox({ label, values }: { label: string; values: string[] }) {
+  return (
+    <View className="rounded-2xl border border-[#28456B] bg-[#071426] p-4">
+      <Text className="font-black text-[#A78BFA]">{label}</Text>
+      <View className="mt-2 gap-1">
+        {values.map((value, index) => (
+          <Text key={`${value}-${index}`} className="text-[13px] text-[#DDE7F4]">
+            {index + 1}. {value}
+          </Text>
+        ))}
+      </View>
+    </View>
   )
 }
 
@@ -384,22 +801,32 @@ function AnswerOption({
   answer,
   index,
   selectedAnswerId,
+  hintedAnswerId,
+  hasAnswered,
   onPress,
 }: {
   answer: Answer
   index: number
   selectedAnswerId: number | null
+  hintedAnswerId: number | null
+  hasAnswered: boolean
   onPress: () => void
 }) {
   const isSelected = selectedAnswerId === answer.id
-  const hasAnswered = selectedAnswerId !== null
 
   let borderColor = '#1E355C'
   let backgroundColor = '#0A1A34'
   let textColor = '#FFFFFF'
   let badgeColor = '#3B68F0'
 
-  if (!hasAnswered && index === 0) {
+  const isHinted = hintedAnswerId === answer.id
+  if (isHinted) {
+    borderColor = '#FBBF24'
+    backgroundColor = '#2A210F'
+    badgeColor = '#FBBF24'
+  }
+
+  if (!hasAnswered && index === 0 && !isHinted) {
     borderColor = '#8B5CF6'
     backgroundColor = '#16164E'
     badgeColor = '#6D5AF6'
@@ -565,4 +992,59 @@ function ResultState({
       </View>
     </View>
   )
+}
+
+function getQuestionType(typeValue: string | null | undefined): QuestionType {
+  const normalized = (typeValue || '').toLowerCase()
+  if (normalized === 'true_false') return 'true_false'
+  if (normalized === 'open_answer') return 'open_answer'
+  if (normalized === 'fill_blank') return 'fill_blank'
+  if (normalized === 'ordering') return 'ordering'
+  if (normalized === 'match_pairs') return 'match_pairs'
+  if (normalized === 'drag_drop') return 'drag_drop'
+  return 'multiple_choice'
+}
+
+function getQuestionInstruction(type: QuestionType) {
+  if (type === 'open_answer') return 'Escribe la respuesta correcta'
+  if (type === 'fill_blank') return 'Rellena los espacios'
+  if (type === 'ordering') return 'Ordena los elementos'
+  if (type === 'match_pairs') return 'Une las parejas'
+  if (type === 'drag_drop') return 'Asigna cada elemento'
+  return 'Elige la opción correcta'
+}
+
+function isChoiceQuestion(type: QuestionType) {
+  return type === 'multiple_choice' || type === 'true_false'
+}
+
+function getSortedAnswers(answers: Answer[]) {
+  return [...answers].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id)
+}
+
+function splitAnswerParts(value: string) {
+  return value
+    .split(/[,;\n]/)
+    .map(normalizeAnswerText)
+    .filter(Boolean)
+}
+
+function normalizeAnswerText(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+}
+
+function decodePairAnswer(text: string) {
+  const [left, ...rest] = (text || '').split('|||')
+  const right = rest.join('|||')
+  if (!left?.trim() || !right?.trim()) return null
+
+  return {
+    left: left.trim(),
+    right: right.trim(),
+  }
 }

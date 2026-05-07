@@ -25,7 +25,9 @@ export function useGame(subjectId: string, topicId?: string) {
   const [timeLeft, setTimeLeft] = useState(0);
   const [status, setStatus] = useState<'loading' | 'playing' | 'gameOver' | 'finished' | 'empty'>('loading');
   const [selectedAnswerId, setSelectedAnswerId] = useState<number | null>(null);
+  const [hasAnswered, setHasAnswered] = useState(false);
   const [answerStatus, setAnswerStatus] = useState<'correct' | 'incorrect' | null>(null);
+  const [hintedAnswerId, setHintedAnswerId] = useState<number | null>(null);
 
   const loadGame = useCallback(async () => {
     try {
@@ -53,7 +55,7 @@ export function useGame(subjectId: string, topicId?: string) {
 
       const questionsWithShuffledAnswers = shuffledQuestions.map((q) => ({
         ...q,
-        answers: shuffleArray(q.answers),
+        answers: shuffleArray(q.answers || []),
       }));
 
       scoreRef.current = 0;
@@ -63,6 +65,8 @@ export function useGame(subjectId: string, topicId?: string) {
       setCurrentIndex(0);
       setLives(3);
       setStreak(0);
+      setHasAnswered(false);
+      setHintedAnswerId(null);
       setQuestions(questionsWithShuffledAnswers);
       setTimeLeft(questionsWithShuffledAnswers[0].time_limit_seconds ?? 30);
       setStatus('playing');
@@ -77,7 +81,7 @@ export function useGame(subjectId: string, topicId?: string) {
   }, [loadGame]);
 
   useEffect(() => {
-    if (status !== 'playing' || selectedAnswerId !== null) return;
+    if (status !== 'playing' || hasAnswered) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -91,15 +95,15 @@ export function useGame(subjectId: string, topicId?: string) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [status, selectedAnswerId, currentIndex]);
+  }, [status, hasAnswered, currentIndex]);
 
   const handleTimeOut = () => {
     const currentQ = questions[currentIndex];
     const correctAnswer = currentQ.answers.find((a: any) => a.is_correct);
 
-    // Marcar la respuesta correcta en verde
+    setHasAnswered(true);
     setSelectedAnswerId(correctAnswer?.id ?? null);
-    setAnswerStatus('correct');
+    setAnswerStatus('incorrect');
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     setStreak(0);
 
@@ -112,12 +116,21 @@ export function useGame(subjectId: string, topicId?: string) {
   };
 
   const submitAnswer = (answerId: number) => {
-    if (selectedAnswerId !== null || status !== 'playing') return;
-
-    setSelectedAnswerId(answerId);
     const currentQ = questions[currentIndex];
     const isCorrect = currentQ.answers.find((a: any) => a.id === answerId)?.is_correct;
+    completeAnswer(Boolean(isCorrect), answerId);
+  };
 
+  const submitStructuredAnswer = (isCorrect: boolean) => {
+    completeAnswer(isCorrect);
+  };
+
+  const completeAnswer = (isCorrect: boolean, answerId?: number) => {
+    if (hasAnswered || status !== 'playing') return;
+
+    const currentQ = questions[currentIndex];
+    setHasAnswered(true);
+    setSelectedAnswerId(answerId ?? null);
     if (isCorrect) {
       setAnswerStatus('correct');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -150,11 +163,44 @@ export function useGame(subjectId: string, topicId?: string) {
 
   const nextQuestion = () => {
     setSelectedAnswerId(null);
+    setHasAnswered(false);
     setAnswerStatus(null);
+    setHintedAnswerId(null);
 
     if (currentIndex + 1 < questions.length) {
       setCurrentIndex((prev) => prev + 1);
       setTimeLeft(questions[currentIndex + 1].time_limit_seconds ?? 30);
+    } else {
+      finishGame('finished');
+    }
+  };
+
+  const useHint = () => {
+    if (hasAnswered || status !== 'playing') return false;
+
+    const currentQ = questions[currentIndex];
+    const correctAnswer = currentQ?.answers.find((a: any) => a.is_correct);
+    if (!correctAnswer) return false;
+
+    setHintedAnswerId(correctAnswer.id);
+    setScore((prev) => Math.max(0, prev - 10));
+    Haptics.impactAsync(Haptics.ImpactFeedbackType.Light);
+    return true;
+  };
+
+  const skipQuestion = () => {
+    if (hasAnswered || status !== 'playing') return;
+
+    setScore((prev) => Math.max(0, prev - 20));
+    setStreak(0);
+    setHintedAnswerId(null);
+
+    if (currentIndex + 1 < questions.length) {
+      setSelectedAnswerId(null);
+      setHasAnswered(false);
+      setAnswerStatus(null);
+      setCurrentIndex((prev) => prev + 1);
+      setTimeLeft(questions[currentIndex + 1]?.time_limit_seconds ?? 30);
     } else {
       finishGame('finished');
     }
@@ -279,8 +325,13 @@ export function useGame(subjectId: string, topicId?: string) {
     timeLeft,
     status,
     selectedAnswerId,
+    hasAnswered,
     answerStatus,
-    submitAnswer
+    hintedAnswerId,
+    submitAnswer,
+    submitStructuredAnswer,
+    useHint,
+    skipQuestion,
   };
 }
 

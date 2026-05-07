@@ -14,6 +14,7 @@ import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/TeacherSidebar';
+import NotificationBadge from '../../components/NotificationBadge';
 
 type Subject = {
   id: number
@@ -197,9 +198,10 @@ export default function TeacherHomeScreen() {
                 <Ionicons name="book-outline" size={18} color="#FFFFFF" />
                 <Text className="font-bold text-white">Ir a Mis Clases</Text>
               </Pressable>
-              <Pressable className="rounded-2xl border border-[#20375E] bg-[#09162C] p-3">
-                <Ionicons name="notifications-outline" size={22} color="#AFC2DB" />
-              </Pressable>
+              <NotificationBadge
+                count={3}
+                onPress={() => router.push('/(teacher)/notifications' as any)}
+              />
               <View className="h-11 w-11 items-center justify-center rounded-full bg-[#5B4BC4]">
                 <Text className="font-black text-white">PR</Text>
               </View>

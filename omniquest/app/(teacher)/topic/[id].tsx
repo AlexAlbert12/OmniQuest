@@ -238,6 +238,13 @@ export default function TopicDetailScreen() {
             </Pressable>
 
             <View className="flex-row flex-wrap items-center gap-3">
+              <Pressable
+                onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}` as any)}
+                className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
+              >
+                <Ionicons name="create-outline" size={16} color="#AFC2DB" />
+                <Text className="text-[12px] font-bold text-[#DCE7F8]">Editar tema</Text>
+              </Pressable>
               <Link
                 href={`/(teacher)/subject/add-question?subjectId=${subject.id}&topicId=${topic.id}`}
                 asChild
@@ -261,7 +268,12 @@ export default function TopicDetailScreen() {
             <View className="min-w-[230px] flex-1">
               <View className="flex-row items-center gap-2">
                 <Text className="text-[26px] font-black text-white">{topic.title}</Text>
-                <Ionicons name="pencil-outline" size={16} color="#8FA7C7" />
+                <Pressable
+                  onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}` as any)}
+                  className="h-8 w-8 items-center justify-center rounded-lg border border-[#20375E] bg-[#09162C]"
+                >
+                  <Ionicons name="pencil-outline" size={16} color="#8FA7C7" />
+                </Pressable>
               </View>
               <Text className="mt-1 text-[13px] font-semibold text-[#B7C4D7]">
                 {topic.description || 'Tema de la clase'}

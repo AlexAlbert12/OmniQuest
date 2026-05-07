@@ -23,6 +23,7 @@ type Subject = {
   icon: string | null
   code: string
   theme_color: string | null
+  created_at?: string | null
 }
 
 type SubjectAnalytics = {
@@ -31,25 +32,76 @@ type SubjectAnalytics = {
   averageScore: number
   questionsCount: number
   topicsCount: number
+  enrolledThisWeek: number
+  playedThisWeek: number
+  questionsThisWeek: number
 }
 
-const upcomingActivities = [
-  { icon: 'clipboard-outline', color: '#8B5CF6', title: 'Repaso de Gramática', detail: 'Inglés', date: '25 May' },
-  { icon: 'calculator-outline', color: '#34D399', title: 'Ecuaciones de 1er grado', detail: 'Matemáticas', date: '28 May' },
-  { icon: 'book-outline', color: '#3B82F6', title: 'Verbos en pasado', detail: 'Inglés', date: '30 May' },
-] as const
+type Enrollment = {
+  subject_id: number | null
+  student_id: string | null
+  joined_at?: string | null
+}
 
-const recentActivity = [
-  { icon: 'people', color: '#8B5CF6', title: 'Mateo G. completó la pregunta', detail: '"Verbos en pasado" en Inglés', time: 'Hace 2h' },
-  { icon: 'checkmark', color: '#34D399', title: 'Mateo G. respondió correctamente', detail: '10 preguntas en Matemáticas', time: 'Hace 4h' },
-  { icon: 'person-add', color: '#3B82F6', title: 'Nueva inscripción en Matemáticas', detail: 'Mateo G.', time: 'Hace 6h' },
-] as const
+type SubjectScore = {
+  subject_id: number | null
+  student_id: string | null
+  max_score: number | null
+  played_at?: string | null
+}
+
+type QuestionSummary = {
+  subject_id: number | null
+  text?: string | null
+  created_at?: string | null
+}
+
+type TopicSummary = {
+  subject_id: number | null
+  title?: string | null
+  created_at?: string | null
+}
+
+type ProfileSummary = {
+  id: string
+  alias: string | null
+}
+
+type ActivityPlanItem = {
+  icon: keyof typeof Ionicons.glyphMap
+  color: string
+  title: string
+  detail: string
+  label: string
+}
+
+type RecentActivityItem = {
+  icon: keyof typeof Ionicons.glyphMap
+  color: string
+  title: string
+  detail: string
+  time: string
+  timestamp: number
+}
+
+const emptySubjectAnalytics: SubjectAnalytics = {
+  enrolledCount: 0,
+  playedCount: 0,
+  averageScore: 0,
+  questionsCount: 0,
+  topicsCount: 0,
+  enrolledThisWeek: 0,
+  playedThisWeek: 0,
+  questionsThisWeek: 0,
+}
 
 export default function TeacherClassesScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [analyticsBySubject, setAnalyticsBySubject] = useState<Record<number, SubjectAnalytics>>({});
+  const [activityPlan, setActivityPlan] = useState<ActivityPlanItem[]>([]);
+  const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -72,12 +124,18 @@ export default function TeacherClassesScreen() {
     const totalQuestions = analytics.reduce((total, item) => total + item.questionsCount, 0);
     const totalPlayed = analytics.reduce((total, item) => total + item.playedCount, 0);
     const weightedScore = analytics.reduce((total, item) => total + item.averageScore * item.playedCount, 0);
+    const enrolledThisWeek = analytics.reduce((total, item) => total + item.enrolledThisWeek, 0);
+    const playedThisWeek = analytics.reduce((total, item) => total + item.playedThisWeek, 0);
+    const questionsThisWeek = analytics.reduce((total, item) => total + item.questionsThisWeek, 0);
 
     return {
       students: totalStudents,
       questions: totalQuestions,
       participation: totalStudents > 0 ? Math.round((totalPlayed / totalStudents) * 100) : 0,
       averageScore: totalPlayed > 0 ? Math.round(weightedScore / totalPlayed) : 0,
+      enrolledThisWeek,
+      playedThisWeek,
+      questionsThisWeek,
     };
   }, [analyticsBySubject]);
 
@@ -88,7 +146,7 @@ export default function TeacherClassesScreen() {
 
       const { data, error } = await supabase
         .from('subjects')
-        .select('id, name, description, icon, code, theme_color')
+        .select('id, name, description, icon, code, theme_color, created_at')
         .eq('teacher_id', session.session.user.id)
         .eq('is_archived', false)
         .order('created_at', { ascending: false });
@@ -101,14 +159,16 @@ export default function TeacherClassesScreen() {
       const subjectIds = nextSubjects.map((subject) => subject.id);
       if (subjectIds.length === 0) {
         setAnalyticsBySubject({});
+        setActivityPlan([]);
+        setRecentActivity([]);
         return;
       }
 
       const [enrollmentsResult, scoresResult, questionsResult, topicsResult] = await Promise.all([
-        supabase.from('enrollments').select('subject_id').in('subject_id', subjectIds),
-        supabase.from('subject_scores').select('subject_id, max_score').in('subject_id', subjectIds),
-        supabase.from('questions').select('subject_id').in('subject_id', subjectIds),
-        supabase.from('subject_topics').select('subject_id').in('subject_id', subjectIds).eq('active', true),
+        supabase.from('enrollments').select('subject_id, student_id, joined_at').in('subject_id', subjectIds),
+        supabase.from('subject_scores').select('subject_id, student_id, max_score, played_at').in('subject_id', subjectIds),
+        supabase.from('questions').select('subject_id, text, created_at').in('subject_id', subjectIds),
+        supabase.from('subject_topics').select('subject_id, title, created_at').in('subject_id', subjectIds).eq('active', true),
       ]);
 
       if (enrollmentsResult.error) throw enrollmentsResult.error;
@@ -116,14 +176,28 @@ export default function TeacherClassesScreen() {
       if (questionsResult.error) throw questionsResult.error;
       if (topicsResult.error) throw topicsResult.error;
 
+      const enrollments = (enrollmentsResult.data || []) as Enrollment[];
+      const scores = (scoresResult.data || []) as SubjectScore[];
+      const questions = (questionsResult.data || []) as QuestionSummary[];
+      const topics = (topicsResult.data || []) as TopicSummary[];
+      const weekStart = getRecentThresholdDate(7);
+
+      const studentIds = Array.from(
+        new Set(
+          [...enrollments.map((item) => item.student_id), ...scores.map((item) => item.student_id)]
+            .filter((value): value is string => Boolean(value))
+        )
+      );
+      const profilesById = studentIds.length > 0 ? await fetchProfilesById(studentIds) : {};
+
       const nextAnalytics: Record<number, SubjectAnalytics> = {};
       subjectIds.forEach((subjectId) => {
-        const subjectEnrollments = enrollmentsResult.data?.filter((item) => item.subject_id === subjectId) || [];
-        const subjectScores = scoresResult.data?.filter(
+        const subjectEnrollments = enrollments.filter((item) => item.subject_id === subjectId);
+        const subjectScores = scores.filter(
           (item) => item.subject_id === subjectId && typeof item.max_score === 'number'
-        ) || [];
-        const subjectQuestions = questionsResult.data?.filter((item) => item.subject_id === subjectId) || [];
-        const subjectTopics = topicsResult.data?.filter((item) => item.subject_id === subjectId) || [];
+        );
+        const subjectQuestions = questions.filter((item) => item.subject_id === subjectId);
+        const subjectTopics = topics.filter((item) => item.subject_id === subjectId);
         const totalScore = subjectScores.reduce((total, item) => total + (item.max_score ?? 0), 0);
 
         nextAnalytics[subjectId] = {
@@ -132,9 +206,14 @@ export default function TeacherClassesScreen() {
           averageScore: subjectScores.length > 0 ? Math.round(totalScore / subjectScores.length) : 0,
           questionsCount: subjectQuestions.length,
           topicsCount: subjectTopics.length,
+          enrolledThisWeek: subjectEnrollments.filter((item) => isAfterDate(item.joined_at, weekStart)).length,
+          playedThisWeek: subjectScores.filter((item) => isAfterDate(item.played_at, weekStart)).length,
+          questionsThisWeek: subjectQuestions.filter((item) => isAfterDate(item.created_at, weekStart)).length,
         };
       });
       setAnalyticsBySubject(nextAnalytics);
+      setActivityPlan(buildActivityPlan(nextSubjects, nextAnalytics));
+      setRecentActivity(buildRecentActivity({ enrollments, scores, questions, subjects: nextSubjects, profilesById }));
     } catch (error: any) {
       console.error('Error cargando clases:', error.message);
     } finally {
@@ -235,10 +314,10 @@ export default function TeacherClassesScreen() {
           </View>
 
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
-            <MetricCard icon="school" title="Clases activas" value={String(subjects.length)} trend="1 más que el mes pasado" color="#8B5CF6" />
-            <MetricCard icon="people" title="Estudiantes" value={String(totals.students)} trend="1 esta semana" color="#43D991" />
-            <MetricCard icon="clipboard" title="Actividades" value={String(totals.questions)} trend="2 esta semana" color="#3B82F6" />
-            <MetricCard icon="trophy" title="Participación media" value={`${totals.participation}%`} trend="12% esta semana" color="#F6A64A" />
+            <MetricCard icon="school" title="Clases activas" value={String(subjects.length)} trend={formatWeeklyTrend(subjects.filter((subject) => isAfterDate(subject.created_at, getRecentThresholdDate(7))).length, 'clase nueva', 'clases nuevas')} color="#8B5CF6" />
+            <MetricCard icon="people" title="Estudiantes" value={String(totals.students)} trend={formatWeeklyTrend(totals.enrolledThisWeek, 'inscripción', 'inscripciones')} color="#43D991" />
+            <MetricCard icon="clipboard" title="Preguntas" value={String(totals.questions)} trend={formatWeeklyTrend(totals.questionsThisWeek, 'pregunta nueva', 'preguntas nuevas')} color="#3B82F6" />
+            <MetricCard icon="trophy" title="Participación media" value={`${totals.participation}%`} trend={formatWeeklyTrend(totals.playedThisWeek, 'partida', 'partidas')} color="#F6A64A" />
           </View>
 
           <View className={isDesktop ? 'mt-6 flex-row gap-5' : 'mt-6 gap-5'}>
@@ -275,7 +354,7 @@ export default function TeacherClassesScreen() {
                     key={subject.id}
                     subject={subject}
                     index={index}
-                    analytics={analyticsBySubject[subject.id] || { enrolledCount: 0, playedCount: 0, averageScore: 0, questionsCount: 0, topicsCount: 0 }}
+                    analytics={analyticsBySubject[subject.id] || emptySubjectAnalytics}
                     onComingSoon={showComingSoon}
                   />
                 ))}
@@ -299,16 +378,20 @@ export default function TeacherClassesScreen() {
             </View>
 
             <View className={isDesktop ? 'flex-1 gap-4' : 'gap-4'}>
-              <SidePanel title="Próximas actividades" action="Ver todas">
+              <SidePanel title="Siguientes acciones" action="Ver todas">
                 <View style={{ gap: 10 }}>
-                  {upcomingActivities.map((item) => <ActivityPlanRow key={item.title} item={item} />)}
+                  {activityPlan.length > 0 ? (
+                    activityPlan.map((item) => <ActivityPlanRow key={`${item.title}-${item.detail}`} item={item} />)
+                  ) : (
+                    <EmptyPanelRow icon="checkmark-done-outline" text="Tus clases no tienen acciones pendientes." />
+                  )}
                 </View>
               </SidePanel>
 
               <SidePanel title="Participación por clase" action="Ver informe">
                 <View style={{ gap: 14 }}>
                   {subjects.slice(0, 3).map((subject) => {
-                    const analytics = analyticsBySubject[subject.id] || { enrolledCount: 0, playedCount: 0, averageScore: 0, questionsCount: 0, topicsCount: 0 };
+                    const analytics = analyticsBySubject[subject.id] || emptySubjectAnalytics;
                     const progress = analytics.enrolledCount > 0 ? Math.round((analytics.playedCount / analytics.enrolledCount) * 100) : 0;
                     return <ProgressRow key={subject.id} label={subject.name} value={progress} color={subject.theme_color || '#8B5CF6'} />;
                   })}
@@ -317,7 +400,11 @@ export default function TeacherClassesScreen() {
 
               <SidePanel title="Actividad reciente en clases" action="Ver todo">
                 <View style={{ gap: 13 }}>
-                  {recentActivity.map((item) => <RecentActivityRow key={item.title} item={item} />)}
+                  {recentActivity.length > 0 ? (
+                    recentActivity.map((item) => <RecentActivityRow key={`${item.title}-${item.timestamp}`} item={item} />)
+                  ) : (
+                    <EmptyPanelRow icon="time-outline" text="Todavía no hay actividad registrada." />
+                  )}
                 </View>
               </SidePanel>
             </View>
@@ -341,6 +428,9 @@ function MetricCard({
   trend: string
   color: string
 }) {
+  const hasGrowth = !trend.toLowerCase().startsWith('sin');
+  const trendColor = hasGrowth ? '#58E28B' : '#8FA7C7';
+
   return (
     <View className="min-w-[190px] flex-1 overflow-hidden rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
       <View className="flex-row items-center gap-4">
@@ -353,8 +443,8 @@ function MetricCard({
         </View>
       </View>
       <View className="mt-4 flex-row items-center gap-2">
-        <Ionicons name="arrow-up" size={13} color="#58E28B" />
-        <Text className="text-[12px] font-semibold text-[#58E28B]">{trend}</Text>
+        <Ionicons name={hasGrowth ? 'arrow-up' : 'remove'} size={13} color={trendColor} />
+        <Text className="text-[12px] font-semibold" style={{ color: trendColor }}>{trend}</Text>
       </View>
     </View>
   );
@@ -417,7 +507,7 @@ function ClassCard({
         <ClassAction href={`/(teacher)/subject/${subject.id}`} icon="eye-outline" label="Ver clase" />
         <ClassAction href={`/(teacher)/subject/students?subjectId=${subject.id}`} icon="people-outline" label="Estudiantes" />
         <ClassAction onPress={() => onComingSoon('Las actividades de la clase')} icon="calendar-outline" label="Actividades" />
-        <ClassAction onPress={() => onComingSoon('Los informes de la clase')} icon="analytics-outline" label="Informes" />
+        <ClassAction href={`/(teacher)/subject/${subject.id}?tab=reports`} icon="analytics-outline" label="Informes" />
         <ClassAction href={`/(teacher)/edit-subject?id=${subject.id}`} icon="create-outline" label="Editar" />
       </View>
     </View>
@@ -494,7 +584,7 @@ function SidePanel({ title, action, children }: { title: string; action: string;
   );
 }
 
-function ActivityPlanRow({ item }: { item: (typeof upcomingActivities)[number] }) {
+function ActivityPlanRow({ item }: { item: ActivityPlanItem }) {
   return (
     <View className="flex-row items-center gap-4 rounded-xl border border-[#172A4A] bg-[#0D1D3B] p-3">
       <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${item.color}33` }}>
@@ -505,8 +595,8 @@ function ActivityPlanRow({ item }: { item: (typeof upcomingActivities)[number] }
         <Text className="mt-1 text-[12px] text-[#B7C4D7]" numberOfLines={1}>{item.detail}</Text>
       </View>
       <View className="flex-row items-center gap-2">
-        <Ionicons name="calendar-outline" size={15} color="#AFC2DB" />
-        <Text className="text-[12px] font-semibold text-white">{item.date}</Text>
+        <Ionicons name="flag-outline" size={15} color="#AFC2DB" />
+        <Text className="text-[12px] font-semibold text-white">{item.label}</Text>
       </View>
     </View>
   );
@@ -526,7 +616,7 @@ function ProgressRow({ label, value, color }: { label: string; value: number; co
   );
 }
 
-function RecentActivityRow({ item }: { item: (typeof recentActivity)[number] }) {
+function RecentActivityRow({ item }: { item: RecentActivityItem }) {
   return (
     <View className="flex-row items-start gap-3">
       <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: `${item.color}33` }}>
@@ -539,4 +629,203 @@ function RecentActivityRow({ item }: { item: (typeof recentActivity)[number] }) 
       <Text className="text-[11px] text-[#8FA7C7]">{item.time}</Text>
     </View>
   );
+}
+
+function EmptyPanelRow({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+  return (
+    <View className="items-center justify-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B] p-4">
+      <Ionicons name={icon} size={24} color="#8FA7C7" />
+      <Text className="mt-2 text-center text-[12px] text-[#8FA7C7]">{text}</Text>
+    </View>
+  );
+}
+
+async function fetchProfilesById(studentIds: string[]) {
+  const { data, error } = await supabase.from('profiles').select('id, alias').in('id', studentIds);
+  if (error) throw error;
+
+  return ((data || []) as ProfileSummary[]).reduce<Record<string, ProfileSummary>>((acc, profile) => {
+    acc[profile.id] = profile;
+    return acc;
+  }, {});
+}
+
+function buildActivityPlan(subjects: Subject[], analyticsBySubject: Record<number, SubjectAnalytics>): ActivityPlanItem[] {
+  const actionItems = subjects.flatMap((subject) => {
+    const analytics = analyticsBySubject[subject.id] || emptySubjectAnalytics;
+    const color = subject.theme_color || '#8B5CF6';
+    const items: ActivityPlanItem[] = [];
+
+    if (analytics.questionsCount === 0) {
+      items.push({
+        icon: 'clipboard-outline',
+        color,
+        title: 'Añadir primeras preguntas',
+        detail: subject.name,
+        label: 'Contenido',
+      });
+    }
+
+    if (analytics.enrolledCount === 0) {
+      items.push({
+        icon: 'person-add-outline',
+        color: '#38BDF8',
+        title: 'Invitar estudiantes',
+        detail: subject.name,
+        label: 'Clase vacía',
+      });
+    }
+
+    if (analytics.enrolledCount > 0 && analytics.playedCount === 0) {
+      items.push({
+        icon: 'flash-outline',
+        color: '#F6A64A',
+        title: 'Impulsar primera partida',
+        detail: subject.name,
+        label: 'Sin actividad',
+      });
+    }
+
+    if (analytics.enrolledCount > 0 && analytics.playedCount > 0) {
+      const participation = Math.round((analytics.playedCount / analytics.enrolledCount) * 100);
+      if (participation < 60) {
+        items.push({
+          icon: 'analytics-outline',
+          color: '#EC4899',
+          title: 'Revisar participación',
+          detail: `${subject.name} · ${participation}%`,
+          label: 'Seguimiento',
+        });
+      }
+    }
+
+    return items;
+  });
+
+  return actionItems.slice(0, 3);
+}
+
+function buildRecentActivity({
+  enrollments,
+  scores,
+  questions,
+  subjects,
+  profilesById,
+}: {
+  enrollments: Enrollment[]
+  scores: SubjectScore[]
+  questions: QuestionSummary[]
+  subjects: Subject[]
+  profilesById: Record<string, ProfileSummary>
+}) {
+  const subjectsById = new Map(subjects.map((subject) => [subject.id, subject]));
+
+  const scoreItems: RecentActivityItem[] = scores
+    .filter((score) => score.played_at)
+    .map((score) => {
+      const subject = score.subject_id ? subjectsById.get(score.subject_id) : null;
+      const studentName = getStudentName(score.student_id, profilesById);
+      const timestamp = toTimestamp(score.played_at);
+
+      return {
+        icon: 'trophy',
+        color: '#F6A64A',
+        title: `${studentName} completó una partida`,
+        detail: `${score.max_score ?? 0} XP en ${subject?.name || 'una clase'}`,
+        time: formatRelativeDate(score.played_at),
+        timestamp,
+      };
+    });
+
+  const enrollmentItems: RecentActivityItem[] = enrollments
+    .filter((enrollment) => enrollment.joined_at)
+    .map((enrollment) => {
+      const subject = enrollment.subject_id ? subjectsById.get(enrollment.subject_id) : null;
+      const studentName = getStudentName(enrollment.student_id, profilesById);
+      const timestamp = toTimestamp(enrollment.joined_at);
+
+      return {
+        icon: 'person-add',
+        color: '#3B82F6',
+        title: `Nueva inscripción en ${subject?.name || 'una clase'}`,
+        detail: studentName,
+        time: formatRelativeDate(enrollment.joined_at),
+        timestamp,
+      };
+    });
+
+  const questionItems: RecentActivityItem[] = questions
+    .filter((question) => question.created_at)
+    .map((question) => {
+      const subject = question.subject_id ? subjectsById.get(question.subject_id) : null;
+      const timestamp = toTimestamp(question.created_at);
+
+      return {
+        icon: 'checkmark',
+        color: '#34D399',
+        title: `Pregunta creada en ${subject?.name || 'una clase'}`,
+        detail: question.text ? truncateText(question.text, 52) : 'Nueva pregunta disponible',
+        time: formatRelativeDate(question.created_at),
+        timestamp,
+      };
+    });
+
+  return [...scoreItems, ...enrollmentItems, ...questionItems]
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 4);
+}
+
+function getStudentName(studentId: string | null, profilesById: Record<string, ProfileSummary>) {
+  if (!studentId) return 'Alumno';
+  return profilesById[studentId]?.alias || 'Alumno';
+}
+
+function getRecentThresholdDate(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+}
+
+function isAfterDate(value: string | null | undefined, threshold: Date) {
+  if (!value) return false;
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime()) && date >= threshold;
+}
+
+function toTimestamp(value: string | null | undefined) {
+  if (!value) return 0;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function formatWeeklyTrend(count: number, singular: string, plural: string) {
+  if (count <= 0) return 'Sin cambios esta semana';
+  return `+${count} ${count === 1 ? singular : plural} esta semana`;
+}
+
+function formatRelativeDate(value: string | null | undefined) {
+  if (!value) return 'Sin fecha';
+
+  const timestamp = toTimestamp(value);
+  if (!timestamp) return 'Sin fecha';
+
+  const diffMs = Date.now() - timestamp;
+  const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
+  if (diffMinutes < 1) return 'Ahora';
+  if (diffMinutes < 60) return `Hace ${diffMinutes} min`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `Hace ${diffHours} h`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'Ayer';
+  if (diffDays < 7) return `Hace ${diffDays} días`;
+
+  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(new Date(timestamp));
+}
+
+function truncateText(value: string, maxLength: number) {
+  const cleanValue = value.trim();
+  if (cleanValue.length <= maxLength) return cleanValue;
+  return `${cleanValue.slice(0, maxLength - 3)}...`;
 }

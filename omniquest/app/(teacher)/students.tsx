@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/TeacherSidebar';
@@ -52,10 +52,12 @@ type StudentRow = {
   progress: number
   status: 'active' | 'inactive' | 'needs_help'
   subjectIds: number[]
+  subjectNames: string[]
 }
 
 export default function TeacherStudentsScreen() {
   const { width } = useWindowDimensions();
+  const router = useRouter();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | 'all'>('all');
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -157,6 +159,7 @@ export default function TeacherStudentsScreen() {
       if (profilesError) throw profilesError;
 
       const profilesById = new Map(((profilesData || []) as StudentProfile[]).map((profile) => [profile.id, profile]));
+      const subjectMap = new Map(teacherSubjects.map((subject) => [subject.id, subject.name]));
       const enrollmentsByStudent = groupBy(enrollments, 'student_id');
       const scoresByStudent = groupBy(scores, 'student_id');
 
@@ -185,6 +188,7 @@ export default function TeacherStudentsScreen() {
           progress,
           status: progress >= 60 ? 'active' : progress >= 35 ? 'inactive' : 'needs_help',
           subjectIds: studentEnrollments.map((enrollment) => enrollment.subject_id),
+          subjectNames: studentEnrollments.map((enrollment) => subjectMap.get(enrollment.subject_id) ?? 'Clase').filter((value, index, self) => self.indexOf(value) === index),
         } satisfies StudentRow;
       });
 
@@ -219,6 +223,147 @@ export default function TeacherStudentsScreen() {
 
   const showComingSoon = (feature: string) => {
     showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`);
+  };
+
+  const handleSendMessage = async (student: StudentRow) => {
+    if (Platform.OS === 'web') {
+      const message = window.prompt(`Escribe un mensaje para ${student.alias}`);
+      if (!message || !message.trim()) {
+        return;
+      }
+      showAlert('Mensaje enviado', `Tu mensaje a ${student.alias} ha sido guardado en borrador.`);
+      return;
+    }
+
+    showAlert('Enviar mensaje', `Abre el chat interno para enviar un mensaje a ${student.alias}.`);
+  };
+
+  const handleViewStudentDetails = (student: StudentRow) => {
+    const detailLines = [
+      `Alias: ${student.alias}`,
+      `Usuario: ${student.handle}`,
+      `Progreso: ${student.progress}%`,
+      `XP de clase: ${student.subjectScore}`,
+      `Nota media: ${student.averageScore.toFixed(1)}`,
+      `Preguntas completadas: ${student.challenges}`,
+      `Estado: ${getStatusMeta(student.status).label}`,
+      `Asignaturas: ${student.subjectNames.join(', ') || 'Ninguna'}`,
+    ];
+
+    showAlert('Detalle del estudiante', detailLines.join('\n'));
+  };
+
+  const handleRemoveFromClass = async (student: StudentRow) => {
+    const subjectIds = student.subjectIds;
+    if (subjectIds.length === 0) {
+      showAlert('Sin clases', `${student.alias} no está inscrito en ninguna clase.`);
+      return;
+    }
+
+    const confirmTitle = 'Quitar de clase';
+    const confirmMessage = `¿Seguro que quieres eliminar a ${student.alias} de sus clases actuales?`;
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(confirmMessage);
+      if (!confirmed) return;
+    }
+
+    if (Platform.OS !== 'web') {
+      let confirmed = false;
+      await new Promise<void>((resolve) => {
+        Alert.alert(confirmTitle, confirmMessage, [
+          { text: 'Cancelar', style: 'cancel', onPress: () => resolve() },
+          { text: 'Sí, quitar', style: 'destructive', onPress: () => { confirmed = true; resolve(); } },
+        ]);
+      });
+      if (!confirmed) return;
+    }
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+
+      const deleteScores = await supabase
+        .from('subject_scores')
+        .delete()
+        .eq('student_id', student.id)
+        .in('subject_id', subjectIds);
+      if (deleteScores.error) throw deleteScores.error;
+
+      const deleteEnrollments = await supabase
+        .from('enrollments')
+        .delete()
+        .eq('student_id', student.id)
+        .in('subject_id', subjectIds);
+      if (deleteEnrollments.error) throw deleteEnrollments.error;
+
+      setStudents((prev) => prev.filter((row) => row.id !== student.id));
+      showAlert('Estudiante eliminado', `${student.alias} ha sido removido de las clases.`);
+    } catch (error: any) {
+      showAlert('Error', error.message || 'No se pudo eliminar al estudiante.');
+    }
+  };
+
+  const handleResetProgress = async (student: StudentRow) => {
+    const subjectIds = student.subjectIds;
+    if (subjectIds.length === 0) {
+      showAlert('Sin progreso', `${student.alias} no tiene progreso registrado.`);
+      return;
+    }
+
+    try {
+      const resetResult = await supabase
+        .from('subject_scores')
+        .delete()
+        .eq('student_id', student.id)
+        .in('subject_id', subjectIds);
+
+      if (resetResult.error) throw resetResult.error;
+
+      setStudents((prev) => prev.map((row) => (row.id === student.id ? { ...row, subjectScore: 0, averageScore: 0, challenges: 0, progress: 0, status: 'needs_help' } : row)));
+      showAlert('Progreso reiniciado', `El progreso de ${student.alias} ha sido reiniciado.`);
+    } catch (error: any) {
+      showAlert('Error', error.message || 'No se pudo reiniciar el progreso.');
+    }
+  };
+
+  const handleAssignActivity = (student: StudentRow) => {
+    const targetSubjectId = selectedSubjectId !== 'all' ? selectedSubjectId : student.subjectIds[0];
+
+    if (!targetSubjectId || targetSubjectId === 'all') {
+      showAlert('Asignar actividad', 'Selecciona primero una clase para asignar la actividad.');
+      return;
+    }
+
+    router.push(`/(teacher)/subject/add-question?subjectId=${targetSubjectId}` as any);
+  };
+
+  const openStudentActions = (student: StudentRow) => {
+    if (Platform.OS === 'web') {
+      const action = window.prompt(
+        `Acciones para ${student.alias}: 1) Mensaje 2) Detalle 3) Quitar 4) Reiniciar 5) Asignar actividad`,
+      );
+      if (!action) return;
+      if (action.startsWith('1')) return handleSendMessage(student);
+      if (action.startsWith('2')) return handleViewStudentDetails(student);
+      if (action.startsWith('3')) return handleRemoveFromClass(student);
+      if (action.startsWith('4')) return handleResetProgress(student);
+      if (action.startsWith('5')) return handleAssignActivity(student);
+      return;
+    }
+
+    Alert.alert(
+      `Acciones para ${student.alias}`,
+      'Selecciona una acción',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Mensaje', onPress: () => handleSendMessage(student) },
+        { text: 'Detalle', onPress: () => handleViewStudentDetails(student) },
+        { text: 'Quitar de clase', onPress: () => handleRemoveFromClass(student), style: 'destructive' },
+        { text: 'Reiniciar progreso', onPress: () => handleResetProgress(student) },
+        { text: 'Asignar actividad', onPress: () => handleAssignActivity(student) },
+      ],
+    );
   };
 
   const handleExportStudentsCsv = () => {
@@ -403,7 +548,13 @@ export default function TeacherStudentsScreen() {
                 </View>
 
                 {visibleStudents.map((student, index) => (
-                  <StudentTableRow key={student.id} student={student} index={index} onComingSoon={showComingSoon} />
+                  <StudentTableRow
+                    key={student.id}
+                    student={student}
+                    index={index}
+                    onSendMessage={handleSendMessage}
+                    onOpenActions={openStudentActions}
+                  />
                 ))}
 
                 {visibleStudents.length === 0 ? (
@@ -556,11 +707,13 @@ function TableHeader({ label, flex, align = 'left' }: { label: string; flex: num
 function StudentTableRow({
   student,
   index,
-  onComingSoon,
+  onSendMessage,
+  onOpenActions,
 }: {
   student: StudentRow
   index: number
-  onComingSoon: (feature: string) => void
+  onSendMessage: (student: StudentRow) => void
+  onOpenActions: (student: StudentRow) => void
 }) {
   const status = getStatusMeta(student.status);
 
@@ -606,10 +759,10 @@ function StudentTableRow({
         <Text className="text-[12px]" style={{ color: status.color }}>{status.label}</Text>
       </View>
       <View className="min-w-[75px] flex-[0.65] flex-row justify-end gap-2">
-        <Pressable onPress={() => onComingSoon('Mensajes al estudiante')} className="h-8 w-8 items-center justify-center rounded-lg bg-[#111E3C]">
+        <Pressable onPress={() => onSendMessage(student)} className="h-8 w-8 items-center justify-center rounded-lg bg-[#111E3C]">
           <Ionicons name="chatbubble-outline" size={15} color="#B9A7FF" />
         </Pressable>
-        <Pressable onPress={() => onComingSoon('Acciones del estudiante')} className="h-8 w-8 items-center justify-center rounded-lg bg-[#111E3C]">
+        <Pressable onPress={() => onOpenActions(student)} className="h-8 w-8 items-center justify-center rounded-lg bg-[#111E3C]">
           <Ionicons name="ellipsis-vertical" size={15} color="#AFC2DB" />
         </Pressable>
       </View>
