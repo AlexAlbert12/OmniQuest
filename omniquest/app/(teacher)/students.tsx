@@ -15,6 +15,8 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/TeacherSidebar';
+import NotificationBadge from '../../components/NotificationBadge';
+import { useNotifications } from '../../hooks/useNotifications';
 
 type Subject = {
   id: number
@@ -58,6 +60,7 @@ type StudentRow = {
 export default function TeacherStudentsScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
+  const { unreadCount } = useNotifications();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | 'all'>('all');
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -330,7 +333,7 @@ export default function TeacherStudentsScreen() {
   const handleAssignActivity = (student: StudentRow) => {
     const targetSubjectId = selectedSubjectId !== 'all' ? selectedSubjectId : student.subjectIds[0];
 
-    if (!targetSubjectId || targetSubjectId === 'all') {
+    if (!targetSubjectId) {
       showAlert('Asignar actividad', 'Selecciona primero una clase para asignar la actividad.');
       return;
     }
@@ -489,12 +492,10 @@ export default function TeacherStudentsScreen() {
                 selectedSubjectId={selectedSubjectId}
                 onSelect={setSelectedSubjectId}
               />
-              <Pressable className="rounded-2xl border border-[#20375E] bg-[#09162C] p-3">
-                <Ionicons name="notifications-outline" size={22} color="#AFC2DB" />
-                <View className="absolute right-2 top-2 h-5 w-5 items-center justify-center rounded-full bg-[#EF4444]">
-                  <Text className="text-[10px] font-black text-white">3</Text>
-                </View>
-              </Pressable>
+              <NotificationBadge
+                count={unreadCount}
+                onPress={() => router.push('/(teacher)/notifications' as any)}
+              />
               <View className="h-11 w-11 items-center justify-center rounded-full bg-[#5B4BC4]">
                 <Text className="font-black text-white">PR</Text>
               </View>

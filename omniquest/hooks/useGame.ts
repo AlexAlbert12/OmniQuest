@@ -131,6 +131,10 @@ export function useGame(subjectId: string, topicId?: string) {
     const currentQ = questions[currentIndex];
     setHasAnswered(true);
     setSelectedAnswerId(answerId ?? null);
+    
+    // Guardar el intento en el historial
+    saveAttempt(currentQ.id, answerId ?? null, isCorrect);
+    
     if (isCorrect) {
       setAnswerStatus('correct');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -175,6 +179,26 @@ export function useGame(subjectId: string, topicId?: string) {
     }
   };
 
+  const saveAttempt = async (questionId: number, answerId: number | null, isCorrect: boolean) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user.id) return;
+
+      await supabase.from('attempt_history').insert([
+        {
+          student_id: session.session.user.id,
+          question_id: questionId,
+          answer_id: answerId,
+          is_correct: isCorrect,
+          time_taken_seconds: 30 - timeLeft,
+        },
+      ]);
+    } catch (error: any) {
+      console.error('Error saving attempt:', error);
+      // No mostrar alerta, solo registrar el error
+    }
+  };
+
   const useHint = () => {
     if (hasAnswered || status !== 'playing') return false;
 
@@ -183,15 +207,23 @@ export function useGame(subjectId: string, topicId?: string) {
     if (!correctAnswer) return false;
 
     setHintedAnswerId(correctAnswer.id);
-    setScore((prev) => Math.max(0, prev - 10));
-    Haptics.impactAsync(Haptics.ImpactFeedbackType.Light);
+    setScore((prev) => {
+      const nextScore = Math.max(0, prev - 10);
+      scoreRef.current = nextScore;
+      return nextScore;
+    });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     return true;
   };
 
   const skipQuestion = () => {
     if (hasAnswered || status !== 'playing') return;
 
-    setScore((prev) => Math.max(0, prev - 20));
+    setScore((prev) => {
+      const nextScore = Math.max(0, prev - 20);
+      scoreRef.current = nextScore;
+      return nextScore;
+    });
     setStreak(0);
     setHintedAnswerId(null);
 

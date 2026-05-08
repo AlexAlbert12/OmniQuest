@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -10,13 +10,19 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { useRouter } from 'expo-router'
+import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
-import TeacherSidebar from '../../components/TeacherSidebar'
+import StudentSidebar from '../../components/StudentSidebar'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
+
+type Profile = {
+  alias: string
+  avatar: string | null
+  points: number | null
+}
 
 const filterOptions: {
   id: NotificationFilter
@@ -25,10 +31,9 @@ const filterOptions: {
 }[] = [
   { id: 'all', label: 'Todas', icon: 'list' },
   { id: 'unread', label: 'Sin leer', icon: 'mail-unread-outline' },
-  { id: 'enrollment', label: 'Inscripciones', icon: 'person-add-outline' },
+  { id: 'new_class', label: 'Clases', icon: 'book-outline' },
   { id: 'student_activity', label: 'Actividad', icon: 'checkmark-circle-outline' },
   { id: 'achievement', label: 'Logros', icon: 'trophy-outline' },
-  { id: 'new_class', label: 'Clases', icon: 'book-outline' },
   { id: 'announcement', label: 'Avisos', icon: 'alert-circle-outline' },
 ]
 
@@ -40,7 +45,7 @@ const categoryLabels: Record<NotificationType, string> = {
   announcement: 'Avisos',
 }
 
-export default function NotificationsScreen() {
+export default function StudentNotificationsScreen() {
   const { width } = useWindowDimensions()
   const router = useRouter()
   const {
@@ -51,12 +56,17 @@ export default function NotificationsScreen() {
     markAllAsRead,
     deleteNotification,
     refresh,
-  } = useNotifications()
+  } = useNotifications('student')
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedFilter, setSelectedFilter] = useState<NotificationFilter>('all')
 
   const isDesktop = width >= 1080
   const isWide = width >= 860
+  const points = profile?.points ?? 0
+  const level = Math.floor(points / 100) + 1
+  const nextLevelProgress = Math.min(100, points % 100)
 
   const filteredNotifications = useMemo(() => {
     if (selectedFilter === 'all') return notifications
@@ -81,9 +91,36 @@ export default function NotificationsScreen() {
     [notifications]
   )
 
+  const fetchProfile = useCallback(async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+      if (!userId) return
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('alias, avatar, points')
+        .eq('id', userId)
+        .single()
+
+      if (error) throw error
+      setProfile(data as Profile)
+    } catch (error: any) {
+      console.error('Error cargando perfil para notificaciones:', error.message)
+    } finally {
+      setProfileLoading(false)
+    }
+  }, [])
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile()
+    }, [fetchProfile])
+  )
+
   const onRefresh = async () => {
     setRefreshing(true)
-    await refresh()
+    await Promise.all([refresh(), fetchProfile()])
     setRefreshing(false)
   }
 
@@ -110,10 +147,10 @@ export default function NotificationsScreen() {
     router.replace('/(auth)/login' as any)
   }
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color="#6574FF" />
         <Text className="mt-4 text-[#8FA7C7]">Cargando notificaciones...</Text>
       </View>
     )
@@ -123,9 +160,13 @@ export default function NotificationsScreen() {
     <View className="flex-1 bg-[#061126]">
       <View className="flex-1 flex-row">
         {isDesktop ? (
-          <TeacherSidebar
+          <StudentSidebar
             activeSection="notifications"
-            subjectsCount={0}
+            alias={profile?.alias || 'Alumno'}
+            avatar={profile?.avatar}
+            level={level}
+            points={points}
+            nextLevelProgress={nextLevelProgress}
             onSignOut={handleSignOut}
             onComingSoon={(feature) => showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)}
           />
@@ -134,11 +175,11 @@ export default function NotificationsScreen() {
         <ScrollView
           className="flex-1"
           contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 28 : 18,
-            paddingTop: isDesktop ? 28 : 18,
-            paddingBottom: 32,
+            paddingHorizontal: isDesktop ? 34 : 18,
+            paddingTop: isDesktop ? 24 : 18,
+            paddingBottom: isDesktop ? 32 : 104,
           }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6574FF" />}
           showsVerticalScrollIndicator={false}
         >
           <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
@@ -150,12 +191,12 @@ export default function NotificationsScreen() {
               ) : null}
               <View className="flex-row items-center gap-3">
                 <Ionicons name="notifications" size={38} color="#9FD6FF" />
-                <Text className="text-[38px] font-black text-white">Centro de Notificaciones</Text>
+                <Text className="text-[38px] font-black text-white">Mis Notificaciones</Text>
               </View>
               <Text className="mt-2 text-[14px] text-[#B7C4D7]">
                 {unreadCount > 0
                   ? `Tienes ${unreadCount} notificación${unreadCount === 1 ? '' : 'es'} sin leer`
-                  : 'Todas las notificaciones están al día'}
+                  : 'Todo está al día en tus clases'}
               </Text>
             </View>
 
@@ -171,7 +212,7 @@ export default function NotificationsScreen() {
               {unreadCount > 0 ? (
                 <Pressable
                   onPress={() => void markAllAsRead()}
-                  className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
+                  className="flex-row items-center gap-2 rounded-xl bg-[#5865F2] px-4 py-3"
                   style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
                 >
                   <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
@@ -224,6 +265,8 @@ export default function NotificationsScreen() {
           </View>
         </ScrollView>
       </View>
+
+      {!isDesktop ? <BottomNav /> : null}
     </View>
   )
 }
@@ -246,7 +289,7 @@ function CategoryCard({
   return (
     <Pressable
       onPress={onPress}
-      className={`min-w-[160px] flex-1 rounded-xl border p-4 ${active ? 'border-[#6D5AF6] bg-[#1A1E55]' : 'border-[#183052] bg-[#07162D]'}`}
+      className={`min-w-[160px] flex-1 rounded-xl border p-4 ${active ? 'border-[#6574FF] bg-[#1A1E55]' : 'border-[#183052] bg-[#07162D]'}`}
       style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
     >
       <View className="mb-3 flex-row items-center justify-between">
@@ -280,7 +323,7 @@ function FilterChip({
     <Pressable
       onPress={onPress}
       className={`flex-row items-center gap-2 rounded-full px-4 py-2 ${
-        active ? 'bg-[#5A46D8]' : 'border border-[#20375E] bg-[#09162C]'
+        active ? 'bg-[#5865F2]' : 'border border-[#20375E] bg-[#09162C]'
       }`}
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
@@ -313,7 +356,7 @@ function NotificationItem({
   return (
     <View
       className={`flex-row gap-3 rounded-xl border px-4 py-3 ${
-        notification.isRead ? 'border-[#1A3155] bg-[#07162E]' : 'border-[#5364F5] bg-[#0F1E35]'
+        notification.isRead ? 'border-[#1A3155] bg-[#07162E]' : 'border-[#6574FF] bg-[#0F1E35]'
       }`}
     >
       <View
@@ -333,7 +376,7 @@ function NotificationItem({
               <View className="rounded-full bg-[#13284A] px-2 py-1">
                 <Text className="text-[10px] font-bold text-[#AFC2DB]">{categoryLabels[notification.type]}</Text>
               </View>
-              {!notification.isRead ? <View className="h-2 w-2 rounded-full bg-[#3B82F6]" /> : null}
+              {!notification.isRead ? <View className="h-2 w-2 rounded-full bg-[#6574FF]" /> : null}
             </View>
             <Text className="mt-1 text-[13px] leading-5 text-[#8FA7C7]">{notification.description}</Text>
             <View className="mt-2 flex-row flex-wrap items-center gap-2">
@@ -373,14 +416,46 @@ function NotificationItem({
 function EmptyState({ filter }: { filter: NotificationFilter }) {
   const title = filter === 'unread' ? 'Sin notificaciones sin leer' : 'Sin notificaciones'
   const detail = filter === 'unread'
-    ? 'Todas tus notificaciones están marcadas como leídas.'
-    : 'Cuando haya inscripciones, actividad, logros, clases o avisos aparecerán aquí.'
+    ? 'Todo lo importante ya está marcado como leído.'
+    : 'Aquí aparecerán nuevas clases, actividad, logros y avisos de tus asignaturas.'
 
   return (
     <View className="items-center rounded-2xl border border-dashed border-[#29466F] bg-[#09162C] px-6 py-12">
       <Ionicons name="mail-outline" size={48} color="#64748B" />
       <Text className="mt-4 text-center text-lg font-bold text-white">{title}</Text>
       <Text className="mt-2 max-w-[420px] text-center text-[13px] leading-5 text-[#8FA7C7]">{detail}</Text>
+    </View>
+  )
+}
+
+function BottomNav() {
+  return (
+    <View className="absolute bottom-3 left-4 right-4 flex-row justify-around rounded-2xl border border-[#1A3155] bg-[#09162C] py-3">
+      <Pressable className="items-center">
+        <Ionicons name="notifications" size={22} color="#6574FF" />
+        <Text className="mt-1 text-[11px] font-bold text-[#6574FF]">Avisos</Text>
+      </Pressable>
+
+      <Link href="/(student)/homeStudent" asChild>
+        <Pressable className="items-center opacity-70">
+          <Ionicons name="home-outline" size={22} color="#AFC2DB" />
+          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Inicio</Text>
+        </Pressable>
+      </Link>
+
+      <Link href="/(student)/classes" asChild>
+        <Pressable className="items-center opacity-70">
+          <Ionicons name="book-outline" size={22} color="#AFC2DB" />
+          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Clases</Text>
+        </Pressable>
+      </Link>
+
+      <Link href="/(student)/profile" asChild>
+        <Pressable className="items-center opacity-70">
+          <Ionicons name="person-outline" size={22} color="#AFC2DB" />
+          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Perfil</Text>
+        </Pressable>
+      </Link>
     </View>
   )
 }

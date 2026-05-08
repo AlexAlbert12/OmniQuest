@@ -19,7 +19,9 @@ import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
 import TeacherSidebar from '../../components/TeacherSidebar'
+import NotificationBadge from '../../components/NotificationBadge'
 import { useAppTheme } from '../../lib/appTheme'
+import { useNotifications } from '../../hooks/useNotifications'
 
 type IconName = keyof typeof Ionicons.glyphMap
 type AppRole = 'student' | 'teacher'
@@ -177,10 +179,14 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
   const [toggles, setToggles] = useState<Record<ToggleKey, boolean>>({
     twoFactor: false,
   })
+  const [profileVisibility, setProfileVisibility] = useState<'public' | 'private'>('public')
+  const [exportingData, setExportingData] = useState(false)
+  const [deletingData, setDeletingData] = useState(false)
 
   const isDesktop = width >= 1080
   const isWide = width >= 820
   const isTeacher = role === 'teacher'
+  const { unreadCount } = useNotifications(isTeacher ? 'teacher' : 'student')
   const isDark = theme === 'dark'
   const settingsSections = isTeacher ? teacherSettingsSections : studentSettingsSections
   const points = profile?.points ?? 0
@@ -213,6 +219,174 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
 
   const showComingSoon = (feature: string) => {
     showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)
+  }
+
+  const handleProfileVisibilityChange = async (visibility: 'public' | 'private') => {
+    if (!userId) return
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ visibility })
+        .eq('id', userId)
+
+      if (error) throw error
+
+      setProfileVisibility(visibility)
+      showAlert('Visibilidad actualizada', `Tu perfil ahora es ${visibility === 'public' ? 'público' : 'privado'}.`)
+    } catch (error: any) {
+      showAlert('Error', error.message || 'No se pudo actualizar la visibilidad del perfil.')
+    }
+  }
+
+  const handleExportData = async () => {
+    if (!userId) return
+
+    setExportingData(true)
+    try {
+      // Obtener datos del perfil
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (profileError) throw profileError
+
+      // Obtener puntuaciones de asignaturas
+      const { data: subjectScores, error: scoresError } = await supabase
+        .from('subject_scores')
+        .select('*')
+        .eq('student_id', userId)
+
+      if (scoresError) throw scoresError
+
+      // Obtener puntuaciones de temas
+      const { data: topicScores, error: topicScoresError } = await supabase
+        .from('topic_scores')
+        .select('*')
+        .eq('student_id', userId)
+
+      if (topicScoresError) throw topicScoresError
+
+      // Obtener inscripciones
+      const { data: enrollments, error: enrollmentsError } = await supabase
+        .from('enrollments')
+        .select('*')
+        .eq('student_id', userId)
+
+      if (enrollmentsError) throw enrollmentsError
+
+      // Crear objeto de datos exportados
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        profile: profileData,
+        subjectScores,
+        topicScores,
+        enrollments,
+      }
+
+      // Convertir a JSON y descargar (en web) o mostrar (en móvil)
+      const jsonData = JSON.stringify(exportData, null, 2)
+
+      if (Platform.OS === 'web') {
+        const blob = new Blob([jsonData], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `omniquest-data-${new Date().toISOString().split('T')[0]}.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        showAlert('Datos exportados', 'Tus datos han sido descargados como archivo JSON.')
+      } else {
+        showAlert('Datos exportados', 'Tus datos están listos. Copia la información siguiente:\n\n' + jsonData.substring(0, 500) + '...')
+      }
+    } catch (error: any) {
+      showAlert('Error', error.message || 'No se pudieron exportar los datos.')
+    } finally {
+      setExportingData(false)
+    }
+  }
+
+  const handleDeletePartialData = async (dataType: 'scores' | 'enrollments' | 'all') => {
+    if (!userId) return
+
+    const confirmMessage = dataType === 'scores'
+      ? '¿Estás seguro de que quieres eliminar todas tus puntuaciones? Esta acción no se puede deshacer.'
+      : dataType === 'enrollments'
+      ? '¿Estás seguro de que quieres salir de todas tus clases? Esta acción no se puede deshacer.'
+      : '¿Estás seguro de que quieres eliminar todos tus datos? Esta acción no se puede deshacer.'
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(confirmMessage)
+      if (!confirmed) return
+    } else {
+      let confirmed = false
+      await new Promise<void>((resolve) => {
+        Alert.alert('Confirmar eliminación', confirmMessage, [
+          { text: 'Cancelar', style: 'cancel', onPress: () => resolve() },
+          { text: 'Sí, eliminar', style: 'destructive', onPress: () => { confirmed = true; resolve() } },
+        ])
+      })
+      if (!confirmed) return
+    }
+
+    setDeletingData(true)
+    try {
+      if (dataType === 'scores' || dataType === 'all') {
+        const { error: scoresError } = await supabase
+          .from('subject_scores')
+          .delete()
+          .eq('student_id', userId)
+        if (scoresError) throw scoresError
+
+        const { error: topicScoresError } = await supabase
+          .from('topic_scores')
+          .delete()
+          .eq('student_id', userId)
+        if (topicScoresError) throw topicScoresError
+      }
+
+      if (dataType === 'enrollments' || dataType === 'all') {
+        const { error: enrollmentsError } = await supabase
+          .from('enrollments')
+          .delete()
+          .eq('student_id', userId)
+        if (enrollmentsError) throw enrollmentsError
+      }
+
+      if (dataType === 'all') {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ points: 0, alias: null })
+          .eq('id', userId)
+        if (profileError) throw profileError
+
+        setProfile(prev => prev ? { ...prev, points: 0, alias: null } : null)
+      }
+
+      showAlert('Datos eliminados', 'Los datos seleccionados han sido eliminados correctamente.')
+    } catch (error: any) {
+      showAlert('Error', error.message || 'No se pudieron eliminar los datos.')
+    } finally {
+      setDeletingData(false)
+    }
+  }
+
+  const showPrivacyCenter = () => {
+    const privacyInfo = [
+      '• Tu privacidad es nuestra prioridad',
+      '• Recopilamos solo datos necesarios para el funcionamiento de la app',
+      '• Tus datos se almacenan de forma segura y encriptada',
+      '• Puedes exportar o eliminar tus datos en cualquier momento',
+      '• No compartimos tus datos con terceros sin tu consentimiento',
+      '• Puedes controlar la visibilidad de tu perfil',
+      '• Contacta con soporte si tienes preguntas sobre privacidad',
+    ].join('\n')
+
+    showAlert('Centro de Privacidad', privacyInfo)
   }
 
   const isMissingPreferencesTableError = (errorCode?: string) => errorCode === '42P01'
@@ -693,9 +867,10 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
             </View>
 
             <View className="flex-row items-center gap-3">
-              <Pressable className="relative rounded-2xl border border-[#20375E] bg-[#09162C] p-3">
-                <Ionicons name="notifications-outline" size={21} color="#AFC2DB" />
-              </Pressable>
+              <NotificationBadge
+                count={unreadCount}
+                onPress={() => router.push((isTeacher ? '/(teacher)/notifications' : '/(student)/notifications') as any)}
+              />
               <View className="h-11 w-11 items-center justify-center rounded-full bg-[#5B4BC4]">
                 <Text className="font-black text-white">{userInitials}</Text>
               </View>
@@ -935,18 +1110,107 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
 
                 <View onLayout={handleSectionLayout('privacy')} className={isWide ? 'flex-1' : ''}>
                   <Panel title="Privacidad y datos">
+                    <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-4">
+                      <View className="flex-row items-center justify-between">
+                        <View className="min-w-0 flex-1">
+                          <Text className="font-bold text-white">Visibilidad del perfil</Text>
+                          <Text className="mt-1 text-[12px] text-[#AFC2DB]">
+                            Controla quién puede ver tu perfil y actividad
+                          </Text>
+                        </View>
+                        <View className="flex-row gap-2">
+                          <Pressable
+                            onPress={() => handleProfileVisibilityChange('public')}
+                            className={`rounded-lg border px-3 py-2 ${
+                              profileVisibility === 'public'
+                                ? 'border-[#8B5CF6] bg-[#1A1E55]'
+                                : 'border-[#2A456A] bg-[#0A2042]'
+                            }`}
+                          >
+                            <Text className="text-[12px] font-semibold text-white">Público</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleProfileVisibilityChange('private')}
+                            className={`rounded-lg border px-3 py-2 ${
+                              profileVisibility === 'private'
+                                ? 'border-[#8B5CF6] bg-[#1A1E55]'
+                                : 'border-[#2A456A] bg-[#0A2042]'
+                            }`}
+                          >
+                            <Text className="text-[12px] font-semibold text-white">Privado</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    </View>
+
                     <ActionRow
-                      icon="lock-closed-outline"
-                      title="Privacidad"
-                      description="Gestiona la visibilidad de tu perfil y actividad."
-                      onPress={() => showComingSoon('Privacidad')}
+                      icon="download-outline"
+                      title="Exportar datos"
+                      description="Descarga una copia de todos tus datos personales."
+                      onPress={handleExportData}
+                      disabled={exportingData}
+                      loading={exportingData}
                     />
-                    <ActionRow
-                      icon="archive-outline"
-                      title="Gestión de datos"
-                      description="Solicita descarga o eliminación de datos personales."
-                      onPress={() => showComingSoon('Gestión de datos')}
-                    />
+
+                    <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-4">
+                      <Text className="font-bold text-white">Eliminar datos parciales</Text>
+                      <Text className="mt-1 text-[12px] text-[#AFC2DB] mb-3">
+                        Elimina selectivamente tus datos. Esta acción no se puede deshacer.
+                      </Text>
+                      <View className="gap-2">
+                        <Pressable
+                          onPress={() => handleDeletePartialData('scores')}
+                          disabled={deletingData}
+                          className="flex-row items-center justify-between rounded-lg border border-[#BE123C] bg-[#7F1D1D33] p-3"
+                          style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+                        >
+                          <View className="flex-row items-center gap-3">
+                            <Ionicons name="trash-outline" size={16} color="#FB7185" />
+                            <Text className="text-[13px] font-semibold text-white">Eliminar puntuaciones</Text>
+                          </View>
+                          {deletingData ? (
+                            <ActivityIndicator size="small" color="#FB7185" />
+                          ) : (
+                            <Ionicons name="chevron-forward" size={16} color="#FB7185" />
+                          )}
+                        </Pressable>
+
+                        <Pressable
+                          onPress={() => handleDeletePartialData('enrollments')}
+                          disabled={deletingData}
+                          className="flex-row items-center justify-between rounded-lg border border-[#BE123C] bg-[#7F1D1D33] p-3"
+                          style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+                        >
+                          <View className="flex-row items-center gap-3">
+                            <Ionicons name="exit-outline" size={16} color="#FB7185" />
+                            <Text className="text-[13px] font-semibold text-white">Salir de todas las clases</Text>
+                          </View>
+                          {deletingData ? (
+                            <ActivityIndicator size="small" color="#FB7185" />
+                          ) : (
+                            <Ionicons name="chevron-forward" size={16} color="#FB7185" />
+                          )}
+                        </Pressable>
+
+                        <Pressable
+                          onPress={() => handleDeletePartialData('all')}
+                          disabled={deletingData}
+                          className="flex-row items-center justify-between rounded-lg border border-[#BE123C] bg-[#7F1D1D33] p-3"
+                          style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+                        >
+                          <View className="flex-row items-center gap-3">
+                            <Ionicons name="warning-outline" size={16} color="#FB7185" />
+                            <Text className="text-[13px] font-semibold text-white">Eliminar todos los datos</Text>
+                          </View>
+                          {deletingData ? (
+                            <ActivityIndicator size="small" color="#FB7185" />
+                          ) : (
+                            <Ionicons name="chevron-forward" size={16} color="#FB7185" />
+                          )}
+                        </Pressable>
+                      </View>
+                    </View>
+
                     <View className="mt-3 rounded-xl border border-[#4733B7] bg-[#151A47] p-4">
                       <View className="flex-row gap-3">
                         <Ionicons name="shield-checkmark-outline" size={22} color="#8B5CF6" />
@@ -955,8 +1219,8 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                           <Text className="mt-1 text-[12px] leading-5 text-[#B7C4D7]">
                             Protegemos tu información y tu historial académico.
                           </Text>
-                          <Pressable onPress={() => showComingSoon('Centro de privacidad')} className="mt-2 flex-row items-center gap-1">
-                            <Text className="text-[12px] font-bold text-[#A78BFA]">Saber más</Text>
+                          <Pressable onPress={showPrivacyCenter} className="mt-2 flex-row items-center gap-1">
+                            <Text className="text-[12px] font-bold text-[#A78BFA]">Centro de privacidad</Text>
                             <Ionicons name="open-outline" size={13} color="#A78BFA" />
                           </Pressable>
                         </View>
@@ -1298,19 +1562,30 @@ function ActionRow({
   title,
   description,
   onPress,
+  disabled = false,
+  loading = false,
 }: {
   icon: IconName
   title: string
   description: string
   onPress: () => void
+  disabled?: boolean
+  loading?: boolean
 }) {
   return (
-    <Pressable onPress={onPress} className="flex-row items-center gap-3 border-b border-[#13284A] py-3">
+    <Pressable
+      onPress={disabled || loading ? undefined : onPress}
+      className={`flex-row items-center gap-3 border-b border-[#13284A] py-3 ${disabled || loading ? 'opacity-50' : ''}`}
+    >
       <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10233F]">
-        <Ionicons name={icon} size={18} color="#AFC2DB" />
+        {loading ? (
+          <ActivityIndicator size="small" color="#AFC2DB" />
+        ) : (
+          <Ionicons name={icon} size={18} color="#AFC2DB" />
+        )}
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="font-bold text-white">{title}</Text>
+        <Text className={`font-bold ${disabled || loading ? 'text-[#AFC2DB]' : 'text-white'}`}>{title}</Text>
         <Text className="mt-1 text-[12px] text-[#B7C4D7]">{description}</Text>
       </View>
       <Ionicons name="chevron-forward" size={19} color="#AFC2DB" />

@@ -13,6 +13,8 @@ import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
+import NotificationBadge from '../../components/NotificationBadge'
+import { useNotifications } from '../../hooks/useNotifications'
 import {
   buildStudentBadges,
   getStudentBadgeMetrics,
@@ -64,6 +66,7 @@ type RecentScore = {
 export default function ProgressScreen() {
   const { width } = useWindowDimensions()
   const router = useRouter()
+  const { unreadCount } = useNotifications('student')
   const [profile, setProfile] = useState<Profile | null>(null)
   const [subjectProgress, setSubjectProgress] = useState<SubjectProgress[]>([])
   const [recentScores, setRecentScores] = useState<RecentScore[]>([])
@@ -230,13 +233,10 @@ export default function ProgressScreen() {
                   <Text className="text-[11px] text-[#8FA7C7]">Días de racha</Text>
                 </View>
               </View>
-              <Pressable
-                onPress={() => showComingSoon('Las notificaciones')}
-                className="rounded-2xl border border-[#162B50] bg-[#0B1933] p-3"
-              >
-                <Ionicons name="notifications-outline" size={22} color="#AFC2DB" />
-                <View className="absolute right-3 top-2 h-2.5 w-2.5 rounded-full bg-[#FF5D6C]" />
-              </Pressable>
+              <NotificationBadge
+                count={unreadCount}
+                onPress={() => router.push('/(student)/notifications' as any)}
+              />
             </View>
           </View>
 

@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
 import { calculateStreakDays } from '../../lib/studentBadges'
+import NotificationBadge from '../../components/NotificationBadge'
+import { useNotifications } from '../../hooks/useNotifications'
 
 type Subject = {
   id: number
@@ -75,6 +77,7 @@ const getTimeAgo = (date: Date): string => {
 
 export default function StudentHome() {
   const { width } = useWindowDimensions()
+  const { unreadCount } = useNotifications('student')
   const [inviteCode, setInviteCode] = useState('')
   const [enrolledSubjects, setEnrolledSubjects] = useState<Subject[]>([])
   const [subjectScores, setSubjectScores] = useState<Record<number, number>>({});
@@ -306,13 +309,10 @@ export default function StudentHome() {
                   <Text className="text-[11px] text-[#8FA7C7]">Días de racha</Text>
                 </View>
               </View>
-              <Pressable
-                onPress={() => showComingSoon('Las notificaciones')}
-                className="rounded-2xl border border-[#162B50] bg-[#0B1933] p-3"
-              >
-                <Ionicons name="notifications-outline" size={22} color="#AFC2DB" />
-                <View className="absolute right-3 top-2 h-2.5 w-2.5 rounded-full bg-[#FF5D6C]" />
-              </Pressable>
+              <NotificationBadge
+                count={unreadCount}
+                onPress={() => router.push('/(student)/notifications' as any)}
+              />
             </View>
           </View>
 

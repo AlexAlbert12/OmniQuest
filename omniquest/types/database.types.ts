@@ -46,6 +46,61 @@ export type Database = {
           },
         ]
       }
+      attempt_history: {
+        Row: {
+          id: number
+          student_id: string
+          question_id: number
+          answer_id: number | null
+          is_correct: boolean
+          time_taken_seconds: number | null
+          attempted_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          student_id: string
+          question_id: number
+          answer_id?: number | null
+          is_correct: boolean
+          time_taken_seconds?: number | null
+          attempted_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          student_id?: string
+          question_id?: number
+          answer_id?: number | null
+          is_correct?: boolean
+          time_taken_seconds?: number | null
+          attempted_at?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attempt_history_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_history_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_history_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "answers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classrooms: {
         Row: {
           academic_year: string | null
@@ -121,6 +176,7 @@ export type Database = {
           active: boolean | null
           created_at: string
           difficulty: number | null
+          explanation: string | null
           id: number
           points_base: number | null
           subject_id: number | null
@@ -132,6 +188,7 @@ export type Database = {
           active?: boolean | null
           created_at?: string
           difficulty?: number | null
+          explanation?: string | null
           id?: number
           points_base?: number | null
           subject_id?: number | null
@@ -143,6 +200,7 @@ export type Database = {
           active?: boolean | null
           created_at?: string
           difficulty?: number | null
+          explanation?: string | null
           id?: number
           points_base?: number | null
           subject_id?: number | null
@@ -213,6 +271,44 @@ export type Database = {
           {
             foreignKeyName: "subjects_teacher_id_fkey"
             columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_state: {
+        Row: {
+          id: number
+          user_id: string
+          notification_id: string
+          is_read: boolean
+          is_deleted: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          user_id: string
+          notification_id: string
+          is_read?: boolean
+          is_deleted?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: string
+          notification_id?: string
+          is_read?: boolean
+          is_deleted?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_state_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

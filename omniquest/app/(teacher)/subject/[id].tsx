@@ -97,6 +97,7 @@ type FailedQuestionReport = {
   text: string
   topic: string
   estimatedFailures: number
+  actualFailures: number
   risk: number
 }
 
@@ -291,47 +292,20 @@ export default function SubjectDetailScreen() {
       correctAnswers,
     };
   }, [averageGrade, enrollments.length, studentReportRows]);
-  const failedQuestionRows = useMemo(
-    () => buildFailedQuestionRows(questions, topicRows, reportSummary.failedAnswers),
-    [questions, reportSummary.failedAnswers, topicRows]
-  );
+  const [failedQuestionRows, setFailedQuestionRows] = useState<FailedQuestionReport[]>([]);
+
+  useEffect(() => {
+    const loadFailedQuestions = async () => {
+      const rows = await buildFailedQuestionRows(supabase, questions, enrollments, topicRows);
+      setFailedQuestionRows(rows);
+    };
+
+    loadFailedQuestions();
+  }, [questions, enrollments, topicRows]);
   const temporalEvolution = useMemo(
     () => buildTemporalEvolution(scores, questions.length),
     [questions.length, scores]
   );
-
-  const upcomingActivities = useMemo(() => {
-    const today = new Date();
-    const plusDays = (days: number) => {
-      const nextDate = new Date(today);
-      nextDate.setDate(today.getDate() + days);
-      return formatDate(nextDate.toISOString());
-    };
-
-    return [
-      {
-        icon: 'checkmark-circle-outline' as IconName,
-        color: '#8B5CF6',
-        title: 'Revisión de preguntas',
-        detail: 'Valida enunciados y respuestas antes de publicar.',
-        date: plusDays(1),
-      },
-      {
-        icon: 'school-outline' as IconName,
-        color: '#3B82F6',
-        title: 'Seguimiento semanal',
-        detail: 'Revisa progreso y participación de la clase.',
-        date: plusDays(2),
-      },
-      {
-        icon: 'bar-chart-outline' as IconName,
-        color: '#34D399',
-        title: 'Informe de rendimiento',
-        detail: 'Comparativa de notas por tema.',
-        date: plusDays(4),
-      },
-    ];
-  }, []);
 
   const renderTabContent = (currentSubject: Subject) => {
     if (activeTab === 'activities') {
@@ -1697,8 +1671,8 @@ function FailedQuestionRow({ question }: { question: FailedQuestionReport }) {
           <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>{question.topic}</Text>
         </View>
         <View className="items-end">
-          <Text className="text-[18px] font-black text-[#FB7185]">{question.estimatedFailures}</Text>
-          <Text className="text-[10px] font-semibold text-[#8FA7C7]">fallos</Text>
+          <Text className="text-[18px] font-black text-[#FB7185]">{question.actualFailures}</Text>
+          <Text className="text-[10px] font-semibold text-[#8FA7C7]">fallos reales</Text>
         </View>
       </View>
       <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13284A]">
@@ -1778,36 +1752,6 @@ function DonutCard({ value }: { value: number }) {
   );
 }
 
-function UpcomingRow({
-  icon,
-  color,
-  title,
-  detail,
-  date,
-}: {
-  icon: IconName
-  color: string
-  title: string
-  detail: string
-  date: string
-}) {
-  return (
-    <View className="flex-row items-center gap-3 border-b border-[#13284A] py-3">
-      <View className="h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}26` }}>
-        <Ionicons name={icon} size={18} color={color} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="font-bold text-white">{title}</Text>
-        <Text className="mt-1 text-[12px] text-[#B7C4D7]">{detail}</Text>
-      </View>
-      <View className="flex-row items-center gap-2">
-        <Ionicons name="calendar-outline" size={14} color="#AFC2DB" />
-        <Text className="text-[12px] font-semibold text-[#C4D0E3]">{date}</Text>
-      </View>
-    </View>
-  );
-}
-
 function iconForSubject(icon: string | null): IconName {
   if (!icon) return 'book-outline';
   if (icon.includes('🧮') || icon.includes('➗')) return 'calculator-outline';
@@ -1880,43 +1824,65 @@ function buildStudentReportRows(
     .sort((a, b) => Number(b.hasActivity) - Number(a.hasActivity) || b.score - a.score || a.name.localeCompare(b.name));
 }
 
-function buildFailedQuestionRows(
+async function buildFailedQuestionRows(
+  supabaseClient: ReturnType<typeof supabase>,
   questions: Question[],
+  enrollments: Enrollment[],
   topicRows: {
     id: number | 'general'
     title: string
     questionsCount: number
     averageScore: number
-  }[],
-  totalFailedAnswers: number
-): FailedQuestionReport[] {
-  if (questions.length === 0 || totalFailedAnswers === 0) return [];
+  }[]
+): Promise<FailedQuestionReport[]> {
+  if (questions.length === 0) return [];
+
+  // Obtener intentos fallidos reales de la BD
+  const studentIds = enrollments.map((e) => e.student_id);
+  if (studentIds.length === 0) return [];
+
+  const { data: attempts, error } = await supabaseClient
+    .from('attempt_history')
+    .select('question_id, is_correct')
+    .in('student_id', studentIds);
+
+  if (error) {
+    console.error('Error fetching attempts:', error);
+    return [];
+  }
+
+  // Contar intentos fallidos reales por pregunta
+  const failureCount = new Map<number, number>();
+  attempts?.forEach((attempt: any) => {
+    if (!attempt.is_correct) {
+      failureCount.set(attempt.question_id, (failureCount.get(attempt.question_id) || 0) + 1);
+    }
+  });
 
   const topicById = new Map(topicRows.map((topic) => [topic.id, topic]));
-  const weightedQuestions = questions.map((question) => {
-    const topic = question.topic_id ? topicById.get(question.topic_id) : topicById.get('general');
-    const questionsInTopic = Math.max(1, topic?.questionsCount || questions.length);
-    const expectedTopicScore = questionsInTopic * 160;
-    const topicWeakness = Math.max(0.18, 1 - ((topic?.averageScore || 0) / expectedTopicScore));
-    const weight = (question.points_base || 100) * topicWeakness;
-
-    return { question, topic, weight };
-  });
-  const totalWeight = weightedQuestions.reduce((total, item) => total + item.weight, 0) || 1;
-
-  return weightedQuestions
-    .map(({ question, topic, weight }) => {
-      const estimatedFailures = Math.max(1, Math.round((totalFailedAnswers * weight) / totalWeight));
+  
+  return questions
+    .map((question) => {
+      const topic = question.topic_id ? topicById.get(question.topic_id) : topicById.get('general');
+      const actualFailures = failureCount.get(question.id) || 0;
+      const questionsInTopic = Math.max(1, topic?.questionsCount || questions.length);
+      const expectedTopicScore = questionsInTopic * 160;
+      const topicWeakness = Math.max(0.18, 1 - ((topic?.averageScore || 0) / expectedTopicScore));
+      const weight = (question.points_base || 100) * topicWeakness;
+      const totalWeight = questions.reduce((acc, q) => acc + ((q.points_base || 100) * topicWeakness), 0) || 1;
+      const risk = Math.min(100, Math.max(12, Math.round((weight / totalWeight) * 100 * Math.min(questions.length, 6))));
 
       return {
         id: question.id,
         text: question.text,
         topic: topic?.title || 'Tema general',
-        estimatedFailures,
-        risk: Math.min(100, Math.max(12, Math.round((weight / totalWeight) * 100 * Math.min(questions.length, 6)))),
+        estimatedFailures: actualFailures,
+        actualFailures,
+        risk,
       };
     })
-    .sort((a, b) => b.estimatedFailures - a.estimatedFailures || b.risk - a.risk)
+    .filter((q) => q.actualFailures > 0)
+    .sort((a, b) => b.actualFailures - a.actualFailures || b.risk - a.risk)
     .slice(0, 5);
 }
 

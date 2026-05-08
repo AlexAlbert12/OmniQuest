@@ -115,7 +115,7 @@ export default function TeacherQuestionForm({
           isEdit && normalizedQuestionId
             ? supabase
                 .from('questions')
-                .select('id, text, type, points_base, time_limit_seconds, topic_id, answers(text, is_correct, sort_order)')
+                .select('id, text, type, points_base, time_limit_seconds, topic_id, explanation, answers(text, is_correct, sort_order)')
                 .eq('id', normalizedQuestionId)
                 .single()
             : Promise.resolve({ data: null, error: null }),
@@ -136,6 +136,7 @@ export default function TeacherQuestionForm({
           setQuestionText(questionData.text || '');
           setTimeLimit(String(questionData.time_limit_seconds || 30));
           setPoints(String(questionData.points_base || 10));
+          setExplanation(questionData.explanation || '');
           nextSelectedTopicId = questionData.topic_id ? String(questionData.topic_id) : null;
 
           const fetchedAnswers = Array.isArray(questionData.answers)
@@ -352,6 +353,7 @@ export default function TeacherQuestionForm({
             text: questionText.trim(),
             points_base: parsedPoints,
             time_limit_seconds: parsedTimeLimit,
+            explanation: explanation.trim(),
           })
           .eq('id', normalizedQuestionId);
 
@@ -374,6 +376,7 @@ export default function TeacherQuestionForm({
               text: questionText.trim(),
               points_base: parsedPoints,
               time_limit_seconds: parsedTimeLimit,
+              explanation: explanation.trim(),
             },
           ])
           .select('id')

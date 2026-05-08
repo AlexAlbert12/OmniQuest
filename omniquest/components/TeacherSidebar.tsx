@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAppTheme } from '../lib/appTheme'
 
-export type TeacherSection = 'home' | 'classes' | 'students' | 'settings'
+export type TeacherSection = 'home' | 'classes' | 'students' | 'notifications' | 'settings'
 
 type TeacherSidebarProps = {
   activeSection: TeacherSection
@@ -26,6 +26,7 @@ const navItems: {
   { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(teacher)/homeTeacher' },
   { section: 'classes', label: 'Mis Clases', icon: 'book-outline', href: '/(teacher)/classes' },
   { section: 'students', label: 'Estudiantes', icon: 'people-outline', href: '/(teacher)/students' },
+  { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(teacher)/notifications' },
   { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(teacher)/settings' },
 ]
 
