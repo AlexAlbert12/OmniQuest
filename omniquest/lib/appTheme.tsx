@@ -12,7 +12,6 @@ type AppThemeContextValue = {
   ready: boolean
 }
 
-const APP_THEME_STORAGE_KEY = 'omniquest:theme'
 const APP_ACCENT_STORAGE_KEY = 'omniquest:accent'
 const DEFAULT_THEME: AppThemeMode = 'dark'
 const DEFAULT_ACCENT = '#7C5CFF'
@@ -49,16 +48,11 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 
     const load = async () => {
       try {
-        const [savedTheme, savedAccent] = await Promise.all([
-          readStorageItem(APP_THEME_STORAGE_KEY),
-          readStorageItem(APP_ACCENT_STORAGE_KEY),
-        ])
+        const savedAccent = await readStorageItem(APP_ACCENT_STORAGE_KEY)
 
         if (!mounted) return
 
-        if (savedTheme === 'dark' || savedTheme === 'light') {
-          setThemeState(savedTheme)
-        }
+        setThemeState(DEFAULT_THEME)
         if (savedAccent && /^#([0-9A-F]{3}){1,2}$/i.test(savedAccent)) {
           setAccentColorState(savedAccent)
         }
@@ -77,14 +71,11 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return
 
-    document.documentElement.dataset.omniquestTheme = theme
-    document.documentElement.style.colorScheme = theme
-    document.body.dataset.omniquestTheme = theme
-  }, [theme])
+    document.documentElement.style.colorScheme = DEFAULT_THEME
+  }, [])
 
-  const setTheme = (nextTheme: AppThemeMode) => {
-    setThemeState(nextTheme)
-    void writeStorageItem(APP_THEME_STORAGE_KEY, nextTheme)
+  const setTheme = (_nextTheme: AppThemeMode) => {
+    setThemeState(DEFAULT_THEME)
   }
 
   const setAccentColor = (nextAccent: string) => {

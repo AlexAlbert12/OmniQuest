@@ -51,17 +51,6 @@ type ProfileRow = {
   alias: string | null
 }
 
-const notificationStorageKeys: Record<NotificationAudience, { read: string; deleted: string }> = {
-  teacher: {
-    read: 'omniquest.teacherNotifications.read',
-    deleted: 'omniquest.teacherNotifications.deleted',
-  },
-  student: {
-    read: 'omniquest.studentNotifications.read',
-    deleted: 'omniquest.studentNotifications.deleted',
-  },
-}
-
 export function useNotifications(audience: NotificationAudience = 'teacher') {
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [loading, setLoading] = useState(true)
@@ -684,6 +673,10 @@ function persistStoredIds(key: string, values: Set<string>) {
 }
 
 async function loadNotificationStateFromDB(userId: string): Promise<{ read: Set<string>; deleted: Set<string> }> {
+  const storageKeys = getNotificationStorageKeysForUser(userId)
+  const storedRead = loadStoredIds(storageKeys.read)
+  const storedDeleted = loadStoredIds(storageKeys.deleted)
+
   try {
     const { data, error } = await supabase
       .from('notification_state')
@@ -692,8 +685,8 @@ async function loadNotificationStateFromDB(userId: string): Promise<{ read: Set<
 
     if (error) throw error
 
-    const read = new Set<string>()
-    const deleted = new Set<string>()
+    const read = new Set<string>(storedRead)
+    const deleted = new Set<string>(storedDeleted)
 
     data?.forEach((row: any) => {
       if (row.is_read) read.add(row.notification_id)
@@ -703,7 +696,7 @@ async function loadNotificationStateFromDB(userId: string): Promise<{ read: Set<
     return { read, deleted }
   } catch (error) {
     console.error('Error loading notification state from DB:', error)
-    return { read: new Set(), deleted: new Set() }
+    return { read: storedRead, deleted: storedDeleted }
   }
 }
 
@@ -713,18 +706,42 @@ async function persistNotificationStateToDb(
   isRead: boolean,
   isDeleted: boolean
 ) {
+  const storageKeys = getNotificationStorageKeysForUser(userId)
+  const storedRead = loadStoredIds(storageKeys.read)
+  const storedDeleted = loadStoredIds(storageKeys.deleted)
+
+  if (isRead) {
+    storedRead.add(notificationId)
+  }
+
+  if (isDeleted) {
+    storedDeleted.add(notificationId)
+  }
+
+  persistStoredIds(storageKeys.read, storedRead)
+  persistStoredIds(storageKeys.deleted, storedDeleted)
+
   try {
-    // Usar upsert para crear o actualizar el registro
-    const { error } = await supabase.from('notification_state').upsert({
-      user_id: userId,
-      notification_id: notificationId,
-      is_read: isRead,
-      is_deleted: isDeleted,
-      updated_at: new Date().toISOString(),
-    })
+    const { error } = await supabase.from('notification_state').upsert(
+      {
+        user_id: userId,
+        notification_id: notificationId,
+        is_read: isRead,
+        is_deleted: isDeleted,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,notification_id' }
+    )
 
     if (error) throw error
   } catch (error) {
     console.error('Error persisting notification state to DB:', error)
+  }
+}
+
+function getNotificationStorageKeysForUser(userId: string) {
+  return {
+    read: `omniquest.notifications.${userId}.read`,
+    deleted: `omniquest.notifications.${userId}.deleted`,
   }
 }

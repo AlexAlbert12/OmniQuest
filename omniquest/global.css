@@ -7,22 +7,3 @@ body {
   min-height: 100%;
   background: #061126;
 }
-
-html[data-omniquest-theme='light'],
-html[data-omniquest-theme='light'] body {
-  background: #f4f7ff;
-}
-
-html[data-omniquest-theme='light'] #root,
-html[data-omniquest-theme='light'] body > div:first-child {
-  min-height: 100%;
-  background: #f4f7ff;
-  filter: invert(1) hue-rotate(180deg);
-}
-
-html[data-omniquest-theme='light'] img,
-html[data-omniquest-theme='light'] video,
-html[data-omniquest-theme='light'] canvas,
-html[data-omniquest-theme='light'] [role='img'] {
-  filter: invert(1) hue-rotate(180deg);
-}

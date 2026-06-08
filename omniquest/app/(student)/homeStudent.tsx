@@ -38,30 +38,6 @@ type SubjectScore = {
   played_days: string[] | null
 }
 
-const defaultActivityItems: ActivityItem[] = [
-  {
-    icon: 'checkmark',
-    color: '#70E0A5',
-    title: 'Completaste la pregunta "Verbos en pasado"',
-    detail: 'Ingles',
-    time: 'Hace 2h',
-  },
-  {
-    icon: 'trophy',
-    color: '#8B5CF6',
-    title: 'Obtuviste 100 XP',
-    detail: 'Por completar una pregunta',
-    time: 'Ayer',
-  },
-  {
-    icon: 'star',
-    color: '#F6A64A',
-    title: 'Nueva mejor marca',
-    detail: 'Superaste tu puntaje en una clase',
-    time: 'Ayer',
-  },
-]
-
 const getTimeAgo = (date: Date): string => {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -84,8 +60,9 @@ export default function StudentHome() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
-  const [activityItems, setActivityItems] = useState<ActivityItem[]>(defaultActivityItems)
+  const [activityItems, setActivityItems] = useState<ActivityItem[]>([])
   const [streakDays, setStreakDays] = useState(0)
+  const [weeklyGoalCount, setWeeklyGoalCount] = useState(0)
   const router = useRouter()
 
   const isDesktop = width >= 1024
@@ -93,7 +70,6 @@ export default function StudentHome() {
   const points = profile?.points ?? 0
   const alias = profile?.alias || 'Alex'
   const level = Math.floor(points / 100) + 1
-  const weeklyGoal = Math.min(10, Math.max(1, enrolledSubjects.length * 2 + Math.floor(points / 250)))
   const progressPercent = Math.min(96, Math.max(28, 40 + enrolledSubjects.length * 10 + Math.floor(points / 120)))
   const nextLevelProgress = Math.min(100, points % 100)
 
@@ -119,7 +95,15 @@ export default function StudentHome() {
 
       setCurrentUserId(userId);
 
-      const [profileResult, enrollmentsResult, scoresResult, rankingResult, activityResult] = await Promise.all([
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - diffToMonday);
+      startOfWeek.setHours(0, 0, 0, 0);
+      const weekStartIso = startOfWeek.toISOString();
+
+      const [profileResult, enrollmentsResult, scoresResult, rankingResult, activityResult, weeklyGoalResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, points, role_id').eq('id', userId).single(),
         supabase
           .from('enrollments')
@@ -143,6 +127,17 @@ export default function StudentHome() {
           .not('played_at', 'is', null)
           .order('played_at', { ascending: false })
           .limit(3),
+        supabase
+          .from('attempt_history')
+          .select(`
+            id,
+            is_correct,
+            attempted_at,
+            questions ( text, subject_topics ( title ) )
+          `)
+          .eq('student_id', userId)
+          .order('attempted_at', { ascending: false })
+          .limit(3),
       ]);
 
       if (profileResult.error) throw profileResult.error;
@@ -150,10 +145,13 @@ export default function StudentHome() {
       if (scoresResult.error) throw scoresResult.error;
       if (rankingResult.error) throw rankingResult.error;
       if (activityResult.error) throw activityResult.error;
+      if (weeklyGoalResult.error) console.error("Error al obtener la meta:", weeklyGoalResult.error);
 
       setProfile(profileResult.data);
       setEnrolledSubjects(enrollmentsResult.data?.map(e => e.subjects).filter(Boolean) || []);
       setRanking(rankingResult.data || []);
+
+      setWeeklyGoalCount(weeklyGoalResult.count || 0);
 
       const scoreRows = (scoresResult.data || []) as SubjectScore[];
       const scoreMap: Record<number, number> = {};
@@ -169,22 +167,28 @@ export default function StudentHome() {
       ]);
       setStreakDays(calculateStreakDays(playedDays));
 
-      const activities: ActivityItem[] = activityResult.data?.map((score) => {
-        const timeAgo = getTimeAgo(new Date(score.played_at));
-
-        const subjectData = score.subjects as any;
-        const subjectName = Array.isArray(subjectData) ? subjectData[0]?.name : subjectData?.name;
+      const activities: ActivityItem[] = (activityResult.data || []).map((attempt: any) => {
+        const timeAgo = getTimeAgo(new Date(attempt.attempted_at));
+        const isCorrect = attempt.is_correct;
+        const topicData = attempt.questions?.subject_topics;
+        const topicTitle = Array.isArray(topicData) ? topicData[0]?.title : topicData?.title;
 
         return {
-          icon: 'trophy',
-          color: '#8B5CF6',
-          title: `Obtuviste ${score.max_score} XP`,
-          detail: subjectName || 'Materia desconocida',
+          icon: isCorrect ? 'checkmark' : 'close',
+          color: isCorrect ? '#70E0A5' : '#FB7185',
+          title: isCorrect ? 'Acertaste una pregunta' : 'Fallaste una pregunta',
+          detail: topicTitle ? `Tema: ${topicTitle}` : 'Práctica',
           time: timeAgo,
         };
-      }) || [];
-      setActivityItems(activities.length > 0 ? activities : defaultActivityItems);
+      });
 
+      setActivityItems(activities.length > 0 ? activities : [{
+        icon: 'rocket',
+        color: '#3B82F6',
+        title: '¡Tu aventura comienza aquí!',
+        detail: 'Juega tu primera partida para ver tu historial.',
+        time: 'Ahora'
+      }]);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -308,26 +312,23 @@ export default function StudentHome() {
               <MetricCard
                 title="Progreso general"
                 value={`${progressPercent}%`}
-                detail="Estás haciendo un gran trabajo 🚀"
                 icon="analytics-outline"
                 color="#43D991"
-                onPress={() => router.push('/(student)/profile' as any)}
+                onPress={() => router.push('/(student)/progress')}
               />
               <MetricCard
                 title="Preguntas completadas"
                 value={String(Math.max(3, Math.floor(points / 100) + enrolledSubjects.length * 4))}
-                detail="¡Sigue así!"
                 icon="trophy"
                 color="#8B5CF6"
-                onPress={() => showComingSoon('El historial de preguntas')}
+                onPress={() => router.push('/(student)/progress')}
               />
               <MetricCard
                 title="Días de racha"
                 value={String(streakDays)}
-                detail={streakDays > 0 ? '¡Sigue así!' : 'Juega hoy para iniciar tu racha'}
                 icon="flame"
                 color="#FF7B45"
-                onPress={() => showComingSoon('La vista de rachas')}
+                onPress={() => router.push('/(student)/progress')}
               />
             </View>
           </View>
@@ -382,7 +383,8 @@ export default function StudentHome() {
                   <ActivityRow key={item.title} item={item} />
                 ))}
               </View>
-              <CardLink label="Ver toda la actividad" onPress={() => showComingSoon('La actividad completa')} />
+              <CardLink label="Ver toda la actividad" onPress={() => router.push('/(student)/activity-log')}
+              />
             </DashboardCard>
 
             <DashboardCard title="Top 5 del ranking" className={isDesktop ? 'flex-1' : ''}>
@@ -400,7 +402,7 @@ export default function StudentHome() {
             </DashboardCard>
           </View>
 
-          <WeeklyGoal completed={weeklyGoal} />
+          <WeeklyGoal completed={weeklyGoalCount} />
         </ScrollView>
       </View>
 
@@ -478,14 +480,12 @@ function DashboardCard({
 function MetricCard({
   title,
   value,
-  detail,
   icon,
   color,
   onPress,
 }: {
   title: string
   value: string
-  detail: string
   icon: keyof typeof Ionicons.glyphMap
   color: string
   onPress: () => void
@@ -505,13 +505,6 @@ function MetricCard({
           <Ionicons name={icon} size={28} color={color} />
         </View>
         <Text className="mt-4 text-[28px] font-black text-white">{value}</Text>
-        <Text className="mt-1 min-h-[36px] text-center text-[12px] leading-5 text-[#A8B8CE]">{detail}</Text>
-      </View>
-      <View className="mt-4 border-t border-[#172A4A] pt-3">
-        <View className="flex-row items-center justify-center gap-2">
-          <Text className="text-[12px] font-bold text-[#8290FF]">Ver más</Text>
-          <Ionicons name="arrow-forward" size={14} color="#8290FF" />
-        </View>
       </View>
     </Pressable>
   )

@@ -82,18 +82,6 @@ export default function IndexScreen() {
   const isTablet = width >= 760
   const isWeb = Platform.OS === 'web'
 
-  const showComingSoon = (feature: string) => {
-    const title = 'Próximamente'
-    const message = `${feature} estará disponible en una próxima iteración.`
-
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n\n${message}`)
-      return
-    }
-
-    Alert.alert(title, message)
-  }
-
   const enterAsGuest = async () => {
     setGuestLoading(true)
     try {
@@ -160,10 +148,6 @@ export default function IndexScreen() {
             paddingBottom: isDesktop ? 40 : 28,
           }}
         >
-          <Header
-            isDesktop={isDesktop}
-            onThemePress={() => showComingSoon('El selector de tema')}
-          />
 
           <View
             style={{

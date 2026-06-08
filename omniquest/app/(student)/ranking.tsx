@@ -32,6 +32,8 @@ type RankingLeague = {
   icon: keyof typeof Ionicons.glyphMap
 }
 
+type RankingScope = 'global' | 'friends' | 'class' | 'school'
+
 const rankingLeagues: RankingLeague[] = [
   { name: 'Bronce', minPoints: 0, nextMinPoints: 500, color: '#CD7F32', icon: 'shield-outline' },
   { name: 'Plata', minPoints: 500, nextMinPoints: 1500, color: '#CBD5E1', icon: 'shield-half-outline' },
@@ -45,6 +47,7 @@ export default function RankingScreen() {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [selectedScope, setSelectedScope] = useState<RankingScope>('global')
   const [loading, setLoading] = useState(true)
 
   const isDesktop = width >= 1024
@@ -80,21 +83,19 @@ export default function RankingScreen() {
         setCurrentProfile(profileResult.data || null)
       }
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, alias, points, avatar')
-        .eq('role_id', 'student')
-        .order('points', { ascending: false })
-        .limit(50)
+      const nextProfiles = selectedScope === 'global'
+        ? await fetchGlobalRanking()
+        : userId
+          ? await fetchSharedSubjectRanking(userId)
+          : []
 
-      if (error) throw error
-      setProfiles(data || [])
+      setProfiles(nextProfiles)
     } catch (error) {
       console.error('Error fetching ranking:', error)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [selectedScope])
 
   useFocusEffect(
     useCallback(() => {
@@ -214,7 +215,7 @@ export default function RankingScreen() {
 
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
             <View className={isDesktop ? 'flex-[1.45]' : ''}>
-              <RankingTabs onComingSoon={showComingSoon} />
+              <RankingTabs activeScope={selectedScope} onSelect={setSelectedScope} />
               <View className="mt-4 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
                 <View className="mb-4 flex-row items-center border-b border-[#172A4A] pb-3">
                   <Text className="w-24 text-[12px] font-bold uppercase text-[#8FA7C7]">Posición</Text>
@@ -239,7 +240,9 @@ export default function RankingScreen() {
                     <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-8">
                       <Ionicons name="trophy-outline" size={34} color="#8FA7C7" />
                       <Text className="mt-2 text-center text-[13px] text-[#AFC2DB]">
-                        Aún no hay estudiantes con puntuación en el ranking.
+                        {selectedScope === 'global'
+                          ? 'Aún no hay estudiantes con puntuación en el ranking.'
+                          : 'Aún no hay compañeros con puntuación en tus asignaturas.'}
                       </Text>
                     </View>
                   )}
@@ -268,27 +271,99 @@ export default function RankingScreen() {
   )
 }
 
-function RankingTabs({ onComingSoon }: { onComingSoon: (feature: string) => void }) {
-  const tabs = [
-    { label: 'Global', icon: 'globe-outline', active: true },
-    { label: 'Amigos', icon: 'people-outline', active: false },
-    { label: 'Clase', icon: 'school-outline', active: false },
-    { label: 'Escuela', icon: 'business-outline', active: false },
+async function fetchGlobalRanking() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, alias, points, avatar')
+    .eq('role_id', 'student')
+    .order('points', { ascending: false })
+    .limit(50)
+
+  if (error) throw error
+  return (data || []) as Profile[]
+}
+
+async function fetchSharedSubjectRanking(userId: string) {
+  const { data: ownEnrollments, error: ownEnrollmentsError } = await supabase
+    .from('enrollments')
+    .select('subject_id')
+    .eq('student_id', userId)
+
+  if (ownEnrollmentsError) throw ownEnrollmentsError
+
+  const subjectIds = Array.from(
+    new Set(
+      (ownEnrollments || [])
+        .map((enrollment: { subject_id: number | null }) => enrollment.subject_id)
+        .filter((value): value is number => typeof value === 'number')
+    )
+  )
+
+  if (subjectIds.length === 0) {
+    return []
+  }
+
+  const { data: sharedEnrollments, error: sharedEnrollmentsError } = await supabase
+    .from('enrollments')
+    .select('student_id')
+    .in('subject_id', subjectIds)
+
+  if (sharedEnrollmentsError) throw sharedEnrollmentsError
+
+  const studentIds = Array.from(
+    new Set(
+      (sharedEnrollments || [])
+        .map((enrollment: { student_id: string | null }) => enrollment.student_id)
+        .filter((value): value is string => Boolean(value))
+    )
+  )
+
+  if (studentIds.length === 0) {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, alias, points, avatar')
+    .eq('role_id', 'student')
+    .in('id', studentIds)
+    .order('points', { ascending: false })
+    .limit(50)
+
+  if (error) throw error
+  return (data || []) as Profile[]
+}
+
+function RankingTabs({
+  activeScope,
+  onSelect,
+}: {
+  activeScope: RankingScope
+  onSelect: (scope: RankingScope) => void
+}) {
+  const tabs: { label: string; icon: keyof typeof Ionicons.glyphMap; scope: RankingScope }[] = [
+    { label: 'Global', icon: 'globe-outline', scope: 'global' },
+    { label: 'Amigos', icon: 'people-outline', scope: 'friends' },
+    { label: 'Clase', icon: 'school-outline', scope: 'class' },
+    { label: 'Escuela', icon: 'business-outline', scope: 'school' },
   ] as const
 
   return (
     <View className="flex-row flex-wrap gap-2">
-      {tabs.map((tab) => (
+      {tabs.map((tab) => {
+        const active = activeScope === tab.scope
+        return (
         <Pressable
           key={tab.label}
-          onPress={() => !tab.active && onComingSoon(`Ranking de ${tab.label.toLowerCase()}`)}
-          className={`min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-4 py-4 ${tab.active ? 'border-[#5D64FF] bg-[#4F46E5]' : 'border-[#172A4A] bg-[#09162C]'
+          onPress={() => onSelect(tab.scope)}
+          className={`min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-4 py-4 ${active ? 'border-[#5D64FF] bg-[#4F46E5]' : 'border-[#172A4A] bg-[#09162C]'
             }`}
         >
-          <Ionicons name={tab.icon} size={18} color={tab.active ? '#FFFFFF' : '#AFC2DB'} />
-          <Text className={`font-bold ${tab.active ? 'text-white' : 'text-[#AFC2DB]'}`}>{tab.label}</Text>
+          <Ionicons name={tab.icon} size={18} color={active ? '#FFFFFF' : '#AFC2DB'} />
+          <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{tab.label}</Text>
         </Pressable>
-      ))}
+        )
+      })}
     </View>
   )
 }

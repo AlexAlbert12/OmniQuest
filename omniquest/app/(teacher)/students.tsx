@@ -367,20 +367,16 @@ export default function TeacherStudentsScreen() {
     );
   };
 
-  const handleExportStudentsCsv = () => {
+  const handleExportStudentsCsv = async () => {
     if (visibleStudents.length === 0) {
       showAlert('Sin datos', 'No hay estudiantes visibles para exportar.');
-      return;
-    }
-
-    if (Platform.OS !== 'web') {
-      showAlert('Exportación disponible en web', 'Por ahora la descarga CSV está disponible en la versión web.');
       return;
     }
 
     const selectedSubjectName = selectedSubjectId === 'all'
       ? 'Todas las clases'
       : subjects.find((subject) => subject.id === selectedSubjectId)?.name || `Clase ${selectedSubjectId}`;
+
     const exportedAt = new Intl.DateTimeFormat('es-ES', {
       dateStyle: 'short',
       timeStyle: 'short',
@@ -401,19 +397,9 @@ export default function TeacherStudentsScreen() {
     };
 
     const headers = [
-      'ID',
-      'Alias',
-      'Usuario',
-      'XP_Clase',
-      'XP_Global',
-      'Progreso_Porcentaje',
-      'Preguntas_Completadas',
-      'Nota_Media',
-      'Estado',
-      'Asignaturas_IDs',
-      'Asignaturas',
-      'Filtro_Asignatura',
-      'Exportado_El',
+      'ID', 'Alias', 'Usuario', 'XP_Clase', 'XP_Global',
+      'Progreso_Porcentaje', 'Preguntas_Completadas', 'Nota_Media',
+      'Estado', 'Asignaturas_IDs', 'Asignaturas', 'Filtro_Asignatura', 'Exportado_El'
     ];
 
     const rows = visibleStudents.map((student) => [
@@ -437,9 +423,7 @@ export default function TeacherStudentsScreen() {
       .join('\n');
 
     const csvText = `\uFEFF${csvBody}`;
-    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+
     const date = new Date().toISOString().slice(0, 10);
     const subjectSlug = selectedSubjectName
       .normalize('NFD')
@@ -449,12 +433,19 @@ export default function TeacherStudentsScreen() {
       .replace(/^-|-$/g, '') || 'clase';
     const filename = `omniquest_estudiantes_${subjectSlug}_${date}.csv`;
 
-    link.href = url;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    if (Platform.OS === 'web') {
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } else {
+      showAlert('Exportación disponible en web', 'La descarga CSV está disponible desde la versión web.');
+    }
   };
 
   if (loading) {

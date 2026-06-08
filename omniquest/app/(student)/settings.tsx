@@ -152,7 +152,7 @@ const accentColors = ['#7C5CFF', '#3B82F6', '#38BDF8', '#58D17A', '#F6A64A', '#E
 export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) {
   const { width } = useWindowDimensions()
   const router = useRouter()
-  const { theme, setTheme, accentColor, setAccentColor } = useAppTheme()
+  const { theme, accentColor, setAccentColor } = useAppTheme()
   const scrollRef = useRef<ScrollView | null>(null)
   const sectionPositionsRef = useRef<Partial<Record<SettingsAnchorKey, number>>>({})
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -869,10 +869,6 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                 audience={isTeacher ? 'teacher' : 'student'}
                 onPress={() => router.push((isTeacher ? '/(teacher)/notifications' : '/(student)/notifications') as any)}
               />
-              <View className="h-11 w-11 items-center justify-center rounded-full bg-[#5B4BC4]">
-                <Text className="font-black text-white">{userInitials}</Text>
-              </View>
-              <Ionicons name="chevron-down" size={18} color="#AFC2DB" />
             </View>
           </View>
 
@@ -946,24 +942,10 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                 <View onLayout={handleSectionLayout('preferences')} className={isWide ? 'flex-1' : ''}>
                   <Panel title="Preferencias generales">
                     <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
-                      <Text className="text-[12px] font-bold text-white">Apariencia</Text>
-                      <View className="mt-3 flex-row gap-3">
-                        <Pressable
-                          onPress={() => setTheme('light')}
-                          className={`flex-1 rounded-lg border px-3 py-2 ${theme === 'light' ? 'bg-[#1A1E55]' : 'border-[#2A456A] bg-[#0A2042]'}`}
-                          style={theme === 'light' ? { borderColor: accentColor } : undefined}
-                        >
-                          <Text className="text-center font-semibold text-white">Tema claro</Text>
-                        </Pressable>
-                        <Pressable
-                          onPress={() => setTheme('dark')}
-                          className={`flex-1 rounded-lg border px-3 py-2 ${theme === 'dark' ? 'bg-[#1A1E55]' : 'border-[#2A456A] bg-[#0A2042]'}`}
-                          style={theme === 'dark' ? { borderColor: accentColor } : undefined}
-                        >
-                          <Text className="text-center font-semibold text-white">Tema oscuro</Text>
-                        </Pressable>
-                      </View>
-                      <Text className="mt-3 text-[11px] text-[#AFC2DB]">Color de acento</Text>
+                      <Text className="text-[12px] font-bold text-white">Color de acento</Text>
+                      <Text className="mt-1 text-[11px] text-[#AFC2DB]">
+                        El modo visual está optimizado en oscuro para mantener consistencia en toda la app.
+                      </Text>
                       <View className="mt-2 flex-row flex-wrap gap-3">
                         {accentColors.map((color) => (
                           <Pressable
