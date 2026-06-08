@@ -10,13 +10,11 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { Link, useFocusEffect, useRouter } from 'expo-router'
+import { Link, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
-import { calculateStreakDays } from '../../lib/studentBadges'
 import NotificationBadge from '../../components/NotificationBadge'
-import { useNotifications } from '../../hooks/useNotifications'
 
 type Profile = {
   id: string
@@ -28,13 +26,10 @@ type Profile = {
 
 export default function RankingScreen() {
   const { width } = useWindowDimensions()
-  const router = useRouter()
-  const { unreadCount } = useNotifications('student')
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [streakDays, setStreakDays] = useState(0)
 
   const isDesktop = width >= 1024
   const rankingRows = useMemo(() => profiles, [profiles])
@@ -57,25 +52,15 @@ export default function RankingScreen() {
       setCurrentUserId(userId)
 
       if (userId) {
-        const [profileResult, scoresResult] = await Promise.all([
-          supabase
-            .from('profiles')
-            .select('id, alias, points, avatar, role_id')
-            .eq('id', userId)
-            .single(),
-          supabase.from('subject_scores').select('played_at, played_days').eq('student_id', userId),
-        ])
+        const profileResult = await supabase
+          .from('profiles')
+          .select('id, alias, points, avatar, role_id')
+          .eq('id', userId)
+          .single()
 
         if (profileResult.error) throw profileResult.error
-        if (scoresResult.error) throw scoresResult.error
 
         setCurrentProfile(profileResult.data || null)
-
-        const playedDays = (scoresResult.data || []).flatMap((score: { played_at: string | null; played_days: string[] | null }) => [
-          ...(score.played_days || []),
-          ...(score.played_at ? [score.played_at] : []),
-        ])
-        setStreakDays(calculateStreakDays(playedDays))
       }
 
       const { data, error } = await supabase
@@ -207,20 +192,7 @@ export default function RankingScreen() {
                 Compite, aprende y sube posiciones 🚀
               </Text>
             </View>
-
-            <View className="flex-row items-center gap-3">
-              <View className="flex-row items-center gap-3 rounded-2xl border border-[#162B50] bg-[#0B1933] px-4 py-3">
-                <Ionicons name="flash" size={20} color="#FFD34D" />
-                <View>
-                  <Text className="text-[16px] font-black text-white">{streakDays}</Text>
-                  <Text className="text-[11px] text-[#8FA7C7]">Días de racha</Text>
-                </View>
-              </View>
-              <NotificationBadge
-                count={unreadCount}
-                onPress={() => router.push('/(student)/notifications' as any)}
-              />
-            </View>
+            <NotificationBadge />
           </View>
 
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>

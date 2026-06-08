@@ -201,6 +201,7 @@ export default function TeacherHomeScreen() {
                 <Text className="font-bold text-white">Ir a Mis Clases</Text>
               </Pressable>
               <NotificationBadge
+                audience="teacher"
                 count={unreadCount}
                 onPress={() => router.push('/(teacher)/notifications' as any)}
               />

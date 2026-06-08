@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAppTheme } from '../lib/appTheme'
 
-export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'profile' | 'settings'
+export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings'
 
 type StudentSidebarProps = {
   activeSection: StudentSection
@@ -33,6 +33,7 @@ const navItems: NavItem[] = [
   { section: 'progress', label: 'Progreso', icon: 'stats-chart-outline', href: '/(student)/progress' },
   { section: 'ranking', label: 'Ranking', icon: 'trophy-outline', href: '/(student)/ranking' },
   { section: 'badges', label: 'Logros', icon: 'ribbon-outline', href: '/(student)/badges' },
+  { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(student)/notifications' },
   { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(student)/profile' },
   { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(student)/settings' },
 ]

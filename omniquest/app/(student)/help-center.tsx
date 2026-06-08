@@ -14,6 +14,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
+import NotificationBadge from '../../components/NotificationBadge'
 
 type TicketPriority = 'low' | 'medium' | 'high'
 type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
@@ -224,6 +225,7 @@ export default function StudentHelpCenterScreen() {
               <Text className="mt-1 text-[12px] text-[#AFC2DB]">FAQ, contacto y tickets de soporte.</Text>
             </View>
           </View>
+          <NotificationBadge />
         </View>
 
         <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>

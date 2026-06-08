@@ -493,6 +493,7 @@ export default function TeacherStudentsScreen() {
                 onSelect={setSelectedSubjectId}
               />
               <NotificationBadge
+                audience="teacher"
                 count={unreadCount}
                 onPress={() => router.push('/(teacher)/notifications' as any)}
               />

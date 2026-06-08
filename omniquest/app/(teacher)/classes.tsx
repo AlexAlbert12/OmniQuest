@@ -305,6 +305,7 @@ export default function TeacherClassesScreen() {
                 <Text className="font-bold text-white">Crear clase</Text>
               </Pressable>
               <NotificationBadge
+                audience="teacher"
                 count={unreadCount}
                 onPress={() => router.push('/(teacher)/notifications' as any)}
               />

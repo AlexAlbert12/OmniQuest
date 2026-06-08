@@ -21,7 +21,6 @@ import StudentSidebar from '../../components/StudentSidebar'
 import TeacherSidebar from '../../components/TeacherSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import { useAppTheme } from '../../lib/appTheme'
-import { useNotifications } from '../../hooks/useNotifications'
 
 type IconName = keyof typeof Ionicons.glyphMap
 type AppRole = 'student' | 'teacher'
@@ -186,7 +185,6 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
   const isDesktop = width >= 1080
   const isWide = width >= 820
   const isTeacher = role === 'teacher'
-  const { unreadCount } = useNotifications(isTeacher ? 'teacher' : 'student')
   const isDark = theme === 'dark'
   const settingsSections = isTeacher ? teacherSettingsSections : studentSettingsSections
   const points = profile?.points ?? 0
@@ -868,7 +866,7 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
 
             <View className="flex-row items-center gap-3">
               <NotificationBadge
-                count={unreadCount}
+                audience={isTeacher ? 'teacher' : 'student'}
                 onPress={() => router.push((isTeacher ? '/(teacher)/notifications' : '/(student)/notifications') as any)}
               />
               <View className="h-11 w-11 items-center justify-center rounded-full bg-[#5B4BC4]">

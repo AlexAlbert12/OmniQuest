@@ -10,12 +10,11 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { Link, useFocusEffect, useRouter } from 'expo-router'
+import { Link, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
-import { useNotifications } from '../../hooks/useNotifications'
 
 type Profile = {
   id: string
@@ -34,8 +33,6 @@ type Subject = {
 
 export default function ClassesScreen() {
   const { width } = useWindowDimensions()
-  const router = useRouter()
-  const { unreadCount } = useNotifications('student')
   const [profile, setProfile] = useState<Profile | null>(null)
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [subjectScores, setSubjectScores] = useState<Record<number, number>>({})
@@ -298,17 +295,7 @@ export default function ClassesScreen() {
             </View>
 
             <View className="flex-row items-center gap-3">
-              <View className="flex-row items-center gap-3 rounded-2xl border border-[#162B50] bg-[#0B1933] px-4 py-3">
-                <Ionicons name="flash" size={20} color="#FFD34D" />
-                <View>
-                  <Text className="text-[16px] font-black text-white">7</Text>
-                  <Text className="text-[11px] text-[#8FA7C7]">Días de racha</Text>
-                </View>
-              </View>
-              <NotificationBadge
-                count={unreadCount}
-                onPress={() => router.push('/(student)/notifications' as any)}
-              />
+              <NotificationBadge />
             </View>
           </View>
 

@@ -6,7 +6,6 @@ import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
 import { calculateStreakDays } from '../../lib/studentBadges'
 import NotificationBadge from '../../components/NotificationBadge'
-import { useNotifications } from '../../hooks/useNotifications'
 
 type Subject = {
   id: number
@@ -77,7 +76,6 @@ const getTimeAgo = (date: Date): string => {
 
 export default function StudentHome() {
   const { width } = useWindowDimensions()
-  const { unreadCount } = useNotifications('student')
   const [inviteCode, setInviteCode] = useState('')
   const [enrolledSubjects, setEnrolledSubjects] = useState<Subject[]>([])
   const [subjectScores, setSubjectScores] = useState<Record<number, number>>({});
@@ -300,20 +298,7 @@ export default function StudentHome() {
                 ¿Listo para seguir aprendiendo y alcanzar tus metas?
               </Text>
             </View>
-
-            <View className="flex-row items-center gap-3">
-              <View className="flex-row items-center gap-3 rounded-2xl border border-[#162B50] bg-[#0B1933] px-4 py-3">
-                <Ionicons name="flash" size={20} color="#FFD34D" />
-                <View>
-                  <Text className="text-[16px] font-black text-white">{streakDays}</Text>
-                  <Text className="text-[11px] text-[#8FA7C7]">Días de racha</Text>
-                </View>
-              </View>
-              <NotificationBadge
-                count={unreadCount}
-                onPress={() => router.push('/(student)/notifications' as any)}
-              />
-            </View>
+            <NotificationBadge />
           </View>
 
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>

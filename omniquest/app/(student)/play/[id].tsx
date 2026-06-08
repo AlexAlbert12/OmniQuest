@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useRef } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -8,7 +8,7 @@ import {
   Text,
   TextInput,
   useWindowDimensions,
-  View,
+  View, Animated, PanResponder
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -346,6 +346,18 @@ function QuestionInteraction({
     )
   }
 
+  if (questionType === 'drag_drop') {
+    return (
+      <DragDropQuestion
+        key={question.id}
+        question={question}
+        hasAnswered={hasAnswered}
+        answerStatus={answerStatus}
+        onSubmit={onStructuredAnswer}
+      />
+    )
+  }
+
   return (
     <PairingQuestion
       key={question.id}
@@ -510,6 +522,81 @@ function OrderingQuestion({
       ) : null}
 
       <SubmitAnswerButton disabled={hasAnswered || orderedAnswers.length < 2} onPress={handleSubmit} />
+    </View>
+  )
+}
+
+function DragDropQuestion({
+  question,
+  hasAnswered,
+  answerStatus,
+  onSubmit,
+}: {
+  question: Question
+  hasAnswered: boolean
+  answerStatus: 'correct' | 'incorrect' | null
+  onSubmit: (isCorrect: boolean) => void
+}) {
+  const pairs = useMemo(
+    () => getSortedAnswers(question.answers).map((answer) => decodePairAnswer(answer.text)).filter(Boolean) as { left: string; right: string }[],
+    [question.answers]
+  )
+
+  const [orderedRight, setOrderedRight] = useState<string[]>([])
+
+  useEffect(() => {
+    setOrderedRight([...pairs.map(p => p.right)].sort(() => Math.random() - 0.5))
+  }, [pairs, question.id])
+
+  const handleMove = (fromIndex: number, toIndex: number) => {
+    if (hasAnswered) return
+    const newOrder = [...orderedRight]
+    const safeTo = Math.max(0, Math.min(newOrder.length - 1, toIndex))
+    
+    const [moved] = newOrder.splice(fromIndex, 1)
+    newOrder.splice(safeTo, 0, moved)
+    setOrderedRight(newOrder)
+  }
+
+  const handleSubmit = () => {
+    const isCorrect = pairs.every((pair, index) => orderedRight[index] === pair.right)
+    onSubmit(isCorrect)
+  }
+
+  return (
+    <View className="gap-4 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
+      <Text className="text-[13px] font-bold text-[#AFC2DB]">
+        Arrastra los elementos de la derecha para emparejarlos con su origen correspondiente.
+      </Text>
+
+      <View className="flex-row gap-4 mt-2">
+        <View className="flex-1 pt-1 gap-3">
+          {pairs.map((pair) => (
+            <View key={pair.left} className="h-[70px] justify-center rounded-xl border border-[#28456B] bg-[#0D1D3B] px-4">
+              <Text className="text-[11px] font-bold uppercase text-[#8FA7C7]">Origen</Text>
+              <Text className="mt-1 text-[15px] font-black text-white" numberOfLines={1}>{pair.left}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View className="flex-1 pt-1 relative">
+          {orderedRight.map((item, index) => (
+            <DraggableItem 
+              key={`${item}-${index}`} 
+              item={item} 
+              index={index} 
+              onMove={handleMove} 
+              disabled={hasAnswered} 
+            />
+          ))}
+        </View>
+      </View>
+
+      {hasAnswered && answerStatus === 'incorrect' ? (
+        <CorrectAnswerBox label="Relaciones correctas" values={pairs.map((pair) => `${pair.left} -> ${pair.right}`)} />
+      ) : null}
+
+      <SubmitAnswerButton disabled={hasAnswered || orderedRight.length === 0} onPress={handleSubmit} />
     </View>
   )
 }
@@ -1047,4 +1134,59 @@ function decodePairAnswer(text: string) {
     left: left.trim(),
     right: right.trim(),
   }
+}
+
+function DraggableItem({ 
+  item, 
+  index, 
+  onMove,
+  disabled 
+}: { 
+  item: string; 
+  index: number; 
+  onMove: (fromIndex: number, toIndex: number) => void;
+  disabled?: boolean;
+}) {
+  const pan = useRef(new Animated.ValueXY()).current;
+  const ITEM_HEIGHT = 82; 
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => !disabled,
+      onPanResponderMove: Animated.event([null, { dy: pan.y }], { useNativeDriver: false }),
+      onPanResponderRelease: (e, gesture) => {
+        const spacesMoved = Math.round(gesture.dy / ITEM_HEIGHT);
+        const newIndex = index + spacesMoved;
+
+        if (spacesMoved !== 0) {
+          onMove(index, newIndex);
+        }
+
+        Animated.spring(pan, {
+          toValue: { x: 0, y: 0 },
+          useNativeDriver: false,
+          friction: 5,
+        }).start();
+      },
+    })
+  ).current;
+
+  return (
+    <Animated.View
+      {...panResponder.panHandlers}
+      style={{
+        transform: [{ translateY: pan.y }],
+        zIndex: pan.y.interpolate({ inputRange: [-1, 1], outputRange: [10, 10] }),
+      }}
+      className={`h-[70px] mb-3 flex-row items-center gap-3 rounded-xl border px-4 shadow-lg ${
+        disabled ? 'border-[#28456B] bg-[#071426]' : 'border-[#3A4F83] bg-[#111E45]'
+      }`}
+    >
+      <Ionicons name="menu" size={20} color={disabled ? "#4B6282" : "#7F95B7"} />
+      <View className="flex-1">
+        <Text className="text-[11px] font-bold uppercase text-[#8FA7C7]">Destino</Text>
+        <Text className="mt-1 text-white text-[15px] font-black" numberOfLines={1}>{item}</Text>
+      </View>
+    </Animated.View>
+  );
 }

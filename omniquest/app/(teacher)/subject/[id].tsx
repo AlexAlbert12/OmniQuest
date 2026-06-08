@@ -1825,7 +1825,7 @@ function buildStudentReportRows(
 }
 
 async function buildFailedQuestionRows(
-  supabaseClient: ReturnType<typeof supabase>,
+  supabaseClient: typeof supabase,
   questions: Question[],
   enrollments: Enrollment[],
   topicRows: {

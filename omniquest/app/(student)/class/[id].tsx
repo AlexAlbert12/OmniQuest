@@ -12,6 +12,7 @@ import {
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../../lib/supabase'
+import NotificationBadge from '../../../components/NotificationBadge'
 
 type Subject = {
   id: number
@@ -166,10 +167,13 @@ export default function StudentClassDetailScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Pressable onPress={() => router.back()} className="mb-5 flex-row items-center gap-2">
-          <Ionicons name="arrow-back" size={18} color="#8FA7C7" />
-          <Text className="font-semibold text-[#8FA7C7]">Mis Clases</Text>
-        </Pressable>
+        <View className="mb-5 flex-row items-center justify-between gap-3">
+          <Pressable onPress={() => router.back()} className="flex-row items-center gap-2">
+            <Ionicons name="arrow-back" size={18} color="#8FA7C7" />
+            <Text className="font-semibold text-[#8FA7C7]">Mis Clases</Text>
+          </Pressable>
+          <NotificationBadge />
+        </View>
 
         <View className="mb-6 flex-row flex-wrap items-center gap-4">
           <View className="h-20 w-20 items-center justify-center rounded-2xl" style={{ backgroundColor: `${color}26` }}>
