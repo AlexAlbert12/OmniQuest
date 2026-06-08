@@ -267,7 +267,7 @@ export default function TeacherHomeScreen() {
                 <View style={{ gap: 10 }}>
                   <QuickAction icon="add" label="Crear nueva clase" onPress={() => router.push('/(teacher)/create-subject' as any)} />
                   <QuickAction icon="book-outline" label="Ver Mis Clases" onPress={() => router.push('/(teacher)/classes' as any)} />
-                  <QuickAction icon="people-outline" label="Revisar estudiantes" onPress={() => showComingSoon('La vista global de estudiantes')} />
+                  <QuickAction icon="people-outline" label="Revisar estudiantes" onPress={() => router.push('/(teacher)/students' as any)} />
                 </View>
               </Panel>
             </View>

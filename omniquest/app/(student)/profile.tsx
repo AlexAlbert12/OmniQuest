@@ -313,7 +313,6 @@ export default function ProfileScreen() {
                 value={String(unlockedBadges)}
                 icon="star"
                 color="#F6A64A"
-                link="Ver todos"
                 onPress={() => router.push('/(student)/badges' as any)}
               />
               <SummaryTile
@@ -321,21 +320,21 @@ export default function ProfileScreen() {
                 value={String(correctAnswers)}
                 icon="trophy"
                 color="#8B5CF6"
-                link="Ver preguntas"
+                onPress={() => router.push('/(student)/ranking' as any)}
               />
               <SummaryTile
                 title="Clases completadas"
                 value={String(completedClasses)}
-                icon="radio-button-on"
+                icon="book"
                 color="#3B82F6"
-                link="Ver clases"
+                onPress={() => router.push('/(student)/classes' as any)}
               />
               <SummaryTile
                 title="Días de racha"
                 value={String(streakDays)}
                 icon="flame"
                 color="#FF7B45"
-                link="¡Sigue así!"
+                onPress={() => router.push('/(student)/progress' as any)}
               />
             </View>
           </View>
@@ -470,14 +469,12 @@ function SummaryTile({
   value,
   icon,
   color,
-  link,
   onPress,
 }: {
   title: string
   value: string
   icon: keyof typeof Ionicons.glyphMap
   color: string
-  link: string
   onPress?: () => void
 }) {
   const Container = onPress ? Pressable : View
@@ -492,10 +489,6 @@ function SummaryTile({
       </View>
       <Text className="mt-3 text-center text-[12px] text-[#AFC2DB]">{title}</Text>
       <Text className="mt-2 text-[28px] font-black text-white">{value}</Text>
-      <View className="mt-3 flex-row items-center gap-2">
-        <Text className="text-[12px] font-bold text-[#9B6CFF]">{link}</Text>
-        <Ionicons name="arrow-forward" size={13} color="#9B6CFF" />
-      </View>
     </Container>
   )
 }

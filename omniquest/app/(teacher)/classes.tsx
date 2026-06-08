@@ -85,6 +85,21 @@ type RecentActivityItem = {
   timestamp: number
 }
 
+type ClassFilter = 'all' | 'in_progress' | 'completed'
+type ClassSort = 'recent' | 'name' | 'participation'
+
+const teacherClassFilters: { id: ClassFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { id: 'all', label: 'Todas', icon: 'apps-outline' },
+  { id: 'in_progress', label: 'En progreso', icon: 'time-outline' },
+  { id: 'completed', label: 'Completadas', icon: 'checkmark-done-outline' },
+]
+
+const teacherClassSorts: { id: ClassSort; label: string }[] = [
+  { id: 'recent', label: 'Reciente' },
+  { id: 'name', label: 'Nombre' },
+  { id: 'participation', label: 'Participación' },
+]
+
 const emptySubjectAnalytics: SubjectAnalytics = {
   enrolledCount: 0,
   playedCount: 0,
@@ -103,6 +118,8 @@ export default function TeacherClassesScreen() {
   const [analyticsBySubject, setAnalyticsBySubject] = useState<Record<number, SubjectAnalytics>>({});
   const [activityPlan, setActivityPlan] = useState<ActivityPlanItem[]>([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState<ClassFilter>('all');
+  const [selectedSort, setSelectedSort] = useState<ClassSort>('recent');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -112,12 +129,38 @@ export default function TeacherClassesScreen() {
 
   const filteredSubjects = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
-    if (!normalizedSearch) return subjects;
+    let rows = subjects;
 
-    return subjects.filter((subject) =>
-      `${subject.name} ${subject.description || ''} ${subject.code}`.toLowerCase().includes(normalizedSearch)
-    );
-  }, [search, subjects]);
+    if (selectedFilter === 'in_progress') {
+      rows = rows.filter((subject) => (analyticsBySubject[subject.id]?.playedCount ?? 0) === 0);
+    }
+
+    if (selectedFilter === 'completed') {
+      rows = rows.filter((subject) => (analyticsBySubject[subject.id]?.playedCount ?? 0) > 0);
+    }
+
+    if (normalizedSearch) {
+      rows = rows.filter((subject) =>
+        `${subject.name} ${subject.description || ''} ${subject.code}`.toLowerCase().includes(normalizedSearch)
+      );
+    }
+
+    return [...rows].sort((left, right) => {
+      if (selectedSort === 'name') {
+        return left.name.localeCompare(right.name, 'es', { sensitivity: 'base' });
+      }
+
+      if (selectedSort === 'participation') {
+        const rightAnalytics = analyticsBySubject[right.id] || emptySubjectAnalytics;
+        const leftAnalytics = analyticsBySubject[left.id] || emptySubjectAnalytics;
+        return getParticipationRate(rightAnalytics) - getParticipationRate(leftAnalytics)
+          || rightAnalytics.playedCount - leftAnalytics.playedCount
+          || left.name.localeCompare(right.name, 'es', { sensitivity: 'base' });
+      }
+
+      return toTimestamp(right.created_at) - toTimestamp(left.created_at);
+    });
+  }, [analyticsBySubject, search, selectedFilter, selectedSort, subjects]);
 
   const totals = useMemo(() => {
     const analytics = Object.values(analyticsBySubject);
@@ -332,10 +375,29 @@ export default function TeacherClassesScreen() {
                   />
                   <Ionicons name="search-outline" size={20} color="#AFC2DB" />
                 </View>
-                <Pressable className="h-12 flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4">
-                  <Ionicons name="filter" size={16} color="#B9A7FF" />
-                  <Text className="font-semibold text-[#DDE7F4]">Todas las clases</Text>
-                  <Ionicons name="chevron-down" size={16} color="#AFC2DB" />
+                <View className="flex-row flex-wrap gap-2">
+                  {teacherClassFilters.map((filter) => {
+                    const active = selectedFilter === filter.id;
+                    return (
+                      <Pressable
+                        key={filter.id}
+                        onPress={() => setSelectedFilter(filter.id)}
+                        className={`h-12 flex-row items-center gap-2 rounded-xl border px-4 ${
+                          active ? 'border-[#5D64FF] bg-[#4F46E5]' : 'border-[#20375E] bg-[#09162C]'
+                        }`}
+                      >
+                        <Ionicons name={filter.icon} size={16} color={active ? '#FFFFFF' : '#B9A7FF'} />
+                        <Text className={`font-semibold ${active ? 'text-white' : 'text-[#DDE7F4]'}`}>{filter.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <Pressable
+                  onPress={() => setSelectedSort((current) => getNextClassSort(current))}
+                  className="h-12 flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4"
+                >
+                  <Text className="font-semibold text-[#DDE7F4]">Ordenar por: {getClassSortLabel(selectedSort)}</Text>
+                  <Ionicons name="swap-vertical-outline" size={16} color="#AFC2DB" />
                 </Pressable>
                 <View className="h-12 flex-row rounded-xl border border-[#20375E] bg-[#09162C] p-1">
                   <View className="items-center justify-center rounded-lg bg-[#4F46E5] px-3">
@@ -359,7 +421,7 @@ export default function TeacherClassesScreen() {
                 ))}
               </View>
 
-              {filteredSubjects.length === 0 ? <EmptyClasses /> : null}
+              {filteredSubjects.length === 0 ? <EmptyClasses hasAnyClasses={subjects.length > 0} /> : null}
 
               <Pressable
                 onPress={() => router.push('/(teacher)/create-subject' as any)}
@@ -559,12 +621,18 @@ function ProgressRing({ progress, color }: { progress: number; color: string }) 
   );
 }
 
-function EmptyClasses() {
+function EmptyClasses({ hasAnyClasses }: { hasAnyClasses: boolean }) {
   return (
     <View className="items-center justify-center rounded-2xl border border-dashed border-[#20375E] bg-[#09162C] p-8">
       <Ionicons name="school-outline" size={58} color="#60799C" />
-      <Text className="mt-4 text-center text-lg font-bold text-white">Aún no tienes clases</Text>
-      <Text className="mt-2 text-center text-sm text-[#8FA7C7]">Crea tu primera asignatura para empezar a gestionar alumnos.</Text>
+      <Text className="mt-4 text-center text-lg font-bold text-white">
+        {hasAnyClasses ? 'No hay clases que coincidan' : 'Aún no tienes clases'}
+      </Text>
+      <Text className="mt-2 text-center text-sm text-[#8FA7C7]">
+        {hasAnyClasses
+          ? 'Cambia el filtro o la búsqueda para ver más clases.'
+          : 'Crea tu primera asignatura para empezar a gestionar alumnos.'}
+      </Text>
     </View>
   );
 }
@@ -777,6 +845,21 @@ function buildRecentActivity({
 function getStudentName(studentId: string | null, profilesById: Record<string, ProfileSummary>) {
   if (!studentId) return 'Alumno';
   return profilesById[studentId]?.alias || 'Alumno';
+}
+
+function getNextClassSort(current: ClassSort) {
+  const currentIndex = teacherClassSorts.findIndex((sort) => sort.id === current);
+  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % teacherClassSorts.length : 0;
+  return teacherClassSorts[nextIndex].id;
+}
+
+function getClassSortLabel(current: ClassSort) {
+  return teacherClassSorts.find((sort) => sort.id === current)?.label || 'Reciente';
+}
+
+function getParticipationRate(analytics: SubjectAnalytics) {
+  if (analytics.enrolledCount <= 0) return 0;
+  return analytics.playedCount / analytics.enrolledCount;
 }
 
 function getRecentThresholdDate(days: number) {

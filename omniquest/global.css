@@ -7,3 +7,44 @@ body {
   min-height: 100%;
   background: #061126;
 }
+
+button,
+a[href],
+[role='button'],
+[tabindex='0']:not(input):not(textarea):not(select) {
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    opacity 140ms ease,
+    filter 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease;
+  will-change: transform, opacity, filter;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):hover,
+  a[href]:hover,
+  [role='button']:not([aria-disabled='true']):hover,
+  [tabindex='0']:not(input):not(textarea):not(select):not([aria-disabled='true']):hover {
+    transform: translateY(-1px) scale(1.012);
+    filter: brightness(1.08);
+  }
+}
+
+button:not(:disabled):active,
+a[href]:active,
+[role='button']:not([aria-disabled='true']):active,
+[tabindex='0']:not(input):not(textarea):not(select):not([aria-disabled='true']):active {
+  transform: translateY(0) scale(0.985);
+  filter: brightness(0.96);
+}
+
+button:focus-visible,
+a[href]:focus-visible,
+[role='button']:focus-visible,
+[tabindex='0']:not(input):not(textarea):not(select):focus-visible {
+  outline: 2px solid rgba(130, 144, 255, 0.85);
+  outline-offset: 3px;
+}

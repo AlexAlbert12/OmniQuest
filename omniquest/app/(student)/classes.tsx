@@ -29,7 +29,23 @@ type Subject = {
   description: string | null
   icon: string | null
   theme_color: string | null
+  joined_at?: string | null
 }
+
+type ClassFilter = 'all' | 'in_progress' | 'completed'
+type ClassSort = 'recent' | 'name' | 'progress'
+
+const studentClassFilters: { id: ClassFilter; label: string }[] = [
+  { id: 'all', label: 'Todas' },
+  { id: 'in_progress', label: 'En progreso' },
+  { id: 'completed', label: 'Completadas' },
+]
+
+const studentClassSorts: { id: ClassSort; label: string }[] = [
+  { id: 'recent', label: 'Reciente' },
+  { id: 'name', label: 'Nombre' },
+  { id: 'progress', label: 'Progreso' },
+]
 
 export default function ClassesScreen() {
   const { width } = useWindowDimensions()
@@ -37,6 +53,8 @@ export default function ClassesScreen() {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [subjectScores, setSubjectScores] = useState<Record<number, number>>({})
   const [topicsBySubject, setTopicsBySubject] = useState<Record<number, number>>({})
+  const [selectedFilter, setSelectedFilter] = useState<ClassFilter>('all')
+  const [selectedSort, setSelectedSort] = useState<ClassSort>('recent')
   const [inviteCode, setInviteCode] = useState('')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -46,13 +64,36 @@ export default function ClassesScreen() {
   const isDesktop = width >= 1024
   const classRows = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase()
+    let rows = subjects
 
-    if (!normalizedSearch) return subjects
+    if (selectedFilter === 'in_progress') {
+      rows = rows.filter((subject) => typeof subjectScores[subject.id] !== 'number')
+    }
 
-    return subjects.filter((subject) =>
-      `${subject.name} ${subject.description || ''}`.toLowerCase().includes(normalizedSearch)
-    )
-  }, [search, subjects])
+    if (selectedFilter === 'completed') {
+      rows = rows.filter((subject) => typeof subjectScores[subject.id] === 'number')
+    }
+
+    if (normalizedSearch) {
+      rows = rows.filter((subject) =>
+        `${subject.name} ${subject.description || ''}`.toLowerCase().includes(normalizedSearch)
+      )
+    }
+
+    return [...rows].sort((left, right) => {
+      if (selectedSort === 'name') {
+        return left.name.localeCompare(right.name, 'es', { sensitivity: 'base' })
+      }
+
+      if (selectedSort === 'progress') {
+        const rightScore = subjectScores[right.id] ?? -1
+        const leftScore = subjectScores[left.id] ?? -1
+        return rightScore - leftScore || left.name.localeCompare(right.name, 'es', { sensitivity: 'base' })
+      }
+
+      return getSortableTimestamp(right.joined_at) - getSortableTimestamp(left.joined_at)
+    })
+  }, [search, selectedFilter, selectedSort, subjectScores, subjects])
 
   const points = profile?.points ?? 0
   const alias = profile?.alias || 'Alex'
@@ -96,7 +137,11 @@ export default function ClassesScreen() {
       setProfile(profileResult.data)
       setSubjects(
         enrollmentsResult.data
-          ?.map((enrollment: any) => enrollment.subjects)
+          ?.map((enrollment: any) =>
+            enrollment.subjects
+              ? { ...enrollment.subjects, joined_at: enrollment.joined_at ?? null }
+              : null
+          )
           .filter(Boolean) || []
       )
 
@@ -320,20 +365,26 @@ export default function ClassesScreen() {
               </View>
 
               <View className="flex-row gap-2">
-                {['Todas', 'En progreso', 'Completadas'].map((filter, index) => (
+                {studentClassFilters.map((filter) => {
+                  const active = selectedFilter === filter.id
+                  return (
                   <Pressable
-                    key={filter}
-                    onPress={() => index > 0 && showComingSoon(`Filtro ${filter.toLowerCase()}`)}
-                    className={`rounded-lg px-5 py-3 ${index === 0 ? 'bg-[#4F46E5]' : 'bg-[#0A1A34]'}`}
+                    key={filter.id}
+                    onPress={() => setSelectedFilter(filter.id)}
+                    className={`rounded-lg px-5 py-3 ${active ? 'bg-[#4F46E5]' : 'bg-[#0A1A34]'}`}
                   >
-                    <Text className={`font-bold ${index === 0 ? 'text-white' : 'text-[#AFC2DB]'}`}>{filter}</Text>
+                    <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{filter.label}</Text>
                   </Pressable>
-                ))}
+                  )
+                })}
               </View>
 
-              <Pressable className="ml-auto flex-row items-center gap-2 rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
-                <Text className="font-semibold text-[#AFC2DB]">Ordenar por: Reciente</Text>
-                <Ionicons name="chevron-down" size={16} color="#AFC2DB" />
+              <Pressable
+                onPress={() => setSelectedSort((current) => getNextClassSort(current))}
+                className="ml-auto flex-row items-center gap-2 rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3"
+              >
+                <Text className="font-semibold text-[#AFC2DB]">Ordenar por: {getClassSortLabel(selectedSort)}</Text>
+                <Ionicons name="swap-vertical-outline" size={16} color="#AFC2DB" />
               </Pressable>
             </View>
 
@@ -347,13 +398,12 @@ export default function ClassesScreen() {
                     isFallback={false}
                     score={subjectScores[subject.id]}
                     topicsCount={topicsBySubject[subject.id] || 0}
-                    onComingSoon={showComingSoon}
                     onLeave={handleLeaveClass}
                     leaving={leavingSubjectId === subject.id}
                   />
                 ))
               ) : (
-                <EmptyClasses />
+                <EmptyClasses hasAnyClasses={subjects.length > 0} />
               )}
             </View>
 
@@ -405,7 +455,6 @@ function ClassRow({
   isFallback,
   score,
   topicsCount,
-  onComingSoon,
   onLeave,
   leaving,
 }: {
@@ -414,7 +463,6 @@ function ClassRow({
   isFallback: boolean
   score?: number
   topicsCount: number
-  onComingSoon: (feature: string) => void
   onLeave: (subject: Subject) => void
   leaving: boolean
 }) {
@@ -473,7 +521,6 @@ function ClassRow({
         <View className="flex-row items-center gap-3">
           {isFallback ? (
             <Pressable
-              onPress={() => onComingSoon('Las preguntas de ejemplo')}
               className="flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-4 py-3"
             >
               <Ionicons name="play" size={15} color="#FFFFFF" />
@@ -508,13 +555,8 @@ function ClassRow({
               </Pressable>
             </>
           )}
-          <Pressable onPress={() => onComingSoon('Más opciones de clase')}>
-            <Ionicons name="ellipsis-vertical" size={18} color="#7F91AD" />
-          </Pressable>
         </View>
-        <Text className="mt-2 text-[10px] text-[#8FA7C7]">
-          {hasScore ? `Mejor nota: ${score.toLocaleString()} XP` : `Última actividad: ${activity[index] || 'Hoy'}`}
-        </Text>
+
       </View>
     </View>
   )
@@ -568,16 +610,36 @@ function JoinClassCard({
   )
 }
 
-function EmptyClasses() {
+function EmptyClasses({ hasAnyClasses }: { hasAnyClasses: boolean }) {
   return (
     <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B] px-4 py-6">
       <Ionicons name="school-outline" size={34} color="#60799C" />
-      <Text className="mt-3 text-center font-bold text-white">Aún no tienes clases</Text>
+      <Text className="mt-3 text-center font-bold text-white">
+        {hasAnyClasses ? 'No hay clases que coincidan' : 'Aún no tienes clases'}
+      </Text>
       <Text className="mt-1 text-center text-[12px] leading-5 text-[#8FA7C7]">
-        Introduce el código de tu profesor para unirte a una clase real.
+        {hasAnyClasses
+          ? 'Cambia el filtro o la búsqueda para ver más clases.'
+          : 'Introduce el código de tu profesor para unirte a una clase real.'}
       </Text>
     </View>
   )
+}
+
+function getNextClassSort(current: ClassSort) {
+  const currentIndex = studentClassSorts.findIndex((sort) => sort.id === current)
+  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % studentClassSorts.length : 0
+  return studentClassSorts[nextIndex].id
+}
+
+function getClassSortLabel(current: ClassSort) {
+  return studentClassSorts.find((sort) => sort.id === current)?.label || 'Reciente'
+}
+
+function getSortableTimestamp(value: string | null | undefined) {
+  if (!value) return 0
+  const timestamp = new Date(value).getTime()
+  return Number.isNaN(timestamp) ? 0 : timestamp
 }
 
 function BottomNav() {

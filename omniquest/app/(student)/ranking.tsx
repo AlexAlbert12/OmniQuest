@@ -32,7 +32,15 @@ type RankingLeague = {
   icon: keyof typeof Ionicons.glyphMap
 }
 
-type RankingScope = 'global' | 'friends' | 'class' | 'school'
+type RankingScope = 'global' | 'class'
+
+type ClassOption = {
+  id: number
+  name: string
+  description: string | null
+  icon: string | null
+  theme_color: string | null
+}
 
 const rankingLeagues: RankingLeague[] = [
   { name: 'Bronce', minPoints: 0, nextMinPoints: 500, color: '#CD7F32', icon: 'shield-outline' },
@@ -48,10 +56,13 @@ export default function RankingScreen() {
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [selectedScope, setSelectedScope] = useState<RankingScope>('global')
+  const [classOptions, setClassOptions] = useState<ClassOption[]>([])
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   const isDesktop = width >= 1024
   const rankingRows = useMemo(() => profiles, [profiles])
+  const selectedClass = classOptions.find((classOption) => classOption.id === selectedClassId) || null
 
   const points = currentProfile?.points ?? rankingRows.find((item) => item.id === currentUserId)?.points ?? 0
   const alias = currentProfile?.alias || 'Usuario'
@@ -83,10 +94,21 @@ export default function RankingScreen() {
         setCurrentProfile(profileResult.data || null)
       }
 
+      const nextClassOptions = userId ? await fetchEnrolledClassOptions(userId) : []
+      setClassOptions(nextClassOptions)
+
+      const hasSelectedClass = selectedClassId
+        ? nextClassOptions.some((classOption) => classOption.id === selectedClassId)
+        : false
+
+      if (selectedClassId && !hasSelectedClass) {
+        setSelectedClassId(null)
+      }
+
       const nextProfiles = selectedScope === 'global'
         ? await fetchGlobalRanking()
-        : userId
-          ? await fetchSharedSubjectRanking(userId)
+        : selectedClassId && hasSelectedClass
+          ? await fetchClassRanking(selectedClassId)
           : []
 
       setProfiles(nextProfiles)
@@ -95,7 +117,23 @@ export default function RankingScreen() {
     } finally {
       setLoading(false)
     }
-  }, [selectedScope])
+  }, [selectedClassId, selectedScope])
+
+  const emptyRankingMessage = useMemo(() => {
+    if (selectedScope === 'global') {
+      return 'Aún no hay estudiantes con puntuación en el ranking.'
+    }
+
+    if (classOptions.length === 0) {
+      return 'Aún no perteneces a ninguna clase.'
+    }
+
+    if (!selectedClassId) {
+      return 'Elige una clase para comparar tu XP con sus alumnos.'
+    }
+
+    return `Aún no hay alumnos con puntuación en ${selectedClass?.name || 'esta clase'}.`
+  }, [classOptions.length, selectedClass?.name, selectedClassId, selectedScope])
 
   useFocusEffect(
     useCallback(() => {
@@ -216,6 +254,13 @@ export default function RankingScreen() {
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
             <View className={isDesktop ? 'flex-[1.45]' : ''}>
               <RankingTabs activeScope={selectedScope} onSelect={setSelectedScope} />
+              {selectedScope === 'class' ? (
+                <ClassRankingSelector
+                  classOptions={classOptions}
+                  selectedClassId={selectedClassId}
+                  onSelect={setSelectedClassId}
+                />
+              ) : null}
               <View className="mt-4 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
                 <View className="mb-4 flex-row items-center border-b border-[#172A4A] pb-3">
                   <Text className="w-24 text-[12px] font-bold uppercase text-[#8FA7C7]">Posición</Text>
@@ -240,21 +285,11 @@ export default function RankingScreen() {
                     <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-8">
                       <Ionicons name="trophy-outline" size={34} color="#8FA7C7" />
                       <Text className="mt-2 text-center text-[13px] text-[#AFC2DB]">
-                        {selectedScope === 'global'
-                          ? 'Aún no hay estudiantes con puntuación en el ranking.'
-                          : 'Aún no hay compañeros con puntuación en tus asignaturas.'}
+                        {emptyRankingMessage}
                       </Text>
                     </View>
                   )}
                 </View>
-
-                <Pressable
-                  onPress={() => showComingSoon('El ranking completo')}
-                  className="mt-5 flex-row items-center justify-center gap-2 border-t border-[#172A4A] pt-4"
-                >
-                  <Text className="text-[13px] font-bold text-[#8290FF]">Ver ranking completo</Text>
-                  <Ionicons name="arrow-forward" size={14} color="#8290FF" />
-                </Pressable>
               </View>
             </View>
 
@@ -283,36 +318,35 @@ async function fetchGlobalRanking() {
   return (data || []) as Profile[]
 }
 
-async function fetchSharedSubjectRanking(userId: string) {
-  const { data: ownEnrollments, error: ownEnrollmentsError } = await supabase
+async function fetchEnrolledClassOptions(userId: string) {
+  const { data, error } = await supabase
     .from('enrollments')
-    .select('subject_id')
+    .select('joined_at, subjects(id, name, description, icon, theme_color)')
     .eq('student_id', userId)
+    .order('joined_at', { ascending: false })
 
-  if (ownEnrollmentsError) throw ownEnrollmentsError
+  if (error) throw error
 
-  const subjectIds = Array.from(
-    new Set(
-      (ownEnrollments || [])
-        .map((enrollment: { subject_id: number | null }) => enrollment.subject_id)
-        .filter((value): value is number => typeof value === 'number')
-    )
+  const classOptions = (data || [])
+    .map((enrollment: any) => enrollment.subjects)
+    .filter((subject: any): subject is ClassOption => Boolean(subject?.id))
+
+  return Array.from(
+    new Map(classOptions.map((classOption) => [classOption.id, classOption])).values()
   )
+}
 
-  if (subjectIds.length === 0) {
-    return []
-  }
-
-  const { data: sharedEnrollments, error: sharedEnrollmentsError } = await supabase
+async function fetchClassRanking(classId: number) {
+  const { data: classEnrollments, error: classEnrollmentsError } = await supabase
     .from('enrollments')
     .select('student_id')
-    .in('subject_id', subjectIds)
+    .eq('subject_id', classId)
 
-  if (sharedEnrollmentsError) throw sharedEnrollmentsError
+  if (classEnrollmentsError) throw classEnrollmentsError
 
   const studentIds = Array.from(
     new Set(
-      (sharedEnrollments || [])
+      (classEnrollments || [])
         .map((enrollment: { student_id: string | null }) => enrollment.student_id)
         .filter((value): value is string => Boolean(value))
     )
@@ -334,6 +368,58 @@ async function fetchSharedSubjectRanking(userId: string) {
   return (data || []) as Profile[]
 }
 
+function ClassRankingSelector({
+  classOptions,
+  selectedClassId,
+  onSelect,
+}: {
+  classOptions: ClassOption[]
+  selectedClassId: number | null
+  onSelect: (classId: number) => void
+}) {
+  return (
+    <View className="mt-3">
+      {classOptions.length > 0 ? (
+        <View className="flex-row flex-wrap gap-2">
+          {classOptions.map((classOption) => {
+            const active = selectedClassId === classOption.id
+            const color = classOption.theme_color || '#6574FF'
+
+            return (
+              <Pressable
+                key={classOption.id}
+                onPress={() => onSelect(classOption.id)}
+                className={`min-w-[180px] flex-1 flex-row items-center gap-3 rounded-xl border px-4 py-3 ${
+                  active ? 'bg-[#172457]' : 'bg-[#09162C]'
+                }`}
+                style={{ borderColor: active ? color : '#172A4A' }}
+              >
+                <View className="h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}28` }}>
+                  <Ionicons name={(classOption.icon as keyof typeof Ionicons.glyphMap) || 'school-outline'} size={17} color={color} />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className={`font-black ${active ? 'text-white' : 'text-[#DDE7F4]'}`} numberOfLines={1}>
+                    {classOption.name}
+                  </Text>
+                  <Text className="text-[11px] text-[#8FA7C7]" numberOfLines={1}>
+                    {active ? 'Ranking activo' : 'Ver ranking de clase'}
+                  </Text>
+                </View>
+              </Pressable>
+            )
+          })}
+        </View>
+      ) : (
+        <View className="rounded-xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-3">
+          <Text className="text-center text-[12px] text-[#AFC2DB]">
+            Únete a una clase para activar este ranking.
+          </Text>
+        </View>
+      )}
+    </View>
+  )
+}
+
 function RankingTabs({
   activeScope,
   onSelect,
@@ -343,9 +429,7 @@ function RankingTabs({
 }) {
   const tabs: { label: string; icon: keyof typeof Ionicons.glyphMap; scope: RankingScope }[] = [
     { label: 'Global', icon: 'globe-outline', scope: 'global' },
-    { label: 'Amigos', icon: 'people-outline', scope: 'friends' },
     { label: 'Clase', icon: 'school-outline', scope: 'class' },
-    { label: 'Escuela', icon: 'business-outline', scope: 'school' },
   ] as const
 
   return (
@@ -521,7 +605,7 @@ function RankingSummaryCard({ points, rankingRows, league }: { points: number; r
           </View>
         </View>
         <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
-          <Text className="text-[13px] text-[#AFC2DB]">Mejor XP global</Text>
+          <Text className="text-[13px] text-[#AFC2DB]">Mejor XP del ranking</Text>
           <Text className="text-[14px] font-black text-white">{bestPoints.toLocaleString()} XP</Text>
         </View>
         <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">

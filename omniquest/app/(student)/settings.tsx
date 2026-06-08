@@ -28,8 +28,8 @@ type ToggleKey = 'twoFactor'
 type PreferenceKey = 'language' | 'timezone' | 'dateFormat' | 'timeFormat' | 'weekStart'
 type NotificationSettingKey = 'push' | 'email' | 'daily' | 'activities' | 'news'
 type NotificationFrequency = 'instant' | 'daily' | 'weekly'
-type SettingsMenuSectionKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'integrations' | 'about'
-type SettingsAnchorKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'integrations' | 'about'
+type SettingsMenuSectionKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'about'
+type SettingsAnchorKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'about'
 
 type UserProfile = {
   id: string
@@ -144,7 +144,6 @@ const studentSettingsSections: { key: SettingsMenuSectionKey; label: string; ico
 
 const teacherSettingsSections: { key: SettingsMenuSectionKey; label: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
   ...studentSettingsSections.slice(0, 6),
-  { key: 'integrations', label: 'Integraciones', icon: 'extension-puzzle-outline', anchor: 'integrations' },
   studentSettingsSections[6],
 ]
 const accentColors = ['#7C5CFF', '#3B82F6', '#38BDF8', '#58D17A', '#F6A64A', '#EF5350', '#D94A9A'] as const
@@ -195,7 +194,7 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
   const orderedAnchors = useMemo(
     () =>
       (isTeacher
-        ? ['general', 'profile', 'preferences', 'notifications', 'privacy', 'security', 'integrations', 'about']
+        ? ['general', 'profile', 'preferences', 'notifications', 'privacy', 'security', 'about']
         : ['general', 'profile', 'preferences', 'notifications', 'privacy', 'security', 'about']) as SettingsAnchorKey[],
     [isTeacher]
   )
@@ -437,8 +436,6 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
         return 'privacy'
       case 'security':
         return 'security'
-      case 'integrations':
-        return 'integrations'
       case 'about':
         return 'about'
       default:
@@ -1284,25 +1281,6 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                   </Pressable>
                 </Panel>
               </View>
-
-              {isTeacher ? (
-                <View onLayout={handleSectionLayout('integrations')}>
-                  <Panel title="Integraciones">
-                    <ActionRow
-                      icon="school-outline"
-                      title="Google Classroom"
-                      description="Conecta tus clases y sincroniza estudiantes."
-                      onPress={() => showComingSoon('Google Classroom')}
-                    />
-                    <ActionRow
-                      icon="people-circle-outline"
-                      title="Microsoft Teams"
-                      description="Importa tus clases y equipos."
-                      onPress={() => showComingSoon('Microsoft Teams')}
-                    />
-                  </Panel>
-                </View>
-              ) : null}
             </View>
           </View>
 
