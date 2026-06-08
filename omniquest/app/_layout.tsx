@@ -154,9 +154,9 @@ function RootNavigator() {
     return (
       <View
         className="flex-1 justify-center items-center"
-        style={{ backgroundColor: theme === 'dark' ? '#0F2854' : '#17345D' }}
+        style={{ backgroundColor: theme === 'dark' ? '#0F2854' : '#F4F7FF' }}
       >
-        <ActivityIndicator size="large" color="#BDE8F5" />
+        <ActivityIndicator size="large" color={theme === 'dark' ? '#BDE8F5' : '#5364F5'} />
       </View>
     )
   }
@@ -165,7 +165,7 @@ function RootNavigator() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: theme === 'dark' ? '#061126' : '#0F2442' },
+        contentStyle: { backgroundColor: theme === 'dark' ? '#061126' : '#F4F7FF' },
       }}
     />
   )

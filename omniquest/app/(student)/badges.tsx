@@ -167,13 +167,6 @@ export default function BadgesScreen() {
 
             <View className="flex-row items-center gap-3">
               <NotificationBadge />
-              <Pressable
-                onPress={() => router.back()}
-                className="flex-row items-center gap-2 rounded-2xl border border-[#162B50] bg-[#0B1933] px-4 py-3"
-              >
-                <Ionicons name="arrow-back" size={18} color="#AFC2DB" />
-                <Text className="font-bold text-[#DDE7F4]">Volver</Text>
-              </Pressable>
             </View>
           </View>
 

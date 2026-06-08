@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -70,6 +70,7 @@ export default function ProgressScreen() {
   const [recentScores, setRecentScores] = useState<RecentScore[]>([])
   const [scores, setScores] = useState<ScoreRow[]>([])
   const [weeklyCompleted, setWeeklyCompleted] = useState(0)
+  const [weeklyRemainingText, setWeeklyRemainingText] = useState(() => getTimeUntilSundayLabel())
   const [loading, setLoading] = useState(true)
 
   const isDesktop = width >= 1024
@@ -85,7 +86,6 @@ export default function ProgressScreen() {
   const averageScore = scoredSubjects.length > 0
     ? Math.round(scoredSubjects.reduce((total, subject) => total + (subject.averageScore || 0), 0) / scoredSubjects.length)
     : null
-  const weeklyRemainingText = useMemo(() => getTimeUntilSundayLabel(), [])
   const badgeMetrics = getStudentBadgeMetrics({
     scores: scores as StudentBadgeScore[],
     totalPoints: points,
@@ -107,7 +107,7 @@ export default function ProgressScreen() {
       const weekStartIso = weekStart.toISOString()
       const nowIso = now.toISOString()
 
-      const [profileResult, enrollmentsResult, scoresResult, weeklyScoresResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, scoresResult, weeklyAttemptsResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
         supabase
           .from('enrollments')
@@ -119,18 +119,17 @@ export default function ProgressScreen() {
           .eq('student_id', userId)
           .order('played_at', { ascending: false }),
         supabase
-          .from('subject_scores')
-          .select('subject_id', { count: 'exact', head: true })
+          .from('attempt_history')
+          .select('id', { count: 'exact', head: true })
           .eq('student_id', userId)
-          .not('played_at', 'is', null)
-          .gte('played_at', weekStartIso)
-          .lte('played_at', nowIso),
+          .gte('attempted_at', weekStartIso)
+          .lte('attempted_at', nowIso),
       ])
 
       if (profileResult.error) throw profileResult.error
       if (enrollmentsResult.error) throw enrollmentsResult.error
       if (scoresResult.error) throw scoresResult.error
-      if (weeklyScoresResult.error) throw weeklyScoresResult.error
+      if (weeklyAttemptsResult.error) throw weeklyAttemptsResult.error
 
       setProfile(profileResult.data)
       const enrolledSubjects = (
@@ -143,12 +142,20 @@ export default function ProgressScreen() {
       setSubjectProgress(buildSubjectRows(enrolledSubjects, scores))
       setRecentScores(buildRecentScores(scores))
       setScores(scores)
-      setWeeklyCompleted(weeklyScoresResult.count || 0)
+      setWeeklyCompleted(weeklyAttemptsResult.count || 0)
     } catch (error) {
       console.error('Error fetching progress:', error)
     } finally {
       setLoading(false)
     }
+  }, [])
+
+  useEffect(() => {
+    const updateRemainingTime = () => setWeeklyRemainingText(getTimeUntilSundayLabel())
+    updateRemainingTime()
+
+    const timer = setInterval(updateRemainingTime, 60000)
+    return () => clearInterval(timer)
   }, [])
 
   useFocusEffect(

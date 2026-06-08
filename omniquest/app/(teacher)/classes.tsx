@@ -16,7 +16,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/TeacherSidebar';
 import NotificationBadge from '../../components/NotificationBadge';
-import { useNotifications } from '../../hooks/useNotifications';
 
 type Subject = {
   id: number
@@ -100,7 +99,6 @@ const emptySubjectAnalytics: SubjectAnalytics = {
 export default function TeacherClassesScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
-  const { unreadCount } = useNotifications();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [analyticsBySubject, setAnalyticsBySubject] = useState<Record<number, SubjectAnalytics>>({});
   const [activityPlan, setActivityPlan] = useState<ActivityPlanItem[]>([]);
@@ -306,7 +304,6 @@ export default function TeacherClassesScreen() {
               </Pressable>
               <NotificationBadge
                 audience="teacher"
-                count={unreadCount}
                 onPress={() => router.push('/(teacher)/notifications' as any)}
               />
               <View className="h-11 w-11 items-center justify-center rounded-full bg-[#5B4BC4]">

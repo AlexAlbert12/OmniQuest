@@ -74,6 +74,14 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return
+
+    document.documentElement.dataset.omniquestTheme = theme
+    document.documentElement.style.colorScheme = theme
+    document.body.dataset.omniquestTheme = theme
+  }, [theme])
+
   const setTheme = (nextTheme: AppThemeMode) => {
     setThemeState(nextTheme)
     void writeStorageItem(APP_THEME_STORAGE_KEY, nextTheme)

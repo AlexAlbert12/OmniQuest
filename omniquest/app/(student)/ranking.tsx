@@ -24,6 +24,22 @@ type Profile = {
   role_id?: string | null
 }
 
+type RankingLeague = {
+  name: string
+  minPoints: number
+  nextMinPoints: number | null
+  color: string
+  icon: keyof typeof Ionicons.glyphMap
+}
+
+const rankingLeagues: RankingLeague[] = [
+  { name: 'Bronce', minPoints: 0, nextMinPoints: 500, color: '#CD7F32', icon: 'shield-outline' },
+  { name: 'Plata', minPoints: 500, nextMinPoints: 1500, color: '#CBD5E1', icon: 'shield-half-outline' },
+  { name: 'Oro', minPoints: 1500, nextMinPoints: 3000, color: '#FBBF24', icon: 'medal-outline' },
+  { name: 'Platino', minPoints: 3000, nextMinPoints: 6000, color: '#67E8F9', icon: 'diamond-outline' },
+  { name: 'Diamante', minPoints: 6000, nextMinPoints: null, color: '#A78BFA', icon: 'diamond' },
+]
+
 export default function RankingScreen() {
   const { width } = useWindowDimensions()
   const [profiles, setProfiles] = useState<Profile[]>([])
@@ -42,6 +58,7 @@ export default function RankingScreen() {
   const currentRankIndex = rankingRows.findIndex((item) => item.id === currentUserId)
   const currentRank = !isGuest && currentRankIndex >= 0 ? currentRankIndex + 1 : null
   const maxPoints = Math.max(...rankingRows.map((item) => item.points ?? 0), 1)
+  const league = getRankingLeague(points)
 
   const fetchRanking = useCallback(async () => {
     setLoading(true)
@@ -239,8 +256,8 @@ export default function RankingScreen() {
             </View>
 
             <View className={isDesktop ? 'flex-1 gap-5' : 'gap-5'}>
-              <PositionCard rank={currentRank} points={points} isGuest={isGuest} totalRanked={rankingRows.length} />
-              <RankingSummaryCard points={points} rankingRows={rankingRows} />
+              <PositionCard rank={currentRank} points={points} isGuest={isGuest} totalRanked={rankingRows.length} league={league} />
+              <RankingSummaryCard points={points} rankingRows={rankingRows} league={league} />
             </View>
           </View>
         </ScrollView>
@@ -342,21 +359,39 @@ function PositionCard({
   points,
   isGuest,
   totalRanked,
+  league,
 }: {
   rank: number | null
   points: number
   isGuest: boolean
   totalRanked: number
+  league: RankingLeague
 }) {
-  const nextProgress = Math.min(100, (points % 2000) / 20)
   const hasRank = typeof rank === 'number'
   const percentile = hasRank && totalRanked > 0 ? Math.max(1, Math.ceil((rank / totalRanked) * 100)) : null
+  const nextLeagueName = league.nextMinPoints === null
+    ? null
+    : getRankingLeague(league.nextMinPoints).name
+  const leagueProgress = getLeagueProgress(points, league)
+  const leagueProgressText = league.nextMinPoints === null
+    ? `${Math.max(0, points - league.minPoints).toLocaleString()} XP en la élite`
+    : `${Math.max(0, points - league.minPoints).toLocaleString()} / ${(league.nextMinPoints - league.minPoints).toLocaleString()} XP`
+  const leagueSubtitle = league.nextMinPoints === null
+    ? 'Liga máxima alcanzada'
+    : `Siguiente liga: ${nextLeagueName}`
 
   return (
-    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-6">
-      <Text className="text-[16px] font-black text-white">Tu posición</Text>
+    <View className="overflow-hidden rounded-2xl border bg-[#09162C] p-6" style={{ borderColor: league.color }}>
+      <View className="absolute right-[-28px] top-[-26px] h-28 w-28 rounded-full opacity-30" style={{ backgroundColor: league.color }} />
+      <View className="flex-row items-center justify-between gap-3">
+        <Text className="text-[16px] font-black text-white">Tu posición</Text>
+        <View className="flex-row items-center gap-2 rounded-xl border px-3 py-2" style={{ borderColor: league.color, backgroundColor: `${league.color}24` }}>
+          <Ionicons name={league.icon} size={16} color={league.color} />
+          <Text className="text-[12px] font-black uppercase" style={{ color: league.color }}>Liga {league.name}</Text>
+        </View>
+      </View>
       <View className="items-center py-5">
-        <View className="h-36 w-36 items-center justify-center rounded-[38px] border-[8px] border-[#5364F5] bg-[#15235A]">
+        <View className="h-36 w-36 items-center justify-center rounded-[38px] border-[8px] bg-[#15235A]" style={{ borderColor: league.color }}>
           <Text className="text-[56px] font-black text-white">{isGuest || !hasRank ? '-' : rank}</Text>
         </View>
         <Text className="mt-4 text-[16px] font-black text-white">
@@ -372,18 +407,18 @@ function PositionCard({
       </View>
       <View className="rounded-xl border border-[#172A4A] bg-[#0A1A34] p-4">
         <View className="mb-2 flex-row justify-between">
-          <Text className="text-[12px] text-[#8FA7C7]">XP para el siguiente nivel</Text>
-          <Text className="text-[12px] text-[#AFC2DB]">{points % 2000} / 2,000 XP</Text>
+          <Text className="text-[12px] text-[#8FA7C7]">{leagueSubtitle}</Text>
+          <Text className="text-[12px] text-[#AFC2DB]">{leagueProgressText}</Text>
         </View>
         <View className="h-2 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full bg-[#3B82F6]" style={{ width: `${nextProgress}%` }} />
+          <View className="h-full rounded-full" style={{ width: `${leagueProgress}%`, backgroundColor: league.color }} />
         </View>
       </View>
     </View>
   )
 }
 
-function RankingSummaryCard({ points, rankingRows }: { points: number; rankingRows: Profile[] }) {
+function RankingSummaryCard({ points, rankingRows, league }: { points: number; rankingRows: Profile[]; league: RankingLeague }) {
   const totalStudents = rankingRows.length
   const bestPoints = rankingRows.length > 0 ? Math.max(...rankingRows.map((item) => item.points ?? 0)) : 0
   const averagePoints =
@@ -404,6 +439,13 @@ function RankingSummaryCard({ points, rankingRows }: { points: number; rankingRo
           <Text className="text-[14px] font-black text-white">{points.toLocaleString()} XP</Text>
         </View>
         <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
+          <Text className="text-[13px] text-[#AFC2DB]">Tu liga actual</Text>
+          <View className="flex-row items-center gap-2">
+            <Ionicons name={league.icon} size={15} color={league.color} />
+            <Text className="text-[14px] font-black" style={{ color: league.color }}>{league.name}</Text>
+          </View>
+        </View>
+        <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
           <Text className="text-[13px] text-[#AFC2DB]">Mejor XP global</Text>
           <Text className="text-[14px] font-black text-white">{bestPoints.toLocaleString()} XP</Text>
         </View>
@@ -414,6 +456,20 @@ function RankingSummaryCard({ points, rankingRows }: { points: number; rankingRo
       </View>
     </View>
   )
+}
+
+function getRankingLeague(points: number) {
+  return [...rankingLeagues]
+    .reverse()
+    .find((league) => points >= league.minPoints) || rankingLeagues[0]
+}
+
+function getLeagueProgress(points: number, league: RankingLeague) {
+  if (league.nextMinPoints === null) return 100
+
+  const pointsInLeague = Math.max(0, points - league.minPoints)
+  const leagueSize = league.nextMinPoints - league.minPoints
+  return Math.min(100, Math.max(0, Math.round((pointsInLeague / leagueSize) * 100)))
 }
 
 function BottomNav() {

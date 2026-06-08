@@ -97,11 +97,16 @@ export function useNotifications(audience: NotificationAudience = 'teacher') {
         return
       }
 
+      // Recargar el estado de notificaciones (leídas / eliminadas) desde la BD
+      const { read: latestRead, deleted: latestDeleted } = await loadNotificationStateFromDB(userId)
+      setReadIds(latestRead)
+      setDeletedIds(latestDeleted)
+
       if (audience === 'student') {
         const nextNotifications = await fetchStudentNotifications({
           userId,
-          readIds,
-          deletedIds,
+          readIds: latestRead,
+          deletedIds: latestDeleted,
         })
         setNotifications(nextNotifications)
         setLoading(false)
@@ -168,18 +173,18 @@ export function useNotifications(audience: NotificationAudience = 'teacher') {
         scores,
         questions,
         profilesById,
-        readIds,
-        deletedIds,
+        readIds: latestRead,
+        deletedIds: latestDeleted,
       })
 
       setNotifications(nextNotifications)
       setLoading(false)
     } catch (error: any) {
       console.error('Error cargando notificaciones:', error.message)
-      setNotifications(buildFallbackNotifications(readIds, deletedIds, audience))
+      setNotifications([])
       setLoading(false)
     }
-  }, [audience, deletedIds, readIds])
+  }, [audience])
 
   useEffect(() => {
     fetchNotifications()
@@ -617,29 +622,6 @@ function buildAnnouncementNotifications({
   })
 
   return announcements.slice(0, 8)
-}
-
-function buildFallbackNotifications(
-  readIds: Set<string>,
-  deletedIds: Set<string>,
-  audience: NotificationAudience
-) {
-  const notifications: AppNotification[] = [
-    {
-      id: `fallback-announcement-system-${audience}`,
-      type: 'announcement',
-      title: 'Aviso del sistema',
-      description: 'No se pudo refrescar la bandeja. Conserva esta vista y vuelve a intentarlo en unos segundos.',
-      icon: 'alert-circle-outline',
-      color: '#F97316',
-      timestamp: new Date().toISOString(),
-      isRead: false,
-    },
-  ]
-
-  return notifications
-    .map((notification) => ({ ...notification, isRead: readIds.has(notification.id) }))
-    .filter((notification) => !deletedIds.has(notification.id))
 }
 
 function getStudentName(studentId: string | null | undefined, profilesById: Record<string, ProfileRow>) {

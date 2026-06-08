@@ -16,7 +16,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/TeacherSidebar';
 import NotificationBadge from '../../components/NotificationBadge';
-import { useNotifications } from '../../hooks/useNotifications';
 
 type Subject = {
   id: number
@@ -60,7 +59,6 @@ type StudentRow = {
 export default function TeacherStudentsScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
-  const { unreadCount } = useNotifications();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | 'all'>('all');
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -380,7 +378,15 @@ export default function TeacherStudentsScreen() {
       return;
     }
 
-    const escapeCsv = (value: string | number) => {
+    const selectedSubjectName = selectedSubjectId === 'all'
+      ? 'Todas las clases'
+      : subjects.find((subject) => subject.id === selectedSubjectId)?.name || `Clase ${selectedSubjectId}`;
+    const exportedAt = new Intl.DateTimeFormat('es-ES', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    }).format(new Date());
+
+    const escapeCsv = (value: string | number | null | undefined) => {
       const text = String(value ?? '');
       if (/[",\n]/.test(text)) {
         return `"${text.replace(/"/g, '""')}"`;
@@ -405,6 +411,9 @@ export default function TeacherStudentsScreen() {
       'Nota_Media',
       'Estado',
       'Asignaturas_IDs',
+      'Asignaturas',
+      'Filtro_Asignatura',
+      'Exportado_El',
     ];
 
     const rows = visibleStudents.map((student) => [
@@ -418,6 +427,9 @@ export default function TeacherStudentsScreen() {
       student.averageScore.toFixed(1),
       statusLabel(student.status),
       student.subjectIds.join('|'),
+      student.subjectNames.join(' | '),
+      selectedSubjectName,
+      exportedAt,
     ]);
 
     const csvBody = [headers, ...rows]
@@ -429,7 +441,13 @@ export default function TeacherStudentsScreen() {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     const date = new Date().toISOString().slice(0, 10);
-    const filename = `omniquest_estudiantes_${selectedSubjectId === 'all' ? 'todas' : selectedSubjectId}_${date}.csv`;
+    const subjectSlug = selectedSubjectName
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'clase';
+    const filename = `omniquest_estudiantes_${subjectSlug}_${date}.csv`;
 
     link.href = url;
     link.setAttribute('download', filename);
@@ -494,7 +512,6 @@ export default function TeacherStudentsScreen() {
               />
               <NotificationBadge
                 audience="teacher"
-                count={unreadCount}
                 onPress={() => router.push('/(teacher)/notifications' as any)}
               />
               <View className="h-11 w-11 items-center justify-center rounded-full bg-[#5B4BC4]">

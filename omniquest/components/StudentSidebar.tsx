@@ -59,14 +59,14 @@ export default function StudentSidebar({
         backgroundColor: isDark ? '#041024' : '#0E1E38',
       }}
     >
-      <View className="mb-7 flex-row items-center gap-2 px-2">
+      <View className="mb-4 flex-row items-center gap-2 px-2">
         <Text className="text-[#9FD6FF]" style={{ fontFamily: 'Pacifico_400Regular', fontSize: 30 }}>
           OmniQuest
         </Text>
         <Ionicons name="rocket" size={18} color="#9FD6FF" />
       </View>
 
-      <View style={{ gap: 10 }}>
+      <View style={{ gap: 8 }}>
         {navItems.map((item) => {
           const isActive = item.section === activeSection
           return (
@@ -83,7 +83,7 @@ export default function StudentSidebar({
       </View>
 
       <View
-        className="mt-auto rounded-2xl border p-4"
+        className="mt-2 rounded-2xl border p-4"
         style={{ borderColor: isDark ? '#162B50' : '#2E4E78', backgroundColor: isDark ? '#091A35' : '#132A4D' }}
       >
         <View className="flex-row items-center gap-3">

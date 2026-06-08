@@ -45,6 +45,26 @@ type SubjectScore = {
   subjects?: { name: string } | { name: string }[] | null
 }
 
+type ActivityAttempt = {
+  id: number
+  question_id: number
+  answer_id: number | null
+  is_correct: boolean
+  time_taken_seconds: number | null
+  attempted_at: string | null
+  questions?: {
+    text?: string | null
+    type?: string | null
+    subject_id?: number | null
+    subjects?: { name: string } | { name: string }[] | null
+  } | {
+    text?: string | null
+    type?: string | null
+    subject_id?: number | null
+    subjects?: { name: string } | { name: string }[] | null
+  }[] | null
+}
+
 type StatBarItem = {
   label: string
   value: number
@@ -52,6 +72,7 @@ type StatBarItem = {
 }
 
 type ActivityItem = {
+  id: string
   icon: keyof typeof Ionicons.glyphMap
   color: string
   title: string
@@ -67,6 +88,7 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState('')
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [scores, setScores] = useState<SubjectScore[]>([])
+  const [activityAttempts, setActivityAttempts] = useState<ActivityAttempt[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
 
@@ -84,7 +106,7 @@ export default function ProfileScreen() {
   const statBars = buildStatBars(subjects, scores)
   const badges = buildStudentBadges(badgeMetrics)
   const unlockedBadges = badges.filter((badge) => badge.unlocked).length
-  const activityItems = buildActivityItems(scores)
+  const activityItems = buildActivityItems(activityAttempts)
   const memberSince = formatProfileDate(profile?.created_at)
 
   const fetchProfile = useCallback(async () => {
@@ -98,7 +120,7 @@ export default function ProfileScreen() {
 
       if (!userId) return
 
-      const [profileResult, enrollmentsResult, scoresResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, scoresResult, attemptsResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, created_at, points').eq('id', userId).single(),
         supabase
           .from('enrollments')
@@ -109,11 +131,18 @@ export default function ProfileScreen() {
           .select('subject_id, max_score, played_at, played_days, correct_answers, subjects(name)')
           .eq('student_id', userId)
           .order('played_at', { ascending: false }),
+        supabase
+          .from('attempt_history')
+          .select('id, question_id, answer_id, is_correct, time_taken_seconds, attempted_at, questions(text, type, subject_id, subjects(name))')
+          .eq('student_id', userId)
+          .order('attempted_at', { ascending: false })
+          .limit(6),
       ])
 
       if (profileResult.error) throw profileResult.error
       if (enrollmentsResult.error) throw enrollmentsResult.error
       if (scoresResult.error) throw scoresResult.error
+      if (attemptsResult.error) throw attemptsResult.error
 
       setProfile(profileResult.data)
       setSubjects(
@@ -122,6 +151,7 @@ export default function ProfileScreen() {
           .filter(Boolean) || []
       )
       setScores((scoresResult.data || []) as SubjectScore[])
+      setActivityAttempts((attemptsResult.data || []) as ActivityAttempt[])
     } catch (error) {
       console.error('Error fetching profile:', error)
     } finally {
@@ -361,7 +391,7 @@ export default function ProfileScreen() {
               <View style={{ gap: 14 }}>
                 {activityItems.length > 0 ? (
                   activityItems.map((item) => (
-                    <ActivityRow key={`${item.title}-${item.time}`} item={item} />
+                    <ActivityRow key={item.id} item={item} />
                   ))
                 ) : (
                   <EmptyState icon="sparkles-outline" message="Completa una partida para llenar tu historial." />
@@ -650,23 +680,25 @@ function buildStatBars(subjects: Subject[], scores: SubjectScore[]): StatBarItem
     .filter((item) => item.value > 0)
 }
 
-function buildActivityItems(scores: SubjectScore[]): ActivityItem[] {
-  return scores
-    .filter((score) => score.played_at)
-    .slice(0, 4)
-    .map((score) => {
-      const subject = Array.isArray(score.subjects) ? score.subjects[0] : score.subjects
-      const correctAnswers = score.correct_answers ?? 0
+function buildActivityItems(attempts: ActivityAttempt[]): ActivityItem[] {
+  return attempts
+    .filter((attempt) => attempt.attempted_at)
+    .slice(0, 6)
+    .map((attempt) => {
+      const question = Array.isArray(attempt.questions) ? attempt.questions[0] : attempt.questions
+      const subject = Array.isArray(question?.subjects) ? question?.subjects[0] : question?.subjects
+      const elapsed = typeof attempt.time_taken_seconds === 'number'
+        ? ` · ${attempt.time_taken_seconds}s`
+        : ''
 
       return {
-        icon: correctAnswers > 0 ? 'checkmark' : 'game-controller',
-        color: correctAnswers > 0 ? '#70E0A5' : '#8B5CF6',
-        title: correctAnswers > 0
-          ? `${correctAnswers} respuestas correctas acumuladas`
-          : 'Completaste una partida',
-        detail: subject?.name || 'Clase',
-        time: formatRelativeDate(score.played_at),
-        xp: `+${(score.max_score ?? 0).toLocaleString()} XP`,
+        id: String(attempt.id),
+        icon: attempt.is_correct ? 'checkmark-circle' : 'refresh-circle',
+        color: attempt.is_correct ? '#70E0A5' : '#F6A64A',
+        title: attempt.is_correct ? 'Respondió correctamente' : 'Pregunta para repasar',
+        detail: `${subject?.name || 'Clase'} · ${question?.text || 'Pregunta'}${elapsed}`,
+        time: formatRelativeDate(attempt.attempted_at),
+        xp: attempt.is_correct ? 'Correcta' : 'Repasar',
       }
     })
 }

@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useFocusEffect, useRouter } from 'expo-router'
+import { useFocusEffect, useRouter, useSegments } from 'expo-router'
 import { supabase } from '../lib/supabase'
 import { calculateStreakDays } from '../lib/studentBadges'
 import { NotificationAudience, useNotifications } from '../hooks/useNotifications'
@@ -15,18 +15,27 @@ type NotificationBadgeProps = {
 }
 
 export default function NotificationBadge({
-  audience = 'student',
+  audience,
   count,
   streakDays,
   showStreak,
   onPress,
 }: NotificationBadgeProps) {
   const router = useRouter()
-  const { unreadCount } = useNotifications(audience)
+  const segments = useSegments()
+  const inferredAudience: NotificationAudience =
+    audience ?? (segments && segments[0] === '(teacher)' ? 'teacher' : 'student')
+  const { unreadCount, refresh } = useNotifications(inferredAudience)
   const [calculatedStreakDays, setCalculatedStreakDays] = useState(0)
   const shouldShowStreak = showStreak ?? audience === 'student'
   const displayCount = count ?? unreadCount
   const displayStreakDays = streakDays ?? calculatedStreakDays
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh()
+    }, [refresh])
+  )
 
   useFocusEffect(
     useCallback(() => {
