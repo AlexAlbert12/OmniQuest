@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import React, { useCallback, useEffect, useState } from 'react'
+import { Alert, Platform, Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect, useRouter, useSegments } from 'expo-router'
 import { supabase } from '../lib/supabase'
@@ -25,7 +25,7 @@ export default function NotificationBadge({
   const segments = useSegments()
   const inferredAudience: NotificationAudience =
     audience ?? (segments && segments[0] === '(teacher)' ? 'teacher' : 'student')
-  const { unreadCount, refresh } = useNotifications(inferredAudience)
+  const { unreadCount, refresh, error, clearError } = useNotifications(inferredAudience)
   const [calculatedStreakDays, setCalculatedStreakDays] = useState(0)
   const shouldShowStreak = showStreak ?? audience === 'student'
   const displayCount = count ?? unreadCount
@@ -36,6 +36,18 @@ export default function NotificationBadge({
       void refresh()
     }, [refresh])
   )
+
+  useEffect(() => {
+    if (!error) return
+
+    const message = `Error de notificaciones\n${error}`
+    if (Platform.OS === 'web') {
+      window.alert(message)
+    } else {
+      Alert.alert('Error de notificaciones', error)
+    }
+    clearError()
+  }, [clearError, error])
 
   useFocusEffect(
     useCallback(() => {

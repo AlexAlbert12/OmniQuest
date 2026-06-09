@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -56,6 +56,8 @@ export default function StudentNotificationsScreen() {
     markAllAsRead,
     deleteNotification,
     refresh,
+    error,
+    clearError,
   } = useNotifications('student')
   const [profile, setProfile] = useState<Profile | null>(null)
   const [profileLoading, setProfileLoading] = useState(true)
@@ -132,6 +134,12 @@ export default function StudentNotificationsScreen() {
     Alert.alert(title, message)
   }
 
+  useEffect(() => {
+    if (!error) return
+    showAlert('Error de notificaciones', error)
+    clearError()
+  }, [clearError, error])
+
   const handleNotificationAction = async (notification: AppNotification) => {
     if (!notification.isRead) {
       await markAsRead(notification.id)
@@ -143,8 +151,14 @@ export default function StudentNotificationsScreen() {
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.replace('/(auth)/login' as any)
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      router.replace('/(auth)/login' as any)
+    } catch (error: any) {
+      console.error('Error cerrando sesión:', error)
+      showAlert('No se pudo cerrar sesión', error?.message || 'Revisa tu conexión o inténtalo de nuevo.')
+    }
   }
 
   if (loading || profileLoading) {

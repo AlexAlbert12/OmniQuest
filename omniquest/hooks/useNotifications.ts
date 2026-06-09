@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../lib/supabase'
 
@@ -51,61 +51,157 @@ type ProfileRow = {
   alias: string | null
 }
 
-export function useNotifications(audience: NotificationAudience = 'teacher') {
-  const [notifications, setNotifications] = useState<AppNotification[]>([])
-  const [loading, setLoading] = useState(true)
+type AudienceState = {
+  notifications: AppNotification[]
+  loading: boolean
+  error: string | null
+}
+
+type NotificationContextValue = {
+  getAudienceState: (audience: NotificationAudience) => AudienceState
+  refresh: (audience: NotificationAudience) => Promise<void>
+  markAsRead: (audience: NotificationAudience, id: string) => Promise<void>
+  markAllAsRead: (audience: NotificationAudience) => Promise<void>
+  deleteNotification: (audience: NotificationAudience, id: string) => Promise<void>
+  clearError: (audience: NotificationAudience) => void
+}
+
+const emptyAudienceState: AudienceState = {
+  notifications: [],
+  loading: true,
+  error: null,
+}
+
+const NotificationContext = createContext<NotificationContextValue | null>(null)
+
+export function NotificationProvider({ children }: { children: ReactNode }) {
+  const [audienceState, setAudienceState] = useState<Record<NotificationAudience, AudienceState>>({
+    teacher: emptyAudienceState,
+    student: emptyAudienceState,
+  })
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
   const [userId, setUserId] = useState<string | null>(null)
 
-  const unreadCount = useMemo(
-    () => notifications.filter((notification) => !notification.isRead).length,
-    [notifications]
-  )
-
   useEffect(() => {
-    const getSession = async () => {
-      const { data: session } = await supabase.auth.getSession()
-      setUserId(session?.session?.user.id || null)
-      if (session?.session?.user.id) {
-        const { read, deleted } = await loadNotificationStateFromDB(session.session.user.id)
+    let isMounted = true
+
+    const syncSession = async () => {
+      let nextUserId: string | null = null
+
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        nextUserId = session.session?.user.id || null
+      } catch (error) {
+        console.error('Error sincronizando sesión para notificaciones:', error)
+      }
+
+      if (!isMounted) return
+
+      setUserId(nextUserId)
+
+      if (nextUserId) {
+        let read = new Set<string>()
+        let deleted = new Set<string>()
+
+        try {
+          const state = await loadNotificationStateFromDB(nextUserId)
+          read = state.read
+          deleted = state.deleted
+        } catch (error) {
+          console.error('Error cargando estado inicial de notificaciones:', error)
+        }
+
+        if (!isMounted) return
+
         setReadIds(read)
         setDeletedIds(deleted)
+      } else {
+        setReadIds(new Set())
+        setDeletedIds(new Set())
+        setAudienceState({
+          teacher: { notifications: [], loading: false, error: null },
+          student: { notifications: [], loading: false, error: null },
+        })
       }
     }
-    getSession()
+
+    void syncSession()
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      void syncSession()
+    })
+
+    return () => {
+      isMounted = false
+      authListener.subscription.unsubscribe()
+    }
   }, [])
 
-  const fetchNotifications = useCallback(async () => {
+  const setAudienceLoading = useCallback((audience: NotificationAudience, loading: boolean) => {
+    setAudienceState((current) => ({
+      ...current,
+      [audience]: {
+        ...current[audience],
+        loading,
+        error: loading ? null : current[audience].error,
+      },
+    }))
+  }, [])
+
+  const setAudienceNotifications = useCallback((audience: NotificationAudience, notifications: AppNotification[]) => {
+    setAudienceState((current) => ({
+      ...current,
+      [audience]: {
+        notifications,
+        loading: false,
+        error: null,
+      },
+    }))
+  }, [])
+
+  const setAudienceError = useCallback((audience: NotificationAudience, error: string) => {
+    setAudienceState((current) => ({
+      ...current,
+      [audience]: {
+        ...current[audience],
+        loading: false,
+        error,
+      },
+    }))
+  }, [])
+
+  const fetchNotifications = useCallback(async (audience: NotificationAudience) => {
+    setAudienceLoading(audience, true)
+
     try {
       const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
-      if (!userId) {
-        setNotifications([])
-        setLoading(false)
+      const activeUserId = session.session?.user.id || null
+      if (!activeUserId) {
+        setAudienceNotifications(audience, [])
         return
       }
 
-      // Recargar el estado de notificaciones (leídas / eliminadas) desde la BD
-      const { read: latestRead, deleted: latestDeleted } = await loadNotificationStateFromDB(userId)
+      setUserId(activeUserId)
+
+      const { read: latestRead, deleted: latestDeleted } = await loadNotificationStateFromDB(activeUserId)
       setReadIds(latestRead)
       setDeletedIds(latestDeleted)
 
       if (audience === 'student') {
         const nextNotifications = await fetchStudentNotifications({
-          userId,
+          userId: activeUserId,
           readIds: latestRead,
           deletedIds: latestDeleted,
         })
-        setNotifications(nextNotifications)
-        setLoading(false)
+        setAudienceNotifications(audience, nextNotifications)
         return
       }
 
       const { data: subjectsData, error: subjectsError } = await supabase
         .from('subjects')
         .select('id, name, created_at')
-        .eq('teacher_id', userId)
+        .eq('teacher_id', activeUserId)
         .eq('is_archived', false)
         .order('created_at', { ascending: false })
 
@@ -114,8 +210,7 @@ export function useNotifications(audience: NotificationAudience = 'teacher') {
       const subjects = (subjectsData || []) as SubjectRow[]
       const subjectIds = subjects.map((subject) => subject.id)
       if (subjectIds.length === 0) {
-        setNotifications([])
-        setLoading(false)
+        setAudienceNotifications(audience, [])
         return
       }
 
@@ -166,84 +261,197 @@ export function useNotifications(audience: NotificationAudience = 'teacher') {
         deletedIds: latestDeleted,
       })
 
-      setNotifications(nextNotifications)
-      setLoading(false)
+      setAudienceNotifications(audience, nextNotifications)
     } catch (error: any) {
       console.error('Error cargando notificaciones:', error.message)
-      setNotifications([])
-      setLoading(false)
+      setAudienceError(
+        audience,
+        'No se pudieron cargar las notificaciones. Revisa tu conexión o vuelve a iniciar sesión.'
+      )
     }
-  }, [audience])
+  }, [setAudienceError, setAudienceLoading, setAudienceNotifications])
 
   useEffect(() => {
-    fetchNotifications()
-  }, [fetchNotifications])
+    if (!userId) return
+    void fetchNotifications('teacher')
+    void fetchNotifications('student')
+  }, [fetchNotifications, userId])
 
   const markAsRead = useCallback(
-    async (id: string) => {
+    async (_audience: NotificationAudience, id: string) => {
       if (!userId) return
-      
+
       setReadIds((current) => {
         const next = new Set(current)
         next.add(id)
         return next
       })
-      setNotifications((prev) =>
-        prev.map((notification) => (notification.id === id ? { ...notification, isRead: true } : notification))
-      )
-      
-      await persistNotificationStateToDb(userId, id, true, false)
+
+      setAudienceState((current) => markNotificationReadInState(current, id))
+      try {
+        await persistNotificationStateToDb(userId, id, { isRead: true, isDeleted: deletedIds.has(id) })
+      } catch (error) {
+        console.error('Error marcando notificación como leída:', error)
+        setAudienceError(_audience, 'No se pudo marcar la notificación como leída. Inténtalo de nuevo.')
+      }
     },
-    [userId]
+    [deletedIds, setAudienceError, userId]
   )
 
-  const markAllAsRead = useCallback(async () => {
+  const markAllAsRead = useCallback(async (audience: NotificationAudience) => {
     if (!userId) return
-    
+
+    const notifications = audienceState[audience].notifications
+    const unreadNotifications = notifications.filter((notification) => !notification.isRead)
+    if (unreadNotifications.length === 0) return
+
     setReadIds((current) => {
       const next = new Set(current)
-      notifications.forEach((notification) => next.add(notification.id))
+      unreadNotifications.forEach((notification) => next.add(notification.id))
       return next
     })
-    setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })))
-    
-    // Guardar todos como leídos en la BD
-    for (const notification of notifications) {
-      if (!readIds.has(notification.id)) {
-        await persistNotificationStateToDb(userId, notification.id, true, false)
-      }
+
+    setAudienceState((current) => markAllAudienceNotificationsReadInState(current, audience))
+
+    try {
+      await Promise.all(
+        unreadNotifications.map((notification) =>
+          persistNotificationStateToDb(userId, notification.id, {
+            isRead: true,
+            isDeleted: deletedIds.has(notification.id),
+          })
+        )
+      )
+    } catch (error) {
+      console.error('Error marcando todas las notificaciones como leídas:', error)
+      setAudienceError(audience, 'No se pudieron marcar todas las notificaciones como leídas. Inténtalo de nuevo.')
     }
-  }, [notifications, readIds, userId])
+  }, [audienceState, deletedIds, setAudienceError, userId])
 
   const deleteNotification = useCallback(
-    async (id: string) => {
+    async (_audience: NotificationAudience, id: string) => {
       if (!userId) return
-      
+
       setDeletedIds((current) => {
         const next = new Set(current)
         next.add(id)
         return next
       })
-      setNotifications((prev) => prev.filter((notification) => notification.id !== id))
-      
-      await persistNotificationStateToDb(userId, id, false, true)
+
+      setAudienceState((current) => deleteNotificationFromState(current, id))
+      try {
+        await persistNotificationStateToDb(userId, id, { isRead: readIds.has(id), isDeleted: true })
+      } catch (error) {
+        console.error('Error eliminando notificación:', error)
+        setAudienceError(_audience, 'No se pudo eliminar la notificación. Inténtalo de nuevo.')
+      }
     },
-    [userId]
+    [readIds, setAudienceError, userId]
   )
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    await fetchNotifications()
+  const refresh = useCallback(async (audience: NotificationAudience) => {
+    await fetchNotifications(audience)
   }, [fetchNotifications])
+
+  const clearError = useCallback((audience: NotificationAudience) => {
+    setAudienceState((current) => ({
+      ...current,
+      [audience]: {
+        ...current[audience],
+        error: null,
+      },
+    }))
+  }, [])
+
+  const value = useMemo<NotificationContextValue>(() => ({
+    getAudienceState: (audience) => audienceState[audience] || emptyAudienceState,
+    refresh,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearError,
+  }), [audienceState, clearError, deleteNotification, markAllAsRead, markAsRead, refresh])
+
+  return createElement(NotificationContext.Provider, { value }, children)
+}
+
+export function useNotifications(audience: NotificationAudience = 'teacher') {
+  const context = useContext(NotificationContext)
+
+  if (!context) {
+    throw new Error('useNotifications debe usarse dentro de NotificationProvider')
+  }
+
+  const { notifications, loading, error } = context.getAudienceState(audience)
+  const unreadCount = useMemo(
+    () => notifications.filter((notification) => !notification.isRead).length,
+    [notifications]
+  )
 
   return {
     notifications,
     unreadCount,
     loading,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    refresh,
+    error,
+    markAsRead: (id: string) => context.markAsRead(audience, id),
+    markAllAsRead: () => context.markAllAsRead(audience),
+    deleteNotification: (id: string) => context.deleteNotification(audience, id),
+    refresh: () => context.refresh(audience),
+    clearError: () => context.clearError(audience),
+  }
+}
+
+function markNotificationReadInState(
+  current: Record<NotificationAudience, AudienceState>,
+  notificationId: string
+) {
+  return mapAudienceNotifications(current, (notification) =>
+    notification.id === notificationId ? { ...notification, isRead: true } : notification
+  )
+}
+
+function markAllAudienceNotificationsReadInState(
+  current: Record<NotificationAudience, AudienceState>,
+  audience: NotificationAudience
+) {
+  return {
+    ...current,
+    [audience]: {
+      ...current[audience],
+      notifications: current[audience].notifications.map((notification) => ({ ...notification, isRead: true })),
+    },
+  }
+}
+
+function deleteNotificationFromState(
+  current: Record<NotificationAudience, AudienceState>,
+  notificationId: string
+) {
+  return {
+    teacher: {
+      ...current.teacher,
+      notifications: current.teacher.notifications.filter((notification) => notification.id !== notificationId),
+    },
+    student: {
+      ...current.student,
+      notifications: current.student.notifications.filter((notification) => notification.id !== notificationId),
+    },
+  }
+}
+
+function mapAudienceNotifications(
+  current: Record<NotificationAudience, AudienceState>,
+  mapper: (notification: AppNotification) => AppNotification
+) {
+  return {
+    teacher: {
+      ...current.teacher,
+      notifications: current.teacher.notifications.map(mapper),
+    },
+    student: {
+      ...current.student,
+      notifications: current.student.notifications.map(mapper),
+    },
   }
 }
 
@@ -655,28 +863,7 @@ function toTimestamp(value: string) {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime()
 }
 
-function loadStoredIds(key: string) {
-  if (typeof window === 'undefined') return new Set<string>()
-
-  try {
-    const rawValue = window.localStorage.getItem(key)
-    const values = rawValue ? JSON.parse(rawValue) : []
-    return new Set<string>(Array.isArray(values) ? values : [])
-  } catch {
-    return new Set<string>()
-  }
-}
-
-function persistStoredIds(key: string, values: Set<string>) {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(key, JSON.stringify(Array.from(values)))
-}
-
 async function loadNotificationStateFromDB(userId: string): Promise<{ read: Set<string>; deleted: Set<string> }> {
-  const storageKeys = getNotificationStorageKeysForUser(userId)
-  const storedRead = loadStoredIds(storageKeys.read)
-  const storedDeleted = loadStoredIds(storageKeys.deleted)
-
   try {
     const { data, error } = await supabase
       .from('notification_state')
@@ -685,8 +872,8 @@ async function loadNotificationStateFromDB(userId: string): Promise<{ read: Set<
 
     if (error) throw error
 
-    const read = new Set<string>(storedRead)
-    const deleted = new Set<string>(storedDeleted)
+    const read = new Set<string>()
+    const deleted = new Set<string>()
 
     data?.forEach((row: any) => {
       if (row.is_read) read.add(row.notification_id)
@@ -696,38 +883,22 @@ async function loadNotificationStateFromDB(userId: string): Promise<{ read: Set<
     return { read, deleted }
   } catch (error) {
     console.error('Error loading notification state from DB:', error)
-    return { read: storedRead, deleted: storedDeleted }
+    throw error
   }
 }
 
 async function persistNotificationStateToDb(
   userId: string,
   notificationId: string,
-  isRead: boolean,
-  isDeleted: boolean
+  state: { isRead: boolean; isDeleted: boolean }
 ) {
-  const storageKeys = getNotificationStorageKeysForUser(userId)
-  const storedRead = loadStoredIds(storageKeys.read)
-  const storedDeleted = loadStoredIds(storageKeys.deleted)
-
-  if (isRead) {
-    storedRead.add(notificationId)
-  }
-
-  if (isDeleted) {
-    storedDeleted.add(notificationId)
-  }
-
-  persistStoredIds(storageKeys.read, storedRead)
-  persistStoredIds(storageKeys.deleted, storedDeleted)
-
   try {
     const { error } = await supabase.from('notification_state').upsert(
       {
         user_id: userId,
         notification_id: notificationId,
-        is_read: isRead,
-        is_deleted: isDeleted,
+        is_read: state.isRead,
+        is_deleted: state.isDeleted,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id,notification_id' }
@@ -736,12 +907,6 @@ async function persistNotificationStateToDb(
     if (error) throw error
   } catch (error) {
     console.error('Error persisting notification state to DB:', error)
-  }
-}
-
-function getNotificationStorageKeysForUser(userId: string) {
-  return {
-    read: `omniquest.notifications.${userId}.read`,
-    deleted: `omniquest.notifications.${userId}.deleted`,
+    throw error
   }
 }

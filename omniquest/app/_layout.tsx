@@ -5,6 +5,7 @@ import { Stack, usePathname, useRouter } from 'expo-router'
 import { supabase } from '../lib/supabase'
 import { View, ActivityIndicator } from 'react-native'
 import { AppThemeProvider, useAppTheme } from '../lib/appTheme'
+import { NotificationProvider } from '../hooks/useNotifications'
 
 const AUTH_ROUTE_ALIASES: Record<string, string> = {
   '/login': '/(auth)/login',
@@ -20,7 +21,9 @@ function normalizeAuthPath(path: string) {
 export default function RootLayout() {
   return (
     <AppThemeProvider>
-      <RootNavigator />
+      <NotificationProvider>
+        <RootNavigator />
+      </NotificationProvider>
     </AppThemeProvider>
   )
 }
