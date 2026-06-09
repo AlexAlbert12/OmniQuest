@@ -29,6 +29,7 @@ type Subject = {
   description: string | null
   icon: string | null
   theme_color: string | null
+  teacher_id?: string | null
   joined_at?: string | null
 }
 
@@ -53,6 +54,8 @@ export default function ClassesScreen() {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [subjectScores, setSubjectScores] = useState<Record<number, number>>({})
   const [topicsBySubject, setTopicsBySubject] = useState<Record<number, number>>({})
+  const [teacherNamesBySubject, setTeacherNamesBySubject] = useState<Record<number, string>>({})
+  const [lastActivityBySubject, setLastActivityBySubject] = useState<Record<number, string | null>>({})
   const [selectedFilter, setSelectedFilter] = useState<ClassFilter>('all')
   const [selectedSort, setSelectedSort] = useState<ClassSort>('recent')
   const [inviteCode, setInviteCode] = useState('')
@@ -121,12 +124,12 @@ export default function ClassesScreen() {
         supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
         supabase
           .from('enrollments')
-          .select('*, subjects(id, name, description, icon, theme_color)')
+          .select('*, subjects(id, name, description, icon, theme_color, teacher_id)')
           .eq('student_id', userId)
           .order('joined_at', { ascending: false }),
         supabase
           .from('subject_scores')
-          .select('subject_id, max_score')
+          .select('subject_id, max_score, played_at')
           .eq('student_id', userId),
       ])
 
@@ -150,30 +153,67 @@ export default function ClassesScreen() {
         .filter(Boolean) || []
 
       if (subjectIds.length > 0) {
-        const { data: topicsData, error: topicsError } = await supabase
-          .from('subject_topics')
-          .select('subject_id')
-          .in('subject_id', subjectIds)
-          .eq('active', true)
+        const teacherIds = Array.from(
+          new Set(
+            enrollmentsResult.data
+              ?.map((enrollment: any) => enrollment.subjects?.teacher_id)
+              .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0) || []
+          )
+        )
 
-        if (topicsError) throw topicsError
+        const [topicsResult, teachersResult] = await Promise.all([
+          supabase
+            .from('subject_topics')
+            .select('subject_id')
+            .in('subject_id', subjectIds)
+            .eq('active', true),
+          teacherIds.length > 0
+            ? supabase.from('profiles').select('id, alias').in('id', teacherIds)
+            : Promise.resolve({ data: [], error: null }),
+        ])
+
+        if (topicsResult.error) throw topicsResult.error
+        if (teachersResult.error) throw teachersResult.error
 
         const nextTopicsBySubject: Record<number, number> = {}
         subjectIds.forEach((subjectId: number) => {
-          nextTopicsBySubject[subjectId] = topicsData?.filter((topic) => Number(topic.subject_id) === Number(subjectId)).length || 0
+          nextTopicsBySubject[subjectId] = topicsResult.data?.filter((topic) => Number(topic.subject_id) === Number(subjectId)).length || 0
         })
         setTopicsBySubject(nextTopicsBySubject)
+
+        const teachersById = new Map(
+          (teachersResult.data || []).map((teacher: { id: string; alias: string | null }) => [teacher.id, teacher.alias || 'Profesor/a'])
+        )
+        const nextTeacherNamesBySubject: Record<number, string> = {}
+        enrollmentsResult.data?.forEach((enrollment: any) => {
+          const subjectId = enrollment.subjects?.id
+          const teacherId = enrollment.subjects?.teacher_id
+          if (typeof subjectId === 'number' && typeof teacherId === 'string') {
+            nextTeacherNamesBySubject[subjectId] = teachersById.get(teacherId) || 'Profesor/a'
+          }
+        })
+        setTeacherNamesBySubject(nextTeacherNamesBySubject)
       } else {
         setTopicsBySubject({})
+        setTeacherNamesBySubject({})
       }
 
       const scoreMap: Record<number, number> = {}
+      const activityMap: Record<number, string | null> = {}
       scoresResult.data?.forEach((score) => {
         if (score.subject_id !== null && score.max_score !== null) {
           scoreMap[score.subject_id] = score.max_score
         }
+        if (score.subject_id !== null) {
+          const currentTimestamp = getSortableTimestamp(activityMap[score.subject_id])
+          const nextTimestamp = getSortableTimestamp(score.played_at)
+          if (nextTimestamp >= currentTimestamp) {
+            activityMap[score.subject_id] = score.played_at ?? null
+          }
+        }
       })
       setSubjectScores(scoreMap)
+      setLastActivityBySubject(activityMap)
     } catch (error) {
       console.error('Error fetching classes:', error)
     } finally {
@@ -307,7 +347,6 @@ export default function ClassesScreen() {
             points={points}
             nextLevelProgress={nextLevelProgress}
             onSignOut={() => supabase.auth.signOut()}
-            onComingSoon={showComingSoon}
           />
         ) : null}
 
@@ -398,6 +437,8 @@ export default function ClassesScreen() {
                     isFallback={false}
                     score={subjectScores[subject.id]}
                     topicsCount={topicsBySubject[subject.id] || 0}
+                    teacherName={teacherNamesBySubject[subject.id]}
+                    lastActivityAt={lastActivityBySubject[subject.id] || null}
                     onLeave={handleLeaveClass}
                     leaving={leavingSubjectId === subject.id}
                   />
@@ -455,6 +496,8 @@ function ClassRow({
   isFallback,
   score,
   topicsCount,
+  teacherName,
+  lastActivityAt,
   onLeave,
   leaving,
 }: {
@@ -463,19 +506,20 @@ function ClassRow({
   isFallback: boolean
   score?: number
   topicsCount: number
+  teacherName?: string
+  lastActivityAt?: string | null
   onLeave: (subject: Subject) => void
   leaving: boolean
 }) {
   const colors = ['#43D991', '#8B5CF6', '#3B82F6', '#F6A64A', '#718096']
   const iconNames: (keyof typeof Ionicons.glyphMap)[] = ['book', 'calculator', 'flask', 'business', 'color-palette']
-  const teacherNames = ['Laura Smith', 'Carlos Ruiz', 'Ana Gómez', 'Miguel Torres', 'Sofía Hernández']
-  const progressValues = [75, 60, 45, 50, 30]
-  const lessons = ['15 / 20', '12 / 20', '9 / 20', '10 / 20', '6 / 20']
-  const activity = ['Hoy', 'Ayer', 'Ayer', '2 días atrás', '3 días atrás']
   const color = subject.theme_color || colors[index] || '#58B5FF'
   const hasScore = typeof score === 'number'
-  const progress = hasScore ? 100 : progressValues[index] || 35
+  const progress = hasScore ? 100 : 0
   const scoreLabel = hasScore ? `${score.toLocaleString()} XP` : isFallback ? 'Demo' : 'Sin nota'
+  const teacherLabel = teacherName ? `Profesor/a: ${teacherName}` : 'Profesor/a no asignado'
+  const topicsLabel = `${topicsCount} tema${topicsCount === 1 ? '' : 's'}`
+  const activityLabel = formatLastActivity(lastActivityAt)
 
   const content = (
     <View className="flex-row items-center rounded-xl border border-[#172A4A] bg-[#0B1A32] p-4">
@@ -494,7 +538,7 @@ function ClassRow({
         </Text>
         <View className="mt-2 self-start rounded bg-[#122544] px-2 py-1">
           <Text className="text-[10px] text-[#AFC2DB]">
-            {isFallback ? `Profesor/a: ${teacherNames[index] || 'OmniQuest'}` : `${topicsCount} tema${topicsCount === 1 ? '' : 's'} disponible${topicsCount === 1 ? '' : 's'}`}
+            {teacherLabel}
           </Text>
         </View>
       </View>
@@ -508,8 +552,8 @@ function ClassRow({
       <Text className="mx-4 hidden w-10 text-right text-[13px] text-[#DDE7F4] md:flex">{progress}%</Text>
 
       <View className="hidden w-24 border-l border-[#172A4A] pl-5 lg:flex">
-        <Text className="text-[11px] text-[#8FA7C7]">Lecciones</Text>
-        <Text className="mt-1 font-bold text-[#43D991]">{lessons[index] || '7 / 20'}</Text>
+        <Text className="text-[11px] text-[#8FA7C7]">Temas</Text>
+        <Text className="mt-1 font-bold text-[#43D991]">{topicsLabel}</Text>
       </View>
 
       <View className="hidden w-28 border-l border-[#172A4A] pl-5 lg:flex">
@@ -557,6 +601,7 @@ function ClassRow({
           )}
         </View>
 
+        <Text className="mt-2 text-right text-[11px] text-[#8FA7C7]">{activityLabel}</Text>
       </View>
     </View>
   )
@@ -640,6 +685,26 @@ function getSortableTimestamp(value: string | null | undefined) {
   if (!value) return 0
   const timestamp = new Date(value).getTime()
   return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+function formatLastActivity(value: string | null | undefined) {
+  if (!value) return 'Sin actividad'
+
+  const timestamp = getSortableTimestamp(value)
+  if (timestamp === 0) return 'Sin actividad'
+
+  const now = Date.now()
+  const diffDays = Math.floor((now - timestamp) / 86_400_000)
+
+  if (diffDays <= 0) return 'Hoy'
+  if (diffDays === 1) return 'Ayer'
+  if (diffDays < 7) return `${diffDays} días atrás`
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7)
+    return `${weeks} semana${weeks === 1 ? '' : 's'} atrás`
+  }
+
+  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(new Date(timestamp))
 }
 
 function BottomNav() {

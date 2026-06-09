@@ -173,10 +173,6 @@ export default function ProgressScreen() {
     Alert.alert(title, message)
   }
 
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)
-  }
-
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
@@ -198,7 +194,6 @@ export default function ProgressScreen() {
             points={points}
             nextLevelProgress={nextLevelProgress}
             onSignOut={() => supabase.auth.signOut()}
-            onComingSoon={showComingSoon}
           />
         ) : null}
 
@@ -259,7 +254,7 @@ export default function ProgressScreen() {
                   <EmptyProgress />
                 )}
               </View>
-              <CardLink label="Ver todas mis clases" onPress={() => showComingSoon('Todas tus clases')} />
+              <CardLink label="Ver todas mis clases" onPress={() => router.push('/(student)/classes' as any)} />
             </DashboardCard>
 
             <View className={isDesktop ? 'flex-1 gap-5' : 'gap-5'}>

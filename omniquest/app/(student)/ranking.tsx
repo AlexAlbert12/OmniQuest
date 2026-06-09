@@ -217,7 +217,6 @@ export default function RankingScreen() {
             points={points}
             nextLevelProgress={nextLevelProgress}
             onSignOut={() => supabase.auth.signOut()}
-            onComingSoon={showComingSoon}
           />
         ) : null}
 

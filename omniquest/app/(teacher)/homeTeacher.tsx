@@ -32,17 +32,39 @@ type SubjectAnalytics = {
   questionsCount: number
 }
 
-const recentActivity = [
-  { icon: 'people', color: '#8B5CF6', title: 'Nueva inscripción en una clase', time: 'Hace 2h' },
-  { icon: 'checkmark', color: '#34D399', title: 'Un alumno completó una pregunta', time: 'Hace 4h' },
-  { icon: 'trophy', color: '#F6A64A', title: 'Nueva mejor puntuación registrada', time: 'Ayer' },
-] as const
+type RecentActivityItem = {
+  id: string
+  icon: keyof typeof Ionicons.glyphMap
+  color: string
+  title: string
+  time: string
+  timestamp: number
+}
+
+type EnrollmentActivityRow = {
+  subject_id: number | null
+  student_id: string | null
+  joined_at?: string | null
+}
+
+type AttemptActivityRow = {
+  student_id: string | null
+  is_correct: boolean | null
+  attempted_at?: string | null
+  questions?: { subject_id: number | null; text?: string | null } | { subject_id: number | null; text?: string | null }[] | null
+}
+
+type ProfileSummary = {
+  id: string
+  alias: string | null
+}
 
 export default function TeacherHomeScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [analyticsBySubject, setAnalyticsBySubject] = useState<Record<number, SubjectAnalytics>>({});
+  const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -84,18 +106,30 @@ export default function TeacherHomeScreen() {
       const subjectIds = nextSubjects.map((subject) => subject.id);
       if (subjectIds.length === 0) {
         setAnalyticsBySubject({});
+        setRecentActivity([]);
         return;
       }
 
-      const [enrollmentsResult, scoresResult, questionsResult] = await Promise.all([
-        supabase.from('enrollments').select('subject_id').in('subject_id', subjectIds),
+      const [enrollmentsResult, scoresResult, questionsResult, attemptsResult] = await Promise.all([
+        supabase
+          .from('enrollments')
+          .select('subject_id, student_id, joined_at')
+          .in('subject_id', subjectIds)
+          .order('joined_at', { ascending: false })
+          .limit(30),
         supabase.from('subject_scores').select('subject_id, max_score').in('subject_id', subjectIds),
         supabase.from('questions').select('subject_id').in('subject_id', subjectIds),
+        supabase
+          .from('attempt_history')
+          .select('student_id, is_correct, attempted_at, questions(subject_id, text)')
+          .order('attempted_at', { ascending: false })
+          .limit(80),
       ]);
 
       if (enrollmentsResult.error) throw enrollmentsResult.error;
       if (scoresResult.error) throw scoresResult.error;
       if (questionsResult.error) throw questionsResult.error;
+      if (attemptsResult.error) throw attemptsResult.error;
 
       const nextAnalytics: Record<number, SubjectAnalytics> = {};
       subjectIds.forEach((subjectId) => {
@@ -114,6 +148,24 @@ export default function TeacherHomeScreen() {
         };
       });
       setAnalyticsBySubject(nextAnalytics);
+
+      const studentIds = Array.from(
+        new Set(
+          [
+            ...(enrollmentsResult.data || []).map((item) => item.student_id),
+            ...(attemptsResult.data || []).map((item) => item.student_id),
+          ].filter((value): value is string => Boolean(value))
+        )
+      );
+      const profilesById = studentIds.length > 0 ? await fetchProfilesById(studentIds) : {};
+      setRecentActivity(
+        buildRecentActivity({
+          subjects: nextSubjects,
+          enrollments: enrollmentsResult.data || [],
+          attempts: attemptsResult.data || [],
+          profilesById,
+        })
+      );
     } catch (error: any) {
       console.error('Error cargando inicio del profesor:', error.message);
     } finally {
@@ -163,7 +215,6 @@ export default function TeacherHomeScreen() {
             activeSection="home"
             subjectsCount={subjects.length}
             onSignOut={() => supabase.auth.signOut()}
-            onComingSoon={showComingSoon}
           />
         ) : null}
 
@@ -212,7 +263,7 @@ export default function TeacherHomeScreen() {
             <MetricCard icon="school" title="Clases activas" value={String(subjects.length)} color="#8B5CF6" />
             <MetricCard icon="people" title="Estudiantes" value={String(totals.students)} color="#43D991" />
             <MetricCard icon="clipboard" title="Preguntas creadas" value={String(totals.questions)} color="#3B82F6" />
-            <MetricCard icon="trophy" title="Nota media" value={`${totals.averageScore} XP`} color="#F6A64A" />
+            <MetricCard icon="trophy" title="XP promedio" value={`${totals.averageScore} XP`} color="#F6A64A" />
           </View>
 
           <View className={isDesktop ? 'mt-8 flex-row gap-6' : 'mt-8 gap-6'}>
@@ -255,11 +306,19 @@ export default function TeacherHomeScreen() {
             </View>
 
             <View className={isDesktop ? 'flex-1 gap-5' : 'gap-5'}>
-              <Panel title="Actividad reciente" action="Ver todo">
+              <Panel title="Actividad reciente" action="Ver todo" onAction={() => router.push('/(teacher)/notifications' as any)}>
                 <View style={{ gap: 14 }}>
-                  {recentActivity.map((item) => (
-                    <ActivityRow key={item.title} item={item} />
-                  ))}
+                  {recentActivity.length > 0 ? (
+                    recentActivity.map((item) => (
+                      <ActivityRow key={item.id} item={item} />
+                    ))
+                  ) : (
+                    <View className="rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
+                      <Text className="text-center text-[12px] text-[#8FA7C7]">
+                        Aún no hay actividad reciente en tus clases.
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </Panel>
 
@@ -320,19 +379,36 @@ function SubjectPreview({ subject, analytics }: { subject: Subject; analytics: S
   );
 }
 
-function Panel({ title, action, children }: { title: string; action: string; children: React.ReactNode }) {
+function Panel({
+  title,
+  action,
+  onAction,
+  children,
+}: {
+  title: string
+  action: string
+  onAction?: () => void
+  children: React.ReactNode
+}) {
   return (
     <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
       <View className="mb-4 flex-row items-center justify-between">
         <Text className="font-black text-white">{title}</Text>
-        <Text className="text-[12px] font-semibold text-[#B9A7FF]">{action}</Text>
+        {onAction ? (
+          <Pressable onPress={onAction} className="flex-row items-center gap-1">
+            <Text className="text-[12px] font-semibold text-[#B9A7FF]">{action}</Text>
+            <Ionicons name="arrow-forward" size={13} color="#B9A7FF" />
+          </Pressable>
+        ) : (
+          <Text className="text-[12px] font-semibold text-[#B9A7FF]">{action}</Text>
+        )}
       </View>
       {children}
     </View>
   );
 }
 
-function ActivityRow({ item }: { item: (typeof recentActivity)[number] }) {
+function ActivityRow({ item }: { item: RecentActivityItem }) {
   return (
     <View className="flex-row items-center gap-3">
       <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: `${item.color}33` }}>
@@ -342,6 +418,102 @@ function ActivityRow({ item }: { item: (typeof recentActivity)[number] }) {
       <Text className="text-[11px] text-[#8FA7C7]">{item.time}</Text>
     </View>
   );
+}
+
+async function fetchProfilesById(studentIds: string[]) {
+  const { data, error } = await supabase.from('profiles').select('id, alias').in('id', studentIds);
+  if (error) throw error;
+
+  return ((data || []) as ProfileSummary[]).reduce<Record<string, ProfileSummary>>((acc, profile) => {
+    acc[profile.id] = profile;
+    return acc;
+  }, {});
+}
+
+function buildRecentActivity({
+  subjects,
+  enrollments,
+  attempts,
+  profilesById,
+}: {
+  subjects: Subject[]
+  enrollments: EnrollmentActivityRow[]
+  attempts: AttemptActivityRow[]
+  profilesById: Record<string, ProfileSummary>
+}) {
+  const subjectsById = new Map(subjects.map((subject) => [subject.id, subject]));
+  const teacherSubjectIds = new Set(subjects.map((subject) => subject.id));
+
+  const enrollmentItems: RecentActivityItem[] = enrollments
+    .filter((enrollment) => enrollment.subject_id && enrollment.student_id && enrollment.joined_at)
+    .map((enrollment) => {
+      const subject = enrollment.subject_id ? subjectsById.get(enrollment.subject_id) : null;
+      const studentName = getStudentName(enrollment.student_id, profilesById);
+      const timestamp = toTimestamp(enrollment.joined_at);
+
+      return {
+        id: `enrollment-${enrollment.subject_id}-${enrollment.student_id}-${timestamp}`,
+        icon: 'person-add-outline',
+        color: '#8B5CF6',
+        title: `${studentName} se unió a ${subject?.name || 'una clase'}`,
+        time: formatRelativeDate(enrollment.joined_at),
+        timestamp,
+      };
+    });
+
+  const attemptItems: RecentActivityItem[] = attempts
+    .map((attempt) => {
+      const question = normalizeQuestionRelation(attempt.questions);
+      const subjectId = question?.subject_id ?? null;
+      if (!subjectId || !teacherSubjectIds.has(subjectId) || !attempt.attempted_at) return null;
+
+      const subject = subjectsById.get(subjectId);
+      const studentName = getStudentName(attempt.student_id, profilesById);
+      const timestamp = toTimestamp(attempt.attempted_at);
+      const wasCorrect = Boolean(attempt.is_correct);
+
+      return {
+        id: `attempt-${subjectId}-${attempt.student_id}-${timestamp}-${wasCorrect ? 'ok' : 'ko'}`,
+        icon: wasCorrect ? 'checkmark-circle-outline' : 'close-circle-outline',
+        color: wasCorrect ? '#34D399' : '#F97316',
+        title: `${studentName} respondió ${wasCorrect ? 'correctamente' : 'un reto'} en ${subject?.name || 'una clase'}`,
+        time: formatRelativeDate(attempt.attempted_at),
+        timestamp,
+      };
+    })
+    .filter((item): item is RecentActivityItem => Boolean(item));
+
+  return [...enrollmentItems, ...attemptItems]
+    .sort((left, right) => right.timestamp - left.timestamp)
+    .slice(0, 5);
+}
+
+function normalizeQuestionRelation(value: AttemptActivityRow['questions']) {
+  if (Array.isArray(value)) return value[0] || null;
+  return value || null;
+}
+
+function getStudentName(studentId: string | null | undefined, profilesById: Record<string, ProfileSummary>) {
+  if (!studentId) return 'Un alumno';
+  return profilesById[studentId]?.alias || 'Un alumno';
+}
+
+function toTimestamp(value: string | null | undefined) {
+  if (!value) return 0;
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function formatRelativeDate(value: string | null | undefined) {
+  const timestamp = toTimestamp(value);
+  if (timestamp === 0) return 'Sin fecha';
+
+  const diffDays = Math.floor((Date.now() - timestamp) / 86_400_000);
+  if (diffDays <= 0) return 'Hoy';
+  if (diffDays === 1) return 'Ayer';
+  if (diffDays < 7) return `${diffDays} días`;
+
+  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(new Date(timestamp));
 }
 
 function QuickAction({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {

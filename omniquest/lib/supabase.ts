@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
 import { Platform } from 'react-native'
 
+type AuthLock = <R>(name: string, acquireTimeout: number, fn: () => Promise<R>) => Promise<R>
+
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL as string
 const supabaseAnonKey =
   (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY as string | undefined) ||
@@ -32,9 +34,33 @@ const webStorage = {
   },
 }
 
+const authLockQueues = new Map<string, Promise<unknown>>()
+
+const authProcessLock: AuthLock = async (name, _acquireTimeout, fn) => {
+  const previous = authLockQueues.get(name) || Promise.resolve()
+  let release!: () => void
+  const current = new Promise<void>((resolve) => {
+    release = resolve
+  })
+
+  const queued = previous.then(() => current, () => current)
+  authLockQueues.set(name, queued)
+
+  try {
+    await previous.catch(() => undefined)
+    return await fn()
+  } finally {
+    release()
+    if (authLockQueues.get(name) === queued) {
+      authLockQueues.delete(name)
+    }
+  }
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: isWeb ? webStorage : AsyncStorage,
+    lock: authProcessLock,
     autoRefreshToken: !isWeb || isBrowser,
     persistSession: !isWeb || isBrowser,
     detectSessionInUrl: isWeb,

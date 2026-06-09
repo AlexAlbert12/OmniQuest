@@ -141,7 +141,6 @@ export default function NotificationsScreen() {
             activeSection="notifications"
             subjectsCount={0}
             onSignOut={handleSignOut}
-            onComingSoon={(feature) => showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)}
           />
         ) : null}
 

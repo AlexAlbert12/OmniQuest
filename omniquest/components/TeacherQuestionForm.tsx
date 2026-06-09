@@ -645,6 +645,12 @@ export default function TeacherQuestionForm({
 
                     {isChoiceType ? (
                       <View className="mt-5 gap-3">
+                        <View className="flex-row items-center gap-2 rounded-xl border border-[#2A456A] bg-[#081A37] px-3 py-2">
+                          <Ionicons name="information-circle-outline" size={17} color="#A78BFA" />
+                          <Text className="min-w-0 flex-1 text-[12px] font-semibold text-[#AFC2DB]">
+                            Toca la letra o el check para marcar la respuesta correcta.
+                          </Text>
+                        </View>
                         {visibleAnswers.map((answer, index) => (
                           <PreviewAnswerRow
                             key={index}
@@ -831,7 +837,16 @@ function PreviewAnswerRow({
           onChangeText={onChangeText}
         />
 
-        {correct ? <Ionicons name="checkmark-circle" size={24} color="#43D991" /> : null}
+        <Pressable
+          onPress={onMarkCorrect}
+          accessibilityRole="button"
+          accessibilityLabel={`Marcar opción ${letter} como respuesta correcta`}
+          className={`h-10 w-10 items-center justify-center rounded-full border ${
+            correct ? 'border-[#43D991] bg-[#43D991]' : 'border-[#35567D] bg-[#081A37]'
+          }`}
+        >
+          <Ionicons name="checkmark" size={20} color={correct ? '#052A22' : '#8FA7C7'} />
+        </Pressable>
       </View>
     </View>
   );

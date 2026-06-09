@@ -182,7 +182,6 @@ export default function StudentNotificationsScreen() {
             points={points}
             nextLevelProgress={nextLevelProgress}
             onSignOut={handleSignOut}
-            onComingSoon={(feature) => showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)}
           />
         ) : null}
 

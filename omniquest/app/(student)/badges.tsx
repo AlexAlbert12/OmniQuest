@@ -133,7 +133,6 @@ export default function BadgesScreen() {
             points={points}
             nextLevelProgress={nextLevelProgress}
             onSignOut={handleSignOut}
-            onComingSoon={showComingSoon}
           />
         ) : null}
 

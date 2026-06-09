@@ -274,7 +274,6 @@ export default function StudentHome() {
             points={points}
             nextLevelProgress={nextLevelProgress}
             onSignOut={() => supabase.auth.signOut()}
-            onComingSoon={showComingSoon}
           />
         ) : null}
 

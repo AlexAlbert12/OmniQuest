@@ -4,6 +4,7 @@ import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useAppTheme } from '../lib/appTheme'
+import { supabase } from '../lib/supabase'
 
 export type TeacherSection = 'home' | 'classes' | 'students' | 'notifications' | 'settings'
 
@@ -11,7 +12,6 @@ type TeacherSidebarProps = {
   activeSection: TeacherSection
   subjectsCount: number
   onSignOut: () => void
-  onComingSoon: (feature: string) => void
   alias?: string | null
   avatar?: string | null
   points?: number | null
@@ -34,16 +34,44 @@ export default function TeacherSidebar({
   activeSection,
   subjectsCount,
   onSignOut,
-  onComingSoon,
   alias,
   avatar,
   points,
 }: TeacherSidebarProps) {
   const { theme, accentColor } = useAppTheme()
   const isDark = theme === 'dark'
-  const displayAlias = alias?.trim() || 'Profesor'
-  const level = Math.max(1, Math.floor((points ?? 0) / 100) + subjectsCount + 1)
-  const progress = Math.min(100, ((points ?? 0) % 100) || 65)
+
+  const [localAlias, setLocalAlias] = React.useState<string | null | undefined>(alias)
+  const [localPoints, setLocalPoints] = React.useState<number | null | undefined>(points)
+
+  React.useEffect(() => {
+    if (alias !== undefined) {
+      setLocalAlias(alias)
+      setLocalPoints(points)
+      return
+    }
+    let canceled = false
+    ;(async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        const userId = session.session?.user.id
+        if (!userId) return
+        const { data, error } = await supabase.from('profiles').select('alias, avatar, points').eq('id', userId).single()
+        if (!canceled && !error && data) {
+          setLocalAlias(data.alias ?? null)
+          setLocalPoints(data.points ?? null)
+        }
+      } catch (e) {
+      }
+    })()
+    return () => {
+      canceled = true
+    }
+  }, [alias, avatar, points])
+
+  const displayAlias = (localAlias ?? '').trim()
+  const level = Math.max(1, Math.floor(((localPoints ?? 0) / 100)) + subjectsCount + 1)
+  const progress = Math.min(100, (((localPoints ?? 0) % 100) || 65))
 
   return (
     <View
@@ -68,7 +96,6 @@ export default function TeacherSidebar({
               key={item.label}
               item={item}
               isActive={isActive}
-              onComingSoon={onComingSoon}
               accentColor={accentColor}
               isDark={isDark}
             />
@@ -105,13 +132,11 @@ export default function TeacherSidebar({
 function TeacherNavButton({
   item,
   isActive,
-  onComingSoon,
   accentColor,
   isDark,
 }: {
   item: { section: TeacherSection; label: string; icon: keyof typeof Ionicons.glyphMap; href?: string }
   isActive: boolean
-  onComingSoon: (feature: string) => void
   accentColor: string
   isDark: boolean
 }) {
@@ -142,7 +167,6 @@ function TeacherNavButton({
       onHoverOut={() => setIsHovered(false)}
       onPressIn={() => setIsPressed(true)}
       onPressOut={() => setIsPressed(false)}
-      onPress={!item.href && !isActive ? () => onComingSoon(item.label) : undefined}
       style={({ pressed }) => ({
         transform: [{ scale: pressed ? 0.985 : 1 }],
       })}
@@ -298,5 +322,5 @@ function filledIconFor(icon: keyof typeof Ionicons.glyphMap): keyof typeof Ionic
 
 function getInitials(value: string) {
   const parts = value.trim().split(/\s+/).slice(0, 2)
-  return parts.map((part) => part[0]?.toUpperCase()).join('') || 'PR'
+  return parts.map((part) => part[0]?.toUpperCase()).join('')
 }

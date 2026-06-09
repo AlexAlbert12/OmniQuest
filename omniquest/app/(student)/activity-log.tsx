@@ -149,7 +149,6 @@ export default function ActivityLogScreen() {
             points={points}
             nextLevelProgress={nextLevelProgress}
             onSignOut={() => supabase.auth.signOut()}
-            onComingSoon={() => {}}
           />
         ) : null}
 

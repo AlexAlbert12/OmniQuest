@@ -15,7 +15,6 @@ type StudentSidebarProps = {
   points: number
   nextLevelProgress: number
   onSignOut: () => void
-  onComingSoon: (feature: string) => void
 }
 
 type IoniconName = keyof typeof Ionicons.glyphMap
@@ -46,7 +45,6 @@ export default function StudentSidebar({
   points,
   nextLevelProgress,
   onSignOut,
-  onComingSoon,
 }: StudentSidebarProps) {
   const { theme, accentColor } = useAppTheme()
   const isDark = theme === 'dark'
@@ -74,7 +72,6 @@ export default function StudentSidebar({
               key={item.label}
               item={item}
               isActive={isActive}
-              onComingSoon={onComingSoon}
               accentColor={accentColor}
               isDark={isDark}
             />
@@ -111,13 +108,11 @@ export default function StudentSidebar({
 function StudentNavButton({
   item,
   isActive,
-  onComingSoon,
   accentColor,
   isDark,
 }: {
   item: NavItem
   isActive: boolean
-  onComingSoon: (feature: string) => void
   accentColor: string
   isDark: boolean
 }) {
@@ -148,7 +143,6 @@ function StudentNavButton({
       onHoverOut={() => setIsHovered(false)}
       onPressIn={() => setIsPressed(true)}
       onPressOut={() => setIsPressed(false)}
-      onPress={!item.href && !isActive ? () => onComingSoon(item.label) : undefined}
       style={({ pressed }) => ({
         transform: [{ scale: pressed ? 0.985 : 1 }],
       })}

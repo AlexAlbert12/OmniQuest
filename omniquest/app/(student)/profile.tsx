@@ -259,7 +259,6 @@ export default function ProfileScreen() {
             points={points}
             nextLevelProgress={nextLevelProgress}
             onSignOut={handleSignOut}
-            onComingSoon={showComingSoon}
           />
         ) : null}
 

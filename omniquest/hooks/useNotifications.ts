@@ -86,16 +86,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true
 
-    const syncSession = async () => {
-      let nextUserId: string | null = null
-
-      try {
-        const { data: session } = await supabase.auth.getSession()
-        nextUserId = session.session?.user.id || null
-      } catch (error) {
-        console.error('Error sincronizando sesión para notificaciones:', error)
-      }
-
+    const syncUser = async (nextUserId: string | null) => {
       if (!isMounted) return
 
       setUserId(nextUserId)
@@ -126,10 +117,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    void syncSession()
+    const syncInitialSession = async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        await syncUser(session.session?.user.id || null)
+      } catch (error) {
+        console.error('Error sincronizando sesión para notificaciones:', error)
+        await syncUser(null)
+      }
+    }
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
-      void syncSession()
+    void syncInitialSession()
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      void syncUser(session?.user.id || null)
     })
 
     return () => {
@@ -175,22 +176,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setAudienceLoading(audience, true)
 
     try {
-      const { data: session } = await supabase.auth.getSession()
-      const activeUserId = session.session?.user.id || null
-      if (!activeUserId) {
+      if (!userId) {
         setAudienceNotifications(audience, [])
         return
       }
 
-      setUserId(activeUserId)
-
-      const { read: latestRead, deleted: latestDeleted } = await loadNotificationStateFromDB(activeUserId)
+      const { read: latestRead, deleted: latestDeleted } = await loadNotificationStateFromDB(userId)
       setReadIds(latestRead)
       setDeletedIds(latestDeleted)
 
       if (audience === 'student') {
         const nextNotifications = await fetchStudentNotifications({
-          userId: activeUserId,
+          userId,
           readIds: latestRead,
           deletedIds: latestDeleted,
         })
@@ -201,7 +198,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const { data: subjectsData, error: subjectsError } = await supabase
         .from('subjects')
         .select('id, name, created_at')
-        .eq('teacher_id', activeUserId)
+        .eq('teacher_id', userId)
         .eq('is_archived', false)
         .order('created_at', { ascending: false })
 
@@ -269,7 +266,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         'No se pudieron cargar las notificaciones. Revisa tu conexión o vuelve a iniciar sesión.'
       )
     }
-  }, [setAudienceError, setAudienceLoading, setAudienceNotifications])
+  }, [setAudienceError, setAudienceLoading, setAudienceNotifications, userId])
 
   useEffect(() => {
     if (!userId) return
@@ -292,7 +289,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         await persistNotificationStateToDb(userId, id, { isRead: true, isDeleted: deletedIds.has(id) })
       } catch (error) {
         console.error('Error marcando notificación como leída:', error)
-        setAudienceError(_audience, 'No se pudo marcar la notificación como leída. Inténtalo de nuevo.')
       }
     },
     [deletedIds, setAudienceError, userId]
@@ -314,17 +310,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setAudienceState((current) => markAllAudienceNotificationsReadInState(current, audience))
 
     try {
-      await Promise.all(
-        unreadNotifications.map((notification) =>
-          persistNotificationStateToDb(userId, notification.id, {
-            isRead: true,
-            isDeleted: deletedIds.has(notification.id),
-          })
-        )
-      )
+      for (const notification of unreadNotifications) {
+        await persistNotificationStateToDb(userId, notification.id, {
+          isRead: true,
+          isDeleted: deletedIds.has(notification.id),
+        })
+      }
     } catch (error) {
       console.error('Error marcando todas las notificaciones como leídas:', error)
-      setAudienceError(audience, 'No se pudieron marcar todas las notificaciones como leídas. Inténtalo de nuevo.')
     }
   }, [audienceState, deletedIds, setAudienceError, userId])
 
@@ -343,7 +336,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         await persistNotificationStateToDb(userId, id, { isRead: readIds.has(id), isDeleted: true })
       } catch (error) {
         console.error('Error eliminando notificación:', error)
-        setAudienceError(_audience, 'No se pudo eliminar la notificación. Inténtalo de nuevo.')
       }
     },
     [readIds, setAudienceError, userId]
@@ -893,18 +885,43 @@ async function persistNotificationStateToDb(
   state: { isRead: boolean; isDeleted: boolean }
 ) {
   try {
-    const { error } = await supabase.from('notification_state').upsert(
-      {
+    const now = new Date().toISOString()
+    const { data: existingRows, error: selectError } = await supabase
+      .from('notification_state')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('notification_id', notificationId)
+      .limit(1)
+
+    if (selectError) throw selectError
+
+    const existingId = existingRows?.[0]?.id
+
+    if (typeof existingId === 'number') {
+      const { error: updateError } = await supabase
+        .from('notification_state')
+        .update({
+          is_read: state.isRead,
+          is_deleted: state.isDeleted,
+          updated_at: now,
+        })
+        .eq('id', existingId)
+
+      if (updateError) throw updateError
+      return
+    }
+
+    const { error: insertError } = await supabase
+      .from('notification_state')
+      .insert({
         user_id: userId,
         notification_id: notificationId,
         is_read: state.isRead,
         is_deleted: state.isDeleted,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id,notification_id' }
-    )
+        updated_at: now,
+      })
 
-    if (error) throw error
+    if (insertError) throw insertError
   } catch (error) {
     console.error('Error persisting notification state to DB:', error)
     throw error

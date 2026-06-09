@@ -307,7 +307,6 @@ export default function TeacherClassesScreen() {
             activeSection="classes"
             subjectsCount={subjects.length}
             onSignOut={() => supabase.auth.signOut()}
-            onComingSoon={showComingSoon}
           />
         ) : null}
 

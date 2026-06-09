@@ -214,10 +214,6 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
     Alert.alert(title, message)
   }
 
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)
-  }
-
   const handleProfileVisibilityChange = async (visibility: 'public' | 'private') => {
     if (!userId) return
 
@@ -814,7 +810,6 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
               activeSection="settings"
               subjectsCount={subjectsCount}
               onSignOut={handleSignOut}
-              onComingSoon={showComingSoon}
               alias={alias}
               avatar={profile?.avatar}
               points={points}
@@ -828,7 +823,6 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
               points={points}
               nextLevelProgress={nextLevelProgress}
               onSignOut={handleSignOut}
-              onComingSoon={showComingSoon}
             />
           )
         ) : null}
