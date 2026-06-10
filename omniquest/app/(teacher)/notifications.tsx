@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
+import { getTimeAgo } from '../../lib/time'
 import TeacherSidebar from '../../components/TeacherSidebar'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 
@@ -398,15 +399,4 @@ function EmptyState({ filter }: { filter: NotificationFilter }) {
   )
 }
 
-function getTimeAgo(timestamp: string): string {
-  const date = new Date(timestamp)
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
 
-  if (Number.isNaN(seconds)) return 'Sin fecha'
-  if (seconds < 60) return 'Hace unos segundos'
-  if (seconds < 3600) return `Hace ${Math.floor(seconds / 60)} min`
-  if (seconds < 86400) return `Hace ${Math.floor(seconds / 3600)} h`
-  if (seconds < 604800) return `Hace ${Math.floor(seconds / 86400)} d`
-
-  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(date)
-}

@@ -14,9 +14,10 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { Link, useFocusEffect, useRouter } from 'expo-router'
+import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
+import { getNextLevelProgress, getStudentLevel } from '../../lib/studentBadges'
 import StudentSidebar from '../../components/StudentSidebar'
 import TeacherSidebar from '../../components/TeacherSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
@@ -151,9 +152,11 @@ const accentColors = ['#7C5CFF', '#3B82F6', '#38BDF8', '#58D17A', '#F6A64A', '#E
 export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) {
   const { width } = useWindowDimensions()
   const router = useRouter()
+  const { section } = useLocalSearchParams<{ section?: string }>()
   const { theme, accentColor, setAccentColor } = useAppTheme()
   const scrollRef = useRef<ScrollView | null>(null)
   const sectionPositionsRef = useRef<Partial<Record<SettingsAnchorKey, number>>>({})
+  const [initialScrollAnchor, setInitialScrollAnchor] = useState<SettingsAnchorKey | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [role, setRole] = useState<AppRole>(forcedRole || 'student')
   const [subjectsCount, setSubjectsCount] = useState(0)
@@ -188,8 +191,8 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
   const settingsSections = isTeacher ? teacherSettingsSections : studentSettingsSections
   const points = profile?.points ?? 0
   const alias = profile?.alias || (isTeacher ? 'Profesor' : 'Alumno')
-  const level = Math.floor(points / 100) + 1
-  const nextLevelProgress = points % 100
+  const level = getStudentLevel(points)
+  const nextLevelProgress = getNextLevelProgress(points)
   const userInitials = getInitials(name)
   const orderedAnchors = useMemo(
     () =>
@@ -441,6 +444,10 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
 
   const handleSectionLayout = (key: SettingsAnchorKey) => (event: LayoutChangeEvent) => {
     sectionPositionsRef.current[key] = event.nativeEvent.layout.y
+    if (initialScrollAnchor === key) {
+      scrollToAnchor(key, key === 'profile' ? 'profile' : 'general')
+      setInitialScrollAnchor(null)
+    }
   }
 
   const scrollToAnchor = (anchor: SettingsAnchorKey, menuKey: SettingsMenuSectionKey) => {
@@ -454,6 +461,12 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
   const handleMenuSectionPress = (section: { key: SettingsMenuSectionKey; anchor: SettingsAnchorKey }) => {
     scrollToAnchor(section.anchor, section.key)
   }
+
+  useEffect(() => {
+    if (section === 'profile') {
+      setInitialScrollAnchor('profile')
+    }
+  }, [section])
 
   const handleSettingsScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetY = event.nativeEvent.contentOffset.y + 90
@@ -880,9 +893,6 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                       <View className="items-center">
                         <View className="h-24 w-24 items-center justify-center rounded-full bg-[#4E3CB7]">
                           <Text className="text-[28px] font-black text-white">{userInitials}</Text>
-                          <View className="absolute bottom-1 right-1 h-7 w-7 items-center justify-center rounded-full border border-[#20375E] bg-[#09162C]">
-                            <Ionicons name="camera-outline" size={14} color="#DCE7F8" />
-                          </View>
                         </View>
                         <Pressable
                           onPress={handleSaveProfile}
@@ -1011,7 +1021,7 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                   <Panel title="Notificaciones">
                     <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
                       <Text className="text-[12px] font-bold text-white">Reglas de envío</Text>
-                      <Text className="mt-1 text-[11px] text-[#AFC2DB]">Configura canal y frecuencia de envío.</Text>
+                      <Text className="mt-1 text-[13px] text-[#AFC2DB]">Configura canal y frecuencia de envío.</Text>
                       <View className="mt-3">
                         <PreferenceRow
                           label="Frecuencia"
@@ -1253,13 +1263,6 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                       )}
                     </Pressable>
                   </View>
-                  <NotificationRow
-                    icon="shield-checkmark-outline"
-                    title="Verificación en dos pasos"
-                    description="Añade una capa extra de seguridad a tu cuenta."
-                    enabled={toggles.twoFactor}
-                    onPress={() => updateToggle('twoFactor')}
-                  />
                   <Pressable
                     onPress={handleDeleteAccount}
                     disabled={deletingAccount}
@@ -1361,7 +1364,7 @@ function Panel({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <View>
-      <Text className="mb-2 text-[11px] font-semibold text-[#B7C4D7]">{label}</Text>
+      <Text className="mb-2 text-[13px] font-semibold text-[#B7C4D7]">{label}</Text>
       {children}
     </View>
   )

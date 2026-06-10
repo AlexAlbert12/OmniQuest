@@ -113,18 +113,18 @@ export default function ActivityLogScreen() {
           <Text className="mt-0.5 text-[13px] text-[#AFC2DB]" numberOfLines={1}>
             {questionText}
           </Text>
-          <Text className="mt-1 text-[11px] font-semibold text-[#8FA7C7]">
+          <Text className="mt-1 text-[13px] font-semibold text-[#8FA7C7]">
             {topicTitle ? `Tema: ${topicTitle}` : 'Práctica libre'}
           </Text>
         </View>
 
         <View className="items-end">
-          <Text className="text-[12px] text-[#8FA7C7]">{formattedDate}</Text>
+          <Text className="text-[13px] text-[#8FA7C7]">{formattedDate}</Text>
           <View 
             className="mt-1.5 rounded-md px-2 py-0.5" 
             style={{ backgroundColor: isCorrect ? '#22C55E20' : '#33415550' }}
           >
-            <Text className="text-[11px] font-bold" style={{ color: isCorrect ? '#43D991' : '#94A7C4' }}>
+            <Text className="text-[13px] font-bold" style={{ color: isCorrect ? '#43D991' : '#94A7C4' }}>
               {isCorrect ? '+10 XP' : '0 XP'}
             </Text>
           </View>
@@ -134,8 +134,8 @@ export default function ActivityLogScreen() {
   }
 
   const points = profile?.points || 0
-  const level = Math.floor(points / 100) + 1
-  const nextLevelProgress = points % 100
+  const level = getStudentLevel(points)
+  const nextLevelProgress = getNextLevelProgress(points)
 
   return (
     <View className="flex-1 bg-[#061126]">

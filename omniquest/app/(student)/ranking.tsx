@@ -13,6 +13,7 @@ import {
 import { Link, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
+import { getNextLevelProgress, getStudentLevel } from '../../lib/studentBadges'
 import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 
@@ -66,13 +67,18 @@ export default function RankingScreen() {
 
   const points = currentProfile?.points ?? rankingRows.find((item) => item.id === currentUserId)?.points ?? 0
   const alias = currentProfile?.alias || 'Usuario'
-  const level = Math.floor(points / 100) + 1
-  const nextLevelProgress = points % 100
+  const level = getStudentLevel(points)
+  const nextLevelProgress = getNextLevelProgress(points)
   const isGuest = currentProfile?.role_id === 'guest'
   const currentRankIndex = rankingRows.findIndex((item) => item.id === currentUserId)
   const currentRank = !isGuest && currentRankIndex >= 0 ? currentRankIndex + 1 : null
   const maxPoints = Math.max(...rankingRows.map((item) => item.points ?? 0), 1)
-  const league = getRankingLeague(points)
+  const rankingPoints = selectedScope === 'class'
+    ? rankingRows.find((item) => item.id === currentUserId)?.points ?? 0
+    : points
+  const league = getRankingLeague(rankingPoints)
+  const rankingPointsLabel = selectedScope === 'class' ? 'Tu XP en esta clase' : 'Tu XP actual'
+  const bestPointsLabel = selectedScope === 'class' ? 'Mejor XP de clase' : 'Mejor XP del ranking'
 
   const fetchRanking = useCallback(async () => {
     setLoading(true)
@@ -157,7 +163,14 @@ export default function RankingScreen() {
 
               setProfiles((currentProfiles) => {
                 const updated = currentProfiles.map((profile) =>
-                  profile.id === payload.new.id ? { ...profile, ...payload.new } : profile
+                  profile.id === payload.new.id
+                    ? {
+                      ...profile,
+                      alias: payload.new.alias ?? profile.alias,
+                      avatar: payload.new.avatar ?? profile.avatar,
+                      points: selectedScope === 'global' ? payload.new.points : profile.points,
+                    }
+                    : profile
                 )
                 return updated.sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
               })
@@ -181,7 +194,7 @@ export default function RankingScreen() {
         supabase.removeChannel(subscription)
       }
     }
-  }, [currentUserId])
+  }, [currentUserId, selectedScope])
 
   const showAlert = (title: string, message: string) => {
     if (Platform.OS === 'web') {
@@ -266,7 +279,9 @@ export default function RankingScreen() {
                   <Text className="min-w-0 flex-1 text-[12px] font-bold uppercase text-[#8FA7C7]">
                     Estudiante
                   </Text>
-                  <Text className="w-24 text-right text-[12px] font-bold uppercase text-[#8FA7C7]">XP</Text>
+                  <Text className="w-24 text-right text-[12px] font-bold uppercase text-[#8FA7C7]">
+                    {selectedScope === 'class' ? 'XP Clase' : 'XP'}
+                  </Text>
                 </View>
 
                 <View style={{ gap: 6 }}>
@@ -293,8 +308,14 @@ export default function RankingScreen() {
             </View>
 
             <View className={isDesktop ? 'flex-1 gap-5' : 'gap-5'}>
-              <PositionCard rank={currentRank} points={points} isGuest={isGuest} totalRanked={rankingRows.length} league={league} />
-              <RankingSummaryCard points={points} rankingRows={rankingRows} league={league} />
+              <PositionCard rank={currentRank} points={rankingPoints} isGuest={isGuest} totalRanked={rankingRows.length} league={league} />
+              <RankingSummaryCard
+                points={rankingPoints}
+                rankingRows={rankingRows}
+                league={league}
+                pointsLabel={rankingPointsLabel}
+                bestPointsLabel={bestPointsLabel}
+              />
             </View>
           </View>
         </ScrollView>
@@ -355,16 +376,35 @@ async function fetchClassRanking(classId: number) {
     return []
   }
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, alias, points, avatar')
-    .eq('role_id', 'student')
-    .in('id', studentIds)
-    .order('points', { ascending: false })
-    .limit(50)
+  const [profilesResult, scoresResult] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, alias, points, avatar')
+      .eq('role_id', 'student')
+      .in('id', studentIds)
+      .limit(50),
+    supabase
+      .from('subject_scores')
+      .select('student_id, max_score')
+      .eq('subject_id', classId)
+      .in('student_id', studentIds),
+  ])
 
-  if (error) throw error
-  return (data || []) as Profile[]
+  if (profilesResult.error) throw profilesResult.error
+  if (scoresResult.error) throw scoresResult.error
+
+  const scoresByStudent = new Map<string, number>()
+  ;(scoresResult.data || []).forEach((score: { student_id: string | null; max_score: number | null }) => {
+    if (!score.student_id) return
+    scoresByStudent.set(score.student_id, Math.max(scoresByStudent.get(score.student_id) ?? 0, score.max_score ?? 0))
+  })
+
+  return ((profilesResult.data || []) as Profile[])
+    .map((profile) => ({
+      ...profile,
+      points: scoresByStudent.get(profile.id) ?? 0,
+    }))
+    .sort((left, right) => (right.points ?? 0) - (left.points ?? 0))
 }
 
 function ClassRankingSelector({
@@ -463,7 +503,7 @@ function RankingRow({
   maxPoints: number
 }) {
   const points = item.points ?? 0
-  const level = Math.floor(points / 300) + 1
+  const level = getStudentLevel(points)
   const medalColors = ['#FBBF24', '#CBD5E1', '#F97316']
   const progressColor = index === 0 ? '#FBBF24' : isMe ? '#3B82F6' : '#8B5CF6'
   const progress = Math.max(20, Math.round((points / maxPoints) * 100))
@@ -576,7 +616,19 @@ function PositionCard({
   )
 }
 
-function RankingSummaryCard({ points, rankingRows, league }: { points: number; rankingRows: Profile[]; league: RankingLeague }) {
+function RankingSummaryCard({
+  points,
+  rankingRows,
+  league,
+  pointsLabel,
+  bestPointsLabel,
+}: {
+  points: number
+  rankingRows: Profile[]
+  league: RankingLeague
+  pointsLabel: string
+  bestPointsLabel: string
+}) {
   const totalStudents = rankingRows.length
   const bestPoints = rankingRows.length > 0 ? Math.max(...rankingRows.map((item) => item.points ?? 0)) : 0
   const averagePoints =
@@ -593,7 +645,7 @@ function RankingSummaryCard({ points, rankingRows, league }: { points: number; r
           <Text className="text-[14px] font-black text-white">{totalStudents.toLocaleString()}</Text>
         </View>
         <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
-          <Text className="text-[13px] text-[#AFC2DB]">Tu XP actual</Text>
+          <Text className="text-[13px] text-[#AFC2DB]">{pointsLabel}</Text>
           <Text className="text-[14px] font-black text-white">{points.toLocaleString()} XP</Text>
         </View>
         <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
@@ -604,7 +656,7 @@ function RankingSummaryCard({ points, rankingRows, league }: { points: number; r
           </View>
         </View>
         <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
-          <Text className="text-[13px] text-[#AFC2DB]">Mejor XP del ranking</Text>
+          <Text className="text-[13px] text-[#AFC2DB]">{bestPointsLabel}</Text>
           <Text className="text-[14px] font-black text-white">{bestPoints.toLocaleString()} XP</Text>
         </View>
         <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">

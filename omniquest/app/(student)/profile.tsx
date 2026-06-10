@@ -18,10 +18,13 @@ import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import {
   buildStudentBadges,
+  getNextLevelProgress,
   getStudentBadgeMetrics,
+  getStudentLevel,
   type StudentBadge,
   type StudentBadgeScore,
 } from '../../lib/studentBadges'
+import { fetchStudentProgressSummary, type StudentProgressSubject, type StudentProgressSummary } from '../../lib/studentProgress'
 
 type Profile = {
   id: string
@@ -47,22 +50,13 @@ type SubjectScore = {
 
 type ActivityAttempt = {
   id: number
-  question_id: number
-  answer_id: number | null
   is_correct: boolean
   time_taken_seconds: number | null
   attempted_at: string | null
   questions?: {
     text?: string | null
-    type?: string | null
-    subject_id?: number | null
-    subjects?: { name: string } | { name: string }[] | null
-  } | {
-    text?: string | null
-    type?: string | null
-    subject_id?: number | null
-    subjects?: { name: string } | { name: string }[] | null
-  }[] | null
+    subject_topics?: { title?: string | null } | { title?: string | null }[] | null
+  } | null
 }
 
 type StatBarItem = {
@@ -88,6 +82,9 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState('')
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [scores, setScores] = useState<SubjectScore[]>([])
+  const [progressSubjects, setProgressSubjects] = useState<StudentProgressSubject[]>([])
+  const [progressSummary, setProgressSummary] = useState<StudentProgressSummary | null>(null)
+  const [completedProgressClasses, setCompletedProgressClasses] = useState(0)
   const [activityAttempts, setActivityAttempts] = useState<ActivityAttempt[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -95,17 +92,18 @@ export default function ProfileScreen() {
   const isDesktop = width >= 1024
   const points = profile?.points ?? 0
   const alias = profile?.alias || 'Alex'
-  const level = Math.floor(points / 100) + 1
-  const nextLevelProgress = points % 100
+  const level = getStudentLevel(points)
+  const nextLevelProgress = getNextLevelProgress(points)
   const badgeMetrics = getStudentBadgeMetrics({
     scores: scores as StudentBadgeScore[],
     totalPoints: points,
     subjectsCount: subjects.length,
   })
-  const { correctAnswers, completedClasses, streakDays } = badgeMetrics
-  const statBars = buildStatBars(subjects, scores)
+  const answeredAttempts = progressSummary?.totalAttempts ?? 0
+  const correctAttempts = progressSummary?.correctAttempts ?? 0
+  const accuracyPercent = progressSummary?.accuracyPercent ?? 0
+  const statBars = buildStatBars(progressSubjects)
   const badges = buildStudentBadges(badgeMetrics)
-  const unlockedBadges = badges.filter((badge) => badge.unlocked).length
   const activityItems = buildActivityItems(activityAttempts)
   const memberSince = formatProfileDate(profile?.created_at)
 
@@ -120,7 +118,7 @@ export default function ProfileScreen() {
 
       if (!userId) return
 
-      const [profileResult, enrollmentsResult, scoresResult, attemptsResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, scoresResult, attemptsResult, progressResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, created_at, points').eq('id', userId).single(),
         supabase
           .from('enrollments')
@@ -133,10 +131,20 @@ export default function ProfileScreen() {
           .order('played_at', { ascending: false }),
         supabase
           .from('attempt_history')
-          .select('id, question_id, answer_id, is_correct, time_taken_seconds, attempted_at, questions(text, type, subject_id, subjects(name))')
+          .select(`
+            id,
+            is_correct,
+            time_taken_seconds,
+            attempted_at,
+            questions (
+              text,
+              subject_topics ( title )
+            )
+          `)
           .eq('student_id', userId)
           .order('attempted_at', { ascending: false })
           .limit(6),
+        fetchStudentProgressSummary(userId),
       ])
 
       if (profileResult.error) throw profileResult.error
@@ -151,6 +159,9 @@ export default function ProfileScreen() {
           .filter(Boolean) || []
       )
       setScores((scoresResult.data || []) as SubjectScore[])
+      setProgressSubjects(progressResult.subjects)
+      setProgressSummary(progressResult)
+      setCompletedProgressClasses(progressResult.completedClasses)
       setActivityAttempts((attemptsResult.data || []) as ActivityAttempt[])
     } catch (error) {
       console.error('Error fetching profile:', error)
@@ -308,32 +319,32 @@ export default function ProfileScreen() {
 
             <View className={isDesktop ? 'flex-[1.5] flex-row gap-4' : 'flex-row flex-wrap gap-4'}>
               <SummaryTile
-                title="Logros"
-                value={String(unlockedBadges)}
-                icon="star"
+                title="Preguntas respondidas"
+                value={String(answeredAttempts)}
+                icon="chatbubbles"
                 color="#F6A64A"
-                onPress={() => router.push('/(student)/badges' as any)}
+                onPress={() => router.push('/(student)/progress' as any)}
               />
               <SummaryTile
                 title="Preguntas correctas"
-                value={String(correctAnswers)}
-                icon="trophy"
+                value={String(correctAttempts)}
+                icon="checkmark-circle"
                 color="#8B5CF6"
-                onPress={() => router.push('/(student)/ranking' as any)}
+                onPress={() => router.push('/(student)/progress' as any)}
+              />
+              <SummaryTile
+                title="Precisión"
+                value={`${accuracyPercent}%`}
+                icon="speedometer-outline"
+                color="#43D991"
+                onPress={() => router.push('/(student)/progress' as any)}
               />
               <SummaryTile
                 title="Clases completadas"
-                value={String(completedClasses)}
+                value={String(completedProgressClasses)}
                 icon="book"
                 color="#3B82F6"
                 onPress={() => router.push('/(student)/classes' as any)}
-              />
-              <SummaryTile
-                title="Días de racha"
-                value={String(streakDays)}
-                icon="flame"
-                color="#FF7B45"
-                onPress={() => router.push('/(student)/progress' as any)}
               />
             </View>
           </View>
@@ -342,13 +353,12 @@ export default function ProfileScreen() {
             <DashboardCard title="Información personal" className={isDesktop ? 'flex-1' : ''}>
               <InfoRow icon="mail-outline" label="Correo electrónico" value={email} />
               <InfoRow icon="calendar-outline" label="Miembro desde" value={memberSince} />
-              <InfoRow icon="location-outline" label="País" value="España" />
               <Pressable
-                onPress={() => showComingSoon('La edición de perfil')}
+                onPress={() => router.push('/(student)/settings?section=profile' as any)}
                 className="mt-4 flex-row items-center gap-2 border-t border-[#172A4A] pt-4"
               >
                 <Ionicons name="create-outline" size={18} color="#9B6CFF" />
-                <Text className="font-bold text-[#9B6CFF]">Editar información</Text>
+                <Text className="font-bold text-[#9B6CFF]">Editar perfil</Text>
                 <Ionicons name="arrow-forward" size={16} color="#9B6CFF" />
               </Pressable>
             </DashboardCard>
@@ -363,7 +373,7 @@ export default function ProfileScreen() {
                   <EmptyState icon="analytics-outline" message="Juega una clase para ver tus estadísticas." />
                 )}
               </View>
-              <CardLink label="Ver estadísticas detalladas" onPress={() => showComingSoon('Las estadísticas detalladas')} />
+              <CardLink label="Ver estadísticas detalladas" onPress={() => router.push('/(student)/progress' as any)} />
             </DashboardCard>
 
             <DashboardCard
@@ -451,12 +461,14 @@ function ProfileHero({
           <Text className="mt-1 text-[14px] text-[#D4E2F6]">Estudiante aventurero</Text>
           <View className="mt-3 w-[96px] flex-row items-center justify-center gap-1 rounded-md bg-[#6D4DDB] px-3 py-1.5">
             <Ionicons name="school" size={13} color="#FFFFFF" />
-            <Text className="text-[12px] font-bold text-white">Nivel {level}</Text>
+            <Text className="text-[13px] font-bold text-white">Nivel {level}</Text>
           </View>
           <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#27396B]">
             <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${nextLevelProgress}%` }} />
           </View>
-          <Text className="mt-2 text-[12px] text-[#D4E2F6]">{points.toLocaleString()} / 2,000 XP</Text>
+          <Text className="mt-2 text-[13px] text-[#D4E2F6]">
+            {nextLevelProgress.toLocaleString()} / 100 XP para Nivel {level + 1}
+          </Text>
         </View>
       </View>
     </View>
@@ -486,7 +498,7 @@ function SummaryTile({
       <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
         <Ionicons name={icon} size={28} color={color} />
       </View>
-      <Text className="mt-3 text-center text-[12px] text-[#AFC2DB]">{title}</Text>
+      <Text className="mt-3 text-center text-[13px] text-[#AFC2DB]">{title}</Text>
       <Text className="mt-2 text-[28px] font-black text-white">{value}</Text>
     </Container>
   )
@@ -511,7 +523,7 @@ function DashboardCard({
         <Text className="text-[15px] font-black text-white">{title}</Text>
         {actionLabel && onAction ? (
           <Pressable onPress={onAction} className="flex-row items-center gap-2">
-            <Text className="text-[12px] font-bold text-[#9B6CFF]">{actionLabel}</Text>
+            <Text className="text-[13px] font-bold text-[#9B6CFF]">{actionLabel}</Text>
             <Ionicons name="arrow-forward" size={13} color="#9B6CFF" />
           </Pressable>
         ) : null}
@@ -536,7 +548,7 @@ function InfoRow({
         <Ionicons name={icon} size={18} color="#9BAEC9" />
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="text-[12px] text-[#8FA7C7]">{label}</Text>
+        <Text className="text-[13px] text-[#8FA7C7]">{label}</Text>
         <Text className="mt-1 text-[13px] text-[#DDE7F4]" numberOfLines={1}>{value}</Text>
       </View>
     </View>
@@ -547,8 +559,8 @@ function StatBar({ item }: { item: StatBarItem }) {
   return (
     <View>
       <View className="mb-2 flex-row items-center justify-between">
-        <Text className="text-[12px] text-[#AFC2DB]">{item.label}</Text>
-        <Text className="text-[12px] text-[#AFC2DB]">{item.value}%</Text>
+        <Text className="text-[13px] text-[#AFC2DB]">{item.label}</Text>
+        <Text className="text-[13px] text-[#AFC2DB]">{item.value}%</Text>
       </View>
       <View className="h-2 overflow-hidden rounded-full bg-[#182D50]">
         <View className="h-full rounded-full" style={{ width: `${item.value}%`, backgroundColor: item.color }} />
@@ -568,9 +580,9 @@ function BadgeRow({ badge, onPress }: { badge: StudentBadge; onPress: () => void
       </View>
       <View className="min-w-0 flex-1">
         <Text className="font-black text-white">{badge.title}</Text>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]">{badge.requirement}</Text>
+        <Text className="mt-1 text-[13px] text-[#AFC2DB]">{badge.requirement}</Text>
       </View>
-      <Text className="text-[11px] text-[#8FA7C7]">{badge.statusLabel}</Text>
+      <Text className="text-[13px] text-[#8FA7C7]">{badge.statusLabel}</Text>
     </Pressable>
   )
 }
@@ -583,11 +595,11 @@ function ActivityRow({ item }: { item: ActivityItem }) {
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[13px] font-bold text-white">{item.title}</Text>
-        <Text className="mt-1 text-[11px] text-[#8FA7C7]">{item.detail}</Text>
+        <Text className="mt-1 text-[13px] text-[#8FA7C7]">{item.detail}</Text>
       </View>
-      <Text className="text-[11px] text-[#8FA7C7]">{item.time}</Text>
+      <Text className="text-[13px] text-[#8FA7C7]">{item.time}</Text>
       <View className="rounded-md bg-[#34235E] px-2 py-1">
-        <Text className="text-[11px] font-bold text-[#BFAAFF]">{item.xp}</Text>
+        <Text className="text-[13px] font-bold text-[#BFAAFF]">{item.xp}</Text>
       </View>
     </View>
   )
@@ -597,7 +609,7 @@ function EmptyState({ icon, message }: { icon: keyof typeof Ionicons.glyphMap; m
   return (
     <View className="items-center rounded-xl border border-dashed border-[#1A3155] bg-[#0D1D3B] px-4 py-6">
       <Ionicons name={icon} size={24} color="#8FA7C7" />
-      <Text className="mt-2 text-center text-[12px] text-[#8FA7C7]">{message}</Text>
+      <Text className="mt-2 text-center text-[13px] text-[#8FA7C7]">{message}</Text>
     </View>
   )
 }
@@ -653,23 +665,18 @@ function formatProfileDate(date?: string) {
   }).format(new Date(date))
 }
 
-function buildStatBars(subjects: Subject[], scores: SubjectScore[]): StatBarItem[] {
+function buildStatBars(subjects: StudentProgressSubject[]): StatBarItem[] {
   const colors = ['#8B5CF6', '#3B82F6', '#43D991', '#FBBF24', '#FF7B45']
-  const scoresBySubject = new Map(scores.map((score) => [score.subject_id, score]))
 
   return subjects
     .slice(0, 5)
     .map((subject, index) => {
-      const score = scoresBySubject.get(subject.id)
-      const value = Math.min(100, Math.round(((score?.max_score ?? 0) / 1000) * 100))
-
       return {
         label: subject.name,
-        value,
+        value: subject.percent,
         color: colors[index % colors.length],
       }
     })
-    .filter((item) => item.value > 0)
 }
 
 function buildActivityItems(attempts: ActivityAttempt[]): ActivityItem[] {
@@ -678,19 +685,20 @@ function buildActivityItems(attempts: ActivityAttempt[]): ActivityItem[] {
     .slice(0, 6)
     .map((attempt) => {
       const question = Array.isArray(attempt.questions) ? attempt.questions[0] : attempt.questions
-      const subject = Array.isArray(question?.subjects) ? question?.subjects[0] : question?.subjects
+      const topicData = question?.subject_topics
+      const topicTitle = Array.isArray(topicData) ? topicData[0]?.title : topicData?.title
       const elapsed = typeof attempt.time_taken_seconds === 'number'
         ? ` · ${attempt.time_taken_seconds}s`
         : ''
 
       return {
         id: String(attempt.id),
-        icon: attempt.is_correct ? 'checkmark-circle' : 'refresh-circle',
-        color: attempt.is_correct ? '#70E0A5' : '#F6A64A',
-        title: attempt.is_correct ? 'Respondió correctamente' : 'Pregunta para repasar',
-        detail: `${subject?.name || 'Clase'} · ${question?.text || 'Pregunta'}${elapsed}`,
+        icon: attempt.is_correct ? 'checkmark-circle' : 'close-circle',
+        color: attempt.is_correct ? '#70E0A5' : '#FB7185',
+        title: attempt.is_correct ? 'Respuesta correcta' : 'Respuesta incorrecta',
+        detail: topicTitle ? `Tema: ${topicTitle}${elapsed}` : `${question?.text || 'Práctica libre'}${elapsed}`,
         time: formatRelativeDate(attempt.attempted_at),
-        xp: attempt.is_correct ? 'Correcta' : 'Repasar',
+        xp: attempt.is_correct ? '+10 XP' : '0 XP',
       }
     })
 }

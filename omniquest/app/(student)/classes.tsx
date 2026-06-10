@@ -13,8 +13,10 @@ import {
 import { Link, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
+import { getNextLevelProgress, getStudentLevel } from '../../lib/studentBadges'
 import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
+import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 
 type Profile = {
   id: string
@@ -56,6 +58,7 @@ export default function ClassesScreen() {
   const [topicsBySubject, setTopicsBySubject] = useState<Record<number, number>>({})
   const [teacherNamesBySubject, setTeacherNamesBySubject] = useState<Record<number, string>>({})
   const [lastActivityBySubject, setLastActivityBySubject] = useState<Record<number, string | null>>({})
+  const [progressBySubject, setProgressBySubject] = useState<Record<number, StudentProgressSubject>>({})
   const [selectedFilter, setSelectedFilter] = useState<ClassFilter>('all')
   const [selectedSort, setSelectedSort] = useState<ClassSort>('recent')
   const [inviteCode, setInviteCode] = useState('')
@@ -70,11 +73,11 @@ export default function ClassesScreen() {
     let rows = subjects
 
     if (selectedFilter === 'in_progress') {
-      rows = rows.filter((subject) => typeof subjectScores[subject.id] !== 'number')
+      rows = rows.filter((subject) => !(progressBySubject[subject.id]?.isCompleted))
     }
 
     if (selectedFilter === 'completed') {
-      rows = rows.filter((subject) => typeof subjectScores[subject.id] === 'number')
+      rows = rows.filter((subject) => Boolean(progressBySubject[subject.id]?.isCompleted))
     }
 
     if (normalizedSearch) {
@@ -89,26 +92,28 @@ export default function ClassesScreen() {
       }
 
       if (selectedSort === 'progress') {
-        const rightScore = subjectScores[right.id] ?? -1
-        const leftScore = subjectScores[left.id] ?? -1
-        return rightScore - leftScore || left.name.localeCompare(right.name, 'es', { sensitivity: 'base' })
+        const rightProgress = progressBySubject[right.id]?.percent ?? 0
+        const leftProgress = progressBySubject[left.id]?.percent ?? 0
+        return rightProgress - leftProgress || left.name.localeCompare(right.name, 'es', { sensitivity: 'base' })
       }
 
       return getSortableTimestamp(right.joined_at) - getSortableTimestamp(left.joined_at)
     })
-  }, [search, selectedFilter, selectedSort, subjectScores, subjects])
+  }, [progressBySubject, search, selectedFilter, selectedSort, subjects])
 
   const points = profile?.points ?? 0
   const alias = profile?.alias || 'Alex'
-  const level = Math.floor(points / 100) + 1
-  const nextLevelProgress = points % 100
+  const level = getStudentLevel(points)
+  const nextLevelProgress = getNextLevelProgress(points)
   const realScores = useMemo(() => Object.values(subjectScores), [subjectScores])
+  const progressSubjects = useMemo(() => Object.values(progressBySubject), [progressBySubject])
   const activeClasses = subjects.length
+  const classesWithScore = subjects.filter((subject) => typeof subjectScores[subject.id] === 'number').length
   const averageScore = realScores.length > 0
     ? Math.round(realScores.reduce((total, score) => total + score, 0) / realScores.length)
     : 0
   const averageProgress = subjects.length > 0
-    ? Math.round((realScores.length / subjects.length) * 100)
+    ? Math.round(subjects.reduce((total, subject) => total + (progressBySubject[subject.id]?.percent ?? 0), 0) / subjects.length)
     : 0
 
   const fetchClasses = useCallback(async () => {
@@ -120,7 +125,7 @@ export default function ClassesScreen() {
 
       if (!userId) return
 
-      const [profileResult, enrollmentsResult, scoresResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, scoresResult, progressResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
         supabase
           .from('enrollments')
@@ -131,6 +136,7 @@ export default function ClassesScreen() {
           .from('subject_scores')
           .select('subject_id, max_score, played_at')
           .eq('student_id', userId),
+        fetchStudentProgressSummary(userId),
       ])
 
       if (profileResult.error) throw profileResult.error
@@ -138,6 +144,12 @@ export default function ClassesScreen() {
       if (scoresResult.error) throw scoresResult.error
 
       setProfile(profileResult.data)
+      setProgressBySubject(
+        progressResult.subjects.reduce<Record<number, StudentProgressSubject>>((acc, subject) => {
+          acc[subject.id] = subject
+          return acc
+        }, {})
+      )
       setSubjects(
         enrollmentsResult.data
           ?.map((enrollment: any) =>
@@ -241,7 +253,8 @@ export default function ClassesScreen() {
   }
 
   const handleJoinClass = async () => {
-    if (!inviteCode.trim() || inviteCode.length !== 6) {
+    const normalizedCode = inviteCode.trim().toUpperCase()
+    if (!normalizedCode || normalizedCode.length !== 6) {
       return showAlert('Error', 'El código debe tener 6 caracteres.')
     }
 
@@ -252,7 +265,7 @@ export default function ClassesScreen() {
       const { data: subject, error: subjectError } = await supabase
         .from('subjects')
         .select('id, name')
-        .eq('code', inviteCode.toUpperCase())
+        .eq('code', normalizedCode)
         .single()
 
       if (subjectError || !subject) {
@@ -385,7 +398,7 @@ export default function ClassesScreen() {
 
           <View className={isDesktop ? 'flex-row gap-4' : 'gap-4'}>
             <StatCard icon="school" color="#6574FF" value={String(activeClasses)} label="Clases activas" detail="Sigue aprendiendo 🚀" />
-            <StatCard icon="checkmark-circle" color="#43D991" value={`${averageProgress}%`} label="Clases completadas" detail="Con puntuación guardada" />
+            <StatCard icon="checkmark-circle" color="#43D991" value={`${classesWithScore} / ${activeClasses}`} label="Clases con nota" detail={`${averageProgress}% de progreso medio`} />
             <StatCard icon="star" color="#F6A64A" value={averageScore > 0 ? `${averageScore} XP` : '0 XP'} label="Promedio de nota" detail="Basado en tus mejores notas" />
             <StatCard icon="time" color="#58B5FF" value={`${points.toLocaleString()} XP`} label="XP global" detail="Acumulada en tu perfil" />
           </View>
@@ -418,13 +431,21 @@ export default function ClassesScreen() {
                 })}
               </View>
 
-              <Pressable
-                onPress={() => setSelectedSort((current) => getNextClassSort(current))}
-                className="ml-auto flex-row items-center gap-2 rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3"
-              >
-                <Text className="font-semibold text-[#AFC2DB]">Ordenar por: {getClassSortLabel(selectedSort)}</Text>
-                <Ionicons name="swap-vertical-outline" size={16} color="#AFC2DB" />
-              </Pressable>
+              <View className="ml-auto flex-row flex-wrap items-center gap-2">
+                <Text className="font-semibold text-[#AFC2DB]">Ordenar por:</Text>
+                {studentClassSorts.map((sort) => {
+                  const active = selectedSort === sort.id
+                  return (
+                    <Pressable
+                      key={sort.id}
+                      onPress={() => setSelectedSort(sort.id)}
+                      className={`rounded-lg px-4 py-3 ${active ? 'bg-[#4F46E5]' : 'bg-[#0A1A34]'}`}
+                    >
+                      <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{sort.label}</Text>
+                    </Pressable>
+                  )
+                })}
+              </View>
             </View>
 
             <View style={{ gap: 8 }}>
@@ -439,6 +460,7 @@ export default function ClassesScreen() {
                     topicsCount={topicsBySubject[subject.id] || 0}
                     teacherName={teacherNamesBySubject[subject.id]}
                     lastActivityAt={lastActivityBySubject[subject.id] || null}
+                    progress={progressBySubject[subject.id]}
                     onLeave={handleLeaveClass}
                     leaving={leavingSubjectId === subject.id}
                   />
@@ -483,8 +505,8 @@ function StatCard({
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[24px] font-black text-white">{value}</Text>
-        <Text className="mt-1 text-[12px] font-bold text-[#DDE7F4]">{label}</Text>
-        <Text className="mt-1 text-[11px] text-[#8FA7C7]">{detail}</Text>
+        <Text className="mt-1 text-[13px] font-bold text-[#DDE7F4]">{label}</Text>
+        <Text className="mt-1 text-[13px] text-[#8FA7C7]">{detail}</Text>
       </View>
     </View>
   )
@@ -498,6 +520,7 @@ function ClassRow({
   topicsCount,
   teacherName,
   lastActivityAt,
+  progress,
   onLeave,
   leaving,
 }: {
@@ -508,6 +531,7 @@ function ClassRow({
   topicsCount: number
   teacherName?: string
   lastActivityAt?: string | null
+  progress?: StudentProgressSubject
   onLeave: (subject: Subject) => void
   leaving: boolean
 }) {
@@ -515,10 +539,11 @@ function ClassRow({
   const iconNames: (keyof typeof Ionicons.glyphMap)[] = ['book', 'calculator', 'flask', 'business', 'color-palette']
   const color = subject.theme_color || colors[index] || '#58B5FF'
   const hasScore = typeof score === 'number'
-  const progress = hasScore ? 100 : 0
+  const progressPercent = progress?.percent ?? 0
   const scoreLabel = hasScore ? `${score.toLocaleString()} XP` : isFallback ? 'Demo' : 'Sin nota'
   const teacherLabel = teacherName ? `Profesor/a: ${teacherName}` : 'Profesor/a no asignado'
   const topicsLabel = `${topicsCount} tema${topicsCount === 1 ? '' : 's'}`
+  const statusTag = progress?.isCompleted ? 'Completada' : hasScore ? 'Con nota' : null
   const activityLabel = formatLastActivity(lastActivityAt)
 
   const content = (
@@ -533,31 +558,38 @@ function ClassRow({
 
       <View className="ml-4 min-w-0 flex-[1.25]">
         <Text className="text-[18px] font-black text-white">{subject.name}</Text>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>
+        <Text className="mt-1 text-[13px] text-[#AFC2DB]" numberOfLines={1}>
           {subject.description || 'Preguntas y ejercicios disponibles'}
         </Text>
-        <View className="mt-2 self-start rounded bg-[#122544] px-2 py-1">
-          <Text className="text-[10px] text-[#AFC2DB]">
-            {teacherLabel}
-          </Text>
+        <View className="mt-2 flex-row flex-wrap gap-2">
+          <View className="rounded bg-[#122544] px-2 py-1">
+            <Text className="text-[12px] text-[#AFC2DB]">
+              {teacherLabel}
+            </Text>
+          </View>
+          {statusTag ? (
+            <View className="rounded bg-[#1F2F42] px-2 py-1">
+              <Text className="text-[12px] font-bold text-[#9B6CFF]">{statusTag}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
 
       <View className="hidden flex-1 md:flex">
-        <Text className="mb-2 text-[12px] text-[#AFC2DB]">Progreso</Text>
+        <Text className="mb-2 text-[13px] text-[#AFC2DB]">Progreso</Text>
         <View className="h-2 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: color }} />
+          <View className="h-full rounded-full" style={{ width: `${progressPercent}%`, backgroundColor: color }} />
         </View>
       </View>
-      <Text className="mx-4 hidden w-10 text-right text-[13px] text-[#DDE7F4] md:flex">{progress}%</Text>
+      <Text className="mx-4 hidden w-10 text-right text-[13px] text-[#DDE7F4] md:flex">{progressPercent}%</Text>
 
       <View className="hidden w-24 border-l border-[#172A4A] pl-5 lg:flex">
-        <Text className="text-[11px] text-[#8FA7C7]">Temas</Text>
+        <Text className="text-[13px] text-[#8FA7C7]">Temas</Text>
         <Text className="mt-1 font-bold text-[#43D991]">{topicsLabel}</Text>
       </View>
 
       <View className="hidden w-28 border-l border-[#172A4A] pl-5 lg:flex">
-        <Text className="text-[11px] text-[#8FA7C7]">Mejor nota</Text>
+        <Text className="text-[13px] text-[#8FA7C7]">Mejor nota</Text>
         <Text className="mt-1 font-bold text-[#9B6CFF]">{scoreLabel}</Text>
       </View>
 
@@ -587,21 +619,20 @@ function ClassRow({
               <Pressable
                 onPress={() => onLeave(subject)}
                 disabled={leaving}
-                className="flex-row items-center gap-2 rounded-lg border border-[#7F1D1D] bg-[#2A0B18] px-4 py-3"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#7F1D1D] bg-[#120A14]"
                 style={({ pressed }) => ({ opacity: leaving ? 0.7 : pressed ? 0.84 : 1 })}
               >
                 {leaving ? (
                   <ActivityIndicator color="#FF6B6B" />
                 ) : (
-                  <Ionicons name="exit-outline" size={15} color="#FF6B6B" />
+                  <Ionicons name="ellipsis-horizontal" size={18} color="#FF6B6B" />
                 )}
-                <Text className="font-bold text-[#FF6B6B]">Abandonar clase</Text>
               </Pressable>
             </>
           )}
         </View>
 
-        <Text className="mt-2 text-right text-[11px] text-[#8FA7C7]">{activityLabel}</Text>
+        <Text className="mt-2 text-right text-[13px] text-[#8FA7C7]">{activityLabel}</Text>
       </View>
     </View>
   )
@@ -637,7 +668,7 @@ function JoinClassCard({
           placeholder="CÓDIGO"
           placeholderTextColor="#60799C"
           value={inviteCode}
-          onChangeText={onChangeCode}
+          onChangeText={(value) => onChangeCode(value.trim().toUpperCase())}
           maxLength={6}
           autoCapitalize="characters"
         />

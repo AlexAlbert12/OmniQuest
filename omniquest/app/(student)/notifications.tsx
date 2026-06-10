@@ -13,6 +13,8 @@ import {
 import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
+import { getNextLevelProgress, getStudentLevel } from '../../lib/studentBadges'
+import { getTimeAgo } from '../../lib/time'
 import StudentSidebar from '../../components/StudentSidebar'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 
@@ -67,8 +69,8 @@ export default function StudentNotificationsScreen() {
   const isDesktop = width >= 1080
   const isWide = width >= 860
   const points = profile?.points ?? 0
-  const level = Math.floor(points / 100) + 1
-  const nextLevelProgress = Math.min(100, points % 100)
+  const level = getStudentLevel(points)
+  const nextLevelProgress = getNextLevelProgress(points)
 
   const filteredNotifications = useMemo(() => {
     if (selectedFilter === 'all') return notifications
@@ -311,11 +313,11 @@ function CategoryCard({
         </View>
         {unread > 0 ? (
           <View className="rounded-full bg-[#EF4444] px-2 py-1">
-            <Text className="text-[10px] font-black text-white">{unread}</Text>
+                <Text className="text-[13px] font-bold text-[#DDE7F4]">{unread}</Text>
           </View>
         ) : null}
       </View>
-      <Text className="text-[12px] font-semibold text-[#B7C4D7]">{label}</Text>
+      <Text className="text-[13px] font-semibold text-[#B7C4D7]">{label}</Text>
       <Text className="mt-1 text-[24px] font-black text-white">{count}</Text>
     </Pressable>
   )
@@ -346,7 +348,7 @@ function FilterChip({
       </Text>
       {typeof count === 'number' ? (
         <View className={active ? 'rounded-full bg-white/20 px-2 py-0.5' : 'rounded-full bg-[#13284A] px-2 py-0.5'}>
-          <Text className="text-[10px] font-black text-white">{count}</Text>
+          <Text className="text-[13px] font-black text-white">{count}</Text>
         </View>
       ) : null}
     </Pressable>
@@ -387,20 +389,20 @@ function NotificationItem({
                 {notification.title}
               </Text>
               <View className="rounded-full bg-[#13284A] px-2 py-1">
-                <Text className="text-[10px] font-bold text-[#AFC2DB]">{categoryLabels[notification.type]}</Text>
+                <Text className="text-[12px] font-bold text-[#AFC2DB]">{categoryLabels[notification.type]}</Text>
               </View>
               {!notification.isRead ? <View className="h-2 w-2 rounded-full bg-[#6574FF]" /> : null}
             </View>
             <Text className="mt-1 text-[13px] leading-5 text-[#8FA7C7]">{notification.description}</Text>
             <View className="mt-2 flex-row flex-wrap items-center gap-2">
               <Ionicons name="time-outline" size={12} color="#64748B" />
-              <Text className="text-[11px] text-[#64748B]">{timeAgo}</Text>
-              {notification.subjectName ? (
+              <Text className="text-[13px] text-[#64748B]">{timeAgo}</Text>
+              {notification.subjectName && (
                 <>
-                  <Text className="text-[11px] text-[#415676]">·</Text>
-                  <Text className="text-[11px] font-semibold text-[#8FA7C7]">{notification.subjectName}</Text>
+                  <Text className="text-[13px] text-[#415676]">·</Text>
+                  <Text className="text-[13px] font-semibold text-[#8FA7C7]">{notification.subjectName}</Text>
                 </>
-              ) : null}
+              )}
             </View>
           </View>
 
@@ -473,15 +475,4 @@ function BottomNav() {
   )
 }
 
-function getTimeAgo(timestamp: string): string {
-  const date = new Date(timestamp)
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
 
-  if (Number.isNaN(seconds)) return 'Sin fecha'
-  if (seconds < 60) return 'Hace unos segundos'
-  if (seconds < 3600) return `Hace ${Math.floor(seconds / 60)} min`
-  if (seconds < 86400) return `Hace ${Math.floor(seconds / 3600)} h`
-  if (seconds < 604800) return `Hace ${Math.floor(seconds / 86400)} d`
-
-  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(date)
-}

@@ -16,7 +16,10 @@ import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import {
   buildStudentBadges,
+  getNextLevelProgress,
   getStudentBadgeMetrics,
+  getStudentLevel,
+  syncStudentBadgeAwards,
   type StudentBadge,
   type StudentBadgeScore,
 } from '../../lib/studentBadges'
@@ -36,16 +39,18 @@ export default function BadgesScreen() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [scores, setScores] = useState<StudentBadgeScore[]>([])
   const [subjectsCount, setSubjectsCount] = useState(0)
+  const [syncedBadges, setSyncedBadges] = useState<StudentBadge[]>([])
   const [activeFilter, setActiveFilter] = useState<BadgeFilter>('all')
   const [loading, setLoading] = useState(true)
 
   const isDesktop = width >= 1024
   const points = profile?.points ?? 0
   const alias = profile?.alias || 'Alex'
-  const level = Math.floor(points / 100) + 1
-  const nextLevelProgress = points % 100
+  const level = getStudentLevel(points)
+  const nextLevelProgress = getNextLevelProgress(points)
   const metrics = getStudentBadgeMetrics({ scores, totalPoints: points, subjectsCount })
-  const badges = buildStudentBadges(metrics)
+  const computedBadges = buildStudentBadges(metrics)
+  const badges = syncedBadges.length > 0 ? syncedBadges : computedBadges
   const unlockedBadges = badges.filter((badge) => badge.unlocked)
   const lockedBadges = badges.filter((badge) => !badge.unlocked)
   const completionPercent = badges.length > 0 ? Math.round((unlockedBadges.length / badges.length) * 100) : 0
@@ -80,7 +85,39 @@ export default function BadgesScreen() {
 
       setProfile(profileResult.data)
       setSubjectsCount(enrollmentsResult.data?.length || 0)
-      setScores((scoresResult.data || []) as StudentBadgeScore[])
+      const nextScores = (scoresResult.data || []) as StudentBadgeScore[]
+      setScores(nextScores)
+
+      const nextSubjectsCount = enrollmentsResult.data?.length || 0
+      const nextPoints = profileResult.data?.points ?? 0
+      const nextMetrics = getStudentBadgeMetrics({
+        scores: nextScores,
+        totalPoints: nextPoints,
+        subjectsCount: nextSubjectsCount,
+      })
+      const nextBadges = buildStudentBadges(nextMetrics)
+
+      try {
+        const syncResult = await syncStudentBadgeAwards({
+          userId,
+          badges: nextBadges,
+          currentPoints: nextPoints,
+        })
+        setSyncedBadges(syncResult.badges)
+
+        if (syncResult.awardedXp > 0) {
+          setProfile((current) =>
+            current ? { ...current, points: (current.points ?? 0) + syncResult.awardedXp } : current
+          )
+          showAlert(
+            '¡Logro desbloqueado!',
+            `Has ganado ${syncResult.awardedXp.toLocaleString()} XP en recompensas.`
+          )
+        }
+      } catch (error) {
+        console.error('Error sincronizando logros:', error)
+        setSyncedBadges(nextBadges)
+      }
     } catch (error) {
       console.error('Error fetching badges:', error)
     } finally {
@@ -242,7 +279,7 @@ function MetricTile({
       <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
         <Ionicons name={icon} size={24} color={color} />
       </View>
-      <Text className="mt-3 text-center text-[11px] text-[#AFC2DB]">{label}</Text>
+      <Text className="mt-3 text-center text-[13px] text-[#AFC2DB]">{label}</Text>
       <Text className="mt-1 text-[26px] font-black text-white">{value}</Text>
     </View>
   )
@@ -254,7 +291,7 @@ function FilterButton({ label, active, onPress }: { label: string; active: boole
       onPress={onPress}
       className={`rounded-lg px-3 py-2 ${active ? 'bg-[#6D5AF6]' : ''}`}
     >
-      <Text className={`text-[12px] font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{label}</Text>
+      <Text className={`text-[13px] font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{label}</Text>
     </Pressable>
   )
 }
@@ -277,19 +314,19 @@ function BadgeCard({ badge, isDesktop }: { badge: StudentBadge; isDesktop: boole
           className="rounded-full px-3 py-1"
           style={{ backgroundColor: badge.unlocked ? 'rgba(52,211,153,0.16)' : 'rgba(143,167,199,0.14)' }}
         >
-          <Text className={`text-[11px] font-black ${badge.unlocked ? 'text-[#70E0A5]' : 'text-[#AFC2DB]'}`}>
+          <Text className={`text-[12px] font-black ${badge.unlocked ? 'text-[#70E0A5]' : 'text-[#AFC2DB]'}`}>
             {badge.statusLabel}
           </Text>
         </View>
       </View>
 
       <Text className="mt-4 text-[17px] font-black text-white">{badge.title}</Text>
-      <Text className="mt-1 min-h-[36px] text-[12px] leading-5 text-[#AFC2DB]">{badge.requirement}</Text>
+      <Text className="mt-1 min-h-[36px] text-[13px] leading-5 text-[#AFC2DB]">{badge.requirement}</Text>
 
       <View className="mt-4">
         <View className="mb-2 flex-row items-center justify-between">
-          <Text className="text-[11px] text-[#8FA7C7]">Progreso</Text>
-          <Text className="text-[11px] font-bold text-[#DDE7F4]">{badge.progressLabel}</Text>
+          <Text className="text-[13px] text-[#8FA7C7]">Progreso</Text>
+          <Text className="text-[13px] font-bold text-[#DDE7F4]">{badge.progressLabel}</Text>
         </View>
         <View className="h-2 overflow-hidden rounded-full bg-[#172A4A]">
           <View className="h-full rounded-full" style={{ width: `${progressPercent}%`, backgroundColor: badge.color }} />
@@ -297,8 +334,8 @@ function BadgeCard({ badge, isDesktop }: { badge: StudentBadge; isDesktop: boole
       </View>
 
       <View className="mt-4 flex-row items-center justify-between border-t border-[#172A4A] pt-3">
-        <Text className="text-[11px] text-[#8FA7C7]">Recompensa</Text>
-        <Text className="text-[12px] font-black text-[#BFAAFF]">{badge.xp}</Text>
+        <Text className="text-[13px] text-[#8FA7C7]">Recompensa</Text>
+        <Text className="text-[13px] font-black text-[#BFAAFF]">{badge.xp}</Text>
       </View>
     </View>
   )

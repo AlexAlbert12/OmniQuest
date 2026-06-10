@@ -15,6 +15,7 @@ type TeacherSidebarProps = {
   alias?: string | null
   avatar?: string | null
   points?: number | null
+  onComingSoon?: (feature: string) => void
 }
 
 const navItems: {

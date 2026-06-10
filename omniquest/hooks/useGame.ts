@@ -191,6 +191,7 @@ export function useGame(subjectId: string, topicId?: string) {
           answer_id: answerId,
           is_correct: isCorrect,
           time_taken_seconds: 30 - timeLeft,
+          attempted_at: new Date().toISOString()
         },
       ]);
     } catch (error: any) {

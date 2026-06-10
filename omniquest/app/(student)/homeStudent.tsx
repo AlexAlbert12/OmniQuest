@@ -1,11 +1,14 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View, } from 'react-native'
+import { ActivityIndicator, Alert, Image, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View, } from 'react-native'
 import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
+import { getWeeklyAttemptCount } from '../../lib/weeklyGoal'
+import { getStudentLevel, getNextLevelProgress } from '../../lib/studentBadges'
+import { getTimeAgo } from '../../lib/time'
 import StudentSidebar from '../../components/StudentSidebar'
-import { calculateStreakDays } from '../../lib/studentBadges'
 import NotificationBadge from '../../components/NotificationBadge'
+import { fetchStudentProgressSummary, type StudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 
 type Subject = {
   id: number
@@ -24,6 +27,7 @@ type Profile = {
 }
 
 type ActivityItem = {
+  id: string
   icon: keyof typeof Ionicons.glyphMap
   color: string
   title: string
@@ -38,18 +42,6 @@ type SubjectScore = {
   played_days: string[] | null
 }
 
-const getTimeAgo = (date: Date): string => {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffHours < 1) return 'Hace menos de 1h';
-  if (diffHours < 24) return `Hace ${diffHours}h`;
-  if (diffDays === 1) return 'Ayer';
-  return `Hace ${diffDays} días`;
-};
-
 export default function StudentHome() {
   const { width } = useWindowDimensions()
   const [inviteCode, setInviteCode] = useState('')
@@ -61,17 +53,18 @@ export default function StudentHome() {
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([])
-  const [streakDays, setStreakDays] = useState(0)
+  const [attemptCount, setAttemptCount] = useState(0)
   const [weeklyGoalCount, setWeeklyGoalCount] = useState(0)
+  const [progressSummary, setProgressSummary] = useState<StudentProgressSummary | null>(null)
   const router = useRouter()
 
   const isDesktop = width >= 1024
   const isWide = width >= 760
   const points = profile?.points ?? 0
   const alias = profile?.alias || 'Alex'
-  const level = Math.floor(points / 100) + 1
-  const progressPercent = Math.min(96, Math.max(28, 40 + enrolledSubjects.length * 10 + Math.floor(points / 120)))
-  const nextLevelProgress = Math.min(100, points % 100)
+  const level = getStudentLevel(points)
+  const progressPercent = progressSummary?.overallPercent ?? 0
+  const nextLevelProgress = getNextLevelProgress(points)
 
   const topRanking = useMemo(() => {
     if (ranking.length > 0) return ranking.slice(0, 5)
@@ -101,9 +94,8 @@ export default function StudentHome() {
       const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - diffToMonday);
       startOfWeek.setHours(0, 0, 0, 0);
-      const weekStartIso = startOfWeek.toISOString();
 
-      const [profileResult, enrollmentsResult, scoresResult, rankingResult, activityResult, weeklyGoalResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, scoresResult, rankingResult, activityResult, attemptHistoryResult, weeklyGoalResult, progressResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, points, role_id').eq('id', userId).single(),
         supabase
           .from('enrollments')
@@ -129,15 +121,10 @@ export default function StudentHome() {
           .limit(3),
         supabase
           .from('attempt_history')
-          .select(`
-            id,
-            is_correct,
-            attempted_at,
-            questions ( text, subject_topics ( title ) )
-          `)
-          .eq('student_id', userId)
-          .order('attempted_at', { ascending: false })
-          .limit(3),
+          .select('id', { head: true, count: 'exact' })
+          .eq('student_id', userId),
+        getWeeklyAttemptCount(userId),
+        fetchStudentProgressSummary(userId),
       ]);
 
       if (profileResult.error) throw profileResult.error;
@@ -145,13 +132,15 @@ export default function StudentHome() {
       if (scoresResult.error) throw scoresResult.error;
       if (rankingResult.error) throw rankingResult.error;
       if (activityResult.error) throw activityResult.error;
-      if (weeklyGoalResult.error) console.error("Error al obtener la meta:", weeklyGoalResult.error);
+      if (attemptHistoryResult.error) throw attemptHistoryResult.error;
 
       setProfile(profileResult.data);
       setEnrolledSubjects(enrollmentsResult.data?.map(e => e.subjects).filter(Boolean) || []);
       setRanking(rankingResult.data || []);
+      setAttemptCount(attemptHistoryResult.count ?? 0);
 
-      setWeeklyGoalCount(weeklyGoalResult.count || 0);
+      setWeeklyGoalCount(weeklyGoalResult || 0);
+      setProgressSummary(progressResult);
 
       const scoreRows = (scoresResult.data || []) as SubjectScore[];
       const scoreMap: Record<number, number> = {};
@@ -161,19 +150,14 @@ export default function StudentHome() {
         }
       });
       setSubjectScores(scoreMap);
-      const playedDays = scoreRows.flatMap((score) => [
-        ...(score.played_days || []),
-        ...(score.played_at ? [score.played_at] : []),
-      ]);
-      setStreakDays(calculateStreakDays(playedDays));
-
       const activities: ActivityItem[] = (activityResult.data || []).map((attempt: any) => {
-        const timeAgo = getTimeAgo(new Date(attempt.attempted_at));
+        const timeAgo = getTimeAgo(attempt.attempted_at);
         const isCorrect = attempt.is_correct;
         const topicData = attempt.questions?.subject_topics;
         const topicTitle = Array.isArray(topicData) ? topicData[0]?.title : topicData?.title;
 
         return {
+          id: String(attempt.id),
           icon: isCorrect ? 'checkmark' : 'close',
           color: isCorrect ? '#70E0A5' : '#FB7185',
           title: isCorrect ? 'Acertaste una pregunta' : 'Fallaste una pregunta',
@@ -183,6 +167,7 @@ export default function StudentHome() {
       });
 
       setActivityItems(activities.length > 0 ? activities : [{
+        id: 'empty-activity',
         icon: 'rocket',
         color: '#3B82F6',
         title: '¡Tu aventura comienza aquí!',
@@ -209,10 +194,6 @@ export default function StudentHome() {
     }
 
     Alert.alert(title, message)
-  }
-
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)
   }
 
   const handleJoinClass = async () => {
@@ -307,7 +288,7 @@ export default function StudentHome() {
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
             <HeroCard isWide={isWide} firstSubject={enrolledSubjects[0]} />
 
-            <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
+            <View className={isWide ? 'flex-row gap-3' : 'gap-3'}>
               <MetricCard
                 title="Progreso general"
                 value={`${progressPercent}%`}
@@ -317,15 +298,22 @@ export default function StudentHome() {
               />
               <MetricCard
                 title="Preguntas completadas"
-                value={String(Math.max(3, Math.floor(points / 100) + enrolledSubjects.length * 4))}
+                value={attemptCount.toString()}
                 icon="trophy"
                 color="#8B5CF6"
                 onPress={() => router.push('/(student)/progress')}
               />
               <MetricCard
-                title="Días de racha"
-                value={String(streakDays)}
-                icon="flame"
+                title="Preguntas correctas"
+                value={String(progressSummary?.correctAttempts ?? 0)}
+                icon="checkmark-circle"
+                color="#58B5FF"
+                onPress={() => router.push('/(student)/progress')}
+              />
+              <MetricCard
+                title="Precisión"
+                value={`${progressSummary?.accuracyPercent ?? 0}%`}
+                icon="speedometer-outline"
                 color="#FF7B45"
                 onPress={() => router.push('/(student)/progress')}
               />
@@ -342,6 +330,7 @@ export default function StudentHome() {
                       subject={subject}
                       index={index}
                       score={subjectScores[subject.id]}
+                      progress={progressSummary?.subjects.find((item) => item.id === subject.id)}
                     />
                   ))
                 ) : (
@@ -379,7 +368,7 @@ export default function StudentHome() {
             <DashboardCard title="Actividad reciente" className={isDesktop ? 'flex-1' : ''}>
               <View style={{ gap: 16 }}>
                 {activityItems.map((item) => (
-                  <ActivityRow key={item.title} item={item} />
+                  <ActivityRow key={item.id} item={item} />
                 ))}
               </View>
               <CardLink label="Ver toda la actividad" onPress={() => router.push('/(student)/activity-log')}
@@ -421,7 +410,7 @@ function HeroCard({ isWide, firstSubject }: { isWide: boolean; firstSubject?: Su
   return (
     <View
       className="overflow-hidden rounded-2xl border border-[#1C3762] bg-[#0B1B48]"
-      style={{ flex: isWide ? 1.55 : undefined, minHeight: 250 }}
+      style={{ flex: isWide ? 1.55 : undefined, minHeight: 220 }}
     >
       <View className="absolute inset-0 bg-[#0D1C55]" />
       <View className="absolute right-5 top-5 h-28 w-28 rounded-full bg-[#5135D8]/50" />
@@ -469,7 +458,7 @@ function DashboardCard({
   children: React.ReactNode
 }) {
   return (
-    <View className={`rounded-2xl border border-[#1A3155] bg-[#09162C] p-5 ${className}`}>
+    <View className={`rounded-2xl border border-[#1A3155] bg-[#09162C] p-4 ${className}`}>
       <Text className="mb-4 text-[15px] font-black text-white">{title}</Text>
       {children}
     </View>
@@ -492,10 +481,10 @@ function MetricCard({
   return (
     <Pressable
       onPress={onPress}
-      className="min-w-[170px] flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5"
+      className="min-w-[170px] flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
     >
-      <Text className="text-center text-[12px] font-semibold text-[#8FA7C7]">{title}</Text>
+      <Text className="text-center text-[13px] font-semibold text-[#8FA7C7]">{title}</Text>
       <View className="mt-5 items-center">
         <View
           className="h-20 w-20 items-center justify-center rounded-full border-[7px]"
@@ -509,10 +498,20 @@ function MetricCard({
   )
 }
 
-function SubjectRow({ subject, index, score }: { subject: Subject; index: number; score?: number }) {
+function SubjectRow({
+  subject,
+  index,
+  score,
+  progress,
+}: {
+  subject: Subject
+  index: number
+  score?: number
+  progress?: StudentProgressSubject
+}) {
   const colors = ['#4ADE80', '#8B5CF6', '#3B82F6']
   const hasScore = typeof score === 'number'
-  const progress = hasScore ? 100 : [75, 50, 30][index] || 35
+  const progressPercent = progress?.percent ?? 0
   const color = subject.theme_color || colors[index] || '#58B5FF'
 
   return (
@@ -533,26 +532,26 @@ function SubjectRow({ subject, index, score }: { subject: Subject; index: number
         </View>
         <View className="ml-3 min-w-0 flex-1">
           <Text className="font-black text-white">{subject.name}</Text>
-          <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>
+          <Text className="mt-1 text-[13px] text-[#8FA7C7]" numberOfLines={1}>
             {subject.description || 'Preguntas y ejercicios disponibles'}
           </Text>
           <View className="mt-2 flex-row flex-wrap items-center gap-2">
             <View className={`rounded-md px-2 py-1 ${hasScore ? 'bg-[#221B58]' : 'bg-[#122544]'}`}>
-              <Text className={`text-[10px] font-bold ${hasScore ? 'text-[#B9A7FF]' : 'text-[#8FA7C7]'}`}>
+              <Text className={`text-[12px] font-bold ${hasScore ? 'text-[#B9A7FF]' : 'text-[#8FA7C7]'}`}>
                 {hasScore ? `Mejor nota: ${score.toLocaleString()} XP` : 'Sin puntuación'}
               </Text>
             </View>
-            {hasScore ? (
+            {progress?.isCompleted ? (
               <View className="rounded-md bg-[#0F2F2B] px-2 py-1">
-                <Text className="text-[10px] font-bold text-[#43D991]">Completada</Text>
+                <Text className="text-[12px] font-bold text-[#43D991]">Completada</Text>
               </View>
             ) : null}
           </View>
         </View>
         <View className="mx-3 h-2 w-16 overflow-hidden rounded-full bg-[#182D50]">
-          <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: color }} />
+          <View className="h-full rounded-full" style={{ width: `${progressPercent}%`, backgroundColor: color }} />
         </View>
-        <Text className="mr-3 text-[11px] text-[#8FA7C7]">{progress}%</Text>
+        <Text className="mr-3 text-[13px] text-[#8FA7C7]">{progressPercent}%</Text>
         <View className="ml-2 flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-3 py-2">
           <Ionicons name="albums" size={14} color="#FFFFFF" />
           <Text className="hidden text-[12px] font-bold text-white sm:flex">
@@ -569,7 +568,7 @@ function EmptyClasses() {
     <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#091A35] px-4 py-6">
       <Ionicons name="school-outline" size={34} color="#60799C" />
       <Text className="mt-3 text-center font-bold text-white">Aún no tienes clases</Text>
-      <Text className="mt-1 text-center text-[12px] leading-5 text-[#8FA7C7]">
+      <Text className="mt-1 text-center text-[13px] leading-5 text-[#8FA7C7]">
         Introduce el código de tu profesor para empezar a responder preguntas.
       </Text>
     </View>
@@ -584,9 +583,9 @@ function ActivityRow({ item }: { item: ActivityItem }) {
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[13px] font-bold text-white">{item.title}</Text>
-        <Text className="mt-1 text-[11px] text-[#8FA7C7]">{item.detail}</Text>
+        <Text className="mt-1 text-[13px] text-[#8FA7C7]">{item.detail}</Text>
       </View>
-      <Text className="text-[11px] text-[#8FA7C7]">{item.time}</Text>
+      <Text className="text-[13px] text-[#8FA7C7]">{item.time}</Text>
     </View>
   )
 }
@@ -607,12 +606,16 @@ function RankingRow({ item, index, isMe }: { item: Profile; index: number; isMe:
         )}
       </View>
       <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-[#17315E]">
-        <Text className="text-lg">🧑‍🎓</Text>
+        {item.avatar && item.avatar.startsWith('http') ? (
+          <Image source={{ uri: item.avatar }} className="h-full w-full rounded-full" />
+        ) : (
+          <Text className="text-lg">🧑‍🎓</Text>
+        )}
       </View>
       <Text className={`min-w-0 flex-1 text-[13px] font-bold ${isMe ? 'text-white' : 'text-[#DDE7F4]'}`} numberOfLines={1}>
         {item.alias}
       </Text>
-      <Text className="text-[12px] text-[#AFC2DB]">{(item.points ?? 0).toLocaleString()} XP</Text>
+      <Text className="text-[13px] text-[#AFC2DB]">{(item.points ?? 0).toLocaleString()} XP</Text>
     </View>
   )
 }
@@ -638,7 +641,7 @@ function WeeklyGoal({ completed }: { completed: number }) {
       </View>
       <View className="ml-4 min-w-0 flex-1">
         <Text className="font-black text-white">Meta semanal</Text>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]">Completa 10 preguntas esta semana</Text>
+        <Text className="mt-1 text-[13px] text-[#AFC2DB]">Completa 10 preguntas esta semana</Text>
       </View>
       <View className="mx-5 hidden h-2 flex-[1.6] overflow-hidden rounded-full bg-[#182D50] md:flex">
         <View className="h-full rounded-full bg-[#9B6CFF]" style={{ width: `${percent}%` }} />

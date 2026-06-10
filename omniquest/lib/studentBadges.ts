@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import { supabase } from './supabase'
 
 export type StudentBadgeScore = {
   max_score: number | null
@@ -15,11 +16,13 @@ export type StudentBadge = {
   progressLabel: string
   statusLabel: string
   xp: string
+  rewardXp: number
   icon: keyof typeof Ionicons.glyphMap
   color: string
   unlocked: boolean
   current: number
   target: number
+  awardedAt?: string | null
 }
 
 type StudentBadgeMetrics = {
@@ -29,6 +32,20 @@ type StudentBadgeMetrics = {
   totalPoints: number
   subjectsCount: number
   bestScore: number
+}
+
+type StudentBadgeAwardRow = {
+  badge_id: string
+  awarded_at: string | null
+  reward_xp: number | null
+}
+
+export function getStudentLevel(points: number) {
+  return Math.floor(Math.max(0, points) / 100) + 1
+}
+
+export function getNextLevelProgress(points: number) {
+  return Math.max(0, points) % 100
 }
 
 export function getStudentBadgeMetrics({
@@ -75,7 +92,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
       title: 'Maestro de retos',
       requirement: 'Supera 50 respuestas correctas',
       current: metrics.correctAnswers,
-      target: 51,
+      target: 50,
       xp: '+200 XP',
       icon: 'trophy',
       color: '#8B5CF6',
@@ -154,6 +171,7 @@ function createBadge({
 }): StudentBadge {
   const unlocked = current >= target
   const clampedCurrent = Math.min(current, target)
+  const rewardXp = parseRewardXp(xp)
 
   return {
     id,
@@ -163,12 +181,81 @@ function createBadge({
     progressLabel: `${clampedCurrent.toLocaleString()} / ${target.toLocaleString()}`,
     statusLabel: unlocked ? 'Conseguida' : 'Bloqueada',
     xp,
+    rewardXp,
     icon,
     color,
     unlocked,
     current: clampedCurrent,
     target,
+    awardedAt: null,
   }
+}
+
+export async function syncStudentBadgeAwards({
+  userId,
+  badges,
+  currentPoints,
+}: {
+  userId: string
+  badges: StudentBadge[]
+  currentPoints: number
+}) {
+  const { data, error } = await supabase
+    .from('student_badges')
+    .select('badge_id, awarded_at, reward_xp')
+    .eq('student_id', userId)
+
+  if (error) throw error
+
+  const awardedByBadgeId = new Map(
+    ((data || []) as StudentBadgeAwardRow[]).map((row) => [row.badge_id, row])
+  )
+  const newlyUnlocked = badges.filter((badge) => badge.unlocked && !awardedByBadgeId.has(badge.id))
+
+  let awardedXp = 0
+
+  if (newlyUnlocked.length > 0) {
+    const now = new Date().toISOString()
+    const rowsToInsert = newlyUnlocked.map((badge) => ({
+      student_id: userId,
+      badge_id: badge.id,
+      reward_xp: badge.rewardXp,
+      awarded_at: now,
+    }))
+    const { error: insertError } = await supabase.from('student_badges').insert(rowsToInsert)
+
+    if (insertError) throw insertError
+
+    const rewardTotal = newlyUnlocked.reduce((total, badge) => total + badge.rewardXp, 0)
+    awardedXp = rewardTotal
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ points: currentPoints + rewardTotal })
+      .eq('id', userId)
+
+    if (profileError) throw profileError
+
+    rowsToInsert.forEach((row) => {
+      awardedByBadgeId.set(row.badge_id, {
+        badge_id: row.badge_id,
+        awarded_at: row.awarded_at,
+        reward_xp: row.reward_xp,
+      })
+    })
+  }
+
+  return {
+    badges: badges.map((badge) => ({
+      ...badge,
+      awardedAt: awardedByBadgeId.get(badge.id)?.awarded_at ?? null,
+    })),
+    awardedXp,
+  }
+}
+
+function parseRewardXp(value: string) {
+  const parsed = Number.parseInt(value.replace(/[^0-9]/g, ''), 10)
+  return Number.isFinite(parsed) ? parsed : 0
 }
 
 export function calculateStreakDays(playedAtValues: string[]) {
