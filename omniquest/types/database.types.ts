@@ -142,6 +142,7 @@ export type Database = {
           id: string
           points: number | null
           role_id: string | null
+          visibility: string
         }
         Insert: {
           active?: boolean | null
@@ -151,6 +152,7 @@ export type Database = {
           id: string
           points?: number | null
           role_id?: string | null
+          visibility?: string
         }
         Update: {
           active?: boolean | null
@@ -160,6 +162,7 @@ export type Database = {
           id?: string
           points?: number | null
           role_id?: string | null
+          visibility?: string
         }
         Relationships: [
           {
@@ -272,6 +275,91 @@ export type Database = {
             foreignKeyName: "subjects_teacher_id_fkey"
             columns: ["teacher_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_preferences: {
+        Row: {
+          user_id: string
+          language: string | null
+          timezone: string | null
+          date_format: string | null
+          time_format: string | null
+          week_start: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          language?: string | null
+          timezone?: string | null
+          date_format?: string | null
+          time_format?: string | null
+          week_start?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          language?: string | null
+          timezone?: string | null
+          date_format?: string | null
+          time_format?: string | null
+          week_start?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_notification_preferences: {
+        Row: {
+          user_id: string
+          push_enabled: boolean
+          email_enabled: boolean
+          daily_summary_enabled: boolean
+          activity_enabled: boolean
+          news_enabled: boolean
+          frequency: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          push_enabled?: boolean
+          email_enabled?: boolean
+          daily_summary_enabled?: boolean
+          activity_enabled?: boolean
+          news_enabled?: boolean
+          frequency?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          push_enabled?: boolean
+          email_enabled?: boolean
+          daily_summary_enabled?: boolean
+          activity_enabled?: boolean
+          news_enabled?: boolean
+          frequency?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },

@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
+import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 
 type AttemptRow = {
   id: number

@@ -13,10 +13,11 @@ import {
 import { Link, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
-import { getNextLevelProgress, getStudentLevel } from '../../lib/studentBadges'
+import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
+import StudentBottomNav from '../../components/student/StudentBottomNav'
 
 type Profile = {
   id: string
@@ -480,7 +481,7 @@ export default function ClassesScreen() {
         </ScrollView>
       </View>
 
-      {!isDesktop ? <BottomNav /> : null}
+      {!isDesktop ? <StudentBottomNav active="classes" /> : null}
     </View>
   )
 }
@@ -736,36 +737,4 @@ function formatLastActivity(value: string | null | undefined) {
   }
 
   return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(new Date(timestamp))
-}
-
-function BottomNav() {
-  return (
-    <View className="absolute bottom-3 left-4 right-4 flex-row justify-around rounded-2xl border border-[#1A3155] bg-[#09162C] py-3">
-      <Link href="/(student)/homeStudent" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="home-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Inicio</Text>
-        </Pressable>
-      </Link>
-
-      <Pressable className="items-center">
-        <Ionicons name="book" size={22} color="#B09BFF" />
-        <Text className="mt-1 text-[11px] font-bold text-[#B09BFF]">Clases</Text>
-      </Pressable>
-
-      <Link href="/(student)/profile" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="person-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Perfil</Text>
-        </Pressable>
-      </Link>
-
-      <Link href="/(student)/settings" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Configuración</Text>
-        </Pressable>
-      </Link>
-    </View>
-  )
 }

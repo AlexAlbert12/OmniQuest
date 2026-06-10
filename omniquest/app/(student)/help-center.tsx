@@ -15,6 +15,7 @@ import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import NotificationBadge from '../../components/NotificationBadge'
+import { formatRelativeDate } from '../../lib/dateFormat'
 
 type TicketPriority = 'low' | 'medium' | 'high'
 type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
@@ -336,7 +337,7 @@ export default function StudentHelpCenterScreen() {
                     </View>
                     <Text className="mt-2 text-[12px] text-[#AFC2DB]">
                       {formatTicketCategory(ticket.category)} • Prioridad {formatTicketPriority(ticket.priority)} •{' '}
-                      {formatRelativeDate(ticket.created_at)}
+                      {formatRelativeDate(ticket.created_at).toLowerCase()}
                     </Text>
                   </View>
                 ))}
@@ -411,16 +412,4 @@ function formatTicketPriority(priority: TicketPriority) {
   if (priority === 'low') return 'baja'
   if (priority === 'high') return 'alta'
   return 'media'
-}
-
-function formatRelativeDate(date: string) {
-  const target = new Date(date)
-  const today = new Date()
-  const startTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate())
-  const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const diffDays = Math.round((startToday.getTime() - startTarget.getTime()) / 86400000)
-  if (diffDays <= 0) return 'hoy'
-  if (diffDays === 1) return 'ayer'
-  if (diffDays < 7) return `hace ${diffDays} días`
-  return target.toLocaleDateString('es-ES')
 }

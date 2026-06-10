@@ -1,42 +1,34 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
-  Platform,
   Pressable,
   ScrollView,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native'
-import { Link, useFocusEffect, useRouter } from 'expo-router'
+import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import {
   buildStudentBadges,
-  getNextLevelProgress,
   getStudentBadgeMetrics,
-  getStudentLevel,
   type StudentBadge,
   type StudentBadgeScore,
 } from '../../lib/studentBadges'
+import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
+import StudentBottomNav from '../../components/student/StudentBottomNav'
+import StudentDashboardCard, { StudentCardLink } from '../../components/student/StudentDashboardCard'
+import { formatShortDate } from '../../lib/dateFormat'
 
 type Profile = {
   id: string
   alias: string
   avatar: string | null
   points: number | null
-}
-
-type Subject = {
-  id: number
-  name: string
-  description: string | null
-  icon: string | null
-  theme_color: string | null
 }
 
 type ScoreRow = {
@@ -56,6 +48,7 @@ type SubjectProgress = {
   color: string
   averageScore: number | null
   bestScore: number | null
+  totalXp: number
   scoreCount: number
   totalQuestions: number
   barPercent: number
@@ -63,6 +56,7 @@ type SubjectProgress = {
 
 type RecentScore = {
   label: string
+  meta: string
   value: number
 }
 
@@ -160,15 +154,6 @@ export default function ProgressScreen() {
     }, [fetchProgress])
   )
 
-  const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`)
-      return
-    }
-
-    Alert.alert(title, message)
-  }
-
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
@@ -240,7 +225,7 @@ export default function ProgressScreen() {
           </View>
 
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
-            <DashboardCard title="Progreso por asignatura" className={isDesktop ? 'flex-[1.55]' : ''}>
+            <StudentDashboardCard title="Progreso por asignatura" className={isDesktop ? 'flex-[1.55]' : ''}>
               <View style={{ gap: 10 }}>
                 {subjectProgress.length > 0 ? (
                   subjectProgress.map((subject) => (
@@ -250,11 +235,11 @@ export default function ProgressScreen() {
                   <EmptyProgress />
                 )}
               </View>
-              <CardLink label="Ver todas mis clases" onPress={() => router.push('/(student)/classes' as any)} />
-            </DashboardCard>
+              <StudentCardLink label="Ver todas mis clases" onPress={() => router.push('/(student)/classes' as any)} />
+            </StudentDashboardCard>
 
             <View className={isDesktop ? 'flex-1 gap-5' : 'gap-5'}>
-              <DashboardCard
+              <StudentDashboardCard
                 title="Logros recientes"
                 actionLabel="Ver todos"
                 onAction={() => router.push('/(student)/badges' as any)}
@@ -268,7 +253,7 @@ export default function ProgressScreen() {
                     />
                   ))}
                 </View>
-              </DashboardCard>
+              </StudentDashboardCard>
 
               <WeeklyGoal completed={weeklyCompleted} remainingText={weeklyRemainingText} />
             </View>
@@ -276,7 +261,7 @@ export default function ProgressScreen() {
         </ScrollView>
       </View>
 
-      {!isDesktop ? <BottomNav /> : null}
+      {!isDesktop ? <StudentBottomNav active="progress" /> : null}
     </View>
   )
 }
@@ -346,33 +331,34 @@ function XpEvolution({ scores }: { scores: RecentScore[] }) {
   return (
     <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
       <View className="mb-5 flex-row items-center justify-between">
-        <Text className="text-[15px] font-black text-white">Últimas notas</Text>
+        <Text className="text-[15px] font-black text-white">Últimas 7 notas</Text>
       </View>
       {scores.length > 0 ? (
-        <>
-          <View className="h-44 justify-end border-b border-l border-[#183052]">
-            <View className="ml-5 flex-row items-end justify-between">
-              {scores.map((score, index) => (
-                <View key={`${score.label}-${index}`} className="items-center">
-                  <Text className="mb-2 text-[13px] font-bold text-[#DDE7F4]">{score.value.toLocaleString()}</Text>
-                  <View className="w-8 justify-end" style={{ height: 132 }}>
-                    <View
-                      className="w-full rounded-t-md bg-[#5D5FEF]"
-                      style={{ height: Math.max(18, (score.value / maxScore) * 132), opacity: index === 0 ? 1 : 0.68 }}
-                    />
+        <View style={{ gap: 12 }}>
+          {scores.map((score, index) => {
+            const percent = Math.max(10, Math.round((score.value / maxScore) * 100))
+
+            return (
+              <View key={`${score.label}-${score.meta}-${index}`}>
+                <View className="mb-2 flex-row items-center justify-between gap-3">
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-[13px] font-bold text-[#DDE7F4]" numberOfLines={1}>
+                      {score.label}
+                    </Text>
+                    <Text className="text-[11px] text-[#60799C]" numberOfLines={1}>{score.meta}</Text>
                   </View>
+                  <Text className="text-[13px] font-black text-white">{score.value.toLocaleString()} XP</Text>
                 </View>
-              ))}
-            </View>
-          </View>
-          <View className="ml-5 mt-2 flex-row justify-between">
-            {scores.map((score, index) => (
-              <Text key={`${score.label}-label-${index}`} className="max-w-[58px] text-[12px] text-[#8FA7C7]" numberOfLines={1}>
-                {score.label}
-              </Text>
-            ))}
-          </View>
-        </>
+                <View className="h-2.5 overflow-hidden rounded-full bg-[#13294C]">
+                  <View
+                    className="h-full rounded-full bg-[#5D5FEF]"
+                    style={{ width: `${percent}%`, opacity: index === 0 ? 1 : 0.72 }}
+                  />
+                </View>
+              </View>
+            )
+          })}
+        </View>
       ) : (
         <View className="h-44 items-center justify-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B]">
           <Ionicons name="analytics-outline" size={30} color="#60799C" />
@@ -384,58 +370,55 @@ function XpEvolution({ scores }: { scores: RecentScore[] }) {
 }
 
 function DistributionCard({ subjects }: { subjects: SubjectProgress[] }) {
+  const scoredSubjects = subjects
+    .filter((subject) => subject.totalXp > 0)
+    .sort((a, b) => b.totalXp - a.totalXp)
+    .slice(0, 6)
+  const maxXp = Math.max(...scoredSubjects.map((subject) => subject.totalXp), 1)
+  const totalXp = scoredSubjects.reduce((total, subject) => total + subject.totalXp, 0)
+
   return (
     <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
       <Text className="mb-5 text-[15px] font-black text-white">Distribución por asignatura</Text>
-      {subjects.length > 0 ? (
-        <View className="flex-row items-center gap-7">
-          <View className="h-32 w-32 items-center justify-center rounded-full border-[24px] border-[#43D991] bg-[#061126]">
-            <Text className="text-center text-[13px] font-bold text-[#AFC2DB]">Media por asignatura</Text>
+      {scoredSubjects.length > 0 ? (
+        <View style={{ gap: 12 }}>
+          <View className="flex-row items-end justify-between">
+            <View>
+              <Text className="text-[28px] font-black text-white">{totalXp.toLocaleString()} XP</Text>
+              <Text className="text-[12px] text-[#8FA7C7]">XP acumulado en asignaturas</Text>
+            </View>
+            <View className="rounded-full bg-[#13284A] px-3 py-1">
+              <Text className="text-[12px] font-bold text-[#AFC2DB]">{scoredSubjects.length} activas</Text>
+            </View>
           </View>
-          <View className="min-w-0 flex-1" style={{ gap: 11 }}>
-            {subjects.slice(0, 5).map((subject) => (
-              <View key={subject.id} className="flex-row items-center gap-3">
-                <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: subject.color }} />
-                <Text className="min-w-0 flex-1 text-[13px] font-semibold text-[#DDE7F4]" numberOfLines={1}>{subject.name}</Text>
-                <Text className="text-[13px] text-[#AFC2DB]">
-                  {subject.averageScore === null ? 'Sin nota' : `${subject.averageScore.toLocaleString()} XP`}
-                </Text>
+
+          {scoredSubjects.map((subject) => {
+            const percent = Math.max(8, Math.round((subject.totalXp / maxXp) * 100))
+            const share = totalXp > 0 ? Math.round((subject.totalXp / totalXp) * 100) : 0
+
+            return (
+              <View key={subject.id}>
+                <View className="mb-2 flex-row items-center justify-between gap-3">
+                  <View className="min-w-0 flex-1 flex-row items-center gap-2">
+                    <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: subject.color }} />
+                    <Text className="min-w-0 flex-1 text-[13px] font-semibold text-[#DDE7F4]" numberOfLines={1}>
+                      {subject.name}
+                    </Text>
+                  </View>
+                  <Text className="text-[12px] font-bold text-[#AFC2DB]">
+                    {subject.totalXp.toLocaleString()} XP · {share}%
+                  </Text>
+                </View>
+                <View className="h-2.5 overflow-hidden rounded-full bg-[#13294C]">
+                  <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: subject.color }} />
+                </View>
               </View>
-            ))}
-          </View>
+            )
+          })}
         </View>
       ) : (
         <EmptyProgress />
       )}
-    </View>
-  )
-}
-
-function DashboardCard({
-  title,
-  actionLabel,
-  onAction,
-  className = '',
-  children,
-}: {
-  title: string
-  actionLabel?: string
-  onAction?: () => void
-  className?: string
-  children: React.ReactNode
-}) {
-  return (
-    <View className={`rounded-2xl border border-[#1A3155] bg-[#09162C] p-5 ${className}`}>
-      <View className="mb-4 flex-row items-center justify-between gap-3">
-        <Text className="text-[15px] font-black text-white">{title}</Text>
-        {actionLabel && onAction ? (
-          <Pressable onPress={onAction} className="flex-row items-center gap-2">
-            <Text className="text-[13px] font-bold text-[#9B6CFF]">{actionLabel}</Text>
-            <Ionicons name="arrow-forward" size={13} color="#9B6CFF" />
-          </Pressable>
-        ) : null}
-      </View>
-      {children}
     </View>
   )
 }
@@ -539,47 +522,6 @@ function WeeklyGoal({ completed, remainingText }: { completed: number; remaining
   )
 }
 
-function CardLink({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} className="mt-4 flex-row items-center justify-center gap-2 border-t border-[#172A4A] pt-4">
-      <Text className="text-[13px] font-bold text-[#9B6CFF]">{label}</Text>
-      <Ionicons name="arrow-forward" size={14} color="#9B6CFF" />
-    </Pressable>
-  )
-}
-
-function BottomNav() {
-  return (
-    <View className="absolute bottom-3 left-4 right-4 flex-row justify-around rounded-2xl border border-[#1A3155] bg-[#09162C] py-3">
-      <Link href="/(student)/homeStudent" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="home-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Inicio</Text>
-        </Pressable>
-      </Link>
-
-      <Pressable className="items-center">
-        <Ionicons name="stats-chart" size={22} color="#B09BFF" />
-        <Text className="mt-1 text-[11px] font-bold text-[#B09BFF]">Progreso</Text>
-      </Pressable>
-
-      <Link href="/(student)/profile" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="person-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Perfil</Text>
-        </Pressable>
-      </Link>
-
-      <Link href="/(student)/settings" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Configuración</Text>
-        </Pressable>
-      </Link>
-    </View>
-  )
-}
-
 function buildSubjectRows(subjects: StudentProgressSubject[], scores: ScoreRow[]): SubjectProgress[] {
   const colors = ['#43D991', '#8B5CF6', '#3B82F6', '#F6A64A', '#718096']
   const icons: (keyof typeof Ionicons.glyphMap)[] = ['book', 'calculator', 'flask', 'business', 'ellipsis-horizontal']
@@ -605,6 +547,7 @@ function buildSubjectRows(subjects: StudentProgressSubject[], scores: ScoreRow[]
       color: subject.theme_color || colors[index] || '#43D991',
       averageScore,
       bestScore,
+      totalXp: subjectScores.reduce((total, score) => total + score, 0),
       scoreCount: subject.answeredQuestions,
       totalQuestions: subject.totalQuestions,
       barPercent: subject.percent,
@@ -622,6 +565,7 @@ function buildRecentScores(scores: ScoreRow[]): RecentScore[] {
 
       return {
         label: subjectName || `Nota ${index + 1}`,
+        meta: formatShortDate(score.played_at),
         value: score.max_score || 0,
       }
     })

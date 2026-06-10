@@ -10,12 +10,13 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { Link, useFocusEffect, useRouter } from 'expo-router'
+import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
-import { getNextLevelProgress, getStudentLevel } from '../../lib/studentBadges'
+import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { getTimeAgo } from '../../lib/time'
 import StudentSidebar from '../../components/StudentSidebar'
+import StudentBottomNav from '../../components/student/StudentBottomNav'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
@@ -281,7 +282,7 @@ export default function StudentNotificationsScreen() {
         </ScrollView>
       </View>
 
-      {!isDesktop ? <BottomNav /> : null}
+      {!isDesktop ? <StudentBottomNav active="notifications" /> : null}
     </View>
   )
 }
@@ -367,9 +368,12 @@ function NotificationItem({
   onDelete: () => void
 }) {
   const timeAgo = getTimeAgo(notification.timestamp)
+  const [showDeleteAction, setShowDeleteAction] = useState(Platform.OS !== 'web')
 
   return (
     <View
+      onPointerEnter={() => setShowDeleteAction(true)}
+      onPointerLeave={() => setShowDeleteAction(Platform.OS !== 'web')}
       className={`flex-row gap-3 rounded-xl border px-4 py-3 ${
         notification.isRead ? 'border-[#1A3155] bg-[#07162E]' : 'border-[#6574FF] bg-[#0F1E35]'
       }`}
@@ -417,7 +421,10 @@ function NotificationItem({
             ) : null}
             <Pressable
               onPress={onDelete}
+              onFocus={() => setShowDeleteAction(true)}
+              onBlur={() => setShowDeleteAction(Platform.OS !== 'web')}
               className="h-8 w-8 items-center justify-center rounded-lg bg-[#EF4444]/20"
+              style={{ opacity: showDeleteAction ? 1 : 0 }}
             >
               <Ionicons name="trash-outline" size={16} color="#EF4444" />
             </Pressable>
@@ -442,37 +449,4 @@ function EmptyState({ filter }: { filter: NotificationFilter }) {
     </View>
   )
 }
-
-function BottomNav() {
-  return (
-    <View className="absolute bottom-3 left-4 right-4 flex-row justify-around rounded-2xl border border-[#1A3155] bg-[#09162C] py-3">
-      <Pressable className="items-center">
-        <Ionicons name="notifications" size={22} color="#6574FF" />
-        <Text className="mt-1 text-[11px] font-bold text-[#6574FF]">Avisos</Text>
-      </Pressable>
-
-      <Link href="/(student)/homeStudent" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="home-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Inicio</Text>
-        </Pressable>
-      </Link>
-
-      <Link href="/(student)/classes" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="book-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Clases</Text>
-        </Pressable>
-      </Link>
-
-      <Link href="/(student)/profile" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="person-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Perfil</Text>
-        </Pressable>
-      </Link>
-    </View>
-  )
-}
-
 

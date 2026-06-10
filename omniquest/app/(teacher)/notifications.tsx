@@ -323,9 +323,12 @@ function NotificationItem({
   onDelete: () => void
 }) {
   const timeAgo = getTimeAgo(notification.timestamp)
+  const [showDeleteAction, setShowDeleteAction] = useState(Platform.OS !== 'web')
 
   return (
     <View
+      onPointerEnter={() => setShowDeleteAction(true)}
+      onPointerLeave={() => setShowDeleteAction(Platform.OS !== 'web')}
       className={`flex-row gap-3 rounded-xl border px-4 py-3 ${
         notification.isRead ? 'border-[#1A3155] bg-[#07162E]' : 'border-[#5364F5] bg-[#0F1E35]'
       }`}
@@ -373,7 +376,10 @@ function NotificationItem({
             ) : null}
             <Pressable
               onPress={onDelete}
+              onFocus={() => setShowDeleteAction(true)}
+              onBlur={() => setShowDeleteAction(Platform.OS !== 'web')}
               className="h-8 w-8 items-center justify-center rounded-lg bg-[#EF4444]/20"
+              style={{ opacity: showDeleteAction ? 1 : 0 }}
             >
               <Ionicons name="trash-outline" size={16} color="#EF4444" />
             </Pressable>
@@ -398,5 +404,4 @@ function EmptyState({ filter }: { filter: NotificationFilter }) {
     </View>
   )
 }
-
 

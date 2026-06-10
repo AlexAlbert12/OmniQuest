@@ -94,6 +94,12 @@ Deno.serve(async (req) => {
 
     const subjectIds = (subjectsData || []).map((subject) => subject.id as number)
 
+    const { data: profileData } = await adminClient
+      .from('profiles')
+      .select('avatar')
+      .eq('id', userId)
+      .maybeSingle()
+
     let questionIds: number[] = []
     if (subjectIds.length > 0) {
       const { data: questionsData, error: questionsError } = await adminClient
@@ -108,6 +114,7 @@ Deno.serve(async (req) => {
       questionIds = (questionsData || []).map((question) => question.id as number)
     }
 
+    await safeDeleteIn(adminClient, 'attempt_history', 'question_id', questionIds)
     await safeDeleteIn(adminClient, 'answers', 'question_id', questionIds)
     await safeDeleteIn(adminClient, 'topic_scores', 'subject_id', subjectIds)
     await safeDeleteIn(adminClient, 'subject_scores', 'subject_id', subjectIds)
@@ -116,11 +123,15 @@ Deno.serve(async (req) => {
     await safeDeleteIn(adminClient, 'subject_topics', 'subject_id', subjectIds)
     await safeDeleteIn(adminClient, 'subjects', 'id', subjectIds)
 
+    await safeDeleteEq(adminClient, 'attempt_history', 'student_id', userId)
     await safeDeleteEq(adminClient, 'topic_scores', 'student_id', userId)
     await safeDeleteEq(adminClient, 'subject_scores', 'student_id', userId)
     await safeDeleteEq(adminClient, 'enrollments', 'student_id', userId)
+    await safeDeleteEq(adminClient, 'notification_state', 'user_id', userId)
+    await safeDeleteEq(adminClient, 'user_preferences', 'user_id', userId)
+    await safeDeleteEq(adminClient, 'user_notification_preferences', 'user_id', userId)
 
-    const avatarPaths = [`${userId}.jpg`, `${userId}.jpeg`, `${userId}.png`, `${userId}.webp`]
+    const avatarPaths = getAvatarStoragePaths(userId, profileData?.avatar as string | null | undefined)
     await adminClient.storage.from('avatars').remove(avatarPaths)
 
     await safeDeleteEq(adminClient, 'profiles', 'id', userId)
@@ -142,3 +153,17 @@ Deno.serve(async (req) => {
     })
   }
 })
+
+function getAvatarStoragePaths(userId: string, avatar?: string | null) {
+  const fallbackPaths = [`${userId}.jpg`, `${userId}.jpeg`, `${userId}.png`, `${userId}.webp`]
+  if (!avatar) return fallbackPaths
+
+  const decodedAvatar = decodeURIComponent(avatar)
+  const storageMarker = '/avatars/'
+  const markerIndex = decodedAvatar.indexOf(storageMarker)
+  const avatarPath = markerIndex >= 0
+    ? decodedAvatar.slice(markerIndex + storageMarker.length).split('?')[0]
+    : decodedAvatar.split('?')[0]
+
+  return Array.from(new Set([avatarPath, ...fallbackPaths].filter(Boolean)))
+}

@@ -10,7 +10,7 @@ import {
   View,
   Image,
 } from 'react-native'
-import { Link, useFocusEffect, useRouter } from 'expo-router'
+import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { supabase } from '../../lib/supabase'
@@ -18,13 +18,15 @@ import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import {
   buildStudentBadges,
-  getNextLevelProgress,
   getStudentBadgeMetrics,
-  getStudentLevel,
   type StudentBadge,
   type StudentBadgeScore,
 } from '../../lib/studentBadges'
+import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { fetchStudentProgressSummary, type StudentProgressSubject, type StudentProgressSummary } from '../../lib/studentProgress'
+import StudentBottomNav from '../../components/student/StudentBottomNav'
+import StudentDashboardCard, { StudentCardLink } from '../../components/student/StudentDashboardCard'
+import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
 
 type Profile = {
   id: string
@@ -105,7 +107,7 @@ export default function ProfileScreen() {
   const statBars = buildStatBars(progressSubjects)
   const badges = buildStudentBadges(badgeMetrics)
   const activityItems = buildActivityItems(activityAttempts)
-  const memberSince = formatProfileDate(profile?.created_at)
+  const memberSince = formatLongDate(profile?.created_at, '15 de marzo de 2008')
 
   const fetchProfile = useCallback(async () => {
     setLoading(true)
@@ -350,7 +352,7 @@ export default function ProfileScreen() {
           </View>
 
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
-            <DashboardCard title="Información personal" className={isDesktop ? 'flex-1' : ''}>
+            <StudentDashboardCard title="Información personal" className={isDesktop ? 'flex-1' : ''}>
               <InfoRow icon="mail-outline" label="Correo electrónico" value={email} />
               <InfoRow icon="calendar-outline" label="Miembro desde" value={memberSince} />
               <Pressable
@@ -361,9 +363,9 @@ export default function ProfileScreen() {
                 <Text className="font-bold text-[#9B6CFF]">Editar perfil</Text>
                 <Ionicons name="arrow-forward" size={16} color="#9B6CFF" />
               </Pressable>
-            </DashboardCard>
+            </StudentDashboardCard>
 
-            <DashboardCard title="Mis estadísticas" className={isDesktop ? 'flex-[1.18]' : ''}>
+            <StudentDashboardCard title="Mis estadísticas" className={isDesktop ? 'flex-[1.18]' : ''}>
               <View style={{ gap: 14 }}>
                 {statBars.length > 0 ? (
                   statBars.map((item) => (
@@ -373,10 +375,10 @@ export default function ProfileScreen() {
                   <EmptyState icon="analytics-outline" message="Juega una clase para ver tus estadísticas." />
                 )}
               </View>
-              <CardLink label="Ver estadísticas detalladas" onPress={() => router.push('/(student)/progress' as any)} />
-            </DashboardCard>
+              <StudentCardLink label="Ver estadísticas detalladas" onPress={() => router.push('/(student)/progress' as any)} />
+            </StudentDashboardCard>
 
-            <DashboardCard
+            <StudentDashboardCard
               title="Logros"
               actionLabel="Ver todas"
               onAction={() => router.push('/(student)/badges' as any)}
@@ -391,11 +393,11 @@ export default function ProfileScreen() {
                   />
                 ))}
               </View>
-            </DashboardCard>
+            </StudentDashboardCard>
           </View>
 
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
-            <DashboardCard title="Historial de actividad" className={isDesktop ? 'flex-[1.55]' : ''}>
+            <StudentDashboardCard title="Historial de actividad" className={isDesktop ? 'flex-[1.55]' : ''}>
               <View style={{ gap: 14 }}>
                 {activityItems.length > 0 ? (
                   activityItems.map((item) => (
@@ -405,12 +407,12 @@ export default function ProfileScreen() {
                   <EmptyState icon="sparkles-outline" message="Completa una partida para llenar tu historial." />
                 )}
               </View>
-            </DashboardCard>
+            </StudentDashboardCard>
           </View>
         </ScrollView>
       </View>
 
-      {!isDesktop ? <BottomNav /> : null}
+      {!isDesktop ? <StudentBottomNav active="profile" /> : null}
     </View>
   )
 }
@@ -504,35 +506,6 @@ function SummaryTile({
   )
 }
 
-function DashboardCard({
-  title,
-  actionLabel,
-  onAction,
-  className = '',
-  children,
-}: {
-  title: string
-  actionLabel?: string
-  onAction?: () => void
-  className?: string
-  children: React.ReactNode
-}) {
-  return (
-    <View className={`rounded-2xl border border-[#1A3155] bg-[#09162C] p-5 ${className}`}>
-      <View className="mb-4 flex-row items-center justify-between gap-3">
-        <Text className="text-[15px] font-black text-white">{title}</Text>
-        {actionLabel && onAction ? (
-          <Pressable onPress={onAction} className="flex-row items-center gap-2">
-            <Text className="text-[13px] font-bold text-[#9B6CFF]">{actionLabel}</Text>
-            <Ionicons name="arrow-forward" size={13} color="#9B6CFF" />
-          </Pressable>
-        ) : null}
-      </View>
-      {children}
-    </View>
-  )
-}
-
 function InfoRow({
   icon,
   label,
@@ -614,57 +587,6 @@ function EmptyState({ icon, message }: { icon: keyof typeof Ionicons.glyphMap; m
   )
 }
 
-function CardLink({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} className="mt-4 flex-row items-center justify-center gap-2 border-t border-[#172A4A] pt-4">
-      <Text className="text-[13px] font-bold text-[#9B6CFF]">{label}</Text>
-      <Ionicons name="arrow-forward" size={14} color="#9B6CFF" />
-    </Pressable>
-  )
-}
-
-function BottomNav() {
-  return (
-    <View className="absolute bottom-3 left-4 right-4 flex-row justify-around rounded-2xl border border-[#1A3155] bg-[#09162C] py-3">
-      <Link href="/(student)/homeStudent" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="home-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Inicio</Text>
-        </Pressable>
-      </Link>
-
-      <Link href="/(student)/ranking" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="trophy-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Ranking</Text>
-        </Pressable>
-      </Link>
-
-      <Pressable className="items-center">
-        <Ionicons name="person" size={22} color="#B09BFF" />
-        <Text className="mt-1 text-[11px] font-bold text-[#B09BFF]">Perfil</Text>
-      </Pressable>
-
-      <Link href="/(student)/settings" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Configuración</Text>
-        </Pressable>
-      </Link>
-    </View>
-  )
-}
-
-function formatProfileDate(date?: string) {
-  if (!date) return '15 de marzo de 2008'
-
-  return new Intl.DateTimeFormat('es-ES', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(date))
-}
-
 function buildStatBars(subjects: StudentProgressSubject[]): StatBarItem[] {
   const colors = ['#8B5CF6', '#3B82F6', '#43D991', '#FBBF24', '#FF7B45']
 
@@ -701,20 +623,4 @@ function buildActivityItems(attempts: ActivityAttempt[]): ActivityItem[] {
         xp: attempt.is_correct ? '+10 XP' : '0 XP',
       }
     })
-}
-
-function formatRelativeDate(date?: string | null) {
-  if (!date) return 'Sin fecha'
-
-  const target = startOfLocalDay(new Date(date))
-  const today = startOfLocalDay(new Date())
-  const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000)
-
-  if (diffDays <= 0) return 'Hoy'
-  if (diffDays === 1) return 'Ayer'
-  return `${diffDays} días atrás`
-}
-
-function startOfLocalDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }

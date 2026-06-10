@@ -4,11 +4,14 @@ import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import { getWeeklyAttemptCount } from '../../lib/weeklyGoal'
-import { getStudentLevel, getNextLevelProgress } from '../../lib/studentBadges'
+import { getStudentLevel, getNextLevelProgress } from '../../lib/studentLevel'
 import { getTimeAgo } from '../../lib/time'
 import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import { fetchStudentProgressSummary, type StudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
+import StudentBottomNav from '../../components/student/StudentBottomNav'
+import StudentDashboardCard, { StudentCardLink as CardLink } from '../../components/student/StudentDashboardCard'
+import StudentMetricCard from '../../components/student/StudentMetricCard'
 
 type Subject = {
   id: number
@@ -289,28 +292,28 @@ export default function StudentHome() {
             <HeroCard isWide={isWide} firstSubject={enrolledSubjects[0]} />
 
             <View className={isWide ? 'flex-row gap-3' : 'gap-3'}>
-              <MetricCard
+              <StudentMetricCard
                 title="Progreso general"
                 value={`${progressPercent}%`}
                 icon="analytics-outline"
                 color="#43D991"
                 onPress={() => router.push('/(student)/progress')}
               />
-              <MetricCard
+              <StudentMetricCard
                 title="Preguntas completadas"
                 value={attemptCount.toString()}
                 icon="trophy"
                 color="#8B5CF6"
                 onPress={() => router.push('/(student)/progress')}
               />
-              <MetricCard
+              <StudentMetricCard
                 title="Preguntas correctas"
                 value={String(progressSummary?.correctAttempts ?? 0)}
                 icon="checkmark-circle"
                 color="#58B5FF"
                 onPress={() => router.push('/(student)/progress')}
               />
-              <MetricCard
+              <StudentMetricCard
                 title="Precisión"
                 value={`${progressSummary?.accuracyPercent ?? 0}%`}
                 icon="speedometer-outline"
@@ -321,7 +324,7 @@ export default function StudentHome() {
           </View>
 
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
-            <DashboardCard title="Continúa aprendiendo" className={isDesktop ? 'flex-[1.15]' : ''}>
+            <StudentDashboardCard title="Continúa aprendiendo" className={isDesktop ? 'flex-[1.15]' : ''} compact>
               <View style={{ gap: 10 }}>
                 {enrolledSubjects.length > 0 ? (
                   enrolledSubjects.slice(0, 3).map((subject, index) => (
@@ -363,9 +366,9 @@ export default function StudentHome() {
                   </Pressable>
                 </View>
               </View>
-            </DashboardCard>
+            </StudentDashboardCard>
 
-            <DashboardCard title="Actividad reciente" className={isDesktop ? 'flex-1' : ''}>
+            <StudentDashboardCard title="Actividad reciente" className={isDesktop ? 'flex-1' : ''} compact>
               <View style={{ gap: 16 }}>
                 {activityItems.map((item) => (
                   <ActivityRow key={item.id} item={item} />
@@ -373,9 +376,9 @@ export default function StudentHome() {
               </View>
               <CardLink label="Ver toda la actividad" onPress={() => router.push('/(student)/activity-log')}
               />
-            </DashboardCard>
+            </StudentDashboardCard>
 
-            <DashboardCard title="Top 5 del ranking" className={isDesktop ? 'flex-1' : ''}>
+            <StudentDashboardCard title="Top 5 del ranking" className={isDesktop ? 'flex-1' : ''} compact>
               <View style={{ gap: 7 }}>
                 {topRanking.map((item, index) => (
                   <RankingRow
@@ -387,14 +390,14 @@ export default function StudentHome() {
                 ))}
               </View>
               <CardLink label="Ver ranking completo" onPress={() => router.push('/(student)/ranking' as any)} />
-            </DashboardCard>
+            </StudentDashboardCard>
           </View>
 
           <WeeklyGoal completed={weeklyGoalCount} />
         </ScrollView>
       </View>
 
-      {!isDesktop ? <BottomNav /> : null}
+      {!isDesktop ? <StudentBottomNav active="home" /> : null}
     </View>
   )
 }
@@ -445,56 +448,6 @@ function HeroCard({ isWide, firstSubject }: { isWide: boolean; firstSubject?: Su
         )}
       </View>
     </View>
-  )
-}
-
-function DashboardCard({
-  title,
-  className = '',
-  children,
-}: {
-  title: string
-  className?: string
-  children: React.ReactNode
-}) {
-  return (
-    <View className={`rounded-2xl border border-[#1A3155] bg-[#09162C] p-4 ${className}`}>
-      <Text className="mb-4 text-[15px] font-black text-white">{title}</Text>
-      {children}
-    </View>
-  )
-}
-
-function MetricCard({
-  title,
-  value,
-  icon,
-  color,
-  onPress,
-}: {
-  title: string
-  value: string
-  icon: keyof typeof Ionicons.glyphMap
-  color: string
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="min-w-[170px] flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4"
-      style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
-    >
-      <Text className="text-center text-[13px] font-semibold text-[#8FA7C7]">{title}</Text>
-      <View className="mt-5 items-center">
-        <View
-          className="h-20 w-20 items-center justify-center rounded-full border-[7px]"
-          style={{ borderColor: color, backgroundColor: `${color}1F` }}
-        >
-          <Ionicons name={icon} size={28} color={color} />
-        </View>
-        <Text className="mt-4 text-[28px] font-black text-white">{value}</Text>
-      </View>
-    </Pressable>
   )
 }
 
@@ -620,17 +573,6 @@ function RankingRow({ item, index, isMe }: { item: Profile; index: number; isMe:
   )
 }
 
-function CardLink({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} className="mt-4 border-t border-[#172A4A] pt-4">
-      <View className="flex-row items-center justify-center gap-2">
-        <Text className="text-[13px] font-bold text-[#8290FF]">{label}</Text>
-        <Ionicons name="arrow-forward" size={14} color="#8290FF" />
-      </View>
-    </Pressable>
-  )
-}
-
 function WeeklyGoal({ completed }: { completed: number }) {
   const percent = Math.min(100, (completed / 10) * 100)
 
@@ -650,38 +592,6 @@ function WeeklyGoal({ completed }: { completed: number }) {
       <View className="ml-5 h-14 w-14 items-center justify-center rounded-2xl bg-[#6D3DF4]/20">
         <Text className="text-3xl">🎁</Text>
       </View>
-    </View>
-  )
-}
-
-function BottomNav() {
-  return (
-    <View className="absolute bottom-3 left-4 right-4 flex-row justify-around rounded-2xl border border-[#1A3155] bg-[#09162C] py-3">
-      <Pressable className="items-center">
-        <Ionicons name="home" size={22} color="#6574FF" />
-        <Text className="mt-1 text-[11px] font-bold text-[#6574FF]">Inicio</Text>
-      </Pressable>
-
-      <Link href="/(student)/ranking" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="trophy-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Ranking</Text>
-        </Pressable>
-      </Link>
-
-      <Link href="/(student)/profile" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="person-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Perfil</Text>
-        </Pressable>
-      </Link>
-
-      <Link href="/(student)/settings" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Configuración</Text>
-        </Pressable>
-      </Link>
     </View>
   )
 }

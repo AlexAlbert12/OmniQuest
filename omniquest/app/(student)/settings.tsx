@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   LayoutChangeEvent,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -14,13 +15,14 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
-import { getNextLevelProgress, getStudentLevel } from '../../lib/studentBadges'
+import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentSidebar from '../../components/StudentSidebar'
 import TeacherSidebar from '../../components/TeacherSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
+import StudentBottomNav from '../../components/student/StudentBottomNav'
 import { useAppTheme } from '../../lib/appTheme'
 
 type IconName = keyof typeof Ionicons.glyphMap
@@ -31,6 +33,8 @@ type NotificationSettingKey = 'push' | 'email' | 'daily' | 'activities' | 'news'
 type NotificationFrequency = 'instant' | 'daily' | 'weekly'
 type SettingsMenuSectionKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'about'
 type SettingsAnchorKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'about'
+type ProfileVisibility = 'public' | 'private'
+type DestructiveActionType = 'scores' | 'enrollments' | 'all' | 'account'
 
 type UserProfile = {
   id: string
@@ -38,6 +42,7 @@ type UserProfile = {
   avatar: string | null
   points: number | null
   role_id?: string | null
+  visibility?: ProfileVisibility | null
 }
 
 type UserPreferencesState = {
@@ -83,12 +88,26 @@ const DEFAULT_PREFERENCES: UserPreferencesState = {
 }
 
 const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsState = {
-  push: true,
+  push: false,
   email: false,
-  daily: true,
+  daily: false,
   activities: true,
   news: false,
   frequency: 'daily',
+}
+
+const REQUIRED_DESTRUCTIVE_CONFIRMATION = 'ELIMINAR'
+
+function isMissingSchemaError(errorCode?: string) {
+  return errorCode === '42P01' || errorCode === '42703' || errorCode === 'PGRST204'
+}
+
+function isMissingPreferencesTableError(errorCode?: string) {
+  return isMissingSchemaError(errorCode)
+}
+
+function isMissingNotificationPreferencesTableError(errorCode?: string) {
+  return isMissingSchemaError(errorCode)
 }
 
 const notificationFrequencyOptions: NotificationFrequency[] = ['instant', 'daily', 'weekly']
@@ -149,7 +168,7 @@ const teacherSettingsSections: { key: SettingsMenuSectionKey; label: string; ico
 ]
 const accentColors = ['#7C5CFF', '#3B82F6', '#38BDF8', '#58D17A', '#F6A64A', '#EF5350', '#D94A9A'] as const
 
-export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) {
+export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { forcedRole?: AppRole; securityOnly?: boolean }) {
   const { width } = useWindowDimensions()
   const router = useRouter()
   const { section } = useLocalSearchParams<{ section?: string }>()
@@ -180,9 +199,12 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
   const [toggles, setToggles] = useState<Record<ToggleKey, boolean>>({
     twoFactor: false,
   })
-  const [profileVisibility, setProfileVisibility] = useState<'public' | 'private'>('public')
+  const [profileVisibility, setProfileVisibility] = useState<ProfileVisibility | null>(null)
+  const [profileVisibilityAvailable, setProfileVisibilityAvailable] = useState(false)
   const [exportingData, setExportingData] = useState(false)
   const [deletingData, setDeletingData] = useState(false)
+  const [pendingDestructiveAction, setPendingDestructiveAction] = useState<DestructiveActionType | null>(null)
+  const [destructiveConfirmationText, setDestructiveConfirmationText] = useState('')
 
   const isDesktop = width >= 1080
   const isWide = width >= 820
@@ -196,10 +218,12 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
   const userInitials = getInitials(name)
   const orderedAnchors = useMemo(
     () =>
-      (isTeacher
+      (securityOnly
+        ? ['security']
+        : isTeacher
         ? ['general', 'profile', 'preferences', 'notifications', 'privacy', 'security', 'about']
         : ['general', 'profile', 'preferences', 'notifications', 'privacy', 'security', 'about']) as SettingsAnchorKey[],
-    [isTeacher]
+    [isTeacher, securityOnly]
   )
 
   useEffect(() => {
@@ -217,8 +241,42 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
     Alert.alert(title, message)
   }
 
-  const handleProfileVisibilityChange = async (visibility: 'public' | 'private') => {
+  const fetchProfileWithOptionalVisibility = async (targetUserId: string) => {
+    const profileWithVisibility = await supabase
+      .from('profiles')
+      .select('id, alias, avatar, points, role_id, visibility')
+      .eq('id', targetUserId)
+      .single()
+
+    if (!profileWithVisibility.error) {
+      return { result: profileWithVisibility, hasVisibility: true }
+    }
+
+    const profileWithoutVisibility = await supabase
+      .from('profiles')
+      .select('id, alias, avatar, points, role_id')
+      .eq('id', targetUserId)
+      .single()
+
+    return { result: profileWithoutVisibility, hasVisibility: false }
+  }
+
+  const deleteOptionalRows = async (table: string, column: string, value: string) => {
+    const { error } = await supabase.from(table).delete().eq(column, value)
+    if (error && !isMissingSchemaError(error.code)) {
+      throw error
+    }
+  }
+
+  const handleProfileVisibilityChange = async (visibility: ProfileVisibility) => {
     if (!userId) return
+    if (!profileVisibilityAvailable) {
+      showAlert(
+        'Visibilidad no disponible',
+        'La columna profiles.visibility no aparece en el esquema actual. Añade la columna y regenera los tipos antes de activar esta preferencia.'
+      )
+      return
+    }
 
     try {
       const { error } = await supabase
@@ -231,7 +289,16 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
       setProfileVisibility(visibility)
       showAlert('Visibilidad actualizada', `Tu perfil ahora es ${visibility === 'public' ? 'público' : 'privado'}.`)
     } catch (error: any) {
-      showAlert('Error', error.message || 'No se pudo actualizar la visibilidad del perfil.')
+      if (isMissingSchemaError(error?.code)) {
+        setProfileVisibilityAvailable(false)
+        setProfileVisibility(null)
+        showAlert(
+          'Visibilidad no disponible',
+          'La columna profiles.visibility no está disponible todavía. Añádela en Supabase y regenera types/database.types.ts.'
+        )
+      } else {
+        showAlert('Error', error.message || 'No se pudo actualizar la visibilidad del perfil.')
+      }
     }
   }
 
@@ -273,6 +340,18 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
 
       if (enrollmentsError) throw enrollmentsError
 
+      const [
+        { data: attempts },
+        { data: notificationState },
+        { data: userPreferences },
+        { data: notificationPreferences },
+      ] = await Promise.all([
+        supabase.from('attempt_history').select('*').eq('student_id', userId),
+        supabase.from('notification_state').select('*').eq('user_id', userId),
+        supabase.from('user_preferences').select('*').eq('user_id', userId),
+        supabase.from('user_notification_preferences').select('*').eq('user_id', userId),
+      ])
+
       // Crear objeto de datos exportados
       const exportData = {
         exportDate: new Date().toISOString(),
@@ -280,6 +359,10 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
         subjectScores,
         topicScores,
         enrollments,
+        attempts,
+        notificationState,
+        userPreferences,
+        notificationPreferences,
       }
 
       // Convertir a JSON y descargar (en web) o mostrar (en móvil)
@@ -306,61 +389,49 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
     }
   }
 
-  const handleDeletePartialData = async (dataType: 'scores' | 'enrollments' | 'all') => {
+  const executeDeletePartialData = async (dataType: Exclude<DestructiveActionType, 'account'>) => {
     if (!userId) return
-
-    const confirmMessage = dataType === 'scores'
-      ? '¿Estás seguro de que quieres eliminar todas tus puntuaciones? Esta acción no se puede deshacer.'
-      : dataType === 'enrollments'
-      ? '¿Estás seguro de que quieres salir de todas tus clases? Esta acción no se puede deshacer.'
-      : '¿Estás seguro de que quieres eliminar todos tus datos? Esta acción no se puede deshacer.'
-
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm(confirmMessage)
-      if (!confirmed) return
-    } else {
-      let confirmed = false
-      await new Promise<void>((resolve) => {
-        Alert.alert('Confirmar eliminación', confirmMessage, [
-          { text: 'Cancelar', style: 'cancel', onPress: () => resolve() },
-          { text: 'Sí, eliminar', style: 'destructive', onPress: () => { confirmed = true; resolve() } },
-        ])
-      })
-      if (!confirmed) return
-    }
 
     setDeletingData(true)
     try {
       if (dataType === 'scores' || dataType === 'all') {
-        const { error: scoresError } = await supabase
-          .from('subject_scores')
-          .delete()
-          .eq('student_id', userId)
-        if (scoresError) throw scoresError
+        await deleteOptionalRows('subject_scores', 'student_id', userId)
+        await deleteOptionalRows('topic_scores', 'student_id', userId)
 
-        const { error: topicScoresError } = await supabase
-          .from('topic_scores')
-          .delete()
-          .eq('student_id', userId)
-        if (topicScoresError) throw topicScoresError
-      }
-
-      if (dataType === 'enrollments' || dataType === 'all') {
-        const { error: enrollmentsError } = await supabase
-          .from('enrollments')
-          .delete()
-          .eq('student_id', userId)
-        if (enrollmentsError) throw enrollmentsError
-      }
-
-      if (dataType === 'all') {
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ points: 0, alias: null })
+          .update({ points: 0 })
           .eq('id', userId)
         if (profileError) throw profileError
 
-        setProfile(prev => prev ? { ...prev, points: 0, alias: null } : null)
+        setProfile(prev => prev ? { ...prev, points: 0 } : null)
+      }
+
+      if (dataType === 'enrollments' || dataType === 'all') {
+        await deleteOptionalRows('enrollments', 'student_id', userId)
+      }
+
+      if (dataType === 'all') {
+        await deleteOptionalRows('attempt_history', 'student_id', userId)
+        await deleteOptionalRows('notification_state', 'user_id', userId)
+        await deleteOptionalRows('user_preferences', 'user_id', userId)
+        await deleteOptionalRows('user_notification_preferences', 'user_id', userId)
+
+        const avatarPaths = getAvatarStoragePaths(userId, profile?.avatar)
+        if (avatarPaths.length > 0) {
+          const { error: storageError } = await supabase.storage.from('avatars').remove(avatarPaths)
+          if (storageError && !isMissingSchemaError((storageError as any).code)) throw storageError
+        }
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ points: 0, avatar: null })
+          .eq('id', userId)
+        if (profileError) throw profileError
+
+        setPreferences(DEFAULT_PREFERENCES)
+        setNotificationSettings(DEFAULT_NOTIFICATION_SETTINGS)
+        setProfile(prev => prev ? { ...prev, points: 0, avatar: null } : null)
       }
 
       showAlert('Datos eliminados', 'Los datos seleccionados han sido eliminados correctamente.')
@@ -369,6 +440,11 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
     } finally {
       setDeletingData(false)
     }
+  }
+
+  const handleDeletePartialData = (dataType: Exclude<DestructiveActionType, 'account'>) => {
+    setDestructiveConfirmationText('')
+    setPendingDestructiveAction(dataType)
   }
 
   const showPrivacyCenter = () => {
@@ -384,9 +460,6 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
 
     showAlert('Centro de Privacidad', privacyInfo)
   }
-
-  const isMissingPreferencesTableError = (errorCode?: string) => errorCode === '42P01'
-  const isMissingNotificationPreferencesTableError = (errorCode?: string) => errorCode === '42P01'
 
   const formatPreferenceLabel = (key: PreferenceKey, value: string) => {
     const labelsByKey = preferenceLabels[key] as Record<string, string>
@@ -531,8 +604,8 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
       setUserId(session.user.id)
       setEmail(session.user.email || 'alumno@omniquest.com')
 
-      const [profileResult, preferencesResult, notificationSettingsResult, subjectsResult] = await Promise.all([
-        supabase.from('profiles').select('id, alias, avatar, points, role_id').eq('id', session.user.id).single(),
+      const [profileFetch, preferencesResult, notificationSettingsResult, subjectsResult] = await Promise.all([
+        fetchProfileWithOptionalVisibility(session.user.id),
         supabase
           .from('user_preferences')
           .select('language, timezone, date_format, time_format, week_start')
@@ -546,6 +619,7 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
         supabase.from('subjects').select('id').eq('teacher_id', session.user.id).eq('is_archived', false),
       ])
 
+      const profileResult = profileFetch.result
       if (profileResult.error && profileResult.error.code !== 'PGRST116') throw profileResult.error
       if (preferencesResult.error && !isMissingPreferencesTableError(preferencesResult.error.code)) {
         throw preferencesResult.error
@@ -557,6 +631,8 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
 
       const nextProfile = profileResult.data as UserProfile | null
       setProfile(nextProfile)
+      setProfileVisibilityAvailable(profileFetch.hasVisibility)
+      setProfileVisibility(profileFetch.hasVisibility ? nextProfile?.visibility || 'private' : null)
       const detectedRole = nextProfile?.role_id === 'teacher' ? 'teacher' : 'student'
       setRole(detectedRole)
       setName(nextProfile?.alias || (detectedRole === 'teacher' ? 'Profesor' : 'Alumno'))
@@ -673,23 +749,27 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
   }
 
   const handleDeleteAccount = () => {
-    const message = 'Esta acción eliminará tu usuario, perfil y progreso académico. No se puede deshacer.'
+    setDestructiveConfirmationText('')
+    setPendingDestructiveAction('account')
+  }
 
-    if (Platform.OS === 'web') {
-      if (window.confirm(message)) {
-        void executeDeleteAccount()
-      }
+  const closeDestructiveConfirmation = () => {
+    setPendingDestructiveAction(null)
+    setDestructiveConfirmationText('')
+  }
+
+  const confirmDestructiveAction = async () => {
+    if (!pendingDestructiveAction || destructiveConfirmationText.trim() !== REQUIRED_DESTRUCTIVE_CONFIRMATION) return
+
+    const action = pendingDestructiveAction
+    closeDestructiveConfirmation()
+
+    if (action === 'account') {
+      await executeDeleteAccount()
       return
     }
 
-    Alert.alert('Borrar mi cuenta', message, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Borrar cuenta',
-        style: 'destructive',
-        onPress: () => void executeDeleteAccount(),
-      },
-    ])
+    await executeDeletePartialData(action)
   }
 
   const handleSignOut = async () => {
@@ -860,11 +940,13 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                 </Text>
               ) : null}
               <View className="flex-row items-center gap-3">
-                <Ionicons name="settings" size={40} color="#9FD6FF" />
-                <Text className="text-[40px] font-black text-white">Configuración</Text>
+                <Ionicons name={securityOnly ? 'lock-closed' : 'settings'} size={40} color="#9FD6FF" />
+                <Text className="text-[40px] font-black text-white">{securityOnly ? 'Seguridad' : 'Configuración'}</Text>
               </View>
               <Text className="mt-2 text-[13px] text-[#B7C4D7]">
-                Personaliza tu experiencia y controla tu cuenta de {isTeacher ? 'profesor' : 'alumno'}.
+                {securityOnly
+                  ? 'Gestiona acceso, contraseña y acciones críticas de tu cuenta.'
+                  : `Personaliza tu experiencia y controla tu cuenta de ${isTeacher ? 'profesor' : 'alumno'}.`}
               </Text>
             </View>
 
@@ -877,15 +959,19 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
           </View>
 
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
-            <SettingsMenu
-              onSignOut={handleSignOut}
-              isDesktop={isDesktop}
-              activeSection={activeSettingsSection}
-              onSectionPress={handleMenuSectionPress}
-              sections={settingsSections}
-            />
+            {!securityOnly ? (
+              <SettingsMenu
+                onSignOut={handleSignOut}
+                isDesktop={isDesktop}
+                activeSection={activeSettingsSection}
+                onSectionPress={handleMenuSectionPress}
+                sections={settingsSections}
+              />
+            ) : null}
 
             <View className="flex-1 gap-5">
+              {!securityOnly ? (
+                <>
               <View className={isWide ? 'flex-row gap-5' : 'gap-5'}>
                 <View onLayout={handleSectionLayout('profile')} className={isWide ? 'flex-1' : ''}>
                   <Panel title={`Información del ${isTeacher ? 'profesor' : 'alumno'}`}>
@@ -1020,8 +1106,10 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                 <View onLayout={handleSectionLayout('notifications')} className={isWide ? 'flex-1' : ''}>
                   <Panel title="Notificaciones">
                     <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
-                      <Text className="text-[12px] font-bold text-white">Reglas de envío</Text>
-                      <Text className="mt-1 text-[13px] text-[#AFC2DB]">Configura canal y frecuencia de envío.</Text>
+                      <Text className="text-[12px] font-bold text-white">Preferencias guardadas</Text>
+                      <Text className="mt-1 text-[13px] text-[#AFC2DB]">
+                        Estos ajustes preparan tus canales preferidos. El envío automático por push/email todavía no está conectado.
+                      </Text>
                       <View className="mt-3">
                         <PreferenceRow
                           label="Frecuencia"
@@ -1039,8 +1127,8 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                     </View>
                     <NotificationRow
                       icon="notifications-outline"
-                      title="Notificaciones push"
-                      description="Recibe avisos de clases, logros y actividad."
+                      title="Preferencia push"
+                      description="Se guardará para activar avisos push cuando el servicio esté disponible."
                       enabled={notificationSettings.push}
                       onPress={() => void updateNotificationToggle('push')}
                       disabled={Boolean(savingNotificationKey)}
@@ -1048,8 +1136,8 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                     />
                     <NotificationRow
                       icon="mail-outline"
-                      title="Notificaciones por email"
-                      description="Recibe resúmenes y avisos en tu correo."
+                      title="Preferencia por email"
+                      description="Se guardará para futuros resúmenes y avisos por correo."
                       enabled={notificationSettings.email}
                       onPress={() => void updateNotificationToggle('email')}
                       disabled={Boolean(savingNotificationKey)}
@@ -1058,7 +1146,7 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                     <NotificationRow
                       icon="calendar-outline"
                       title="Resumen diario"
-                      description="Recibe un resumen diario de tu progreso."
+                      description="Preferencia para futuros resúmenes de progreso."
                       enabled={notificationSettings.daily}
                       onPress={() => void updateNotificationToggle('daily')}
                       disabled={Boolean(savingNotificationKey)}
@@ -1083,8 +1171,8 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                       loading={savingNotificationKey === 'news'}
                     />
                     <FooterLink
-                      label="Se guarda automáticamente"
-                      onPress={() => showAlert('Notificaciones', 'Tus reglas de notificación se guardan automáticamente.')}
+                      label="Solo guarda preferencias"
+                      onPress={() => showAlert('Notificaciones', 'Estas opciones se guardan, pero OmniQuest todavía no envía push ni emails automáticos.')}
                     />
                   </Panel>
                 </View>
@@ -1096,12 +1184,15 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                         <View className="min-w-0 flex-1">
                           <Text className="font-bold text-white">Visibilidad del perfil</Text>
                           <Text className="mt-1 text-[12px] text-[#AFC2DB]">
-                            Controla quién puede ver tu perfil y actividad
+                            {profileVisibilityAvailable
+                              ? 'Controla quién puede ver tu perfil y actividad'
+                              : 'Pendiente de columna profiles.visibility y tipos actualizados'}
                           </Text>
                         </View>
                         <View className="flex-row gap-2">
                           <Pressable
                             onPress={() => handleProfileVisibilityChange('public')}
+                            disabled={!profileVisibilityAvailable}
                             className={`rounded-lg border px-3 py-2 ${
                               profileVisibility === 'public'
                                 ? 'border-[#8B5CF6] bg-[#1A1E55]'
@@ -1112,6 +1203,7 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                           </Pressable>
                           <Pressable
                             onPress={() => handleProfileVisibilityChange('private')}
+                            disabled={!profileVisibilityAvailable}
                             className={`rounded-lg border px-3 py-2 ${
                               profileVisibility === 'private'
                                 ? 'border-[#8B5CF6] bg-[#1A1E55]'
@@ -1122,6 +1214,11 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                           </Pressable>
                         </View>
                       </View>
+                      {!profileVisibilityAvailable ? (
+                        <Text className="mt-3 text-[12px] leading-5 text-[#FBBF24]">
+                          Esta preferencia no se guardará hasta aplicar la migración y regenerar types/database.types.ts.
+                        </Text>
+                      ) : null}
                     </View>
 
                     <ActionRow
@@ -1136,7 +1233,7 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                     <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-4">
                       <Text className="font-bold text-white">Eliminar datos parciales</Text>
                       <Text className="mt-1 text-[12px] text-[#AFC2DB] mb-3">
-                        Elimina selectivamente tus datos. Esta acción no se puede deshacer.
+                        Elimina selectivamente progreso, clases o preferencias guardadas. Esta acción no se puede deshacer.
                       </Text>
                       <View className="gap-2">
                         <Pressable
@@ -1181,7 +1278,7 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                         >
                           <View className="flex-row items-center gap-3">
                             <Ionicons name="warning-outline" size={16} color="#FB7185" />
-                            <Text className="text-[13px] font-semibold text-white">Eliminar todos los datos</Text>
+                            <Text className="text-[13px] font-semibold text-white">Eliminar datos de uso</Text>
                           </View>
                           {deletingData ? (
                             <ActivityIndicator size="small" color="#FB7185" />
@@ -1210,9 +1307,20 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                   </Panel>
                 </View>
               </View>
+                </>
+              ) : null}
 
               <View onLayout={handleSectionLayout('security')}>
                 <Panel title="Seguridad">
+                  {!securityOnly ? (
+                    <ActionRow
+                      icon="lock-closed-outline"
+                      title="Gestionar seguridad"
+                      description="Cambiar contraseña y borrar cuenta en una pantalla dedicada."
+                      onPress={() => router.push((isTeacher ? '/(teacher)/security' : '/(student)/security') as any)}
+                    />
+                  ) : (
+                    <>
                   <View className="gap-3 border-b border-[#13284A] pb-4">
                     <View className="flex-row items-center gap-3">
                       <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10233F]">
@@ -1276,11 +1384,14 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
                     </View>
                     {deletingAccount ? <ActivityIndicator color="#FF6B6B" /> : null}
                   </Pressable>
+                    </>
+                  )}
                 </Panel>
               </View>
             </View>
           </View>
 
+          {!securityOnly ? (
           <View onLayout={handleSectionLayout('about')} className="mt-6 flex-row flex-wrap items-center justify-end gap-6">
             <Text className="text-[12px] text-[#8FA7C7]">Versión 2.4.0</Text>
             <Pressable onPress={() => router.push((isTeacher ? '/(teacher)/help-center' : '/(student)/help-center') as any)} className="flex-row items-center gap-2">
@@ -1288,16 +1399,136 @@ export function UnifiedSettingsScreen({ forcedRole }: { forcedRole?: AppRole }) 
               <Text className="text-[12px] font-semibold text-[#A78BFA]">Centro de ayuda</Text>
             </Pressable>
           </View>
+          ) : null}
         </ScrollView>
       </View>
 
-      {!isDesktop && !isTeacher ? <BottomNav /> : null}
+      <DestructiveConfirmModal
+        visible={Boolean(pendingDestructiveAction)}
+        action={pendingDestructiveAction}
+        value={destructiveConfirmationText}
+        busy={deletingData || deletingAccount}
+        onChangeText={setDestructiveConfirmationText}
+        onCancel={closeDestructiveConfirmation}
+        onConfirm={() => void confirmDestructiveAction()}
+      />
+
+      {!securityOnly && !isDesktop && !isTeacher ? <StudentBottomNav active="settings" /> : null}
     </View>
   )
 }
 
 export default function StudentSettingsScreen() {
   return <UnifiedSettingsScreen />
+}
+
+function DestructiveConfirmModal({
+  visible,
+  action,
+  value,
+  busy,
+  onChangeText,
+  onCancel,
+  onConfirm,
+}: {
+  visible: boolean
+  action: DestructiveActionType | null
+  value: string
+  busy: boolean
+  onChangeText: (value: string) => void
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  const details = getDestructiveActionDetails(action)
+  const canConfirm = value.trim() === REQUIRED_DESTRUCTIVE_CONFIRMATION && !busy
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <View className="flex-1 items-center justify-center bg-black/70 px-5">
+        <View className="w-full max-w-[430px] rounded-2xl border border-[#4A1E2B] bg-[#07162D] p-5">
+          <View className="flex-row items-center gap-3">
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-[#2A0B18]">
+              <Ionicons name="warning-outline" size={20} color="#FB7185" />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-[16px] font-black text-white">{details.title}</Text>
+              <Text className="mt-1 text-[12px] leading-5 text-[#FCA5A5]">{details.description}</Text>
+            </View>
+          </View>
+
+          <Text className="mt-5 text-[12px] font-semibold text-[#B7C4D7]">
+            Escribe {REQUIRED_DESTRUCTIVE_CONFIRMATION} para continuar.
+          </Text>
+          <TextInput
+            value={value}
+            onChangeText={onChangeText}
+            autoCapitalize="characters"
+            placeholder={REQUIRED_DESTRUCTIVE_CONFIRMATION}
+            placeholderTextColor="#64748B"
+            className="mt-2 rounded-lg border border-[#4A1E2B] bg-[#0D1D3B] px-4 py-3 text-[13px] font-bold text-white"
+          />
+
+          <View className="mt-5 flex-row justify-end gap-3">
+            <Pressable
+              onPress={onCancel}
+              disabled={busy}
+              className="rounded-lg border border-[#263E61] px-4 py-3"
+              style={({ pressed }) => ({ opacity: busy ? 0.55 : pressed ? 0.8 : 1 })}
+            >
+              <Text className="text-[12px] font-bold text-[#DDE7F4]">Cancelar</Text>
+            </Pressable>
+            <Pressable
+              onPress={onConfirm}
+              disabled={!canConfirm}
+              className="rounded-lg bg-[#BE123C] px-4 py-3"
+              style={({ pressed }) => ({ opacity: !canConfirm ? 0.45 : pressed ? 0.82 : 1 })}
+            >
+              {busy ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text className="text-[12px] font-bold text-white">{details.confirmLabel}</Text>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  )
+}
+
+function getDestructiveActionDetails(action: DestructiveActionType | null) {
+  switch (action) {
+    case 'scores':
+      return {
+        title: 'Eliminar puntuaciones',
+        description: 'Se borrarán subject_scores y topic_scores, y tu XP global se reseteará a 0.',
+        confirmLabel: 'Eliminar puntuaciones',
+      }
+    case 'enrollments':
+      return {
+        title: 'Salir de todas las clases',
+        description: 'Se eliminarán tus inscripciones actuales. Tu cuenta seguirá activa.',
+        confirmLabel: 'Salir de clases',
+      }
+    case 'all':
+      return {
+        title: 'Eliminar datos de uso',
+        description: 'Se borrarán progreso, intentos, estado de notificaciones, preferencias y avatar. Tu cuenta seguirá activa.',
+        confirmLabel: 'Eliminar datos',
+      }
+    case 'account':
+      return {
+        title: 'Borrar mi cuenta',
+        description: 'Se eliminarán tu usuario, perfil, progreso académico y datos asociados. No se puede deshacer.',
+        confirmLabel: 'Borrar cuenta',
+      }
+    default:
+      return {
+        title: 'Confirmar acción',
+        description: 'Esta acción no se puede deshacer.',
+        confirmLabel: 'Continuar',
+      }
+  }
 }
 
 function SettingsMenu({
@@ -1557,39 +1788,21 @@ function FooterLink({ label, onPress }: { label: string; onPress: () => void }) 
   )
 }
 
-function BottomNav() {
-  return (
-    <View className="absolute bottom-3 left-4 right-4 flex-row justify-around rounded-2xl border border-[#1A3155] bg-[#09162C] py-3">
-      <Link href="/(student)/homeStudent" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="home-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Inicio</Text>
-        </Pressable>
-      </Link>
-
-      <Link href="/(student)/ranking" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="trophy-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Ranking</Text>
-        </Pressable>
-      </Link>
-
-      <Link href="/(student)/profile" asChild>
-        <Pressable className="items-center opacity-70">
-          <Ionicons name="person-outline" size={22} color="#AFC2DB" />
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]">Perfil</Text>
-        </Pressable>
-      </Link>
-
-      <Pressable className="items-center">
-        <Ionicons name="settings" size={22} color="#B09BFF" />
-        <Text className="mt-1 text-[11px] font-bold text-[#B09BFF]">Configuración</Text>
-      </Pressable>
-    </View>
-  )
-}
-
 function getInitials(value: string) {
   const parts = value.trim().split(/\s+/).slice(0, 2)
   return parts.map((part) => part[0]?.toUpperCase()).join('') || 'AL'
+}
+
+function getAvatarStoragePaths(userId: string, avatar: string | null | undefined) {
+  const fallbackPaths = [`${userId}.jpg`, `${userId}.jpeg`, `${userId}.png`, `${userId}.webp`]
+  if (!avatar) return fallbackPaths
+
+  const decodedAvatar = decodeURIComponent(avatar)
+  const storageMarker = '/avatars/'
+  const markerIndex = decodedAvatar.indexOf(storageMarker)
+  const avatarPath = markerIndex >= 0
+    ? decodedAvatar.slice(markerIndex + storageMarker.length).split('?')[0]
+    : decodedAvatar.split('?')[0]
+
+  return Array.from(new Set([avatarPath, ...fallbackPaths].filter(Boolean)))
 }
