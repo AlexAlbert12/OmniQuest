@@ -24,6 +24,7 @@ import TeacherSidebar from '../../components/TeacherSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 
 type IconName = keyof typeof Ionicons.glyphMap
 type AppRole = 'student' | 'teacher'
@@ -1193,22 +1194,22 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                           <Pressable
                             onPress={() => handleProfileVisibilityChange('public')}
                             disabled={!profileVisibilityAvailable}
-                            className={`rounded-lg border px-3 py-2 ${
-                              profileVisibility === 'public'
-                                ? 'border-[#8B5CF6] bg-[#1A1E55]'
-                                : 'border-[#2A456A] bg-[#0A2042]'
-                            }`}
+                            className="rounded-lg border px-3 py-2"
+                            style={{
+                              borderColor: profileVisibility === 'public' ? accentColor : '#2A456A',
+                              backgroundColor: profileVisibility === 'public' ? withAlpha(accentColor, '24') : '#0A2042',
+                            }}
                           >
                             <Text className="text-[12px] font-semibold text-white">Público</Text>
                           </Pressable>
                           <Pressable
                             onPress={() => handleProfileVisibilityChange('private')}
                             disabled={!profileVisibilityAvailable}
-                            className={`rounded-lg border px-3 py-2 ${
-                              profileVisibility === 'private'
-                                ? 'border-[#8B5CF6] bg-[#1A1E55]'
-                                : 'border-[#2A456A] bg-[#0A2042]'
-                            }`}
+                            className="rounded-lg border px-3 py-2"
+                            style={{
+                              borderColor: profileVisibility === 'private' ? accentColor : '#2A456A',
+                              backgroundColor: profileVisibility === 'private' ? withAlpha(accentColor, '24') : '#0A2042',
+                            }}
                           >
                             <Text className="text-[12px] font-semibold text-white">Privado</Text>
                           </Pressable>
@@ -1291,7 +1292,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
                     <View className="mt-3 rounded-xl border border-[#4733B7] bg-[#151A47] p-4">
                       <View className="flex-row gap-3">
-                        <Ionicons name="shield-checkmark-outline" size={22} color="#8B5CF6" />
+                        <Ionicons name="shield-checkmark-outline" size={22} color={accentColor} />
                         <View className="min-w-0 flex-1">
                           <Text className="font-black text-white">Tu privacidad es importante</Text>
                           <Text className="mt-1 text-[12px] leading-5 text-[#B7C4D7]">
@@ -1544,6 +1545,8 @@ function SettingsMenu({
   onSectionPress: (section: { key: SettingsMenuSectionKey; anchor: SettingsAnchorKey }) => void
   sections: { key: SettingsMenuSectionKey; label: string; icon: IconName; anchor: SettingsAnchorKey }[]
 }) {
+  const { accentColor } = useAppTheme()
+
   return (
     <View
       className={`rounded-xl border border-[#183052] bg-[#07162D] p-3 ${isDesktop ? 'w-[205px] self-start' : ''
@@ -1554,10 +1557,13 @@ function SettingsMenu({
           <Pressable
             key={section.label}
             onPress={() => onSectionPress(section)}
-            className={`flex-row items-center gap-3 rounded-lg px-3 py-3 ${section.key === activeSection ? 'border border-[#6D5AF6] bg-[#1A1E55]' : ''
-              }`}
+            className="flex-row items-center gap-3 rounded-lg border px-3 py-3"
+            style={{
+              borderColor: section.key === activeSection ? accentColor : 'transparent',
+              backgroundColor: section.key === activeSection ? withAlpha(accentColor, '24') : 'transparent',
+            }}
           >
-            <Ionicons name={section.icon} size={16} color={section.key === activeSection ? '#9FD6FF' : '#AFC2DB'} />
+            <Ionicons name={section.icon} size={16} color={section.key === activeSection ? accentColor : '#AFC2DB'} />
             <Text className={`text-[12px] font-semibold ${section.key === activeSection ? 'text-white' : 'text-[#B7C4D7]'}`}>
               {section.label}
             </Text>
@@ -1622,6 +1628,8 @@ function SelectPill({
   disabled?: boolean
   loading?: boolean
 }) {
+  const { accentColor } = useAppTheme()
+
   return (
     <View>
       <Pressable
@@ -1650,7 +1658,7 @@ function SelectPill({
             >
               <Text className="min-w-0 flex-1 text-[13px] text-[#DDE7F4]">{optionLabel(option)}</Text>
               {option === selectedValue ? (
-                <Ionicons name="checkmark" size={16} color="#A78BFA" />
+                <Ionicons name="checkmark" size={16} color={accentColor} />
               ) : null}
             </Pressable>
           ))}
@@ -1720,6 +1728,8 @@ function NotificationRow({
   disabled?: boolean
   loading?: boolean
 }) {
+  const { accentColor } = useAppTheme()
+
   return (
     <View className="flex-row items-center gap-3 border-b border-[#13284A] py-3">
       <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10233F]">
@@ -1735,7 +1745,7 @@ function NotificationRow({
           value={enabled}
           onValueChange={onPress}
           disabled={disabled || loading}
-          trackColor={{ false: '#223554', true: '#6D5AF6' }}
+          trackColor={{ false: '#223554', true: accentColor }}
           thumbColor="#FFFFFF"
         />
       </View>
@@ -1780,10 +1790,12 @@ function ActionRow({
 }
 
 function FooterLink({ label, onPress }: { label: string; onPress: () => void }) {
+  const { accentColor } = useAppTheme()
+
   return (
     <Pressable onPress={onPress} className="mt-2 flex-row items-center justify-between py-2">
-      <Text className="text-[12px] font-semibold text-[#A78BFA]">{label}</Text>
-      <Ionicons name="chevron-forward" size={15} color="#A78BFA" />
+      <Text className="text-[12px] font-semibold" style={{ color: accentColor }}>{label}</Text>
+      <Ionicons name="chevron-forward" size={15} color={accentColor} />
     </Pressable>
   )
 }

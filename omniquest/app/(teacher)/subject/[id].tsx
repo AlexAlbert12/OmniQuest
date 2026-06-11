@@ -244,7 +244,7 @@ export default function SubjectDetailScreen() {
         color: points >= averageXp ? '#8B5CF6' : '#34D399',
         title: `${studentName} completó una pregunta`,
         detail: activeChallenge?.text || subject?.name || 'Actividad de clase',
-        meta: `+${points} XP`,
+        meta: `+${points} puntos`,
         time: formatRelative(score.played_at, index),
         warning: false,
       } satisfies ActivityItem;
@@ -402,7 +402,7 @@ export default function SubjectDetailScreen() {
         <View className="gap-5">
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
             <ReportMetricCard icon="people" label="Alumnos evaluados" value={`${reportSummary.answered}/${reportSummary.enrolled}`} color="#38BDF8" detail={`${reportSummary.participation}% participación`} />
-            <ReportMetricCard icon="shield-checkmark" label="Nota media" value={reportSummary.averageGrade.toFixed(1)} suffix="/10" color="#F59E0B" detail={`${averageXp.toLocaleString('es-ES')} XP media`} />
+            <ReportMetricCard icon="shield-checkmark" label="Nota media" value={reportSummary.averageGrade.toFixed(1)} suffix="/10" color="#F59E0B" detail={`${averageXp.toLocaleString('es-ES')} puntuación media`} />
             <ReportMetricCard icon="close-circle" label="Preguntas falladas" value={String(reportSummary.failedAnswers)} color="#F43F5E" detail={`${reportSummary.correctAnswers} correctas registradas`} />
             <ReportMetricCard icon="trending-up" label="Evolución" value={`${latestEvolution?.activityCount || 0}`} color="#34D399" detail="activos en el último tramo" />
           </View>
@@ -1245,7 +1245,6 @@ export default function SubjectDetailScreen() {
             activeSection="classes"
             subjectsCount={subjectsCount}
             onSignOut={handleSignOut}
-            onComingSoon={showComingSoon}
           />
         ) : null}
 
@@ -1308,7 +1307,7 @@ export default function SubjectDetailScreen() {
           <View className={isWide ? 'mb-5 flex-row gap-4' : 'mb-5 gap-4'}>
             <MetricCard icon="people" label="Progreso medio" value={`${progress}%`} color="#8B5CF6" detail="+ 12% vs semana pasada" />
             <MetricCard icon="shield-checkmark" label="Nota media" value={`${averageGrade.toFixed(1)}`} suffix="/10" color="#F59E0B" detail="+ 0.6 vs semana pasada" />
-            <MetricCard icon="star" label="XP media" value={`${averageXp.toLocaleString('es-ES')} XP`} color="#3B82F6" detail="+ 15% vs semana pasada" />
+            <MetricCard icon="star" label="Puntuación media" value={`${averageXp.toLocaleString('es-ES')} puntos`} color="#3B82F6" detail="+ 15% vs semana pasada" />
             <MetricCard icon="radio-button-on" label="Preguntas completadas" value={String(completedChallenges)} color="#F43F5E" detail="+ 4 vs semana pasada" />
             <MetricCard icon="trending-up" label="Participación" value={`${participation}%`} color="#8B5CF6" detail="+ 10% vs semana pasada" />
           </View>
@@ -1573,7 +1572,7 @@ function TopicSummaryRow({
       </View>
       <InfoStack label="Preguntas" value={String(topic.questionsCount)} />
       <InfoStack label="Jugados" value={String(topic.playedCount)} />
-      <InfoStack label="XP media" value={`${topic.averageScore}`} />
+      <InfoStack label="Puntuación media" value={`${topic.averageScore}`} />
     </Pressable>
   );
 }
@@ -1642,7 +1641,7 @@ function StudentReportRow({ student, index }: { student: StudentReport; index: n
         </Text>
       </View>
       <ReportStack label="Participación" value={`${student.participation}%`} color={statusColor} meta={statusLabel} />
-      <ReportStack label="Nota media" value={student.hasActivity ? student.grade.toFixed(1) : '-'} color="#F59E0B" meta={student.hasActivity ? `${student.score} XP` : 'Sin nota'} />
+      <ReportStack label="Nota media" value={student.hasActivity ? student.grade.toFixed(1) : '-'} color="#F59E0B" meta={student.hasActivity ? `${student.score} puntos` : 'Sin nota'} />
       <ReportStack label="Correctas" value={String(student.correctAnswers)} color="#34D399" meta={`${student.playedSessions} sesión${student.playedSessions === 1 ? '' : 'es'}`} />
       <ReportStack label="Falladas" value={String(student.failedAnswers)} color="#F43F5E" meta="estimadas" />
     </View>
@@ -1690,7 +1689,7 @@ function EvolutionRow({ item, maxValue }: { item: EvolutionReport; maxValue: num
       <View className="mb-3 flex-row items-center justify-between gap-3">
         <Text className="font-bold text-white">{item.label}</Text>
         <Text className="text-[12px] font-semibold text-[#C4D0E3]">
-          {item.activityCount} activos · {item.averageScore} XP
+          {item.activityCount} activos · {item.averageScore} puntos
         </Text>
       </View>
       <View className="h-3 overflow-hidden rounded-full bg-[#13284A]">

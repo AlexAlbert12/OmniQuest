@@ -27,6 +27,8 @@ import { fetchStudentProgressSummary, type StudentProgressSubject, type StudentP
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentDashboardCard, { StudentCardLink } from '../../components/student/StudentDashboardCard'
 import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
+import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 
 type Profile = {
   id: string
@@ -90,6 +92,7 @@ export default function ProfileScreen() {
   const [activityAttempts, setActivityAttempts] = useState<ActivityAttempt[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const { accentColor } = useAppTheme()
 
   const isDesktop = width >= 1024
   const points = profile?.points ?? 0
@@ -254,7 +257,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color="#6574FF" />
+        <ActivityIndicator size="large" color={accentColor} />
         <Text className="mt-4 text-[#8FA7C7]">Cargando perfil...</Text>
       </View>
     )
@@ -331,7 +334,7 @@ export default function ProfileScreen() {
                 title="Preguntas correctas"
                 value={String(correctAttempts)}
                 icon="checkmark-circle"
-                color="#8B5CF6"
+                color={accentColor}
                 onPress={() => router.push('/(student)/progress' as any)}
               />
               <SummaryTile
@@ -359,9 +362,9 @@ export default function ProfileScreen() {
                 onPress={() => router.push('/(student)/settings?section=profile' as any)}
                 className="mt-4 flex-row items-center gap-2 border-t border-[#172A4A] pt-4"
               >
-                <Ionicons name="create-outline" size={18} color="#9B6CFF" />
-                <Text className="font-bold text-[#9B6CFF]">Editar perfil</Text>
-                <Ionicons name="arrow-forward" size={16} color="#9B6CFF" />
+                <Ionicons name="create-outline" size={18} color={accentColor} />
+                <Text className="font-bold" style={{ color: accentColor }}>Editar perfil</Text>
+                <Ionicons name="arrow-forward" size={16} color={accentColor} />
               </Pressable>
             </StudentDashboardCard>
 
@@ -434,6 +437,8 @@ function ProfileHero({
   uploading: boolean
   onPickImage: () => void
 }) {
+  const { accentColor } = useAppTheme()
+
   return (
     <View className="flex-1 overflow-hidden rounded-2xl border border-[#1C3762] bg-[#0B1B48] p-7">
       <View className="absolute inset-0 bg-[#0D1C55]" />
@@ -449,7 +454,7 @@ function ProfileHero({
           ) : (
             <Ionicons name="person" size={50} color="#9FD6FF" />
           )}
-          <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-[#7C5CFF]">
+          <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: accentColor }}>
             {uploading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
@@ -461,12 +466,12 @@ function ProfileHero({
         <View className="min-w-0 flex-1">
           <Text className="text-[28px] font-black text-white">{alias}</Text>
           <Text className="mt-1 text-[14px] text-[#D4E2F6]">Estudiante aventurero</Text>
-          <View className="mt-3 w-[96px] flex-row items-center justify-center gap-1 rounded-md bg-[#6D4DDB] px-3 py-1.5">
+          <View className="mt-3 w-[96px] flex-row items-center justify-center gap-1 rounded-md px-3 py-1.5" style={{ backgroundColor: withAlpha(accentColor, 'CC') }}>
             <Ionicons name="school" size={13} color="#FFFFFF" />
             <Text className="text-[13px] font-bold text-white">Nivel {level}</Text>
           </View>
           <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#27396B]">
-            <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${nextLevelProgress}%` }} />
+            <View className="h-full rounded-full" style={{ width: `${nextLevelProgress}%`, backgroundColor: accentColor }} />
           </View>
           <Text className="mt-2 text-[13px] text-[#D4E2F6]">
             {nextLevelProgress.toLocaleString()} / 100 XP para Nivel {level + 1}

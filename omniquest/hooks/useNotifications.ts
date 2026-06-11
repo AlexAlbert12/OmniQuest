@@ -549,38 +549,19 @@ function buildTeacherNotifications({
     .map((score) => {
       const subject = subjectsById.get(Number(score.subject_id))
       const studentName = getStudentName(score.student_id, profilesById)
+      const scoreValue = score.max_score ?? 0
+      const isHighlighted = scoreValue >= 500
+
       return {
         id: `activity-${score.subject_id}-${score.student_id}-${toStableDate(score.played_at)}`,
         type: 'student_activity',
-        title: 'Actividad de alumno',
-        description: `${studentName} completó actividad en ${subject?.name || 'una clase'} con ${score.max_score ?? 0} XP.`,
-        icon: 'checkmark-circle-outline',
-        color: '#34D399',
+        title: isHighlighted ? 'Actividad destacada' : 'Actividad de alumno',
+        description: `${studentName} completó una actividad en ${subject?.name || 'una clase'} con ${scoreValue} puntos.`,
+        icon: isHighlighted ? 'trending-up-outline' : 'checkmark-circle-outline',
+        color: isHighlighted ? '#F6A64A' : '#34D399',
         timestamp: score.played_at || nowIso,
         isRead: false,
         relatedId: Number(score.subject_id),
-        subjectName: subject?.name,
-        studentName,
-        actionUrl: score.subject_id ? `/(teacher)/subject/${score.subject_id}?tab=reports` : undefined,
-      }
-    })
-
-  const achievementNotifications: AppNotification[] = scores
-    .filter((score) => (score.max_score ?? 0) >= 500)
-    .slice(0, 6)
-    .map((score) => {
-      const subject = score.subject_id ? subjectsById.get(score.subject_id) : null
-      const studentName = getStudentName(score.student_id, profilesById)
-      return {
-        id: `achievement-${score.subject_id}-${score.student_id}-${score.max_score}-${toStableDate(score.played_at)}`,
-        type: 'achievement',
-        title: 'Logro destacado',
-        description: `${studentName} alcanzó ${score.max_score ?? 0} XP${subject ? ` en ${subject.name}` : ''}.`,
-        icon: 'trophy-outline',
-        color: '#F6A64A',
-        timestamp: score.played_at || nowIso,
-        isRead: false,
-        relatedId: score.subject_id ?? undefined,
         subjectName: subject?.name,
         studentName,
         actionUrl: score.subject_id ? `/(teacher)/subject/${score.subject_id}?tab=reports` : undefined,
@@ -608,7 +589,6 @@ function buildTeacherNotifications({
   return [
     ...enrollmentNotifications,
     ...activityNotifications,
-    ...achievementNotifications,
     ...classNotifications,
     ...announcementNotifications,
   ]
@@ -668,7 +648,7 @@ function buildStudentNotifications({
         id: `student-activity-${score.subject_id}-${toStableDate(score.played_at)}`,
         type: 'student_activity',
         title: 'Actividad registrada',
-        description: `Has conseguido ${score.max_score ?? 0} XP${subject ? ` en ${subject.name}` : ''}.`,
+        description: `Has conseguido ${score.max_score ?? 0} puntos${subject ? ` en ${subject.name}` : ''}.`,
         icon: 'checkmark-circle-outline',
         color: '#34D399',
         timestamp: score.played_at || nowIso,
@@ -688,7 +668,7 @@ function buildStudentNotifications({
       const title = playedDays >= 5 ? 'Racha en marcha' : 'Logro conseguido'
       const description = playedDays >= 5
         ? `Has jugado ${playedDays} días${subject ? ` en ${subject.name}` : ''}.`
-        : `Tu progreso destaca con ${score.max_score ?? 0} XP y ${score.correct_answers ?? 0} respuestas correctas.`
+        : `Tu progreso destaca con ${score.max_score ?? 0} puntos y ${score.correct_answers ?? 0} respuestas correctas.`
 
       return {
         id: `student-achievement-${score.subject_id}-${score.max_score}-${score.correct_answers ?? 0}-${playedDays}`,

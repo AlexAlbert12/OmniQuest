@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useAppTheme } from '../lib/appTheme'
 import { supabase } from '../lib/supabase'
 
-export type TeacherSection = 'home' | 'classes' | 'students' | 'notifications' | 'settings'
+export type TeacherSection = 'home' | 'classes' | 'students' | 'notifications' | 'profile' | 'settings'
 
 type TeacherSidebarProps = {
   activeSection: TeacherSection
@@ -14,22 +14,20 @@ type TeacherSidebarProps = {
   onSignOut: () => void
   alias?: string | null
   avatar?: string | null
-  points?: number | null
-  onComingSoon?: (feature: string) => void
 }
-
 const navItems: {
   section: TeacherSection
   label: string
   icon: keyof typeof Ionicons.glyphMap
   href?: string
 }[] = [
-  { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(teacher)/homeTeacher' },
-  { section: 'classes', label: 'Mis Clases', icon: 'book-outline', href: '/(teacher)/classes' },
-  { section: 'students', label: 'Estudiantes', icon: 'people-outline', href: '/(teacher)/students' },
-  { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(teacher)/notifications' },
-  { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(teacher)/settings' },
-]
+    { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(teacher)/homeTeacher' },
+    { section: 'classes', label: 'Mis Clases', icon: 'book-outline', href: '/(teacher)/classes' },
+    { section: 'students', label: 'Estudiantes', icon: 'people-outline', href: '/(teacher)/students' },
+    { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(teacher)/notifications' },
+    { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(teacher)/profile' },
+    { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(teacher)/settings' },
+  ]
 
 export default function TeacherSidebar({
   activeSection,
@@ -37,42 +35,61 @@ export default function TeacherSidebar({
   onSignOut,
   alias,
   avatar,
-  points,
 }: TeacherSidebarProps) {
   const { theme, accentColor } = useAppTheme()
   const isDark = theme === 'dark'
 
   const [localAlias, setLocalAlias] = React.useState<string | null | undefined>(alias)
-  const [localPoints, setLocalPoints] = React.useState<number | null | undefined>(points)
+  const [localAvatar, setLocalAvatar] = React.useState<string | null | undefined>(avatar)
 
   React.useEffect(() => {
+    let canceled = false
+
     if (alias !== undefined) {
       setLocalAlias(alias)
-      setLocalPoints(points)
+    }
+
+    if (avatar !== undefined) {
+      setLocalAvatar(avatar)
+    }
+
+    if (alias !== undefined && avatar !== undefined) {
       return
     }
-    let canceled = false
-    ;(async () => {
+
+    ; (async () => {
       try {
         const { data: session } = await supabase.auth.getSession()
         const userId = session.session?.user.id
+
         if (!userId) return
-        const { data, error } = await supabase.from('profiles').select('alias, avatar, points').eq('id', userId).single()
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('alias, avatar')
+          .eq('id', userId)
+          .single()
+
         if (!canceled && !error && data) {
-          setLocalAlias(data.alias ?? null)
-          setLocalPoints(data.points ?? null)
+          if (alias === undefined) {
+            setLocalAlias(data.alias ?? null)
+          }
+
+          if (avatar === undefined) {
+            setLocalAvatar(data.avatar ?? null)
+          }
         }
       } catch (e) {
       }
     })()
+
     return () => {
       canceled = true
     }
-  }, [alias, avatar, points])
+  }, [alias, avatar])
 
-  const displayAlias = (localAlias ?? '').trim()
-  const level = Math.max(1, Math.floor(((localPoints ?? 0) / 100)) + subjectsCount + 1)
-  const progress = Math.min(100, (((localPoints ?? 0) % 100) || 65))
+  const displayAlias = (localAlias ?? '').trim() || 'Profesor'
+  const classesLabel = `${subjectsCount} ${subjectsCount === 1 ? 'clase activa' : 'clases activas'}`
 
   return (
     <View
@@ -103,29 +120,39 @@ export default function TeacherSidebar({
           )
         })}
       </View>
-
-      <View
-        className="mt-auto rounded-2xl border p-4"
-        style={{ borderColor: isDark ? '#162B50' : '#2E4E78', backgroundColor: isDark ? '#091A35' : '#132A4D' }}
-      >
-        <View className="flex-row items-center gap-3">
-          <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#192C62]">
-            {avatar && avatar.startsWith('http') ? (
-              <Image source={{ uri: avatar }} className="h-full w-full" />
-            ) : (
-              <Text className="font-black text-white">{getInitials(displayAlias)}</Text>
-            )}
+      <Link href="/(teacher)/profile" asChild>
+        <Pressable
+          className="mt-auto rounded-2xl border p-4"
+          style={{
+            borderColor: isDark ? '#162B50' : '#2E4E78',
+            backgroundColor: isDark ? '#091A35' : '#132A4D',
+          }}
+        >
+          <View className="flex-row items-center gap-3">
+            <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#192C62]">
+              {localAvatar && localAvatar.startsWith('http') ? (
+                <Image source={{ uri: localAvatar }} className="h-full w-full" />
+              ) : (
+                <Text className="font-black text-white">{getInitials(displayAlias)}</Text>
+              )}
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-[14px] font-bold text-white" numberOfLines={1}>
+                {displayAlias}
+              </Text>
+              <Text className="text-[12px] text-[#9BAEC9]">
+                Profesor
+              </Text>
+              <View className="mt-2 flex-row items-center gap-1">
+                <Ionicons name="book-outline" size={13} color="#8FA7C7" />
+                <Text className="text-[11px] text-[#8FA7C7]">
+                  {classesLabel}
+                </Text>
+              </View>
+            </View>
           </View>
-          <View className="min-w-0 flex-1">
-            <Text className="text-[14px] font-bold text-white" numberOfLines={1}>{displayAlias}</Text>
-            <Text className="text-[12px] text-[#9BAEC9]">Nivel {level}</Text>
-          </View>
-        </View>
-        <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: accentColor }} />
-        </View>
-        <Text className="mt-2 text-[11px] text-[#8FA7C7]">{(points ?? 0).toLocaleString()} XP</Text>
-      </View>
+        </Pressable>
+      </Link>
     </View>
   )
 }
@@ -186,7 +213,7 @@ function TeacherNavButton({
             inputRange: [0, 1],
             outputRange: ['rgba(8,24,51,0)', isActive ? 'rgba(26,35,92,0.92)' : 'rgba(11,30,61,0.82)'],
           }),
-          shadowColor: '#6574FF',
+          shadowColor: accentColor,
           shadowOffset: { width: 0, height: 10 },
           shadowOpacity: hoverProgress.interpolate({
             inputRange: [0, 1],

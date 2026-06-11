@@ -263,7 +263,7 @@ export default function TeacherHomeScreen() {
             <MetricCard icon="school" title="Clases activas" value={String(subjects.length)} color="#8B5CF6" />
             <MetricCard icon="people" title="Estudiantes" value={String(totals.students)} color="#43D991" />
             <MetricCard icon="clipboard" title="Preguntas creadas" value={String(totals.questions)} color="#3B82F6" />
-            <MetricCard icon="trophy" title="XP promedio" value={`${totals.averageScore} XP`} color="#F6A64A" />
+            <MetricCard icon="trophy" title="Puntuación media" value={`${totals.averageScore} Puntos`} color="#F6A64A" />
           </View>
 
           <View className={isDesktop ? 'mt-8 flex-row gap-6' : 'mt-8 gap-6'}>
@@ -371,7 +371,7 @@ function SubjectPreview({ subject, analytics }: { subject: Subject; analytics: S
           <Text className="mt-1 text-[12px] text-[#B7C4D7]" numberOfLines={1}>Código: {subject.code}</Text>
         </View>
         <View className="items-end">
-          <Text className="font-black text-[#B9A7FF]">{analytics.averageScore} XP</Text>
+          <Text className="font-black text-[#B9A7FF]">{analytics.averageScore} Puntos</Text>
           <Text className="text-[11px] text-[#8FA7C7]">{analytics.enrolledCount} alumnos</Text>
         </View>
       </Pressable>

@@ -1,6 +1,8 @@
 import React from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 
 export default function StudentMetricCard({
   title,
@@ -13,11 +15,13 @@ export default function StudentMetricCard({
   title: string
   value: string
   icon: keyof typeof Ionicons.glyphMap
-  color: string
+  color?: string
   onPress?: () => void
   className?: string
 }) {
   const Container = onPress ? Pressable : View
+  const { accentColor } = useAppTheme()
+  const tint = color || accentColor
 
   return (
     <Container
@@ -29,9 +33,9 @@ export default function StudentMetricCard({
       <View className="mt-5 items-center">
         <View
           className="h-20 w-20 items-center justify-center rounded-full border-[7px]"
-          style={{ borderColor: color, backgroundColor: `${color}1F` }}
+          style={{ borderColor: tint, backgroundColor: withAlpha(tint, '1F') }}
         >
-          <Ionicons name={icon} size={28} color={color} />
+          <Ionicons name={icon} size={28} color={tint} />
         </View>
         <Text className="mt-4 text-[28px] font-black text-white">{value}</Text>
       </View>

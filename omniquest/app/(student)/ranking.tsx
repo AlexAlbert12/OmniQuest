@@ -17,6 +17,8 @@ import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
+import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 
 type Profile = {
   id: string
@@ -61,6 +63,7 @@ export default function RankingScreen() {
   const [classOptions, setClassOptions] = useState<ClassOption[]>([])
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const { accentColor } = useAppTheme()
 
   const isDesktop = width >= 1024
   const rankingRows = useMemo(() => profiles, [profiles])
@@ -213,7 +216,7 @@ export default function RankingScreen() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color="#6574FF" />
+        <ActivityIndicator size="large" color={accentColor} />
         <Text className="mt-4 text-[#8FA7C7]">Actualizando ranking...</Text>
       </View>
     )
@@ -417,13 +420,15 @@ function ClassRankingSelector({
   selectedClassId: number | null
   onSelect: (classId: number) => void
 }) {
+  const { accentColor } = useAppTheme()
+
   return (
     <View className="mt-3">
       {classOptions.length > 0 ? (
         <View className="flex-row flex-wrap gap-2">
           {classOptions.map((classOption) => {
             const active = selectedClassId === classOption.id
-            const color = classOption.theme_color || '#6574FF'
+            const color = classOption.theme_color || accentColor
 
             return (
               <Pressable
@@ -467,6 +472,7 @@ function RankingTabs({
   activeScope: RankingScope
   onSelect: (scope: RankingScope) => void
 }) {
+  const { accentColor } = useAppTheme()
   const tabs: { label: string; icon: keyof typeof Ionicons.glyphMap; scope: RankingScope }[] = [
     { label: 'Global', icon: 'globe-outline', scope: 'global' },
     { label: 'Clase', icon: 'school-outline', scope: 'class' },
@@ -480,8 +486,11 @@ function RankingTabs({
         <Pressable
           key={tab.label}
           onPress={() => onSelect(tab.scope)}
-          className={`min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-4 py-4 ${active ? 'border-[#5D64FF] bg-[#4F46E5]' : 'border-[#172A4A] bg-[#09162C]'
-            }`}
+          className="min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-4 py-4"
+          style={{
+            borderColor: active ? accentColor : '#172A4A',
+            backgroundColor: active ? accentColor : '#09162C',
+          }}
         >
           <Ionicons name={tab.icon} size={18} color={active ? '#FFFFFF' : '#AFC2DB'} />
           <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{tab.label}</Text>
@@ -506,13 +515,14 @@ function RankingRow({
   const points = item.points ?? 0
   const level = getStudentLevel(points)
   const medalColors = ['#FBBF24', '#CBD5E1', '#F97316']
-  const progressColor = index === 0 ? '#FBBF24' : isMe ? '#3B82F6' : '#8B5CF6'
+  const { accentColor } = useAppTheme()
+  const progressColor = index === 0 ? '#FBBF24' : isMe ? accentColor : '#3B82F6'
   const progress = Math.max(20, Math.round((points / maxPoints) * 100))
 
   return (
     <View
-      className={`flex-row items-center rounded-xl px-3 py-3 ${isMe ? 'border border-[#5364F5] bg-[#1D2B68]' : ''
-        }`}
+      className={`flex-row items-center rounded-xl px-3 py-3 ${isMe ? 'border' : ''}`}
+      style={isMe ? { borderColor: accentColor, backgroundColor: withAlpha(accentColor, '24') } : undefined}
     >
       <View className="w-20 flex-row items-center justify-center">
         {index < 3 ? (

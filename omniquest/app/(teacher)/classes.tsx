@@ -551,7 +551,7 @@ function ClassCard({
             <View className="mt-3 flex-row flex-wrap gap-2">
               <SmallPill icon="albums-outline" label={`${analytics.topicsCount} temas`} color="#F6A64A" />
               <SmallPill icon="people-outline" label={`${analytics.enrolledCount} alumnos`} color="#38bdf8" />
-              <SmallPill icon="trophy-outline" label={`${analytics.averageScore} XP media`} color="#B9A7FF" />
+              <SmallPill icon="trophy-outline" label={`${analytics.averageScore} Puntuación media`} color="#B9A7FF" />
               <SmallPill icon="checkmark-circle-outline" label={`${analytics.playedCount} con nota`} color="#58E28B" />
             </View>
           </View>
@@ -797,7 +797,7 @@ function buildRecentActivity({
         icon: 'trophy',
         color: '#F6A64A',
         title: `${studentName} completó una partida`,
-        detail: `${score.max_score ?? 0} XP en ${subject?.name || 'una clase'}`,
+        detail: `${score.max_score ?? 0} puntos en ${subject?.name || 'una clase'}`,
         time: formatRelativeDate(score.played_at),
         timestamp,
       };

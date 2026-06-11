@@ -244,7 +244,7 @@ export default function TeacherStudentsScreen() {
       `Alias: ${student.alias}`,
       `Usuario: ${student.handle}`,
       `Progreso: ${student.progress}%`,
-      `XP de clase: ${student.subjectScore}`,
+      `Puntuación de clase: ${student.subjectScore}`,
       `Nota media: ${student.averageScore.toFixed(1)}`,
       `Preguntas completadas: ${student.challenges}`,
       `Estado: ${getStatusMeta(student.status).label}`,
@@ -513,8 +513,8 @@ export default function TeacherStudentsScreen() {
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
             <MetricCard icon="people" title="Total estudiantes" value={String(stats.total)} trend="2 nuevos esta semana" color="#8B5CF6" />
             <MetricCard icon="checkmark-circle" title="Activos esta semana" value={String(stats.active)} trend="12% vs semana pasada" color="#34D399" />
-            <MetricCard icon="star" title="XP media de clase" value={stats.averageXp.toLocaleString()} trend="8% vs semana pasada" color="#3B82F6" />
-            <MetricCard icon="trophy" title="Top de la clase" value={stats.topName} detail={`${stats.topScore.toLocaleString()} XP`} color="#F6A64A" />
+            <MetricCard icon="star" title="Puntuación media de clase" value={stats.averageXp.toLocaleString()} trend="8% vs semana pasada" color="#3B82F6" />
+            <MetricCard icon="trophy" title="Top de la clase" value={stats.topName} detail={`${stats.topScore.toLocaleString()} puntos`} color="#F6A64A" />
           </View>
 
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
@@ -531,7 +531,7 @@ export default function TeacherStudentsScreen() {
                   <Ionicons name="search-outline" size={20} color="#AFC2DB" />
                 </View>
                 <FilterButton label="Todos los estados" icon="chevron-down" />
-                <FilterButton label="Ordenar por: XP" icon="chevron-down" />
+                <FilterButton label="Ordenar por: Puntuación" icon="chevron-down" />
                 <Pressable
                   onPress={handleExportStudentsCsv}
                   disabled={visibleStudents.length === 0}
@@ -549,7 +549,7 @@ export default function TeacherStudentsScreen() {
                 <View className="hidden flex-row border-b border-[#1A3155] bg-[#10164A] px-4 py-4 md:flex">
                   <TableHeader label="Estudiante" flex={1.6} />
                   <TableHeader label="Progreso general" flex={1.2} />
-                  <TableHeader label="XP" flex={0.65} />
+                  <TableHeader label="Puntuación" flex={0.65} />
                   <TableHeader label="Preguntas" flex={0.5} />
                   <TableHeader label="Nota media" flex={0.7} />
                   <TableHeader label="Estado" flex={0.9} />
@@ -610,7 +610,7 @@ export default function TeacherStudentsScreen() {
               <Panel title="Actividad esta semana" action="Ver todo">
                 <ProgressStat label="Estudiantes activos" value={stats.active} total={Math.max(stats.total, 1)} color="#8B5CF6" />
                 <ProgressStat label="Preguntas completadas" value={stats.completedChallenges} total={Math.max(stats.completedChallenges + 6, 1)} color="#7C5CFF" />
-                <ProgressStat label="XP ganada" value={stats.averageXp} total={Math.max(stats.averageXp + 650, 1)} color="#3B82F6" />
+                <ProgressStat label="Puntuación ganada" value={stats.averageXp} total={Math.max(stats.averageXp + 650, 1)} color="#3B82F6" />
               </Panel>
 
               <Panel title="Estudiantes que necesitan atención" action="Ver todo">

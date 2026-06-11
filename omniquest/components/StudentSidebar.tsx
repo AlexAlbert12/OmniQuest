@@ -78,29 +78,30 @@ export default function StudentSidebar({
           )
         })}
       </View>
-
-      <View
-        className="mt-2 rounded-2xl border p-4"
-        style={{ borderColor: isDark ? '#162B50' : '#2E4E78', backgroundColor: isDark ? '#091A35' : '#132A4D' }}
-      >
-        <View className="flex-row items-center gap-3">
-          <View className="h-12 w-12 items-center justify-center rounded-full bg-[#192C62] overflow-hidden">
-            {avatar && avatar.startsWith('http') ? (
-              <Image source={{ uri: avatar }} className="h-full w-full" />
-            ) : (
-              <Ionicons name="person" size={16} color="#9FD6FF" />
-            )}
+      <Link href="/(student)/profile" asChild>
+        <Pressable
+          className="mt-2 rounded-2xl border p-4"
+          style={{ borderColor: isDark ? '#162B50' : '#2E4E78', backgroundColor: isDark ? '#091A35' : '#132A4D' }}
+        >
+          <View className="flex-row items-center gap-3">
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-[#192C62] overflow-hidden">
+              {avatar && avatar.startsWith('http') ? (
+                <Image source={{ uri: avatar }} className="h-full w-full" />
+              ) : (
+                <Ionicons name="person" size={16} color="#9FD6FF" />
+              )}
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-[14px] font-bold text-white">{alias}</Text>
+              <Text className="text-[12px] text-[#9BAEC9]">Nivel {level}</Text>
+            </View>
           </View>
-          <View className="min-w-0 flex-1">
-            <Text className="text-[14px] font-bold text-white">{alias}</Text>
-            <Text className="text-[12px] text-[#9BAEC9]">Nivel {level}</Text>
+          <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
+            <View className="h-full rounded-full" style={{ width: `${nextLevelProgress}%`, backgroundColor: accentColor }} />
           </View>
-        </View>
-        <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full" style={{ width: `${nextLevelProgress}%`, backgroundColor: accentColor }} />
-        </View>
-        <Text className="mt-2 text-[11px] text-[#8FA7C7]">{points.toLocaleString()} XP</Text>
-      </View>
+          <Text className="mt-2 text-[11px] text-[#8FA7C7]">{points.toLocaleString()} XP</Text>
+        </Pressable>
+      </Link>
     </View>
   )
 }
@@ -161,7 +162,7 @@ function StudentNavButton({
             inputRange: [0, 1],
             outputRange: ['rgba(8,24,51,0)', isActive ? 'rgba(26,35,92,0.92)' : 'rgba(11,30,61,0.82)'],
           }),
-          shadowColor: '#6574FF',
+          shadowColor: accentColor,
           shadowOffset: { width: 0, height: 10 },
           shadowOpacity: hoverProgress.interpolate({
             inputRange: [0, 1],

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useAppTheme } from '../../lib/appTheme'
 
 export default function StudentDashboardCard({
   title,
@@ -17,14 +18,16 @@ export default function StudentDashboardCard({
   compact?: boolean
   children: React.ReactNode
 }) {
+  const { accentColor } = useAppTheme()
+
   return (
     <View className={`rounded-2xl border border-[#1A3155] bg-[#09162C] ${compact ? 'p-4' : 'p-5'} ${className}`}>
       <View className="mb-4 flex-row items-center justify-between gap-3">
         <Text className="text-[15px] font-black text-white">{title}</Text>
         {actionLabel && onAction ? (
           <Pressable onPress={onAction} className="flex-row items-center gap-2">
-            <Text className="text-[13px] font-bold text-[#9B6CFF]">{actionLabel}</Text>
-            <Ionicons name="arrow-forward" size={13} color="#9B6CFF" />
+            <Text className="text-[13px] font-bold" style={{ color: accentColor }}>{actionLabel}</Text>
+            <Ionicons name="arrow-forward" size={13} color={accentColor} />
           </Pressable>
         ) : null}
       </View>
@@ -36,16 +39,19 @@ export default function StudentDashboardCard({
 export function StudentCardLink({
   label,
   onPress,
-  color = '#9B6CFF',
+  color,
 }: {
   label: string
   onPress: () => void
   color?: string
 }) {
+  const { accentColor } = useAppTheme()
+  const linkColor = color || accentColor
+
   return (
     <Pressable onPress={onPress} className="mt-4 flex-row items-center justify-center gap-2 border-t border-[#172A4A] pt-4">
-      <Text className="text-[13px] font-bold" style={{ color }}>{label}</Text>
-      <Ionicons name="arrow-forward" size={14} color={color} />
+      <Text className="text-[13px] font-bold" style={{ color: linkColor }}>{label}</Text>
+      <Ionicons name="arrow-forward" size={14} color={linkColor} />
     </Pressable>
   )
 }

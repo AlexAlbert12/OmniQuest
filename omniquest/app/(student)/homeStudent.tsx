@@ -12,6 +12,8 @@ import { fetchStudentProgressSummary, type StudentProgressSummary, type StudentP
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentDashboardCard, { StudentCardLink as CardLink } from '../../components/student/StudentDashboardCard'
 import StudentMetricCard from '../../components/student/StudentMetricCard'
+import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 
 type Subject = {
   id: number
@@ -60,6 +62,7 @@ export default function StudentHome() {
   const [weeklyGoalCount, setWeeklyGoalCount] = useState(0)
   const [progressSummary, setProgressSummary] = useState<StudentProgressSummary | null>(null)
   const router = useRouter()
+  const { accentColor } = useAppTheme()
 
   const isDesktop = width >= 1024
   const isWide = width >= 760
@@ -303,7 +306,7 @@ export default function StudentHome() {
                 title="Preguntas completadas"
                 value={attemptCount.toString()}
                 icon="trophy"
-                color="#8B5CF6"
+                color={accentColor}
                 onPress={() => router.push('/(student)/progress')}
               />
               <StudentMetricCard
@@ -355,8 +358,8 @@ export default function StudentHome() {
                   <Pressable
                     onPress={handleJoinClass}
                     disabled={joining}
-                    className="items-center justify-center rounded-xl bg-[#5865F2] px-5"
-                    style={({ pressed }) => ({ opacity: joining ? 0.7 : pressed ? 0.82 : 1 })}
+                    className="items-center justify-center rounded-xl px-5"
+                    style={({ pressed }) => ({ backgroundColor: accentColor, opacity: joining ? 0.7 : pressed ? 0.82 : 1 })}
                   >
                     {joining ? (
                       <ActivityIndicator color="#FFFFFF" />
@@ -409,6 +412,7 @@ function HeroCard({ isWide, firstSubject }: { isWide: boolean; firstSubject?: Su
       params: { id: String(firstSubject.id) },
     }
     : undefined
+  const { accentColor } = useAppTheme()
 
   return (
     <View
@@ -436,13 +440,13 @@ function HeroCard({ isWide, firstSubject }: { isWide: boolean; firstSubject?: Su
 
         {playHref ? (
           <Link href={playHref as any} asChild>
-            <Pressable className="mt-5 w-[154px] flex-row items-center justify-center gap-2 rounded-xl bg-[#5865F2] px-4 py-3">
+            <Pressable className="mt-5 w-[154px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: accentColor }}>
               <Ionicons name="play" size={18} color="#FFFFFF" />
               <Text className="font-bold text-white">Elegir tema</Text>
             </Pressable>
           </Link>
         ) : (
-          <View className="mt-5 w-[184px] rounded-xl bg-[#5865F2]/35 px-4 py-3">
+          <View className="mt-5 w-[184px] rounded-xl px-4 py-3" style={{ backgroundColor: withAlpha(accentColor, '35') }}>
             <Text className="text-center font-bold text-[#B4C4DA]">Únete a una clase</Text>
           </View>
         )}
@@ -466,6 +470,7 @@ function SubjectRow({
   const hasScore = typeof score === 'number'
   const progressPercent = progress?.percent ?? 0
   const color = subject.theme_color || colors[index] || '#58B5FF'
+  const { accentColor } = useAppTheme()
 
   return (
     <Link
@@ -505,7 +510,7 @@ function SubjectRow({
           <View className="h-full rounded-full" style={{ width: `${progressPercent}%`, backgroundColor: color }} />
         </View>
         <Text className="mr-3 text-[13px] text-[#8FA7C7]">{progressPercent}%</Text>
-        <View className="ml-2 flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-3 py-2">
+        <View className="ml-2 flex-row items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: accentColor }}>
           <Ionicons name="albums" size={14} color="#FFFFFF" />
           <Text className="hidden text-[12px] font-bold text-white sm:flex">
             Temas
@@ -545,11 +550,12 @@ function ActivityRow({ item }: { item: ActivityItem }) {
 
 function RankingRow({ item, index, isMe }: { item: Profile; index: number; isMe: boolean }) {
   const medalColors = ['#FBBF24', '#CBD5E1', '#F97316']
+  const { accentColor } = useAppTheme()
 
   return (
     <View
-      className={`flex-row items-center rounded-xl px-2 py-2 ${isMe ? 'border border-[#5364F5] bg-[#28306D]' : ''
-        }`}
+      className={`flex-row items-center rounded-xl px-2 py-2 ${isMe ? 'border' : ''}`}
+      style={isMe ? { borderColor: accentColor, backgroundColor: withAlpha(accentColor, '24') } : undefined}
     >
       <View className="w-8 items-center">
         {index < 3 ? (
@@ -575,6 +581,7 @@ function RankingRow({ item, index, isMe }: { item: Profile; index: number; isMe:
 
 function WeeklyGoal({ completed }: { completed: number }) {
   const percent = Math.min(100, (completed / 10) * 100)
+  const { accentColor } = useAppTheme()
 
   return (
     <View className="mt-5 flex-row items-center rounded-2xl border border-[#1A3155] bg-[#101A47] p-5">
@@ -586,10 +593,10 @@ function WeeklyGoal({ completed }: { completed: number }) {
         <Text className="mt-1 text-[13px] text-[#AFC2DB]">Completa 10 preguntas esta semana</Text>
       </View>
       <View className="mx-5 hidden h-2 flex-[1.6] overflow-hidden rounded-full bg-[#182D50] md:flex">
-        <View className="h-full rounded-full bg-[#9B6CFF]" style={{ width: `${percent}%` }} />
+        <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: accentColor }} />
       </View>
       <Text className="font-bold text-[#C9D6EA]">{completed} / 10</Text>
-      <View className="ml-5 h-14 w-14 items-center justify-center rounded-2xl bg-[#6D3DF4]/20">
+      <View className="ml-5 h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(accentColor, '20') }}>
         <Text className="text-3xl">🎁</Text>
       </View>
     </View>

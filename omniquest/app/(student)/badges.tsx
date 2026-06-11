@@ -23,6 +23,8 @@ import {
 } from '../../lib/studentBadges'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
+import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 
 type Profile = {
   id: string
@@ -44,6 +46,7 @@ export default function BadgesScreen() {
   const [loading, setLoading] = useState(true)
 
   const isDesktop = width >= 1024
+  const { accentColor } = useAppTheme()
   const points = profile?.points ?? 0
   const alias = profile?.alias || 'Alex'
   const level = getStudentLevel(points)
@@ -152,7 +155,7 @@ export default function BadgesScreen() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color="#6574FF" />
+        <ActivityIndicator size="large" color={accentColor} />
         <Text className="mt-4 text-[#8FA7C7]">Preparando tus insignias...</Text>
       </View>
     )
@@ -208,7 +211,7 @@ export default function BadgesScreen() {
 
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
             <View className="flex-[1.25] overflow-hidden rounded-2xl border border-[#2D3F78] bg-[#101D4A] p-6">
-              <View className="absolute right-[-30px] top-[-32px] h-36 w-36 rounded-full bg-[#6D5AF6]/25" />
+              <View className="absolute right-[-30px] top-[-32px] h-36 w-36 rounded-full" style={{ backgroundColor: withAlpha(accentColor, '25') }} />
               <View className="absolute bottom-[-34px] left-[-18px] h-28 w-44 rounded-full bg-[#0B3472]/45" />
               <View className="relative flex-row items-center gap-5">
                 <View className="h-24 w-24 items-center justify-center rounded-2xl border border-[#9FD6FF]/40 bg-[#9FD6FF]/15">
@@ -221,7 +224,7 @@ export default function BadgesScreen() {
                   </Text>
                   <Text className="mt-1 text-[13px] text-[#AFC2DB]">insignias conseguidas</Text>
                   <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#27396B]">
-                    <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${completionPercent}%` }} />
+                    <View className="h-full rounded-full" style={{ width: `${completionPercent}%`, backgroundColor: accentColor }} />
                   </View>
                 </View>
               </View>
@@ -286,10 +289,13 @@ function MetricTile({
 }
 
 function FilterButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const { accentColor } = useAppTheme()
+
   return (
     <Pressable
       onPress={onPress}
-      className={`rounded-lg px-3 py-2 ${active ? 'bg-[#6D5AF6]' : ''}`}
+      className="rounded-lg px-3 py-2"
+      style={{ backgroundColor: active ? accentColor : 'transparent' }}
     >
       <Text className={`text-[13px] font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{label}</Text>
     </Pressable>

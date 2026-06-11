@@ -18,6 +18,8 @@ import { getTimeAgo } from '../../lib/time'
 import StudentSidebar from '../../components/StudentSidebar'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
+import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
 
@@ -66,6 +68,7 @@ export default function StudentNotificationsScreen() {
   const [profileLoading, setProfileLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedFilter, setSelectedFilter] = useState<NotificationFilter>('all')
+  const { accentColor } = useAppTheme()
 
   const isDesktop = width >= 1080
   const isWide = width >= 860
@@ -167,7 +170,7 @@ export default function StudentNotificationsScreen() {
   if (loading || profileLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color="#6574FF" />
+        <ActivityIndicator size="large" color={accentColor} />
         <Text className="mt-4 text-[#8FA7C7]">Cargando notificaciones...</Text>
       </View>
     )
@@ -195,7 +198,7 @@ export default function StudentNotificationsScreen() {
             paddingTop: isDesktop ? 24 : 18,
             paddingBottom: isDesktop ? 32 : 104,
           }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6574FF" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accentColor} />}
           showsVerticalScrollIndicator={false}
         >
           <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
@@ -228,8 +231,8 @@ export default function StudentNotificationsScreen() {
               {unreadCount > 0 ? (
                 <Pressable
                   onPress={() => void markAllAsRead()}
-                  className="flex-row items-center gap-2 rounded-xl bg-[#5865F2] px-4 py-3"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+                  className="flex-row items-center gap-2 rounded-xl px-4 py-3"
+                  style={({ pressed }) => ({ backgroundColor: accentColor, opacity: pressed ? 0.82 : 1 })}
                 >
                   <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
                   <Text className="text-[12px] font-bold text-white">Marcar todo leído</Text>
@@ -302,15 +305,21 @@ function CategoryCard({
   active: boolean
   onPress: () => void
 }) {
+  const { accentColor } = useAppTheme()
+
   return (
     <Pressable
       onPress={onPress}
-      className={`min-w-[160px] flex-1 rounded-xl border p-4 ${active ? 'border-[#6574FF] bg-[#1A1E55]' : 'border-[#183052] bg-[#07162D]'}`}
-      style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
+      className="min-w-[160px] flex-1 rounded-xl border p-4"
+      style={({ pressed }) => ({
+        borderColor: active ? accentColor : '#183052',
+        backgroundColor: active ? withAlpha(accentColor, '24') : '#07162D',
+        opacity: pressed ? 0.84 : 1,
+      })}
     >
       <View className="mb-3 flex-row items-center justify-between">
         <View className="h-10 w-10 items-center justify-center rounded-lg bg-[#13284A]">
-          <Ionicons name={icon} size={20} color={active ? '#C4B5FD' : '#AFC2DB'} />
+          <Ionicons name={icon} size={20} color={active ? accentColor : '#AFC2DB'} />
         </View>
         {unread > 0 ? (
           <View className="rounded-full bg-[#EF4444] px-2 py-1">
@@ -335,13 +344,17 @@ function FilterChip({
   count?: number
   onPress: () => void
 }) {
+  const { accentColor } = useAppTheme()
+
   return (
     <Pressable
       onPress={onPress}
-      className={`flex-row items-center gap-2 rounded-full px-4 py-2 ${
-        active ? 'bg-[#5865F2]' : 'border border-[#20375E] bg-[#09162C]'
-      }`}
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+      className={`flex-row items-center gap-2 rounded-full border px-4 py-2`}
+      style={({ pressed }) => ({
+        borderColor: active ? accentColor : '#20375E',
+        backgroundColor: active ? accentColor : '#09162C',
+        opacity: pressed ? 0.82 : 1,
+      })}
     >
       <Ionicons name={option.icon} size={14} color={active ? '#FFFFFF' : '#B7C4D7'} />
       <Text className={`text-[13px] font-semibold ${active ? 'text-white' : 'text-[#B7C4D7]'}`}>
@@ -369,14 +382,17 @@ function NotificationItem({
 }) {
   const timeAgo = getTimeAgo(notification.timestamp)
   const [showDeleteAction, setShowDeleteAction] = useState(Platform.OS !== 'web')
+  const { accentColor } = useAppTheme()
 
   return (
     <View
       onPointerEnter={() => setShowDeleteAction(true)}
       onPointerLeave={() => setShowDeleteAction(Platform.OS !== 'web')}
-      className={`flex-row gap-3 rounded-xl border px-4 py-3 ${
-        notification.isRead ? 'border-[#1A3155] bg-[#07162E]' : 'border-[#6574FF] bg-[#0F1E35]'
-      }`}
+      className="flex-row gap-3 rounded-xl border px-4 py-3"
+      style={{
+        borderColor: notification.isRead ? '#1A3155' : accentColor,
+        backgroundColor: notification.isRead ? '#07162E' : '#0F1E35',
+      }}
     >
       <View
         className="h-12 w-12 flex-shrink-0 items-center justify-center rounded-full"
@@ -395,7 +411,7 @@ function NotificationItem({
               <View className="rounded-full bg-[#13284A] px-2 py-1">
                 <Text className="text-[12px] font-bold text-[#AFC2DB]">{categoryLabels[notification.type]}</Text>
               </View>
-              {!notification.isRead ? <View className="h-2 w-2 rounded-full bg-[#6574FF]" /> : null}
+              {!notification.isRead ? <View className="h-2 w-2 rounded-full" style={{ backgroundColor: accentColor }} /> : null}
             </View>
             <Text className="mt-1 text-[13px] leading-5 text-[#8FA7C7]">{notification.description}</Text>
             <View className="mt-2 flex-row flex-wrap items-center gap-2">
@@ -449,4 +465,3 @@ function EmptyState({ filter }: { filter: NotificationFilter }) {
     </View>
   )
 }
-

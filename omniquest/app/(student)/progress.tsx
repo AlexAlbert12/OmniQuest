@@ -23,6 +23,8 @@ import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentDashboardCard, { StudentCardLink } from '../../components/student/StudentDashboardCard'
 import { formatShortDate } from '../../lib/dateFormat'
+import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 
 type Profile = {
   id: string
@@ -70,6 +72,7 @@ export default function ProgressScreen() {
   const [weeklyCompleted, setWeeklyCompleted] = useState(0)
   const [weeklyRemainingText, setWeeklyRemainingText] = useState(() => getTimeUntilSundayLabel())
   const [loading, setLoading] = useState(true)
+  const { accentColor } = useAppTheme()
 
   const isDesktop = width >= 1024
   const points = profile?.points ?? 0
@@ -157,7 +160,7 @@ export default function ProgressScreen() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color="#6574FF" />
+        <ActivityIndicator size="large" color={accentColor} />
         <Text className="mt-4 text-[#8FA7C7]">Analizando tu progreso...</Text>
       </View>
     )
@@ -219,6 +222,7 @@ export default function ProgressScreen() {
               savedScores={savedScores}
               averageScore={averageScore}
               points={points}
+              accentColor={accentColor}
             />
             <XpEvolution scores={recentScores} />
             <DistributionCard subjects={subjectProgress} />
@@ -273,6 +277,7 @@ function SummaryCard({
   savedScores,
   averageScore,
   points,
+  accentColor,
 }: {
   progressPercent: number
   completedClasses: number
@@ -280,12 +285,13 @@ function SummaryCard({
   savedScores: number
   averageScore: number | null
   points: number
+  accentColor: string
 }) {
   return (
     <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
       <Text className="mb-5 text-[15px] font-black text-white">Resumen general</Text>
       <View className="flex-row items-center gap-6">
-        <View className="h-40 w-40 items-center justify-center rounded-full border-[13px] border-[#8B5CF6] bg-[#13204B]">
+        <View className="h-40 w-40 items-center justify-center rounded-full border-[13px] bg-[#13204B]" style={{ borderColor: accentColor }}>
           <Text className="text-[34px] font-black text-white">{progressPercent}%</Text>
           <Text className="mt-1 text-center text-[13px] text-[#AFC2DB]">Progreso general</Text>
         </View>
@@ -327,6 +333,7 @@ function SummaryStat({
 
 function XpEvolution({ scores }: { scores: RecentScore[] }) {
   const maxScore = Math.max(...scores.map((score) => score.value), 1)
+  const { accentColor } = useAppTheme()
 
   return (
     <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
@@ -351,8 +358,8 @@ function XpEvolution({ scores }: { scores: RecentScore[] }) {
                 </View>
                 <View className="h-2.5 overflow-hidden rounded-full bg-[#13294C]">
                   <View
-                    className="h-full rounded-full bg-[#5D5FEF]"
-                    style={{ width: `${percent}%`, opacity: index === 0 ? 1 : 0.72 }}
+                    className="h-full rounded-full"
+                    style={{ width: `${percent}%`, opacity: index === 0 ? 1 : 0.72, backgroundColor: accentColor }}
                   />
                 </View>
               </View>
@@ -471,6 +478,8 @@ function EmptyProgress() {
 }
 
 function AchievementRow({ achievement, onPress }: { achievement: StudentBadge; onPress: () => void }) {
+  const { accentColor } = useAppTheme()
+
   return (
     <Pressable onPress={onPress} className={`flex-row items-center gap-4 rounded-xl bg-[#0D1D3B] p-3 ${achievement.unlocked ? '' : 'opacity-70'}`}>
       <View
@@ -485,7 +494,7 @@ function AchievementRow({ achievement, onPress }: { achievement: StudentBadge; o
       </View>
       <View className="items-end">
         <Text className="text-[13px] text-[#8FA7C7]">{achievement.statusLabel}</Text>
-        <Text className="mt-1 text-[13px] font-bold text-[#9B6CFF]">{achievement.xp}</Text>
+        <Text className="mt-1 text-[13px] font-bold" style={{ color: accentColor }}>{achievement.xp}</Text>
       </View>
     </Pressable>
   )
@@ -493,10 +502,11 @@ function AchievementRow({ achievement, onPress }: { achievement: StudentBadge; o
 
 function WeeklyGoal({ completed, remainingText }: { completed: number; remainingText: string }) {
   const percent = Math.min(100, (completed / 10) * 100)
+  const { accentColor } = useAppTheme()
 
   return (
     <View className="overflow-hidden rounded-2xl border border-[#3E2A8E] bg-[#221052] p-5">
-      <View className="absolute bottom-[-24px] right-[-10px] h-28 w-36 rounded-full bg-[#4F2BC0]/50" />
+      <View className="absolute bottom-[-24px] right-[-10px] h-28 w-36 rounded-full" style={{ backgroundColor: withAlpha(accentColor, '40') }} />
       <Text className="text-[15px] font-black text-white">Meta semanal</Text>
       <View className="mt-3 flex-row items-center justify-between">
         <Text className="font-bold text-white">Completa 10 preguntas esta semana</Text>
@@ -507,7 +517,7 @@ function WeeklyGoal({ completed, remainingText }: { completed: number; remaining
       </View>
       <View className="mt-5 flex-row items-center gap-4">
         <View className="h-2 flex-1 overflow-hidden rounded-full bg-[#3B2A78]">
-          <View className="h-full rounded-full bg-[#9B6CFF]" style={{ width: `${percent}%` }} />
+          <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: accentColor }} />
         </View>
         <Text className="text-[13px] font-bold text-[#C4B5FD]">{completed} / 10</Text>
       </View>

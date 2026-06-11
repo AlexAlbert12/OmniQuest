@@ -18,6 +18,7 @@ import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
+import { useAppTheme } from '../../lib/appTheme'
 
 type Profile = {
   id: string
@@ -69,6 +70,7 @@ export default function ClassesScreen() {
   const [leavingSubjectId, setLeavingSubjectId] = useState<number | null>(null)
 
   const isDesktop = width >= 1024
+  const { accentColor } = useAppTheme()
   const classRows = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase()
     let rows = subjects
@@ -343,7 +345,7 @@ export default function ClassesScreen() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color="#6574FF" />
+        <ActivityIndicator size="large" color={accentColor} />
         <Text className="mt-4 text-[#8FA7C7]">Cargando tus clases...</Text>
       </View>
     )
@@ -398,7 +400,7 @@ export default function ClassesScreen() {
           </View>
 
           <View className={isDesktop ? 'flex-row gap-4' : 'gap-4'}>
-            <StatCard icon="school" color="#6574FF" value={String(activeClasses)} label="Clases activas" detail="Sigue aprendiendo 🚀" />
+            <StatCard icon="school" color={accentColor} value={String(activeClasses)} label="Clases activas" detail="Sigue aprendiendo 🚀" />
             <StatCard icon="checkmark-circle" color="#43D991" value={`${classesWithScore} / ${activeClasses}`} label="Clases con nota" detail={`${averageProgress}% de progreso medio`} />
             <StatCard icon="star" color="#F6A64A" value={averageScore > 0 ? `${averageScore} XP` : '0 XP'} label="Promedio de nota" detail="Basado en tus mejores notas" />
             <StatCard icon="time" color="#58B5FF" value={`${points.toLocaleString()} XP`} label="XP global" detail="Acumulada en tu perfil" />
@@ -424,7 +426,8 @@ export default function ClassesScreen() {
                   <Pressable
                     key={filter.id}
                     onPress={() => setSelectedFilter(filter.id)}
-                    className={`rounded-lg px-5 py-3 ${active ? 'bg-[#4F46E5]' : 'bg-[#0A1A34]'}`}
+                    className="rounded-lg px-5 py-3"
+                    style={{ backgroundColor: active ? accentColor : '#0A1A34' }}
                   >
                     <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{filter.label}</Text>
                   </Pressable>
@@ -440,7 +443,8 @@ export default function ClassesScreen() {
                     <Pressable
                       key={sort.id}
                       onPress={() => setSelectedSort(sort.id)}
-                      className={`rounded-lg px-4 py-3 ${active ? 'bg-[#4F46E5]' : 'bg-[#0A1A34]'}`}
+                      className="rounded-lg px-4 py-3"
+                      style={{ backgroundColor: active ? accentColor : '#0A1A34' }}
                     >
                       <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{sort.label}</Text>
                     </Pressable>
@@ -546,6 +550,7 @@ function ClassRow({
   const topicsLabel = `${topicsCount} tema${topicsCount === 1 ? '' : 's'}`
   const statusTag = progress?.isCompleted ? 'Completada' : hasScore ? 'Con nota' : null
   const activityLabel = formatLastActivity(lastActivityAt)
+  const { accentColor } = useAppTheme()
 
   const content = (
     <View className="flex-row items-center rounded-xl border border-[#172A4A] bg-[#0B1A32] p-4">
@@ -570,7 +575,7 @@ function ClassRow({
           </View>
           {statusTag ? (
             <View className="rounded bg-[#1F2F42] px-2 py-1">
-              <Text className="text-[12px] font-bold text-[#9B6CFF]">{statusTag}</Text>
+              <Text className="text-[12px] font-bold" style={{ color: accentColor }}>{statusTag}</Text>
             </View>
           ) : null}
         </View>
@@ -591,14 +596,15 @@ function ClassRow({
 
       <View className="hidden w-28 border-l border-[#172A4A] pl-5 lg:flex">
         <Text className="text-[13px] text-[#8FA7C7]">Mejor nota</Text>
-        <Text className="mt-1 font-bold text-[#9B6CFF]">{scoreLabel}</Text>
+        <Text className="mt-1 font-bold" style={{ color: accentColor }}>{scoreLabel}</Text>
       </View>
 
       <View className="ml-4 items-end">
         <View className="flex-row items-center gap-3">
           {isFallback ? (
             <Pressable
-              className="flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-4 py-3"
+              className="flex-row items-center gap-2 rounded-lg px-4 py-3"
+              style={{ backgroundColor: accentColor }}
             >
               <Ionicons name="play" size={15} color="#FFFFFF" />
               <Text className="font-bold text-white">Continuar</Text>
@@ -612,7 +618,7 @@ function ClassRow({
                 }}
                 asChild
               >
-                <Pressable className="flex-row items-center gap-2 rounded-lg bg-[#4F46E5] px-4 py-3">
+                <Pressable className="flex-row items-center gap-2 rounded-lg px-4 py-3" style={{ backgroundColor: accentColor }}>
                   <Ionicons name="albums" size={15} color="#FFFFFF" />
                   <Text className="font-bold text-white">Ver temas</Text>
                 </Pressable>
@@ -652,13 +658,15 @@ function JoinClassCard({
   onChangeCode: (value: string) => void
   onJoin: () => void
 }) {
+  const { accentColor } = useAppTheme()
+
   return (
-    <View className="mt-4 flex-row flex-wrap items-center gap-4 rounded-2xl border border-dashed border-[#5364F5] bg-[#101B49] p-5">
-      <View className="h-14 w-14 items-center justify-center rounded-full border border-[#5364F5] bg-[#0D1D3B]">
-        <Ionicons name="add" size={28} color="#8290FF" />
+    <View className="mt-4 flex-row flex-wrap items-center gap-4 rounded-2xl border border-dashed bg-[#101B49] p-5" style={{ borderColor: accentColor }}>
+      <View className="h-14 w-14 items-center justify-center rounded-full border bg-[#0D1D3B]" style={{ borderColor: accentColor }}>
+        <Ionicons name="add" size={28} color={accentColor} />
       </View>
       <View className="min-w-[220px] flex-1">
-        <Text className="text-[16px] font-black text-[#8290FF]">Unirse a una nueva clase</Text>
+        <Text className="text-[16px] font-black" style={{ color: accentColor }}>Unirse a una nueva clase</Text>
         <Text className="mt-1 text-[12px] text-[#AFC2DB]">
           ¿Tienes un código de clase? Únete y empieza a aprender.
         </Text>
@@ -676,11 +684,11 @@ function JoinClassCard({
         <Pressable
           onPress={onJoin}
           disabled={joining}
-          className="flex-row items-center justify-center gap-2 rounded-xl border border-[#5364F5] px-5 py-3"
-          style={({ pressed }) => ({ opacity: joining ? 0.7 : pressed ? 0.82 : 1 })}
+          className="flex-row items-center justify-center gap-2 rounded-xl border px-5 py-3"
+          style={({ pressed }) => ({ borderColor: accentColor, opacity: joining ? 0.7 : pressed ? 0.82 : 1 })}
         >
-          {joining ? <ActivityIndicator color="#8290FF" /> : <Text className="font-bold text-[#8290FF]">Unirse a clase</Text>}
-          {!joining ? <Ionicons name="arrow-forward" size={16} color="#8290FF" /> : null}
+          {joining ? <ActivityIndicator color={accentColor} /> : <Text className="font-bold" style={{ color: accentColor }}>Unirse a clase</Text>}
+          {!joining ? <Ionicons name="arrow-forward" size={16} color={accentColor} /> : null}
         </Pressable>
       </View>
     </View>
