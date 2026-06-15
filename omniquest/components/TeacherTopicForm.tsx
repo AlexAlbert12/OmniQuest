@@ -34,6 +34,12 @@ type TopicRow = {
   } | null
 }
 
+type SubjectOwnerRow = {
+  id: number
+  name: string
+  theme_color: string | null
+}
+
 export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
   const { width } = useWindowDimensions();
   const router = useRouter();
@@ -62,18 +68,34 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
 
     const fetchTopic = async () => {
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const teacherId = sessionData.session?.user.id;
+
+        if (!teacherId) {
+          throw new Error('No se encontró una sesión activa.');
+        }
+
         const { data, error } = await supabase
           .from('subject_topics')
-          .select('id, title, description, icon, sort_order, subject_id, subjects(id, name, theme_color)')
+          .select('id, title, description, icon, sort_order, subject_id')
           .eq('id', normalizedTopicId)
           .single();
 
         if (error) throw error;
 
-        const rawTopic = data as unknown as TopicRow & { subjects?: TopicRow['subjects'] | TopicRow['subjects'][] };
+        const rawTopic = data as unknown as TopicRow;
+        const { data: subjectData, error: subjectError } = await supabase
+          .from('subjects')
+          .select('id, name, theme_color')
+          .eq('id', rawTopic.subject_id)
+          .eq('teacher_id', teacherId)
+          .single();
+
+        if (subjectError) throw subjectError;
+
         const nextTopic: TopicRow = {
           ...rawTopic,
-          subjects: Array.isArray(rawTopic.subjects) ? rawTopic.subjects[0] || null : rawTopic.subjects || null,
+          subjects: subjectData as SubjectOwnerRow,
         };
         const topicIcon = nextTopic.icon && iconChoices.includes(nextTopic.icon as (typeof iconChoices)[number])
           ? (nextTopic.icon as (typeof iconChoices)[number])
@@ -102,6 +124,11 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
 
     if (!normalizedTopicId) {
       showAlert('Error', 'No se encontró el tema a editar.');
+      return;
+    }
+
+    if (!topic) {
+      showAlert('Error', 'No se pudo validar la pertenencia del tema.');
       return;
     }
 
@@ -135,7 +162,8 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
           icon,
           sort_order: parsedSortOrder,
         })
-        .eq('id', normalizedTopicId);
+        .eq('id', normalizedTopicId)
+        .eq('subject_id', topic.subject_id);
 
       if (error) throw error;
 

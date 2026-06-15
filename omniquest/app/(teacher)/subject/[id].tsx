@@ -15,6 +15,7 @@ import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rout
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { accuracyToGrade, answersToAccuracyPercent, scoreToGrade } from '../../../lib/grades';
+import { generateUniqueClassCode } from '../../../lib/classCode';
 import TeacherSidebar from '../../../components/TeacherSidebar';
 
 type IconName = keyof typeof Ionicons.glyphMap
@@ -25,6 +26,9 @@ type Subject = {
   description: string | null
   icon: string | null
   code: string
+  education_level?: string | null
+  academic_year?: string | null
+  subject_label?: string | null
   theme_color: string | null
   is_archived?: boolean | null
   teacher_id?: string | null
@@ -475,23 +479,7 @@ export default function SubjectDetailScreen() {
               </Panel>
 
               <Panel title="Distribución de notas">
-                <View className="flex-row items-center gap-5">
-                  <DonutCard value={scorePerformanceRows.length || enrollments.length} />
-                  <View className="min-w-0 flex-1 gap-2">
-                    {gradeDistribution.map((item) => {
-                      const percent = scorePerformanceRows.length > 0 ? Math.round((item.count / scorePerformanceRows.length) * 100) : 0;
-                      return (
-                        <View key={item.label} className="flex-row items-center gap-2">
-                          <View className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                          <Text className="min-w-0 flex-1 text-[11px] text-[#C4D0E3]">{item.label}</Text>
-                          <Text className="text-[11px] font-bold text-white">
-                            {item.count} ({percent}%)
-                          </Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
+                <GradeDistributionBars distribution={gradeDistribution} total={scorePerformanceRows.length} />
               </Panel>
             </View>
           </View>
@@ -657,23 +645,7 @@ export default function SubjectDetailScreen() {
 
         <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
           <Panel title="Distribución de notas">
-            <View className="flex-row items-center gap-5">
-              <DonutCard value={scorePerformanceRows.length || enrollments.length} />
-              <View className="min-w-0 flex-1 gap-2">
-                {gradeDistribution.map((item) => {
-                  const percent = scorePerformanceRows.length > 0 ? Math.round((item.count / scorePerformanceRows.length) * 100) : 0;
-                  return (
-                    <View key={item.label} className="flex-row items-center gap-2">
-                      <View className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                      <Text className="min-w-0 flex-1 text-[11px] text-[#C4D0E3]">{item.label}</Text>
-                      <Text className="text-[11px] font-bold text-white">
-                        {item.count} ({percent}%)
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
+            <GradeDistributionBars distribution={gradeDistribution} total={scorePerformanceRows.length} />
           </Panel>
 
           <View className="rounded-xl border border-[#4733B7] bg-[#1A1E55] p-5">
@@ -707,8 +679,17 @@ export default function SubjectDetailScreen() {
       const { data: sessionData } = await supabase.auth.getSession();
       const teacherId = sessionData.session?.user.id;
 
+      if (!teacherId) {
+        throw new Error('No se encontró una sesión activa.');
+      }
+
       const [subjectResult, questionsResult, topicsResult, topicScoresResult, enrollmentsResult, scoresResult, subjectsCountResult] = await Promise.all([
-        supabase.from('subjects').select('*').eq('id', subjectId).single(),
+        supabase
+          .from('subjects')
+          .select('*')
+          .eq('id', subjectId)
+          .eq('teacher_id', teacherId)
+          .single(),
         supabase
           .from('questions')
           .select('*, answers(*)')
@@ -731,9 +712,7 @@ export default function SubjectDetailScreen() {
           .select('student_id, max_score, correct_answers, played_days, played_at')
           .eq('subject_id', subjectId)
           .order('played_at', { ascending: false }),
-        teacherId
-          ? supabase.from('subjects').select('id').eq('teacher_id', teacherId).eq('is_archived', false)
-          : Promise.resolve({ data: [], error: null }),
+        supabase.from('subjects').select('id').eq('teacher_id', teacherId).eq('is_archived', false),
       ]);
 
       if (subjectResult.error) throw subjectResult.error;
@@ -806,31 +785,6 @@ export default function SubjectDetailScreen() {
     showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`);
   };
 
-  const generateInviteCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let index = 0; index < 6; index += 1) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
-  const generateUniqueClassCode = async () => {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const candidate = generateInviteCode();
-      const { data, error } = await supabase
-        .from('subjects')
-        .select('id')
-        .eq('code', candidate)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (!data) return candidate;
-    }
-
-    throw new Error('No se pudo generar un código único. Inténtalo de nuevo.');
-  };
-
   const handleEditClass = () => {
     if (!subject) return;
     router.push(`/(teacher)/edit-subject?id=${subject.id}` as any);
@@ -900,6 +854,9 @@ export default function SubjectDetailScreen() {
             description: subject.description,
             icon: subject.icon,
             code: duplicateCode,
+            education_level: subject.education_level ?? null,
+            academic_year: subject.academic_year ?? null,
+            subject_label: subject.subject_label ?? null,
             teacher_id: teacherId,
             theme_color: subject.theme_color,
             is_archived: false,
@@ -1794,12 +1751,43 @@ function QuestionRow({
   );
 }
 
-function DonutCard({ value }: { value: number }) {
+function GradeDistributionBars({
+  distribution,
+  total,
+}: {
+  distribution: { label: string; color: string; count: number }[]
+  total: number
+}) {
+  if (total <= 0) {
+    return (
+      <View className="rounded-xl border border-dashed border-[#29466F] bg-[#07162D] p-4">
+        <Text className="text-center text-[12px] text-[#8FA7C7]">Aún no hay notas para distribuir.</Text>
+      </View>
+    );
+  }
+
   return (
-    <View className="h-24 w-24 items-center justify-center rounded-full border-[10px] border-[#34D399] bg-[#09162C]">
-      <View className="absolute h-24 w-24 rounded-full border-[10px] border-l-[#3B82F6] border-r-transparent border-t-[#F59E0B] border-b-[#F43F5E]" />
-      <Text className="text-[24px] font-black text-white">{value}</Text>
-      <Text className="text-[10px] font-semibold text-[#B7C4D7]">alumnos</Text>
+    <View className="gap-3">
+      <View className="flex-row items-baseline justify-between">
+        <Text className="text-[12px] font-semibold text-[#B7C4D7]">Alumnos con nota</Text>
+        <Text className="text-[18px] font-black text-white">{total}</Text>
+      </View>
+      {distribution.map((item) => {
+        const percent = Math.round((item.count / total) * 100);
+        return (
+          <View key={item.label}>
+            <View className="mb-1 flex-row items-center justify-between gap-3">
+              <Text className="min-w-0 flex-1 text-[11px] font-semibold text-[#C4D0E3]">{item.label}</Text>
+              <Text className="text-[11px] font-bold text-white">
+                {item.count} ({percent}%)
+              </Text>
+            </View>
+            <View className="h-2.5 overflow-hidden rounded-full bg-[#13294C]">
+              <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: item.color }} />
+            </View>
+          </View>
+        );
+      })}
     </View>
   );
 }

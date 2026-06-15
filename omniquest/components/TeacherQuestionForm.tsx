@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 
 type QuestionTypeId = 'multiple' | 'boolean' | 'dragdrop' | 'match' | 'fill' | 'order' | 'open';
+type WizardStep = 1 | 2 | 3 | 4;
 
 type QuestionTypeCard = {
   id: QuestionTypeId;
@@ -47,6 +48,18 @@ const questionTypes: QuestionTypeCard[] = [
   { id: 'open', title: 'Respuesta abierta', detail: 'El alumno escribe su propia respuesta.', icon: 'chatbox-ellipses', accent: '#38BDF8', supported: true },
 ];
 
+const wizardSteps: { number: WizardStep; label: string }[] = [
+  { number: 1, label: 'Tipo de pregunta' },
+  { number: 2, label: 'Contenido' },
+  { number: 3, label: 'Opciones' },
+  { number: 4, label: 'Revisión' },
+];
+
+const TIME_LIMIT_MIN = 5;
+const TIME_LIMIT_MAX = 300;
+const POINTS_MIN = 1;
+const POINTS_MAX = 100;
+
 export default function TeacherQuestionForm({
   mode,
   subjectId,
@@ -62,6 +75,7 @@ export default function TeacherQuestionForm({
   const normalizedInitialTopicId = Array.isArray(initialTopicId) ? initialTopicId[0] : initialTopicId;
 
   const [initializing, setInitializing] = useState(isEdit);
+  const [activeStep, setActiveStep] = useState<WizardStep>(1);
   const [selectedType, setSelectedType] = useState<QuestionTypeId>('multiple');
   const [questionText, setQuestionText] = useState('');
   const [timeLimit, setTimeLimit] = useState('30');
@@ -86,13 +100,16 @@ export default function TeacherQuestionForm({
   const [dragdropPairsText, setDragdropPairsText] = useState('');
 
   const isDesktop = width >= 1080;
-  const isWide = width >= 900;
   const typeColumns = width >= 1320 ? 3 : width >= 720 ? 2 : 1;
   const selectedTypeCard = questionTypes.find((item) => item.id === selectedType) || questionTypes[0];
   const isMultipleType = selectedType === 'multiple';
   const isBooleanType = selectedType === 'boolean';
   const isChoiceType = isMultipleType || isBooleanType;
   const visibleAnswers = isBooleanType ? answers.slice(0, 2) : answers.slice(0, optionsCount);
+  const parsedTimeLimit = parseIntegerField(timeLimit);
+  const parsedPoints = parseIntegerField(points);
+  const timeLimitError = getIntegerRangeError('El tiempo', parsedTimeLimit, TIME_LIMIT_MIN, TIME_LIMIT_MAX, 'segundos');
+  const pointsError = getIntegerRangeError('Los puntos', parsedPoints, POINTS_MIN, POINTS_MAX, 'puntos');
 
   useEffect(() => {
     const loadFormData = async () => {
@@ -284,6 +301,91 @@ export default function TeacherQuestionForm({
     setSelectedType(typeId);
   };
 
+  const validateContentStep = () => {
+    if (!questionText.trim()) {
+      showAlert('Error', 'La pregunta no puede estar vacía.');
+      return false;
+    }
+
+    if (timeLimitError) {
+      showAlert('Error', timeLimitError);
+      return false;
+    }
+
+    if (pointsError) {
+      showAlert('Error', pointsError);
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateOptionsStep = () => {
+    const fillLines = parseLines(fillAnswersText);
+    const orderLines = parseLines(orderItemsText);
+    const matchPairs = parsePairLines(matchPairsText);
+    const dragdropPairs = parsePairLines(dragdropPairsText);
+
+    if (isChoiceType && visibleAnswers.some((answer) => !answer.text.trim())) {
+      showAlert('Error', 'Rellena todas las opciones de respuesta.');
+      return false;
+    }
+
+    if (selectedType === 'open' && !openExpectedAnswer.trim()) {
+      showAlert('Error', 'Añade una respuesta esperada para la pregunta abierta.');
+      return false;
+    }
+
+    if (selectedType === 'fill' && fillLines.length === 0) {
+      showAlert('Error', 'Añade al menos una respuesta correcta para rellenar espacios.');
+      return false;
+    }
+
+    if (selectedType === 'order' && orderLines.length < 2) {
+      showAlert('Error', 'Añade al menos dos elementos para ordenar.');
+      return false;
+    }
+
+    if (selectedType === 'match' && matchPairs.length < 1) {
+      showAlert('Error', 'Añade al menos un par para unir con flechas (formato: izquierda | derecha).');
+      return false;
+    }
+
+    if (selectedType === 'dragdrop' && dragdropPairs.length < 1) {
+      showAlert('Error', 'Añade al menos un par para arrastrar y soltar (formato: elemento | destino).');
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateStep = (step: WizardStep) => {
+    if (step === 2) return validateContentStep();
+    if (step === 3) return validateOptionsStep();
+    return true;
+  };
+
+  const goToStep = (nextStep: WizardStep) => {
+    if (nextStep > activeStep) {
+      for (let step = activeStep; step < nextStep; step += 1) {
+        if (!validateStep(step as WizardStep)) {
+          return;
+        }
+      }
+    }
+
+    setActiveStep(nextStep);
+  };
+
+  const handleNextStep = () => {
+    if (!validateStep(activeStep)) return;
+    setActiveStep((current) => Math.min(4, current + 1) as WizardStep);
+  };
+
+  const handlePreviousStep = () => {
+    setActiveStep((current) => Math.max(1, current - 1) as WizardStep);
+  };
+
   const handleSave = async () => {
     if (!normalizedSubjectId) {
       showAlert('Error', 'No se encontró la clase para guardar la pregunta.');
@@ -295,13 +397,8 @@ export default function TeacherQuestionForm({
       return;
     }
 
-    if (!questionText.trim()) {
-      showAlert('Error', 'La pregunta no puede estar vacía.');
-      return;
-    }
-
-    if (isChoiceType && visibleAnswers.some((answer) => !answer.text.trim())) {
-      showAlert('Error', `Rellena todas las opciones de respuesta.`);
+    if (!validateContentStep()) {
+      setActiveStep(2);
       return;
     }
 
@@ -310,33 +407,13 @@ export default function TeacherQuestionForm({
     const matchPairs = parsePairLines(matchPairsText);
     const dragdropPairs = parsePairLines(dragdropPairsText);
 
-    if (selectedType === 'open' && !openExpectedAnswer.trim()) {
-      showAlert('Error', 'Añade una respuesta esperada para la pregunta abierta.');
+    if (!validateOptionsStep()) {
+      setActiveStep(3);
       return;
     }
 
-    if (selectedType === 'fill' && fillLines.length === 0) {
-      showAlert('Error', 'Añade al menos una respuesta correcta para rellenar espacios.');
-      return;
-    }
-
-    if (selectedType === 'order' && orderLines.length < 2) {
-      showAlert('Error', 'Añade al menos dos elementos para ordenar.');
-      return;
-    }
-
-    if (selectedType === 'match' && matchPairs.length < 1) {
-      showAlert('Error', 'Añade al menos un par para unir con flechas (formato: izquierda | derecha).');
-      return;
-    }
-
-    if (selectedType === 'dragdrop' && dragdropPairs.length < 1) {
-      showAlert('Error', 'Añade al menos un par para arrastrar y soltar (formato: elemento | destino).');
-      return;
-    }
-
-    const parsedPoints = Number.parseInt(points, 10) || 10;
-    const parsedTimeLimit = Number.parseInt(timeLimit, 10) || 30;
+    const validPoints = parsedPoints as number;
+    const validTimeLimit = parsedTimeLimit as number;
     const validTopicId = getValidTopicId(selectedTopicId, topics);
 
     setSaving(true);
@@ -351,8 +428,8 @@ export default function TeacherQuestionForm({
             topic_id: validTopicId,
             type: toDatabaseType(selectedType),
             text: questionText.trim(),
-            points_base: parsedPoints,
-            time_limit_seconds: parsedTimeLimit,
+            points_base: validPoints,
+            time_limit_seconds: validTimeLimit,
             explanation: explanation.trim(),
           })
           .eq('id', normalizedQuestionId);
@@ -374,8 +451,8 @@ export default function TeacherQuestionForm({
               topic_id: validTopicId,
               type: toDatabaseType(selectedType),
               text: questionText.trim(),
-              points_base: parsedPoints,
-              time_limit_seconds: parsedTimeLimit,
+              points_base: validPoints,
+              time_limit_seconds: validTimeLimit,
               explanation: explanation.trim(),
             },
           ])
@@ -437,19 +514,24 @@ export default function TeacherQuestionForm({
             </View>
 
             <View className="mt-7 flex-row items-center">
-              <StepBadge number={1} active label="Tipo de pregunta" />
-              <StepLine />
-              <StepBadge number={2} label="Contenido" />
-              <StepLine />
-              <StepBadge number={3} label="Opciones" />
-              <StepLine />
-              <StepBadge number={4} label="Revisión" />
+              {wizardSteps.map((step, index) => (
+                <React.Fragment key={step.number}>
+                  <StepBadge
+                    number={step.number}
+                    active={activeStep === step.number}
+                    completed={activeStep > step.number}
+                    label={step.label}
+                    onPress={() => goToStep(step.number)}
+                  />
+                  {index < wizardSteps.length - 1 ? <StepLine /> : null}
+                </React.Fragment>
+              ))}
             </View>
 
-            <View className={`mt-6 gap-4 ${isWide ? 'flex-row' : ''}`}>
-              <View className={`${isWide ? 'w-[38%]' : ''}`}>
+            <View className="mt-6">
+              {activeStep === 1 ? (
                 <View className="rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
-                  <Text className="text-[30px] font-black text-white">1. Selecciona el tipo de pregunta</Text>
+                  <Text className="text-[30px] font-black text-white">Selecciona el tipo de pregunta</Text>
                   <View className="mt-4 h-px bg-[#1A3155]" />
                   <View className="mt-4 flex-row flex-wrap" style={{ marginHorizontal: -6 }}>
                     {questionTypes.map((type) => (
@@ -463,9 +545,11 @@ export default function TeacherQuestionForm({
                     ))}
                   </View>
                 </View>
+              ) : null}
 
-                <View className="mt-3 rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
-                  <RowHeader title="2. Configuración" />
+              {activeStep === 2 ? (
+                <View className="rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
+                  <RowHeader title="Contenido y ajustes" />
                   <View className="mt-4 gap-4">
                     <FieldLabel label="Tema" />
                     {topics.length > 0 ? (
@@ -491,32 +575,109 @@ export default function TeacherQuestionForm({
 
                     <FieldLabel label="Enunciado" />
                     <TextInput
-                      className="min-h-[96px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[16px] text-white"
+                      className="min-h-[120px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[16px] text-white"
                       placeholder="¿Cuál es la capital de Francia?"
                       placeholderTextColor="#7F95B7"
                       multiline
+                      textAlignVertical="top"
                       value={questionText}
                       onChangeText={setQuestionText}
                     />
 
+                    <View className={isDesktop ? 'flex-row gap-3' : 'gap-3'}>
+                      <View className="flex-1">
+                        <FieldLabel label={`Tiempo (${TIME_LIMIT_MIN}-${TIME_LIMIT_MAX} segundos)`} />
+                        <TextInput
+                          className={`mt-2 rounded-xl border bg-[#0A2042] px-4 py-3 text-center text-[16px] font-bold text-white ${
+                            timeLimitError ? 'border-[#EF6A6A]' : 'border-[#2A456A]'
+                          }`}
+                          keyboardType="number-pad"
+                          value={timeLimit}
+                          onChangeText={(text) => setTimeLimit(sanitizeIntegerInput(text))}
+                        />
+                        {timeLimitError ? <Text className="mt-2 text-[12px] font-semibold text-[#FF9B9B]">{timeLimitError}</Text> : null}
+                      </View>
+                      <View className="flex-1">
+                        <FieldLabel label={`Puntos base (${POINTS_MIN}-${POINTS_MAX})`} />
+                        <TextInput
+                          className={`mt-2 rounded-xl border bg-[#0A2042] px-4 py-3 text-center text-[16px] font-bold text-white ${
+                            pointsError ? 'border-[#EF6A6A]' : 'border-[#2A456A]'
+                          }`}
+                          keyboardType="number-pad"
+                          value={points}
+                          onChangeText={(text) => setPoints(sanitizeIntegerInput(text))}
+                        />
+                        {pointsError ? <Text className="mt-2 text-[12px] font-semibold text-[#FF9B9B]">{pointsError}</Text> : null}
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              ) : null}
+
+              {activeStep === 3 ? (
+                <View className="rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
+                  <RowHeader title="Opciones y solución" />
+                  <View className="mt-4 gap-4">
+                    {isMultipleType ? (
+                      <View>
+                        <FieldLabel label="Número de opciones" />
+                        <View className="mt-2 flex-row flex-wrap gap-2">
+                          {[2, 3, 4, 5, 6].map((count) => {
+                            const active = optionsCount === count;
+                            return (
+                              <Pressable
+                                key={count}
+                                onPress={() => handleOptionsCountChange(count)}
+                                className={`rounded-lg border px-4 py-2 ${active ? 'border-[#8B5CF6] bg-[#4C2FA6]' : 'border-[#2A456A] bg-[#0A2042]'}`}
+                              >
+                                <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{count}</Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    ) : null}
+
+                    {isChoiceType ? (
+                      <View className="gap-3">
+                        <View className="flex-row items-center gap-2 rounded-xl border border-[#2A456A] bg-[#081A37] px-3 py-2">
+                          <Ionicons name="information-circle-outline" size={17} color="#A78BFA" />
+                          <Text className="min-w-0 flex-1 text-[12px] font-semibold text-[#AFC2DB]">
+                            Toca la letra o el check para marcar la respuesta correcta.
+                          </Text>
+                        </View>
+                        {visibleAnswers.map((answer, index) => (
+                          <PreviewAnswerRow
+                            key={index}
+                            index={index}
+                            text={answer.text}
+                            correct={index === correctIndex}
+                            onMarkCorrect={() => markAsCorrect(index)}
+                            onChangeText={(text) => updateAnswerText(text, index)}
+                            editable={isMultipleType}
+                          />
+                        ))}
+                      </View>
+                    ) : null}
+
                     {selectedType === 'open' ? (
-                      <>
+                      <View>
                         <FieldLabel label="Respuesta esperada" />
                         <TextInput
-                          className="rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
+                          className="mt-2 rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
                           placeholder="Escribe una posible respuesta correcta"
                           placeholderTextColor="#7F95B7"
                           value={openExpectedAnswer}
                           onChangeText={setOpenExpectedAnswer}
                         />
-                      </>
+                      </View>
                     ) : null}
 
                     {selectedType === 'fill' ? (
-                      <>
+                      <View>
                         <FieldLabel label="Respuestas correctas (una por línea)" />
                         <TextInput
-                          className="min-h-[96px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
+                          className="mt-2 min-h-[120px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
                           placeholder={'París\nMadrid\nRoma'}
                           placeholderTextColor="#7F95B7"
                           multiline
@@ -524,14 +685,14 @@ export default function TeacherQuestionForm({
                           value={fillAnswersText}
                           onChangeText={setFillAnswersText}
                         />
-                      </>
+                      </View>
                     ) : null}
 
                     {selectedType === 'order' ? (
-                      <>
+                      <View>
                         <FieldLabel label="Elementos a ordenar (uno por línea, orden correcto)" />
                         <TextInput
-                          className="min-h-[96px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
+                          className="mt-2 min-h-[120px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
                           placeholder={'Paso 1\nPaso 2\nPaso 3'}
                           placeholderTextColor="#7F95B7"
                           multiline
@@ -539,14 +700,14 @@ export default function TeacherQuestionForm({
                           value={orderItemsText}
                           onChangeText={setOrderItemsText}
                         />
-                      </>
+                      </View>
                     ) : null}
 
                     {selectedType === 'match' ? (
-                      <>
+                      <View>
                         <FieldLabel label="Pares para unir (izquierda | derecha)" />
                         <TextInput
-                          className="min-h-[96px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
+                          className="mt-2 min-h-[120px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
                           placeholder={'Francia | París\nItalia | Roma'}
                           placeholderTextColor="#7F95B7"
                           multiline
@@ -554,14 +715,14 @@ export default function TeacherQuestionForm({
                           value={matchPairsText}
                           onChangeText={setMatchPairsText}
                         />
-                      </>
+                      </View>
                     ) : null}
 
                     {selectedType === 'dragdrop' ? (
-                      <>
+                      <View>
                         <FieldLabel label="Pares para arrastrar (elemento | destino)" />
                         <TextInput
-                          className="min-h-[96px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
+                          className="mt-2 min-h-[120px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
                           placeholder={'Planeta rojo | Marte\nSatélite natural de la Tierra | Luna'}
                           placeholderTextColor="#7F95B7"
                           multiline
@@ -569,88 +730,52 @@ export default function TeacherQuestionForm({
                           value={dragdropPairsText}
                           onChangeText={setDragdropPairsText}
                         />
-                      </>
+                      </View>
                     ) : null}
-                  </View>
-                </View>
 
-                <View className="mt-3 rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
-                  <RowHeader title="3. Puntuación y tiempo" />
-                  <View className="mt-4 gap-4">
-                    <View className="flex-row gap-3">
-                      <View className="flex-1">
-                        <FieldLabel label="Tiempo (segundos)" />
-                        <TextInput
-                          className="rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-center text-[16px] font-bold text-white"
-                          keyboardType="number-pad"
-                          value={timeLimit}
-                          onChangeText={setTimeLimit}
-                        />
+                    <View className="rounded-xl border border-[#2A456A] bg-[#0A2042] p-4">
+                      <View className="flex-row items-center justify-between gap-2">
+                        <Text className="font-bold text-[#A78BFA]">Explicación (opcional)</Text>
+                        <Ionicons name="create-outline" size={16} color="#A78BFA" />
                       </View>
-                      <View className="flex-1">
-                        <FieldLabel label="Puntos base" />
-                        <TextInput
-                          className="rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-center text-[16px] font-bold text-white"
-                          keyboardType="number-pad"
-                          value={points}
-                          onChangeText={setPoints}
-                        />
-                      </View>
+                      <TextInput
+                        className="mt-2 min-h-[80px] rounded-lg border border-[#2A456A] bg-[#081A37] px-3 py-2 text-[15px] leading-6 text-[#DDE7F4]"
+                        placeholder="París es la capital y ciudad más poblada de Francia."
+                        placeholderTextColor="#8FA7C7"
+                        multiline
+                        textAlignVertical="top"
+                        value={explanation}
+                        onChangeText={setExplanation}
+                      />
                     </View>
-
-                    {isMultipleType ? (
-                      <View>
-                      <FieldLabel label="Número de opciones" />
-                      <View className="mt-2 flex-row flex-wrap gap-2">
-                        {[2, 3, 4, 5, 6].map((count) => {
-                          const active = optionsCount === count;
-                          return (
-                            <Pressable
-                              key={count}
-                              onPress={() => handleOptionsCountChange(count)}
-                              className={`rounded-lg border px-4 py-2 ${active ? 'border-[#8B5CF6] bg-[#4C2FA6]' : 'border-[#2A456A] bg-[#0A2042]'}`}
-                            >
-                              <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{count}</Text>
-                            </Pressable>
-                          );
-                        })}
-                      </View>
-                      </View>
-                    ) : null}
                   </View>
                 </View>
-              </View>
+              ) : null}
 
-              <View className={`${isWide ? 'flex-1' : ''}`}>
-                <View className="h-full rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
+              {activeStep === 4 ? (
+                <View className="rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
                   <View className="flex-row items-center gap-2">
                     <Ionicons name="eye" size={18} color="#8B5CF6" />
-                    <Text className="text-[20px] font-black text-white">Vista previa</Text>
+                    <Text className="text-[20px] font-black text-white">Revisión</Text>
                   </View>
 
                   <View className="mt-4 rounded-2xl border border-[#1C3962] bg-[#0A2042] p-4">
-                    <View className="flex-row items-center justify-between gap-3">
+                    <View className="flex-row flex-wrap items-center justify-between gap-3">
                       <View className="rounded-full border border-[#4C2FA6] bg-[#1A1550] px-3 py-1">
                         <Text className="font-bold text-[#A78BFA]">{selectedTypeCard.title}</Text>
                       </View>
                       <View className="flex-row items-center gap-5">
-                        <MetricPill icon="time-outline" value={`${Number.parseInt(timeLimit, 10) || 30}s`} />
-                        <MetricPill icon="star-outline" value={`${Number.parseInt(points, 10) || 10} pts`} highlight />
+                        <MetricPill icon="time-outline" value={`${parsedTimeLimit ?? TIME_LIMIT_MIN}s`} />
+                        <MetricPill icon="star-outline" value={`${parsedPoints ?? POINTS_MIN} pts`} highlight />
                       </View>
                     </View>
 
-                    <Text className="mt-5 text-[42px] font-black text-white">
+                    <Text className="mt-5 text-[34px] font-black text-white md:text-[42px]">
                       {questionText.trim() || '¿Cuál es la capital de Francia?'}
                     </Text>
 
                     {isChoiceType ? (
                       <View className="mt-5 gap-3">
-                        <View className="flex-row items-center gap-2 rounded-xl border border-[#2A456A] bg-[#081A37] px-3 py-2">
-                          <Ionicons name="information-circle-outline" size={17} color="#A78BFA" />
-                          <Text className="min-w-0 flex-1 text-[12px] font-semibold text-[#AFC2DB]">
-                            Toca la letra o el check para marcar la respuesta correcta.
-                          </Text>
-                        </View>
                         {visibleAnswers.map((answer, index) => (
                           <PreviewAnswerRow
                             key={index}
@@ -674,40 +799,51 @@ export default function TeacherQuestionForm({
                       />
                     )}
 
-                    <View className="mt-5 rounded-xl border border-[#2A456A] bg-[#0A2042] p-4">
-                      <View className="flex-row items-center justify-between gap-2">
-                        <Text className="font-bold text-[#A78BFA]">Explicación (opcional)</Text>
-                        <Ionicons name="create-outline" size={16} color="#A78BFA" />
-                      </View>
-                      <TextInput
-                        className="mt-2 min-h-[80px] rounded-lg border border-[#2A456A] bg-[#081A37] px-3 py-2 text-[15px] leading-6 text-[#DDE7F4]"
-                        placeholder="París es la capital y ciudad más poblada de Francia."
-                        placeholderTextColor="#8FA7C7"
-                        multiline
-                        textAlignVertical="top"
-                        value={explanation}
-                        onChangeText={setExplanation}
-                      />
+                    <View className="mt-5 rounded-xl border border-[#2A456A] bg-[#081A37] p-4">
+                      <Text className="font-bold text-[#A78BFA]">Explicación</Text>
+                      <Text className="mt-2 text-[15px] leading-6 text-[#DDE7F4]">
+                        {explanation.trim() || 'Sin explicación adicional.'}
+                      </Text>
                     </View>
                   </View>
                 </View>
-              </View>
+              ) : null}
             </View>
 
             <View className={`mt-4 rounded-2xl border border-[#1A3155] bg-[#071B3D] p-4 ${isDesktop ? 'flex-row items-center justify-between' : 'gap-3'}`}>
               <Pressable onPress={() => router.back()} className="rounded-xl border border-[#2A456A] bg-[#091A39] px-6 py-3">
                 <Text className="text-[15px] font-bold text-[#DDE7F4]">Cancelar</Text>
               </Pressable>
-              <Pressable
-                onPress={handleSave}
-                disabled={saving}
-                className="flex-row items-center justify-center gap-2 rounded-xl bg-[#5A46D8] px-10 py-3"
-                style={({ pressed }) => ({ opacity: saving ? 0.7 : pressed ? 0.86 : 1 })}
-              >
-                {saving ? <ActivityIndicator color="#FFFFFF" /> : null}
-                <Text className="text-[16px] font-black text-white">{saving ? 'Guardando...' : isEdit ? 'Actualizar pregunta' : 'Continuar'}</Text>
-                {!saving ? <Ionicons name="arrow-forward" size={16} color="#FFFFFF" /> : null}
-              </Pressable>
+              <View className={isDesktop ? 'flex-row items-center gap-3' : 'gap-3'}>
+                {activeStep > 1 ? (
+                  <Pressable onPress={handlePreviousStep} className="flex-row items-center justify-center gap-2 rounded-xl border border-[#2A456A] bg-[#0A2042] px-6 py-3">
+                    <Ionicons name="arrow-back" size={16} color="#DDE7F4" />
+                    <Text className="text-[15px] font-bold text-[#DDE7F4]">Atrás</Text>
+                  </Pressable>
+                ) : null}
+
+                {activeStep < 4 ? (
+                  <Pressable
+                    onPress={handleNextStep}
+                    className="flex-row items-center justify-center gap-2 rounded-xl bg-[#5A46D8] px-10 py-3"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.86 : 1 })}
+                  >
+                    <Text className="text-[16px] font-black text-white">Siguiente</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    onPress={handleSave}
+                    disabled={saving}
+                    className="flex-row items-center justify-center gap-2 rounded-xl bg-[#5A46D8] px-10 py-3"
+                    style={({ pressed }) => ({ opacity: saving ? 0.7 : pressed ? 0.86 : 1 })}
+                  >
+                    {saving ? <ActivityIndicator color="#FFFFFF" /> : null}
+                    <Text className="text-[16px] font-black text-white">{saving ? 'Guardando...' : isEdit ? 'Actualizar pregunta' : 'Crear pregunta'}</Text>
+                    {!saving ? <Ionicons name="checkmark" size={16} color="#FFFFFF" /> : null}
+                  </Pressable>
+                )}
+              </View>
             </View>
           </View>
         </View>
@@ -720,18 +856,32 @@ function StepBadge({
   number,
   label,
   active = false,
+  completed = false,
+  onPress,
 }: {
-  number: number;
+  number: WizardStep;
   label: string;
   active?: boolean;
+  completed?: boolean;
+  onPress?: () => void;
 }) {
+  const highlighted = active || completed;
+
   return (
-    <View className="flex-row items-center">
-      <View className={`h-9 w-9 items-center justify-center rounded-full border ${active ? 'border-[#A78BFA] bg-[#8B5CF6]' : 'border-[#35567D] bg-[#0A2042]'}`}>
-        <Text className={`font-black ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{number}</Text>
+    <Pressable onPress={onPress} className="flex-row items-center" style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}>
+      <View
+        className={`h-9 w-9 items-center justify-center rounded-full border ${
+          active ? 'border-[#A78BFA] bg-[#8B5CF6]' : completed ? 'border-[#43D991] bg-[#145B45]' : 'border-[#35567D] bg-[#0A2042]'
+        }`}
+      >
+        {completed ? (
+          <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+        ) : (
+          <Text className={`font-black ${highlighted ? 'text-white' : 'text-[#AFC2DB]'}`}>{number}</Text>
+        )}
       </View>
-      <Text className={`ml-3 mr-2 text-[22px] font-semibold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{label}</Text>
-    </View>
+      <Text className={`ml-3 mr-2 text-[22px] font-semibold ${highlighted ? 'text-white' : 'text-[#AFC2DB]'}`}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -941,6 +1091,23 @@ function parsePairLines(value: string) {
       };
     })
     .filter((pair) => pair.left.length > 0 && pair.right.length > 0);
+}
+
+function sanitizeIntegerInput(value: string) {
+  return value.replace(/\D/g, '').slice(0, 3);
+}
+
+function parseIntegerField(value: string) {
+  const trimmedValue = value.trim();
+  if (!/^\d+$/.test(trimmedValue)) return null;
+  return Number(trimmedValue);
+}
+
+function getIntegerRangeError(label: string, value: number | null, min: number, max: number, unit: string) {
+  if (value === null) return `${label} debe ser un número.`;
+  if (value < min) return `${label} mínimo es ${min} ${unit}.`;
+  if (value > max) return `${label} máximo es ${max} ${unit}.`;
+  return '';
 }
 
 function encodePairAnswer(left: string, right: string) {

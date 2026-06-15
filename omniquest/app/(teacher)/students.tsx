@@ -248,19 +248,6 @@ export default function TeacherStudentsScreen() {
     Alert.alert(title, message);
   };
 
-  const handleSendMessage = async (student: StudentRow) => {
-    if (Platform.OS === 'web') {
-      const message = window.prompt(`Escribe un mensaje para ${student.alias}`);
-      if (!message || !message.trim()) {
-        return;
-      }
-      showAlert('Mensaje enviado', `Tu mensaje a ${student.alias} ha sido guardado en borrador.`);
-      return;
-    }
-
-    showAlert('Enviar mensaje', `Abre el chat interno para enviar un mensaje a ${student.alias}.`);
-  };
-
   const handleViewStudentDetails = (student: StudentRow) => {
     const detailLines = [
       `Alias: ${student.alias}`,
@@ -365,10 +352,9 @@ export default function TeacherStudentsScreen() {
   const openStudentActions = (student: StudentRow) => {
     if (Platform.OS === 'web') {
       const action = window.prompt(
-        `Acciones para ${student.alias}: 1) Mensaje 2) Detalle 3) Quitar 4) Reiniciar 5) Asignar actividad`,
+        `Acciones para ${student.alias}: 2) Detalle 3) Quitar 4) Reiniciar 5) Asignar actividad`,
       );
       if (!action) return;
-      if (action.startsWith('1')) return handleSendMessage(student);
       if (action.startsWith('2')) return handleViewStudentDetails(student);
       if (action.startsWith('3')) return handleRemoveFromClass(student);
       if (action.startsWith('4')) return handleResetProgress(student);
@@ -381,7 +367,6 @@ export default function TeacherStudentsScreen() {
       'Selecciona una acción',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Mensaje', onPress: () => handleSendMessage(student) },
         { text: 'Detalle', onPress: () => handleViewStudentDetails(student) },
         { text: 'Quitar de clase', onPress: () => handleRemoveFromClass(student), style: 'destructive' },
         { text: 'Reiniciar progreso', onPress: () => handleResetProgress(student) },
@@ -583,7 +568,6 @@ export default function TeacherStudentsScreen() {
                     key={student.id}
                     student={student}
                     index={index}
-                    onSendMessage={handleSendMessage}
                     onOpenActions={openStudentActions}
                   />
                 ))}
@@ -727,12 +711,10 @@ function TableHeader({ label, flex, align = 'left' }: { label: string; flex: num
 function StudentTableRow({
   student,
   index,
-  onSendMessage,
   onOpenActions,
 }: {
   student: StudentRow
   index: number
-  onSendMessage: (student: StudentRow) => void
   onOpenActions: (student: StudentRow) => void
 }) {
   const status = getStatusMeta(student.status);
@@ -779,9 +761,6 @@ function StudentTableRow({
         <Text className="text-[12px]" style={{ color: status.color }}>{status.label}</Text>
       </View>
       <View className="min-w-[75px] flex-[0.65] flex-row justify-end gap-2">
-        <Pressable onPress={() => onSendMessage(student)} className="h-8 w-8 items-center justify-center rounded-lg bg-[#111E3C]">
-          <Ionicons name="chatbubble-outline" size={15} color="#B9A7FF" />
-        </Pressable>
         <Pressable onPress={() => onOpenActions(student)} className="h-8 w-8 items-center justify-center rounded-lg bg-[#111E3C]">
           <Ionicons name="ellipsis-vertical" size={15} color="#AFC2DB" />
         </Pressable>

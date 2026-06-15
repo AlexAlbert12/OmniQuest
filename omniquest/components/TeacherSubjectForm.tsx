@@ -13,6 +13,12 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import {
+  generateUniqueClassCode,
+  isClassCodeAvailable,
+  isValidInviteCode,
+  normalizeInviteCode,
+} from '../lib/classCode';
 
 type TeacherSubjectFormProps = {
   mode: 'create' | 'edit';
@@ -39,9 +45,10 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
   const [subjectLabel, setSubjectLabel] = useState<(typeof subjectsCatalog)[number] | ''>('');
   const [inviteMode, setInviteMode] = useState<InviteMode>('auto');
   const [customCode, setCustomCode] = useState('');
-  const [generatedCode, setGeneratedCode] = useState(generateInviteCode());
+  const [generatedCode, setGeneratedCode] = useState('');
   const [existingCode, setExistingCode] = useState('');
   const [loadingInitial, setLoadingInitial] = useState(isEdit);
+  const [codeLoading, setCodeLoading] = useState(!isEdit);
   const [saving, setSaving] = useState(false);
 
   const isWide = width >= 980;
@@ -51,8 +58,9 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
 
   const canSave =
     !saving &&
+    !codeLoading &&
     name.trim().length > 0 &&
-    (isEdit || inviteMode === 'auto' || isValidCustomCode(customCode));
+    (isEdit || (inviteMode === 'auto' && isValidInviteCode(generatedCode)) || (inviteMode === 'custom' && isValidInviteCode(customCode)));
 
   const previewTitle = useMemo(() => {
     const cleanName = name.trim();
@@ -62,22 +70,44 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
   const previewMeta = useMemo(() => `${educationLevel}  •  ${schoolYear}`, [educationLevel, schoolYear]);
 
   useEffect(() => {
+    if (isEdit) return;
+
+    const loadUniqueCode = async () => {
+      try {
+        setCodeLoading(true);
+        setGeneratedCode(await generateUniqueClassCode());
+      } catch (error: any) {
+        showAlert('Error', error.message || 'No se pudo generar un código de invitación.');
+      } finally {
+        setCodeLoading(false);
+      }
+    };
+
+    void loadUniqueCode();
+  }, [isEdit]);
+
+  useEffect(() => {
     if (!isEdit || !subjectId) return;
 
     const fetchSubject = async () => {
       try {
         const { data, error } = await supabase
           .from('subjects')
-          .select('name, description, icon, code')
+          .select('name, description, icon, code, education_level, academic_year, subject_label')
           .eq('id', subjectId)
           .single();
 
         if (error) throw error;
 
         const subjectIcon = data.icon && iconChoices.includes(data.icon) ? (data.icon as (typeof iconChoices)[number]) : '📚';
+        const legacyMetadata = parseLegacySubjectMetadata(data.description || '');
+        const cleanDescription = legacyMetadata.description;
         setName(data.name || '');
-        setDescription(data.description || '');
+        setDescription(cleanDescription);
         setIcon(subjectIcon);
+        setEducationLevel((data.education_level || legacyMetadata.educationLevel || educationLevels[0]) as (typeof educationLevels)[number]);
+        setSchoolYear((data.academic_year || legacyMetadata.academicYear || schoolYears[0]) as (typeof schoolYears)[number]);
+        setSubjectLabel((data.subject_label || legacyMetadata.subjectLabel || '') as (typeof subjectsCatalog)[number] | '');
         setExistingCode(data.code || '');
       } catch (error: any) {
         showAlert('Error', error.message || 'No se pudo cargar la asignatura.');
@@ -90,8 +120,17 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
     fetchSubject();
   }, [isEdit, router, subjectId]);
 
-  const handleRegenerateCode = () => {
-    setGeneratedCode(generateInviteCode());
+  const handleRegenerateCode = async () => {
+    if (isEdit) return;
+
+    try {
+      setCodeLoading(true);
+      setGeneratedCode(await generateUniqueClassCode());
+    } catch (error: any) {
+      showAlert('Error', error.message || 'No se pudo generar un código único.');
+    } finally {
+      setCodeLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -113,7 +152,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
       return;
     }
 
-    if (!isEdit && inviteMode === 'custom' && !isValidCustomCode(customCode)) {
+    if (!isEdit && inviteMode === 'custom' && !isValidInviteCode(customCode)) {
       showAlert('Error', 'El código personalizado debe tener 6 caracteres alfanuméricos.');
       return;
     }
@@ -129,6 +168,9 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
             name: cleanName,
             description: cleanDescription || null,
             icon,
+            education_level: educationLevel,
+            academic_year: schoolYear,
+            subject_label: subjectLabel || null,
           })
           .eq('id', subjectId);
 
@@ -139,34 +181,47 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
         return;
       }
 
-      const code = inviteMode === 'auto' ? generatedCode : customCode.toUpperCase();
+      let code = inviteMode === 'auto' ? generatedCode : normalizeInviteCode(customCode);
+      if (!isValidInviteCode(code)) {
+        throw new Error('El código de invitación no es válido.');
+      }
+
+      const codeAvailable = await isClassCodeAvailable(code);
+      if (!codeAvailable) {
+        if (inviteMode === 'auto') {
+          code = await generateUniqueClassCode();
+          setGeneratedCode(code);
+        } else {
+          throw new Error('Ese código de invitación ya existe. Elige otro o genera uno nuevo.');
+        }
+      }
+
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData.session;
       if (!session) throw new Error('No hay sesión activa.');
-
-      const composedDescription = [
-        cleanDescription || null,
-        subjectLabel ? `Materia: ${subjectLabel}` : null,
-        `Nivel: ${educationLevel}`,
-        `Curso: ${schoolYear}`,
-      ]
-        .filter(Boolean)
-        .join(' · ');
 
       const { data: subject, error: subjectError } = await supabase
         .from('subjects')
         .insert([
           {
             name: cleanName,
-            description: composedDescription || null,
+            description: cleanDescription || null,
             icon,
             code,
+            education_level: educationLevel,
+            academic_year: schoolYear,
+            subject_label: subjectLabel || null,
             teacher_id: session.user.id,
           },
         ])
         .select('id')
         .single();
-      if (subjectError) throw subjectError;
+      if (subjectError) {
+        if (subjectError.code === '23505') {
+          throw new Error('Ese código de invitación ya existe. Elige otro o genera uno nuevo.');
+        }
+        throw subjectError;
+      }
 
       const { error: topicError } = await supabase.from('subject_topics').insert([
         {
@@ -362,21 +417,23 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
                           {inviteMode === 'custom' ? (
                             <TextInput
                               className="mt-3 rounded-xl border border-[#2A456A] bg-[#081A37] px-4 py-3 text-center text-[42px] font-black tracking-[8px] text-[#9B8CFF]"
-                              value={customCode.toUpperCase()}
-                              onChangeText={(text) => setCustomCode(text.replace(/[^A-Za-z0-9]/g, '').slice(0, 6))}
+                              value={normalizeInviteCode(customCode)}
+                              onChangeText={(text) => setCustomCode(normalizeInviteCode(text))}
                               placeholder="ABC123"
                               placeholderTextColor="#5E6EA6"
                               autoCapitalize="characters"
                             />
                           ) : (
                             <Text className="mt-3 text-center text-[52px] font-black tracking-[8px] text-[#9B8CFF]">
-                              {generatedCode}
+                              {codeLoading ? '------' : generatedCode}
                             </Text>
                           )}
                         </View>
                         <Pressable
                           onPress={handleRegenerateCode}
+                          disabled={codeLoading || inviteMode !== 'auto'}
                           className="mt-3 self-end rounded-xl border border-[#2A456A] bg-[#0A2042] p-3"
+                          style={({ pressed }) => ({ opacity: codeLoading || inviteMode !== 'auto' ? 0.5 : pressed ? 0.82 : 1 })}
                         >
                           <Ionicons name="refresh" size={18} color="#AFC2DB" />
                         </Pressable>
@@ -402,7 +459,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
 
                 <View className="mt-4 rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
                   <FeatureRow icon="shield-checkmark-outline" tint="#8B5CF6" title="Entorno seguro" detail="Solo los alumnos con el código podrán unirse." />
-                  <FeatureRow icon="trophy-outline" tint="#F6A64A" title="Gamificación" detail="Los alumnos ganarán XP y podrán completar retos." className="mt-4" />
+                  <FeatureRow icon="trophy-outline" tint="#F6A64A" title="Progreso del alumnado" detail="Los alumnos recibirán puntuación y podrán completar retos." className="mt-4" />
                   <FeatureRow icon="bar-chart-outline" tint="#FBBF24" title="Seguimiento" detail="Podrás ver el progreso y rendimiento de tus alumnos." className="mt-4" />
                 </View>
               </View>
@@ -549,23 +606,44 @@ function FeatureRow({
   );
 }
 
-function generateInviteCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let index = 0; index < 6; index += 1) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
-function isValidCustomCode(value: string) {
-  return /^[A-Za-z0-9]{6}$/.test(value);
-}
-
 function showAlert(title: string, message: string) {
   if (Platform.OS === 'web') {
     window.alert(`${title}\n${message}`);
     return;
   }
   Alert.alert(title, message);
+}
+
+function parseLegacySubjectMetadata(value: string) {
+  const parts = value.split(' · ').map((part) => part.trim()).filter(Boolean);
+  let educationLevel = '';
+  let academicYear = '';
+  let subjectLabel = '';
+  const descriptionParts: string[] = [];
+
+  parts.forEach((part) => {
+    if (part.startsWith('Materia: ')) {
+      subjectLabel = part.replace('Materia: ', '').trim();
+      return;
+    }
+
+    if (part.startsWith('Nivel: ')) {
+      educationLevel = part.replace('Nivel: ', '').trim();
+      return;
+    }
+
+    if (part.startsWith('Curso: ')) {
+      academicYear = part.replace('Curso: ', '').trim();
+      return;
+    }
+
+    descriptionParts.push(part);
+  });
+
+  return {
+    description: descriptionParts.join(' · '),
+    educationLevel,
+    academicYear,
+    subjectLabel,
+  };
 }

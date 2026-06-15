@@ -85,6 +85,10 @@ export default function TopicDetailScreen() {
       const { data: sessionData } = await supabase.auth.getSession();
       const teacherId = sessionData.session?.user.id;
 
+      if (!teacherId) {
+        throw new Error('No se encontró una sesión activa.');
+      }
+
       // First get the topic to know the subject_id
       const { data: topicData, error: topicError } = await supabase
         .from('subject_topics')
@@ -97,7 +101,12 @@ export default function TopicDetailScreen() {
       const subjectId = topicData.subject_id;
 
       const [subjectResult, questionsResult, topicScoresResult, enrollmentsResult, subjectsCountResult] = await Promise.all([
-        supabase.from('subjects').select('*').eq('id', subjectId).single(),
+        supabase
+          .from('subjects')
+          .select('*')
+          .eq('id', subjectId)
+          .eq('teacher_id', teacherId)
+          .single(),
         supabase
           .from('questions')
           .select('*, answers(*)')
@@ -108,9 +117,7 @@ export default function TopicDetailScreen() {
           .select('topic_id, max_score')
           .eq('topic_id', topicId),
         supabase.from('enrollments').select('student_id').eq('subject_id', subjectId),
-        teacherId
-          ? supabase.from('subjects').select('id').eq('teacher_id', teacherId).eq('is_archived', false)
-          : Promise.resolve({ data: [], error: null }),
+        supabase.from('subjects').select('id').eq('teacher_id', teacherId).eq('is_archived', false),
       ]);
 
       if (subjectResult.error) throw subjectResult.error;
@@ -286,7 +293,7 @@ export default function TopicDetailScreen() {
           <View className="mb-5 flex-row flex-wrap gap-4">
             <MetricCard icon="help-circle" label="Preguntas" value={String(topicQuestions.length)} color="#8B5CF6" />
             <MetricCard icon="radio-button-on" label="Intentos" value={String(scoreValues.length)} color="#F59E0B" />
-            <MetricCard icon="star" label="XP media" value={`${averageXp.toLocaleString('es-ES')} XP`} color="#3B82F6" />
+            <MetricCard icon="star" label="Puntuación media" value={`${averageXp.toLocaleString('es-ES')} XP`} color="#3B82F6" />
             <MetricCard icon="trending-up" label="Participación" value={`${participation}%`} color="#F43F5E" />
           </View>
 
@@ -388,7 +395,7 @@ function QuestionRow({ question, index, subjectId, onDelete }: {
       <View className="min-w-[300px] flex-1">
         <Text className="font-semibold text-white" numberOfLines={2}>{question.text}</Text>
         <Text className="mt-1 text-[12px] text-[#8FA7C7]">
-          {question.points_base} XP · {question.answers?.length || 0} opciones · Respuesta correcta: {correctAnswer?.text || 'N/A'}
+          {question.points_base} puntos · {question.answers?.length || 0} opciones · Respuesta correcta: {correctAnswer?.text || 'N/A'}
         </Text>
       </View>
       <View className="flex-row gap-2">

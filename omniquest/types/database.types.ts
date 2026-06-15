@@ -242,9 +242,12 @@ export type Database = {
           code: string
           created_at: string
           description: string | null
+          academic_year: string | null
+          education_level: string | null
           icon: string | null
           id: number
           name: string
+          subject_label: string | null
           teacher_id: string | null
           theme_color: string | null
         }
@@ -253,9 +256,12 @@ export type Database = {
           code: string
           created_at?: string
           description?: string | null
+          academic_year?: string | null
+          education_level?: string | null
           icon?: string | null
           id?: number
           name: string
+          subject_label?: string | null
           teacher_id?: string | null
           theme_color?: string | null
         }
@@ -264,9 +270,12 @@ export type Database = {
           code?: string
           created_at?: string
           description?: string | null
+          academic_year?: string | null
+          education_level?: string | null
           icon?: string | null
           id?: number
           name?: string
+          subject_label?: string | null
           teacher_id?: string | null
           theme_color?: string | null
         }
