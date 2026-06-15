@@ -10,6 +10,7 @@ import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import { fetchStudentProgressSummary, type StudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
+import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import StudentDashboardCard, { StudentCardLink as CardLink } from '../../components/student/StudentDashboardCard'
 import StudentMetricCard from '../../components/student/StudentMetricCard'
 import { useAppTheme } from '../../lib/appTheme'
@@ -288,7 +289,10 @@ export default function StudentHome() {
                 ¿Listo para seguir aprendiendo y alcanzar tus metas?
               </Text>
             </View>
-            <NotificationBadge />
+            <View className="flex-row items-center gap-3">
+              <NotificationBadge />
+              <StudentHeaderAvatar />
+            </View>
           </View>
 
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>

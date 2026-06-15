@@ -217,7 +217,6 @@ export default function TopicDetailScreen() {
             activeSection="classes"
             subjectsCount={subjectsCount}
             onSignOut={handleSignOut}
-            onComingSoon={showComingSoon}
           />
         ) : null}
 

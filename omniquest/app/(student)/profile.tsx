@@ -25,6 +25,7 @@ import {
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { fetchStudentProgressSummary, type StudentProgressSubject, type StudentProgressSummary } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
+import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import StudentDashboardCard, { StudentCardLink } from '../../components/student/StudentDashboardCard'
 import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
@@ -308,6 +309,7 @@ export default function ProfileScreen() {
 
             <View className="flex-row items-center gap-3">
               <NotificationBadge />
+              <StudentHeaderAvatar />
             </View>
           </View>
 

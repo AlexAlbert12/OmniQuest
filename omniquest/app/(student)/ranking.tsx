@@ -17,6 +17,7 @@ import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
+import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
 
@@ -264,7 +265,10 @@ export default function RankingScreen() {
                 Compite, aprende y sube posiciones 🚀
               </Text>
             </View>
-            <NotificationBadge />
+            <View className="flex-row items-center gap-3">
+              <NotificationBadge />
+              <StudentHeaderAvatar />
+            </View>
           </View>
 
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>

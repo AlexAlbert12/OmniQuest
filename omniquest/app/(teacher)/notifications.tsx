@@ -28,6 +28,7 @@ const filterOptions: {
   { id: 'unread', label: 'Sin leer', icon: 'mail-unread-outline' },
   { id: 'enrollment', label: 'Inscripciones', icon: 'person-add-outline' },
   { id: 'student_activity', label: 'Actividad', icon: 'checkmark-circle-outline' },
+  { id: 'achievement', label: 'Logros', icon: 'trophy-outline' },
   { id: 'new_class', label: 'Clases', icon: 'book-outline' },
   { id: 'announcement', label: 'Avisos', icon: 'alert-circle-outline' },
 ]
@@ -35,6 +36,7 @@ const filterOptions: {
 const categoryLabels: Record<NotificationType, string> = {
   enrollment: 'Inscripciones',
   student_activity: 'Actividad',
+  achievement: 'Logros',
   new_class: 'Clases',
   announcement: 'Avisos',
 }
@@ -402,4 +404,3 @@ function EmptyState({ filter }: { filter: NotificationFilter }) {
     </View>
   )
 }
-

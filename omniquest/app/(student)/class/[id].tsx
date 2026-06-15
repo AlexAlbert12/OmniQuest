@@ -13,6 +13,7 @@ import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rout
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../../lib/supabase'
 import NotificationBadge from '../../../components/NotificationBadge'
+import StudentHeaderAvatar from '../../../components/student/StudentHeaderAvatar'
 
 type Subject = {
   id: number
@@ -172,7 +173,10 @@ export default function StudentClassDetailScreen() {
             <Ionicons name="arrow-back" size={18} color="#8FA7C7" />
             <Text className="font-semibold text-[#8FA7C7]">Mis Clases</Text>
           </Pressable>
-          <NotificationBadge />
+          <View className="flex-row items-center gap-3">
+            <NotificationBadge />
+            <StudentHeaderAvatar />
+          </View>
         </View>
 
         <View className="mb-6 flex-row flex-wrap items-center gap-4">

@@ -23,6 +23,7 @@ import {
 } from '../../lib/studentBadges'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
+import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
 
@@ -206,6 +207,7 @@ export default function BadgesScreen() {
 
             <View className="flex-row items-center gap-3">
               <NotificationBadge />
+              <StudentHeaderAvatar />
             </View>
           </View>
 

@@ -14,6 +14,7 @@ import {
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
+import { accuracyToGrade, answersToAccuracyPercent, scoreToGrade } from '../../../lib/grades';
 import TeacherSidebar from '../../../components/TeacherSidebar';
 
 type IconName = keyof typeof Ionicons.glyphMap
@@ -84,6 +85,7 @@ type StudentReport = {
   name: string
   score: number
   grade: number
+  accuracyPercent: number
   correctAnswers: number
   failedAnswers: number
   participation: number
@@ -118,6 +120,8 @@ const tabItems: { key: SubjectTabKey; label: string; icon: IconName; href?: stri
   { key: 'resources', label: 'Recursos', icon: 'book-outline' },
   { key: 'settings', label: 'Configuración', icon: 'settings-outline' },
 ]
+
+const INSUFFICIENT_TREND_DATA = 'Datos disponibles cuando haya actividad suficiente'
 
 export default function SubjectDetailScreen() {
   const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
@@ -167,11 +171,39 @@ export default function SubjectDetailScreen() {
   const averageXp = scoreValues.length > 0
     ? Math.round(scoreValues.reduce((total, score) => total + score, 0) / scoreValues.length)
     : 0;
-  const averageGrade = xpToGrade(averageXp);
+  const scorePerformanceRows = useMemo(
+    () => scores.map((score) => getScorePerformance(score, questions.length)),
+    [questions.length, scores]
+  );
+  const answerTotals = useMemo(
+    () => scorePerformanceRows.reduce(
+      (totals, item) => {
+        if (item.totalAnswers > 0) {
+          totals.correctAnswers += item.correctAnswers;
+          totals.totalAnswers += item.totalAnswers;
+        }
+        return totals;
+      },
+      { correctAnswers: 0, totalAnswers: 0 }
+    ),
+    [scorePerformanceRows]
+  );
+  const averageAccuracy = answerTotals.totalAnswers > 0
+    ? answersToAccuracyPercent(answerTotals.correctAnswers, answerTotals.totalAnswers)
+    : 0;
+  const fallbackAverageGrade = scorePerformanceRows.length > 0
+    ? Number((scorePerformanceRows.reduce((total, item) => total + item.grade, 0) / scorePerformanceRows.length).toFixed(1))
+    : 0;
+  const averageGrade = answerTotals.totalAnswers > 0 ? accuracyToGrade(averageAccuracy) : fallbackAverageGrade;
   const participation = enrollments.length > 0 ? Math.min(100, Math.round((scores.length / enrollments.length) * 100)) : 0;
-  const progress = Math.round((participation + Math.min(100, questions.length * 8)) / 2);
-  const completedChallenges = scores.length;
-  const activeChallenge = filteredQuestions[0] || questions[0];
+  const possibleClassQuestions = enrollments.length * questions.length;
+  const answeredClassQuestions = possibleClassQuestions > 0
+    ? Math.min(possibleClassQuestions, answerTotals.totalAnswers)
+    : 0;
+  const progress = possibleClassQuestions > 0
+    ? Math.round((answeredClassQuestions / possibleClassQuestions) * 100)
+    : 0;
+  const latestQuestion = questions[0];
   const topicRows = useMemo(() => {
     const rows: {
       id: number | 'general'
@@ -224,8 +256,8 @@ export default function SubjectDetailScreen() {
       { label: 'Necesita apoyo (<5)', color: '#F43F5E', count: 0 },
     ];
 
-    scoreValues.forEach((score) => {
-      const grade = xpToGrade(score);
+    scorePerformanceRows.forEach((score) => {
+      const grade = score.grade;
       if (grade >= 9) base[0].count += 1;
       else if (grade >= 7) base[1].count += 1;
       else if (grade >= 5) base[2].count += 1;
@@ -233,7 +265,7 @@ export default function SubjectDetailScreen() {
     });
 
     return base;
-  }, [scoreValues]);
+  }, [scorePerformanceRows]);
 
   const recentActivity = useMemo<ActivityItem[]>(() => {
     const scoreActivity = scores.slice(0, 4).map((score, index) => {
@@ -243,7 +275,7 @@ export default function SubjectDetailScreen() {
         icon: points >= averageXp ? 'trophy' : 'checkmark',
         color: points >= averageXp ? '#8B5CF6' : '#34D399',
         title: `${studentName} completó una pregunta`,
-        detail: activeChallenge?.text || subject?.name || 'Actividad de clase',
+        detail: latestQuestion?.text || subject?.name || 'Actividad de clase',
         meta: `+${points} puntos`,
         time: formatRelative(score.played_at, index),
         warning: false,
@@ -266,13 +298,13 @@ export default function SubjectDetailScreen() {
         icon: 'help-circle',
         color: '#F59E0B',
         title: `${questions.length} pregunta${questions.length === 1 ? '' : 's'} disponible${questions.length === 1 ? '' : 's'}`,
-        detail: activeChallenge?.text || 'Añade preguntas para activar la clase',
+        detail: latestQuestion?.text || 'Añade preguntas para empezar la clase',
         meta: '',
         time: 'Ahora',
         warning: questions.length === 0,
       },
     ];
-  }, [activeChallenge?.text, averageXp, enrollments.length, profilesById, questions.length, scores, subject?.name]);
+  }, [averageXp, enrollments.length, latestQuestion?.text, profilesById, questions.length, scores, subject?.name]);
 
   const studentReportRows = useMemo(
     () => buildStudentReportRows(enrollments, scores, profilesById, questions.length),
@@ -288,10 +320,11 @@ export default function SubjectDetailScreen() {
       answered: answeredStudents.length,
       participation: enrollments.length > 0 ? Math.round((answeredStudents.length / enrollments.length) * 100) : 0,
       averageGrade,
+      averageAccuracy,
       failedAnswers,
       correctAnswers,
     };
-  }, [averageGrade, enrollments.length, studentReportRows]);
+  }, [averageAccuracy, averageGrade, enrollments.length, studentReportRows]);
   const [failedQuestionRows, setFailedQuestionRows] = useState<FailedQuestionReport[]>([]);
 
   useEffect(() => {
@@ -396,15 +429,13 @@ export default function SubjectDetailScreen() {
     }
 
     if (activeTab === 'reports') {
-      const latestEvolution = temporalEvolution[temporalEvolution.length - 1];
-
       return (
         <View className="gap-5">
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
             <ReportMetricCard icon="people" label="Alumnos evaluados" value={`${reportSummary.answered}/${reportSummary.enrolled}`} color="#38BDF8" detail={`${reportSummary.participation}% participación`} />
-            <ReportMetricCard icon="shield-checkmark" label="Nota media" value={reportSummary.averageGrade.toFixed(1)} suffix="/10" color="#F59E0B" detail={`${averageXp.toLocaleString('es-ES')} puntuación media`} />
+            <ReportMetricCard icon="shield-checkmark" label="Nota media" value={reportSummary.averageGrade.toFixed(1)} suffix="/10" color="#F59E0B" detail={`${reportSummary.averageAccuracy}% precisión media`} />
             <ReportMetricCard icon="close-circle" label="Preguntas falladas" value={String(reportSummary.failedAnswers)} color="#F43F5E" detail={`${reportSummary.correctAnswers} correctas registradas`} />
-            <ReportMetricCard icon="trending-up" label="Evolución" value={`${latestEvolution?.activityCount || 0}`} color="#34D399" detail="activos en el último tramo" />
+            <ReportMetricCard icon="star" label="Puntuación media" value={`${averageXp.toLocaleString('es-ES')}`} color="#3B82F6" detail="puntos con bonus aparte" />
           </View>
 
           <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
@@ -445,10 +476,10 @@ export default function SubjectDetailScreen() {
 
               <Panel title="Distribución de notas">
                 <View className="flex-row items-center gap-5">
-                  <DonutCard value={scoreValues.length || enrollments.length} />
+                  <DonutCard value={scorePerformanceRows.length || enrollments.length} />
                   <View className="min-w-0 flex-1 gap-2">
                     {gradeDistribution.map((item) => {
-                      const percent = scoreValues.length > 0 ? Math.round((item.count / scoreValues.length) * 100) : 0;
+                      const percent = scorePerformanceRows.length > 0 ? Math.round((item.count / scorePerformanceRows.length) * 100) : 0;
                       return (
                         <View key={item.label} className="flex-row items-center gap-2">
                           <View className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
@@ -570,8 +601,8 @@ export default function SubjectDetailScreen() {
                 <Ionicons name="radio-button-on" size={27} color="#F43F5E" />
               </View>
               <View className="min-w-[220px] flex-1">
-                <Text className="text-[12px] font-semibold text-[#B7C4D7]">Pregunta activa de la clase</Text>
-                <Text className="mt-1 text-[20px] font-black text-white">{activeChallenge?.text || 'Crea la primera pregunta'}</Text>
+                <Text className="text-[12px] font-semibold text-[#B7C4D7]">Última pregunta creada</Text>
+                <Text className="mt-1 text-[20px] font-black text-white">{latestQuestion?.text || 'Crea la primera pregunta'}</Text>
               </View>
               <InfoStack label="Progreso de la clase" value={`${progress}%`} />
               <InfoStack label="Participación" value={`${scores.length} / ${Math.max(enrollments.length, 1)}`} />
@@ -587,7 +618,9 @@ export default function SubjectDetailScreen() {
             <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#13294C]">
               <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${Math.min(progress, 100)}%` }} />
             </View>
-            <Text className="mt-3 text-[12px] text-[#8FA7C7]">Finaliza en 3 días</Text>
+            <Text className="mt-3 text-[12px] text-[#8FA7C7]">
+              {answeredClassQuestions} de {possibleClassQuestions} preguntas posibles respondidas
+            </Text>
           </View>
 
           <Panel title={`Preguntas: ${selectedTopicLabel}`}>
@@ -625,10 +658,10 @@ export default function SubjectDetailScreen() {
         <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
           <Panel title="Distribución de notas">
             <View className="flex-row items-center gap-5">
-              <DonutCard value={scoreValues.length || enrollments.length} />
+              <DonutCard value={scorePerformanceRows.length || enrollments.length} />
               <View className="min-w-0 flex-1 gap-2">
                 {gradeDistribution.map((item) => {
-                  const percent = scoreValues.length > 0 ? Math.round((item.count / scoreValues.length) * 100) : 0;
+                  const percent = scorePerformanceRows.length > 0 ? Math.round((item.count / scorePerformanceRows.length) * 100) : 0;
                   return (
                     <View key={item.label} className="flex-row items-center gap-2">
                       <View className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
@@ -1305,11 +1338,11 @@ export default function SubjectDetailScreen() {
           </View>
 
           <View className={isWide ? 'mb-5 flex-row gap-4' : 'mb-5 gap-4'}>
-            <MetricCard icon="people" label="Progreso medio" value={`${progress}%`} color="#8B5CF6" detail="+ 12% vs semana pasada" />
-            <MetricCard icon="shield-checkmark" label="Nota media" value={`${averageGrade.toFixed(1)}`} suffix="/10" color="#F59E0B" detail="+ 0.6 vs semana pasada" />
-            <MetricCard icon="star" label="Puntuación media" value={`${averageXp.toLocaleString('es-ES')} puntos`} color="#3B82F6" detail="+ 15% vs semana pasada" />
-            <MetricCard icon="radio-button-on" label="Preguntas completadas" value={String(completedChallenges)} color="#F43F5E" detail="+ 4 vs semana pasada" />
-            <MetricCard icon="trending-up" label="Participación" value={`${participation}%`} color="#8B5CF6" detail="+ 10% vs semana pasada" />
+            <MetricCard icon="checkmark-circle" label="Precisión media" value={`${averageAccuracy}%`} color="#34D399" detail="Aciertos sobre respuestas estimadas" />
+            <MetricCard icon="shield-checkmark" label="Nota media" value={`${averageGrade.toFixed(1)}`} suffix="/10" color="#F59E0B" detail="Calculada por precisión" />
+            <MetricCard icon="star" label="Puntuación media" value={`${averageXp.toLocaleString('es-ES')} pts`} color="#3B82F6" detail="Puntos y bonus separados" />
+            <MetricCard icon="radio-button-on" label="Preguntas respondidas" value={`${answeredClassQuestions}/${possibleClassQuestions}`} color="#F43F5E" detail="Respuestas sobre preguntas posibles" />
+            <MetricCard icon="trending-up" label="Participación" value={`${participation}%`} color="#8B5CF6" detail={INSUFFICIENT_TREND_DATA} />
           </View>
 
           <Panel title="Temas de la clase">
@@ -1434,22 +1467,42 @@ function MetricCard({
   value: string
   suffix?: string
   color: string
-  detail: string
+  detail?: string
 }) {
   return (
     <View className="min-w-[155px] flex-1 rounded-xl border border-[#183052] bg-[#07162D] p-4">
       <View className="mb-3 flex-row items-center gap-3">
-        <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: `${color}26` }}>
+        <View
+          className="h-11 w-11 items-center justify-center rounded-full"
+          style={{ backgroundColor: `${color}26` }}
+        >
           <Ionicons name={icon} size={21} color={color} />
         </View>
-        <Text className="flex-1 text-[12px] font-semibold text-[#B7C4D7]">{label}</Text>
+
+        <Text className="flex-1 text-[12px] font-semibold text-[#B7C4D7]">
+          {label}
+        </Text>
       </View>
+
       <Text className="text-[24px] font-black text-white">
-        {value} {suffix ? <Text className="text-[12px] text-[#B7C4D7]">{suffix}</Text> : null}
+        {value}{' '}
+        {suffix ? (
+          <Text className="text-[12px] text-[#B7C4D7]">
+            {suffix}
+          </Text>
+        ) : null}
       </Text>
-      <Text className="mt-3 text-[11px] font-semibold text-[#34D399]">↑ {detail}</Text>
+
+      {detail ? (
+        <View className="mt-3 flex-row items-center gap-1">
+          <Ionicons name="information-circle-outline" size={13} color="#8FA7C7" />
+          <Text className="flex-1 text-[11px] font-semibold text-[#8FA7C7]">
+            {detail}
+          </Text>
+        </View>
+      ) : null}
     </View>
-  );
+  )
 }
 
 function ReportMetricCard({
@@ -1641,7 +1694,7 @@ function StudentReportRow({ student, index }: { student: StudentReport; index: n
         </Text>
       </View>
       <ReportStack label="Participación" value={`${student.participation}%`} color={statusColor} meta={statusLabel} />
-      <ReportStack label="Nota media" value={student.hasActivity ? student.grade.toFixed(1) : '-'} color="#F59E0B" meta={student.hasActivity ? `${student.score} puntos` : 'Sin nota'} />
+      <ReportStack label="Nota media" value={student.hasActivity ? student.grade.toFixed(1) : '-'} color="#F59E0B" meta={student.hasActivity ? `${student.accuracyPercent}% precisión` : 'Sin nota'} />
       <ReportStack label="Correctas" value={String(student.correctAnswers)} color="#34D399" meta={`${student.playedSessions} sesión${student.playedSessions === 1 ? '' : 'es'}`} />
       <ReportStack label="Falladas" value={String(student.failedAnswers)} color="#F43F5E" meta="estimadas" />
     </View>
@@ -1760,10 +1813,6 @@ function iconForSubject(icon: string | null): IconName {
   return 'book-outline';
 }
 
-function xpToGrade(score: number) {
-  return Math.min(10, Math.max(0, Number((score / 160).toFixed(1))));
-}
-
 function formatDate(value?: string | null) {
   if (!value) return 'recientemente';
   return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
@@ -1803,15 +1852,17 @@ function buildStudentReportRows(
       const score = scoreByStudentId.get(enrollment.student_id);
       const hasActivity = Boolean(score?.played_at || typeof score?.max_score === 'number');
       const playedSessions = getPlayedSessions(score, questionsCount);
-      const answeredQuestions = questionsCount > 0 ? playedSessions * questionsCount : 0;
-      const correctAnswers = score?.correct_answers ?? 0;
-      const failedAnswers = hasActivity ? Math.max(0, answeredQuestions - correctAnswers) : 0;
+      const performance = score ? getScorePerformance(score, questionsCount) : { accuracyPercent: 0, correctAnswers: 0, totalAnswers: 0, grade: 0 };
+      const answeredQuestions = performance.totalAnswers;
+      const correctAnswers = performance.correctAnswers;
+      const failedAnswers = hasActivity && typeof score?.correct_answers === 'number' ? Math.max(0, answeredQuestions - correctAnswers) : 0;
 
       return {
         id: enrollment.student_id,
         name: profilesById[enrollment.student_id]?.alias || `Alumno ${index + 1}`,
         score: score?.max_score ?? 0,
-        grade: xpToGrade(score?.max_score ?? 0),
+        grade: performance.grade,
+        accuracyPercent: performance.accuracyPercent,
         correctAnswers,
         failedAnswers,
         participation: hasActivity ? Math.min(100, Math.round((playedSessions / maxSessions) * 100)) : 0,
@@ -1821,6 +1872,25 @@ function buildStudentReportRows(
       };
     })
     .sort((a, b) => Number(b.hasActivity) - Number(a.hasActivity) || b.score - a.score || a.name.localeCompare(b.name));
+}
+
+function getScorePerformance(score: SubjectScore, questionsCount: number) {
+  const playedSessions = getPlayedSessions(score, questionsCount);
+  const totalAnswers = typeof score.correct_answers === 'number' && questionsCount > 0
+    ? playedSessions * questionsCount
+    : 0;
+  const correctAnswers = totalAnswers > 0 ? Math.min(Math.max(0, score.correct_answers ?? 0), totalAnswers) : 0;
+  const accuracyPercent = totalAnswers > 0 ? answersToAccuracyPercent(correctAnswers, totalAnswers) : 0;
+  const grade = totalAnswers > 0
+    ? accuracyToGrade(accuracyPercent)
+    : scoreToGrade(score.max_score ?? 0, Math.max(160, questionsCount * 160));
+
+  return {
+    accuracyPercent,
+    correctAnswers,
+    totalAnswers,
+    grade,
+  };
 }
 
 async function buildFailedQuestionRows(
@@ -1859,7 +1929,7 @@ async function buildFailedQuestionRows(
   });
 
   const topicById = new Map(topicRows.map((topic) => [topic.id, topic]));
-  
+
   return questions
     .map((question) => {
       const topic = question.topic_id ? topicById.get(question.topic_id) : topicById.get('general');

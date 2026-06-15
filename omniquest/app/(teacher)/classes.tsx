@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/TeacherSidebar';
 import NotificationBadge from '../../components/NotificationBadge';
+import TeacherHeaderAvatar from '../../components/TeacherHeaderAvatar';
 
 type Subject = {
   id: number
@@ -29,11 +30,15 @@ type Subject = {
 
 type SubjectAnalytics = {
   enrolledCount: number
+  activeStudentsCount: number
   playedCount: number
+  answeredQuestionsCount: number
+  availableQuestionsCount: number
   averageScore: number
   questionsCount: number
   topicsCount: number
   enrolledThisWeek: number
+  activeStudentsThisWeek: number
   playedThisWeek: number
   questionsThisWeek: number
 }
@@ -52,9 +57,16 @@ type SubjectScore = {
 }
 
 type QuestionSummary = {
+  id: number
   subject_id: number | null
   text?: string | null
   created_at?: string | null
+}
+
+type AttemptSummary = {
+  student_id: string | null
+  question_id: number | null
+  attempted_at?: string | null
 }
 
 type TopicSummary = {
@@ -85,12 +97,15 @@ type RecentActivityItem = {
   timestamp: number
 }
 
-type ClassFilter = 'all' | 'in_progress' | 'completed'
+type ClassStatus = 'unconfigured' | 'no_activity' | 'in_progress' | 'completed'
+type ClassFilter = 'all' | ClassStatus
 type ClassSort = 'recent' | 'name' | 'participation'
 
 const teacherClassFilters: { id: ClassFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'all', label: 'Todas', icon: 'apps-outline' },
-  { id: 'in_progress', label: 'En progreso', icon: 'time-outline' },
+  { id: 'unconfigured', label: 'Sin configurar', icon: 'construct-outline' },
+  { id: 'no_activity', label: 'Sin actividad', icon: 'pause-circle-outline' },
+  { id: 'in_progress', label: 'En curso', icon: 'time-outline' },
   { id: 'completed', label: 'Completadas', icon: 'checkmark-done-outline' },
 ]
 
@@ -102,11 +117,15 @@ const teacherClassSorts: { id: ClassSort; label: string }[] = [
 
 const emptySubjectAnalytics: SubjectAnalytics = {
   enrolledCount: 0,
+  activeStudentsCount: 0,
   playedCount: 0,
+  answeredQuestionsCount: 0,
+  availableQuestionsCount: 0,
   averageScore: 0,
   questionsCount: 0,
   topicsCount: 0,
   enrolledThisWeek: 0,
+  activeStudentsThisWeek: 0,
   playedThisWeek: 0,
   questionsThisWeek: 0,
 }
@@ -123,6 +142,11 @@ export default function TeacherClassesScreen() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [studentStats, setStudentStats] = useState({
+    uniqueStudents: 0,
+    uniqueStudentsThisWeek: 0,
+    uniqueActiveStudents: 0,
+  });
 
   const isDesktop = width >= 1080;
   const isWide = width >= 860;
@@ -131,12 +155,12 @@ export default function TeacherClassesScreen() {
     const normalizedSearch = search.trim().toLowerCase();
     let rows = subjects;
 
-    if (selectedFilter === 'in_progress') {
-      rows = rows.filter((subject) => (analyticsBySubject[subject.id]?.playedCount ?? 0) === 0);
-    }
+    if (selectedFilter !== 'all') {
+      rows = rows.filter((subject) => {
+        const analytics = analyticsBySubject[subject.id] || emptySubjectAnalytics;
 
-    if (selectedFilter === 'completed') {
-      rows = rows.filter((subject) => (analyticsBySubject[subject.id]?.playedCount ?? 0) > 0);
+        return getClassStatus(analytics) === selectedFilter;
+      });
     }
 
     if (normalizedSearch) {
@@ -164,20 +188,32 @@ export default function TeacherClassesScreen() {
 
   const totals = useMemo(() => {
     const analytics = Object.values(analyticsBySubject);
+
     const totalStudents = analytics.reduce((total, item) => total + item.enrolledCount, 0);
+    const totalActiveStudents = analytics.reduce((total, item) => total + item.activeStudentsCount, 0);
     const totalQuestions = analytics.reduce((total, item) => total + item.questionsCount, 0);
     const totalPlayed = analytics.reduce((total, item) => total + item.playedCount, 0);
+    const totalAnsweredQuestions = analytics.reduce((total, item) => total + item.answeredQuestionsCount, 0);
+    const totalAvailableQuestions = analytics.reduce((total, item) => total + item.availableQuestionsCount, 0);
     const weightedScore = analytics.reduce((total, item) => total + item.averageScore * item.playedCount, 0);
     const enrolledThisWeek = analytics.reduce((total, item) => total + item.enrolledThisWeek, 0);
+    const activeStudentsThisWeek = analytics.reduce((total, item) => total + item.activeStudentsThisWeek, 0);
     const playedThisWeek = analytics.reduce((total, item) => total + item.playedThisWeek, 0);
     const questionsThisWeek = analytics.reduce((total, item) => total + item.questionsThisWeek, 0);
 
     return {
       students: totalStudents,
+      activeStudents: totalActiveStudents,
       questions: totalQuestions,
-      participation: totalStudents > 0 ? Math.round((totalPlayed / totalStudents) * 100) : 0,
+      participation: totalStudents > 0
+        ? Math.round((totalActiveStudents / totalStudents) * 100)
+        : 0,
+      progress: totalAvailableQuestions > 0
+        ? Math.round((totalAnsweredQuestions / totalAvailableQuestions) * 100)
+        : 0,
       averageScore: totalPlayed > 0 ? Math.round(weightedScore / totalPlayed) : 0,
       enrolledThisWeek,
+      activeStudentsThisWeek,
       playedThisWeek,
       questionsThisWeek,
     };
@@ -205,13 +241,18 @@ export default function TeacherClassesScreen() {
         setAnalyticsBySubject({});
         setActivityPlan([]);
         setRecentActivity([]);
+        setStudentStats({
+          uniqueStudents: 0,
+          uniqueStudentsThisWeek: 0,
+          uniqueActiveStudents: 0,
+        });
         return;
       }
 
       const [enrollmentsResult, scoresResult, questionsResult, topicsResult] = await Promise.all([
         supabase.from('enrollments').select('subject_id, student_id, joined_at').in('subject_id', subjectIds),
         supabase.from('subject_scores').select('subject_id, student_id, max_score, played_at').in('subject_id', subjectIds),
-        supabase.from('questions').select('subject_id, text, created_at').in('subject_id', subjectIds),
+        supabase.from('questions').select('id, subject_id, text, created_at').in('subject_id', subjectIds),
         supabase.from('subject_topics').select('subject_id, title, created_at').in('subject_id', subjectIds).eq('active', true),
       ]);
 
@@ -225,6 +266,37 @@ export default function TeacherClassesScreen() {
       const questions = (questionsResult.data || []) as QuestionSummary[];
       const topics = (topicsResult.data || []) as TopicSummary[];
       const weekStart = getRecentThresholdDate(7);
+      const questionIds = questions
+        .map((question) => question.id)
+        .filter((id): id is number => typeof id === 'number');
+
+      let attempts: AttemptSummary[] = [];
+
+      if (questionIds.length > 0) {
+        const { data: attemptsData, error: attemptsError } = await supabase
+          .from('attempt_history')
+          .select('student_id, question_id, attempted_at')
+          .in('question_id', questionIds);
+
+        if (attemptsError) throw attemptsError;
+
+        attempts = (attemptsData || []) as AttemptSummary[];
+      }
+      const uniqueStudentIds = getUniqueStudentIds(enrollments);
+
+      const uniqueStudentIdsThisWeek = getUniqueStudentIds(
+        enrollments.filter((item) => isAfterDate(item.joined_at, weekStart))
+      );
+
+      const uniqueActiveStudentIds = getUniqueStudentIds(
+        scores.filter((item) => typeof item.max_score === 'number' && (item.max_score ?? 0) > 0)
+      );
+
+      setStudentStats({
+        uniqueStudents: uniqueStudentIds.length,
+        uniqueStudentsThisWeek: uniqueStudentIdsThisWeek.length,
+        uniqueActiveStudents: uniqueActiveStudentIds.length,
+      });
 
       const studentIds = Array.from(
         new Set(
@@ -235,23 +307,65 @@ export default function TeacherClassesScreen() {
       const profilesById = studentIds.length > 0 ? await fetchProfilesById(studentIds) : {};
 
       const nextAnalytics: Record<number, SubjectAnalytics> = {};
+
       subjectIds.forEach((subjectId) => {
         const subjectEnrollments = enrollments.filter((item) => item.subject_id === subjectId);
-        const subjectScores = scores.filter(
-          (item) => item.subject_id === subjectId && typeof item.max_score === 'number'
+
+        const enrolledStudentIds = getUniqueIds(
+          subjectEnrollments.map((item) => item.student_id)
         );
+
+        const enrolledStudentIdSet = new Set(enrolledStudentIds);
+
+        const subjectScores = scores.filter(
+          (item) =>
+            item.subject_id === subjectId &&
+            typeof item.max_score === 'number' &&
+            item.student_id &&
+            enrolledStudentIdSet.has(item.student_id)
+        );
+
         const subjectQuestions = questions.filter((item) => item.subject_id === subjectId);
+        const subjectQuestionIds = new Set(subjectQuestions.map((question) => question.id));
+
+        const subjectAttempts = attempts.filter(
+          (attempt) =>
+            attempt.question_id &&
+            subjectQuestionIds.has(attempt.question_id) &&
+            attempt.student_id &&
+            enrolledStudentIdSet.has(attempt.student_id)
+        );
+
+        const answeredPairs = getUniqueAnswerPairs(subjectAttempts);
+        const activeStudentIds = getUniqueIds(subjectAttempts.map((attempt) => attempt.student_id));
+
+        const activeStudentsThisWeek = getUniqueIds(
+          subjectAttempts
+            .filter((attempt) => isAfterDate(attempt.attempted_at, weekStart))
+            .map((attempt) => attempt.student_id)
+        ).length;
+
         const subjectTopics = topics.filter((item) => item.subject_id === subjectId);
         const totalScore = subjectScores.reduce((total, item) => total + (item.max_score ?? 0), 0);
 
+        const availableQuestionsCount = enrolledStudentIds.length * subjectQuestions.length;
+
         nextAnalytics[subjectId] = {
-          enrolledCount: subjectEnrollments.length,
+          enrolledCount: enrolledStudentIds.length,
+          activeStudentsCount: activeStudentIds.length,
           playedCount: subjectScores.length,
+          answeredQuestionsCount: answeredPairs.length,
+          availableQuestionsCount,
           averageScore: subjectScores.length > 0 ? Math.round(totalScore / subjectScores.length) : 0,
           questionsCount: subjectQuestions.length,
           topicsCount: subjectTopics.length,
-          enrolledThisWeek: subjectEnrollments.filter((item) => isAfterDate(item.joined_at, weekStart)).length,
-          playedThisWeek: subjectScores.filter((item) => isAfterDate(item.played_at, weekStart)).length,
+          enrolledThisWeek: getUniqueIds(
+            subjectEnrollments
+              .filter((item) => isAfterDate(item.joined_at, weekStart))
+              .map((item) => item.student_id)
+          ).length,
+          activeStudentsThisWeek,
+          playedThisWeek: subjectAttempts.filter((item) => isAfterDate(item.attempted_at, weekStart)).length,
           questionsThisWeek: subjectQuestions.filter((item) => isAfterDate(item.created_at, weekStart)).length,
         };
       });
@@ -348,17 +462,15 @@ export default function TeacherClassesScreen() {
                 audience="teacher"
                 onPress={() => router.push('/(teacher)/notifications' as any)}
               />
-              <View className="h-11 w-11 items-center justify-center rounded-full bg-[#5B4BC4]">
-                <Text className="font-black text-white">PR</Text>
-              </View>
+              <TeacherHeaderAvatar />
             </View>
           </View>
 
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
             <MetricCard icon="school" title="Clases activas" value={String(subjects.length)} trend={formatWeeklyTrend(subjects.filter((subject) => isAfterDate(subject.created_at, getRecentThresholdDate(7))).length, 'clase nueva', 'clases nuevas')} color="#8B5CF6" />
-            <MetricCard icon="people" title="Estudiantes" value={String(totals.students)} trend={formatWeeklyTrend(totals.enrolledThisWeek, 'inscripción', 'inscripciones')} color="#43D991" />
+            <MetricCard icon="people" title="Estudiantes" value={String(totals.students)} trend={formatWeeklyTrend(totals.enrolledThisWeek, 'estudiante nuevo', 'estudiantes nuevos')} color="#43D991" />
             <MetricCard icon="clipboard" title="Preguntas" value={String(totals.questions)} trend={formatWeeklyTrend(totals.questionsThisWeek, 'pregunta nueva', 'preguntas nuevas')} color="#3B82F6" />
-            <MetricCard icon="trophy" title="Participación media" value={`${totals.participation}%`} trend={formatWeeklyTrend(totals.playedThisWeek, 'partida', 'partidas')} color="#F6A64A" />
+            <MetricCard icon="people-circle" title="Participación media" value={`${totals.participation}%`} trend={formatWeeklyTrend(totals.activeStudentsThisWeek, 'alumno activo', 'alumnos activos')} color="#F6A64A" />
           </View>
 
           <View className={isDesktop ? 'mt-6 flex-row gap-5' : 'mt-6 gap-5'}>
@@ -381,9 +493,8 @@ export default function TeacherClassesScreen() {
                       <Pressable
                         key={filter.id}
                         onPress={() => setSelectedFilter(filter.id)}
-                        className={`h-12 flex-row items-center gap-2 rounded-xl border px-4 ${
-                          active ? 'border-[#5D64FF] bg-[#4F46E5]' : 'border-[#20375E] bg-[#09162C]'
-                        }`}
+                        className={`h-12 flex-row items-center gap-2 rounded-xl border px-4 ${active ? 'border-[#5D64FF] bg-[#4F46E5]' : 'border-[#20375E] bg-[#09162C]'
+                          }`}
                       >
                         <Ionicons name={filter.icon} size={16} color={active ? '#FFFFFF' : '#B9A7FF'} />
                         <Text className={`font-semibold ${active ? 'text-white' : 'text-[#DDE7F4]'}`}>{filter.label}</Text>
@@ -398,14 +509,6 @@ export default function TeacherClassesScreen() {
                   <Text className="font-semibold text-[#DDE7F4]">Ordenar por: {getClassSortLabel(selectedSort)}</Text>
                   <Ionicons name="swap-vertical-outline" size={16} color="#AFC2DB" />
                 </Pressable>
-                <View className="h-12 flex-row rounded-xl border border-[#20375E] bg-[#09162C] p-1">
-                  <View className="items-center justify-center rounded-lg bg-[#4F46E5] px-3">
-                    <Ionicons name="grid" size={20} color="#FFFFFF" />
-                  </View>
-                  <View className="items-center justify-center px-3">
-                    <Ionicons name="list" size={20} color="#AFC2DB" />
-                  </View>
-                </View>
               </View>
 
               <View style={{ gap: 16 }}>
@@ -452,8 +555,8 @@ export default function TeacherClassesScreen() {
                 <View style={{ gap: 14 }}>
                   {subjects.slice(0, 3).map((subject) => {
                     const analytics = analyticsBySubject[subject.id] || emptySubjectAnalytics;
-                    const progress = analytics.enrolledCount > 0 ? Math.round((analytics.playedCount / analytics.enrolledCount) * 100) : 0;
-                    return <ProgressRow key={subject.id} label={subject.name} value={progress} color={subject.theme_color || '#8B5CF6'} />;
+                    const participation = getParticipationPercent(analytics);
+                    return <ProgressRow key={subject.id} label={subject.name} value={participation} color={subject.theme_color || '#8B5CF6'} />;
                   })}
                 </View>
               </SidePanel>
@@ -523,7 +626,9 @@ function ClassCard({
 }) {
   const fallbackColors = ['#8B5CF6', '#3B82F6', '#34D399', '#F6A64A'];
   const color = subject.theme_color || fallbackColors[index % fallbackColors.length];
-  const progress = analytics.enrolledCount > 0 ? Math.round((analytics.playedCount / analytics.enrolledCount) * 100) : 0;
+  const participation = getParticipationPercent(analytics);
+  const progress = getProgressPercent(analytics);
+  const status = getClassStatusMeta(getClassStatus(analytics));
 
   return (
     <View className={`overflow-hidden rounded-2xl border bg-[#09162C] ${index === 0 ? 'border-[#6D5AF6]' : 'border-[#1A3155]'}`}>
@@ -549,16 +654,17 @@ function ClassCard({
               <Text className="rounded-full bg-[#111E3C] px-2 py-1 font-mono text-[12px] font-bold text-[#9B8CFF]">{subject.code}</Text>
             </View>
             <View className="mt-3 flex-row flex-wrap gap-2">
+              <SmallPill icon={status.icon} label={status.label} color={status.color} />
               <SmallPill icon="albums-outline" label={`${analytics.topicsCount} temas`} color="#F6A64A" />
               <SmallPill icon="people-outline" label={`${analytics.enrolledCount} alumnos`} color="#38bdf8" />
               <SmallPill icon="trophy-outline" label={`${analytics.averageScore} Puntuación media`} color="#B9A7FF" />
-              <SmallPill icon="checkmark-circle-outline" label={`${analytics.playedCount} con nota`} color="#58E28B" />
-            </View>
+              <SmallPill icon="people-circle-outline" label={`${participation}% participación`} color="#58E28B" />
+              <SmallPill icon="checkmark-circle-outline" label={`${analytics.answeredQuestionsCount} respondidas`} color="#43D991" />            </View>
           </View>
 
           <View className="ml-auto items-center gap-2">
             <ProgressRing progress={progress} color={color} />
-            <Text className="text-[12px] text-[#B7C4D7]">Progreso medio</Text>
+            <Text className="text-[12px] text-[#B7C4D7]">Progreso</Text>
           </View>
         </Pressable>
       </Link>
@@ -566,7 +672,6 @@ function ClassCard({
       <View className="flex-row flex-wrap border-t border-[#172A4A] bg-[#07162E]">
         <ClassAction href={`/(teacher)/subject/${subject.id}`} icon="eye-outline" label="Ver clase" />
         <ClassAction href={`/(teacher)/subject/students?subjectId=${subject.id}`} icon="people-outline" label="Estudiantes" />
-        <ClassAction onPress={() => onComingSoon('Las actividades de la clase')} icon="calendar-outline" label="Actividades" />
         <ClassAction href={`/(teacher)/subject/${subject.id}?tab=reports`} icon="analytics-outline" label="Informes" />
         <ClassAction href={`/(teacher)/edit-subject?id=${subject.id}`} icon="create-outline" label="Editar" />
       </View>
@@ -742,7 +847,7 @@ function buildActivityPlan(subjects: Subject[], analyticsBySubject: Record<numbe
       });
     }
 
-    if (analytics.enrolledCount > 0 && analytics.playedCount === 0) {
+    if (analytics.enrolledCount > 0 && analytics.activeStudentsCount === 0) {
       items.push({
         icon: 'flash-outline',
         color: '#F6A64A',
@@ -752,8 +857,8 @@ function buildActivityPlan(subjects: Subject[], analyticsBySubject: Record<numbe
       });
     }
 
-    if (analytics.enrolledCount > 0 && analytics.playedCount > 0) {
-      const participation = Math.round((analytics.playedCount / analytics.enrolledCount) * 100);
+    if (analytics.enrolledCount > 0 && analytics.activeStudentsCount > 0) {
+      const participation = getParticipationPercent(analytics);
       if (participation < 60) {
         items.push({
           icon: 'analytics-outline',
@@ -858,7 +963,75 @@ function getClassSortLabel(current: ClassSort) {
 
 function getParticipationRate(analytics: SubjectAnalytics) {
   if (analytics.enrolledCount <= 0) return 0;
-  return analytics.playedCount / analytics.enrolledCount;
+
+  return analytics.activeStudentsCount / analytics.enrolledCount;
+}
+
+function getParticipationPercent(analytics: SubjectAnalytics) {
+  return Math.round(getParticipationRate(analytics) * 100);
+}
+
+function getProgressPercent(analytics: SubjectAnalytics) {
+  if (analytics.availableQuestionsCount <= 0) return 0;
+
+  return Math.min(
+    100,
+    Math.round((analytics.answeredQuestionsCount / analytics.availableQuestionsCount) * 100)
+  );
+}
+
+function getClassStatus(analytics: SubjectAnalytics): ClassStatus {
+  if (analytics.questionsCount === 0 || analytics.enrolledCount === 0) {
+    return 'unconfigured';
+  }
+
+  if (analytics.answeredQuestionsCount <= 0) {
+    return 'no_activity';
+  }
+
+  if (analytics.availableQuestionsCount > 0 && analytics.answeredQuestionsCount >= analytics.availableQuestionsCount) {
+    return 'completed';
+  }
+
+  return 'in_progress';
+}
+
+function getClassStatusMeta(status: ClassStatus): {
+  label: string
+  icon: keyof typeof Ionicons.glyphMap
+  color: string
+} {
+  if (status === 'unconfigured') {
+    return { label: 'Sin configurar', icon: 'construct-outline', color: '#F6A64A' };
+  }
+
+  if (status === 'no_activity') {
+    return { label: 'Sin actividad', icon: 'pause-circle-outline', color: '#8FA7C7' };
+  }
+
+  if (status === 'completed') {
+    return { label: 'Completada', icon: 'checkmark-done-outline', color: '#34D399' };
+  }
+
+  return { label: 'En curso', icon: 'time-outline', color: '#3B82F6' };
+}
+
+function getUniqueIds(values: (string | null | undefined)[]) {
+  return Array.from(
+    new Set(
+      values.filter((value): value is string => Boolean(value))
+    )
+  );
+}
+
+function getUniqueAnswerPairs(attempts: AttemptSummary[]) {
+  return Array.from(
+    new Set(
+      attempts
+        .filter((attempt) => attempt.student_id && attempt.question_id)
+        .map((attempt) => `${attempt.student_id}:${attempt.question_id}`)
+    )
+  );
 }
 
 function getRecentThresholdDate(days: number) {
@@ -909,4 +1082,14 @@ function truncateText(value: string, maxLength: number) {
   const cleanValue = value.trim();
   if (cleanValue.length <= maxLength) return cleanValue;
   return `${cleanValue.slice(0, maxLength - 3)}...`;
+}
+
+function getUniqueStudentIds(rows: { student_id: string | null | undefined }[]) {
+  return Array.from(
+    new Set(
+      rows
+        .map((row) => row.student_id)
+        .filter((value): value is string => Boolean(value))
+    )
+  );
 }

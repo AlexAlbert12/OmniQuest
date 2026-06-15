@@ -15,6 +15,7 @@ import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import NotificationBadge from '../../components/NotificationBadge'
+import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { formatRelativeDate } from '../../lib/dateFormat'
 
 type TicketPriority = 'low' | 'medium' | 'high'
@@ -226,7 +227,10 @@ export default function StudentHelpCenterScreen() {
               <Text className="mt-1 text-[12px] text-[#AFC2DB]">FAQ, contacto y tickets de soporte.</Text>
             </View>
           </View>
-          <NotificationBadge />
+          <View className="flex-row items-center gap-3">
+            <NotificationBadge />
+            <StudentHeaderAvatar />
+          </View>
         </View>
 
         <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>

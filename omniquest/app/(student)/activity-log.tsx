@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
+import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 
 type AttemptRow = {
@@ -154,19 +155,22 @@ export default function ActivityLogScreen() {
         ) : null}
 
         <View className="flex-1 px-4 pt-6 md:px-8 lg:pt-8">
-          <View className="mb-6 flex-row items-center gap-4">
-            <Pressable
-              onPress={() => router.back()}
-              className="h-12 w-12 items-center justify-center rounded-xl border border-[#2A4369] bg-[#0A1D3F]"
-            >
-              <Ionicons name="arrow-back" size={22} color="#DDE7F4" />
-            </Pressable>
-            <View className="min-w-0 flex-1">
-              <Text className="text-[28px] font-black text-white">Historial de Actividad</Text>
-              <Text className="text-[13px] text-[#9BAEC9]">
-                Revisa el registro completo de tus aciertos y errores en los retos
-              </Text>
+          <View className="mb-6 flex-row items-center justify-between gap-4">
+            <View className="min-w-0 flex-1 flex-row items-center gap-4">
+              <Pressable
+                onPress={() => router.back()}
+                className="h-12 w-12 items-center justify-center rounded-xl border border-[#2A4369] bg-[#0A1D3F]"
+              >
+                <Ionicons name="arrow-back" size={22} color="#DDE7F4" />
+              </Pressable>
+              <View className="min-w-0 flex-1">
+                <Text className="text-[28px] font-black text-white">Historial de Actividad</Text>
+                <Text className="text-[13px] text-[#9BAEC9]">
+                  Revisa el registro completo de tus aciertos y errores en los retos
+                </Text>
+              </View>
             </View>
+            <StudentHeaderAvatar />
           </View>
 
           {loading ? (

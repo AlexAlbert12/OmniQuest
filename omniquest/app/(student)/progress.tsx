@@ -21,6 +21,7 @@ import {
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
+import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import StudentDashboardCard, { StudentCardLink } from '../../components/student/StudentDashboardCard'
 import { formatShortDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
@@ -211,6 +212,7 @@ export default function ProgressScreen() {
 
             <View className="flex-row items-center gap-3">
               <NotificationBadge />
+              <StudentHeaderAvatar />
             </View>
           </View>
 

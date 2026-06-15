@@ -23,6 +23,7 @@ import StudentSidebar from '../../components/StudentSidebar'
 import TeacherSidebar from '../../components/TeacherSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
+import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
 
@@ -906,7 +907,6 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
               onSignOut={handleSignOut}
               alias={alias}
               avatar={profile?.avatar}
-              points={points}
             />
           ) : (
             <StudentSidebar
@@ -956,6 +956,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                 audience={isTeacher ? 'teacher' : 'student'}
                 onPress={() => router.push((isTeacher ? '/(teacher)/notifications' : '/(student)/notifications') as any)}
               />
+              {!isTeacher ? <StudentHeaderAvatar /> : null}
             </View>
           </View>
 

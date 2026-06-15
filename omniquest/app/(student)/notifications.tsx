@@ -17,6 +17,7 @@ import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { getTimeAgo } from '../../lib/time'
 import StudentSidebar from '../../components/StudentSidebar'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
+import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
@@ -220,6 +221,7 @@ export default function StudentNotificationsScreen() {
             </View>
 
             <View className="flex-row flex-wrap items-center gap-3">
+              <StudentHeaderAvatar />
               <Pressable
                 onPress={() => void onRefresh()}
                 className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"

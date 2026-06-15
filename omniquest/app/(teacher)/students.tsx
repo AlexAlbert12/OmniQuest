@@ -14,8 +14,10 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { accuracyToGrade, answersToAccuracyPercent, scoreToGrade } from '../../lib/grades';
 import TeacherSidebar from '../../components/TeacherSidebar';
 import NotificationBadge from '../../components/NotificationBadge';
+import TeacherHeaderAvatar from '../../components/TeacherHeaderAvatar';
 
 type Subject = {
   id: number
@@ -39,7 +41,13 @@ type SubjectScore = {
   student_id: string
   subject_id: number
   max_score: number | null
+  correct_answers?: number | null
+  played_days?: string[] | null
   played_at?: string | null
+}
+
+type QuestionSubject = {
+  subject_id: number | null
 }
 
 type StudentRow = {
@@ -49,12 +57,15 @@ type StudentRow = {
   globalPoints: number
   subjectScore: number
   averageScore: number
+  accuracyPercent: number
   challenges: number
   progress: number
   status: 'active' | 'inactive' | 'needs_help'
   subjectIds: number[]
   subjectNames: string[]
 }
+
+const INSUFFICIENT_TREND_DATA = 'Datos disponibles cuando haya actividad suficiente'
 
 export default function TeacherStudentsScreen() {
   const { width } = useWindowDimensions();
@@ -88,15 +99,13 @@ export default function TeacherStudentsScreen() {
     const total = visibleStudents.length;
     const active = visibleStudents.filter((student) => student.status === 'active').length;
     const totalScore = visibleStudents.reduce((sum, student) => sum + student.subjectScore, 0);
-    const top = visibleStudents[0];
 
     return {
       total,
       active,
       averageXp: total > 0 ? Math.round(totalScore / total) : 0,
-      topName: top?.alias || '-',
-      topScore: top?.subjectScore || 0,
-      averageProgress: total > 0 ? Math.round(visibleStudents.reduce((sum, student) => sum + student.progress, 0) / total) : 0,
+      averageGrade: total > 0 ? Number((visibleStudents.reduce((sum, student) => sum + student.averageScore, 0) / total).toFixed(1)) : 0,
+      averageAccuracy: total > 0 ? Math.round(visibleStudents.reduce((sum, student) => sum + student.accuracyPercent, 0) / total) : 0,
       completedChallenges: visibleStudents.reduce((sum, student) => sum + student.challenges, 0),
     };
   }, [visibleStudents]);
@@ -129,22 +138,28 @@ export default function TeacherStudentsScreen() {
         return;
       }
 
-      const [enrollmentsResult, scoresResult] = await Promise.all([
+      const [enrollmentsResult, scoresResult, questionsResult] = await Promise.all([
         supabase
           .from('enrollments')
           .select('student_id, subject_id, joined_at')
           .in('subject_id', subjectIds),
         supabase
           .from('subject_scores')
-          .select('student_id, subject_id, max_score, played_at')
+          .select('student_id, subject_id, max_score, correct_answers, played_days, played_at')
+          .in('subject_id', subjectIds),
+        supabase
+          .from('questions')
+          .select('subject_id')
           .in('subject_id', subjectIds),
       ]);
 
       if (enrollmentsResult.error) throw enrollmentsResult.error;
       if (scoresResult.error) throw scoresResult.error;
+      if (questionsResult.error) throw questionsResult.error;
 
       const enrollments = (enrollmentsResult.data || []) as Enrollment[];
       const scores = (scoresResult.data || []) as SubjectScore[];
+      const questionSubjects = (questionsResult.data || []) as QuestionSubject[];
       const studentIds = Array.from(new Set(enrollments.map((enrollment) => enrollment.student_id).filter(Boolean)));
 
       if (studentIds.length === 0) {
@@ -161,6 +176,12 @@ export default function TeacherStudentsScreen() {
 
       const profilesById = new Map(((profilesData || []) as StudentProfile[]).map((profile) => [profile.id, profile]));
       const subjectMap = new Map(teacherSubjects.map((subject) => [subject.id, subject.name]));
+      const questionsCountBySubject = questionSubjects.reduce<Map<number, number>>((map, question) => {
+        if (typeof question.subject_id === 'number') {
+          map.set(question.subject_id, (map.get(question.subject_id) || 0) + 1);
+        }
+        return map;
+      }, new Map());
       const enrollmentsByStudent = groupBy(enrollments, 'student_id');
       const scoresByStudent = groupBy(scores, 'student_id');
 
@@ -169,14 +190,18 @@ export default function TeacherStudentsScreen() {
         const studentEnrollments = enrollmentsByStudent.get(studentId) || [];
         const studentScores = scoresByStudent.get(studentId) || [];
         const scoreValues = studentScores.map((score) => score.max_score ?? 0);
-        const bestScore = Math.max(0, ...scoreValues);
         const averageXp = scoreValues.length > 0
           ? Math.round(scoreValues.reduce((total, score) => total + score, 0) / scoreValues.length)
           : 0;
         const progress = studentEnrollments.length > 0
           ? Math.round((studentScores.filter((score) => (score.max_score ?? 0) > 0).length / studentEnrollments.length) * 100)
           : 0;
-        const averageScore = Math.min(10, Math.max(0, Number((bestScore / 250).toFixed(1))));
+        const answerTotals = getAnswerTotals(studentScores, questionsCountBySubject);
+        const accuracyPercent = answerTotals.totalAnswers > 0
+          ? answersToAccuracyPercent(answerTotals.correctAnswers, answerTotals.totalAnswers)
+          : 0;
+        const fallbackGrade = getFallbackScoreGrade(studentScores, questionsCountBySubject);
+        const averageScore = answerTotals.totalAnswers > 0 ? accuracyToGrade(accuracyPercent) : fallbackGrade;
 
         return {
           id: studentId,
@@ -185,6 +210,7 @@ export default function TeacherStudentsScreen() {
           globalPoints: profile?.points ?? 0,
           subjectScore: averageXp,
           averageScore,
+          accuracyPercent,
           challenges: studentScores.length,
           progress,
           status: progress >= 60 ? 'active' : progress >= 35 ? 'inactive' : 'needs_help',
@@ -222,10 +248,6 @@ export default function TeacherStudentsScreen() {
     Alert.alert(title, message);
   };
 
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`);
-  };
-
   const handleSendMessage = async (student: StudentRow) => {
     if (Platform.OS === 'web') {
       const message = window.prompt(`Escribe un mensaje para ${student.alias}`);
@@ -243,7 +265,8 @@ export default function TeacherStudentsScreen() {
     const detailLines = [
       `Alias: ${student.alias}`,
       `Usuario: ${student.handle}`,
-      `Progreso: ${student.progress}%`,
+      `Precisión: ${student.accuracyPercent}%`,
+      `Participación: ${student.progress}%`,
       `Puntuación de clase: ${student.subjectScore}`,
       `Nota media: ${student.averageScore.toFixed(1)}`,
       `Preguntas completadas: ${student.challenges}`,
@@ -321,7 +344,7 @@ export default function TeacherStudentsScreen() {
 
       if (resetResult.error) throw resetResult.error;
 
-      setStudents((prev) => prev.map((row) => (row.id === student.id ? { ...row, subjectScore: 0, averageScore: 0, challenges: 0, progress: 0, status: 'needs_help' } : row)));
+      setStudents((prev) => prev.map((row) => (row.id === student.id ? { ...row, subjectScore: 0, averageScore: 0, accuracyPercent: 0, challenges: 0, progress: 0, status: 'needs_help' } : row)));
       showAlert('Progreso reiniciado', `El progreso de ${student.alias} ha sido reiniciado.`);
     } catch (error: any) {
       showAlert('Error', error.message || 'No se pudo reiniciar el progreso.');
@@ -398,7 +421,7 @@ export default function TeacherStudentsScreen() {
 
     const headers = [
       'ID', 'Alias', 'Usuario', 'XP_Clase', 'XP_Global',
-      'Progreso_Porcentaje', 'Preguntas_Completadas', 'Nota_Media',
+      'Precision_Porcentaje', 'Participacion_Porcentaje', 'Preguntas_Completadas', 'Nota_Media',
       'Estado', 'Asignaturas_IDs', 'Asignaturas', 'Filtro_Asignatura', 'Exportado_El'
     ];
 
@@ -408,6 +431,7 @@ export default function TeacherStudentsScreen() {
       student.handle,
       student.subjectScore,
       student.globalPoints,
+      student.accuracyPercent,
       student.progress,
       student.challenges,
       student.averageScore.toFixed(1),
@@ -504,17 +528,15 @@ export default function TeacherStudentsScreen() {
                 audience="teacher"
                 onPress={() => router.push('/(teacher)/notifications' as any)}
               />
-              <View className="h-11 w-11 items-center justify-center rounded-full bg-[#5B4BC4]">
-                <Text className="font-black text-white">PR</Text>
-              </View>
+              <TeacherHeaderAvatar />
             </View>
           </View>
 
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
-            <MetricCard icon="people" title="Total estudiantes" value={String(stats.total)} trend="2 nuevos esta semana" color="#8B5CF6" />
-            <MetricCard icon="checkmark-circle" title="Activos esta semana" value={String(stats.active)} trend="12% vs semana pasada" color="#34D399" />
-            <MetricCard icon="star" title="Puntuación media de clase" value={stats.averageXp.toLocaleString()} trend="8% vs semana pasada" color="#3B82F6" />
-            <MetricCard icon="trophy" title="Top de la clase" value={stats.topName} detail={`${stats.topScore.toLocaleString()} puntos`} color="#F6A64A" />
+            <MetricCard icon="people" title="Total estudiantes" value={String(stats.total)} detail={INSUFFICIENT_TREND_DATA} color="#8B5CF6" />
+            <MetricCard icon="checkmark-circle" title="Precisión media" value={`${stats.averageAccuracy}%`} detail={`${stats.active} activos esta semana`} color="#34D399" />
+            <MetricCard icon="shield-checkmark" title="Nota media" value={`${stats.averageGrade.toFixed(1)} /10`} detail="Calculada por aciertos" color="#F59E0B" />
+            <MetricCard icon="star" title="Puntuación media" value={`${stats.averageXp.toLocaleString()} pts`} detail="Puntos y bonus separados de la nota" color="#3B82F6" />
           </View>
 
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
@@ -548,7 +570,7 @@ export default function TeacherStudentsScreen() {
               <View className="overflow-hidden rounded-2xl border border-[#1A3155] bg-[#09162C]">
                 <View className="hidden flex-row border-b border-[#1A3155] bg-[#10164A] px-4 py-4 md:flex">
                   <TableHeader label="Estudiante" flex={1.6} />
-                  <TableHeader label="Progreso general" flex={1.2} />
+                  <TableHeader label="Precisión" flex={1.2} />
                   <TableHeader label="Puntuación" flex={0.65} />
                   <TableHeader label="Preguntas" flex={0.5} />
                   <TableHeader label="Nota media" flex={0.7} />
@@ -575,34 +597,23 @@ export default function TeacherStudentsScreen() {
                 ) : null}
               </View>
 
-              <View className="mt-4 flex-row flex-wrap items-center gap-3">
-                <View className="h-8 w-8 items-center justify-center rounded-lg bg-[#6D5AF6]">
-                  <Text className="font-black text-white">1</Text>
-                </View>
-                <View className="h-8 w-8 items-center justify-center rounded-lg border border-[#20375E] bg-[#09162C]">
-                  <Text className="text-[#AFC2DB]">2</Text>
-                </View>
-                <View className="h-8 w-8 items-center justify-center rounded-lg border border-[#20375E] bg-[#09162C]">
-                  <Text className="text-[#AFC2DB]">3</Text>
-                </View>
-                <Text className="ml-4 text-[12px] text-[#8FA7C7]">
-                  Mostrando {Math.min(visibleStudents.length, 7)} de {visibleStudents.length} estudiantes
-                </Text>
-              </View>
+              <Text className="mt-4 text-[12px] text-[#8FA7C7]">
+                Mostrando {visibleStudents.length} de {visibleStudents.length} estudiantes
+              </Text>
             </View>
 
             <View className={isDesktop ? 'flex-1 gap-4' : 'gap-4'}>
               <Panel title="Resumen de progreso">
                 <View className="flex-row items-center gap-5">
                   <View className="h-28 w-28 items-center justify-center rounded-full border-[8px] border-[#8B5CF6] bg-[#07162E]">
-                    <Text className="text-[26px] font-black text-white">{stats.averageProgress}%</Text>
-                    <Text className="text-center text-[9px] text-[#B7C4D7]">Progreso medio</Text>
+                    <Text className="text-[26px] font-black text-white">{stats.averageAccuracy}%</Text>
+                    <Text className="text-center text-[9px] text-[#B7C4D7]">Precisión media</Text>
                   </View>
                   <View className="min-w-0 flex-1" style={{ gap: 9 }}>
-                    <LegendRow color="#34D399" label="Excelente" value={visibleStudents.filter((s) => s.progress >= 80).length} total={stats.total} />
-                    <LegendRow color="#3B82F6" label="Bueno" value={visibleStudents.filter((s) => s.progress >= 50 && s.progress < 80).length} total={stats.total} />
-                    <LegendRow color="#F6A64A" label="Regular" value={visibleStudents.filter((s) => s.progress >= 30 && s.progress < 50).length} total={stats.total} />
-                    <LegendRow color="#EF4444" label="Necesita apoyo" value={visibleStudents.filter((s) => s.progress < 30).length} total={stats.total} />
+                    <LegendRow color="#34D399" label="Excelente" value={visibleStudents.filter((s) => s.averageScore >= 9).length} total={stats.total} />
+                    <LegendRow color="#3B82F6" label="Bueno" value={visibleStudents.filter((s) => s.averageScore >= 7 && s.averageScore < 9).length} total={stats.total} />
+                    <LegendRow color="#F6A64A" label="Regular" value={visibleStudents.filter((s) => s.averageScore >= 5 && s.averageScore < 7).length} total={stats.total} />
+                    <LegendRow color="#EF4444" label="Necesita apoyo" value={visibleStudents.filter((s) => s.averageScore < 5).length} total={stats.total} />
                   </View>
                 </View>
               </Panel>
@@ -635,37 +646,37 @@ function MetricCard({
   icon,
   title,
   value,
-  trend,
   detail,
   color,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   title: string
   value: string
-  trend?: string
   detail?: string
   color: string
 }) {
   return (
     <View className="min-w-[190px] flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
       <View className="flex-row items-center gap-4">
-        <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${color}30` }}>
+        <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${color}30` }} >
           <Ionicons name={icon} size={27} color={color} />
         </View>
+
         <View className="min-w-0 flex-1">
-          <Text className="text-[12px] text-[#B7C4D7]">{title}</Text>
-          <Text className="mt-1 text-[25px] font-black text-white" numberOfLines={1}>{value}</Text>
-          {detail ? <Text className="mt-1 text-[12px] font-bold" style={{ color }}>{detail}</Text> : null}
+          <Text className="text-[12px] text-[#B7C4D7]"> {title} </Text>
+          <Text className="mt-1 text-[25px] font-black text-white" numberOfLines={1}> {value} </Text>
+          {detail ? (
+            <View className="mt-2 flex-row items-center gap-1">
+              <Ionicons name="information-circle-outline" size={13} color="#8FA7C7" />
+              <Text className="flex-1 text-[12px] font-semibold text-[#8FA7C7]">
+                {detail}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
-      {trend ? (
-        <View className="mt-3 flex-row items-center gap-2">
-          <Ionicons name="arrow-up" size={13} color="#58E28B" />
-          <Text className="text-[12px] font-semibold text-[#58E28B]">{trend}</Text>
-        </View>
-      ) : null}
     </View>
-  );
+  )
 }
 
 function SubjectSelect({
@@ -743,9 +754,9 @@ function StudentTableRow({
 
       <View className="min-w-[150px] flex-[1.2] flex-row items-center gap-3">
         <View className="h-2 flex-1 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${student.progress}%` }} />
+          <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${student.accuracyPercent}%` }} />
         </View>
-        <Text className="w-10 text-[12px] font-bold text-white">{student.progress}%</Text>
+        <Text className="w-10 text-[12px] font-bold text-white">{student.accuracyPercent}%</Text>
       </View>
 
       <View className="min-w-[80px] flex-[0.65]">
@@ -820,7 +831,8 @@ function ProgressStat({ label, value, total, color }: { label: string; value: nu
 }
 
 function AttentionRow({ student }: { student: StudentRow }) {
-  const percent = Math.max(10, student.progress);
+  const hasLowGrade = student.averageScore < 6;
+  const percent = Math.max(10, hasLowGrade ? student.accuracyPercent : student.progress);
 
   return (
     <View className="flex-row items-center gap-3">
@@ -829,7 +841,7 @@ function AttentionRow({ student }: { student: StudentRow }) {
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[13px] font-bold text-white" numberOfLines={1}>{student.alias}</Text>
-        <Text className="text-[11px] text-[#B7C4D7]">{student.progress < 25 ? 'Bajo progreso' : 'Baja participación'}</Text>
+        <Text className="text-[11px] text-[#B7C4D7]">{hasLowGrade ? 'Baja precisión' : student.progress < 25 ? 'Bajo progreso' : 'Baja participación'}</Text>
       </View>
       <View className="rounded-md border border-[#F59E0B] px-2 py-1">
         <Text className="text-[11px] font-black text-[#F59E0B]">{percent}%</Text>
@@ -848,6 +860,52 @@ function getStatusMeta(status: StudentRow['status']) {
   if (status === 'active') return { label: 'Activo', color: '#58E28B' };
   if (status === 'needs_help') return { label: 'Necesita apoyo', color: '#F59E0B' };
   return { label: 'Inactivo', color: '#8FA7C7' };
+}
+
+function getAnswerTotals(scores: SubjectScore[], questionsCountBySubject: Map<number, number>) {
+  return scores.reduce(
+    (totals, score) => {
+      if (typeof score.correct_answers !== 'number') {
+        return totals;
+      }
+
+      const questionsCount = questionsCountBySubject.get(score.subject_id) || 0;
+      const playedSessions = getPlayedSessions(score, questionsCount);
+      const totalAnswers = questionsCount > 0 ? playedSessions * questionsCount : 0;
+
+      if (totalAnswers <= 0) {
+        return totals;
+      }
+
+      totals.correctAnswers += Math.min(Math.max(0, score.correct_answers), totalAnswers);
+      totals.totalAnswers += totalAnswers;
+      return totals;
+    },
+    { correctAnswers: 0, totalAnswers: 0 }
+  );
+}
+
+function getFallbackScoreGrade(scores: SubjectScore[], questionsCountBySubject: Map<number, number>) {
+  const grades = scores
+    .filter((score) => typeof score.max_score === 'number')
+    .map((score) => {
+      const questionsCount = questionsCountBySubject.get(score.subject_id) || 1;
+      return scoreToGrade(score.max_score ?? 0, Math.max(160, questionsCount * 160));
+    });
+
+  if (grades.length === 0) {
+    return 0;
+  }
+
+  return Number((grades.reduce((total, grade) => total + grade, 0) / grades.length).toFixed(1));
+}
+
+function getPlayedSessions(score: SubjectScore, questionsCount: number) {
+  const playedDays = Array.isArray(score.played_days) ? score.played_days.filter(Boolean).length : 0;
+  const sessionsFromCorrectAnswers = questionsCount > 0 && typeof score.correct_answers === 'number'
+    ? Math.ceil(score.correct_answers / questionsCount)
+    : 0;
+  return Math.max(score.played_at ? 1 : 0, playedDays, sessionsFromCorrectAnswers);
 }
 
 function groupBy<T extends Record<string, any>>(items: T[], key: keyof T) {

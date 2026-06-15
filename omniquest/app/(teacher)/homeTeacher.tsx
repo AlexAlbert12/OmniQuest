@@ -1,8 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -15,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/TeacherSidebar';
 import NotificationBadge from '../../components/NotificationBadge';
+import TeacherHeaderAvatar from '../../components/TeacherHeaderAvatar';
 
 type Subject = {
   id: number
@@ -65,6 +64,7 @@ export default function TeacherHomeScreen() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [analyticsBySubject, setAnalyticsBySubject] = useState<Record<number, SubjectAnalytics>>({});
   const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
+  const [uniqueStudentCount, setUniqueStudentCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -73,7 +73,7 @@ export default function TeacherHomeScreen() {
 
   const totals = useMemo(() => {
     const analytics = Object.values(analyticsBySubject);
-    const students = analytics.reduce((total, item) => total + item.enrolledCount, 0);
+    const students = uniqueStudentCount;
     const questions = analytics.reduce((total, item) => total + item.questionsCount, 0);
     const attempts = analytics.reduce((total, item) => total + item.playedCount, 0);
     const weightedScore = analytics.reduce((total, item) => total + item.averageScore * item.playedCount, 0);
@@ -84,7 +84,7 @@ export default function TeacherHomeScreen() {
       attempts,
       averageScore: attempts > 0 ? Math.round(weightedScore / attempts) : 0,
     };
-  }, [analyticsBySubject]);
+  }, [analyticsBySubject, uniqueStudentCount]);
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -107,6 +107,7 @@ export default function TeacherHomeScreen() {
       if (subjectIds.length === 0) {
         setAnalyticsBySubject({});
         setRecentActivity([]);
+        setUniqueStudentCount(0);
         return;
       }
 
@@ -115,8 +116,7 @@ export default function TeacherHomeScreen() {
           .from('enrollments')
           .select('subject_id, student_id, joined_at')
           .in('subject_id', subjectIds)
-          .order('joined_at', { ascending: false })
-          .limit(30),
+          .order('joined_at', { ascending: false }),
         supabase.from('subject_scores').select('subject_id, max_score').in('subject_id', subjectIds),
         supabase.from('questions').select('subject_id').in('subject_id', subjectIds),
         supabase
@@ -130,10 +130,12 @@ export default function TeacherHomeScreen() {
       if (scoresResult.error) throw scoresResult.error;
       if (questionsResult.error) throw questionsResult.error;
       if (attemptsResult.error) throw attemptsResult.error;
+      const enrollments = (enrollmentsResult.data || []) as EnrollmentActivityRow[];
+      setUniqueStudentCount(getUniqueStudentCount(enrollments));
 
       const nextAnalytics: Record<number, SubjectAnalytics> = {};
       subjectIds.forEach((subjectId) => {
-        const subjectEnrollments = enrollmentsResult.data?.filter((item) => item.subject_id === subjectId) || [];
+        const subjectEnrollments = enrollments.filter((item) => item.subject_id === subjectId) || [];
         const subjectScores = scoresResult.data?.filter(
           (item) => item.subject_id === subjectId && typeof item.max_score === 'number'
         ) || [];
@@ -152,7 +154,7 @@ export default function TeacherHomeScreen() {
       const studentIds = Array.from(
         new Set(
           [
-            ...(enrollmentsResult.data || []).map((item) => item.student_id),
+            ...(enrollments).map((item) => item.student_id),
             ...(attemptsResult.data || []).map((item) => item.student_id),
           ].filter((value): value is string => Boolean(value))
         )
@@ -161,7 +163,7 @@ export default function TeacherHomeScreen() {
       setRecentActivity(
         buildRecentActivity({
           subjects: nextSubjects,
-          enrollments: enrollmentsResult.data || [],
+          enrollments,
           attempts: attemptsResult.data || [],
           profilesById,
         })
@@ -183,19 +185,6 @@ export default function TeacherHomeScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     fetchDashboard();
-  };
-
-  const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`);
-      return;
-    }
-
-    Alert.alert(title, message);
-  };
-
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`);
   };
 
   if (loading) {
@@ -253,9 +242,7 @@ export default function TeacherHomeScreen() {
                 audience="teacher"
                 onPress={() => router.push('/(teacher)/notifications' as any)}
               />
-              <View className="h-11 w-11 items-center justify-center rounded-full bg-[#5B4BC4]">
-                <Text className="font-black text-white">PR</Text>
-              </View>
+              <TeacherHeaderAvatar />
             </View>
           </View>
 
@@ -524,4 +511,12 @@ function QuickAction({ icon, label, onPress }: { icon: keyof typeof Ionicons.gly
       <Ionicons name="chevron-forward" size={16} color="#AFC2DB" style={{ marginLeft: 'auto' }} />
     </Pressable>
   );
+}
+
+function getUniqueStudentCount(rows: Array<{ student_id: string | null | undefined }>) {
+  return new Set(
+    rows
+      .map((row) => row.student_id)
+      .filter((value): value is string => Boolean(value))
+  ).size;
 }

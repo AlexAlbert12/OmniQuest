@@ -13,6 +13,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useGame } from '../../../hooks/useGame'
+import StudentHeaderAvatar from '../../../components/student/StudentHeaderAvatar'
 
 type Answer = {
   id: number
@@ -184,6 +185,7 @@ export default function PlayScreen() {
                       />
                     ))}
                   </View>
+                  <StudentHeaderAvatar />
                 </View>
               </View>
               <View className="h-3 overflow-hidden rounded-full bg-[#10213E]">

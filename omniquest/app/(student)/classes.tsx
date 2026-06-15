@@ -18,6 +18,7 @@ import StudentSidebar from '../../components/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
 import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
+import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { useAppTheme } from '../../lib/appTheme'
 
 type Profile = {
@@ -396,6 +397,7 @@ export default function ClassesScreen() {
 
             <View className="flex-row items-center gap-3">
               <NotificationBadge />
+              <StudentHeaderAvatar />
             </View>
           </View>
 
