@@ -172,10 +172,6 @@ export default function TopicDetailScreen() {
     Alert.alert(title, message);
   };
 
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`);
-  };
-
   const executeDelete = async (questionId: number) => {
     if (!subject) return;
 

@@ -3,7 +3,6 @@ import { useRouter, Link } from 'expo-router'
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, useWindowDimensions, View, } from 'react-native'
 import { useState } from 'react'
 import Footer from '../components/Footer'
-import Header from '../components/Header'
 import SpaceBackground from '../components/SpaceBackground'
 import { supabase } from '../lib/supabase'
 

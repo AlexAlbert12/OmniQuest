@@ -901,10 +901,6 @@ export default function SubjectDetailScreen() {
     Alert.alert(title, message);
   };
 
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`);
-  };
-
   const handleEditClass = () => {
     if (!subject) return;
     router.push(`/(teacher)/edit-subject?id=${subject.id}` as any);

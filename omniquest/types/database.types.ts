@@ -101,6 +101,67 @@ export type Database = {
           },
         ]
       }
+      game_attempts: {
+        Row: {
+          id: string
+          student_id: string
+          subject_id: number
+          topic_id: number | null
+          status: string
+          total_score: number
+          correct_answers: number
+          started_at: string
+          updated_at: string
+          finished_at: string | null
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          subject_id: number
+          topic_id?: number | null
+          status?: string
+          total_score?: number
+          correct_answers?: number
+          started_at?: string
+          updated_at?: string
+          finished_at?: string | null
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          subject_id?: number
+          topic_id?: number | null
+          status?: string
+          total_score?: number
+          correct_answers?: number
+          started_at?: string
+          updated_at?: string
+          finished_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_attempts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_attempts_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_attempts_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "subject_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classrooms: {
         Row: {
           academic_year: string | null
@@ -183,6 +244,7 @@ export type Database = {
           id: number
           points_base: number | null
           subject_id: number | null
+          topic_id: number | null
           text: string
           time_limit_seconds: number | null
           type: string
@@ -195,6 +257,7 @@ export type Database = {
           id?: number
           points_base?: number | null
           subject_id?: number | null
+          topic_id?: number | null
           text: string
           time_limit_seconds?: number | null
           type: string
@@ -207,6 +270,7 @@ export type Database = {
           id?: number
           points_base?: number | null
           subject_id?: number | null
+          topic_id?: number | null
           text?: string
           time_limit_seconds?: number | null
           type?: string
@@ -217,6 +281,13 @@ export type Database = {
             columns: ["subject_id"]
             isOneToOne: false
             referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "subject_topics"
             referencedColumns: ["id"]
           },
         ]
@@ -246,6 +317,7 @@ export type Database = {
           education_level: string | null
           icon: string | null
           id: number
+          is_archived: boolean
           name: string
           subject_label: string | null
           teacher_id: string | null
@@ -260,6 +332,7 @@ export type Database = {
           education_level?: string | null
           icon?: string | null
           id?: number
+          is_archived?: boolean
           name: string
           subject_label?: string | null
           teacher_id?: string | null
@@ -274,6 +347,7 @@ export type Database = {
           education_level?: string | null
           icon?: string | null
           id?: number
+          is_archived?: boolean
           name?: string
           subject_label?: string | null
           teacher_id?: string | null
@@ -283,6 +357,274 @@ export type Database = {
           {
             foreignKeyName: "subjects_teacher_id_fkey"
             columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enrollments: {
+        Row: {
+          id: number
+          student_id: string
+          subject_id: number
+          joined_at: string
+        }
+        Insert: {
+          id?: number
+          student_id: string
+          subject_id: number
+          joined_at?: string
+        }
+        Update: {
+          id?: number
+          student_id?: string
+          subject_id?: number
+          joined_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subject_topics: {
+        Row: {
+          id: number
+          subject_id: number
+          title: string
+          description: string | null
+          icon: string | null
+          sort_order: number | null
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          subject_id: number
+          title: string
+          description?: string | null
+          icon?: string | null
+          sort_order?: number | null
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          subject_id?: number
+          title?: string
+          description?: string | null
+          icon?: string | null
+          sort_order?: number | null
+          active?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subject_topics_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subject_scores: {
+        Row: {
+          id: number
+          student_id: string
+          subject_id: number
+          max_score: number | null
+          correct_answers: number | null
+          played_days: string[] | null
+          played_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          student_id: string
+          subject_id: number
+          max_score?: number | null
+          correct_answers?: number | null
+          played_days?: string[] | null
+          played_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          student_id?: string
+          subject_id?: number
+          max_score?: number | null
+          correct_answers?: number | null
+          played_days?: string[] | null
+          played_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subject_scores_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_scores_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topic_scores: {
+        Row: {
+          id: number
+          student_id: string
+          subject_id: number
+          topic_id: number
+          max_score: number | null
+          played_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          student_id: string
+          subject_id: number
+          topic_id: number
+          max_score?: number | null
+          played_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          student_id?: string
+          subject_id?: number
+          topic_id?: number
+          max_score?: number | null
+          played_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_scores_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topic_scores_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topic_scores_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "subject_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_badges: {
+        Row: {
+          id: number
+          student_id: string
+          badge_id: string
+          reward_xp: number | null
+          awarded_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          student_id: string
+          badge_id: string
+          reward_xp?: number | null
+          awarded_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          student_id?: string
+          badge_id?: string
+          reward_xp?: number | null
+          awarded_at?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_badges_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_support_tickets: {
+        Row: {
+          id: number
+          user_id: string
+          role: string
+          category: string
+          subject: string
+          message: string
+          contact_email: string | null
+          priority: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          user_id: string
+          role?: string
+          category: string
+          subject: string
+          message: string
+          contact_email?: string | null
+          priority?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: string
+          role?: string
+          category?: string
+          subject?: string
+          message?: string
+          contact_email?: string | null
+          priority?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_support_tickets_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -417,7 +759,39 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_game_questions: {
+        Args: {
+          p_subject_id: number
+          p_topic_id?: number | null
+          p_general_topic?: boolean
+        }
+        Returns: Json
+      }
+      start_game_attempt: {
+        Args: {
+          p_subject_id: number
+          p_topic_id?: number | null
+          p_general_topic?: boolean
+        }
+        Returns: string
+      }
+      submit_answer: {
+        Args: {
+          p_question_id: number
+          p_answer_id?: number | null
+          p_answer_text?: string | null
+          p_answer_payload?: Json | null
+          p_time_taken_seconds?: number | null
+          p_hint_used?: boolean
+          p_skipped?: boolean
+          p_attempt_id?: string | null
+        }
+        Returns: Json
+      }
+      sync_student_badges: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

@@ -211,6 +211,8 @@ export default function StudentHome() {
     setJoining(true)
     try {
       const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+      if (!userId) throw new Error('No hay sesión activa.')
 
       const { data: subject, error: subjectError } = await supabase
         .from('subjects')
@@ -224,7 +226,7 @@ export default function StudentHome() {
 
       const { error: enrollError } = await supabase
         .from('enrollments')
-        .insert([{ student_id: session.session?.user.id, subject_id: subject.id }])
+        .insert([{ student_id: userId, subject_id: subject.id }])
 
       if (enrollError) {
         if (enrollError.code === '23505') throw new Error('Ya estás matriculado en esta clase.')

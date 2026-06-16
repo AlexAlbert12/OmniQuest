@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -14,15 +14,19 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useGame } from '../../../hooks/useGame'
 import StudentHeaderAvatar from '../../../components/student/StudentHeaderAvatar'
+import type { Json } from '../../../types/database.types'
 
 type Answer = {
   id: number
   text: string
-  is_correct?: boolean
-  sort_order?: number | null
 }
 
 type QuestionType = 'multiple_choice' | 'true_false' | 'open_answer' | 'fill_blank' | 'ordering' | 'match_pairs' | 'drag_drop'
+
+type StructuredAnswerPayload = {
+  answerText?: string
+  payload?: Json
+}
 
 type Question = {
   id: number
@@ -32,6 +36,7 @@ type Question = {
   category?: string | null
   subject?: string | null
   answers: Answer[]
+  pair_options?: string[]
 }
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -123,10 +128,7 @@ export default function PlayScreen() {
       return
     }
 
-    const hintText = currentQuestion.answers.find((answer) => answer.is_correct)?.text
-    const message = hintText
-      ? `Se ha activado la pista y se ha restado 10 pts. La respuesta correcta está resaltada.`
-      : 'Se ha activado la pista y se ha restado 10 pts.'
+    const message = 'Se ha activado la pista. Si aciertas, el servidor aplicará la penalización de puntos.'
 
     if (Platform.OS === 'web') {
       window.alert(`Pista\n${message}`)
@@ -229,7 +231,7 @@ export default function PlayScreen() {
                   <View className="mt-3 rounded-2xl border border-[#FBBF24] bg-[#2A210F]/90 p-4">
                     <Text className="font-black uppercase tracking-[0.04em] text-[#FBBF24]">Pista activa</Text>
                     <Text className="mt-2 text-[13px] text-[#F4E3B8]">
-                      La respuesta correcta está resaltada en las opciones. Usa esto para avanzar con más seguridad.
+                      La respuesta se validará en el servidor y tendrá penalización si aciertas.
                     </Text>
                   </View>
                 ) : null}
@@ -261,6 +263,7 @@ export default function PlayScreen() {
                     question={currentQuestion}
                     questionType={questionType}
                     selectedAnswerId={game.selectedAnswerId}
+                    correctAnswerId={game.correctAnswerId}
                     hintedAnswerId={game.hintedAnswerId}
                     hasAnswered={game.hasAnswered}
                     answerStatus={game.answerStatus}
@@ -290,6 +293,7 @@ function QuestionInteraction({
   question,
   questionType,
   selectedAnswerId,
+  correctAnswerId,
   hintedAnswerId,
   hasAnswered,
   answerStatus,
@@ -299,11 +303,12 @@ function QuestionInteraction({
   question: Question
   questionType: QuestionType
   selectedAnswerId: number | null
+  correctAnswerId: number | null
   hintedAnswerId: number | null
   hasAnswered: boolean
   answerStatus: 'correct' | 'incorrect' | null
   onChoiceAnswer: (answerId: number) => void
-  onStructuredAnswer: (isCorrect: boolean) => void
+  onStructuredAnswer: (payload: StructuredAnswerPayload) => void
 }) {
   if (isChoiceQuestion(questionType)) {
     return (
@@ -314,6 +319,7 @@ function QuestionInteraction({
             answer={answer}
             index={index}
             selectedAnswerId={selectedAnswerId}
+            correctAnswerId={correctAnswerId}
             hintedAnswerId={hintedAnswerId}
             hasAnswered={hasAnswered}
             onPress={() => onChoiceAnswer(answer.id)}
@@ -383,10 +389,9 @@ function TextAnswerQuestion({
   questionType: 'open_answer' | 'fill_blank'
   hasAnswered: boolean
   answerStatus: 'correct' | 'incorrect' | null
-  onSubmit: (isCorrect: boolean) => void
+  onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
   const [value, setValue] = useState('')
-  const expectedAnswers = useMemo(() => getSortedAnswers(question.answers).map((answer) => answer.text), [question.answers])
   const isFill = questionType === 'fill_blank'
 
   useEffect(() => {
@@ -395,20 +400,7 @@ function TextAnswerQuestion({
 
   const handleSubmit = () => {
     if (hasAnswered || !value.trim()) return
-
-    if (isFill) {
-      const submittedParts = splitAnswerParts(value)
-      const expectedParts = expectedAnswers.map(normalizeAnswerText).filter(Boolean)
-      const isCorrect =
-        submittedParts.length > 0 &&
-        expectedParts.length > 0 &&
-        submittedParts.every((submitted) => expectedParts.includes(submitted))
-      onSubmit(isCorrect)
-      return
-    }
-
-    const submitted = normalizeAnswerText(value)
-    onSubmit(expectedAnswers.some((answer) => normalizeAnswerText(answer) === submitted))
+    onSubmit({ answerText: value.trim() })
   }
 
   const feedbackColor = answerStatus === 'correct' ? '#34D399' : '#FB7185'
@@ -422,7 +414,7 @@ function TextAnswerQuestion({
         <View className="min-w-0 flex-1">
           <Text className="font-black text-white">{isFill ? 'Completa la respuesta' : 'Escribe tu respuesta'}</Text>
           <Text className="mt-1 text-[12px] text-[#AFC2DB]">
-            {isFill && expectedAnswers.length > 1 ? 'Separa varias respuestas con comas.' : 'No importan mayúsculas ni acentos.'}
+            {isFill ? 'Separa varias respuestas con comas si hace falta.' : 'No importan mayúsculas.'}
           </Text>
         </View>
       </View>
@@ -447,7 +439,7 @@ function TextAnswerQuestion({
           </Text>
           {answerStatus === 'incorrect' ? (
             <Text className="mt-1 text-[13px] text-[#DDE7F4]">
-              Respuesta esperada: {expectedAnswers.join(', ')}
+              Revisa el contenido y vuelve a intentarlo en la siguiente partida.
             </Text>
           ) : null}
         </View>
@@ -467,10 +459,9 @@ function OrderingQuestion({
   question: Question
   hasAnswered: boolean
   answerStatus: 'correct' | 'incorrect' | null
-  onSubmit: (isCorrect: boolean) => void
+  onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
   const [orderedAnswers, setOrderedAnswers] = useState<Answer[]>(question.answers)
-  const correctOrder = useMemo(() => getSortedAnswers(question.answers), [question.answers])
 
   useEffect(() => {
     setOrderedAnswers(question.answers)
@@ -489,17 +480,14 @@ function OrderingQuestion({
   }
 
   const handleSubmit = () => {
-    const correctIds = correctOrder.map((answer) => answer.id).join('|')
-    const submittedIds = orderedAnswers.map((answer) => answer.id).join('|')
-    onSubmit(correctIds === submittedIds)
+    onSubmit({ payload: { answer_ids: orderedAnswers.map((answer) => answer.id) } })
   }
 
   return (
     <View className="gap-3 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
       <Text className="text-[13px] font-bold text-[#AFC2DB]">Ordena los elementos de arriba a abajo.</Text>
       {orderedAnswers.map((answer, index) => {
-        const isInCorrectPlace = correctOrder[index]?.id === answer.id
-        const rowColor = !hasAnswered ? '#1E355C' : isInCorrectPlace ? '#34D399' : '#FB7185'
+        const rowColor = !hasAnswered ? '#1E355C' : answerStatus === 'correct' ? '#34D399' : '#FB7185'
 
         return (
           <View
@@ -519,10 +507,6 @@ function OrderingQuestion({
         )
       })}
 
-      {hasAnswered && answerStatus === 'incorrect' ? (
-        <CorrectAnswerBox label="Orden correcto" values={correctOrder.map((answer) => answer.text)} />
-      ) : null}
-
       <SubmitAnswerButton disabled={hasAnswered || orderedAnswers.length < 2} onPress={handleSubmit} />
     </View>
   )
@@ -537,18 +521,15 @@ function DragDropQuestion({
   question: Question
   hasAnswered: boolean
   answerStatus: 'correct' | 'incorrect' | null
-  onSubmit: (isCorrect: boolean) => void
+  onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
-  const pairs = useMemo(
-    () => getSortedAnswers(question.answers).map((answer) => decodePairAnswer(answer.text)).filter(Boolean) as { left: string; right: string }[],
-    [question.answers]
-  )
+  const leftAnswers = question.answers
 
   const [orderedRight, setOrderedRight] = useState<string[]>([])
 
   useEffect(() => {
-    setOrderedRight([...pairs.map(p => p.right)].sort(() => Math.random() - 0.5))
-  }, [pairs, question.id])
+    setOrderedRight(question.pair_options ?? [])
+  }, [question.id, question.pair_options])
 
   const handleMove = (fromIndex: number, toIndex: number) => {
     if (hasAnswered) return
@@ -561,8 +542,14 @@ function DragDropQuestion({
   }
 
   const handleSubmit = () => {
-    const isCorrect = pairs.every((pair, index) => orderedRight[index] === pair.right)
-    onSubmit(isCorrect)
+    onSubmit({
+      payload: {
+        pairs: leftAnswers.map((answer, index) => ({
+          left: answer.text,
+          right: orderedRight[index] || '',
+        })),
+      },
+    })
   }
 
   return (
@@ -573,10 +560,10 @@ function DragDropQuestion({
 
       <View className="flex-row gap-4 mt-2">
         <View className="flex-1 pt-1 gap-3">
-          {pairs.map((pair) => (
-            <View key={pair.left} className="h-[70px] justify-center rounded-xl border border-[#28456B] bg-[#0D1D3B] px-4">
+          {leftAnswers.map((answer) => (
+            <View key={answer.id} className="h-[70px] justify-center rounded-xl border border-[#28456B] bg-[#0D1D3B] px-4">
               <Text className="text-[11px] font-bold uppercase text-[#8FA7C7]">Origen</Text>
-              <Text className="mt-1 text-[15px] font-black text-white" numberOfLines={1}>{pair.left}</Text>
+              <Text className="mt-1 text-[15px] font-black text-white" numberOfLines={1}>{answer.text}</Text>
             </View>
           ))}
         </View>
@@ -594,10 +581,6 @@ function DragDropQuestion({
         </View>
       </View>
 
-      {hasAnswered && answerStatus === 'incorrect' ? (
-        <CorrectAnswerBox label="Relaciones correctas" values={pairs.map((pair) => `${pair.left} -> ${pair.right}`)} />
-      ) : null}
-
       <SubmitAnswerButton disabled={hasAnswered || orderedRight.length === 0} onPress={handleSubmit} />
     </View>
   )
@@ -614,16 +597,10 @@ function PairingQuestion({
   questionType: 'match_pairs' | 'drag_drop'
   hasAnswered: boolean
   answerStatus: 'correct' | 'incorrect' | null
-  onSubmit: (isCorrect: boolean) => void
+  onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
-  const pairs = useMemo(
-    () => getSortedAnswers(question.answers).map((answer) => decodePairAnswer(answer.text)).filter(Boolean) as { left: string; right: string }[],
-    [question.answers]
-  )
-  const options = useMemo(
-    () => question.answers.map((answer) => decodePairAnswer(answer.text)?.right).filter(Boolean) as string[],
-    [question.answers]
-  )
+  const leftAnswers = question.answers
+  const options = question.pair_options || []
   const [selections, setSelections] = useState<Record<number, string>>({})
   const isDragDrop = questionType === 'drag_drop'
 
@@ -640,9 +617,14 @@ function PairingQuestion({
   }
 
   const handleSubmit = () => {
-    const isComplete = pairs.every((_, index) => Boolean(selections[index]))
-    const isCorrect = isComplete && pairs.every((pair, index) => selections[index] === pair.right)
-    onSubmit(isCorrect)
+    onSubmit({
+      payload: {
+        pairs: leftAnswers.map((answer, index) => ({
+          left: answer.text,
+          right: selections[index] || '',
+        })),
+      },
+    })
   }
 
   return (
@@ -651,14 +633,13 @@ function PairingQuestion({
         {isDragDrop ? 'Asigna cada elemento a su destino.' : 'Une cada elemento con su pareja.'}
       </Text>
 
-      {pairs.map((pair, index) => {
+      {leftAnswers.map((answer, index) => {
         const selected = selections[index]
-        const isCorrect = selected === pair.right
-        const rowColor = !hasAnswered ? '#1E355C' : isCorrect ? '#34D399' : '#FB7185'
+        const rowColor = !hasAnswered ? '#1E355C' : answerStatus === 'correct' ? '#34D399' : '#FB7185'
 
         return (
           <Pressable
-            key={`${pair.left}-${index}`}
+            key={`${answer.id}-${index}`}
             onPress={() => cycleSelection(index)}
             disabled={hasAnswered}
             className="rounded-2xl border bg-[#081A37] p-4"
@@ -667,7 +648,7 @@ function PairingQuestion({
             <View className="flex-row flex-wrap items-center gap-3">
               <View className="min-w-[190px] flex-1 rounded-xl border border-[#28456B] bg-[#0D1D3B] px-4 py-3">
                 <Text className="text-[11px] font-bold uppercase text-[#8FA7C7]">{isDragDrop ? 'Elemento' : 'Origen'}</Text>
-                <Text className="mt-1 text-[16px] font-black text-white">{pair.left}</Text>
+                <Text className="mt-1 text-[16px] font-black text-white">{answer.text}</Text>
               </View>
               <Ionicons name={isDragDrop ? 'arrow-forward-circle' : 'git-compare'} size={24} color="#A78BFA" />
               <View className="min-w-[190px] flex-1 rounded-xl border border-[#3A4F83] bg-[#111E45] px-4 py-3">
@@ -687,11 +668,7 @@ function PairingQuestion({
         ))}
       </View>
 
-      {hasAnswered && answerStatus === 'incorrect' ? (
-        <CorrectAnswerBox label="Relaciones correctas" values={pairs.map((pair) => `${pair.left} -> ${pair.right}`)} />
-      ) : null}
-
-      <SubmitAnswerButton disabled={hasAnswered || pairs.length === 0} onPress={handleSubmit} />
+      <SubmitAnswerButton disabled={hasAnswered || leftAnswers.length === 0} onPress={handleSubmit} />
     </View>
   )
 }
@@ -728,21 +705,6 @@ function MoveButton({
     >
       <Ionicons name={icon} size={18} color="#DDE7F4" />
     </Pressable>
-  )
-}
-
-function CorrectAnswerBox({ label, values }: { label: string; values: string[] }) {
-  return (
-    <View className="rounded-2xl border border-[#28456B] bg-[#071426] p-4">
-      <Text className="font-black text-[#A78BFA]">{label}</Text>
-      <View className="mt-2 gap-1">
-        {values.map((value, index) => (
-          <Text key={`${value}-${index}`} className="text-[13px] text-[#DDE7F4]">
-            {index + 1}. {value}
-          </Text>
-        ))}
-      </View>
-    </View>
   )
 }
 
@@ -890,6 +852,7 @@ function AnswerOption({
   answer,
   index,
   selectedAnswerId,
+  correctAnswerId,
   hintedAnswerId,
   hasAnswered,
   onPress,
@@ -897,11 +860,13 @@ function AnswerOption({
   answer: Answer
   index: number
   selectedAnswerId: number | null
+  correctAnswerId: number | null
   hintedAnswerId: number | null
   hasAnswered: boolean
   onPress: () => void
 }) {
   const isSelected = selectedAnswerId === answer.id
+  const isCorrectAnswer = correctAnswerId === answer.id
 
   let borderColor = '#1E355C'
   let backgroundColor = '#0A1A34'
@@ -922,7 +887,7 @@ function AnswerOption({
   }
 
   if (hasAnswered) {
-    if (answer.is_correct) {
+    if (isCorrectAnswer) {
       borderColor = '#34D399'
       backgroundColor = '#0D2D27'
       textColor = '#A7F3D0'
@@ -958,10 +923,10 @@ function AnswerOption({
         <Text className="text-[18px] font-black text-white">{answerLetters[index] || '?'}</Text>
       </View>
       <Text className="ml-6 min-w-0 flex-1 text-[21px] font-semibold" style={{ color: textColor }}>
-        {answer.text}
+      {answer.text}
       </Text>
-      {hasAnswered && answer.is_correct ? <Ionicons name="checkmark-circle" size={26} color="#34D399" /> : null}
-      {hasAnswered && isSelected && !answer.is_correct ? <Ionicons name="close-circle" size={26} color="#FB7185" /> : null}
+      {hasAnswered && isCorrectAnswer ? <Ionicons name="checkmark-circle" size={26} color="#34D399" /> : null}
+      {hasAnswered && isSelected && !isCorrectAnswer ? <Ionicons name="close-circle" size={26} color="#FB7185" /> : null}
     </Pressable>
   )
 }
@@ -1105,37 +1070,6 @@ function getQuestionInstruction(type: QuestionType) {
 
 function isChoiceQuestion(type: QuestionType) {
   return type === 'multiple_choice' || type === 'true_false'
-}
-
-function getSortedAnswers(answers: Answer[]) {
-  return [...answers].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id)
-}
-
-function splitAnswerParts(value: string) {
-  return value
-    .split(/[,;\n]/)
-    .map(normalizeAnswerText)
-    .filter(Boolean)
-}
-
-function normalizeAnswerText(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, ' ')
-}
-
-function decodePairAnswer(text: string) {
-  const [left, ...rest] = (text || '').split('|||')
-  const right = rest.join('|||')
-  if (!left?.trim() || !right?.trim()) return null
-
-  return {
-    left: left.trim(),
-    right: right.trim(),
-  }
 }
 
 function DraggableItem({ 

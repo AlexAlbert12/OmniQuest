@@ -264,14 +264,14 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   }
 
   const deleteOptionalRows = async (table: string, column: string, value: string) => {
-    const { error } = await supabase.from(table).delete().eq(column, value)
+    const { error } = await (supabase.from(table as any) as any).delete().eq(column, value)
     if (error && !isMissingSchemaError(error.code)) {
       throw error
     }
   }
 
   const selectOptionalRows = async (table: string, column: string, value: string) => {
-    const { data, error } = await supabase.from(table).select('*').eq(column, value)
+    const { data, error } = await (supabase.from(table as any) as any).select('*').eq(column, value)
     if (error && !isMissingSchemaError(error.code)) {
       throw error
     }
@@ -280,7 +280,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
   const selectOptionalRowsIn = async (table: string, column: string, values: number[] | string[]) => {
     if (values.length === 0) return []
-    const { data, error } = await supabase.from(table).select('*').in(column, values)
+    const { data, error } = await (supabase.from(table as any) as any).select('*').in(column, values)
     if (error && !isMissingSchemaError(error.code)) {
       throw error
     }
@@ -470,7 +470,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
         const questions = await selectOptionalRowsIn('questions', 'subject_id', subjectIds)
         const questionIds = questions
           .map((question: { id: number | null }) => question.id)
-          .filter((id): id is number => typeof id === 'number')
+          .filter((id: number | null): id is number => typeof id === 'number')
 
         exportData = {
           exportDate: new Date().toISOString(),

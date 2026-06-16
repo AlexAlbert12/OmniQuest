@@ -101,13 +101,13 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
         const { data, error } = await supabase
           .from('subjects')
           .select('name, description, icon, code, education_level, academic_year, subject_label')
-          .eq('id', subjectId)
+          .eq('id', Number(subjectId))
           .eq('teacher_id', teacherId)
           .single();
 
         if (error) throw error;
 
-        const subjectIcon = data.icon && iconChoices.includes(data.icon) ? (data.icon as (typeof iconChoices)[number]) : '📚';
+        const subjectIcon = data.icon && iconChoices.includes(data.icon as (typeof iconChoices)[number]) ? (data.icon as (typeof iconChoices)[number]) : '📚';
         const legacyMetadata = parseLegacySubjectMetadata(data.description || '');
         const cleanDescription = legacyMetadata.description;
         setName(data.name || '');
@@ -187,7 +187,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
             academic_year: schoolYear,
             subject_label: subjectLabel || null,
           })
-          .eq('id', subjectId)
+          .eq('id', Number(subjectId))
           .eq('teacher_id', teacherId);
 
         if (error) throw error;

@@ -32,7 +32,7 @@ export async function isClassCodeAvailable(code: string, excludeSubjectId?: numb
     .eq('code', normalizedCode);
 
   if (excludeSubjectId) {
-    query = query.neq('id', excludeSubjectId);
+    query = query.neq('id', Number(excludeSubjectId));
   }
 
   const { data, error } = await query.maybeSingle();

@@ -1,84 +1,190 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../lib/supabase';
 import { Alert, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { supabase } from '../lib/supabase';
+import type { Json } from '../types/database.types';
 
-// Fisher-Yates shuffle
-const shuffleArray = <T,>(array: T[]): T[] => {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
+type StructuredAnswerPayload = {
+  answerText?: string;
+  payload?: Json;
 };
 
+type SubmitAnswerResult = {
+  is_correct?: boolean;
+  earned_points?: number;
+  attempt_score?: number;
+  correct_answer_id?: number | null;
+};
+
+function asSubmitAnswerResult(value: unknown): SubmitAnswerResult {
+  return value && typeof value === 'object' ? (value as SubmitAnswerResult) : {};
+}
+
 export function useGame(subjectId: string, topicId?: string) {
+  const numericSubjectId = Number(subjectId);
+  const numericTopicId = topicId && topicId !== 'general' ? Number(topicId) : null;
+  const isGeneralTopic = topicId === 'general';
+
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const scoreRef = useRef(0);
-  const correctAnswersRef = useRef(0);
-  const hasSavedScoreRef = useRef(false);
+  const attemptIdRef = useRef<string | null>(null);
+  const hintUsedRef = useRef(false);
   const [lives, setLives] = useState(3);
   const [streak, setStreak] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [status, setStatus] = useState<'loading' | 'playing' | 'gameOver' | 'finished' | 'empty'>('loading');
   const [selectedAnswerId, setSelectedAnswerId] = useState<number | null>(null);
+  const [correctAnswerId, setCorrectAnswerId] = useState<number | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [answerStatus, setAnswerStatus] = useState<'correct' | 'incorrect' | null>(null);
   const [hintedAnswerId, setHintedAnswerId] = useState<number | null>(null);
 
   const loadGame = useCallback(async () => {
     try {
-      let query = supabase
-        .from('questions')
-        .select('*, answers(*)')
-        .eq('subject_id', subjectId)
-        .order('created_at', { ascending: true });
+      const { data: questionsData, error: questionsError } = await supabase.rpc('get_game_questions', {
+        p_subject_id: numericSubjectId,
+        p_topic_id: numericTopicId,
+        p_general_topic: isGeneralTopic,
+      });
 
-      if (topicId && topicId !== 'general') {
-        query = query.eq('topic_id', Number(topicId));
-      } else if (topicId === 'general') {
-        query = query.is('topic_id', null);
-      }
+      if (questionsError) throw questionsError;
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-      if (!data || data.length === 0) {
+      const safeQuestions = Array.isArray(questionsData) ? (questionsData as any[]) : [];
+      if (safeQuestions.length === 0) {
         setStatus('empty');
         return;
       }
 
-      const shuffledQuestions = shuffleArray(data);
+      const { data: attemptId, error: attemptError } = await supabase.rpc('start_game_attempt', {
+        p_subject_id: numericSubjectId,
+        p_topic_id: numericTopicId,
+        p_general_topic: isGeneralTopic,
+      });
 
-      const questionsWithShuffledAnswers = shuffledQuestions.map((q) => ({
-        ...q,
-        answers: shuffleArray(q.answers || []),
-      }));
+      if (attemptError) throw attemptError;
 
+      attemptIdRef.current = attemptId ?? null;
       scoreRef.current = 0;
-      correctAnswersRef.current = 0;
-      hasSavedScoreRef.current = false;
+      hintUsedRef.current = false;
       setScore(0);
       setCurrentIndex(0);
       setLives(3);
       setStreak(0);
+      setSelectedAnswerId(null);
+      setCorrectAnswerId(null);
       setHasAnswered(false);
+      setAnswerStatus(null);
       setHintedAnswerId(null);
-      setQuestions(questionsWithShuffledAnswers);
-      setTimeLeft(questionsWithShuffledAnswers[0].time_limit_seconds ?? 30);
+      setQuestions(safeQuestions);
+      setTimeLeft(safeQuestions[0].time_limit_seconds ?? 30);
       setStatus('playing');
     } catch (error: any) {
       console.error(error);
       Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
     }
-  }, [subjectId, topicId]);
+  }, [isGeneralTopic, numericSubjectId, numericTopicId]);
 
   useEffect(() => {
     loadGame();
   }, [loadGame]);
+
+  const finishGame = useCallback((nextStatus: 'gameOver' | 'finished') => {
+    setStatus(nextStatus);
+  }, []);
+
+  const nextQuestion = useCallback(() => {
+    setSelectedAnswerId(null);
+    setCorrectAnswerId(null);
+    setHasAnswered(false);
+    setAnswerStatus(null);
+    setHintedAnswerId(null);
+    hintUsedRef.current = false;
+
+    if (currentIndex + 1 < questions.length) {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      setTimeLeft(questions[nextIndex].time_limit_seconds ?? 30);
+    } else {
+      finishGame('finished');
+    }
+  }, [currentIndex, finishGame, questions]);
+
+  const completeAnswer = useCallback(async ({
+    answerId,
+    answerText,
+    payload,
+    skipped = false,
+  }: {
+    answerId?: number;
+    answerText?: string;
+    payload?: Json;
+    skipped?: boolean;
+  }) => {
+    if (hasAnswered || status !== 'playing') return;
+
+    const currentQ = questions[currentIndex];
+    if (!currentQ) return;
+
+    setHasAnswered(true);
+    setSelectedAnswerId(answerId ?? null);
+    setCorrectAnswerId(null);
+
+    try {
+      const timeLimit = currentQ.time_limit_seconds ?? 30;
+      const timeTaken = Math.max(0, timeLimit - timeLeft);
+      const { data, error } = await supabase.rpc('submit_answer', {
+        p_question_id: currentQ.id,
+        p_answer_id: answerId ?? null,
+        p_answer_text: answerText ?? null,
+        p_answer_payload: payload ?? null,
+        p_time_taken_seconds: timeTaken,
+        p_hint_used: hintUsedRef.current,
+        p_skipped: skipped,
+        p_attempt_id: attemptIdRef.current,
+      });
+
+      if (error) throw error;
+
+      const result = asSubmitAnswerResult(data);
+      const isCorrect = Boolean(result.is_correct);
+      const earned = Math.max(0, Number(result.earned_points ?? 0));
+      const nextScore = Number(result.attempt_score ?? scoreRef.current + earned);
+
+      scoreRef.current = nextScore;
+      setScore(nextScore);
+      setCorrectAnswerId(result.correct_answer_id ?? null);
+
+      if (isCorrect) {
+        setAnswerStatus('correct');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setStreak((prev) => prev + 1);
+        setTimeout(nextQuestion, 1500);
+        return;
+      }
+
+      setAnswerStatus('incorrect');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setStreak(0);
+      setLives((prev) => {
+        const newLives = prev - 1;
+        setTimeout(() => {
+          if (newLives <= 0) finishGame('gameOver');
+          else nextQuestion();
+        }, 1500);
+        return newLives;
+      });
+    } catch (error: any) {
+      console.error('Error submitting answer:', error);
+      setHasAnswered(false);
+      Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
+    }
+  }, [currentIndex, finishGame, hasAnswered, nextQuestion, questions, status, timeLeft]);
+
+  const handleTimeOut = useCallback(() => {
+    void completeAnswer({ skipped: true });
+  }, [completeAnswer]);
 
   useEffect(() => {
     if (status !== 'playing' || hasAnswered) return;
@@ -95,257 +201,27 @@ export function useGame(subjectId: string, topicId?: string) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [status, hasAnswered, currentIndex]);
-
-  const handleTimeOut = () => {
-    const currentQ = questions[currentIndex];
-    const correctAnswer = currentQ.answers.find((a: any) => a.is_correct);
-
-    setHasAnswered(true);
-    setSelectedAnswerId(correctAnswer?.id ?? null);
-    setAnswerStatus('incorrect');
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    setStreak(0);
-
-    setLives((prev) => {
-      const newLives = prev - 1;
-      if (newLives <= 0) setTimeout(() => finishGame('gameOver'), 1500);
-      else setTimeout(nextQuestion, 1500);
-      return newLives;
-    });
-  };
+  }, [status, hasAnswered, currentIndex, handleTimeOut]);
 
   const submitAnswer = (answerId: number) => {
-    const currentQ = questions[currentIndex];
-    const isCorrect = currentQ.answers.find((a: any) => a.id === answerId)?.is_correct;
-    completeAnswer(Boolean(isCorrect), answerId);
+    void completeAnswer({ answerId });
   };
 
-  const submitStructuredAnswer = (isCorrect: boolean) => {
-    completeAnswer(isCorrect);
-  };
-
-  const completeAnswer = (isCorrect: boolean, answerId?: number) => {
-    if (hasAnswered || status !== 'playing') return;
-
-    const currentQ = questions[currentIndex];
-    setHasAnswered(true);
-    setSelectedAnswerId(answerId ?? null);
-    
-    // Guardar el intento en el historial
-    saveAttempt(currentQ.id, answerId ?? null, isCorrect);
-    
-    if (isCorrect) {
-      setAnswerStatus('correct');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const timeBonus = Math.floor(timeLeft / 2);
-      const streakMultiplier = 1 + (streak * 0.1);
-      const earned = Math.floor(((currentQ.points_base ?? 10) + timeBonus) * streakMultiplier);
-
-      setScore((prev) => {
-        const nextScore = prev + earned;
-        scoreRef.current = nextScore;
-        return nextScore;
-      });
-      correctAnswersRef.current += 1;
-      setStreak((prev) => prev + 1);
-    } else {
-      setAnswerStatus('incorrect');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setStreak(0);
-      setLives((prev) => {
-        const newLives = prev - 1;
-        if (newLives <= 0) setTimeout(() => finishGame('gameOver'), 1500);
-        return newLives;
-      });
-    }
-
-    if (lives > 1 || isCorrect) {
-      setTimeout(nextQuestion, 1500);
-    }
-  };
-
-  const nextQuestion = () => {
-    setSelectedAnswerId(null);
-    setHasAnswered(false);
-    setAnswerStatus(null);
-    setHintedAnswerId(null);
-
-    if (currentIndex + 1 < questions.length) {
-      setCurrentIndex((prev) => prev + 1);
-      setTimeLeft(questions[currentIndex + 1].time_limit_seconds ?? 30);
-    } else {
-      finishGame('finished');
-    }
-  };
-
-  const saveAttempt = async (questionId: number, answerId: number | null, isCorrect: boolean) => {
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user.id) return;
-
-      await supabase.from('attempt_history').insert([
-        {
-          student_id: session.session.user.id,
-          question_id: questionId,
-          answer_id: answerId,
-          is_correct: isCorrect,
-          time_taken_seconds: 30 - timeLeft,
-          attempted_at: new Date().toISOString()
-        },
-      ]);
-    } catch (error: any) {
-      console.error('Error saving attempt:', error);
-      // No mostrar alerta, solo registrar el error
-    }
+  const submitStructuredAnswer = ({ answerText, payload }: StructuredAnswerPayload) => {
+    void completeAnswer({ answerText, payload });
   };
 
   const useHint = () => {
-    if (hasAnswered || status !== 'playing') return false;
+    if (hasAnswered || status !== 'playing' || hintUsedRef.current) return false;
 
-    const currentQ = questions[currentIndex];
-    const correctAnswer = currentQ?.answers.find((a: any) => a.is_correct);
-    if (!correctAnswer) return false;
-
-    setHintedAnswerId(correctAnswer.id);
-    setScore((prev) => {
-      const nextScore = Math.max(0, prev - 10);
-      scoreRef.current = nextScore;
-      return nextScore;
-    });
+    hintUsedRef.current = true;
+    setHintedAnswerId(-1);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     return true;
   };
 
   const skipQuestion = () => {
-    if (hasAnswered || status !== 'playing') return;
-
-    setScore((prev) => {
-      const nextScore = Math.max(0, prev - 20);
-      scoreRef.current = nextScore;
-      return nextScore;
-    });
-    setStreak(0);
-    setHintedAnswerId(null);
-
-    if (currentIndex + 1 < questions.length) {
-      setSelectedAnswerId(null);
-      setHasAnswered(false);
-      setAnswerStatus(null);
-      setCurrentIndex((prev) => prev + 1);
-      setTimeLeft(questions[currentIndex + 1]?.time_limit_seconds ?? 30);
-    } else {
-      finishGame('finished');
-    }
-  };
-
-  const finishGame = (nextStatus: 'gameOver' | 'finished') => {
-    setStatus(nextStatus);
-
-    if (hasSavedScoreRef.current) return;
-
-    hasSavedScoreRef.current = true;
-    saveScore(scoreRef.current, correctAnswersRef.current);
-  };
-
-  const saveScore = async (finalScore: number, correctAnswers: number) => {
-    const { data: session } = await supabase.auth.getSession();
-    if (!session?.session?.user.id) return;
-    const userId = session.session.user.id;
-
-    try {
-      let pointsToAdd = 0;
-
-      if (topicId && topicId !== 'general') {
-        const { data: existingTopicScore, error: topicScoreError } = await supabase
-          .from('topic_scores')
-          .select('id, max_score')
-          .eq('student_id', userId)
-          .eq('topic_id', Number(topicId))
-          .maybeSingle();
-
-        if (topicScoreError) throw topicScoreError;
-
-        if (!existingTopicScore) {
-          pointsToAdd = finalScore;
-          await supabase.from('topic_scores').insert([
-            { student_id: userId, subject_id: subjectId, topic_id: Number(topicId), max_score: finalScore }
-          ]);
-        } else {
-          const previousBest = existingTopicScore.max_score ?? 0;
-
-          if (finalScore > previousBest) {
-            pointsToAdd = finalScore - previousBest;
-            await supabase
-              .from('topic_scores')
-              .update({ max_score: finalScore, played_at: new Date() })
-              .eq('id', existingTopicScore.id);
-          }
-        }
-      }
-
-      const { data: existingScore, error: scoreError } = await supabase
-        .from('subject_scores')
-        .select('id, max_score, correct_answers, played_days')
-        .eq('student_id', userId)
-        .eq('subject_id', subjectId)
-        .maybeSingle();
-
-      if (scoreError) throw scoreError;
-
-      if (!existingScore) {
-        if (!pointsToAdd) pointsToAdd = finalScore;
-        const todayKey = getLocalDateKey(new Date());
-
-        await supabase.from('subject_scores').insert([
-          {
-            student_id: userId,
-            subject_id: subjectId,
-            max_score: finalScore,
-            correct_answers: correctAnswers,
-            played_days: [todayKey],
-            played_at: new Date(),
-          }
-        ]);
-      } else {
-        const previousBest = existingScore.max_score ?? 0;
-        const nextBest = Math.max(previousBest, finalScore);
-        const todayKey = getLocalDateKey(new Date());
-        const playedDays = Array.isArray(existingScore.played_days) ? existingScore.played_days : [];
-        const nextPlayedDays = Array.from(new Set([...playedDays, todayKey])).sort();
-
-        if (finalScore > previousBest) {
-          if (!pointsToAdd) pointsToAdd = finalScore - previousBest;
-        }
-
-        await supabase
-          .from('subject_scores')
-          .update({
-            max_score: nextBest,
-            correct_answers: (existingScore.correct_answers ?? 0) + correctAnswers,
-            played_days: nextPlayedDays,
-            played_at: new Date(),
-          })
-          .eq('id', existingScore.id);
-      }
-
-      if (pointsToAdd > 0) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('points')
-          .eq('id', userId)
-          .single();
-
-        if (profile) {
-          await supabase
-            .from('profiles')
-            .update({ points: (profile.points ?? 0) + pointsToAdd })
-            .eq('id', userId);
-        }
-      }
-    } catch (e) {
-      console.error("Error guardando score:", e);
-    }
+    void completeAnswer({ skipped: true });
   };
 
   return {
@@ -358,6 +234,7 @@ export function useGame(subjectId: string, topicId?: string) {
     timeLeft,
     status,
     selectedAnswerId,
+    correctAnswerId,
     hasAnswered,
     answerStatus,
     hintedAnswerId,
@@ -366,11 +243,4 @@ export function useGame(subjectId: string, topicId?: string) {
     useHint,
     skipQuestion,
   };
-}
-
-function getLocalDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }

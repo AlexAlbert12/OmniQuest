@@ -192,64 +192,30 @@ function createBadge({
 }
 
 export async function syncStudentBadgeAwards({
-  userId,
   badges,
-  currentPoints,
 }: {
   userId: string
   badges: StudentBadge[]
   currentPoints: number
 }) {
-  const { data, error } = await supabase
-    .from('student_badges')
-    .select('badge_id, awarded_at, reward_xp')
-    .eq('student_id', userId)
+  const { data, error } = await supabase.rpc('sync_student_badges')
 
   if (error) throw error
 
+  const result = data && typeof data === 'object' && !Array.isArray(data)
+    ? data as { awards?: StudentBadgeAwardRow[]; awarded_xp?: number }
+    : {}
+  const awards = Array.isArray(result.awards) ? result.awards : []
   const awardedByBadgeId = new Map(
-    ((data || []) as StudentBadgeAwardRow[]).map((row) => [row.badge_id, row])
+    awards.map((row) => [row.badge_id, row])
   )
-  const newlyUnlocked = badges.filter((badge) => badge.unlocked && !awardedByBadgeId.has(badge.id))
-
-  let awardedXp = 0
-
-  if (newlyUnlocked.length > 0) {
-    const now = new Date().toISOString()
-    const rowsToInsert = newlyUnlocked.map((badge) => ({
-      student_id: userId,
-      badge_id: badge.id,
-      reward_xp: badge.rewardXp,
-      awarded_at: now,
-    }))
-    const { error: insertError } = await supabase.from('student_badges').insert(rowsToInsert)
-
-    if (insertError) throw insertError
-
-    const rewardTotal = newlyUnlocked.reduce((total, badge) => total + badge.rewardXp, 0)
-    awardedXp = rewardTotal
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ points: currentPoints + rewardTotal })
-      .eq('id', userId)
-
-    if (profileError) throw profileError
-
-    rowsToInsert.forEach((row) => {
-      awardedByBadgeId.set(row.badge_id, {
-        badge_id: row.badge_id,
-        awarded_at: row.awarded_at,
-        reward_xp: row.reward_xp,
-      })
-    })
-  }
 
   return {
     badges: badges.map((badge) => ({
       ...badge,
       awardedAt: awardedByBadgeId.get(badge.id)?.awarded_at ?? null,
     })),
-    awardedXp,
+    awardedXp: result.awarded_xp ?? 0,
   }
 }
 
