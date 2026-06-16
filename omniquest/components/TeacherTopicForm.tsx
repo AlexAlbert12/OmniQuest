@@ -75,24 +75,33 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
           throw new Error('No se encontró una sesión activa.');
         }
 
-        const { data, error } = await supabase
+        const { data: topicOwnerData, error: topicOwnerError } = await supabase
           .from('subject_topics')
-          .select('id, title, description, icon, sort_order, subject_id')
+          .select('id, subject_id')
           .eq('id', normalizedTopicId)
           .single();
 
-        if (error) throw error;
+        if (topicOwnerError) throw topicOwnerError;
 
-        const rawTopic = data as unknown as TopicRow;
         const { data: subjectData, error: subjectError } = await supabase
           .from('subjects')
           .select('id, name, theme_color')
-          .eq('id', rawTopic.subject_id)
+          .eq('id', topicOwnerData.subject_id)
           .eq('teacher_id', teacherId)
           .single();
 
         if (subjectError) throw subjectError;
 
+        const { data, error } = await supabase
+          .from('subject_topics')
+          .select('id, title, description, icon, sort_order, subject_id')
+          .eq('id', normalizedTopicId)
+          .eq('subject_id', topicOwnerData.subject_id)
+          .single();
+
+        if (error) throw error;
+
+        const rawTopic = data as unknown as TopicRow;
         const nextTopic: TopicRow = {
           ...rawTopic,
           subjects: subjectData as SubjectOwnerRow,

@@ -121,6 +121,22 @@ export default function TeacherQuestionForm({
 
       setInitializing(isEdit);
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const teacherId = sessionData.session?.user.id;
+
+        if (!teacherId) {
+          throw new Error('No se encontró una sesión activa.');
+        }
+
+        const subjectResult = await supabase
+          .from('subjects')
+          .select('id')
+          .eq('id', normalizedSubjectId)
+          .eq('teacher_id', teacherId)
+          .single();
+
+        if (subjectResult.error) throw subjectResult.error;
+
         const [topicsResult, questionResult] = await Promise.all([
           supabase
             .from('subject_topics')
@@ -134,6 +150,7 @@ export default function TeacherQuestionForm({
                 .from('questions')
                 .select('id, text, type, points_base, time_limit_seconds, topic_id, explanation, answers(text, is_correct, sort_order)')
                 .eq('id', normalizedQuestionId)
+                .eq('subject_id', normalizedSubjectId)
                 .single()
             : Promise.resolve({ data: null, error: null }),
         ]);
@@ -432,7 +449,8 @@ export default function TeacherQuestionForm({
             time_limit_seconds: validTimeLimit,
             explanation: explanation.trim(),
           })
-          .eq('id', normalizedQuestionId);
+          .eq('id', normalizedQuestionId)
+          .eq('subject_id', normalizedSubjectId);
 
         if (updateQuestionError) throw updateQuestionError;
         targetQuestionId = Number(normalizedQuestionId);

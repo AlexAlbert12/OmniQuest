@@ -270,6 +270,139 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
     }
   }
 
+  const selectOptionalRows = async (table: string, column: string, value: string) => {
+    const { data, error } = await supabase.from(table).select('*').eq(column, value)
+    if (error && !isMissingSchemaError(error.code)) {
+      throw error
+    }
+    return error ? [] : data || []
+  }
+
+  const selectOptionalRowsIn = async (table: string, column: string, values: number[] | string[]) => {
+    if (values.length === 0) return []
+    const { data, error } = await supabase.from(table).select('*').in(column, values)
+    if (error && !isMissingSchemaError(error.code)) {
+      throw error
+    }
+    return error ? [] : data || []
+  }
+
+  const getTeacherSubjectIds = async (teacherId: string) => {
+    const { data, error } = await supabase
+      .from('subjects')
+      .select('id')
+      .eq('teacher_id', teacherId)
+
+    if (error) throw error
+    return (data || [])
+      .map((subject: { id: number | null }) => subject.id)
+      .filter((id): id is number => typeof id === 'number')
+  }
+
+  const getQuestionIdsForSubjects = async (subjectIds: number[]) => {
+    if (subjectIds.length === 0) return []
+
+    const { data, error } = await supabase
+      .from('questions')
+      .select('id')
+      .in('subject_id', subjectIds)
+
+    if (error) throw error
+    return (data || [])
+      .map((question: { id: number | null }) => question.id)
+      .filter((id): id is number => typeof id === 'number')
+  }
+
+  const deleteTeacherClassProgress = async (teacherId: string) => {
+    const subjectIds = await getTeacherSubjectIds(teacherId)
+    const questionIds = await getQuestionIdsForSubjects(subjectIds)
+
+    if (questionIds.length > 0) {
+      const { error: attemptsError } = await supabase
+        .from('attempt_history')
+        .delete()
+        .in('question_id', questionIds)
+      if (attemptsError && !isMissingSchemaError(attemptsError.code)) throw attemptsError
+    }
+
+    if (subjectIds.length > 0) {
+      const { error: topicScoresError } = await supabase
+        .from('topic_scores')
+        .delete()
+        .in('subject_id', subjectIds)
+      if (topicScoresError && !isMissingSchemaError(topicScoresError.code)) throw topicScoresError
+
+      const { error: subjectScoresError } = await supabase
+        .from('subject_scores')
+        .delete()
+        .in('subject_id', subjectIds)
+      if (subjectScoresError && !isMissingSchemaError(subjectScoresError.code)) throw subjectScoresError
+    }
+  }
+
+  const deleteTeacherTeachingData = async (teacherId: string) => {
+    const subjectIds = await getTeacherSubjectIds(teacherId)
+    const questionIds = await getQuestionIdsForSubjects(subjectIds)
+
+    if (questionIds.length > 0) {
+      const { error: attemptsError } = await supabase
+        .from('attempt_history')
+        .delete()
+        .in('question_id', questionIds)
+      if (attemptsError && !isMissingSchemaError(attemptsError.code)) throw attemptsError
+
+      const { error: answersError } = await supabase
+        .from('answers')
+        .delete()
+        .in('question_id', questionIds)
+      if (answersError && !isMissingSchemaError(answersError.code)) throw answersError
+    }
+
+    if (subjectIds.length > 0) {
+      const { error: topicScoresError } = await supabase
+        .from('topic_scores')
+        .delete()
+        .in('subject_id', subjectIds)
+      if (topicScoresError && !isMissingSchemaError(topicScoresError.code)) throw topicScoresError
+
+      const { error: subjectScoresError } = await supabase
+        .from('subject_scores')
+        .delete()
+        .in('subject_id', subjectIds)
+      if (subjectScoresError && !isMissingSchemaError(subjectScoresError.code)) throw subjectScoresError
+
+      const { error: enrollmentsError } = await supabase
+        .from('enrollments')
+        .delete()
+        .in('subject_id', subjectIds)
+      if (enrollmentsError && !isMissingSchemaError(enrollmentsError.code)) throw enrollmentsError
+
+      const { error: classroomsError } = await supabase
+        .from('classrooms')
+        .delete()
+        .in('subject_id', subjectIds)
+      if (classroomsError && !isMissingSchemaError(classroomsError.code)) throw classroomsError
+
+      const { error: questionsError } = await supabase
+        .from('questions')
+        .delete()
+        .in('subject_id', subjectIds)
+      if (questionsError && !isMissingSchemaError(questionsError.code)) throw questionsError
+
+      const { error: topicsError } = await supabase
+        .from('subject_topics')
+        .delete()
+        .in('subject_id', subjectIds)
+      if (topicsError && !isMissingSchemaError(topicsError.code)) throw topicsError
+    }
+
+    const { error: subjectsError } = await supabase
+      .from('subjects')
+      .delete()
+      .eq('teacher_id', teacherId)
+    if (subjectsError) throw subjectsError
+  }
+
   const handleProfileVisibilityChange = async (visibility: ProfileVisibility) => {
     if (!userId) return
     if (!profileVisibilityAvailable) {
@@ -309,7 +442,6 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
     setExportingData(true)
     try {
-      // Obtener datos del perfil
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -318,56 +450,59 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
       if (profileError) throw profileError
 
-      // Obtener puntuaciones de asignaturas
-      const { data: subjectScores, error: scoresError } = await supabase
-        .from('subject_scores')
-        .select('*')
-        .eq('student_id', userId)
+      const notificationState = await selectOptionalRows('notification_state', 'user_id', userId)
+      const userPreferences = await selectOptionalRows('user_preferences', 'user_id', userId)
+      const notificationPreferences = await selectOptionalRows('user_notification_preferences', 'user_id', userId)
 
-      if (scoresError) throw scoresError
+      let exportData: Record<string, any>
 
-      // Obtener puntuaciones de temas
-      const { data: topicScores, error: topicScoresError } = await supabase
-        .from('topic_scores')
-        .select('*')
-        .eq('student_id', userId)
+      if (isTeacher) {
+        const { data: teacherSubjects, error: subjectsError } = await supabase
+          .from('subjects')
+          .select('*')
+          .eq('teacher_id', userId)
 
-      if (topicScoresError) throw topicScoresError
+        if (subjectsError) throw subjectsError
 
-      // Obtener inscripciones
-      const { data: enrollments, error: enrollmentsError } = await supabase
-        .from('enrollments')
-        .select('*')
-        .eq('student_id', userId)
+        const subjectIds = (teacherSubjects || [])
+          .map((subject: { id: number | null }) => subject.id)
+          .filter((id): id is number => typeof id === 'number')
+        const questions = await selectOptionalRowsIn('questions', 'subject_id', subjectIds)
+        const questionIds = questions
+          .map((question: { id: number | null }) => question.id)
+          .filter((id): id is number => typeof id === 'number')
 
-      if (enrollmentsError) throw enrollmentsError
-
-      const [
-        { data: attempts },
-        { data: notificationState },
-        { data: userPreferences },
-        { data: notificationPreferences },
-      ] = await Promise.all([
-        supabase.from('attempt_history').select('*').eq('student_id', userId),
-        supabase.from('notification_state').select('*').eq('user_id', userId),
-        supabase.from('user_preferences').select('*').eq('user_id', userId),
-        supabase.from('user_notification_preferences').select('*').eq('user_id', userId),
-      ])
-
-      // Crear objeto de datos exportados
-      const exportData = {
-        exportDate: new Date().toISOString(),
-        profile: profileData,
-        subjectScores,
-        topicScores,
-        enrollments,
-        attempts,
-        notificationState,
-        userPreferences,
-        notificationPreferences,
+        exportData = {
+          exportDate: new Date().toISOString(),
+          role: 'teacher',
+          profile: profileData,
+          subjects: teacherSubjects || [],
+          topics: await selectOptionalRowsIn('subject_topics', 'subject_id', subjectIds),
+          questions,
+          answers: await selectOptionalRowsIn('answers', 'question_id', questionIds),
+          enrollments: await selectOptionalRowsIn('enrollments', 'subject_id', subjectIds),
+          subjectScores: await selectOptionalRowsIn('subject_scores', 'subject_id', subjectIds),
+          topicScores: await selectOptionalRowsIn('topic_scores', 'subject_id', subjectIds),
+          attempts: await selectOptionalRowsIn('attempt_history', 'question_id', questionIds),
+          notificationState,
+          userPreferences,
+          notificationPreferences,
+        }
+      } else {
+        exportData = {
+          exportDate: new Date().toISOString(),
+          role: 'student',
+          profile: profileData,
+          subjectScores: await selectOptionalRows('subject_scores', 'student_id', userId),
+          topicScores: await selectOptionalRows('topic_scores', 'student_id', userId),
+          enrollments: await selectOptionalRows('enrollments', 'student_id', userId),
+          attempts: await selectOptionalRows('attempt_history', 'student_id', userId),
+          notificationState,
+          userPreferences,
+          notificationPreferences,
+        }
       }
 
-      // Convertir a JSON y descargar (en web) o mostrar (en móvil)
       const jsonData = JSON.stringify(exportData, null, 2)
 
       if (Platform.OS === 'web') {
@@ -375,7 +510,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `omniquest-data-${new Date().toISOString().split('T')[0]}.json`
+        a.download = `omniquest-${isTeacher ? 'profesor' : 'alumno'}-${new Date().toISOString().split('T')[0]}.json`
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
@@ -396,25 +531,33 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
     setDeletingData(true)
     try {
-      if (dataType === 'scores' || dataType === 'all') {
-        await deleteOptionalRows('subject_scores', 'student_id', userId)
-        await deleteOptionalRows('topic_scores', 'student_id', userId)
+      if (dataType === 'scores' || (!isTeacher && dataType === 'all')) {
+        if (isTeacher) {
+          await deleteTeacherClassProgress(userId)
+        } else {
+          await deleteOptionalRows('subject_scores', 'student_id', userId)
+          await deleteOptionalRows('topic_scores', 'student_id', userId)
 
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ points: 0 })
-          .eq('id', userId)
-        if (profileError) throw profileError
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ points: 0 })
+            .eq('id', userId)
+          if (profileError) throw profileError
 
-        setProfile(prev => prev ? { ...prev, points: 0 } : null)
+          setProfile(prev => prev ? { ...prev, points: 0 } : null)
+        }
       }
 
-      if (dataType === 'enrollments' || dataType === 'all') {
+      if (!isTeacher && (dataType === 'enrollments' || dataType === 'all')) {
         await deleteOptionalRows('enrollments', 'student_id', userId)
       }
 
       if (dataType === 'all') {
-        await deleteOptionalRows('attempt_history', 'student_id', userId)
+        if (isTeacher) {
+          await deleteTeacherTeachingData(userId)
+        } else {
+          await deleteOptionalRows('attempt_history', 'student_id', userId)
+        }
         await deleteOptionalRows('notification_state', 'user_id', userId)
         await deleteOptionalRows('user_preferences', 'user_id', userId)
         await deleteOptionalRows('user_notification_preferences', 'user_id', userId)
@@ -427,13 +570,16 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ points: 0, avatar: null })
+          .update(isTeacher ? { avatar: null } : { points: 0, avatar: null })
           .eq('id', userId)
         if (profileError) throw profileError
 
         setPreferences(DEFAULT_PREFERENCES)
         setNotificationSettings(DEFAULT_NOTIFICATION_SETTINGS)
-        setProfile(prev => prev ? { ...prev, points: 0, avatar: null } : null)
+        setProfile(prev => prev ? { ...prev, ...(isTeacher ? {} : { points: 0 }), avatar: null } : null)
+        if (isTeacher) {
+          setSubjectsCount(0)
+        }
       }
 
       showAlert('Datos eliminados', 'Los datos seleccionados han sido eliminados correctamente.')
@@ -635,7 +781,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
       setProfile(nextProfile)
       setProfileVisibilityAvailable(profileFetch.hasVisibility)
       setProfileVisibility(profileFetch.hasVisibility ? nextProfile?.visibility || 'private' : null)
-      const detectedRole = nextProfile?.role_id === 'teacher' ? 'teacher' : 'student'
+      const detectedRole = forcedRole || (nextProfile?.role_id === 'teacher' ? 'teacher' : 'student')
       setRole(detectedRole)
       setName(nextProfile?.alias || (detectedRole === 'teacher' ? 'Profesor' : 'Alumno'))
       setSubjectsCount(subjectsResult.data?.length || 0)
@@ -644,12 +790,12 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
         toNotificationSettingsState((notificationSettingsResult.data as NotificationSettingsRow | null) || null)
       )
     } catch (error: any) {
-      console.error('Error cargando configuración del estudiante:', error.message)
+      console.error('Error cargando configuración:', error.message)
       showAlert('No se pudo cargar la configuración', 'Inténtalo de nuevo en unos segundos.')
     } finally {
       setLoading(false)
     }
-  }, [router])
+  }, [forcedRole, router])
 
   useFocusEffect(
     useCallback(() => {
@@ -680,7 +826,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
       setProfile({ ...profile, alias: cleanName })
       showAlert('Perfil actualizado', `Tu información de ${isTeacher ? 'profesor' : 'alumno'} se ha actualizado correctamente.`)
     } catch (error: any) {
-      console.error('Error actualizando perfil del estudiante:', error.message)
+      console.error('Error actualizando perfil:', error.message)
       showAlert('No se pudo guardar', 'Revisa la conexión e inténtalo de nuevo.')
     } finally {
       setSaving(false)
@@ -1025,6 +1171,14 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                         </Field>
                       </View>
                     </View>
+                    <View className="mt-4 border-t border-[#13284A] pt-4">
+                      <ActionRow
+                        icon="lock-closed-outline"
+                        title="Gestionar seguridad"
+                        description="Cambiar contraseña y revisar acciones críticas de la cuenta."
+                        onPress={() => router.push((isTeacher ? '/(teacher)/security' : '/(student)/security') as any)}
+                      />
+                    </View>
                   </Panel>
                 </View>
 
@@ -1226,7 +1380,11 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                     <ActionRow
                       icon="download-outline"
                       title="Exportar datos"
-                      description="Descarga una copia de todos tus datos personales."
+                      description={
+                        isTeacher
+                          ? 'Descarga perfil, clases, temas, preguntas, respuestas, inscripciones, puntuaciones, preferencias y notificaciones.'
+                          : 'Descarga una copia de todos tus datos personales.'
+                      }
                       onPress={handleExportData}
                       disabled={exportingData}
                       loading={exportingData}
@@ -1235,7 +1393,9 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                     <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-4">
                       <Text className="font-bold text-white">Eliminar datos parciales</Text>
                       <Text className="mt-1 text-[12px] text-[#AFC2DB] mb-3">
-                        Elimina selectivamente progreso, clases o preferencias guardadas. Esta acción no se puede deshacer.
+                        {isTeacher
+                          ? 'Puedes limpiar progreso o reiniciar por completo tu espacio docente. Estas acciones no se pueden deshacer.'
+                          : 'Elimina selectivamente progreso, clases o preferencias guardadas. Esta acción no se puede deshacer.'}
                       </Text>
                       <View className="gap-2">
                         <Pressable
@@ -1246,7 +1406,16 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                         >
                           <View className="flex-row items-center gap-3">
                             <Ionicons name="trash-outline" size={16} color="#FB7185" />
-                            <Text className="text-[13px] font-semibold text-white">Eliminar puntuaciones</Text>
+                            <View className="min-w-0 flex-1">
+                              <Text className="text-[13px] font-semibold text-white">
+                                {isTeacher ? 'Eliminar progreso de alumnos' : 'Eliminar puntuaciones'}
+                              </Text>
+                              <Text className="mt-1 text-[11px] text-[#FECACA]">
+                                {isTeacher
+                                  ? 'Borra puntuaciones e intentos de alumnos en tus clases.'
+                                  : 'Borra tus puntuaciones y reinicia tu XP global.'}
+                              </Text>
+                            </View>
                           </View>
                           {deletingData ? (
                             <ActivityIndicator size="small" color="#FB7185" />
@@ -1255,22 +1424,24 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                           )}
                         </Pressable>
 
-                        <Pressable
-                          onPress={() => handleDeletePartialData('enrollments')}
-                          disabled={deletingData}
-                          className="flex-row items-center justify-between rounded-lg border border-[#BE123C] bg-[#7F1D1D33] p-3"
-                          style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
-                        >
-                          <View className="flex-row items-center gap-3">
-                            <Ionicons name="exit-outline" size={16} color="#FB7185" />
-                            <Text className="text-[13px] font-semibold text-white">Salir de todas las clases</Text>
-                          </View>
-                          {deletingData ? (
-                            <ActivityIndicator size="small" color="#FB7185" />
-                          ) : (
-                            <Ionicons name="chevron-forward" size={16} color="#FB7185" />
-                          )}
-                        </Pressable>
+                        {!isTeacher ? (
+                          <Pressable
+                            onPress={() => handleDeletePartialData('enrollments')}
+                            disabled={deletingData}
+                            className="flex-row items-center justify-between rounded-lg border border-[#BE123C] bg-[#7F1D1D33] p-3"
+                            style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+                          >
+                            <View className="flex-row items-center gap-3">
+                              <Ionicons name="exit-outline" size={16} color="#FB7185" />
+                              <Text className="text-[13px] font-semibold text-white">Salir de todas las clases</Text>
+                            </View>
+                            {deletingData ? (
+                              <ActivityIndicator size="small" color="#FB7185" />
+                            ) : (
+                              <Ionicons name="chevron-forward" size={16} color="#FB7185" />
+                            )}
+                          </Pressable>
+                        ) : null}
 
                         <Pressable
                           onPress={() => handleDeletePartialData('all')}
@@ -1280,7 +1451,16 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                         >
                           <View className="flex-row items-center gap-3">
                             <Ionicons name="warning-outline" size={16} color="#FB7185" />
-                            <Text className="text-[13px] font-semibold text-white">Eliminar datos de uso</Text>
+                            <View className="min-w-0 flex-1">
+                              <Text className="text-[13px] font-semibold text-white">
+                                {isTeacher ? 'Eliminar todos mis datos docentes' : 'Eliminar datos de uso'}
+                              </Text>
+                              <Text className="mt-1 text-[11px] text-[#FECACA]">
+                                {isTeacher
+                                  ? 'Borra clases, temas, preguntas, respuestas, inscripciones, puntuaciones, intentos, preferencias, notificaciones y avatar.'
+                                  : 'Borra progreso, intentos, preferencias, notificaciones y avatar.'}
+                              </Text>
+                            </View>
                           </View>
                           {deletingData ? (
                             <ActivityIndicator size="small" color="#FB7185" />
@@ -1408,6 +1588,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
       <DestructiveConfirmModal
         visible={Boolean(pendingDestructiveAction)}
         action={pendingDestructiveAction}
+        isTeacher={isTeacher}
         value={destructiveConfirmationText}
         busy={deletingData || deletingAccount}
         onChangeText={setDestructiveConfirmationText}
@@ -1427,6 +1608,7 @@ export default function StudentSettingsScreen() {
 function DestructiveConfirmModal({
   visible,
   action,
+  isTeacher,
   value,
   busy,
   onChangeText,
@@ -1435,13 +1617,14 @@ function DestructiveConfirmModal({
 }: {
   visible: boolean
   action: DestructiveActionType | null
+  isTeacher: boolean
   value: string
   busy: boolean
   onChangeText: (value: string) => void
   onCancel: () => void
   onConfirm: () => void
 }) {
-  const details = getDestructiveActionDetails(action)
+  const details = getDestructiveActionDetails(action, isTeacher)
   const canConfirm = value.trim() === REQUIRED_DESTRUCTIVE_CONFIRMATION && !busy
 
   return (
@@ -1498,14 +1681,20 @@ function DestructiveConfirmModal({
   )
 }
 
-function getDestructiveActionDetails(action: DestructiveActionType | null) {
+function getDestructiveActionDetails(action: DestructiveActionType | null, isTeacher: boolean) {
   switch (action) {
     case 'scores':
-      return {
-        title: 'Eliminar puntuaciones',
-        description: 'Se borrarán subject_scores y topic_scores, y tu XP global se reseteará a 0.',
-        confirmLabel: 'Eliminar puntuaciones',
-      }
+      return isTeacher
+        ? {
+            title: 'Eliminar progreso de alumnos',
+            description: 'Se borrarán puntuaciones por clase, puntuaciones por tema e intentos de alumnos en tus clases. No se borran clases, preguntas ni perfiles.',
+            confirmLabel: 'Eliminar progreso',
+          }
+        : {
+            title: 'Eliminar puntuaciones',
+            description: 'Se borrarán subject_scores y topic_scores, y tu XP global se reseteará a 0.',
+            confirmLabel: 'Eliminar puntuaciones',
+          }
     case 'enrollments':
       return {
         title: 'Salir de todas las clases',
@@ -1513,17 +1702,29 @@ function getDestructiveActionDetails(action: DestructiveActionType | null) {
         confirmLabel: 'Salir de clases',
       }
     case 'all':
-      return {
-        title: 'Eliminar datos de uso',
-        description: 'Se borrarán progreso, intentos, estado de notificaciones, preferencias y avatar. Tu cuenta seguirá activa.',
-        confirmLabel: 'Eliminar datos',
-      }
+      return isTeacher
+        ? {
+            title: 'Eliminar todos mis datos docentes',
+            description: 'Se borrarán tus clases, temas, preguntas, respuestas, inscripciones, puntuaciones de alumnos, intentos, preferencias, notificaciones y avatar. Tu cuenta seguirá activa.',
+            confirmLabel: 'Eliminar todo',
+          }
+        : {
+            title: 'Eliminar datos de uso',
+            description: 'Se borrarán progreso, intentos, estado de notificaciones, preferencias y avatar. Tu cuenta seguirá activa.',
+            confirmLabel: 'Eliminar datos',
+          }
     case 'account':
-      return {
-        title: 'Borrar mi cuenta',
-        description: 'Se eliminarán tu usuario, perfil, progreso académico y datos asociados. No se puede deshacer.',
-        confirmLabel: 'Borrar cuenta',
-      }
+      return isTeacher
+        ? {
+            title: 'Borrar mi cuenta',
+            description: 'Se eliminarán tu usuario, perfil docente y datos asociados. Revisa antes tus clases y contenido creado. No se puede deshacer.',
+            confirmLabel: 'Borrar cuenta',
+          }
+        : {
+            title: 'Borrar mi cuenta',
+            description: 'Se eliminarán tu usuario, perfil, progreso académico y datos asociados. No se puede deshacer.',
+            confirmLabel: 'Borrar cuenta',
+          }
     default:
       return {
         title: 'Confirmar acción',

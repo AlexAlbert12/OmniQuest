@@ -91,10 +91,18 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
 
     const fetchSubject = async () => {
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const teacherId = sessionData.session?.user.id;
+
+        if (!teacherId) {
+          throw new Error('No se encontró una sesión activa.');
+        }
+
         const { data, error } = await supabase
           .from('subjects')
           .select('name, description, icon, code, education_level, academic_year, subject_label')
           .eq('id', subjectId)
+          .eq('teacher_id', teacherId)
           .single();
 
         if (error) throw error;
@@ -162,6 +170,13 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
       if (isEdit) {
         if (!subjectId) throw new Error('No se encontró la asignatura a editar.');
 
+        const { data: sessionData } = await supabase.auth.getSession();
+        const teacherId = sessionData.session?.user.id;
+
+        if (!teacherId) {
+          throw new Error('No se encontró una sesión activa.');
+        }
+
         const { error } = await supabase
           .from('subjects')
           .update({
@@ -172,7 +187,8 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
             academic_year: schoolYear,
             subject_label: subjectLabel || null,
           })
-          .eq('id', subjectId);
+          .eq('id', subjectId)
+          .eq('teacher_id', teacherId);
 
         if (error) throw error;
 

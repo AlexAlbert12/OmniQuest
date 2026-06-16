@@ -98,6 +98,9 @@ type StudentReport = {
   hasActivity: boolean
 }
 
+type StudentStatusFilter = 'all' | 'active' | 'inactive' | 'needs_help'
+type StudentSortKey = 'xp' | 'progress' | 'grade' | 'recent'
+
 type FailedQuestionReport = {
   id: number
   text: string
@@ -115,9 +118,9 @@ type EvolutionReport = {
 
 type SubjectTabKey = 'summary' | 'students' | 'activities' | 'questions' | 'reports' | 'resources' | 'settings'
 
-const tabItems: { key: SubjectTabKey; label: string; icon: IconName; href?: string }[] = [
+const tabItems: { key: SubjectTabKey; label: string; icon: IconName }[] = [
   { key: 'summary', label: 'Resumen', icon: 'document-text-outline' },
-  { key: 'students', label: 'Estudiantes', icon: 'people-outline', href: 'students' },
+  { key: 'students', label: 'Estudiantes', icon: 'people-outline' },
   { key: 'activities', label: 'Actividades', icon: 'calendar-outline' },
   { key: 'questions', label: 'Preguntas', icon: 'checkmark-circle-outline' },
   { key: 'reports', label: 'Informes', icon: 'bar-chart-outline' },
@@ -144,6 +147,9 @@ export default function SubjectDetailScreen() {
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [newTopicDescription, setNewTopicDescription] = useState('');
   const [creatingTopic, setCreatingTopic] = useState(false);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [studentStatusFilter, setStudentStatusFilter] = useState<StudentStatusFilter>('all');
+  const [studentSortKey, setStudentSortKey] = useState<StudentSortKey>('xp');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -314,6 +320,10 @@ export default function SubjectDetailScreen() {
     () => buildStudentReportRows(enrollments, scores, profilesById, questions.length),
     [enrollments, profilesById, questions.length, scores]
   );
+  const studentListRows = useMemo(
+    () => buildStudentListRows(studentReportRows, studentSearch, studentStatusFilter, studentSortKey),
+    [studentReportRows, studentSearch, studentSortKey, studentStatusFilter]
+  );
   const reportSummary = useMemo(() => {
     const answeredStudents = studentReportRows.filter((student) => student.hasActivity);
     const failedAnswers = studentReportRows.reduce((total, student) => total + student.failedAnswers, 0);
@@ -345,6 +355,114 @@ export default function SubjectDetailScreen() {
   );
 
   const renderTabContent = (currentSubject: Subject) => {
+    if (activeTab === 'students') {
+      const activeStudents = studentReportRows.filter((student) => getStudentStatus(student) === 'active').length;
+      const studentsNeedingAttention = studentReportRows.filter((student) => getStudentStatus(student) === 'needs_help');
+      const bestStudent = studentReportRows.find((student) => student.hasActivity);
+
+      return (
+        <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
+          <View className={isDesktop ? 'flex-[1.55] gap-5' : 'gap-5'}>
+            <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
+              <StudentMetricCard icon="people" label="Alumnos inscritos" value={String(enrollments.length)} detail={`${studentReportRows.length} en esta clase`} color="#8B5CF6" />
+              <StudentMetricCard icon="checkmark-circle" label="Activos esta semana" value={String(activeStudents)} detail={`${reportSummary.participation}% del total`} color="#34D399" />
+              <StudentMetricCard icon="star" label="XP media de la clase" value={`${averageXp} XP`} detail="Puntuación media" color="#3B82F6" />
+              <StudentMetricCard icon="trophy" label="Mejor alumno" value={`${bestStudent?.score ?? 0} XP`} detail={bestStudent?.name || 'Sin actividad'} color="#F59E0B" />
+            </View>
+
+            <View className="rounded-xl border border-[#183052] bg-[#07162D] p-4">
+              <View className="mb-4 flex-row flex-wrap items-center gap-3">
+                <View className="h-11 min-w-[220px] flex-1 flex-row items-center rounded-lg border border-[#20375E] bg-[#09162C] px-3">
+                  <TextInput
+                    className="min-w-0 flex-1 text-[13px] text-white"
+                    placeholder="Buscar alumno..."
+                    placeholderTextColor="#60799C"
+                    value={studentSearch}
+                    onChangeText={setStudentSearch}
+                  />
+                  <Ionicons name="search-outline" size={17} color="#8FA7C7" />
+                </View>
+                <InlineSelect
+                  label={`Estado: ${getStudentStatusFilterLabel(studentStatusFilter)}`}
+                  icon="chevron-down"
+                  onPress={() => setStudentStatusFilter(getNextStudentStatusFilter(studentStatusFilter))}
+                />
+                <InlineSelect
+                  label={`Ordenar por: ${getStudentSortLabel(studentSortKey)}`}
+                  icon="chevron-down"
+                  onPress={() => setStudentSortKey(getNextStudentSortKey(studentSortKey))}
+                />
+              </View>
+
+              <View className="hidden flex-row border-b border-[#183052] px-2 pb-3 md:flex">
+                <StudentTableHeader label="Pos." flex={0.35} />
+                <StudentTableHeader label="Alumno" flex={1.4} />
+                <StudentTableHeader label="Progreso" flex={1} />
+                <StudentTableHeader label="XP" flex={0.75} />
+                <StudentTableHeader label="Retos" flex={0.55} />
+                <StudentTableHeader label="Nota media" flex={0.8} />
+                <StudentTableHeader label="Estado" flex={0.85} />
+                <StudentTableHeader label="Última actividad" flex={0.9} />
+              </View>
+
+              {studentListRows.length > 0 ? (
+                studentListRows.map((student, index) => (
+                  <StudentClassRow key={student.id} student={student} index={index} />
+                ))
+              ) : (
+                <View className="items-center justify-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
+                  <Ionicons name="people-outline" size={44} color="#64748B" />
+                  <Text className="mt-3 text-center font-bold text-white">No hay alumnos para mostrar</Text>
+                  <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Comparte el código de la clase o cambia los filtros.</Text>
+                </View>
+              )}
+
+              <Text className="mt-4 text-right text-[11px] text-[#8FA7C7]">
+                Mostrando {studentListRows.length} de {studentReportRows.length} alumnos
+              </Text>
+            </View>
+          </View>
+
+          <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
+            <Panel title="Distribución de notas">
+              <GradeDistributionBars distribution={gradeDistribution} total={scorePerformanceRows.length} />
+            </Panel>
+
+            <Panel title="Actividad de la clase">
+              <ProgressLine label="Alumnos activos" value={activeStudents} total={Math.max(studentReportRows.length, 1)} color="#8B5CF6" />
+              <ProgressLine label="Retos completados" value={studentReportRows.reduce((total, student) => total + student.playedSessions, 0)} total={Math.max(studentReportRows.length * Math.max(questions.length, 1), 1)} color="#7C5CFF" />
+              <ProgressLine label="XP generado" value={scores.reduce((total, score) => total + (score.max_score ?? 0), 0)} total={Math.max(scores.reduce((total, score) => total + (score.max_score ?? 0), 0) + 500, 1)} color="#3B82F6" />
+            </Panel>
+
+            <Panel title="Alumnos que necesitan atención" actionLabel="Ver todo">
+              <View style={{ gap: 12 }}>
+                {studentsNeedingAttention.slice(0, 4).map((student) => (
+                  <StudentAttentionItem key={student.id} student={student} />
+                ))}
+                {studentsNeedingAttention.length === 0 ? (
+                  <Text className="text-[12px] text-[#8FA7C7]">No hay alumnos en riesgo ahora mismo.</Text>
+                ) : null}
+              </View>
+            </Panel>
+
+            <View className="rounded-xl border border-[#20375E] bg-[#111B3D] p-5">
+              <View className="flex-row gap-3">
+                <View className="h-10 w-10 items-center justify-center rounded-full bg-[#5A46D8]">
+                  <Ionicons name="bulb-outline" size={19} color="#FFFFFF" />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="font-black text-white">Consejo para profesores</Text>
+                  <Text className="mt-2 text-[12px] leading-5 text-[#B7C4D7]">
+                    Revisa alumnos con baja participación y anímalos a completar retos pendientes.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
     if (activeTab === 'activities') {
       return (
         <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
@@ -506,7 +624,7 @@ export default function SubjectDetailScreen() {
                   <Text className="font-bold text-white">Editar información de la clase</Text>
                 </Pressable>
                 <Pressable
-                  onPress={() => router.push(`/(teacher)/subject/students?subjectId=${currentSubject.id}` as any)}
+                  onPress={() => setActiveTab('students')}
                   className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
                 >
                   <Text className="font-bold text-white">Gestionar alumnos</Text>
@@ -552,7 +670,7 @@ export default function SubjectDetailScreen() {
                   <Text className="text-center font-bold text-white">Editar clase</Text>
                 </Pressable>
                 <Pressable
-                  onPress={() => router.push(`/(teacher)/subject/students?subjectId=${currentSubject.id}` as any)}
+                  onPress={() => setActiveTab('students')}
                   className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
                 >
                   <Text className="text-center font-bold text-white">Gestionar estudiantes</Text>
@@ -683,13 +801,16 @@ export default function SubjectDetailScreen() {
         throw new Error('No se encontró una sesión activa.');
       }
 
-      const [subjectResult, questionsResult, topicsResult, topicScoresResult, enrollmentsResult, scoresResult, subjectsCountResult] = await Promise.all([
-        supabase
-          .from('subjects')
-          .select('*')
-          .eq('id', subjectId)
-          .eq('teacher_id', teacherId)
-          .single(),
+      const subjectResult = await supabase
+        .from('subjects')
+        .select('*')
+        .eq('id', subjectId)
+        .eq('teacher_id', teacherId)
+        .single();
+
+      if (subjectResult.error) throw subjectResult.error;
+
+      const [questionsResult, topicsResult, topicScoresResult, enrollmentsResult, scoresResult, subjectsCountResult] = await Promise.all([
         supabase
           .from('questions')
           .select('*, answers(*)')
@@ -715,7 +836,6 @@ export default function SubjectDetailScreen() {
         supabase.from('subjects').select('id').eq('teacher_id', teacherId).eq('is_archived', false),
       ]);
 
-      if (subjectResult.error) throw subjectResult.error;
       if (questionsResult.error) throw questionsResult.error;
       if (topicsResult.error) throw topicsResult.error;
       if (topicScoresResult.error) throw topicScoresResult.error;
@@ -795,10 +915,18 @@ export default function SubjectDetailScreen() {
 
     const executeArchive = async () => {
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const teacherId = sessionData.session?.user.id;
+
+        if (!teacherId) {
+          throw new Error('No se encontró una sesión activa.');
+        }
+
         const { error } = await supabase
           .from('subjects')
           .update({ is_archived: true })
-          .eq('id', subject.id);
+          .eq('id', subject.id)
+          .eq('teacher_id', teacherId);
 
         if (error) {
           if (error.code === '42703') {
@@ -972,10 +1100,18 @@ export default function SubjectDetailScreen() {
 
     try {
       const nextCode = await generateUniqueClassCode();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const teacherId = sessionData.session?.user.id;
+
+      if (!teacherId) {
+        throw new Error('No se encontró una sesión activa.');
+      }
+
       const { error } = await supabase
         .from('subjects')
         .update({ code: nextCode })
-        .eq('id', subject.id);
+        .eq('id', subject.id)
+        .eq('teacher_id', teacherId);
 
       if (error) throw error;
       setSubject((current) => (current ? { ...current, code: nextCode } : current));
@@ -994,7 +1130,7 @@ export default function SubjectDetailScreen() {
       );
 
       if (choice === '1') {
-        router.push(`/(teacher)/subject/students?subjectId=${subject.id}` as any);
+        setActiveTab('students');
         return;
       }
       if (choice === '2') {
@@ -1011,7 +1147,7 @@ export default function SubjectDetailScreen() {
       Alert.alert('Gestionar acceso', `Código actual: ${subject.code}`, [
         {
           text: 'Ver estudiantes',
-          onPress: () => router.push(`/(teacher)/subject/students?subjectId=${subject.id}` as any),
+          onPress: () => setActiveTab('students'),
         },
         {
           text: 'Más opciones',
@@ -1037,7 +1173,7 @@ export default function SubjectDetailScreen() {
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Ver estudiantes',
-        onPress: () => router.push(`/(teacher)/subject/students?subjectId=${subject.id}` as any),
+        onPress: () => setActiveTab('students'),
       },
       {
         text: 'Ver código',
@@ -1178,7 +1314,11 @@ export default function SubjectDetailScreen() {
 
   const executeDelete = async (questionId: number) => {
     try {
-      const { error } = await supabase.from('questions').delete().eq('id', questionId);
+      const { error } = await supabase
+        .from('questions')
+        .delete()
+        .eq('id', questionId)
+        .eq('subject_id', subjectId);
       if (error) throw error;
       setQuestions((prevQuestions) => prevQuestions.filter((question) => question.id !== questionId));
     } catch (error: any) {
@@ -1381,24 +1521,13 @@ export default function SubjectDetailScreen() {
           <View className="mb-5 flex-row flex-wrap rounded-xl border border-[#183052] bg-[#07162D] p-2">
             {tabItems.map((tab) => {
               const isActive = activeTab === tab.key;
-              const content = (
-                <View className={`flex-row items-center gap-2 rounded-lg px-4 py-3 ${isActive ? 'border-b-2 border-[#8B5CF6]' : ''}`}>
-                  <Ionicons name={isActive ? tab.icon.replace('-outline', '') as IconName : tab.icon} size={15} color={isActive ? '#A78BFA' : '#AFC2DB'} />
-                  <Text className={`text-[12px] font-bold ${isActive ? 'text-[#A78BFA]' : 'text-[#B7C4D7]'}`}>{tab.label}</Text>
-                </View>
-              );
-
-              if (tab.href === 'students') {
-                return (
-                  <Link href={`/(teacher)/subject/students?subjectId=${currentSubject.id}`} asChild key={tab.label}>
-                    <Pressable>{content}</Pressable>
-                  </Link>
-                );
-              }
 
               return (
                 <Pressable key={tab.label} onPress={() => setActiveTab(tab.key)}>
-                  {content}
+                  <View className={`flex-row items-center gap-2 rounded-lg px-4 py-3 ${isActive ? 'border-b-2 border-[#8B5CF6]' : ''}`}>
+                    <Ionicons name={isActive ? tab.icon.replace('-outline', '') as IconName : tab.icon} size={15} color={isActive ? '#A78BFA' : '#AFC2DB'} />
+                    <Text className={`text-[12px] font-bold ${isActive ? 'text-[#A78BFA]' : 'text-[#B7C4D7]'}`}>{tab.label}</Text>
+                  </View>
                 </Pressable>
               );
             })}
@@ -1658,6 +1787,138 @@ function StudentReportRow({ student, index }: { student: StudentReport; index: n
   );
 }
 
+function StudentMetricCard({
+  icon,
+  label,
+  value,
+  detail,
+  color,
+}: {
+  icon: IconName
+  label: string
+  value: string
+  detail: string
+  color: string
+}) {
+  return (
+    <View className="min-w-[175px] flex-1 rounded-xl border border-[#183052] bg-[#07162D] p-4">
+      <View className="flex-row items-center gap-3">
+        <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: `${color}2A` }}>
+          <Ionicons name={icon} size={21} color={color} />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="text-[22px] font-black text-white" numberOfLines={1}>{value}</Text>
+          <Text className="mt-1 text-[11px] font-semibold text-[#B7C4D7]" numberOfLines={1}>{label}</Text>
+        </View>
+      </View>
+      <Text className="mt-3 text-[11px] font-semibold" style={{ color }}>{detail}</Text>
+    </View>
+  );
+}
+
+function InlineSelect({ label, icon, onPress }: { label: string; icon: IconName; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="h-11 flex-row items-center gap-2 rounded-lg border border-[#20375E] bg-[#09162C] px-4"
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+    >
+      <Text className="text-[12px] font-semibold text-[#DDE7F4]">{label}</Text>
+      <Ionicons name={icon} size={15} color="#8FA7C7" />
+    </Pressable>
+  );
+}
+
+function StudentTableHeader({ label, flex }: { label: string; flex: number }) {
+  return (
+    <Text className="text-[10px] font-black uppercase text-[#8FA7C7]" style={{ flex }}>
+      {label}
+    </Text>
+  );
+}
+
+function StudentClassRow({ student, index }: { student: StudentReport; index: number }) {
+  const status = getStudentStatus(student);
+  const statusMeta = getStudentStatusMeta(status);
+  const gradeColor = getGradeColor(student.grade);
+
+  return (
+    <View className="flex-row flex-wrap items-center gap-y-3 border-b border-[#13284A] px-2 py-4">
+      <View className="min-w-[45px] flex-[0.35]">
+        <View className="h-7 w-7 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? '#F59E0B' : '#1E3356' }}>
+          <Text className="text-[11px] font-black text-white">{index + 1}</Text>
+        </View>
+      </View>
+      <View className="min-w-[180px] flex-[1.4] flex-row items-center gap-3">
+        <View className="h-10 w-10 items-center justify-center rounded-full bg-[#17315E]">
+          <Text className="font-black text-[#9FD6FF]">{getInitials(student.name)}</Text>
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="font-black text-white" numberOfLines={1}>{student.name}</Text>
+          <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>@{slugifyStudentName(student.name)}</Text>
+        </View>
+      </View>
+      <View className="min-w-[130px] flex-[1] flex-row items-center gap-3">
+        <View className="h-2 flex-1 overflow-hidden rounded-full bg-[#13294C]">
+          <View className="h-full rounded-full bg-[#7C5CFF]" style={{ width: `${student.participation}%` }} />
+        </View>
+        <Text className="w-10 text-right text-[12px] font-bold text-white">{student.participation}%</Text>
+      </View>
+      <View className="min-w-[90px] flex-[0.75]">
+        <Text className="text-[12px] font-black text-white">{student.score.toLocaleString('es-ES')} XP</Text>
+      </View>
+      <Text className="min-w-[60px] flex-[0.55] text-[12px] font-bold text-white">{student.playedSessions}</Text>
+      <View className="min-w-[90px] flex-[0.8]">
+        <View className="self-start rounded-md border px-2 py-1" style={{ borderColor: gradeColor }}>
+          <Text className="text-[12px] font-black" style={{ color: gradeColor }}>
+            {student.hasActivity ? student.grade.toFixed(1) : '-'}
+          </Text>
+        </View>
+      </View>
+      <View className="min-w-[105px] flex-[0.85] flex-row items-center gap-2">
+        <View className="h-2 w-2 rounded-full" style={{ backgroundColor: statusMeta.color }} />
+        <Text className="text-[12px] font-semibold" style={{ color: statusMeta.color }}>{statusMeta.label}</Text>
+      </View>
+      <Text className="min-w-[110px] flex-[0.9] text-[12px] text-[#B7C4D7]">
+        {formatRelative(student.lastActivity, index)}
+      </Text>
+    </View>
+  );
+}
+
+function ProgressLine({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
+  const percent = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0;
+
+  return (
+    <View className="mb-4">
+      <View className="mb-2 flex-row items-center justify-between gap-3">
+        <Text className="text-[12px] font-semibold text-white">{label}</Text>
+        <Text className="text-[12px] text-[#DDE7F4]">{value.toLocaleString('es-ES')}</Text>
+      </View>
+      <View className="h-2 overflow-hidden rounded-full bg-[#13294C]">
+        <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: color }} />
+      </View>
+    </View>
+  );
+}
+
+function StudentAttentionItem({ student }: { student: StudentReport }) {
+  return (
+    <View className="flex-row items-center gap-3">
+      <View className="h-9 w-9 items-center justify-center rounded-full bg-[#17315E]">
+        <Text className="text-[12px] font-black text-[#9FD6FF]">{getInitials(student.name)}</Text>
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[13px] font-bold text-white" numberOfLines={1}>{student.name}</Text>
+        <Text className="text-[11px] text-[#B7C4D7]">{student.hasActivity ? 'Baja nota media' : 'Sin actividad'}</Text>
+      </View>
+      <View className="rounded-md border border-[#F43F5E] px-2 py-1">
+        <Text className="text-[11px] font-black text-[#F43F5E]">{student.hasActivity ? student.grade.toFixed(1) : '0%'}</Text>
+      </View>
+    </View>
+  );
+}
+
 function ReportStack({ label, value, color, meta }: { label: string; value: string; color: string; meta: string }) {
   return (
     <View className="min-w-[100px]">
@@ -1818,7 +2079,97 @@ function formatRelative(value: string | null | undefined, index: number) {
 function getSubjectTabFromParam(value: string | string[] | undefined): SubjectTabKey {
   const rawValue = Array.isArray(value) ? value[0] : value;
   const tab = tabItems.find((item) => item.key === rawValue);
-  return tab && tab.key !== 'students' ? tab.key : 'summary';
+  return tab ? tab.key : 'summary';
+}
+
+function buildStudentListRows(
+  students: StudentReport[],
+  search: string,
+  statusFilter: StudentStatusFilter,
+  sortKey: StudentSortKey
+) {
+  const normalizedSearch = search.trim().toLowerCase();
+
+  return students
+    .filter((student) => {
+      if (normalizedSearch && !student.name.toLowerCase().includes(normalizedSearch)) {
+        return false;
+      }
+
+      return statusFilter === 'all' || getStudentStatus(student) === statusFilter;
+    })
+    .sort((a, b) => {
+      if (sortKey === 'progress') return b.participation - a.participation || b.score - a.score;
+      if (sortKey === 'grade') return b.grade - a.grade || b.score - a.score;
+      if (sortKey === 'recent') return getSortableTime(b.lastActivity) - getSortableTime(a.lastActivity);
+      return b.score - a.score || b.participation - a.participation;
+    });
+}
+
+function getStudentStatus(student: StudentReport): StudentStatusFilter {
+  if (!student.hasActivity || student.participation < 35 || student.grade < 5) return 'needs_help';
+  if (student.participation < 60) return 'inactive';
+  return 'active';
+}
+
+function getStudentStatusMeta(status: StudentStatusFilter) {
+  if (status === 'active') return { label: 'Activo', color: '#34D399' };
+  if (status === 'inactive') return { label: 'Inactivo', color: '#8FA7C7' };
+  if (status === 'needs_help') return { label: 'Necesita apoyo', color: '#F59E0B' };
+  return { label: 'Todos', color: '#A78BFA' };
+}
+
+function getStudentStatusFilterLabel(status: StudentStatusFilter) {
+  if (status === 'active') return 'Activos';
+  if (status === 'inactive') return 'Inactivos';
+  if (status === 'needs_help') return 'Necesitan apoyo';
+  return 'Todos';
+}
+
+function getNextStudentStatusFilter(status: StudentStatusFilter): StudentStatusFilter {
+  const options: StudentStatusFilter[] = ['all', 'active', 'inactive', 'needs_help'];
+  const index = options.indexOf(status);
+  return options[(index + 1) % options.length];
+}
+
+function getStudentSortLabel(sortKey: StudentSortKey) {
+  if (sortKey === 'progress') return 'Progreso';
+  if (sortKey === 'grade') return 'Nota';
+  if (sortKey === 'recent') return 'Actividad';
+  return 'XP';
+}
+
+function getNextStudentSortKey(sortKey: StudentSortKey): StudentSortKey {
+  const options: StudentSortKey[] = ['xp', 'progress', 'grade', 'recent'];
+  const index = options.indexOf(sortKey);
+  return options[(index + 1) % options.length];
+}
+
+function getGradeColor(value: number) {
+  if (value >= 8) return '#34D399';
+  if (value >= 6) return '#F59E0B';
+  return '#F43F5E';
+}
+
+function getInitials(value: string) {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'A';
+  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
+}
+
+function slugifyStudentName(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '')
+    .slice(0, 18) || 'alumno';
+}
+
+function getSortableTime(value?: string | null) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
 }
 
 function buildStudentReportRows(

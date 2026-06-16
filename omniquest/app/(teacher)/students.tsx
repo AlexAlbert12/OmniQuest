@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -65,6 +66,14 @@ type StudentRow = {
   subjectNames: string[]
 }
 
+type ConfirmDialog = {
+  title: string
+  message: string
+  confirmLabel: string
+  destructive?: boolean
+  onConfirm: () => void
+}
+
 const INSUFFICIENT_TREND_DATA = 'Datos disponibles cuando haya actividad suficiente'
 
 export default function TeacherStudentsScreen() {
@@ -76,6 +85,9 @@ export default function TeacherStudentsScreen() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [actionStudent, setActionStudent] = useState<StudentRow | null>(null);
+  const [detailStudent, setDetailStudent] = useState<StudentRow | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null);
 
   const isDesktop = width >= 1080;
   const isWide = width >= 900;
@@ -249,19 +261,8 @@ export default function TeacherStudentsScreen() {
   };
 
   const handleViewStudentDetails = (student: StudentRow) => {
-    const detailLines = [
-      `Alias: ${student.alias}`,
-      `Usuario: ${student.handle}`,
-      `Precisión: ${student.accuracyPercent}%`,
-      `Participación: ${student.progress}%`,
-      `Puntuación de clase: ${student.subjectScore}`,
-      `Nota media: ${student.averageScore.toFixed(1)}`,
-      `Preguntas completadas: ${student.challenges}`,
-      `Estado: ${getStatusMeta(student.status).label}`,
-      `Asignaturas: ${student.subjectNames.join(', ') || 'Ninguna'}`,
-    ];
-
-    showAlert('Detalle del estudiante', detailLines.join('\n'));
+    setActionStudent(null);
+    setDetailStudent(student);
   };
 
   const handleRemoveFromClass = async (student: StudentRow) => {
@@ -271,35 +272,11 @@ export default function TeacherStudentsScreen() {
       return;
     }
 
-    const confirmTitle = 'Quitar de clase';
-    const confirmMessage = `¿Seguro que quieres eliminar a ${student.alias} de sus clases actuales?`;
-
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm(confirmMessage);
-      if (!confirmed) return;
-    }
-
-    if (Platform.OS !== 'web') {
-      let confirmed = false;
-      await new Promise<void>((resolve) => {
-        Alert.alert(confirmTitle, confirmMessage, [
-          { text: 'Cancelar', style: 'cancel', onPress: () => resolve() },
-          { text: 'Sí, quitar', style: 'destructive', onPress: () => { confirmed = true; resolve(); } },
-        ]);
-      });
-      if (!confirmed) return;
-    }
-
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) return;
 
-      const deleteScores = await supabase
-        .from('subject_scores')
-        .delete()
-        .eq('student_id', student.id)
-        .in('subject_id', subjectIds);
-      if (deleteScores.error) throw deleteScores.error;
+      await deleteStudentProgressForSubjects(student.id, subjectIds);
 
       const deleteEnrollments = await supabase
         .from('enrollments')
@@ -315,6 +292,17 @@ export default function TeacherStudentsScreen() {
     }
   };
 
+  const requestRemoveFromClass = (student: StudentRow) => {
+    setActionStudent(null);
+    setConfirmDialog({
+      title: 'Quitar de clase',
+      message: `Se eliminará a ${student.alias} de sus clases actuales y se limpiará su progreso en esas clases.`,
+      confirmLabel: 'Sí, quitar',
+      destructive: true,
+      onConfirm: () => handleRemoveFromClass(student),
+    });
+  };
+
   const handleResetProgress = async (student: StudentRow) => {
     const subjectIds = student.subjectIds;
     if (subjectIds.length === 0) {
@@ -323,19 +311,24 @@ export default function TeacherStudentsScreen() {
     }
 
     try {
-      const resetResult = await supabase
-        .from('subject_scores')
-        .delete()
-        .eq('student_id', student.id)
-        .in('subject_id', subjectIds);
-
-      if (resetResult.error) throw resetResult.error;
+      await deleteStudentProgressForSubjects(student.id, subjectIds);
 
       setStudents((prev) => prev.map((row) => (row.id === student.id ? { ...row, subjectScore: 0, averageScore: 0, accuracyPercent: 0, challenges: 0, progress: 0, status: 'needs_help' } : row)));
       showAlert('Progreso reiniciado', `El progreso de ${student.alias} ha sido reiniciado.`);
     } catch (error: any) {
       showAlert('Error', error.message || 'No se pudo reiniciar el progreso.');
     }
+  };
+
+  const requestResetProgress = (student: StudentRow) => {
+    setActionStudent(null);
+    setConfirmDialog({
+      title: 'Reiniciar progreso',
+      message: `Se borrarán puntuaciones, progreso por tema y el historial de intentos de ${student.alias} en sus clases actuales.`,
+      confirmLabel: 'Reiniciar',
+      destructive: true,
+      onConfirm: () => handleResetProgress(student),
+    });
   };
 
   const handleAssignActivity = (student: StudentRow) => {
@@ -350,29 +343,7 @@ export default function TeacherStudentsScreen() {
   };
 
   const openStudentActions = (student: StudentRow) => {
-    if (Platform.OS === 'web') {
-      const action = window.prompt(
-        `Acciones para ${student.alias}: 2) Detalle 3) Quitar 4) Reiniciar 5) Asignar actividad`,
-      );
-      if (!action) return;
-      if (action.startsWith('2')) return handleViewStudentDetails(student);
-      if (action.startsWith('3')) return handleRemoveFromClass(student);
-      if (action.startsWith('4')) return handleResetProgress(student);
-      if (action.startsWith('5')) return handleAssignActivity(student);
-      return;
-    }
-
-    Alert.alert(
-      `Acciones para ${student.alias}`,
-      'Selecciona una acción',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Detalle', onPress: () => handleViewStudentDetails(student) },
-        { text: 'Quitar de clase', onPress: () => handleRemoveFromClass(student), style: 'destructive' },
-        { text: 'Reiniciar progreso', onPress: () => handleResetProgress(student) },
-        { text: 'Asignar actividad', onPress: () => handleAssignActivity(student) },
-      ],
-    );
+    setActionStudent(student);
   };
 
   const handleExportStudentsCsv = async () => {
@@ -622,7 +593,227 @@ export default function TeacherStudentsScreen() {
           </View>
         </ScrollView>
       </View>
+      <StudentActionsModal
+        student={actionStudent}
+        visible={Boolean(actionStudent)}
+        onClose={() => setActionStudent(null)}
+        onViewDetails={handleViewStudentDetails}
+        onRemoveFromClass={requestRemoveFromClass}
+        onResetProgress={requestResetProgress}
+        onAssignActivity={(student) => {
+          setActionStudent(null);
+          handleAssignActivity(student);
+        }}
+      />
+      <StudentDetailModal
+        student={detailStudent}
+        visible={Boolean(detailStudent)}
+        onClose={() => setDetailStudent(null)}
+      />
+      <ConfirmModal
+        dialog={confirmDialog}
+        visible={Boolean(confirmDialog)}
+        onClose={() => setConfirmDialog(null)}
+      />
     </View>
+  );
+}
+
+function StudentActionsModal({
+  student,
+  visible,
+  onClose,
+  onViewDetails,
+  onRemoveFromClass,
+  onResetProgress,
+  onAssignActivity,
+}: {
+  student: StudentRow | null
+  visible: boolean
+  onClose: () => void
+  onViewDetails: (student: StudentRow) => void
+  onRemoveFromClass: (student: StudentRow) => void
+  onResetProgress: (student: StudentRow) => void
+  onAssignActivity: (student: StudentRow) => void
+}) {
+  if (!student) return null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View className="flex-1 justify-end p-4 md:items-center md:justify-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
+        <Pressable className="absolute inset-0" onPress={onClose} />
+        <View className="w-full max-w-[420px] rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+          <View className="flex-row items-start justify-between gap-4">
+            <View className="min-w-0 flex-1">
+              <Text className="text-[13px] font-semibold text-[#9FD6FF]">Acciones del estudiante</Text>
+              <Text className="mt-1 text-[24px] font-black text-white" numberOfLines={1}>{student.alias}</Text>
+              <Text className="mt-1 text-[12px] text-[#8FA7C7]" numberOfLines={1}>{student.handle}</Text>
+            </View>
+            <Pressable onPress={onClose} className="h-10 w-10 items-center justify-center rounded-xl border border-[#20375E] bg-[#111E3C]">
+              <Ionicons name="close" size={18} color="#DDE7F4" />
+            </Pressable>
+          </View>
+
+          <View className="mt-5 gap-3">
+            <ModalActionButton
+              icon="document-text-outline"
+              title="Ver detalle"
+              detail="Precisión, participación, nota y clases inscritas"
+              onPress={() => onViewDetails(student)}
+            />
+            <ModalActionButton
+              icon="add-circle-outline"
+              title="Asignar actividad"
+              detail="Crear una pregunta para una de sus clases"
+              onPress={() => onAssignActivity(student)}
+            />
+            <ModalActionButton
+              icon="refresh-outline"
+              title="Reiniciar progreso"
+              detail="Borra puntuaciones, temas e historial de intentos"
+              destructive
+              onPress={() => onResetProgress(student)}
+            />
+            <ModalActionButton
+              icon="person-remove-outline"
+              title="Quitar de clase"
+              detail="Elimina la inscripción y su progreso asociado"
+              destructive
+              onPress={() => onRemoveFromClass(student)}
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function StudentDetailModal({
+  student,
+  visible,
+  onClose,
+}: {
+  student: StudentRow | null
+  visible: boolean
+  onClose: () => void
+}) {
+  if (!student) return null;
+
+  const status = getStatusMeta(student.status);
+  const detailRows = [
+    { label: 'Usuario', value: student.handle },
+    { label: 'Precisión', value: `${student.accuracyPercent}%` },
+    { label: 'Participación', value: `${student.progress}%` },
+    { label: 'Puntuación de clase', value: student.subjectScore.toLocaleString() },
+    { label: 'Nota media', value: `${student.averageScore.toFixed(1)} /10` },
+    { label: 'Preguntas completadas', value: student.challenges.toLocaleString() },
+    { label: 'Estado', value: status.label },
+    { label: 'Asignaturas', value: student.subjectNames.join(', ') || 'Ninguna' },
+  ];
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View className="flex-1 justify-end p-4 md:items-center md:justify-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
+        <Pressable className="absolute inset-0" onPress={onClose} />
+        <View className="w-full max-w-[460px] rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+          <View className="flex-row items-start justify-between gap-4">
+            <View className="min-w-0 flex-1">
+              <Text className="text-[13px] font-semibold text-[#9FD6FF]">Detalle del estudiante</Text>
+              <Text className="mt-1 text-[24px] font-black text-white" numberOfLines={1}>{student.alias}</Text>
+            </View>
+            <Pressable onPress={onClose} className="h-10 w-10 items-center justify-center rounded-xl border border-[#20375E] bg-[#111E3C]">
+              <Ionicons name="close" size={18} color="#DDE7F4" />
+            </Pressable>
+          </View>
+
+          <View className="mt-5 gap-3">
+            {detailRows.map((row) => (
+              <View key={row.label} className="flex-row items-center justify-between gap-4 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3">
+                <Text className="text-[12px] font-semibold text-[#8FA7C7]">{row.label}</Text>
+                <Text className="min-w-0 flex-1 text-right text-[13px] font-bold text-white" numberOfLines={2}>{row.value}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function ConfirmModal({
+  dialog,
+  visible,
+  onClose,
+}: {
+  dialog: ConfirmDialog | null
+  visible: boolean
+  onClose: () => void
+}) {
+  if (!dialog) return null;
+
+  const handleConfirm = () => {
+    const confirm = dialog.onConfirm;
+    onClose();
+    confirm();
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View className="flex-1 justify-end p-4 md:items-center md:justify-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
+        <Pressable className="absolute inset-0" onPress={onClose} />
+        <View className="w-full max-w-[420px] rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+          <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: dialog.destructive ? '#EF444433' : '#8B5CF633' }}>
+            <Ionicons name={dialog.destructive ? 'warning-outline' : 'information-circle-outline'} size={24} color={dialog.destructive ? '#FF8A8A' : '#B9A7FF'} />
+          </View>
+          <Text className="mt-4 text-[24px] font-black text-white">{dialog.title}</Text>
+          <Text className="mt-2 text-[14px] leading-6 text-[#B7C4D7]">{dialog.message}</Text>
+
+          <View className="mt-6 flex-row gap-3">
+            <Pressable onPress={onClose} className="flex-1 items-center justify-center rounded-xl border border-[#20375E] bg-[#111E3C] px-4 py-3">
+              <Text className="font-bold text-[#DDE7F4]">Cancelar</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleConfirm}
+              className="flex-1 items-center justify-center rounded-xl px-4 py-3"
+              style={{ backgroundColor: dialog.destructive ? '#DC2626' : '#5A46D8' }}
+            >
+              <Text className="font-black text-white">{dialog.confirmLabel}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function ModalActionButton({
+  icon,
+  title,
+  detail,
+  destructive = false,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  title: string
+  detail: string
+  destructive?: boolean
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center gap-3 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3"
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+    >
+      <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: destructive ? '#EF444433' : '#8B5CF633' }}>
+        <Ionicons name={icon} size={19} color={destructive ? '#FF8A8A' : '#B9A7FF'} />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className={`font-black ${destructive ? 'text-[#FFB4B4]' : 'text-white'}`}>{title}</Text>
+        <Text className="mt-1 text-[12px] text-[#8FA7C7]" numberOfLines={2}>{detail}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color="#8FA7C7" />
+    </Pressable>
   );
 }
 
@@ -885,6 +1076,47 @@ function getPlayedSessions(score: SubjectScore, questionsCount: number) {
     ? Math.ceil(score.correct_answers / questionsCount)
     : 0;
   return Math.max(score.played_at ? 1 : 0, playedDays, sessionsFromCorrectAnswers);
+}
+
+async function deleteStudentProgressForSubjects(studentId: string, subjectIds: number[]) {
+  if (subjectIds.length === 0) return;
+
+  const questionsResult = await supabase
+    .from('questions')
+    .select('id')
+    .in('subject_id', subjectIds);
+
+  if (questionsResult.error) throw questionsResult.error;
+
+  const questionIds = (questionsResult.data || [])
+    .map((question: { id: number | null }) => question.id)
+    .filter((id): id is number => typeof id === 'number');
+
+  if (questionIds.length > 0) {
+    const deleteAttempts = await supabase
+      .from('attempt_history')
+      .delete()
+      .eq('student_id', studentId)
+      .in('question_id', questionIds);
+
+    if (deleteAttempts.error) throw deleteAttempts.error;
+  }
+
+  const deleteTopicScores = await supabase
+    .from('topic_scores')
+    .delete()
+    .eq('student_id', studentId)
+    .in('subject_id', subjectIds);
+
+  if (deleteTopicScores.error) throw deleteTopicScores.error;
+
+  const deleteSubjectScores = await supabase
+    .from('subject_scores')
+    .delete()
+    .eq('student_id', studentId)
+    .in('subject_id', subjectIds);
+
+  if (deleteSubjectScores.error) throw deleteSubjectScores.error;
 }
 
 function groupBy<T extends Record<string, any>>(items: T[], key: keyof T) {

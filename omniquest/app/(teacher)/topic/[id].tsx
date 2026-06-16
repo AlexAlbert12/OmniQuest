@@ -89,28 +89,37 @@ export default function TopicDetailScreen() {
         throw new Error('No se encontró una sesión activa.');
       }
 
-      // First get the topic to know the subject_id
-      const { data: topicData, error: topicError } = await supabase
+      const { data: topicOwnerData, error: topicError } = await supabase
         .from('subject_topics')
-        .select('*')
+        .select('id, subject_id')
         .eq('id', topicId)
         .single();
 
       if (topicError) throw topicError;
 
-      const subjectId = topicData.subject_id;
+      const subjectId = topicOwnerData.subject_id;
 
-      const [subjectResult, questionsResult, topicScoresResult, enrollmentsResult, subjectsCountResult] = await Promise.all([
+      const subjectResult = await supabase
+        .from('subjects')
+        .select('*')
+        .eq('id', subjectId)
+        .eq('teacher_id', teacherId)
+        .single();
+
+      if (subjectResult.error) throw subjectResult.error;
+
+      const [topicResult, questionsResult, topicScoresResult, enrollmentsResult, subjectsCountResult] = await Promise.all([
         supabase
-          .from('subjects')
+          .from('subject_topics')
           .select('*')
-          .eq('id', subjectId)
-          .eq('teacher_id', teacherId)
+          .eq('id', topicId)
+          .eq('subject_id', subjectId)
           .single(),
         supabase
           .from('questions')
           .select('*, answers(*)')
           .eq('topic_id', topicId)
+          .eq('subject_id', subjectId)
           .order('created_at', { ascending: false }),
         supabase
           .from('topic_scores')
@@ -120,7 +129,7 @@ export default function TopicDetailScreen() {
         supabase.from('subjects').select('id').eq('teacher_id', teacherId).eq('is_archived', false),
       ]);
 
-      if (subjectResult.error) throw subjectResult.error;
+      if (topicResult.error) throw topicResult.error;
       if (questionsResult.error) throw questionsResult.error;
       if (topicScoresResult.error) throw topicScoresResult.error;
       if (enrollmentsResult.error) throw enrollmentsResult.error;
@@ -128,7 +137,7 @@ export default function TopicDetailScreen() {
 
       const nextEnrollments = (enrollmentsResult.data || []) as Enrollment[];
 
-      setTopic(topicData as Topic);
+      setTopic(topicResult.data as Topic);
       setSubject(subjectResult.data as Subject);
       setQuestions((questionsResult.data || []) as Question[]);
       setTopicScores((topicScoresResult.data || []) as TopicScore[]);
@@ -168,8 +177,15 @@ export default function TopicDetailScreen() {
   };
 
   const executeDelete = async (questionId: number) => {
+    if (!subject) return;
+
     try {
-      const { error } = await supabase.from('questions').delete().eq('id', questionId);
+      const { error } = await supabase
+        .from('questions')
+        .delete()
+        .eq('id', questionId)
+        .eq('topic_id', topicId)
+        .eq('subject_id', subject.id);
       if (error) throw error;
       setQuestions((prevQuestions) => prevQuestions.filter((question) => question.id !== questionId));
     } catch (error: any) {

@@ -671,7 +671,7 @@ function ClassCard({
 
       <View className="flex-row flex-wrap border-t border-[#172A4A] bg-[#07162E]">
         <ClassAction href={`/(teacher)/subject/${subject.id}`} icon="eye-outline" label="Ver clase" />
-        <ClassAction href={`/(teacher)/subject/students?subjectId=${subject.id}`} icon="people-outline" label="Estudiantes" />
+        <ClassAction href={`/(teacher)/subject/${subject.id}?tab=students`} icon="people-outline" label="Estudiantes" />
         <ClassAction href={`/(teacher)/subject/${subject.id}?tab=reports`} icon="analytics-outline" label="Informes" />
         <ClassAction href={`/(teacher)/edit-subject?id=${subject.id}`} icon="create-outline" label="Editar" />
       </View>
