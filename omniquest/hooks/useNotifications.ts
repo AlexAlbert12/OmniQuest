@@ -539,7 +539,7 @@ function buildTeacherNotifications({
         relatedId: Number(enrollment.subject_id),
         subjectName: subject?.name,
         studentName,
-        actionUrl: enrollment.subject_id ? `/(teacher)/subject/students?subjectId=${enrollment.subject_id}` : undefined,
+        actionUrl: enrollment.subject_id ? `/(teacher)/students?subjectId=${enrollment.subject_id}` : undefined,
       }
     })
 

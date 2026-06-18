@@ -62,8 +62,13 @@ export default function StudentClassDetailScreen() {
       const userId = session.session?.user.id
       if (!userId) return
 
-      const [subjectResult, topicsResult, questionsResult, topicScoresResult, subjectScoreResult] = await Promise.all([
-        supabase.from('subjects').select('id, name, description, icon, theme_color').eq('id', subjectId).single(),
+      const [enrollmentResult, topicsResult, questionsResult, topicScoresResult, subjectScoreResult] = await Promise.all([
+        supabase
+          .from('enrollments')
+          .select('subjects(id, name, description, icon, theme_color)')
+          .eq('student_id', userId)
+          .eq('subject_id', subjectId)
+          .single(),
         supabase
           .from('subject_topics')
           .select('id, title, description, icon, sort_order')
@@ -71,12 +76,12 @@ export default function StudentClassDetailScreen() {
           .eq('active', true)
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: true }),
-        supabase.from('questions').select('id, topic_id').eq('subject_id', subjectId),
+        supabase.from('questions').select('id, topic_id').eq('subject_id', subjectId).eq('active', true),
         supabase.from('topic_scores').select('topic_id, max_score').eq('student_id', userId).eq('subject_id', subjectId),
         supabase.from('subject_scores').select('max_score').eq('student_id', userId).eq('subject_id', subjectId).maybeSingle(),
       ])
 
-      if (subjectResult.error) throw subjectResult.error
+      if (enrollmentResult.error) throw enrollmentResult.error
       if (topicsResult.error) throw topicsResult.error
       if (questionsResult.error) throw questionsResult.error
       if (topicScoresResult.error) throw topicScoresResult.error
@@ -111,7 +116,15 @@ export default function StudentClassDetailScreen() {
         })
       }
 
-      setSubject(subjectResult.data as Subject)
+      const enrolledSubject = Array.isArray(enrollmentResult.data?.subjects)
+        ? enrollmentResult.data.subjects[0]
+        : enrollmentResult.data?.subjects
+
+      if (!enrolledSubject) {
+        throw new Error('No estás matriculado en esta clase.')
+      }
+
+      setSubject(enrolledSubject as Subject)
       setTopics(nextTopics)
     } catch (error: any) {
       console.error('Error cargando temas:', error.message)

@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import * as FileSystem from 'expo-file-system/legacy'
+import * as Sharing from 'expo-sharing'
 import {
   ActivityIndicator,
   Alert,
@@ -477,6 +479,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
           role: 'teacher',
           profile: profileData,
           subjects: teacherSubjects || [],
+          classrooms: await selectOptionalRowsIn('classrooms', 'subject_id', subjectIds),
           topics: await selectOptionalRowsIn('subject_topics', 'subject_id', subjectIds),
           questions,
           answers: await selectOptionalRowsIn('answers', 'question_id', questionIds),
@@ -484,6 +487,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
           subjectScores: await selectOptionalRowsIn('subject_scores', 'subject_id', subjectIds),
           topicScores: await selectOptionalRowsIn('topic_scores', 'subject_id', subjectIds),
           attempts: await selectOptionalRowsIn('attempt_history', 'question_id', questionIds),
+          supportTickets: await selectOptionalRows('user_support_tickets', 'user_id', userId),
           notificationState,
           userPreferences,
           notificationPreferences,
@@ -497,6 +501,8 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
           topicScores: await selectOptionalRows('topic_scores', 'student_id', userId),
           enrollments: await selectOptionalRows('enrollments', 'student_id', userId),
           attempts: await selectOptionalRows('attempt_history', 'student_id', userId),
+          badges: await selectOptionalRows('student_badges', 'student_id', userId),
+          supportTickets: await selectOptionalRows('user_support_tickets', 'user_id', userId),
           notificationState,
           userPreferences,
           notificationPreferences,
@@ -504,20 +510,42 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
       }
 
       const jsonData = JSON.stringify(exportData, null, 2)
+      const fileName = `omniquest-${isTeacher ? 'profesor' : 'alumno'}-${new Date().toISOString().split('T')[0]}.json`
 
       if (Platform.OS === 'web') {
         const blob = new Blob([jsonData], { type: 'application/json' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `omniquest-${isTeacher ? 'profesor' : 'alumno'}-${new Date().toISOString().split('T')[0]}.json`
+        a.download = fileName
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
         showAlert('Datos exportados', 'Tus datos han sido descargados como archivo JSON.')
       } else {
-        showAlert('Datos exportados', 'Tus datos están listos. Copia la información siguiente:\n\n' + jsonData.substring(0, 500) + '...')
+        const exportDirectory = FileSystem.documentDirectory || FileSystem.cacheDirectory
+        if (!exportDirectory) {
+          throw new Error('No se pudo acceder al almacenamiento local para crear el archivo.')
+        }
+
+        const fileUri = `${exportDirectory}${fileName}`
+        await FileSystem.writeAsStringAsync(fileUri, jsonData, {
+          encoding: FileSystem.EncodingType.UTF8,
+        })
+
+        const sharingAvailable = await Sharing.isAvailableAsync()
+        if (!sharingAvailable) {
+          showAlert('Datos exportados', `Archivo generado en:\n${fileUri}`)
+          return
+        }
+
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/json',
+          UTI: 'public.json',
+          dialogTitle: 'Exportar datos de OmniQuest',
+        })
+        showAlert('Datos exportados', 'Se ha generado un archivo JSON con tus datos.')
       }
     } catch (error: any) {
       showAlert('Error', error.message || 'No se pudieron exportar los datos.')

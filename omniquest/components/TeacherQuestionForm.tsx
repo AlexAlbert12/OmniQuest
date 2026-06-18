@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import type { Json } from '../types/database.types';
 
 type QuestionTypeId = 'multiple' | 'boolean' | 'dragdrop' | 'match' | 'fill' | 'order' | 'open';
 type WizardStep = 1 | 2 | 3 | 4;
@@ -432,68 +433,32 @@ export default function TeacherQuestionForm({
     const validPoints = parsedPoints as number;
     const validTimeLimit = parsedTimeLimit as number;
     const validTopicId = getValidTopicId(selectedTopicId, topics);
+    const answersToSave = buildAnswersForType({
+      selectedType,
+      questionId: isEdit && normalizedQuestionId ? Number(normalizedQuestionId) : 0,
+      visibleAnswers,
+      openExpectedAnswer,
+      fillLines,
+      orderLines,
+      matchPairs,
+      dragdropPairs,
+    });
 
     setSaving(true);
     try {
-      let targetQuestionId: number | null = null;
-
-      if (isEdit) {
-        const { error: updateQuestionError } = await supabase
-          .from('questions')
-          .update({
-            subject_id: normalizedSubjectId,
-            topic_id: validTopicId,
-            type: toDatabaseType(selectedType),
-            text: questionText.trim(),
-            points_base: validPoints,
-            time_limit_seconds: validTimeLimit,
-            explanation: explanation.trim(),
-          })
-          .eq('id', normalizedQuestionId)
-          .eq('subject_id', normalizedSubjectId);
-
-        if (updateQuestionError) throw updateQuestionError;
-        targetQuestionId = Number(normalizedQuestionId);
-
-        const { error: deleteAnswersError } = await supabase
-          .from('answers')
-          .delete()
-          .eq('question_id', targetQuestionId);
-        if (deleteAnswersError) throw deleteAnswersError;
-      } else {
-        const { data: newQuestion, error: createQuestionError } = await supabase
-          .from('questions')
-          .insert([
-            {
-              subject_id: normalizedSubjectId,
-              topic_id: validTopicId,
-              type: toDatabaseType(selectedType),
-              text: questionText.trim(),
-              points_base: validPoints,
-              time_limit_seconds: validTimeLimit,
-              explanation: explanation.trim(),
-            },
-          ])
-          .select('id')
-          .single();
-
-        if (createQuestionError) throw createQuestionError;
-        targetQuestionId = newQuestion.id;
-      }
-
-      const answersToInsert = buildAnswersForType({
-        selectedType,
-        questionId: targetQuestionId,
-        visibleAnswers,
-        openExpectedAnswer,
-        fillLines,
-        orderLines,
-        matchPairs,
-        dragdropPairs,
+      const { error: saveQuestionError } = await supabase.rpc('save_teacher_question', {
+        p_subject_id: Number(normalizedSubjectId),
+        p_question_id: isEdit ? Number(normalizedQuestionId) : null,
+        p_topic_id: validTopicId,
+        p_type: toDatabaseType(selectedType),
+        p_text: questionText.trim(),
+        p_points_base: validPoints,
+        p_time_limit_seconds: validTimeLimit,
+        p_explanation: explanation.trim() || null,
+        p_answers: answersToSave as unknown as Json,
       });
 
-      const { error: upsertAnswersError } = await supabase.from('answers').insert(answersToInsert);
-      if (upsertAnswersError) throw upsertAnswersError;
+      if (saveQuestionError) throw saveQuestionError;
 
       showAlert(isEdit ? 'Pregunta actualizada' : 'Pregunta creada', isEdit ? 'Los cambios se guardaron correctamente.' : 'La pregunta se guardó correctamente.');
       router.back();

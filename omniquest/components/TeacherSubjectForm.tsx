@@ -212,45 +212,25 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
         }
       }
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData.session;
-      if (!session) throw new Error('No hay sesión activa.');
+      const { data: createdSubject, error: createSubjectError } = await supabase.rpc('create_subject_with_default_topic', {
+        p_name: cleanName,
+        p_description: cleanDescription || null,
+        p_icon: icon,
+        p_code: inviteMode === 'auto' ? null : code,
+        p_education_level: educationLevel,
+        p_academic_year: schoolYear,
+        p_subject_label: subjectLabel || null,
+        p_theme_color: null,
+      });
 
-      const { data: subject, error: subjectError } = await supabase
-        .from('subjects')
-        .insert([
-          {
-            name: cleanName,
-            description: cleanDescription || null,
-            icon,
-            code,
-            education_level: educationLevel,
-            academic_year: schoolYear,
-            subject_label: subjectLabel || null,
-            teacher_id: session.user.id,
-          },
-        ])
-        .select('id')
-        .single();
-      if (subjectError) {
-        if (subjectError.code === '23505') {
-          throw new Error('Ese código de invitación ya existe. Elige otro o genera uno nuevo.');
-        }
-        throw subjectError;
-      }
+      if (createSubjectError) throw createSubjectError;
 
-      const { error: topicError } = await supabase.from('subject_topics').insert([
-        {
-          subject_id: subject.id,
-          title: 'Tema 1',
-          description: 'Primer tema de la clase',
-          icon: '📘',
-          sort_order: 1,
-        },
-      ]);
-      if (topicError) throw topicError;
+      const createdCode =
+        createdSubject && typeof createdSubject === 'object' && !Array.isArray(createdSubject)
+          ? String((createdSubject as { code?: string }).code || code)
+          : code;
 
-      showAlert('Asignatura creada', `Código de invitación: ${code}`);
+      showAlert('Asignatura creada', `Código de invitación: ${createdCode}`);
       router.back();
     } catch (error: any) {
       showAlert('Error', error.message || 'No se pudo guardar la asignatura.');

@@ -116,11 +116,13 @@ export function useGame(subjectId: string, topicId?: string) {
     answerText,
     payload,
     skipped = false,
+    timedOut = false,
   }: {
     answerId?: number;
     answerText?: string;
     payload?: Json;
     skipped?: boolean;
+    timedOut?: boolean;
   }) => {
     if (hasAnswered || status !== 'playing') return;
 
@@ -133,7 +135,7 @@ export function useGame(subjectId: string, topicId?: string) {
 
     try {
       const timeLimit = currentQ.time_limit_seconds ?? 30;
-      const timeTaken = Math.max(0, timeLimit - timeLeft);
+      const timeTaken = timedOut ? timeLimit : Math.max(0, timeLimit - timeLeft);
       const { data, error } = await supabase.rpc('submit_answer', {
         p_question_id: currentQ.id,
         p_answer_id: answerId ?? null,
@@ -183,7 +185,7 @@ export function useGame(subjectId: string, topicId?: string) {
   }, [currentIndex, finishGame, hasAnswered, nextQuestion, questions, status, timeLeft]);
 
   const handleTimeOut = useCallback(() => {
-    void completeAnswer({ skipped: true });
+    void completeAnswer({ skipped: true, timedOut: true });
   }, [completeAnswer]);
 
   useEffect(() => {

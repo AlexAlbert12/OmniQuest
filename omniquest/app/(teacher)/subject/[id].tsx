@@ -815,6 +815,7 @@ export default function SubjectDetailScreen() {
           .from('questions')
           .select('*, answers(*)')
           .eq('subject_id', subjectId)
+          .eq('active', true)
           .order('created_at', { ascending: false }),
         supabase
           .from('subject_topics')
@@ -962,126 +963,20 @@ export default function SubjectDetailScreen() {
     if (!subject) return;
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const teacherId = sessionData.session?.user.id;
-      if (!teacherId) {
-        throw new Error('No se encontró una sesión activa.');
-      }
+      const { data: duplicatedSubject, error: duplicateError } = await supabase.rpc('duplicate_teacher_subject', {
+        p_subject_id: subject.id,
+        p_name_suffix: ' (Copia)',
+      });
 
-      const duplicateCode = await generateUniqueClassCode();
+      if (duplicateError) throw duplicateError;
 
-      const { data: duplicatedSubject, error: duplicatedSubjectError } = await supabase
-        .from('subjects')
-        .insert([
-          {
-            name: `${subject.name} (Copia)`,
-            description: subject.description,
-            icon: subject.icon,
-            code: duplicateCode,
-            education_level: subject.education_level ?? null,
-            academic_year: subject.academic_year ?? null,
-            subject_label: subject.subject_label ?? null,
-            teacher_id: teacherId,
-            theme_color: subject.theme_color,
-            is_archived: false,
-          },
-        ])
-        .select('id')
-        .single();
+      const duplicatedSubjectId =
+        duplicatedSubject && typeof duplicatedSubject === 'object' && !Array.isArray(duplicatedSubject)
+          ? Number((duplicatedSubject as { id?: number }).id)
+          : null;
 
-      if (duplicatedSubjectError) {
-        if (duplicatedSubjectError.code === '42703') {
-          throw new Error('Falta la columna is_archived en subjects. Aplica la migración de archivado.');
-        }
-        throw duplicatedSubjectError;
-      }
-
-      const duplicatedSubjectId = duplicatedSubject.id as number;
-
-      const { data: sourceTopics, error: sourceTopicsError } = await supabase
-        .from('subject_topics')
-        .select('id, title, description, icon, sort_order, active')
-        .eq('subject_id', subject.id);
-
-      if (sourceTopicsError) throw sourceTopicsError;
-
-      const topicIdMap = new Map<number, number>();
-      for (const topic of sourceTopics || []) {
-        const { data: newTopic, error: newTopicError } = await supabase
-          .from('subject_topics')
-          .insert([
-            {
-              subject_id: duplicatedSubjectId,
-              title: topic.title,
-              description: topic.description,
-              icon: topic.icon,
-              sort_order: topic.sort_order,
-              active: topic.active,
-            },
-          ])
-          .select('id')
-          .single();
-
-        if (newTopicError) throw newTopicError;
-        topicIdMap.set(Number(topic.id), Number(newTopic.id));
-      }
-
-      const { data: sourceQuestions, error: sourceQuestionsError } = await supabase
-        .from('questions')
-        .select('id, type, text, points_base, time_limit_seconds, topic_id')
-        .eq('subject_id', subject.id)
-        .order('created_at', { ascending: true });
-
-      if (sourceQuestionsError) throw sourceQuestionsError;
-
-      const questionIdMap = new Map<number, number>();
-      for (const question of sourceQuestions || []) {
-        const duplicatedTopicId = question.topic_id ? topicIdMap.get(Number(question.topic_id)) || null : null;
-        const { data: newQuestion, error: newQuestionError } = await supabase
-          .from('questions')
-          .insert([
-            {
-              subject_id: duplicatedSubjectId,
-              topic_id: duplicatedTopicId,
-              type: question.type,
-              text: question.text,
-              points_base: question.points_base,
-              time_limit_seconds: question.time_limit_seconds,
-            },
-          ])
-          .select('id')
-          .single();
-
-        if (newQuestionError) throw newQuestionError;
-        questionIdMap.set(Number(question.id), Number(newQuestion.id));
-      }
-
-      if (questionIdMap.size > 0) {
-        const sourceQuestionIds = Array.from(questionIdMap.keys());
-        const { data: sourceAnswers, error: sourceAnswersError } = await supabase
-          .from('answers')
-          .select('question_id, text, is_correct, sort_order')
-          .in('question_id', sourceQuestionIds);
-
-        if (sourceAnswersError) throw sourceAnswersError;
-
-        const answersToInsert = (sourceAnswers || [])
-          .map((answer) => {
-            const duplicatedQuestionId = questionIdMap.get(Number(answer.question_id));
-            if (!duplicatedQuestionId) return null;
-            return {
-              question_id: duplicatedQuestionId,
-              text: answer.text,
-              is_correct: answer.is_correct,
-              sort_order: answer.sort_order,
-            };
-          })
-          .filter(Boolean);
-
-        if (answersToInsert.length > 0) {
-          const { error: insertAnswersError } = await supabase.from('answers').insert(answersToInsert as any[]);
-          if (insertAnswersError) throw insertAnswersError;
-        }
+      if (!duplicatedSubjectId) {
+        throw new Error('No se pudo obtener la clase duplicada.');
       }
 
       showAlert('Clase duplicada', 'Se creó una copia completa con temas, preguntas y respuestas.');

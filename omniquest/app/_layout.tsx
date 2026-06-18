@@ -1,7 +1,7 @@
 import '../global.css'
 import { Pacifico_400Regular, useFonts } from '@expo-google-fonts/pacifico'
 import { useEffect, useState } from 'react'
-import { Stack, usePathname, useRouter } from 'expo-router'
+import { Stack, usePathname, useRouter, useSegments } from 'expo-router'
 import { supabase } from '../lib/supabase'
 import { View, ActivityIndicator } from 'react-native'
 import { AppThemeProvider, useAppTheme } from '../lib/appTheme'
@@ -14,8 +14,22 @@ const AUTH_ROUTE_ALIASES: Record<string, string> = {
   '/update-password': '/(auth)/update-password',
 }
 
+const TEACHER_HOME = '/(teacher)/homeTeacher'
+const STUDENT_HOME = '/(student)/homeStudent'
+
 function normalizeAuthPath(path: string) {
   return AUTH_ROUTE_ALIASES[path] || path
+}
+
+function getRouteGroup(rootSegment: string | undefined, pathname: string) {
+  if (rootSegment === '(teacher)' || pathname.startsWith('/(teacher)')) return 'teacher'
+  if (rootSegment === '(student)' || pathname.startsWith('/(student)')) return 'student'
+  if (rootSegment === '(auth)' || pathname.startsWith('/(auth)')) return 'auth'
+  return null
+}
+
+function getHomeRouteForRole(roleId: string | null | undefined) {
+  return roleId === 'teacher' ? TEACHER_HOME : STUDENT_HOME
 }
 
 export default function RootLayout() {
@@ -35,11 +49,14 @@ function RootNavigator() {
   })
   const router = useRouter()
   const pathname = usePathname()
+  const segments = useSegments()
+  const rootSegment = segments[0]
   const { theme, ready } = useAppTheme()
 
   useEffect(() => {
     let isMounted = true
     const normalizedPath = normalizeAuthPath(pathname)
+    const routeGroup = getRouteGroup(rootSegment, normalizedPath)
 
     const redirectToLogin = () => {
       if (normalizedPath !== '/(auth)/login') {
@@ -129,11 +146,18 @@ function RootNavigator() {
       }
 
       if (isAuthRoute) {
-        if (profile.role_id === 'teacher') {
-          router.replace('/(teacher)/homeTeacher' as any)
-        } else {
-          router.replace('/(student)/homeStudent' as any)
-        }
+        router.replace(getHomeRouteForRole(profile.role_id) as any)
+        setIsInitialized(true)
+        return
+      }
+
+      const isTeacherRouteBlocked = routeGroup === 'teacher' && profile.role_id !== 'teacher'
+      const isStudentRouteBlocked = routeGroup === 'student' && profile.role_id === 'teacher'
+
+      if (isTeacherRouteBlocked || isStudentRouteBlocked) {
+        router.replace(getHomeRouteForRole(profile.role_id) as any)
+        setIsInitialized(true)
+        return
       }
 
       setIsInitialized(true)
@@ -151,7 +175,7 @@ function RootNavigator() {
       isMounted = false
       authListener.subscription.unsubscribe()
     }
-  }, [pathname, router])
+  }, [pathname, rootSegment, router])
 
   if (!isInitialized || (!fontsLoaded && !fontError) || !ready) {
     return (

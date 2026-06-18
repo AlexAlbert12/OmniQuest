@@ -194,7 +194,6 @@ declare
   v_pair_right text;
   v_pair_count integer := 0;
   v_matching_pair_count integer := 0;
-  v_correct_text_count integer := 0;
   v_attempt public.game_attempts%rowtype;
 begin
   if v_user_id is null then
@@ -267,28 +266,38 @@ begin
       );
 
     elsif v_question.type = 'fill_blank' then
-      select count(*)
-      into v_correct_text_count
-      from public.answers a
-      where a.question_id = p_question_id
-        and coalesce(a.is_correct, true);
-
-      with submitted as (
-        select distinct public.normalize_answer_text(part) as value
+      with expected as (
+        select public.normalize_answer_text(a.text) as value, count(*) as quantity
+        from public.answers a
+        where a.question_id = p_question_id
+          and coalesce(a.is_correct, true)
+          and public.normalize_answer_text(a.text) <> ''
+        group by public.normalize_answer_text(a.text)
+      ),
+      submitted_parts as (
+        select public.normalize_answer_text(part) as value
         from regexp_split_to_table(coalesce(p_answer_text, ''), '[,;\n]') as part
         where public.normalize_answer_text(part) <> ''
+      ),
+      submitted as (
+        select value, count(*) as quantity
+        from submitted_parts
+        group by value
+      ),
+      differences as (
+        select
+          coalesce(expected.value, submitted.value) as value,
+          coalesce(expected.quantity, 0) as expected_quantity,
+          coalesce(submitted.quantity, 0) as submitted_quantity
+        from expected
+        full join submitted using (value)
+        where coalesce(expected.quantity, 0) <> coalesce(submitted.quantity, 0)
       )
-      select count(*), count(a.id)
-      into v_pair_count, v_matching_pair_count
-      from submitted s
-      left join public.answers a
-        on a.question_id = p_question_id
-        and coalesce(a.is_correct, true)
-        and public.normalize_answer_text(a.text) = s.value;
-
-      v_is_correct := v_pair_count > 0
-        and v_pair_count = v_matching_pair_count
-        and v_pair_count = v_correct_text_count;
+      select
+        exists (select 1 from expected)
+        and exists (select 1 from submitted)
+        and not exists (select 1 from differences)
+      into v_is_correct;
 
     elsif v_question.type = 'ordering' then
       select array_agg((item.value)::bigint order by item.ordinality)

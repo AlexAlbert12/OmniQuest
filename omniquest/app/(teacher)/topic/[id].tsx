@@ -120,6 +120,7 @@ export default function TopicDetailScreen() {
           .select('*, answers(*)')
           .eq('topic_id', topicId)
           .eq('subject_id', subjectId)
+          .eq('active', true)
           .order('created_at', { ascending: false }),
         supabase
           .from('topic_scores')

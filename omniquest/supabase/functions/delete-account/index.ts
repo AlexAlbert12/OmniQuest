@@ -5,33 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-type SupabaseLikeClient = ReturnType<typeof createClient>
-
-async function safeDeleteEq(
-  client: SupabaseLikeClient,
-  table: string,
-  column: string,
-  value: string | number
-) {
-  const { error } = await client.from(table).delete().eq(column, value)
-  if (error && error.code !== '42P01') {
-    throw new Error(`[${table}] ${error.message}`)
-  }
-}
-
-async function safeDeleteIn(
-  client: SupabaseLikeClient,
-  table: string,
-  column: string,
-  values: Array<string | number>
-) {
-  if (values.length === 0) return
-  const { error } = await client.from(table).delete().in(column, values)
-  if (error && error.code !== '42P01') {
-    throw new Error(`[${table}] ${error.message}`)
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -83,58 +56,24 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const { data: subjectsData, error: subjectsError } = await adminClient
-      .from('subjects')
-      .select('id')
-      .eq('teacher_id', userId)
+    const { data: deletionData, error: deletionError } = await adminClient.rpc(
+      'delete_user_relational_data',
+      { p_user_id: userId },
+    )
 
-    if (subjectsError && subjectsError.code !== '42P01') {
-      throw new Error(`[subjects] ${subjectsError.message}`)
+    if (deletionError) {
+      throw new Error(`[delete_user_relational_data] ${deletionError.message}`)
     }
 
-    const subjectIds = (subjectsData || []).map((subject) => subject.id as number)
-
-    const { data: profileData } = await adminClient
-      .from('profiles')
-      .select('avatar')
-      .eq('id', userId)
-      .maybeSingle()
-
-    let questionIds: number[] = []
-    if (subjectIds.length > 0) {
-      const { data: questionsData, error: questionsError } = await adminClient
-        .from('questions')
-        .select('id')
-        .in('subject_id', subjectIds)
-
-      if (questionsError && questionsError.code !== '42P01') {
-        throw new Error(`[questions] ${questionsError.message}`)
-      }
-
-      questionIds = (questionsData || []).map((question) => question.id as number)
+    const avatar =
+      deletionData && typeof deletionData === 'object' && !Array.isArray(deletionData)
+        ? (deletionData as { avatar?: string | null }).avatar
+        : null
+    const avatarPaths = getAvatarStoragePaths(userId, avatar)
+    const { error: avatarError } = await adminClient.storage.from('avatars').remove(avatarPaths)
+    if (avatarError) {
+      console.warn('[delete-account] avatar cleanup failed', avatarError.message)
     }
-
-    await safeDeleteIn(adminClient, 'attempt_history', 'question_id', questionIds)
-    await safeDeleteIn(adminClient, 'answers', 'question_id', questionIds)
-    await safeDeleteIn(adminClient, 'topic_scores', 'subject_id', subjectIds)
-    await safeDeleteIn(adminClient, 'subject_scores', 'subject_id', subjectIds)
-    await safeDeleteIn(adminClient, 'enrollments', 'subject_id', subjectIds)
-    await safeDeleteIn(adminClient, 'questions', 'id', questionIds)
-    await safeDeleteIn(adminClient, 'subject_topics', 'subject_id', subjectIds)
-    await safeDeleteIn(adminClient, 'subjects', 'id', subjectIds)
-
-    await safeDeleteEq(adminClient, 'attempt_history', 'student_id', userId)
-    await safeDeleteEq(adminClient, 'topic_scores', 'student_id', userId)
-    await safeDeleteEq(adminClient, 'subject_scores', 'student_id', userId)
-    await safeDeleteEq(adminClient, 'enrollments', 'student_id', userId)
-    await safeDeleteEq(adminClient, 'notification_state', 'user_id', userId)
-    await safeDeleteEq(adminClient, 'user_preferences', 'user_id', userId)
-    await safeDeleteEq(adminClient, 'user_notification_preferences', 'user_id', userId)
-
-    const avatarPaths = getAvatarStoragePaths(userId, profileData?.avatar as string | null | undefined)
-    await adminClient.storage.from('avatars').remove(avatarPaths)
-
-    await safeDeleteEq(adminClient, 'profiles', 'id', userId)
 
     const { error: deleteAuthError } = await adminClient.auth.admin.deleteUser(userId)
     if (deleteAuthError) {

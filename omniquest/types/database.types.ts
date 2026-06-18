@@ -759,11 +759,47 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_subject_with_default_topic: {
+        Args: {
+          p_name: string
+          p_description?: string | null
+          p_icon?: string | null
+          p_code?: string | null
+          p_education_level?: string | null
+          p_academic_year?: string | null
+          p_subject_label?: string | null
+          p_theme_color?: string | null
+        }
+        Returns: Json
+      }
+      delete_user_relational_data: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      duplicate_teacher_subject: {
+        Args: {
+          p_subject_id: number
+          p_name_suffix?: string | null
+        }
+        Returns: Json
+      }
+      generate_unique_subject_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_game_questions: {
         Args: {
           p_subject_id: number
           p_topic_id?: number | null
           p_general_topic?: boolean
+        }
+        Returns: Json
+      }
+      join_subject_by_code: {
+        Args: {
+          p_code: string
         }
         Returns: Json
       }
@@ -791,6 +827,20 @@ export type Database = {
       sync_student_badges: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      save_teacher_question: {
+        Args: {
+          p_subject_id: number
+          p_question_id?: number | null
+          p_topic_id?: number | null
+          p_type?: string
+          p_text?: string
+          p_points_base?: number
+          p_time_limit_seconds?: number
+          p_explanation?: string | null
+          p_answers?: Json
+        }
+        Returns: number
       }
     }
     Enums: {

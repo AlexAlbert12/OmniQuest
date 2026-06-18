@@ -15,6 +15,7 @@ import StudentDashboardCard, { StudentCardLink as CardLink } from '../../compone
 import StudentMetricCard from '../../components/student/StudentMetricCard'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
+import { joinClassByInviteCode } from '../../lib/studentClassJoin'
 
 type Subject = {
   id: number
@@ -120,11 +121,18 @@ export default function StudentHome() {
           .order('points', { ascending: false })
           .limit(5),
         supabase
-          .from('subject_scores')
-          .select('subject_id, max_score, played_at, subjects(name)')
+          .from('attempt_history')
+          .select(`
+            id,
+            is_correct,
+            attempted_at,
+            questions (
+              text,
+              subject_topics ( title )
+            )
+          `)
           .eq('student_id', userId)
-          .not('played_at', 'is', null)
-          .order('played_at', { ascending: false })
+          .order('attempted_at', { ascending: false })
           .limit(3),
         supabase
           .from('attempt_history')
@@ -204,36 +212,10 @@ export default function StudentHome() {
   }
 
   const handleJoinClass = async () => {
-    if (!inviteCode.trim() || inviteCode.length !== 6) {
-      return showAlert('Error', 'El código debe tener 6 caracteres.')
-    }
-
     setJoining(true)
     try {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
-      if (!userId) throw new Error('No hay sesión activa.')
-
-      const { data: subject, error: subjectError } = await supabase
-        .from('subjects')
-        .select('id, name')
-        .eq('code', inviteCode.toUpperCase())
-        .single()
-
-      if (subjectError || !subject) {
-        throw new Error('No se ha encontrado ninguna clase con ese código.')
-      }
-
-      const { error: enrollError } = await supabase
-        .from('enrollments')
-        .insert([{ student_id: userId, subject_id: subject.id }])
-
-      if (enrollError) {
-        if (enrollError.code === '23505') throw new Error('Ya estás matriculado en esta clase.')
-        throw enrollError
-      }
-
-      showAlert('¡Éxito!', `Te has unido a ${subject.name}`)
+      const { subjectName } = await joinClassByInviteCode(inviteCode)
+      showAlert('¡Éxito!', `Te has unido a ${subjectName}`)
       setInviteCode('')
       fetchMySubjectsAndScores()
     } catch (error: any) {

@@ -20,6 +20,7 @@ import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { useAppTheme } from '../../lib/appTheme'
+import { joinClassByInviteCode } from '../../lib/studentClassJoin'
 
 type Profile = {
   id: string
@@ -257,37 +258,10 @@ export default function ClassesScreen() {
   }
 
   const handleJoinClass = async () => {
-    const normalizedCode = inviteCode.trim().toUpperCase()
-    if (!normalizedCode || normalizedCode.length !== 6) {
-      return showAlert('Error', 'El código debe tener 6 caracteres.')
-    }
-
     setJoining(true)
     try {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
-      if (!userId) throw new Error('No hay sesión activa.')
-
-      const { data: subject, error: subjectError } = await supabase
-        .from('subjects')
-        .select('id, name')
-        .eq('code', normalizedCode)
-        .single()
-
-      if (subjectError || !subject) {
-        throw new Error('No se ha encontrado ninguna clase con ese código.')
-      }
-
-      const { error: enrollError } = await supabase
-        .from('enrollments')
-        .insert([{ student_id: userId, subject_id: subject.id }])
-
-      if (enrollError) {
-        if (enrollError.code === '23505') throw new Error('Ya estás matriculado en esta clase.')
-        throw enrollError
-      }
-
-      showAlert('¡Éxito!', `Te has unido a ${subject.name}`)
+      const { subjectName } = await joinClassByInviteCode(inviteCode)
+      showAlert('¡Éxito!', `Te has unido a ${subjectName}`)
       setInviteCode('')
       fetchClasses()
     } catch (error: any) {
