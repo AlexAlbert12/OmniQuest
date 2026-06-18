@@ -14,8 +14,30 @@ import {
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
-import { accuracyToGrade, answersToAccuracyPercent, scoreToGrade } from '../../../lib/grades';
+import { accuracyToGrade, answersToAccuracyPercent } from '../../../lib/grades';
 import { generateUniqueClassCode } from '../../../lib/classCode';
+import {
+  buildStudentListRows,
+  buildStudentReportRows,
+  buildTemporalEvolution,
+  getGradeColor,
+  getInitials,
+  getNextStudentSortKey,
+  getNextStudentStatusFilter,
+  getScorePerformance,
+  getStudentSortLabel,
+  getStudentStatus,
+  getStudentStatusFilterLabel,
+  getStudentStatusMeta,
+  slugifyStudentName,
+  type Enrollment,
+  type EvolutionReport,
+  type StudentProfile,
+  type StudentReport,
+  type StudentSortKey,
+  type StudentStatusFilter,
+  type SubjectScore,
+} from '../../../lib/teacherSubjectAnalytics';
 import TeacherSidebar from '../../../components/TeacherSidebar';
 
 type IconName = keyof typeof Ionicons.glyphMap
@@ -57,23 +79,6 @@ type TopicScore = {
   max_score: number | null
 }
 
-type Enrollment = {
-  student_id: string
-}
-
-type SubjectScore = {
-  student_id: string
-  max_score: number | null
-  correct_answers?: number | null
-  played_days?: string[] | null
-  played_at?: string | null
-}
-
-type StudentProfile = {
-  id: string
-  alias: string | null
-}
-
 type ActivityItem = {
   icon: IconName
   color: string
@@ -84,36 +89,13 @@ type ActivityItem = {
   warning: boolean
 }
 
-type StudentReport = {
-  id: string
-  name: string
-  score: number
-  grade: number
-  accuracyPercent: number
-  correctAnswers: number
-  failedAnswers: number
-  participation: number
-  playedSessions: number
-  lastActivity?: string | null
-  hasActivity: boolean
-}
-
-type StudentStatusFilter = 'all' | 'active' | 'inactive' | 'needs_help'
-type StudentSortKey = 'xp' | 'progress' | 'grade' | 'recent'
-
 type FailedQuestionReport = {
   id: number
   text: string
   topic: string
-  estimatedFailures: number
   actualFailures: number
-  risk: number
-}
-
-type EvolutionReport = {
-  label: string
-  activityCount: number
-  averageScore: number
+  totalAttempts: number
+  failureRate: number
 }
 
 type SubjectTabKey = 'summary' | 'students' | 'activities' | 'questions' | 'reports' | 'resources' | 'settings'
@@ -584,7 +566,7 @@ export default function SubjectDetailScreen() {
             </View>
 
             <View className={isDesktop ? 'w-[380px] gap-5' : 'gap-5'}>
-              <Panel title="Preguntas falladas">
+              <Panel title="Preguntas más falladas">
                 {failedQuestionRows.length > 0 ? (
                   <View className="gap-3">
                     {failedQuestionRows.map((question) => (
@@ -592,7 +574,7 @@ export default function SubjectDetailScreen() {
                     ))}
                   </View>
                 ) : (
-                  <Text className="text-[12px] text-[#8FA7C7]">No hay fallos registrados todavía.</Text>
+                  <Text className="text-[12px] text-[#8FA7C7]">No hay fallos registrados en attempt_history todavía.</Text>
                 )}
               </Panel>
 
@@ -601,12 +583,6 @@ export default function SubjectDetailScreen() {
               </Panel>
             </View>
           </View>
-
-          {/*
-            Los datos guardados por partida viven agregados por alumno. Cuando exista un
-            histórico por pregunta, este bloque podrá mostrar fallos exactos en vez de
-            estimaciones repartidas por riesgo.
-          */}
         </View>
       );
     }
@@ -1836,8 +1812,14 @@ function FailedQuestionRow({ question }: { question: FailedQuestionReport }) {
           <Text className="text-[10px] font-semibold text-[#8FA7C7]">fallos reales</Text>
         </View>
       </View>
+      <View className="mt-3 flex-row items-center justify-between">
+        <Text className="text-[11px] font-semibold text-[#B7C4D7]">
+          {question.totalAttempts} intento{question.totalAttempts === 1 ? '' : 's'} registrados
+        </Text>
+        <Text className="text-[11px] font-black text-[#FB7185]">{question.failureRate}% fallo</Text>
+      </View>
       <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13284A]">
-        <View className="h-full rounded-full bg-[#FB7185]" style={{ width: `${question.risk}%` }} />
+        <View className="h-full rounded-full bg-[#FB7185]" style={{ width: `${question.failureRate}%` }} />
       </View>
     </View>
   );
@@ -1973,156 +1955,6 @@ function getSubjectTabFromParam(value: string | string[] | undefined): SubjectTa
   return tab ? tab.key : 'summary';
 }
 
-function buildStudentListRows(
-  students: StudentReport[],
-  search: string,
-  statusFilter: StudentStatusFilter,
-  sortKey: StudentSortKey
-) {
-  const normalizedSearch = search.trim().toLowerCase();
-
-  return students
-    .filter((student) => {
-      if (normalizedSearch && !student.name.toLowerCase().includes(normalizedSearch)) {
-        return false;
-      }
-
-      return statusFilter === 'all' || getStudentStatus(student) === statusFilter;
-    })
-    .sort((a, b) => {
-      if (sortKey === 'progress') return b.participation - a.participation || b.score - a.score;
-      if (sortKey === 'grade') return b.grade - a.grade || b.score - a.score;
-      if (sortKey === 'recent') return getSortableTime(b.lastActivity) - getSortableTime(a.lastActivity);
-      return b.score - a.score || b.participation - a.participation;
-    });
-}
-
-function getStudentStatus(student: StudentReport): StudentStatusFilter {
-  if (!student.hasActivity || student.participation < 35 || student.grade < 5) return 'needs_help';
-  if (student.participation < 60) return 'inactive';
-  return 'active';
-}
-
-function getStudentStatusMeta(status: StudentStatusFilter) {
-  if (status === 'active') return { label: 'Activo', color: '#34D399' };
-  if (status === 'inactive') return { label: 'Inactivo', color: '#8FA7C7' };
-  if (status === 'needs_help') return { label: 'Necesita apoyo', color: '#F59E0B' };
-  return { label: 'Todos', color: '#A78BFA' };
-}
-
-function getStudentStatusFilterLabel(status: StudentStatusFilter) {
-  if (status === 'active') return 'Activos';
-  if (status === 'inactive') return 'Inactivos';
-  if (status === 'needs_help') return 'Necesitan apoyo';
-  return 'Todos';
-}
-
-function getNextStudentStatusFilter(status: StudentStatusFilter): StudentStatusFilter {
-  const options: StudentStatusFilter[] = ['all', 'active', 'inactive', 'needs_help'];
-  const index = options.indexOf(status);
-  return options[(index + 1) % options.length];
-}
-
-function getStudentSortLabel(sortKey: StudentSortKey) {
-  if (sortKey === 'progress') return 'Progreso';
-  if (sortKey === 'grade') return 'Nota';
-  if (sortKey === 'recent') return 'Actividad';
-  return 'XP';
-}
-
-function getNextStudentSortKey(sortKey: StudentSortKey): StudentSortKey {
-  const options: StudentSortKey[] = ['xp', 'progress', 'grade', 'recent'];
-  const index = options.indexOf(sortKey);
-  return options[(index + 1) % options.length];
-}
-
-function getGradeColor(value: number) {
-  if (value >= 8) return '#34D399';
-  if (value >= 6) return '#F59E0B';
-  return '#F43F5E';
-}
-
-function getInitials(value: string) {
-  const parts = value.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return 'A';
-  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
-}
-
-function slugifyStudentName(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '')
-    .slice(0, 18) || 'alumno';
-}
-
-function getSortableTime(value?: string | null) {
-  if (!value) return 0;
-  const time = new Date(value).getTime();
-  return Number.isNaN(time) ? 0 : time;
-}
-
-function buildStudentReportRows(
-  enrollments: Enrollment[],
-  scores: SubjectScore[],
-  profilesById: Record<string, StudentProfile>,
-  questionsCount: number
-): StudentReport[] {
-  const scoreByStudentId = new Map<string, SubjectScore>();
-  scores.forEach((score) => {
-    if (!scoreByStudentId.has(score.student_id)) {
-      scoreByStudentId.set(score.student_id, score);
-    }
-  });
-  const maxSessions = Math.max(1, ...scores.map((score) => getPlayedSessions(score, questionsCount)));
-
-  return enrollments
-    .map((enrollment, index) => {
-      const score = scoreByStudentId.get(enrollment.student_id);
-      const hasActivity = Boolean(score?.played_at || typeof score?.max_score === 'number');
-      const playedSessions = getPlayedSessions(score, questionsCount);
-      const performance = score ? getScorePerformance(score, questionsCount) : { accuracyPercent: 0, correctAnswers: 0, totalAnswers: 0, grade: 0 };
-      const answeredQuestions = performance.totalAnswers;
-      const correctAnswers = performance.correctAnswers;
-      const failedAnswers = hasActivity && typeof score?.correct_answers === 'number' ? Math.max(0, answeredQuestions - correctAnswers) : 0;
-
-      return {
-        id: enrollment.student_id,
-        name: profilesById[enrollment.student_id]?.alias || `Alumno ${index + 1}`,
-        score: score?.max_score ?? 0,
-        grade: performance.grade,
-        accuracyPercent: performance.accuracyPercent,
-        correctAnswers,
-        failedAnswers,
-        participation: hasActivity ? Math.min(100, Math.round((playedSessions / maxSessions) * 100)) : 0,
-        playedSessions,
-        lastActivity: score?.played_at,
-        hasActivity,
-      };
-    })
-    .sort((a, b) => Number(b.hasActivity) - Number(a.hasActivity) || b.score - a.score || a.name.localeCompare(b.name));
-}
-
-function getScorePerformance(score: SubjectScore, questionsCount: number) {
-  const playedSessions = getPlayedSessions(score, questionsCount);
-  const totalAnswers = typeof score.correct_answers === 'number' && questionsCount > 0
-    ? playedSessions * questionsCount
-    : 0;
-  const correctAnswers = totalAnswers > 0 ? Math.min(Math.max(0, score.correct_answers ?? 0), totalAnswers) : 0;
-  const accuracyPercent = totalAnswers > 0 ? answersToAccuracyPercent(correctAnswers, totalAnswers) : 0;
-  const grade = totalAnswers > 0
-    ? accuracyToGrade(accuracyPercent)
-    : scoreToGrade(score.max_score ?? 0, Math.max(160, questionsCount * 160));
-
-  return {
-    accuracyPercent,
-    correctAnswers,
-    totalAnswers,
-    grade,
-  };
-}
-
 async function buildFailedQuestionRows(
   supabaseClient: typeof supabase,
   questions: Question[],
@@ -2139,11 +1971,13 @@ async function buildFailedQuestionRows(
   // Obtener intentos fallidos reales de la BD
   const studentIds = enrollments.map((e) => e.student_id);
   if (studentIds.length === 0) return [];
+  const questionIds = questions.map((question) => question.id);
 
   const { data: attempts, error } = await supabaseClient
     .from('attempt_history')
     .select('question_id, is_correct')
-    .in('student_id', studentIds);
+    .in('student_id', studentIds)
+    .in('question_id', questionIds);
 
   if (error) {
     console.error('Error fetching attempts:', error);
@@ -2152,7 +1986,9 @@ async function buildFailedQuestionRows(
 
   // Contar intentos fallidos reales por pregunta
   const failureCount = new Map<number, number>();
+  const attemptCount = new Map<number, number>();
   attempts?.forEach((attempt: any) => {
+    attemptCount.set(attempt.question_id, (attemptCount.get(attempt.question_id) || 0) + 1);
     if (!attempt.is_correct) {
       failureCount.set(attempt.question_id, (failureCount.get(attempt.question_id) || 0) + 1);
     }
@@ -2164,94 +2000,19 @@ async function buildFailedQuestionRows(
     .map((question) => {
       const topic = question.topic_id ? topicById.get(question.topic_id) : topicById.get('general');
       const actualFailures = failureCount.get(question.id) || 0;
-      const questionsInTopic = Math.max(1, topic?.questionsCount || questions.length);
-      const expectedTopicScore = questionsInTopic * 160;
-      const topicWeakness = Math.max(0.18, 1 - ((topic?.averageScore || 0) / expectedTopicScore));
-      const weight = (question.points_base || 100) * topicWeakness;
-      const totalWeight = questions.reduce((acc, q) => acc + ((q.points_base || 100) * topicWeakness), 0) || 1;
-      const risk = Math.min(100, Math.max(12, Math.round((weight / totalWeight) * 100 * Math.min(questions.length, 6))));
+      const totalAttempts = attemptCount.get(question.id) || 0;
+      const failureRate = totalAttempts > 0 ? Math.round((actualFailures / totalAttempts) * 100) : 0;
 
       return {
         id: question.id,
         text: question.text,
         topic: topic?.title || 'Tema general',
-        estimatedFailures: actualFailures,
         actualFailures,
-        risk,
+        totalAttempts,
+        failureRate,
       };
     })
     .filter((q) => q.actualFailures > 0)
-    .sort((a, b) => b.actualFailures - a.actualFailures || b.risk - a.risk)
+    .sort((a, b) => b.actualFailures - a.actualFailures || b.failureRate - a.failureRate)
     .slice(0, 5);
-}
-
-function buildTemporalEvolution(scores: SubjectScore[], questionsCount: number): EvolutionReport[] {
-  const today = new Date();
-  const periods = Array.from({ length: 6 }, (_, index) => {
-    const start = startOfDay(addDays(today, -35 + index * 7));
-    const end = endOfDay(addDays(start, 6));
-
-    return { start, end, label: `${formatShortDate(start)} - ${formatShortDate(end)}` };
-  });
-
-  return periods.map((period) => {
-    const activeScores = scores.filter((score) =>
-      getPlayedDateKeys(score).some((dateKey) => {
-        const date = new Date(`${dateKey}T12:00:00`);
-        return date >= period.start && date <= period.end;
-      })
-    );
-    const averageScore = activeScores.length > 0
-      ? Math.round(activeScores.reduce((total, score) => total + (score.max_score ?? 0), 0) / activeScores.length)
-      : 0;
-
-    return {
-      label: period.label,
-      activityCount: activeScores.length,
-      averageScore: questionsCount > 0 ? averageScore : 0,
-    };
-  });
-}
-
-function getPlayedSessions(score: SubjectScore | undefined, questionsCount: number) {
-  if (!score) return 0;
-  const playedDays = Array.isArray(score.played_days) ? score.played_days.filter(Boolean).length : 0;
-  const sessionsFromCorrectAnswers = questionsCount > 0 ? Math.ceil((score.correct_answers ?? 0) / questionsCount) : 0;
-  return Math.max(score.played_at ? 1 : 0, playedDays, sessionsFromCorrectAnswers);
-}
-
-function getPlayedDateKeys(score: SubjectScore) {
-  const playedDays = Array.isArray(score.played_days) ? score.played_days.filter(Boolean) : [];
-  if (playedDays.length > 0) return playedDays;
-  if (!score.played_at) return [];
-  return [toDateKey(new Date(score.played_at))];
-}
-
-function addDays(date: Date, days: number) {
-  const nextDate = new Date(date);
-  nextDate.setDate(nextDate.getDate() + days);
-  return nextDate;
-}
-
-function startOfDay(date: Date) {
-  const nextDate = new Date(date);
-  nextDate.setHours(0, 0, 0, 0);
-  return nextDate;
-}
-
-function endOfDay(date: Date) {
-  const nextDate = new Date(date);
-  nextDate.setHours(23, 59, 59, 999);
-  return nextDate;
-}
-
-function toDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function formatShortDate(date: Date) {
-  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(date);
 }

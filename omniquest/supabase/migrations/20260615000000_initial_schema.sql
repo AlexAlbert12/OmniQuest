@@ -93,7 +93,7 @@ create table if not exists public.subject_scores (
   subject_id bigint not null references public.subjects(id) on delete cascade,
   max_score integer default 0,
   correct_answers integer default 0,
-  played_days text[] default '{}',
+  played_days date[] default '{}'::date[],
   played_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -189,7 +189,7 @@ alter table public.subjects add column if not exists subject_label text;
 alter table public.questions add column if not exists topic_id bigint references public.subject_topics(id) on delete set null;
 alter table public.questions add column if not exists explanation text;
 alter table public.subject_scores add column if not exists correct_answers integer default 0;
-alter table public.subject_scores add column if not exists played_days text[] default '{}';
+alter table public.subject_scores add column if not exists played_days date[] default '{}'::date[];
 alter table public.subject_scores add column if not exists played_at timestamptz;
 
 create index if not exists subjects_teacher_id_idx on public.subjects(teacher_id);

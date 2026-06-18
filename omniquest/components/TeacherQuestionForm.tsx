@@ -42,9 +42,9 @@ type TeacherQuestionFormProps = {
 const questionTypes: QuestionTypeCard[] = [
   { id: 'multiple', title: 'Opción múltiple', detail: 'Una pregunta con varias opciones de respuesta.', icon: 'list', accent: '#8B5CF6', supported: true },
   { id: 'boolean', title: 'Verdadero / Falso', detail: 'Los alumnos eligen entre verdadero o falso.', icon: 'checkmark-done', accent: '#43D991', supported: true },
-  { id: 'dragdrop', title: 'Arrastrar y soltar', detail: 'Arrastra elementos a la posición correcta.', icon: 'move', accent: '#A78BFA', supported: true },
-  { id: 'match', title: 'Unir con flechas', detail: 'Conecta elementos de ambas columnas.', icon: 'git-compare', accent: '#F6A64A', supported: true },
-  { id: 'fill', title: 'Rellenar espacios', detail: 'Completa los espacios en blanco.', icon: 'grid', accent: '#60A5FA', supported: true },
+  { id: 'dragdrop', title: 'Asignar destinos', detail: 'Relaciona elementos con destinos mediante selección clara.', icon: 'move', accent: '#A78BFA', supported: true },
+  { id: 'match', title: 'Unir parejas', detail: 'Conecta cada origen con su pareja correspondiente.', icon: 'git-compare', accent: '#F6A64A', supported: true },
+  { id: 'fill', title: 'Rellenar huecos', detail: 'Completa uno o varios huecos del enunciado.', icon: 'grid', accent: '#60A5FA', supported: true },
   { id: 'order', title: 'Ordenar elementos', detail: 'Ordena los elementos en el orden correcto.', icon: 'reorder-three', accent: '#EC4899', supported: true },
   { id: 'open', title: 'Respuesta abierta', detail: 'El alumno escribe su propia respuesta.', icon: 'chatbox-ellipses', accent: '#38BDF8', supported: true },
 ];
@@ -559,13 +559,29 @@ export default function TeacherQuestionForm({
                     <FieldLabel label="Enunciado" />
                     <TextInput
                       className="min-h-[120px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[16px] text-white"
-                      placeholder="¿Cuál es la capital de Francia?"
+                      placeholder={selectedType === 'fill' ? 'La capital de Francia es ____.' : '¿Cuál es la capital de Francia?'}
                       placeholderTextColor="#7F95B7"
                       multiline
                       textAlignVertical="top"
                       value={questionText}
                       onChangeText={setQuestionText}
                     />
+
+                    {selectedType === 'fill' ? (
+                      <HelperTip
+                        icon="text-outline"
+                        title="Marca los huecos con ____"
+                        detail="El alumno verá un campo por cada solución que añadas. Si además escribes ____ en el enunciado, la frase será mucho más clara."
+                      />
+                    ) : null}
+
+                    {selectedType === 'match' || selectedType === 'dragdrop' ? (
+                      <HelperTip
+                        icon={selectedType === 'match' ? 'git-compare' : 'move'}
+                        title="Crea relaciones claras"
+                        detail="Escribe cada relación como izquierda | derecha. En el juego el alumno tocará un elemento y después su pareja o destino."
+                      />
+                    ) : null}
 
                     <View className={isDesktop ? 'flex-row gap-3' : 'gap-3'}>
                       <View className="flex-1">
@@ -658,7 +674,7 @@ export default function TeacherQuestionForm({
 
                     {selectedType === 'fill' ? (
                       <View>
-                        <FieldLabel label="Respuestas correctas (una por línea)" />
+                        <FieldLabel label="Soluciones de cada hueco (una por línea y en orden)" />
                         <TextInput
                           className="mt-2 min-h-[120px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
                           placeholder={'París\nMadrid\nRoma'}
@@ -688,7 +704,7 @@ export default function TeacherQuestionForm({
 
                     {selectedType === 'match' ? (
                       <View>
-                        <FieldLabel label="Pares para unir (izquierda | derecha)" />
+                        <FieldLabel label="Relaciones para unir (origen | pareja)" />
                         <TextInput
                           className="mt-2 min-h-[120px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
                           placeholder={'Francia | París\nItalia | Roma'}
@@ -703,10 +719,10 @@ export default function TeacherQuestionForm({
 
                     {selectedType === 'dragdrop' ? (
                       <View>
-                        <FieldLabel label="Pares para arrastrar (elemento | destino)" />
+                        <FieldLabel label="Relaciones para asignar (elemento | destino)" />
                         <TextInput
                           className="mt-2 min-h-[120px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
-                          placeholder={'Planeta rojo | Marte\nSatélite natural de la Tierra | Luna'}
+                          placeholder={'8 - 3 | 5\n2 + 2 | 4\n3 x 2 | 6'}
                           placeholderTextColor="#7F95B7"
                           multiline
                           textAlignVertical="top"
@@ -915,6 +931,28 @@ function RowHeader({ title }: { title: string }) {
 
 function FieldLabel({ label }: { label: string }) {
   return <Text className="text-[13px] font-semibold text-[#AFC2DB]">{label}</Text>;
+}
+
+function HelperTip({
+  icon,
+  title,
+  detail,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <View className="flex-row items-start gap-3 rounded-xl border border-[#2A456A] bg-[#081A37] p-3">
+      <View className="h-9 w-9 items-center justify-center rounded-full bg-[#18275A]">
+        <Ionicons name={icon} size={18} color="#A78BFA" />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[13px] font-black text-white">{title}</Text>
+        <Text className="mt-1 text-[12px] leading-5 text-[#AFC2DB]">{detail}</Text>
+      </View>
+    </View>
+  );
 }
 
 function MetricPill({
@@ -1126,8 +1164,6 @@ function buildAnswersForType({
   matchPairs: { left: string; right: string }[];
   dragdropPairs: { left: string; right: string }[];
 }) {
-  if (!questionId) return [];
-
   if (selectedType === 'multiple' || selectedType === 'boolean') {
     return visibleAnswers.map((answer, index) => ({
       question_id: questionId,

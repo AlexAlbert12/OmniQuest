@@ -25,7 +25,6 @@ import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import StudentDashboardCard, { StudentCardLink } from '../../components/student/StudentDashboardCard'
 import { formatShortDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
-import { withAlpha } from '../../lib/color'
 
 type Profile = {
   id: string
@@ -70,8 +69,6 @@ export default function ProgressScreen() {
   const [subjectProgress, setSubjectProgress] = useState<SubjectProgress[]>([])
   const [recentScores, setRecentScores] = useState<RecentScore[]>([])
   const [scores, setScores] = useState<ScoreRow[]>([])
-  const [weeklyCompleted, setWeeklyCompleted] = useState(0)
-  const [weeklyRemainingText, setWeeklyRemainingText] = useState(() => getTimeUntilSundayLabel())
   const [loading, setLoading] = useState(true)
   const { accentColor } = useAppTheme()
 
@@ -136,20 +133,11 @@ export default function ProgressScreen() {
       setSubjectProgress(buildSubjectRows(progressResult.subjects, scores))
       setRecentScores(buildRecentScores(scores))
       setScores(scores)
-      setWeeklyCompleted(weeklyAttemptsResult.count || 0)
     } catch (error) {
       console.error('Error fetching progress:', error)
     } finally {
       setLoading(false)
     }
-  }, [])
-
-  useEffect(() => {
-    const updateRemainingTime = () => setWeeklyRemainingText(getTimeUntilSundayLabel())
-    updateRemainingTime()
-
-    const timer = setInterval(updateRemainingTime, 60000)
-    return () => clearInterval(timer)
   }, [])
 
   useFocusEffect(
@@ -260,8 +248,6 @@ export default function ProgressScreen() {
                   ))}
                 </View>
               </StudentDashboardCard>
-
-              <WeeklyGoal completed={weeklyCompleted} remainingText={weeklyRemainingText} />
             </View>
           </View>
         </ScrollView>
@@ -499,38 +485,6 @@ function AchievementRow({ achievement, onPress }: { achievement: StudentBadge; o
         <Text className="mt-1 text-[13px] font-bold" style={{ color: accentColor }}>{achievement.xp}</Text>
       </View>
     </Pressable>
-  )
-}
-
-function WeeklyGoal({ completed, remainingText }: { completed: number; remainingText: string }) {
-  const percent = Math.min(100, (completed / 10) * 100)
-  const { accentColor } = useAppTheme()
-
-  return (
-    <View className="overflow-hidden rounded-2xl border border-[#3E2A8E] bg-[#221052] p-5">
-      <View className="absolute bottom-[-24px] right-[-10px] h-28 w-36 rounded-full" style={{ backgroundColor: withAlpha(accentColor, '40') }} />
-      <Text className="text-[15px] font-black text-white">Meta semanal</Text>
-      <View className="mt-3 flex-row items-center justify-between">
-        <Text className="font-bold text-white">Completa 10 preguntas esta semana</Text>
-        <View className="flex-row items-center gap-2">
-          <Ionicons name="time-outline" size={14} color="#C4B5FD" />
-          <Text className="text-[13px] text-[#C4B5FD]">{remainingText}</Text>
-        </View>
-      </View>
-      <View className="mt-5 flex-row items-center gap-4">
-        <View className="h-2 flex-1 overflow-hidden rounded-full bg-[#3B2A78]">
-          <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: accentColor }} />
-        </View>
-        <Text className="text-[13px] font-bold text-[#C4B5FD]">{completed} / 10</Text>
-      </View>
-      <View className="mt-4 flex-row items-center justify-between">
-        <Text className="text-[13px] text-[#C4B5FD]">Recompensa</Text>
-        <View className="flex-row items-center gap-3">
-          <Text className="text-[20px] font-black text-[#C4B5FD]">250 XP</Text>
-          <Text className="text-4xl">🎁</Text>
-        </View>
-      </View>
-    </View>
   )
 }
 

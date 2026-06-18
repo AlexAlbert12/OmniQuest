@@ -1,79 +1,48 @@
-create or replace function public.normalize_answer_text(value text)
-returns text
-language sql
-immutable
-as $$
-  select lower(trim(regexp_replace(coalesce(value, ''), '\s+', ' ', 'g')))
-$$;
+alter table public.subject_scores
+  add column if not exists correct_answers integer not null default 0,
+  add column if not exists played_at timestamptz,
+  add column if not exists created_at timestamptz not null default now(),
+  add column if not exists updated_at timestamptz not null default now(),
+  add column if not exists played_days date[] default '{}'::date[];
 
-create table if not exists public.game_attempts (
-  id uuid primary key default gen_random_uuid(),
-  student_id uuid not null references public.profiles(id) on delete cascade,
-  subject_id bigint not null references public.subjects(id) on delete cascade,
-  topic_id bigint references public.subject_topics(id) on delete set null,
-  status text not null default 'playing' check (status in ('playing', 'finished', 'abandoned')),
-  total_score integer not null default 0,
-  correct_answers integer not null default 0,
-  started_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  finished_at timestamptz
-);
-
-create index if not exists game_attempts_student_id_idx on public.game_attempts(student_id);
-create index if not exists game_attempts_subject_id_idx on public.game_attempts(subject_id);
-
-alter table public.game_attempts enable row level security;
-
-drop policy if exists "Students can read own game attempts" on public.game_attempts;
-create policy "Students can read own game attempts"
-on public.game_attempts
-for select
-to authenticated
-using (student_id = auth.uid());
-
-create or replace function public.start_game_attempt(
-  p_subject_id bigint,
-  p_topic_id bigint default null,
-  p_general_topic boolean default false
-)
-returns uuid
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_user_id uuid := auth.uid();
-  v_attempt_id uuid;
+do $$
 begin
-  if v_user_id is null then
-    raise exception 'No authenticated user';
-  end if;
-
-  if not exists (
+  if exists (
     select 1
-    from public.enrollments
-    where student_id = v_user_id
-      and subject_id = p_subject_id
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'subject_scores'
+      and column_name = 'played_days'
+      and udt_name <> '_date'
   ) then
-    raise exception 'Student is not enrolled in this subject';
+    execute $sql$
+      alter table public.subject_scores
+      alter column played_days type date[]
+      using (
+        case
+          when played_days is null then '{}'::date[]
+          else array(
+            select item::date
+            from unnest(played_days::text[]) as item
+            where item ~ '^\d{4}-\d{2}-\d{2}$'
+          )
+        end
+      )
+    $sql$;
   end if;
+end $$;
 
-  if p_topic_id is not null and not exists (
-    select 1
-    from public.subject_topics
-    where id = p_topic_id
-      and subject_id = p_subject_id
-  ) then
-    raise exception 'Topic does not belong to this subject';
-  end if;
+alter table public.subject_scores
+  alter column played_days set default '{}'::date[];
 
-  insert into public.game_attempts (student_id, subject_id, topic_id)
-  values (v_user_id, p_subject_id, case when p_general_topic then null else p_topic_id end)
-  returning id into v_attempt_id;
+alter table public.topic_scores
+  add column if not exists played_at timestamptz,
+  add column if not exists created_at timestamptz not null default now(),
+  add column if not exists updated_at timestamptz not null default now();
 
-  return v_attempt_id;
-end;
-$$;
+alter table public.game_attempts
+  add column if not exists updated_at timestamptz not null default now(),
+  add column if not exists finished_at timestamptz;
 
 create or replace function public.get_game_questions(
   p_subject_id bigint,
@@ -487,126 +456,5 @@ begin
 end;
 $$;
 
-grant execute on function public.start_game_attempt(bigint, bigint, boolean) to authenticated;
 grant execute on function public.get_game_questions(bigint, bigint, boolean) to authenticated;
 grant execute on function public.submit_answer(bigint, bigint, text, jsonb, integer, boolean, boolean, uuid) to authenticated;
-
-create or replace function public.sync_student_badges()
-returns jsonb
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_user_id uuid := auth.uid();
-  v_correct_answers integer := 0;
-  v_completed_classes integer := 0;
-  v_total_points integer := 0;
-  v_subjects_count integer := 0;
-  v_best_score integer := 0;
-  v_streak_days integer := 0;
-  v_cursor date;
-  v_played_days date[] := '{}';
-  v_awarded_xp integer := 0;
-begin
-  if v_user_id is null then
-    raise exception 'No authenticated user';
-  end if;
-
-  select
-    coalesce(sum(correct_answers), 0),
-    coalesce(count(*) filter (where coalesce(max_score, 0) > 0), 0),
-    coalesce(max(max_score), 0)
-  into v_correct_answers, v_completed_classes, v_best_score
-  from public.subject_scores
-  where student_id = v_user_id;
-
-  select coalesce(points, 0)
-  into v_total_points
-  from public.profiles
-  where id = v_user_id;
-
-  select count(*)
-  into v_subjects_count
-  from public.enrollments
-  where student_id = v_user_id;
-
-  select coalesce(array_agg(distinct played_day order by played_day), '{}')
-  into v_played_days
-  from (
-    select unnest(coalesce(played_days, '{}'::date[]))::date as played_day
-    from public.subject_scores
-    where student_id = v_user_id
-    union
-    select played_at::date as played_day
-    from public.subject_scores
-    where student_id = v_user_id
-      and played_at is not null
-  ) days;
-
-  v_cursor := current_date;
-  if not v_cursor = any(v_played_days) and (v_cursor - 1) = any(v_played_days) then
-    v_cursor := v_cursor - 1;
-  end if;
-
-  while v_cursor = any(v_played_days) loop
-    v_streak_days := v_streak_days + 1;
-    v_cursor := v_cursor - 1;
-  end loop;
-
-  with eligible_badges (badge_id, reward_xp) as (
-    values
-      ('first-step', 50),
-      ('challenge-master', 200),
-      ('constant', 100),
-      ('class-explorer', 150),
-      ('collector', 120),
-      ('xp-legend', 250),
-      ('high-score', 180)
-  ),
-  unlocked as (
-    select badge_id, reward_xp
-    from eligible_badges
-    where
-      (badge_id = 'first-step' and v_correct_answers >= 1)
-      or (badge_id = 'challenge-master' and v_correct_answers >= 50)
-      or (badge_id = 'constant' and v_streak_days >= 7)
-      or (badge_id = 'class-explorer' and v_completed_classes >= 3)
-      or (badge_id = 'collector' and v_subjects_count >= 5)
-      or (badge_id = 'xp-legend' and v_total_points >= 2000)
-      or (badge_id = 'high-score' and v_best_score >= 1000)
-  ),
-  inserted as (
-    insert into public.student_badges (student_id, badge_id, reward_xp, awarded_at)
-    select v_user_id, badge_id, reward_xp, now()
-    from unlocked
-    on conflict (student_id, badge_id) do nothing
-    returning reward_xp
-  )
-  select coalesce(sum(reward_xp), 0)
-  into v_awarded_xp
-  from inserted;
-
-  if v_awarded_xp > 0 then
-    update public.profiles
-    set points = coalesce(points, 0) + v_awarded_xp
-    where id = v_user_id;
-  end if;
-
-  return jsonb_build_object(
-    'awarded_xp', v_awarded_xp,
-    'awards',
-      coalesce((
-        select jsonb_agg(jsonb_build_object(
-          'badge_id', badge_id,
-          'awarded_at', awarded_at,
-          'reward_xp', reward_xp
-        ))
-        from public.student_badges
-        where student_id = v_user_id
-      ), '[]'::jsonb)
-  );
-end;
-$$;
-
-grant execute on function public.sync_student_badges() to authenticated;

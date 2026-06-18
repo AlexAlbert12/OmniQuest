@@ -383,8 +383,6 @@ export default function StudentHome() {
               <CardLink label="Ver ranking completo" onPress={() => router.push('/(student)/ranking' as any)} />
             </StudentDashboardCard>
           </View>
-
-          <WeeklyGoal completed={weeklyGoalCount} />
         </ScrollView>
       </View>
 
@@ -563,30 +561,6 @@ function RankingRow({ item, index, isMe }: { item: Profile; index: number; isMe:
         {item.alias}
       </Text>
       <Text className="text-[13px] text-[#AFC2DB]">{(item.points ?? 0).toLocaleString()} XP</Text>
-    </View>
-  )
-}
-
-function WeeklyGoal({ completed }: { completed: number }) {
-  const percent = Math.min(100, (completed / 10) * 100)
-  const { accentColor } = useAppTheme()
-
-  return (
-    <View className="mt-5 flex-row items-center rounded-2xl border border-[#1A3155] bg-[#101A47] p-5">
-      <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#F6A64A]/20">
-        <Ionicons name="star" size={26} color="#F6A64A" />
-      </View>
-      <View className="ml-4 min-w-0 flex-1">
-        <Text className="font-black text-white">Meta semanal</Text>
-        <Text className="mt-1 text-[13px] text-[#AFC2DB]">Completa 10 preguntas esta semana</Text>
-      </View>
-      <View className="mx-5 hidden h-2 flex-[1.6] overflow-hidden rounded-full bg-[#182D50] md:flex">
-        <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: accentColor }} />
-      </View>
-      <Text className="font-bold text-[#C9D6EA]">{completed} / 10</Text>
-      <View className="ml-5 h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(accentColor, '20') }}>
-        <Text className="text-3xl">🎁</Text>
-      </View>
     </View>
   )
 }

@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -110,6 +109,7 @@ export default function ProfileScreen() {
   const accuracyPercent = progressSummary?.accuracyPercent ?? 0
   const statBars = buildStatBars(progressSubjects)
   const badges = buildStudentBadges(badgeMetrics)
+  const achievedBadges = badges.filter((badge) => badge.unlocked).slice(0, 3)
   const activityItems = buildActivityItems(activityAttempts)
   const memberSince = formatLongDate(profile?.created_at, '15 de marzo de 2008')
 
@@ -235,19 +235,6 @@ export default function ProfileScreen() {
     } finally {
       setUploading(false)
     }
-  }
-
-  const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`)
-      return
-    }
-
-    Alert.alert(title, message)
-  }
-
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)
   }
 
   const handleSignOut = async () => {
@@ -390,19 +377,28 @@ export default function ProfileScreen() {
               className={isDesktop ? 'flex-[1.36]' : ''}
             >
               <View style={{ gap: 12 }}>
-                {badges.map((badge) => (
-                  <BadgeRow
-                    key={badge.title}
-                    badge={badge}
-                    onPress={() => router.push('/(student)/badges' as any)}
-                  />
-                ))}
+                {achievedBadges.length > 0 ? (
+                  achievedBadges.map((badge) => (
+                    <BadgeRow
+                      key={badge.title}
+                      badge={badge}
+                      onPress={() => router.push('/(student)/badges' as any)}
+                    />
+                  ))
+                ) : (
+                  <EmptyState icon="ribbon-outline" message="Todavía no has conseguido logros." />
+                )}
               </View>
             </StudentDashboardCard>
           </View>
 
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
-            <StudentDashboardCard title="Historial de actividad" className={isDesktop ? 'flex-[1.55]' : ''}>
+            <StudentDashboardCard
+              title="Historial de actividad"
+              actionLabel="Ver historial"
+              onAction={() => router.push('/(student)/activity-log' as any)}
+              className={isDesktop ? 'flex-[1.55]' : ''}
+            >
               <View style={{ gap: 14 }}>
                 {activityItems.length > 0 ? (
                   activityItems.map((item) => (
@@ -412,6 +408,7 @@ export default function ProfileScreen() {
                   <EmptyState icon="sparkles-outline" message="Completa una partida para llenar tu historial." />
                 )}
               </View>
+              <StudentCardLink label="Ver toda la actividad" onPress={() => router.push('/(student)/activity-log' as any)} />
             </StudentDashboardCard>
           </View>
         </ScrollView>

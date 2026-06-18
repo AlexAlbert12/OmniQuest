@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -8,7 +8,7 @@ import {
   Text,
   TextInput,
   useWindowDimensions,
-  View, Animated, PanResponder
+  View,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -28,6 +28,11 @@ type StructuredAnswerPayload = {
   payload?: Json
 }
 
+type PairOptionToken = {
+  key: string
+  text: string
+}
+
 type Question = {
   id: number
   text: string
@@ -37,6 +42,7 @@ type Question = {
   subject?: string | null
   answers: Answer[]
   pair_options?: string[]
+  blank_count?: number | null
 }
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -329,12 +335,23 @@ function QuestionInteraction({
     )
   }
 
-  if (questionType === 'open_answer' || questionType === 'fill_blank') {
+  if (questionType === 'open_answer') {
     return (
       <TextAnswerQuestion
         key={question.id}
         question={question}
-        questionType={questionType}
+        hasAnswered={hasAnswered}
+        answerStatus={answerStatus}
+        onSubmit={onStructuredAnswer}
+      />
+    )
+  }
+
+  if (questionType === 'fill_blank') {
+    return (
+      <FillBlankQuestion
+        key={question.id}
+        question={question}
         hasAnswered={hasAnswered}
         answerStatus={answerStatus}
         onSubmit={onStructuredAnswer}
@@ -354,16 +371,8 @@ function QuestionInteraction({
     )
   }
 
-  if (questionType === 'drag_drop') {
-    return (
-      <DragDropQuestion
-        key={question.id}
-        question={question}
-        hasAnswered={hasAnswered}
-        answerStatus={answerStatus}
-        onSubmit={onStructuredAnswer}
-      />
-    )
+  if (questionType !== 'match_pairs' && questionType !== 'drag_drop') {
+    return null
   }
 
   return (
@@ -380,19 +389,16 @@ function QuestionInteraction({
 
 function TextAnswerQuestion({
   question,
-  questionType,
   hasAnswered,
   answerStatus,
   onSubmit,
 }: {
   question: Question
-  questionType: 'open_answer' | 'fill_blank'
   hasAnswered: boolean
   answerStatus: 'correct' | 'incorrect' | null
   onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
   const [value, setValue] = useState('')
-  const isFill = questionType === 'fill_blank'
 
   useEffect(() => {
     setValue('')
@@ -403,18 +409,16 @@ function TextAnswerQuestion({
     onSubmit({ answerText: value.trim() })
   }
 
-  const feedbackColor = answerStatus === 'correct' ? '#34D399' : '#FB7185'
-
   return (
     <View className="gap-4 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
       <View className="flex-row items-center gap-3">
         <View className="h-11 w-11 items-center justify-center rounded-full bg-[#18275A]">
-          <Ionicons name={isFill ? 'text-outline' : 'chatbox-ellipses-outline'} size={21} color="#A78BFA" />
+          <Ionicons name="chatbox-ellipses-outline" size={21} color="#A78BFA" />
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="font-black text-white">{isFill ? 'Completa la respuesta' : 'Escribe tu respuesta'}</Text>
+          <Text className="font-black text-white">Escribe tu respuesta</Text>
           <Text className="mt-1 text-[12px] text-[#AFC2DB]">
-            {isFill ? 'Separa varias respuestas con comas si hace falta.' : 'No importan mayúsculas.'}
+            No importan mayúsculas ni espacios extra.
           </Text>
         </View>
       </View>
@@ -423,29 +427,134 @@ function TextAnswerQuestion({
         value={value}
         onChangeText={setValue}
         editable={!hasAnswered}
-        multiline={isFill}
+        multiline
         textAlignVertical="top"
-        placeholder={isFill ? 'Respuesta 1, respuesta 2...' : 'Tu respuesta'}
+        placeholder="Tu respuesta"
         placeholderTextColor="#7388A7"
         className={`min-h-[74px] rounded-2xl border px-5 py-4 text-[18px] font-semibold text-white ${
           hasAnswered ? 'border-[#28456B] bg-[#071426]' : 'border-[#314E78] bg-[#081A37]'
         }`}
       />
 
-      {hasAnswered && answerStatus ? (
-        <View className="rounded-2xl border px-4 py-3" style={{ borderColor: feedbackColor, backgroundColor: `${feedbackColor}1F` }}>
-          <Text className="font-black" style={{ color: feedbackColor }}>
-            {answerStatus === 'correct' ? 'Respuesta correcta' : 'Respuesta incorrecta'}
-          </Text>
-          {answerStatus === 'incorrect' ? (
-            <Text className="mt-1 text-[13px] text-[#DDE7F4]">
-              Revisa el contenido y vuelve a intentarlo en la siguiente partida.
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
+      <AnswerFeedback
+        status={answerStatus}
+        correctTitle="Respuesta correcta"
+        incorrectTitle="Respuesta incorrecta"
+        incorrectDetail="Revisa el contenido y vuelve a intentarlo en la siguiente partida."
+      />
 
       <SubmitAnswerButton disabled={hasAnswered || !value.trim()} onPress={handleSubmit} />
+    </View>
+  )
+}
+
+function FillBlankQuestion({
+  question,
+  hasAnswered,
+  answerStatus,
+  onSubmit,
+}: {
+  question: Question
+  hasAnswered: boolean
+  answerStatus: 'correct' | 'incorrect' | null
+  onSubmit: (payload: StructuredAnswerPayload) => void
+}) {
+  const blankCount = getBlankCount(question)
+  const [values, setValues] = useState<string[]>(() => Array.from({ length: blankCount }, () => ''))
+  const promptParts = splitFillPrompt(question.text)
+  const markerCount = countBlankMarkers(question.text)
+
+  useEffect(() => {
+    setValues(Array.from({ length: getBlankCount(question) }, () => ''))
+  }, [question.id, question.blank_count, question.text])
+
+  const updateValue = (index: number, value: string) => {
+    setValues((current) => current.map((item, itemIndex) => (itemIndex === index ? value : item)))
+  }
+
+  const completedCount = values.filter((value) => value.trim()).length
+  const isReady = completedCount === blankCount
+
+  const handleSubmit = () => {
+    if (hasAnswered || !isReady) return
+    onSubmit({ answerText: values.map((value) => value.trim()).join(', ') })
+  }
+
+  return (
+    <View className="gap-4 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
+      <View className="flex-row items-start gap-3 rounded-2xl border border-[#28456B] bg-[#081A37] p-4">
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-[#18275A]">
+          <Ionicons name="text-outline" size={21} color="#60A5FA" />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="font-black text-white">Completa los huecos en orden</Text>
+          <Text className="mt-1 text-[12px] leading-5 text-[#AFC2DB]">
+            Escribe una respuesta por hueco. El servidor corregirá mayúsculas y espacios extra automáticamente.
+          </Text>
+        </View>
+        <View className="rounded-full border border-[#2A456A] bg-[#0D1D3B] px-3 py-1">
+          <Text className="text-[12px] font-black text-[#A78BFA]">{completedCount}/{blankCount}</Text>
+        </View>
+      </View>
+
+      {markerCount > 0 ? (
+        <View className="flex-row flex-wrap items-center gap-2 rounded-2xl border border-[#243E65] bg-[#061426] p-4">
+          {promptParts.map((part, index) => (
+            <React.Fragment key={`${part}-${index}`}>
+              {part ? <Text className="text-[16px] font-semibold text-[#DDE7F4]">{part}</Text> : null}
+              {index < promptParts.length - 1 ? (
+                <View className="rounded-xl border border-[#3A4F83] bg-[#111E45] px-4 py-2">
+                  <Text className="text-[13px] font-black text-[#A78BFA]">Hueco {index + 1}</Text>
+                </View>
+              ) : null}
+            </React.Fragment>
+          ))}
+        </View>
+      ) : (
+        <View className="rounded-2xl border border-[#3A315A] bg-[#141A3E] p-4">
+          <Text className="text-[13px] font-bold text-[#D8CCFF]">
+            Consejo para el profesor: en este tipo queda más claro escribir el enunciado con ____ donde vaya cada hueco.
+          </Text>
+        </View>
+      )}
+
+      <View className="gap-3">
+        {values.map((value, index) => {
+          const filled = value.trim().length > 0
+          const borderColor = !hasAnswered
+            ? filled
+              ? '#60A5FA'
+              : '#314E78'
+            : answerStatus === 'correct'
+              ? '#34D399'
+              : '#FB7185'
+
+          return (
+            <View key={index} className="rounded-2xl border bg-[#081A37] p-4" style={{ borderColor }}>
+              <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-[#8FA7C7]">
+                Hueco {index + 1}
+              </Text>
+              <TextInput
+                value={value}
+                onChangeText={(nextValue) => updateValue(index, nextValue)}
+                editable={!hasAnswered}
+                placeholder={`Respuesta del hueco ${index + 1}`}
+                placeholderTextColor="#7388A7"
+                className="mt-2 min-h-[46px] text-[18px] font-black text-white"
+              />
+            </View>
+          )
+        })}
+      </View>
+
+      <AnswerFeedback
+        status={answerStatus}
+        correctTitle="Huecos correctos"
+        incorrectTitle="Algún hueco no coincide"
+        incorrectDetail="Comprueba que has escrito todos los huecos y que están en el mismo orden que en el enunciado."
+      />
+
+      <SubmitAnswerButton disabled={hasAnswered || !isReady} onPress={handleSubmit} />
     </View>
   )
 }
@@ -512,80 +621,6 @@ function OrderingQuestion({
   )
 }
 
-function DragDropQuestion({
-  question,
-  hasAnswered,
-  answerStatus,
-  onSubmit,
-}: {
-  question: Question
-  hasAnswered: boolean
-  answerStatus: 'correct' | 'incorrect' | null
-  onSubmit: (payload: StructuredAnswerPayload) => void
-}) {
-  const leftAnswers = question.answers
-
-  const [orderedRight, setOrderedRight] = useState<string[]>([])
-
-  useEffect(() => {
-    setOrderedRight(question.pair_options ?? [])
-  }, [question.id, question.pair_options])
-
-  const handleMove = (fromIndex: number, toIndex: number) => {
-    if (hasAnswered) return
-    const newOrder = [...orderedRight]
-    const safeTo = Math.max(0, Math.min(newOrder.length - 1, toIndex))
-    
-    const [moved] = newOrder.splice(fromIndex, 1)
-    newOrder.splice(safeTo, 0, moved)
-    setOrderedRight(newOrder)
-  }
-
-  const handleSubmit = () => {
-    onSubmit({
-      payload: {
-        pairs: leftAnswers.map((answer, index) => ({
-          left: answer.text,
-          right: orderedRight[index] || '',
-        })),
-      },
-    })
-  }
-
-  return (
-    <View className="gap-4 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
-      <Text className="text-[13px] font-bold text-[#AFC2DB]">
-        Arrastra los elementos de la derecha para emparejarlos con su origen correspondiente.
-      </Text>
-
-      <View className="flex-row gap-4 mt-2">
-        <View className="flex-1 pt-1 gap-3">
-          {leftAnswers.map((answer) => (
-            <View key={answer.id} className="h-[70px] justify-center rounded-xl border border-[#28456B] bg-[#0D1D3B] px-4">
-              <Text className="text-[11px] font-bold uppercase text-[#8FA7C7]">Origen</Text>
-              <Text className="mt-1 text-[15px] font-black text-white" numberOfLines={1}>{answer.text}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View className="flex-1 pt-1 relative">
-          {orderedRight.map((item, index) => (
-            <DraggableItem 
-              key={`${item}-${index}`} 
-              item={item} 
-              index={index} 
-              onMove={handleMove} 
-              disabled={hasAnswered} 
-            />
-          ))}
-        </View>
-      </View>
-
-      <SubmitAnswerButton disabled={hasAnswered || orderedRight.length === 0} onPress={handleSubmit} />
-    </View>
-  )
-}
-
 function PairingQuestion({
   question,
   questionType,
@@ -599,29 +634,61 @@ function PairingQuestion({
   answerStatus: 'correct' | 'incorrect' | null
   onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
+  const { width } = useWindowDimensions()
+  const isTwoColumns = width >= 820
+  const labels = getPairingLabels(questionType)
   const leftAnswers = question.answers
-  const options = question.pair_options || []
-  const [selections, setSelections] = useState<Record<number, string>>({})
-  const isDragDrop = questionType === 'drag_drop'
+  const options = normalizePairOptions(question.pair_options || [])
+  const [selections, setSelections] = useState<Record<number, PairOptionToken>>({})
+  const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
     setSelections({})
+    setActiveIndex(0)
   }, [question.id])
 
-  const cycleSelection = (index: number) => {
-    if (hasAnswered || options.length === 0) return
-    const currentValue = selections[index]
-    const currentIndex = currentValue ? options.indexOf(currentValue) : -1
-    const nextValue = options[(currentIndex + 1) % options.length]
-    setSelections((current) => ({ ...current, [index]: nextValue }))
+  const completedCount = leftAnswers.filter((_, index) => Boolean(selections[index])).length
+  const isReady = leftAnswers.length > 0 && completedCount === leftAnswers.length
+
+  const assignOption = (option: PairOptionToken) => {
+    if (hasAnswered || leftAnswers.length === 0) return
+
+    const targetIndex = Math.max(0, Math.min(activeIndex, leftAnswers.length - 1))
+    setSelections((current) => {
+      const nextSelections: Record<number, PairOptionToken> = {}
+
+      Object.entries(current).forEach(([key, value]) => {
+        const numericKey = Number(key)
+        const currentValue = value as PairOptionToken
+        if (numericKey !== targetIndex && currentValue.key !== option.key) {
+          nextSelections[numericKey] = currentValue
+        }
+      })
+
+      nextSelections[targetIndex] = option
+      const nextActive = getFirstIncompleteIndex(leftAnswers.length, nextSelections, targetIndex)
+      setActiveIndex(nextActive)
+      return nextSelections
+    })
+  }
+
+  const clearSelection = (index: number) => {
+    if (hasAnswered) return
+    setSelections((current) => {
+      const nextSelections = { ...current }
+      delete nextSelections[index]
+      return nextSelections
+    })
+    setActiveIndex(index)
   }
 
   const handleSubmit = () => {
+    if (!isReady) return
     onSubmit({
       payload: {
         pairs: leftAnswers.map((answer, index) => ({
           left: answer.text,
-          right: selections[index] || '',
+          right: selections[index]?.text || '',
         })),
       },
     })
@@ -629,46 +696,154 @@ function PairingQuestion({
 
   return (
     <View className="gap-4 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
-      <Text className="text-[13px] font-bold text-[#AFC2DB]">
-        {isDragDrop ? 'Asigna cada elemento a su destino.' : 'Une cada elemento con su pareja.'}
-      </Text>
-
-      {leftAnswers.map((answer, index) => {
-        const selected = selections[index]
-        const rowColor = !hasAnswered ? '#1E355C' : answerStatus === 'correct' ? '#34D399' : '#FB7185'
-
-        return (
-          <Pressable
-            key={`${answer.id}-${index}`}
-            onPress={() => cycleSelection(index)}
-            disabled={hasAnswered}
-            className="rounded-2xl border bg-[#081A37] p-4"
-            style={({ pressed }) => ({ borderColor: rowColor, opacity: pressed ? 0.84 : 1 })}
-          >
-            <View className="flex-row flex-wrap items-center gap-3">
-              <View className="min-w-[190px] flex-1 rounded-xl border border-[#28456B] bg-[#0D1D3B] px-4 py-3">
-                <Text className="text-[11px] font-bold uppercase text-[#8FA7C7]">{isDragDrop ? 'Elemento' : 'Origen'}</Text>
-                <Text className="mt-1 text-[16px] font-black text-white">{answer.text}</Text>
-              </View>
-              <Ionicons name={isDragDrop ? 'arrow-forward-circle' : 'git-compare'} size={24} color="#A78BFA" />
-              <View className="min-w-[190px] flex-1 rounded-xl border border-[#3A4F83] bg-[#111E45] px-4 py-3">
-                <Text className="text-[11px] font-bold uppercase text-[#8FA7C7]">{isDragDrop ? 'Destino' : 'Pareja'}</Text>
-                <Text className="mt-1 text-[16px] font-black text-white">{selected || 'Toca para elegir'}</Text>
-              </View>
-            </View>
-          </Pressable>
-        )
-      })}
-
-      <View className="flex-row flex-wrap gap-2">
-        {options.map((option) => (
-          <View key={option} className="rounded-full border border-[#28456B] bg-[#0D1D3B] px-3 py-2">
-            <Text className="text-[12px] font-bold text-[#C7D6ED]">{option}</Text>
+      <View className="flex-row flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#28456B] bg-[#081A37] p-4">
+        <View className="min-w-0 flex-1 flex-row items-start gap-3">
+          <View className="h-11 w-11 items-center justify-center rounded-full bg-[#18275A]">
+            <Ionicons name={labels.icon} size={22} color={labels.accent} />
           </View>
-        ))}
+          <View className="min-w-0 flex-1">
+            <Text className="font-black text-white">{labels.title}</Text>
+            <Text className="mt-1 text-[12px] leading-5 text-[#AFC2DB]">{labels.detail}</Text>
+          </View>
+        </View>
+        <View className="rounded-full border border-[#2A456A] bg-[#0D1D3B] px-3 py-1">
+          <Text className="text-[12px] font-black text-[#A78BFA]">{completedCount}/{leftAnswers.length}</Text>
+        </View>
       </View>
 
-      <SubmitAnswerButton disabled={hasAnswered || leftAnswers.length === 0} onPress={handleSubmit} />
+      <View className="gap-4" style={{ flexDirection: isTwoColumns ? 'row' : 'column' }}>
+        <View style={{ flex: 1 }}>
+          <Text className="mb-3 text-[12px] font-black uppercase tracking-[0.06em] text-[#8FA7C7]">
+            1. Elige {labels.leftLabel.toLowerCase()}
+          </Text>
+          <View className="gap-3">
+            {leftAnswers.map((answer, index) => {
+              const selected = selections[index]
+              const active = activeIndex === index && !hasAnswered
+              const borderColor = hasAnswered
+                ? answerStatus === 'correct'
+                  ? '#34D399'
+                  : '#FB7185'
+                : active
+                  ? '#8B5CF6'
+                  : selected
+                    ? '#43D991'
+                    : '#28456B'
+
+              return (
+                <Pressable
+                  key={`${answer.id}-${index}`}
+                  onPress={() => !hasAnswered && setActiveIndex(index)}
+                  disabled={hasAnswered}
+                  className="rounded-2xl border bg-[#0D1D3B] p-4"
+                  style={({ pressed }) => ({ borderColor, opacity: pressed ? 0.86 : 1 })}
+                >
+                  <View className="flex-row items-start gap-3">
+                    <View
+                      className="h-10 w-10 items-center justify-center rounded-full"
+                      style={{ backgroundColor: active ? '#6D5AF6' : selected ? '#145B45' : '#18275A' }}
+                    >
+                      <Text className="font-black text-white">{index + 1}</Text>
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-[#8FA7C7]">
+                        {labels.leftLabel}
+                      </Text>
+                      <Text className="mt-1 text-[17px] font-black text-white">{answer.text}</Text>
+                      <View className="mt-3 rounded-xl border border-[#243E65] bg-[#061426] px-3 py-2">
+                        <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-[#8FA7C7]">
+                          {labels.rightLabel}
+                        </Text>
+                        <Text className={`mt-1 text-[15px] font-black ${selected ? 'text-[#A7F3D0]' : 'text-[#AFC2DB]'}`}>
+                          {selected?.text || `Selecciona ${labels.rightLabel.toLowerCase()} en la columna derecha`}
+                        </Text>
+                      </View>
+                    </View>
+                    {selected && !hasAnswered ? (
+                      <Pressable
+                        onPress={() => clearSelection(index)}
+                        className="h-9 w-9 items-center justify-center rounded-full border border-[#2A456A] bg-[#081A37]"
+                        accessibilityRole="button"
+                        accessibilityLabel={`Quitar selección de ${answer.text}`}
+                      >
+                        <Ionicons name="close" size={17} color="#DDE7F4" />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </Pressable>
+              )
+            })}
+          </View>
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text className="mb-3 text-[12px] font-black uppercase tracking-[0.06em] text-[#8FA7C7]">
+            2. Toca {labels.rightLabel.toLowerCase()}
+          </Text>
+          <View className="gap-3 rounded-2xl border border-[#1E355C] bg-[#061426] p-3">
+            {options.length > 0 ? options.map((option, index) => {
+              const ownerIndex = findOptionOwner(selections, option.key)
+              const usedByCurrent = ownerIndex === activeIndex
+              const usedByOther = ownerIndex !== null && ownerIndex !== activeIndex
+
+              return (
+                <Pressable
+                  key={option.key}
+                  onPress={() => assignOption(option)}
+                  disabled={hasAnswered}
+                  className="rounded-2xl border px-4 py-3"
+                  style={({ pressed }) => ({
+                    borderColor: usedByCurrent ? '#8B5CF6' : usedByOther ? '#145B45' : '#314E78',
+                    backgroundColor: usedByCurrent ? '#17164C' : usedByOther ? '#0F3B39' : '#111E45',
+                    opacity: pressed ? 0.86 : 1,
+                  })}
+                >
+                  <View className="flex-row items-center gap-3">
+                    <View className="h-9 w-9 items-center justify-center rounded-full bg-[#0D1D3B]">
+                      <Ionicons
+                        name={usedByCurrent ? 'radio-button-on' : usedByOther ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={19}
+                        color={usedByCurrent ? '#A78BFA' : usedByOther ? '#43D991' : '#8FA7C7'}
+                      />
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-[16px] font-black text-white">{option.text}</Text>
+                      {usedByOther ? (
+                        <Text className="mt-1 text-[11px] font-bold text-[#A7F3D0]">
+                          Usada con {labels.leftLabel.toLowerCase()} {ownerIndex + 1}. Tócala para moverla.
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                </Pressable>
+              )
+            }) : (
+              <View className="rounded-xl border border-[#7A4A29] bg-[#3B2518] p-4">
+                <Text className="text-[13px] font-semibold text-[#F6CFAE]">
+                  Esta pregunta no tiene opciones de pareja configuradas. Revisa la pregunta desde el panel del profesor.
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+
+      {!hasAnswered && !isReady ? (
+        <View className="rounded-2xl border border-[#2A456A] bg-[#081A37] p-4">
+          <Text className="text-[13px] font-semibold text-[#B8C7E0]">
+            Completa todas las relaciones para activar el botón de comprobar.
+          </Text>
+        </View>
+      ) : null}
+
+      <AnswerFeedback
+        status={answerStatus}
+        correctTitle="Relaciones correctas"
+        incorrectTitle="Alguna relación no coincide"
+        incorrectDetail="Vuelve a fijarte en cada origen y destino. En este tipo la respuesta solo cuenta si todas las relaciones son correctas."
+      />
+
+      <SubmitAnswerButton disabled={hasAnswered || !isReady} onPress={handleSubmit} />
     </View>
   )
 }
@@ -1061,10 +1236,10 @@ function getQuestionType(typeValue: string | null | undefined): QuestionType {
 
 function getQuestionInstruction(type: QuestionType) {
   if (type === 'open_answer') return 'Escribe la respuesta correcta'
-  if (type === 'fill_blank') return 'Rellena los espacios'
+  if (type === 'fill_blank') return 'Completa cada hueco en orden'
   if (type === 'ordering') return 'Ordena los elementos'
-  if (type === 'match_pairs') return 'Une las parejas'
-  if (type === 'drag_drop') return 'Asigna cada elemento'
+  if (type === 'match_pairs') return 'Toca un origen y después su pareja'
+  if (type === 'drag_drop') return 'Asigna cada elemento a su destino'
   return 'Elige la opción correcta'
 }
 
@@ -1072,57 +1247,85 @@ function isChoiceQuestion(type: QuestionType) {
   return type === 'multiple_choice' || type === 'true_false'
 }
 
-function DraggableItem({ 
-  item, 
-  index, 
-  onMove,
-  disabled 
-}: { 
-  item: string; 
-  index: number; 
-  onMove: (fromIndex: number, toIndex: number) => void;
-  disabled?: boolean;
+function AnswerFeedback({
+  status,
+  correctTitle,
+  incorrectTitle,
+  incorrectDetail,
+}: {
+  status: 'correct' | 'incorrect' | null
+  correctTitle: string
+  incorrectTitle: string
+  incorrectDetail: string
 }) {
-  const pan = useRef(new Animated.ValueXY()).current;
-  const ITEM_HEIGHT = 82; 
+  if (!status) return null
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => !disabled,
-      onPanResponderMove: Animated.event([null, { dy: pan.y }], { useNativeDriver: false }),
-      onPanResponderRelease: (e, gesture) => {
-        const spacesMoved = Math.round(gesture.dy / ITEM_HEIGHT);
-        const newIndex = index + spacesMoved;
-
-        if (spacesMoved !== 0) {
-          onMove(index, newIndex);
-        }
-
-        Animated.spring(pan, {
-          toValue: { x: 0, y: 0 },
-          useNativeDriver: false,
-          friction: 5,
-        }).start();
-      },
-    })
-  ).current;
+  const isCorrect = status === 'correct'
+  const feedbackColor = isCorrect ? '#34D399' : '#FB7185'
 
   return (
-    <Animated.View
-      {...panResponder.panHandlers}
-      style={{
-        transform: [{ translateY: pan.y }],
-        zIndex: pan.y.interpolate({ inputRange: [-1, 1], outputRange: [10, 10] }),
-      }}
-      className={`h-[70px] mb-3 flex-row items-center gap-3 rounded-xl border px-4 shadow-lg ${
-        disabled ? 'border-[#28456B] bg-[#071426]' : 'border-[#3A4F83] bg-[#111E45]'
-      }`}
-    >
-      <Ionicons name="menu" size={20} color={disabled ? "#4B6282" : "#7F95B7"} />
-      <View className="flex-1">
-        <Text className="text-[11px] font-bold uppercase text-[#8FA7C7]">Destino</Text>
-        <Text className="mt-1 text-white text-[15px] font-black" numberOfLines={1}>{item}</Text>
+    <View className="rounded-2xl border px-4 py-3" style={{ borderColor: feedbackColor, backgroundColor: `${feedbackColor}1F` }}>
+      <View className="flex-row items-center gap-2">
+        <Ionicons name={isCorrect ? 'checkmark-circle' : 'close-circle'} size={19} color={feedbackColor} />
+        <Text className="font-black" style={{ color: feedbackColor }}>
+          {isCorrect ? correctTitle : incorrectTitle}
+        </Text>
       </View>
-    </Animated.View>
-  );
+      {!isCorrect ? <Text className="mt-1 text-[13px] text-[#DDE7F4]">{incorrectDetail}</Text> : null}
+    </View>
+  )
+}
+
+function getBlankCount(question: Question) {
+  const databaseCount = Number(question.blank_count || 0)
+  const markerCount = countBlankMarkers(question.text)
+  return Math.max(1, Math.min(8, databaseCount || markerCount || 1))
+}
+
+function countBlankMarkers(text: string) {
+  return (text.match(/_{2,}|\[\[blank\]\]|\{\{blank\}\}/gi) || []).length
+}
+
+function splitFillPrompt(text: string) {
+  return text.split(/_{2,}|\[\[blank\]\]|\{\{blank\}\}/gi)
+}
+
+function normalizePairOptions(options: string[]): PairOptionToken[] {
+  return options
+    .map((option, index) => ({ key: `${index}-${String(option || '').trim()}`, text: String(option || '').trim() }))
+    .filter((option) => option.text.length > 0)
+}
+
+function getFirstIncompleteIndex(total: number, selections: Record<number, unknown>, fallbackIndex: number) {
+  for (let index = 0; index < total; index += 1) {
+    if (!selections[index]) return index
+  }
+  return Math.max(0, Math.min(fallbackIndex, Math.max(0, total - 1)))
+}
+
+function findOptionOwner(selections: Record<number, PairOptionToken>, optionKey: string) {
+  const owner = Object.entries(selections).find(([, value]) => value.key === optionKey)
+  return owner ? Number(owner[0]) : null
+}
+
+function getPairingLabels(type: 'match_pairs' | 'drag_drop') {
+  if (type === 'drag_drop') {
+    return {
+      title: 'Asigna cada elemento a su destino',
+      detail: 'Primero toca una tarjeta de la izquierda y después el destino correcto. Puedes cambiar cualquier relación antes de comprobar.',
+      leftLabel: 'Elemento',
+      rightLabel: 'Destino',
+      icon: 'move' as keyof typeof Ionicons.glyphMap,
+      accent: '#A78BFA',
+    }
+  }
+
+  return {
+    title: 'Une cada origen con su pareja',
+    detail: 'Toca un origen y luego elige su pareja. Cada opción solo puede quedar asociada a un origen.',
+    leftLabel: 'Origen',
+    rightLabel: 'Pareja',
+    icon: 'git-compare' as keyof typeof Ionicons.glyphMap,
+    accent: '#F6A64A',
+  }
 }

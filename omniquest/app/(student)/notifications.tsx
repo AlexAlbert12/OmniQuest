@@ -221,7 +221,6 @@ export default function StudentNotificationsScreen() {
             </View>
 
             <View className="flex-row flex-wrap items-center gap-3">
-              <StudentHeaderAvatar />
               <Pressable
                 onPress={() => void onRefresh()}
                 className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
@@ -233,13 +232,14 @@ export default function StudentNotificationsScreen() {
               {unreadCount > 0 ? (
                 <Pressable
                   onPress={() => void markAllAsRead()}
-                  className="flex-row items-center gap-2 rounded-xl px-4 py-3"
+                  className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
                   style={({ pressed }) => ({ backgroundColor: accentColor, opacity: pressed ? 0.82 : 1 })}
                 >
                   <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
                   <Text className="text-[12px] font-bold text-white">Marcar todo leído</Text>
                 </Pressable>
               ) : null}
+              <StudentHeaderAvatar />
             </View>
           </View>
 
