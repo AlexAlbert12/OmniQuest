@@ -3,6 +3,7 @@ import { Animated, Easing, Image, Pressable, Text, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+import BrandLogo from './BrandLogo'
 import { useAppTheme } from '../lib/appTheme'
 
 export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings'
@@ -58,9 +59,7 @@ export default function StudentSidebar({
       }}
     >
       <View className="mb-4 flex-row items-center gap-2 px-2">
-        <Text className="text-[#9FD6FF]" style={{ fontFamily: 'Pacifico_400Regular', fontSize: 30 }}>
-          OmniQuest
-        </Text>
+        <BrandLogo size={30} />
         <Ionicons name="rocket" size={18} color="#9FD6FF" />
       </View>
 

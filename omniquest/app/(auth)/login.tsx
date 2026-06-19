@@ -1,71 +1,73 @@
 import React, { useState } from 'react'
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View, } from 'react-native'
+import { ActivityIndicator, Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import AuthInput from '../../components/auth/AuthInput'
+import BrandLogo from '../../components/BrandLogo'
+import SpaceBackground from '../../components/SpaceBackground'
 import { getAuthErrorMessage, isValidEmail, normalizeEmail } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
-import SpaceBackground from '../../components/SpaceBackground'
+
+type LoginErrors = {
+  email?: string
+  password?: string
+}
 
 export default function LoginScreen() {
   const { width, height } = useWindowDimensions()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<LoginErrors>({})
 
   const isDesktop = width >= 1100
   const isTablet = width >= 760
   const isWeb = Platform.OS === 'web'
 
-  async function signInWithEmail() {
-    console.log('[login] button pressed')
-    setStatusMessage('Boton pulsado')
+  const clearFieldError = (field: keyof LoginErrors) => {
+    setFieldErrors((current) => ({ ...current, [field]: undefined }))
+    setStatusMessage('')
+  }
 
+  async function signInWithEmail() {
     const normalizedEmail = normalizeEmail(email)
+    const nextErrors: LoginErrors = {}
 
     if (!isValidEmail(normalizedEmail)) {
-      console.log('[login] validation failed: invalid email', normalizedEmail)
-      setStatusMessage('Correo invalido')
-      Alert.alert('Error', 'Introduce un correo electronico valido.')
-      return
+      nextErrors.email = 'Introduce un correo electrónico válido.'
     }
 
     if (!password) {
-      console.log('[login] validation failed: missing password')
-      setStatusMessage('Falta la contraseña')
-      Alert.alert('Error', 'Introduce tu contraseña.')
+      nextErrors.password = 'Introduce tu contraseña.'
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
+      setStatusMessage('')
       return
     }
 
-    console.log('[login] starting signIn', { email: normalizedEmail })
+    setFieldErrors({})
     setStatusMessage('Iniciando sesión...')
     setLoading(true)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password,
       })
 
-      console.log('[login] signIn response', {
-        hasSession: !!data.session,
-        userId: data.user?.id,
-        error,
-      })
-
       if (error) {
-        setStatusMessage(`Error de Supabase: ${getAuthErrorMessage(error, 'signIn')}`)
-        Alert.alert('Error', getAuthErrorMessage(error, 'signIn'))
+        setStatusMessage(getAuthErrorMessage(error, 'signIn') || 'No hemos podido iniciar sesión. Revisa tus datos.')
         return
       }
 
-      setStatusMessage('Sesion iniciada')
+      setStatusMessage('Sesión iniciada.')
     } catch (error) {
       console.error('[login] unexpected error', error)
-      setStatusMessage(`Excepcion: ${error instanceof Error ? error.message : 'Error desconocido'}`)
-      Alert.alert('Error', error instanceof Error ? error.message : 'Error inesperado al iniciar sesión')
+      setStatusMessage('No hemos podido iniciar sesión. Inténtalo de nuevo.')
     } finally {
       setLoading(false)
     }
@@ -85,14 +87,13 @@ export default function LoginScreen() {
           borderRadius: isWeb ? 0 : 34,
         }}
       >
-
         <SpaceBackground isDesktop={isDesktop} />
 
         <View
           className="z-10 flex-1 items-center justify-center"
           style={{
             paddingHorizontal: isDesktop ? 32 : 18,
-            paddingVertical: isDesktop ? 42 : 28,
+            paddingVertical: isDesktop ? 28 : 20,
           }}
         >
           <View className="absolute left-5 top-5">
@@ -102,32 +103,26 @@ export default function LoginScreen() {
                 style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
               >
                 <Ionicons name="home-outline" size={18} color="#8CD5FF" />
-                <Text className="font-bold text-[#D9EEFF]">Volver al inicio</Text>
+                <Text className="font-bold text-[#D9EEFF]">Inicio</Text>
               </Pressable>
             </Link>
           </View>
 
           <View className="items-center px-2">
-            <Text
-              style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 72 : 40 }}
-              className="text-center text-[#CDEFFF]"
-            >
-              OmniQuest
-            </Text>
+            <BrandLogo center size={isDesktop ? 56 : 34} />
 
             <Text
-              style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 22 : 16 }}
+              style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 20 : 15 }}
               className="text-center text-[#4FB8FF]"
             >
               Tu viaje de aprendizaje comienza aquí.
             </Text>
 
-            <View className="mt-4 mb-4 flex-row items-center gap-3">
+            <View className="mt-3 mb-4 flex-row items-center gap-3">
               <View className="h-px w-16 bg-[#3B6FA5]" />
               <Ionicons name="rocket" size={18} color="#8CD5FF" />
               <View className="h-px w-16 bg-[#3B6FA5]" />
             </View>
-
           </View>
 
           <View
@@ -142,74 +137,43 @@ export default function LoginScreen() {
             }}
           >
             <View style={{ padding: isDesktop ? 30 : 20, gap: 20 }}>
-              <View style={{ gap: 8 }}>
-                <Text className="ml-1 text-[13px] font-bold text-[#D9EEFF]">
-                  Correo Electrónico
-                </Text>
-                <View className="flex-row items-center rounded-lg border border-[#35557C] bg-[#0B2145]">
-                  <Ionicons className="ml-4 mr-4" name="mail-outline" size={18} color="#8AAED0" />
-                  <TextInput
-                    className="flex-1 px-3 py-4 text-[15px] text-[#F5FBFF]"
-                    placeholder="Introduzca su correo"
-                    placeholderTextColor="#8AAED0"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="email-address"
-                  />
-                </View>
-              </View>
+              <AuthInput
+                label="Correo electrónico"
+                icon="mail-outline"
+                placeholder="Introduce tu correo"
+                value={email}
+                onChangeText={(value) => {
+                  setEmail(value)
+                  clearFieldError('email')
+                }}
+                error={fieldErrors.email}
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect={false}
+                inputMode="email"
+                keyboardType="email-address"
+                textContentType="emailAddress"
+              />
 
-              <View style={{ gap: 8 }}>
-                <Text className="ml-1 text-[13px] font-bold text-[#D9EEFF]">
-                  Contraseña
-                </Text>
-                <View className="flex-row items-center rounded-lg border border-[#35557C] bg-[#0B2145] px-4">
-                  <Ionicons className="mr-4" name="lock-closed-outline" size={18} color="#8AAED0" />
-                  <TextInput
-                    className="flex-1 px-3 py-4 text-[15px] text-[#F5FBFF]"
-                    placeholder="Introduzca su contraseña"
-                    placeholderTextColor="#8AAED0"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                  />
-                  <Pressable
-                    onPress={() => setShowPassword(!showPassword)}
-                    className="items-center justify-center rounded-full p-2"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
-                  >
-                    <Ionicons
-                      className="ml-2"
-                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                      size={18}
-                      color="#9FC7E2"
-                    />
-                  </Pressable>
-                </View>
-              </View>
+              <AuthInput
+                label="Contraseña"
+                icon="lock-closed-outline"
+                placeholder="Introduce tu contraseña"
+                value={password}
+                onChangeText={(value) => {
+                  setPassword(value)
+                  clearFieldError('password')
+                }}
+                error={fieldErrors.password}
+                autoComplete="current-password"
+                secureTextEntry={!showPassword}
+                secureVisible={showPassword}
+                showSecureToggle
+                textContentType="password"
+                onToggleSecureText={() => setShowPassword((current) => !current)}
+              />
 
-              <View className="flex-row flex-wrap items-center justify-between gap-3">
-                <Pressable
-                  onPress={() => setRememberMe(!rememberMe)}
-                  className="flex-row items-center gap-2"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
-                >
-                  <View
-                    className="items-center justify-center rounded border"
-                    style={{
-                      width: 17,
-                      height: 17,
-                      backgroundColor: rememberMe ? '#4FB8FF' : 'transparent',
-                      borderColor: rememberMe ? '#4FB8FF' : '#7EA9CA',
-                    }}
-                  >
-                    {rememberMe && <Ionicons name="checkmark" size={13} color="#04112A" />}
-                  </View>
-                  <Text className="text-[13px] text-[#D8E7F6]">Recordarme</Text>
-                </Pressable>
-
+              <View className="flex-row flex-wrap items-center justify-end gap-3">
                 <Link href="/forgot-password" asChild>
                   <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.74 : 1 })}>
                     <Text className="text-[13px] font-semibold text-[#8CD5FF]">
@@ -235,7 +199,7 @@ export default function LoginScreen() {
                 <View className="flex-row items-center gap-3">
                   {loading ? <ActivityIndicator color="#F5FBFF" /> : null}
                   <Text className="text-[16px] font-bold text-[#F5FBFF]">
-                    {loading ? 'Entrando...' : 'Iniciar Sesión'}
+                    {loading ? 'Entrando...' : 'Iniciar sesión'}
                   </Text>
                 </View>
                 {!loading && (
@@ -253,7 +217,7 @@ export default function LoginScreen() {
               ) : null}
             </View>
 
-            <View className="border-t border-[#17365F] px-5 pt-5">
+            <View className="border-t border-[#17365F] bg-[#06162F] px-5 py-5">
               <View className="flex-row flex-wrap items-center justify-center gap-1">
                 <Text className="text-[13px] text-[#AFCBE3]">¿No tienes cuenta?</Text>
                 <Link href="/register" asChild>

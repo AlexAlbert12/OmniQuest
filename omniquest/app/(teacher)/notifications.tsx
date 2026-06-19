@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import { getTimeAgo } from '../../lib/time'
 import TeacherSidebar from '../../components/TeacherSidebar'
+import BrandLogo from '../../components/BrandLogo'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
@@ -158,9 +159,7 @@ export default function NotificationsScreen() {
           <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
             <View className="min-w-[280px] flex-1">
               {!isDesktop ? (
-                <Text className="mb-2 text-[#9FD6FF]" style={{ fontFamily: 'Pacifico_400Regular', fontSize: 24 }}>
-                  OmniQuest
-                </Text>
+                <BrandLogo size={24} style={{ marginBottom: 8 }} />
               ) : null}
               <View className="flex-row items-center gap-3">
                 <Ionicons name="notifications" size={38} color="#9FD6FF" />

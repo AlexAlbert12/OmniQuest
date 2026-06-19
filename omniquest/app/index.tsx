@@ -1,74 +1,59 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useRouter, Link } from 'expo-router'
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, useWindowDimensions, View, } from 'react-native'
+import { Link, useRouter } from 'expo-router'
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import { useState } from 'react'
-import Footer from '../components/Footer'
+import BrandLogo from '../components/BrandLogo'
 import SpaceBackground from '../components/SpaceBackground'
 import { supabase } from '../lib/supabase'
 
 type Feature = {
+  accent: string
+  bullets: {
+    icon: keyof typeof Ionicons.glyphMap
+    label: string
+  }[]
+  description: string
   icon: keyof typeof Ionicons.glyphMap
   title: string
-  description: string
-  iconColor: string
-  iconBackground: string
-  iconBorder: string
+  titleAccent: string
 }
 
 const features: Feature[] = [
   {
-    icon: 'book',
-    title: 'Aprende a tu ritmo',
-    description:
-      'Accede a contenidos interactivos y estructurados por niveles. Estudia cuando quieras y desde cualquier dispositivo.',
-    iconColor: '#7FCBFF',
-    iconBackground: 'rgba(40, 114, 212, 0.22)',
-    iconBorder: 'rgba(116, 188, 255, 0.5)',
+    accent: '#38BDF8',
+    icon: 'school',
+    title: 'Para',
+    titleAccent: 'profesores',
+    description: 'Crea clases, temas y preguntas personalizadas para guiar el aprendizaje.',
+    bullets: [
+      { icon: 'people-outline', label: 'Gestiona tus clases y alumnos' },
+      { icon: 'create-outline', label: 'Crea preguntas interactivas' },
+      { icon: 'bar-chart-outline', label: 'Analiza el progreso de tu clase' },
+    ],
   },
   {
-    icon: 'ribbon',
-    title: 'Supera preguntas',
-    description:
-      'Resuelve desafíos y cuestionarios para poner a prueba lo que sabes. ¡Cada pregunta superada te acerca más a tus metas!',
-    iconColor: '#8ED6FF',
-    iconBackground: 'rgba(28, 88, 188, 0.24)',
-    iconBorder: 'rgba(110, 178, 255, 0.52)',
+    accent: '#A855F7',
+    icon: 'game-controller',
+    title: 'Para',
+    titleAccent: 'alumnos',
+    description: 'Practica con retos interactivos, revisa tus fallos y gana experiencia.',
+    bullets: [
+      { icon: 'extension-puzzle-outline', label: 'Resuelve preguntas y desafíos' },
+      { icon: 'star-outline', label: 'Consigue XP y sube de nivel' },
+      { icon: 'ribbon-outline', label: 'Desbloquea logros e insignias' },
+    ],
   },
   {
+    accent: '#14D7C8',
     icon: 'stats-chart',
-    title: 'Sigue tu progreso',
-    description:
-      'Visualiza tu avance con estadísticas detallas y obtiene recomendaciones pesonalizadas para mejorar cada día.',
-    iconColor: '#82C5FF',
-    iconBackground: 'rgba(37, 104, 204, 0.22)',
-    iconBorder: 'rgba(111, 185, 255, 0.5)',
-  },
-  {
-    icon: 'trophy',
-    title: 'Compite y destaca',
-    description:
-      'Participa en el ranking, gana experiencia y demuestra tus conocimientos frente a otros estudiantes.',
-    iconColor: '#B29CFF',
-    iconBackground: 'rgba(112, 71, 246, 0.2)',
-    iconBorder: 'rgba(175, 145, 255, 0.52)',
-  },
-  {
-    icon: 'flash',
-    title: 'Mantén tu racha',
-    description:
-      'Aprende cada día, suma días consecutivos y desbloquea recompensas exclusivas.',
-    iconColor: '#A991FF',
-    iconBackground: 'rgba(124, 79, 255, 0.2)',
-    iconBorder: 'rgba(170, 142, 255, 0.54)',
-  },
-  {
-    icon: 'gift',
-    title: 'Gana recompensas',
-    description:
-      'Obtén medallas, logros y premios por tu esfuerzo y constancia en el aprendizaje.',
-    iconColor: '#B29CFF',
-    iconBackground: 'rgba(112, 71, 246, 0.2)',
-    iconBorder: 'rgba(175, 145, 255, 0.52)',
+    title: 'Progreso y',
+    titleAccent: 'ranking',
+    description: 'Consulta estadísticas, rachas, insignias y preguntas que necesitan refuerzo.',
+    bullets: [
+      { icon: 'stats-chart-outline', label: 'Estadísticas detalladas' },
+      { icon: 'shield-checkmark-outline', label: 'Mantén tu racha diaria' },
+      { icon: 'trophy-outline', label: 'Compite en el ranking' },
+    ],
   },
 ]
 
@@ -122,58 +107,36 @@ export default function IndexScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-[#04112A]"
+      className="flex-1 bg-[#020D22]"
       contentContainerStyle={{ flexGrow: 1 }}
     >
       <View
-        className="overflow-hidden rounded-[34px] border border-[#27436F] bg-[#071630]"
+        className="overflow-hidden bg-[#020D22]"
         style={{
-          minHeight: isDesktop ? Math.max(height, 860) : Math.max(height - 28, 780),
-          shadowColor: '#132C59',
-          shadowOpacity: isWeb ? 0 : 0.35,
-          shadowRadius: isWeb ? 0 : 28,
-          shadowOffset: { width: 0, height: isWeb ? 0 : 18 },
-          elevation: isWeb ? 0 : 12,
+          minHeight: isDesktop ? Math.max(height, 900) : Math.max(height - 28, 820),
           borderRadius: isWeb ? 0 : 34,
         }}
       >
-
         <SpaceBackground isDesktop={isDesktop} />
+
         <View
+          className="z-10 flex-1"
           style={{
-            flexGrow: 1,
-            paddingHorizontal: isDesktop ? 32 : 18,
-            paddingTop: isDesktop ? 20 : 18,
-            paddingBottom: isDesktop ? 40 : 28,
+            paddingHorizontal: isDesktop ? 52 : 18,
+            paddingTop: isDesktop ? 44 : 32,
           }}
         >
-
-          <View
-            style={{
-              flexGrow: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <View
-              style={{
-                width: '100%',
-                maxWidth: isDesktop ? 1080 : 960,
-                alignSelf: 'center',
-              }}
-            >
-              <LandingPanel
-                isDesktop={isDesktop}
-                isTablet={isTablet}
-                onLoginPress={() => router.push('/login')}
-                onGuestPress={enterAsGuest}
-                guestLoading={guestLoading}
-              />
-            </View>
-          </View>
+          <LandingPanel
+            isDesktop={isDesktop}
+            isTablet={isTablet}
+            onLoginPress={() => router.push('/login')}
+            onGuestPress={enterAsGuest}
+            guestLoading={guestLoading}
+          />
         </View>
+
+        <LandingFooter isDesktop={isDesktop} />
       </View>
-      <Footer />
     </ScrollView>
   )
 }
@@ -191,141 +154,240 @@ function LandingPanel({
   onGuestPress: () => void
   guestLoading: boolean
 }) {
-  const actionsDirection = isTablet ? 'row' : 'column'
-
   return (
     <View
+      className="items-center"
       style={{
         alignSelf: 'center',
-        paddingTop: isDesktop ? 4 : 4,
-        paddingBottom: isDesktop ? 18 : 8,
+        maxWidth: 1120,
+        paddingBottom: isDesktop ? 36 : 28,
+        width: '100%',
       }}
     >
-      <View className="items-center px-2">
-        <Text
-          style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 72 : 32 }}
-          className="text-center text-[#CDEFFF]"
-        >
-          OmniQuest
-        </Text>
+      <BrandLogo center size={isDesktop ? 92 : 58} />
 
-        <Text
-          style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 28 : 16 }}
-          className="text-center text-[#4FB8FF]">
-          Tu viaje de aprendizaje comienza aquí.
-        </Text>
+      <Text
+        style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 28 : 16 }}
+        className="text-center mt-4 text-[#4FB8FF]">
+        Tu viaje de aprendizaje comienza aquí.
+      </Text>
 
-        <View className="mt-4 mb-2 flex-row items-center gap-3">
-          <View className="h-px w-10 bg-[#3B6FA5]" />
-          <Ionicons name="rocket" size={18} color="#8CD5FF" />
-          <View className="h-px w-10 bg-[#3B6FA5]" />
-        </View>
+      <View className="mt-4 mb-2 flex-row items-center gap-3">
+        <View className="h-px w-10 bg-[#3B6FA5]" />
+        <Ionicons name="rocket" size={18} color="#8CD5FF" />
+        <View className="h-px w-10 bg-[#3B6FA5]" />
       </View>
 
       <View
         style={{
-          marginTop: isDesktop ? 24 : 20,
+          alignSelf: 'center',
+          justifyContent: 'center',
+          marginTop: isDesktop ? 22 : 20,
+          flexDirection: isTablet ? 'row' : 'column',
+          gap: 18,
+          maxWidth: 820,
+          width: isTablet ? 'auto' : '100%',
+        }}
+      >
+        <LandingAction
+          icon="person"
+          title="Iniciar sesión"
+          subtitle="Accede a tu cuenta"
+          onPress={onLoginPress}
+          variant="primary"
+          isTablet={isTablet}
+        />
+
+        <LandingAction
+          icon="glasses"
+          title={guestLoading ? 'Entrando...' : 'Probar como invitado'}
+          subtitle="Explora sin registrarte"
+          onPress={onGuestPress}
+          variant="secondary"
+          isTablet={isTablet}
+          loading={guestLoading}
+        />
+      </View>
+
+      <View className="mt-5 flex-row flex-wrap items-center justify-center gap-2">
+        <Ionicons name="star-outline" size={19} color="#42B9FF" />
+        <Text className="text-[16px] text-[#C5D7EE]">¿No tienes cuenta?</Text>
+        <Link href="/register" asChild>
+          <Pressable className="flex-row items-center gap-2" style={({ pressed }) => ({ opacity: pressed ? 0.74 : 1 })}>
+            <Text className="text-[16px] font-bold text-[#42B9FF]">Regístrate aquí</Text>
+            <Ionicons name="arrow-forward" size={18} color="#42B9FF" />
+          </Pressable>
+        </Link>
+      </View>
+
+      <View
+        style={{
+          marginTop: isDesktop ? 32 : 26,
           flexDirection: 'row',
           flexWrap: 'wrap',
           justifyContent: 'center',
-          gap: 16,
+          gap: isDesktop ? 26 : 16,
+          width: '100%',
         }}
       >
         {features.map((feature) => (
           <FeatureCard
-            key={feature.title}
+            key={feature.titleAccent}
             feature={feature}
+            isDesktop={isDesktop}
           />
         ))}
-      </View>
-
-      <View
-        style={{
-          marginTop: isDesktop ? 26 : 20,
-          flexDirection: actionsDirection,
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: 14,
-          maxWidth: isDesktop ? 400 : '100%',
-          alignSelf: 'center',
-        }}
-      >
-        <Pressable
-          onPress={onLoginPress}
-          className="justify-between w-full rounded-2xl p-4 flex-row items-center gap-2 bg-[#1C4D8D] hover:bg-[#18437b] transition-all duration-200 hover:scale-[1.02] "
-        >
-          <View className="flex-row items-center gap-3">
-            <Ionicons name="person" size={20} color="#F5FBFF" />
-            <Text className="text-[16px] text-white">Iniciar sesión</Text>
-          </View>
-          <Ionicons name="arrow-forward" size={18} color="#F5FBFF" />
-        </Pressable>
-
-        <Pressable
-          onPress={onGuestPress}
-          disabled={guestLoading}
-          className="justify-between w-full rounded-2xl p-4 flex-row items-center gap-2 bg-[#7942DFeB] hover:bg-[#6b3ac6eb] transition-all duration-200 hover:scale-[1.02] "
-          style={({ pressed }) => ({ opacity: guestLoading ? 0.7 : pressed ? 0.86 : 1 })}
-        >
-          <View className="flex-row items-center gap-3">
-            {guestLoading ? <ActivityIndicator color="#F5FBFF" /> : <Ionicons name="glasses" size={20} color="#F5FBFF" />}
-            <Text className="text-[16px] text-white">{guestLoading ? 'Entrando...' : 'Entrar como Invitado'}</Text>
-          </View>
-          {!guestLoading ? <Ionicons name="arrow-forward" size={18} color="#F5FBFF" /> : null}
-        </Pressable>
-      </View>
-      <View className="mt-6 border-t border-[#17365F] bg-[#06162F] px-5 py-5">
-        <View className="flex-row flex-wrap items-center justify-center gap-1">
-          <Text className="text-[13px] text-[#AFCBE3]">¿No tienes cuenta?</Text>
-          <Link href="/register" asChild>
-            <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.76 : 1 })}>
-              <Text className="text-[13px] font-bold text-[#4FB8FF]">
-                Regístrate aquí.
-              </Text>
-            </Pressable>
-          </Link>
-        </View>
       </View>
     </View>
   )
 }
 
+function LandingAction({
+  icon,
+  isTablet,
+  loading = false,
+  onPress,
+  subtitle,
+  title,
+  variant,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  isTablet: boolean
+  loading?: boolean
+  onPress: () => void
+  subtitle: string
+  title: string
+  variant: 'primary' | 'secondary'
+}) {
+  const isPrimary = variant === 'primary'
+  const backgroundColor = isPrimary ? '#2563EB' : '#8B5CF6'
+  const borderColor = isPrimary ? '#38BDF8' : '#A855F7'
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={loading}
+      style={({ pressed }) => ({
+        opacity: loading ? 0.72 : pressed ? 0.86 : 1,
+        width: isTablet ? 350 : '100%',
+      })}
+    >
+      <View
+        className="flex-row items-center justify-between rounded-2xl border px-6 py-4"
+        style={{
+          backgroundColor,
+          borderColor,
+          minHeight: 30,
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.24,
+          shadowRadius: 20,
+          width: '100%',
+        }}
+      >
+        <View className="flex-row items-center gap-5">
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Ionicons name={icon} size={32} color="#FFFFFF" />
+          )}
+          <View>
+            <Text className="text-[18px] font-extrabold text-white">{title}</Text>
+            <Text className="mt-1 text-[15px] text-[#EAF2FF]">{subtitle}</Text>
+          </View>
+        </View>
+        {!loading ? <Ionicons name="arrow-forward" size={30} color="#FFFFFF" /> : null}
+      </View>
+    </Pressable>
+  )
+}
+
 function FeatureCard({
   feature,
+  isDesktop,
 }: {
   feature: Feature
+  isDesktop: boolean
 }) {
   return (
     <View
-      className="items-center rounded-[24px] border border-[#35557C] bg-[#102548]/88"
+      className="items-center rounded-[22px] border bg-[#071B3A]/72"
       style={{
-        width: 280,
-        minHeight: 208,
-        paddingHorizontal: 18,
-        paddingVertical: 20,
-        shadowColor: '#0C1F45',
-        shadowOpacity: 0.26,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 10 },
-        elevation: 8,
+        borderColor: 'rgba(74, 129, 198, 0.42)',
+        maxWidth: 360,
+        minHeight: isDesktop ? 320 : undefined,
+        paddingHorizontal: 30,
+        paddingVertical: 22,
+        shadowColor: feature.accent,
+        shadowOpacity: 0.12,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 12 },
+        width: isDesktop ? 350 : '100%',
       }}
     >
       <View
         className="items-center justify-center rounded-full border"
         style={{
-          width: 62,
-          height: 62,
-          backgroundColor: feature.iconBackground,
-          borderColor: feature.iconBorder,
+          backgroundColor: `${feature.accent}18`,
+          borderColor: `${feature.accent}72`,
+          height: 78,
+          width: 78,
         }}
       >
-        <Ionicons name={feature.icon} size={28} color={feature.iconColor} />
+        <Ionicons name={feature.icon} size={36} color={feature.accent} />
       </View>
 
-      <Text className="mt-2 text-[18px] font-bold text-white">{feature.title}</Text>
-      <Text className="mt-2 text-[14px] leading-6 text-center text-[#D8E7F6]">
+      <Text className="mt-5 text-center text-[22px] font-extrabold text-white">
+        {feature.title} <Text style={{ color: feature.accent }}>{feature.titleAccent}</Text>
+      </Text>
+      <Text className="mt-3 text-center text-[15px] leading-6 text-[#DCE9F7]">
         {feature.description}
       </Text>
+
+      <View className="mt-6 w-full gap-3">
+        {feature.bullets.map((bullet) => (
+          <View key={bullet.label} className="flex-row items-center gap-4">
+            <Ionicons name={bullet.icon} size={18} color={feature.accent} />
+            <Text className="flex-1 text-[15px] text-[#EDF6FF]">{bullet.label}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  )
+}
+
+function LandingFooter({ isDesktop }: { isDesktop: boolean }) {
+  return (
+    <View
+      className="z-10 border-t border-[#16345E] bg-[#020A19]/80"
+      style={{
+        paddingHorizontal: isDesktop ? 36 : 22,
+        paddingVertical: isDesktop ? 24 : 22,
+      }}
+    >
+      <View
+        className="items-center justify-between gap-6"
+        style={{
+          flexDirection: isDesktop ? 'row' : 'column',
+        }}
+      >
+        <View className="flex-row items-center gap-5">
+          <BrandLogo size={24} />
+          <View className="h-6 w-px bg-[#254A78]" />
+          <Text className="text-[15px] text-[#8398BD]">© 2026 TFM</Text>
+        </View>
+
+        <View className="flex-row items-center gap-8">
+          <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+            <Ionicons name="logo-github" size={25} color="#8BA6D3" />
+          </Pressable>
+          <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+            <Ionicons name="school-outline" size={27} color="#8BA6D3" />
+          </Pressable>
+          <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+            <Ionicons name="mail-outline" size={27} color="#8BA6D3" />
+          </Pressable>
+        </View>
+      </View>
     </View>
   )
 }

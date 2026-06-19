@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import SpaceBackground from '../../components/SpaceBackground'
+import BrandLogo from '../../components/BrandLogo'
 import { getAuthErrorMessage } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
 
@@ -90,12 +91,7 @@ export default function UpdatePasswordScreen() {
             paddingVertical: isDesktop ? 42 : 28,
           }}
         >
-          <Text
-            style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 64 : 38 }}
-            className="text-center text-[#CDEFFF]"
-          >
-            OmniQuest
-          </Text>
+          <BrandLogo center size={isDesktop ? 64 : 38} />
 
           <View
             className="mt-8 w-full overflow-hidden rounded-[20px] border border-[#3B6FA5] bg-[#081D3D]/92"

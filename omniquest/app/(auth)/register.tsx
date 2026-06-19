@@ -6,62 +6,74 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native'
 import { Link, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import AuthInput from '../../components/auth/AuthInput'
+import BrandLogo from '../../components/BrandLogo'
+import SpaceBackground from '../../components/SpaceBackground'
 import { getAuthErrorMessage, getEmailRedirectTo, isValidEmail, normalizeEmail } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
-import SpaceBackground from '../../components/SpaceBackground'
+
+type RegisterErrors = {
+  alias?: string
+  confirmPassword?: string
+  email?: string
+  password?: string
+}
 
 export default function RegisterScreen() {
   const { width, height } = useWindowDimensions()
   const [alias, setAlias] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<RegisterErrors>({})
   const router = useRouter()
 
   const isDesktop = width >= 1100
   const isTablet = width >= 760
   const isWeb = Platform.OS === 'web'
 
-  async function signUpWithEmail() {
-    console.log('[register] button pressed')
-    setStatusMessage('Boton pulsado')
+  const clearFieldError = (field: keyof RegisterErrors) => {
+    setFieldErrors((current) => ({ ...current, [field]: undefined }))
+    setStatusMessage('')
+  }
 
-    if (!alias || !email || !password) {
-      console.log('[register] validation failed: missing fields')
-      setStatusMessage('Faltan campos por rellenar')
-      Alert.alert('Error', 'Por favor, rellena todos los campos')
-      return
+  async function signUpWithEmail() {
+    const normalizedEmail = normalizeEmail(email)
+    const nextErrors: RegisterErrors = {}
+
+    if (!alias.trim()) {
+      nextErrors.alias = 'Elige un alias para tu perfil.'
     }
 
-    const normalizedEmail = normalizeEmail(email)
-
     if (!isValidEmail(normalizedEmail)) {
-      console.log('[register] validation failed: invalid email', normalizedEmail)
-      setStatusMessage('Correo invalido')
-      Alert.alert('Error', 'Introduce un correo electronico valido.')
-      return
+      nextErrors.email = 'Introduce un correo electrónico válido.'
     }
 
     if (password.length < 6) {
-      console.log('[register] validation failed: short password')
-      setStatusMessage('Contrasena demasiado corta')
-      Alert.alert('Error', 'La contrasena debe tener al menos 6 caracteres.')
+      nextErrors.password = 'La contraseña debe tener al menos 6 caracteres.'
+    }
+
+    if (confirmPassword !== password) {
+      nextErrors.confirmPassword = 'Las contraseñas no coinciden.'
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
+      setStatusMessage('')
       return
     }
 
-    console.log('[register] starting supabase signUp', {
-      email: normalizedEmail,
-      redirectTo: getEmailRedirectTo(),
-    })
-    setStatusMessage('Llamando a Supabase...')
+    setFieldErrors({})
+    setStatusMessage('Creando cuenta...')
     setLoading(true)
 
     try {
@@ -77,35 +89,26 @@ export default function RegisterScreen() {
         },
       })
 
-      console.log('[register] signUp response', {
-        hasSession: !!data.session,
-        userId: data.user?.id,
-        error,
-      })
-
       if (error) {
-        setStatusMessage(`Error de Supabase: ${getAuthErrorMessage(error, 'signUp')}`)
-        Alert.alert('Error', getAuthErrorMessage(error, 'signUp'))
+        setStatusMessage(getAuthErrorMessage(error, 'signUp') || 'No hemos podido crear la cuenta. Revisa los datos.')
         return
       }
 
       if (!data.session) {
-        setStatusMessage('Cuenta creada, pendiente de inicio o confirmacion')
+        setStatusMessage('Cuenta creada. Revisa tu correo antes de iniciar sesión.')
         Alert.alert(
           'Revisa tu correo',
-          'Cuenta creada. Si la confirmacion de email esta activada en Supabase, primero debes confirmar tu correo antes de iniciar sesion.'
+          'Cuenta creada correctamente. Si la confirmación por email está activada, confirma tu correo antes de iniciar sesión.'
         )
         router.replace('/(auth)/login' as any)
         return
       }
 
-      setStatusMessage('Registro completado')
-      Alert.alert('Exito', 'Cuenta creada correctamente.')
+      setStatusMessage('Cuenta creada correctamente.')
       router.replace('/(student)/homeStudent' as any)
     } catch (error) {
       console.error('[register] unexpected error', error)
-      setStatusMessage(`Excepcion: ${error instanceof Error ? error.message : 'Error desconocido'}`)
-      Alert.alert('Error', error instanceof Error ? error.message : 'Error inesperado al registrar')
+      setStatusMessage('No hemos podido crear la cuenta. Inténtalo de nuevo.')
     } finally {
       setLoading(false)
     }
@@ -131,25 +134,32 @@ export default function RegisterScreen() {
           className="z-10 flex-1 items-center justify-center"
           style={{
             paddingHorizontal: isDesktop ? 32 : 18,
-            paddingVertical: isDesktop ? 42 : 28,
+            paddingVertical: isDesktop ? 28 : 20,
           }}
         >
+          <View className="absolute left-5 top-5">
+            <Link href="/" asChild>
+              <Pressable
+                className="flex-row items-center gap-2 rounded-full border border-[#35557C] bg-[#081D3D]/88 px-4 py-3"
+                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+              >
+                <Ionicons name="home-outline" size={18} color="#8CD5FF" />
+                <Text className="font-bold text-[#D9EEFF]">Inicio</Text>
+              </Pressable>
+            </Link>
+          </View>
+
           <View className="items-center px-2">
-            <Text
-              style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 72 : 40 }}
-              className="text-center text-[#CDEFFF]"
-            >
-              OmniQuest
-            </Text>
+            <BrandLogo center size={isDesktop ? 56 : 34} />
 
             <Text
-              style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 22 : 16 }}
+              style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 20 : 15 }}
               className="text-center text-[#4FB8FF]"
             >
               Crea tu cuenta para empezar.
             </Text>
 
-            <View className="mt-4 mb-4 flex-row items-center gap-3">
+            <View className="mt-3 mb-4 flex-row items-center gap-3">
               <View className="h-px w-16 bg-[#3B6FA5]" />
               <Ionicons name="rocket" size={18} color="#8CD5FF" />
               <View className="h-px w-16 bg-[#3B6FA5]" />
@@ -167,80 +177,77 @@ export default function RegisterScreen() {
               elevation: isWeb ? 0 : 10,
             }}
           >
-            <View style={{ padding: isDesktop ? 30 : 20, gap: 20 }}>
-              <View style={{ gap: 8 }}>
-                <Text className="ml-1 text-[13px] font-bold text-[#D9EEFF]">
-                  Alias
-                </Text>
-                <View className="flex-row items-center rounded-lg border border-[#35557C] bg-[#0B2145]">
-                  <Ionicons className="ml-4 mr-4" name="person-outline" size={18} color="#8AAED0" />
-                  <TextInput
-                    className="flex-1 px-3 py-4 text-[15px] text-[#F5FBFF]"
-                    placeholder="Jugador123"
-                    placeholderTextColor="#8AAED0"
-                    value={alias}
-                    onChangeText={setAlias}
-                    autoCapitalize="none"
-                  />
-                </View>
-              </View>
+            <View style={{ padding: isDesktop ? 30 : 20, gap: 18 }}>
+              <AuthInput
+                label="Alias"
+                icon="person-outline"
+                placeholder="Jugador123"
+                value={alias}
+                onChangeText={(value) => {
+                  setAlias(value)
+                  clearFieldError('alias')
+                }}
+                error={fieldErrors.alias}
+                autoCapitalize="none"
+                autoComplete="username"
+                textContentType="username"
+              />
 
-              <View style={{ gap: 8 }}>
-                <Text className="ml-1 text-[13px] font-bold text-[#D9EEFF]">
-                  Correo Electrónico
-                </Text>
-                <View className="flex-row items-center rounded-lg border border-[#35557C] bg-[#0B2145]">
-                  <Ionicons className="ml-4 mr-4" name="mail-outline" size={18} color="#8AAED0" />
-                  <TextInput
-                    className="flex-1 px-3 py-4 text-[15px] text-[#F5FBFF]"
-                    placeholder="Introduzca su correo"
-                    placeholderTextColor="#8AAED0"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="email-address"
-                  />
-                </View>
-              </View>
+              <AuthInput
+                label="Correo electrónico"
+                icon="mail-outline"
+                placeholder="Introduce tu correo"
+                value={email}
+                onChangeText={(value) => {
+                  setEmail(value)
+                  clearFieldError('email')
+                }}
+                error={fieldErrors.email}
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect={false}
+                inputMode="email"
+                keyboardType="email-address"
+                textContentType="emailAddress"
+              />
 
-              <View style={{ gap: 8 }}>
-                <Text className="ml-1 text-[13px] font-bold text-[#D9EEFF]">
-                  Contraseña
-                </Text>
-                <View className="flex-row items-center rounded-lg border border-[#35557C] bg-[#0B2145] px-4">
-                  <Ionicons className="mr-4" name="lock-closed-outline" size={18} color="#8AAED0" />
-                  <TextInput
-                    className="flex-1 px-3 py-4 text-[15px] text-[#F5FBFF]"
-                    placeholder="Introduzca su contraseña"
-                    placeholderTextColor="#8AAED0"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                  />
-                  <Pressable
-                    onPress={() => setShowPassword(!showPassword)}
-                    className="items-center justify-center rounded-full p-2"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
-                  >
-                    <Ionicons
-                      className="ml-2"
-                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                      size={18}
-                      color="#9FC7E2"
-                    />
-                  </Pressable>
-                </View>
-              </View>
+              <AuthInput
+                label="Contraseña"
+                icon="lock-closed-outline"
+                placeholder="Introduce tu contraseña"
+                value={password}
+                onChangeText={(value) => {
+                  setPassword(value)
+                  clearFieldError('password')
+                  if (fieldErrors.confirmPassword) clearFieldError('confirmPassword')
+                }}
+                error={fieldErrors.password}
+                helper="Mínimo 6 caracteres."
+                autoComplete="new-password"
+                secureTextEntry={!showPassword}
+                secureVisible={showPassword}
+                showSecureToggle
+                textContentType="newPassword"
+                onToggleSecureText={() => setShowPassword((current) => !current)}
+              />
 
-              <View className="rounded-xl border border-[#17365F] bg-[#061A38] px-4 py-3">
-                <View className="flex-row items-start gap-3">
-                  <Ionicons name="shield-checkmark-outline" size={18} color="#8CD5FF" />
-                  <Text className="flex-1 text-[13px] leading-5 text-[#AFCBE3]">
-                    Tu contraseña debe tener al menos 6 caracteres. Usaremos tu alias para mostrarte en preguntas y rankings.
-                  </Text>
-                </View>
-              </View>
+              <AuthInput
+                label="Confirmar contraseña"
+                icon="lock-closed-outline"
+                placeholder="Repite tu contraseña"
+                value={confirmPassword}
+                onChangeText={(value) => {
+                  setConfirmPassword(value)
+                  clearFieldError('confirmPassword')
+                }}
+                error={fieldErrors.confirmPassword}
+                autoComplete="new-password"
+                secureTextEntry={!showConfirmPassword}
+                secureVisible={showConfirmPassword}
+                showSecureToggle
+                textContentType="newPassword"
+                onToggleSecureText={() => setShowConfirmPassword((current) => !current)}
+              />
 
               <Pressable
                 onPress={signUpWithEmail}
@@ -282,7 +289,7 @@ export default function RegisterScreen() {
                 <Link href="/(auth)/login" asChild>
                   <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.76 : 1 })}>
                     <Text className="text-[13px] font-bold text-[#4FB8FF]">
-                      Inicia Sesión.
+                      Inicia sesión.
                     </Text>
                   </Pressable>
                 </Link>

@@ -12,6 +12,7 @@ import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/TeacherSidebar';
+import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge';
 import TeacherHeaderAvatar from '../../components/TeacherHeaderAvatar';
 
@@ -258,9 +259,7 @@ export default function TeacherHomeScreen() {
           <View className="mb-7 flex-row flex-wrap items-start justify-between gap-4">
             <View className="min-w-[280px] flex-1">
               {!isDesktop ? (
-                <Text className="mb-3 text-[#9FD6FF]" style={{ fontFamily: 'Pacifico_400Regular', fontSize: 30 }}>
-                  OmniQuest
-                </Text>
+                <BrandLogo size={30} style={{ marginBottom: 12 }} />
               ) : null}
               <Text className="text-[40px] font-black text-white">¡Bienvenido de nuevo, Profesor! 👋</Text>
               <Text className="mt-2 text-[14px] text-[#B7C4D7]">

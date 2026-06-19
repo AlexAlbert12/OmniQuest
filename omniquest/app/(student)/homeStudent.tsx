@@ -7,6 +7,7 @@ import { getWeeklyAttemptCount } from '../../lib/weeklyGoal'
 import { getStudentLevel, getNextLevelProgress } from '../../lib/studentLevel'
 import { getTimeAgo } from '../../lib/time'
 import StudentSidebar from '../../components/StudentSidebar'
+import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge'
 import { fetchStudentProgressSummary, type StudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
@@ -261,12 +262,7 @@ export default function StudentHome() {
           <View className="mb-6 flex-row items-start justify-between gap-4">
             <View className="flex-1">
               {!isDesktop ? (
-                <Text
-                  className="mb-3 text-[#9FD6FF]"
-                  style={{ fontFamily: 'Pacifico_400Regular', fontSize: 30 }}
-                >
-                  OmniQuest
-                </Text>
+                <BrandLogo size={30} style={{ marginBottom: 12 }} />
               ) : null}
               <Text className="text-[40px] font-black text-white">¡Hola, {alias}! 👋</Text>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">

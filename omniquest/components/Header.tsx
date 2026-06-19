@@ -1,6 +1,7 @@
 import React from 'react'
-import { View, Text, Pressable } from 'react-native'
+import { View, Pressable } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import BrandLogo from './BrandLogo'
 
 export default function Header({
   isDesktop,
@@ -15,12 +16,7 @@ export default function Header({
       style={{ marginBottom: isDesktop ? 18 : 14 }}
     >
       <View>
-        <Text
-          style={{ fontFamily: 'Pacifico_400Regular' }}
-          className="text-[#7CC9FF] font-bold text-xl" 
-        >
-          <Text style={{ fontSize: isDesktop ? 28 : 25 }}>OmniQuest</Text>
-        </Text>
+        <BrandLogo size={isDesktop ? 28 : 25} />
       </View>
 
       <Pressable

@@ -13,6 +13,7 @@ import {
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import SpaceBackground from '../../components/SpaceBackground'
+import BrandLogo from '../../components/BrandLogo'
 import { getAuthErrorMessage, getPasswordRecoveryRedirectTo, isValidEmail, normalizeEmail } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
 
@@ -86,12 +87,7 @@ export default function ForgotPasswordScreen() {
             paddingVertical: isDesktop ? 42 : 28,
           }}
         >
-          <Text
-            style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 64 : 38 }}
-            className="text-center text-[#CDEFFF]"
-          >
-            OmniQuest
-          </Text>
+          <BrandLogo center size={isDesktop ? 64 : 38} />
           <Text className="mt-2 text-center text-[#8CD5FF]">Recupera el acceso a tu aventura.</Text>
 
           <View

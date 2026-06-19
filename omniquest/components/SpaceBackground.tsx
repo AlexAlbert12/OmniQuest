@@ -4,71 +4,107 @@ import { View, type ViewStyle } from 'react-native'
 export default function SpaceBackdrop({ isDesktop = false }: { isDesktop?: boolean }) {
   return (
     <View className="absolute inset-0 overflow-hidden rounded-[34px] md:rounded-none">
-      <View className="absolute inset-0 bg-[#071630]" />
+      <View className="absolute inset-0 bg-[#020D22]" />
+      <View className="absolute inset-0 bg-[#061A3B]/72" />
 
       <View
-        className="absolute rounded-full bg-[#0E3D7D]/55"
+        className="absolute rounded-full bg-[#0B2D76]/70"
         style={{
-          width: isDesktop ? 220 : 130,
-          height: isDesktop ? 220 : 130,
-          left: isDesktop ? -58 : -52,
-          top: isDesktop ? 26 : 52,
-          transform: [{ rotate: '-18deg' }],
+          width: isDesktop ? 340 : 180,
+          height: isDesktop ? 340 : 180,
+          left: isDesktop ? -142 : -92,
+          top: isDesktop ? -116 : -54,
+          opacity: 0.9,
+          transform: [{ rotate: '-14deg' }],
         }}
       />
       <View
-        className="absolute rounded-full border border-[#124B99]/50"
+        className="absolute rounded-full border border-[#1A65D8]/65"
         style={{
-          width: isDesktop ? 300 : 180,
-          height: isDesktop ? 62 : 42,
-          left: isDesktop ? -104 : -78,
-          top: isDesktop ? 104 : 94,
+          width: isDesktop ? 420 : 230,
+          height: isDesktop ? 82 : 48,
+          left: isDesktop ? -176 : -112,
+          top: isDesktop ? 78 : 52,
           transform: [{ rotate: '-14deg' }],
         }}
       />
 
       <View
-        className="absolute rounded-full bg-[#16478B]/70"
+        className="absolute rounded-full bg-[#0C3D86]/80"
         style={{
-          width: isDesktop ? 76 : 54,
-          height: isDesktop ? 76 : 54,
-          right: isDesktop ? 96 : 24,
-          top: isDesktop ? 244 : 156,
+          width: isDesktop ? 88 : 58,
+          height: isDesktop ? 88 : 58,
+          right: isDesktop ? 112 : 22,
+          top: isDesktop ? 222 : 168,
         }}
       />
       <View
-        className="absolute rounded-full border border-[#205BA6]/50"
+        className="absolute rounded-full border border-[#1E68C7]/60"
         style={{
-          width: isDesktop ? 112 : 78,
-          height: isDesktop ? 34 : 24,
-          right: isDesktop ? 70 : 10,
-          top: isDesktop ? 264 : 170,
+          width: isDesktop ? 144 : 92,
+          height: isDesktop ? 42 : 28,
+          right: isDesktop ? 74 : 4,
+          top: isDesktop ? 246 : 184,
           transform: [{ rotate: '-18deg' }],
         }}
       />
 
-      <Star left="26%" top="9%" size={3} opacity={0.8} />
-      <Star left="36%" top="12%" size={5} opacity={0.9} />
-      <Star left="83%" top="11%" size={5} opacity={0.55} />
-      <Star left="92%" top="18%" size={3} opacity={0.6} />
-      <Star left="18%" top="26%" size={3} opacity={0.55} />
-      <Star left="8%" top="49%" size={4} opacity={0.65} />
-      <Star left="86%" top="53%" size={4} opacity={0.55} />
-      <Star left="74%" top="29%" size={5} opacity={0.58} />
-      <Star left="58%" top="8%" size={3} opacity={0.68} />
+      <View
+        className="absolute rounded-full bg-[#041B4A]/80"
+        style={{
+          width: isDesktop ? 460 : 240,
+          height: isDesktop ? 460 : 240,
+          left: isDesktop ? -130 : -120,
+          bottom: isDesktop ? -320 : -170,
+          opacity: 0.5,
+        }}
+      />
+      <View
+        className="absolute rounded-full bg-[#061D55]/70"
+        style={{
+          width: isDesktop ? 360 : 200,
+          height: isDesktop ? 360 : 200,
+          right: isDesktop ? -130 : -126,
+          bottom: isDesktop ? -250 : -148,
+          opacity: 0.46,
+        }}
+      />
 
-      <CloudCluster align="left" />
-      <CloudCluster align="right" />
+      <View
+        className="absolute"
+        style={{
+          left: isDesktop ? '49%' : '48%',
+          top: isDesktop ? 46 : 34,
+          transform: [{ rotate: '42deg' }],
+        }}
+      >
+      </View>
+
+      <Sparkle left="22%" top="27%" size={16} opacity={0.82} />
+      <Sparkle left="91%" top="5%" size={15} opacity={0.7} />
+      <Sparkle left="8%" top="34%" size={13} opacity={0.72} />
+      <Star left="7%" top="6%" size={3} opacity={0.85} />
+      <Star left="27%" top="10%" size={4} opacity={0.78} />
+      <Star left="69%" top="3%" size={3} opacity={0.85} />
+      <Star left="79%" top="15%" size={4} opacity={0.74} />
+      <Star left="96%" top="20%" size={3} opacity={0.72} />
+      <Star left="16%" top="18%" size={3} opacity={0.7} />
+      <Star left="5%" top="50%" size={4} opacity={0.68} />
+      <Star left="87%" top="45%" size={4} opacity={0.7} />
+      <Star left="96%" top="38%" size={3} opacity={0.65} />
+      <Star left="3%" top="30%" size={3} opacity={0.76} />
     </View>
   )
 }
 
 function Star({
+  color = '#72C8FF',
   left,
   top,
   size,
   opacity,
 }: {
+  color?: string
   left: ViewStyle['left']
   top: ViewStyle['top']
   size: number
@@ -76,33 +112,31 @@ function Star({
 }) {
   return (
     <View
-      className="absolute rounded-full bg-[#4FB8FF]"
-      style={{ left, top, width: size, height: size, opacity }}
+      className="absolute rounded-full"
+      style={{ backgroundColor: color, left, top, width: size, height: size, opacity }}
     />
   )
 }
 
-function CloudCluster({ align }: { align: 'left' | 'right' }) {
-  const sideStyle = align === 'left' ? { left: -18 } : { right: -18 }
+function Sparkle({
+  color = '#CFEAFF',
+  left,
+  top,
+  size,
+  opacity,
+}: {
+  color?: string
+  left: ViewStyle['left']
+  top: ViewStyle['top']
+  size: number
+  opacity: number
+}) {
+  const thickness = Math.max(1, Math.round(size / 6))
 
   return (
-    <View className="absolute bottom-[-32px]" style={sideStyle}>
-      <View
-        className="absolute rounded-full bg-[#061B43]"
-        style={{ width: 116, height: 116, bottom: 26, left: align === 'left' ? 0 : 136 }}
-      />
-      <View
-        className="absolute rounded-full bg-[#08265C]"
-        style={{ width: 126, height: 126, bottom: 8, left: align === 'left' ? 66 : 74 }}
-      />
-      <View
-        className="absolute rounded-full bg-[#071F4D]"
-        style={{ width: 154, height: 154, bottom: -18, left: align === 'left' ? 142 : -4 }}
-      />
-      <View
-        className="rounded-t-full bg-[#05142E]"
-        style={{ width: 300, height: 72, marginTop: 126 }}
-      />
+    <View className="absolute items-center justify-center" style={{ left, top, width: size, height: size, opacity }}>
+      <View className="absolute rounded-full" style={{ width: thickness, height: size, backgroundColor: color }} />
+      <View className="absolute rounded-full" style={{ width: size, height: thickness, backgroundColor: color }} />
     </View>
   )
 }

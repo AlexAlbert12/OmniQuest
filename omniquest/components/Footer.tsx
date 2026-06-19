@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text, Pressable, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import BrandLogo from './BrandLogo'
 
 export default function Footer() {
   const isWeb = Platform.OS === 'web'
@@ -13,12 +14,7 @@ export default function Footer() {
     >
       
       <View className={`flex-row items-center gap-x-4 ${!isWeb ? 'justify-center' : ''}`}>
-        <Text 
-          className="text-[#7CC9FF] font-bold text-xl" 
-          style={{ fontFamily: 'Pacifico_400Regular' }}
-        >
-          OmniQuest
-        </Text>
+        <BrandLogo size={20} />
         
         <View className="h-4 w-px bg-[#355276]" />
         
