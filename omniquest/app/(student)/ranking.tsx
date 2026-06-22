@@ -62,6 +62,7 @@ export default function RankingScreen() {
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [selectedScope, setSelectedScope] = useState<RankingScope>('global')
+  const [selectedLeagueName, setSelectedLeagueName] = useState<string | null>(null)
   const [classOptions, setClassOptions] = useState<ClassOption[]>([])
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -78,11 +79,16 @@ export default function RankingScreen() {
   const isGuest = currentProfile?.role_id === 'guest'
   const currentRankIndex = rankingRows.findIndex((item) => item.id === currentUserId)
   const currentRank = !isGuest && currentRankIndex >= 0 ? currentRankIndex + 1 : null
-  const maxPoints = Math.max(...rankingRows.map((item) => item.points ?? 0), 1)
   const rankingPoints = selectedScope === 'class'
     ? rankingRows.find((item) => item.id === currentUserId)?.points ?? 0
     : points
   const league = getRankingLeague(rankingPoints)
+  const selectedLeague = rankingLeagues.find((item) => item.name === selectedLeagueName) || league
+  const selectedLeagueRows = useMemo(
+    () => rankingRows.filter((item) => getRankingLeague(item.points ?? 0).name === selectedLeague.name),
+    [rankingRows, selectedLeague.name]
+  )
+  const selectedLeagueMaxPoints = Math.max(...selectedLeagueRows.map((item) => item.points ?? 0), 1)
   const rankingPointsLabel = selectedScope === 'class' ? 'Tu XP en esta clase' : 'Tu XP actual'
   const bestPointsLabel = selectedScope === 'class' ? 'Mejor XP de clase' : 'Mejor XP del ranking'
 
@@ -267,6 +273,14 @@ export default function RankingScreen() {
             </View>
           </View>
 
+          <LeagueCarousel
+            leagues={rankingLeagues}
+            currentLeague={league}
+            selectedLeague={selectedLeague}
+            points={rankingPoints}
+            onSelect={(nextLeague) => setSelectedLeagueName(nextLeague.name)}
+          />
+
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
             <View className={isDesktop ? 'flex-[1.45]' : ''}>
               <RankingTabs activeScope={selectedScope} onSelect={setSelectedScope} />
@@ -278,6 +292,22 @@ export default function RankingScreen() {
                 />
               ) : null}
               <View className="mt-4 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+                <View className="mb-4 flex-row flex-wrap items-center justify-between gap-3">
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-[16px] font-black text-white">Estudiantes en Liga {selectedLeague.name}</Text>
+                    <Text className="mt-1 text-[12px] text-[#8FA7C7]">
+                      {selectedScope === 'class'
+                        ? `Dentro de ${selectedClass?.name || 'la clase seleccionada'}`
+                        : 'Ranking global filtrado por liga'}
+                    </Text>
+                  </View>
+                  <View className="rounded-full border border-[#243D66] bg-[#0A1A34] px-3 py-2">
+                    <Text className="text-[12px] font-black text-[#AFC2DB]">
+                      {selectedLeagueRows.length} {selectedLeagueRows.length === 1 ? 'estudiante' : 'estudiantes'}
+                    </Text>
+                  </View>
+                </View>
+
                 <View className="mb-4 flex-row items-center border-b border-[#172A4A] pb-3">
                   <Text className="w-24 text-[12px] font-bold uppercase text-[#8FA7C7]">Posición</Text>
                   <Text className="min-w-0 flex-1 text-[12px] font-bold uppercase text-[#8FA7C7]">
@@ -289,21 +319,23 @@ export default function RankingScreen() {
                 </View>
 
                 <View style={{ gap: 6 }}>
-                  {rankingRows.length > 0 ? (
-                    rankingRows.slice(0, 8).map((item, index) => (
+                  {selectedLeagueRows.length > 0 ? (
+                    selectedLeagueRows.slice(0, 8).map((item, index) => (
                       <RankingRow
                         key={item.id}
                         item={item}
                         index={index}
                         isMe={item.id === currentUserId}
-                        maxPoints={maxPoints}
+                        maxPoints={selectedLeagueMaxPoints}
                       />
                     ))
                   ) : (
                     <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-8">
-                      <Ionicons name="trophy-outline" size={34} color="#8FA7C7" />
+                      <Ionicons name={selectedLeague.minPoints > rankingPoints ? 'lock-closed-outline' : 'trophy-outline'} size={34} color="#8FA7C7" />
                       <Text className="mt-2 text-center text-[13px] text-[#AFC2DB]">
-                        {emptyRankingMessage}
+                        {rankingRows.length === 0
+                          ? emptyRankingMessage
+                          : `No hay estudiantes en Liga ${selectedLeague.name} para este ranking.`}
                       </Text>
                     </View>
                   )}
@@ -409,6 +441,120 @@ async function fetchClassRanking(classId: number) {
       points: scoresByStudent.get(profile.id) ?? 0,
     }))
     .sort((left, right) => (right.points ?? 0) - (left.points ?? 0))
+}
+
+
+function LeagueCarousel({
+  leagues,
+  currentLeague,
+  selectedLeague,
+  points,
+  onSelect,
+}: {
+  leagues: RankingLeague[]
+  currentLeague: RankingLeague
+  selectedLeague: RankingLeague
+  points: number
+  onSelect: (league: RankingLeague) => void
+}) {
+  return (
+    <View className="mb-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+      <View className="mb-3 flex-row flex-wrap items-center justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="text-[16px] font-black text-white">Ligas</Text>
+          <Text className="mt-1 text-[12px] text-[#8FA7C7]">
+            Selecciona una liga para ver sus estudiantes y cuánto XP te falta para alcanzarla.
+          </Text>
+        </View>
+        <View className="flex-row items-center gap-2 rounded-full border px-3 py-2" style={{ borderColor: currentLeague.color, backgroundColor: withAlpha(currentLeague.color, '24') }}>
+          <Ionicons name={currentLeague.icon} size={15} color={currentLeague.color} />
+          <Text className="text-[12px] font-black" style={{ color: currentLeague.color }}>
+            Tu liga: {currentLeague.name}
+          </Text>
+        </View>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 4 }}>
+        {leagues.map((rankingLeague) => {
+          const isSelected = selectedLeague.name === rankingLeague.name
+          const isCurrent = currentLeague.name === rankingLeague.name
+          const isLocked = points < rankingLeague.minPoints
+          const nextLeague = getNextRankingLeague(rankingLeague)
+          const xpToReach = Math.max(0, rankingLeague.minPoints - points)
+          const xpToNext = rankingLeague.nextMinPoints === null ? 0 : Math.max(0, rankingLeague.nextMinPoints - points)
+          const progress = getLeagueCardProgress(points, rankingLeague)
+          const borderColor = isSelected ? rankingLeague.color : isLocked ? '#2A3548' : withAlpha(rankingLeague.color, '88')
+          const backgroundColor = isLocked
+            ? '#0A1224'
+            : isSelected
+              ? withAlpha(rankingLeague.color, '22')
+              : '#0A1A34'
+          const statusLabel = isCurrent ? 'Tu liga' : isLocked ? 'Bloqueada' : 'Alcanzada'
+          const detailLabel = isLocked
+            ? `Te faltan ${xpToReach.toLocaleString()} XP`
+            : isCurrent
+              ? rankingLeague.nextMinPoints === null
+                ? 'Liga máxima alcanzada'
+                : `${xpToNext.toLocaleString()} XP para ${nextLeague?.name || 'la siguiente liga'}`
+              : 'Ya puedes competir aquí'
+
+          return (
+            <Pressable
+              key={rankingLeague.name}
+              onPress={() => onSelect(rankingLeague)}
+              className="rounded-2xl border p-4"
+              style={{ width: 232, borderColor, backgroundColor, opacity: isLocked ? 0.68 : 1 }}
+            >
+              <View className="mb-3 flex-row items-center justify-between gap-3">
+                <View
+                  className="h-11 w-11 items-center justify-center rounded-xl"
+                  style={{ backgroundColor: isLocked ? '#13223B' : withAlpha(rankingLeague.color, '24') }}
+                >
+                  <Ionicons
+                    name={isLocked ? 'lock-closed' : rankingLeague.icon}
+                    size={21}
+                    color={isLocked ? '#64748B' : rankingLeague.color}
+                  />
+                </View>
+                <View
+                  className="rounded-full px-3 py-1"
+                  style={{ backgroundColor: isLocked ? '#111C31' : withAlpha(rankingLeague.color, '22') }}
+                >
+                  <Text className="text-[11px] font-black" style={{ color: isLocked ? '#8FA7C7' : rankingLeague.color }}>
+                    {statusLabel}
+                  </Text>
+                </View>
+              </View>
+
+              <Text className="text-[18px] font-black" style={{ color: isLocked ? '#94A3B8' : '#FFFFFF' }}>
+                Liga {rankingLeague.name}
+              </Text>
+              <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>
+                {detailLabel}
+              </Text>
+
+              <View className="mt-4">
+                <View className="mb-2 flex-row items-center justify-between">
+                  <Text className="text-[11px] text-[#8FA7C7]">
+                    Desde {rankingLeague.minPoints.toLocaleString()} XP
+                  </Text>
+                  <Text className="text-[11px] text-[#8FA7C7]">
+                    {rankingLeague.nextMinPoints === null ? 'Sin límite' : `${rankingLeague.nextMinPoints.toLocaleString()} XP`}
+                  </Text>
+                </View>
+                <View className="h-2 overflow-hidden rounded-full bg-[#142A4A]">
+                  <View
+                    className="h-full rounded-full"
+                    style={{ width: `${progress}%`, backgroundColor: isLocked ? '#475569' : rankingLeague.color }}
+                  />
+                </View>
+              </View>
+            </Pressable>
+          )
+        })}
+      </ScrollView>
+    </View>
+  )
 }
 
 function ClassRankingSelector({
@@ -677,6 +823,17 @@ function RankingSummaryCard({
       </View>
     </View>
   )
+}
+
+
+function getNextRankingLeague(league: RankingLeague) {
+  const index = rankingLeagues.findIndex((item) => item.name === league.name)
+  return index >= 0 ? rankingLeagues[index + 1] || null : null
+}
+
+function getLeagueCardProgress(points: number, league: RankingLeague) {
+  if (points < league.minPoints) return 0
+  return getLeagueProgress(points, league)
 }
 
 function getRankingLeague(points: number) {

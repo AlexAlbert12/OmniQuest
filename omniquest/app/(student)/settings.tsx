@@ -5,13 +5,11 @@ import {
   ActivityIndicator,
   Alert,
   LayoutChangeEvent,
-  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
-  Switch,
   Text,
   TextInput,
   useWindowDimensions,
@@ -30,6 +28,17 @@ import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
+import {
+  ActionRow,
+  DestructiveConfirmModal,
+  Field,
+  FooterLink,
+  NotificationRow,
+  Panel,
+  PreferenceRow,
+  SelectPill,
+  SettingsMenu,
+} from '../../components/settings/SettingsUi'
 
 type IconName = keyof typeof Ionicons.glyphMap
 type AppRole = 'student' | 'teacher'
@@ -37,8 +46,8 @@ type ToggleKey = 'twoFactor'
 type PreferenceKey = 'language' | 'timezone' | 'dateFormat' | 'timeFormat' | 'weekStart'
 type NotificationSettingKey = 'push' | 'email' | 'daily' | 'activities' | 'news'
 type NotificationFrequency = 'instant' | 'daily' | 'weekly'
-type SettingsMenuSectionKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'about'
-type SettingsAnchorKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'about'
+type SettingsMenuSectionKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'data' | 'security' | 'about'
+type SettingsAnchorKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'data' | 'security' | 'about'
 type ProfileVisibility = 'public' | 'private'
 type DestructiveActionType = 'scores' | 'enrollments' | 'all' | 'account'
 
@@ -164,13 +173,14 @@ const studentSettingsSections: { key: SettingsMenuSectionKey; label: string; ico
   { key: 'preferences', label: 'Idioma y región', icon: 'globe-outline', anchor: 'preferences' },
   { key: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', anchor: 'notifications' },
   { key: 'privacy', label: 'Privacidad', icon: 'shield-checkmark-outline', anchor: 'privacy' },
+  { key: 'data', label: 'Datos', icon: 'server-outline', anchor: 'data' },
   { key: 'security', label: 'Seguridad', icon: 'lock-closed-outline', anchor: 'security' },
   { key: 'about', label: 'Acerca de', icon: 'information-circle-outline', anchor: 'about' },
 ]
 
 const teacherSettingsSections: { key: SettingsMenuSectionKey; label: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
-  ...studentSettingsSections.slice(0, 6),
-  studentSettingsSections[6],
+  ...studentSettingsSections.slice(0, 7),
+  studentSettingsSections[7],
 ]
 const accentColors = ['#7C5CFF', '#3B82F6', '#38BDF8', '#58D17A', '#F6A64A', '#EF5350', '#D94A9A'] as const
 
@@ -218,6 +228,11 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const isTeacher = role === 'teacher'
   const isDark = theme === 'dark'
   const settingsSections = isTeacher ? teacherSettingsSections : studentSettingsSections
+  const shouldShowSettingsSection = useCallback(
+    (key: SettingsMenuSectionKey) =>
+      isDesktop || activeSettingsSection === key || (activeSettingsSection === 'general' && (key === 'profile' || key === 'preferences')),
+    [activeSettingsSection, isDesktop]
+  )
   const points = profile?.points ?? 0
   const alias = profile?.alias || (isTeacher ? 'Profesor' : 'Alumno')
   const level = getStudentLevel(points)
@@ -228,8 +243,8 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
       (securityOnly
         ? ['security']
         : isTeacher
-        ? ['general', 'profile', 'preferences', 'notifications', 'privacy', 'security', 'about']
-        : ['general', 'profile', 'preferences', 'notifications', 'privacy', 'security', 'about']) as SettingsAnchorKey[],
+        ? ['general', 'profile', 'preferences', 'notifications', 'privacy', 'data', 'security', 'about']
+        : ['general', 'profile', 'preferences', 'notifications', 'privacy', 'data', 'security', 'about']) as SettingsAnchorKey[],
     [isTeacher, securityOnly]
   )
 
@@ -685,6 +700,8 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
         return 'notifications'
       case 'privacy':
         return 'privacy'
+      case 'data':
+        return 'data'
       case 'security':
         return 'security'
       case 'about':
@@ -721,6 +738,8 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   }, [section])
 
   const handleSettingsScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!isDesktop) return
+
     const offsetY = event.nativeEvent.contentOffset.y + 90
     let currentAnchor: SettingsAnchorKey = 'general'
 
@@ -1145,8 +1164,8 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                 onSignOut={handleSignOut}
                 isDesktop={isDesktop}
                 activeSection={activeSettingsSection}
-                onSectionPress={handleMenuSectionPress}
-                sections={settingsSections}
+                onSectionPress={(nextSection) => handleMenuSectionPress(nextSection as any)}
+                sections={settingsSections as any}
               />
             ) : null}
 
@@ -1154,6 +1173,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
               {!securityOnly ? (
                 <>
               <View className={isWide ? 'flex-row gap-5' : 'gap-5'}>
+                {shouldShowSettingsSection('profile') ? (
                 <View onLayout={handleSectionLayout('profile')} className={isWide ? 'flex-1' : ''}>
                   <Panel title={`Información del ${isTeacher ? 'profesor' : 'alumno'}`}>
                     <View className={width >= 520 ? 'flex-row gap-5' : 'gap-4'}>
@@ -1214,7 +1234,9 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                     </View>
                   </Panel>
                 </View>
+                ) : null}
 
+                {shouldShowSettingsSection('preferences') ? (
                 <View onLayout={handleSectionLayout('preferences')} className={isWide ? 'flex-1' : ''}>
                   <Panel title="Preferencias generales">
                     <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
@@ -1289,9 +1311,11 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                     />
                   </Panel>
                 </View>
+                ) : null}
               </View>
 
               <View className={isWide ? 'flex-row gap-5' : 'gap-5'}>
+                {shouldShowSettingsSection('notifications') ? (
                 <View onLayout={handleSectionLayout('notifications')} className={isWide ? 'flex-1' : ''}>
                   <Panel title="Notificaciones">
                     <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
@@ -1365,9 +1389,11 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                     />
                   </Panel>
                 </View>
+                ) : null}
 
+                {shouldShowSettingsSection('privacy') ? (
                 <View onLayout={handleSectionLayout('privacy')} className={isWide ? 'flex-1' : ''}>
-                  <Panel title="Privacidad y datos">
+                  <Panel title="Privacidad">
                     <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-4">
                       <View className="flex-row items-center justify-between">
                         <View className="min-w-0 flex-1">
@@ -1410,6 +1436,30 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                       ) : null}
                     </View>
 
+                    <View className="mt-3 rounded-xl border border-[#4733B7] bg-[#151A47] p-4">
+                      <View className="flex-row gap-3">
+                        <Ionicons name="shield-checkmark-outline" size={22} color={accentColor} />
+                        <View className="min-w-0 flex-1">
+                          <Text className="font-black text-white">Tu privacidad es importante</Text>
+                          <Text className="mt-1 text-[12px] leading-5 text-[#B7C4D7]">
+                            Protegemos tu información y tu historial académico.
+                          </Text>
+                          <Pressable onPress={showPrivacyCenter} className="mt-2 flex-row items-center gap-1">
+                            <Text className="text-[12px] font-bold text-[#A78BFA]">Centro de privacidad</Text>
+                            <Ionicons name="open-outline" size={13} color="#A78BFA" />
+                          </Pressable>
+                        </View>
+                      </View>
+                    </View>
+                  </Panel>
+                </View>
+                ) : null}
+
+              </View>
+
+                {shouldShowSettingsSection('data') ? (
+                <View onLayout={handleSectionLayout('data')} className={isWide ? 'flex-1' : ''}>
+                  <Panel title="Datos">
                     <ActionRow
                       icon="download-outline"
                       title="Exportar datos"
@@ -1504,27 +1554,13 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                       </View>
                     </View>
 
-                    <View className="mt-3 rounded-xl border border-[#4733B7] bg-[#151A47] p-4">
-                      <View className="flex-row gap-3">
-                        <Ionicons name="shield-checkmark-outline" size={22} color={accentColor} />
-                        <View className="min-w-0 flex-1">
-                          <Text className="font-black text-white">Tu privacidad es importante</Text>
-                          <Text className="mt-1 text-[12px] leading-5 text-[#B7C4D7]">
-                            Protegemos tu información y tu historial académico.
-                          </Text>
-                          <Pressable onPress={showPrivacyCenter} className="mt-2 flex-row items-center gap-1">
-                            <Text className="text-[12px] font-bold text-[#A78BFA]">Centro de privacidad</Text>
-                            <Ionicons name="open-outline" size={13} color="#A78BFA" />
-                          </Pressable>
-                        </View>
-                      </View>
-                    </View>
                   </Panel>
                 </View>
-              </View>
+                ) : null}
                 </>
               ) : null}
 
+              {shouldShowSettingsSection('security') ? (
               <View onLayout={handleSectionLayout('security')}>
                 <Panel title="Seguridad">
                   {!securityOnly ? (
@@ -1603,6 +1639,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                   )}
                 </Panel>
               </View>
+              ) : null}
             </View>
           </View>
 
@@ -1649,403 +1686,6 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
 export default function StudentSettingsScreen() {
   return <UnifiedSettingsScreen />
-}
-
-function DestructiveConfirmModal({
-  visible,
-  action,
-  isTeacher,
-  value,
-  busy,
-  onChangeText,
-  onCancel,
-  onConfirm,
-}: {
-  visible: boolean
-  action: DestructiveActionType | null
-  isTeacher: boolean
-  value: string
-  busy: boolean
-  onChangeText: (value: string) => void
-  onCancel: () => void
-  onConfirm: () => void
-}) {
-  const details = getDestructiveActionDetails(action, isTeacher)
-  const canConfirm = value.trim() === REQUIRED_DESTRUCTIVE_CONFIRMATION && !busy
-
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View className="flex-1 items-center justify-center bg-black/70 px-5">
-        <View className="w-full max-w-[430px] rounded-2xl border border-[#4A1E2B] bg-[#07162D] p-5">
-          <View className="flex-row items-center gap-3">
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-[#2A0B18]">
-              <Ionicons name="warning-outline" size={20} color="#FB7185" />
-            </View>
-            <View className="min-w-0 flex-1">
-              <Text className="text-[16px] font-black text-white">{details.title}</Text>
-              <Text className="mt-1 text-[12px] leading-5 text-[#FCA5A5]">{details.description}</Text>
-            </View>
-          </View>
-
-          <Text className="mt-5 text-[12px] font-semibold text-[#B7C4D7]">
-            Escribe {REQUIRED_DESTRUCTIVE_CONFIRMATION} para continuar.
-          </Text>
-          <TextInput
-            value={value}
-            onChangeText={onChangeText}
-            autoCapitalize="characters"
-            placeholder={REQUIRED_DESTRUCTIVE_CONFIRMATION}
-            placeholderTextColor="#64748B"
-            className="mt-2 rounded-lg border border-[#4A1E2B] bg-[#0D1D3B] px-4 py-3 text-[13px] font-bold text-white"
-          />
-
-          <View className="mt-5 flex-row justify-end gap-3">
-            <Pressable
-              onPress={onCancel}
-              disabled={busy}
-              className="rounded-lg border border-[#263E61] px-4 py-3"
-              style={({ pressed }) => ({ opacity: busy ? 0.55 : pressed ? 0.8 : 1 })}
-            >
-              <Text className="text-[12px] font-bold text-[#DDE7F4]">Cancelar</Text>
-            </Pressable>
-            <Pressable
-              onPress={onConfirm}
-              disabled={!canConfirm}
-              className="rounded-lg bg-[#BE123C] px-4 py-3"
-              style={({ pressed }) => ({ opacity: !canConfirm ? 0.45 : pressed ? 0.82 : 1 })}
-            >
-              {busy ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text className="text-[12px] font-bold text-white">{details.confirmLabel}</Text>
-              )}
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  )
-}
-
-function getDestructiveActionDetails(action: DestructiveActionType | null, isTeacher: boolean) {
-  switch (action) {
-    case 'scores':
-      return isTeacher
-        ? {
-            title: 'Eliminar progreso de alumnos',
-            description: 'Se borrarán puntuaciones por clase, puntuaciones por tema e intentos de alumnos en tus clases. No se borran clases, preguntas ni perfiles.',
-            confirmLabel: 'Eliminar progreso',
-          }
-        : {
-            title: 'Eliminar puntuaciones',
-            description: 'Se borrarán subject_scores y topic_scores, y tu XP global se reseteará a 0.',
-            confirmLabel: 'Eliminar puntuaciones',
-          }
-    case 'enrollments':
-      return {
-        title: 'Salir de todas las clases',
-        description: 'Se eliminarán tus inscripciones actuales. Tu cuenta seguirá activa.',
-        confirmLabel: 'Salir de clases',
-      }
-    case 'all':
-      return isTeacher
-        ? {
-            title: 'Eliminar todos mis datos docentes',
-            description: 'Se borrarán tus clases, temas, preguntas, respuestas, inscripciones, puntuaciones de alumnos, intentos, preferencias, notificaciones y avatar. Tu cuenta seguirá activa.',
-            confirmLabel: 'Eliminar todo',
-          }
-        : {
-            title: 'Eliminar datos de uso',
-            description: 'Se borrarán progreso, intentos, estado de notificaciones, preferencias y avatar. Tu cuenta seguirá activa.',
-            confirmLabel: 'Eliminar datos',
-          }
-    case 'account':
-      return isTeacher
-        ? {
-            title: 'Borrar mi cuenta',
-            description: 'Se eliminarán tu usuario, perfil docente y datos asociados. Revisa antes tus clases y contenido creado. No se puede deshacer.',
-            confirmLabel: 'Borrar cuenta',
-          }
-        : {
-            title: 'Borrar mi cuenta',
-            description: 'Se eliminarán tu usuario, perfil, progreso académico y datos asociados. No se puede deshacer.',
-            confirmLabel: 'Borrar cuenta',
-          }
-    default:
-      return {
-        title: 'Confirmar acción',
-        description: 'Esta acción no se puede deshacer.',
-        confirmLabel: 'Continuar',
-      }
-  }
-}
-
-function SettingsMenu({
-  onSignOut,
-  isDesktop,
-  activeSection,
-  onSectionPress,
-  sections,
-}: {
-  onSignOut: () => void
-  isDesktop: boolean
-  activeSection: SettingsMenuSectionKey
-  onSectionPress: (section: { key: SettingsMenuSectionKey; anchor: SettingsAnchorKey }) => void
-  sections: { key: SettingsMenuSectionKey; label: string; icon: IconName; anchor: SettingsAnchorKey }[]
-}) {
-  const { accentColor } = useAppTheme()
-
-  return (
-    <View
-      className={`rounded-xl border border-[#183052] bg-[#07162D] p-3 ${isDesktop ? 'w-[205px] self-start' : ''
-        }`}
-    >
-      <View className={isDesktop ? 'gap-1' : 'flex-row flex-wrap gap-2'}>
-        {sections.map((section) => (
-          <Pressable
-            key={section.label}
-            onPress={() => onSectionPress(section)}
-            className="flex-row items-center gap-3 rounded-lg border px-3 py-3"
-            style={{
-              borderColor: section.key === activeSection ? accentColor : 'transparent',
-              backgroundColor: section.key === activeSection ? withAlpha(accentColor, '24') : 'transparent',
-            }}
-          >
-            <Ionicons name={section.icon} size={16} color={section.key === activeSection ? accentColor : '#AFC2DB'} />
-            <Text className={`text-[12px] font-semibold ${section.key === activeSection ? 'text-white' : 'text-[#B7C4D7]'}`}>
-              {section.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-      <Pressable
-        onPress={onSignOut}
-        className="mt-4 flex-row items-center gap-2 rounded-lg border border-[#20375E] bg-[#071326] px-3 py-3"
-      >
-        <Ionicons name="log-out-outline" size={15} color="#F87171" />
-        <Text className="text-[12px] font-bold text-[#F87171]">Cerrar sesión</Text>
-      </Pressable>
-    </View>
-  )
-}
-
-function Panel({
-  title,
-  children,
-  className = '',
-}: {
-  title: string
-  children: React.ReactNode
-  className?: string
-}) {
-  return (
-    <View className={`rounded-xl border border-[#183052] bg-[#07162D] p-5 ${className}`}>
-      <Text className="mb-4 text-[16px] font-black text-white">{title}</Text>
-      {children}
-    </View>
-  )
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View>
-      <Text className="mb-2 text-[13px] font-semibold text-[#B7C4D7]">{label}</Text>
-      {children}
-    </View>
-  )
-}
-
-function SelectPill({
-  value,
-  selectedValue,
-  open = false,
-  onToggle,
-  options,
-  onSelect,
-  optionLabel,
-  disabled = false,
-  loading = false,
-}: {
-  value: string
-  selectedValue: string
-  open?: boolean
-  onToggle: () => void
-  options: string[]
-  onSelect: (value: string) => void
-  optionLabel: (value: string) => string
-  disabled?: boolean
-  loading?: boolean
-}) {
-  const { accentColor } = useAppTheme()
-
-  return (
-    <View>
-      <Pressable
-        onPress={onToggle}
-        disabled={disabled}
-        className="flex-row items-center justify-between rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3"
-        style={({ pressed }) => ({
-          opacity: disabled ? 0.7 : pressed ? 0.86 : 1,
-        })}
-      >
-        <Text className="min-w-0 flex-1 text-[13px] font-semibold text-white">{value}</Text>
-        {loading ? (
-          <ActivityIndicator size="small" color="#AFC2DB" />
-        ) : (
-          <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color="#AFC2DB" />
-        )}
-      </Pressable>
-
-      {open ? (
-        <View className="mt-2 overflow-hidden rounded-lg border border-[#243E63] bg-[#0A2042]">
-          {options.map((option, index) => (
-            <Pressable
-              key={option}
-              onPress={() => onSelect(option)}
-              className={`flex-row items-center justify-between px-4 py-3 ${index < options.length - 1 ? 'border-b border-[#1B3357]' : ''}`}
-            >
-              <Text className="min-w-0 flex-1 text-[13px] text-[#DDE7F4]">{optionLabel(option)}</Text>
-              {option === selectedValue ? (
-                <Ionicons name="checkmark" size={16} color={accentColor} />
-              ) : null}
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-    </View>
-  )
-}
-
-function PreferenceRow({
-  label,
-  value,
-  selectedValue,
-  open = false,
-  onToggle,
-  options,
-  onSelect,
-  optionLabel,
-  disabled = false,
-  loading = false,
-}: {
-  label: string
-  value: string
-  selectedValue: string
-  open?: boolean
-  onToggle: () => void
-  options: string[]
-  onSelect: (value: string) => void
-  optionLabel: (value: string) => string
-  disabled?: boolean
-  loading?: boolean
-}) {
-  return (
-    <View className="mb-4 flex-row items-start gap-4">
-      <Text className="w-[125px] text-[12px] font-semibold text-[#B7C4D7]">{label}</Text>
-      <View className="min-w-0 flex-1">
-        <SelectPill
-          value={value}
-          selectedValue={selectedValue}
-          open={open}
-          onToggle={onToggle}
-          options={options}
-          onSelect={onSelect}
-          optionLabel={optionLabel}
-          disabled={disabled}
-          loading={loading}
-        />
-      </View>
-    </View>
-  )
-}
-
-function NotificationRow({
-  icon,
-  title,
-  description,
-  enabled,
-  onPress,
-  disabled = false,
-  loading = false,
-}: {
-  icon: IconName
-  title: string
-  description: string
-  enabled: boolean
-  onPress: () => void
-  disabled?: boolean
-  loading?: boolean
-}) {
-  const { accentColor } = useAppTheme()
-
-  return (
-    <View className="flex-row items-center gap-3 border-b border-[#13284A] py-3">
-      <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10233F]">
-        <Ionicons name={icon} size={18} color="#AFC2DB" />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="font-bold text-white">{title}</Text>
-        <Text className="mt-1 text-[12px] text-[#B7C4D7]">{description}</Text>
-      </View>
-      <View className="items-end">
-        {loading ? <ActivityIndicator size="small" color="#AFC2DB" /> : null}
-        <Switch
-          value={enabled}
-          onValueChange={onPress}
-          disabled={disabled || loading}
-          trackColor={{ false: '#223554', true: accentColor }}
-          thumbColor="#FFFFFF"
-        />
-      </View>
-    </View>
-  )
-}
-
-function ActionRow({
-  icon,
-  title,
-  description,
-  onPress,
-  disabled = false,
-  loading = false,
-}: {
-  icon: IconName
-  title: string
-  description: string
-  onPress: () => void
-  disabled?: boolean
-  loading?: boolean
-}) {
-  return (
-    <Pressable
-      onPress={disabled || loading ? undefined : onPress}
-      className={`flex-row items-center gap-3 border-b border-[#13284A] py-3 ${disabled || loading ? 'opacity-50' : ''}`}
-    >
-      <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10233F]">
-        {loading ? (
-          <ActivityIndicator size="small" color="#AFC2DB" />
-        ) : (
-          <Ionicons name={icon} size={18} color="#AFC2DB" />
-        )}
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className={`font-bold ${disabled || loading ? 'text-[#AFC2DB]' : 'text-white'}`}>{title}</Text>
-        <Text className="mt-1 text-[12px] text-[#B7C4D7]">{description}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={19} color="#AFC2DB" />
-    </Pressable>
-  )
-}
-
-function FooterLink({ label, onPress }: { label: string; onPress: () => void }) {
-  const { accentColor } = useAppTheme()
-
-  return (
-    <Pressable onPress={onPress} className="mt-2 flex-row items-center justify-between py-2">
-      <Text className="text-[12px] font-semibold" style={{ color: accentColor }}>{label}</Text>
-      <Ionicons name="chevron-forward" size={15} color={accentColor} />
-    </Pressable>
-  )
 }
 
 function getInitials(value: string) {

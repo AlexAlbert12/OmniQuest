@@ -63,6 +63,39 @@ type RecentScore = {
   value: number
 }
 
+type ReinforcementQuestionRelation = {
+  id: number
+  text: string | null
+  type: string | null
+  subject_id: number | null
+  topic_id: number | null
+  subjects?: { name: string } | { name: string }[] | null
+  subject_topics?: { title: string } | { title: string }[] | null
+}
+
+type ReinforcementAttemptRow = {
+  id: number
+  is_correct: boolean | null
+  attempted_at: string | null
+  questions?: ReinforcementQuestionRelation | ReinforcementQuestionRelation[] | null
+}
+
+type ReinforcementArea = {
+  id: string
+  title: string
+  detail: string
+  badge: string
+  icon: keyof typeof Ionicons.glyphMap
+  color: string
+  failedCount: number
+  accuracyPercent: number
+  totalAttempts: number
+  subjectId?: number
+  topicId?: number | null
+  topicName?: string
+  actionLabel: string
+}
+
 export default function ProgressScreen() {
   const { width } = useWindowDimensions()
   const router = useRouter()
@@ -70,6 +103,7 @@ export default function ProgressScreen() {
   const [subjectProgress, setSubjectProgress] = useState<SubjectProgress[]>([])
   const [recentScores, setRecentScores] = useState<RecentScore[]>([])
   const [scores, setScores] = useState<ScoreRow[]>([])
+  const [reinforcementAreas, setReinforcementAreas] = useState<ReinforcementArea[]>([])
   const [loading, setLoading] = useState(true)
   const { accentColor } = useAppTheme()
 
@@ -108,7 +142,11 @@ export default function ProgressScreen() {
       const weekStartIso = weekStart.toISOString()
       const nowIso = now.toISOString()
 
-      const [profileResult, scoresResult, weeklyAttemptsResult, progressResult] = await Promise.all([
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const thirtyDaysAgoIso = thirtyDaysAgo.toISOString()
+
+      const [profileResult, scoresResult, weeklyAttemptsResult, progressResult, reinforcementResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
         supabase
           .from('subject_scores')
@@ -122,11 +160,31 @@ export default function ProgressScreen() {
           .gte('attempted_at', weekStartIso)
           .lte('attempted_at', nowIso),
         fetchStudentProgressSummary(userId),
+        supabase
+          .from('attempt_history')
+          .select(`
+          id,
+          is_correct,
+          attempted_at,
+          questions (
+            id,
+            text,
+            type,
+            subject_id,
+            topic_id,
+            subjects ( name ),
+            subject_topics ( title )
+          )
+        `)
+          .eq('student_id', userId)
+          .gte('attempted_at', thirtyDaysAgoIso)
+          .order('attempted_at', { ascending: false }),
       ])
 
       if (profileResult.error) throw profileResult.error
       if (scoresResult.error) throw scoresResult.error
       if (weeklyAttemptsResult.error) throw weeklyAttemptsResult.error
+      if (reinforcementResult.error) throw reinforcementResult.error
 
       setProfile(profileResult.data)
       const scores = (scoresResult.data || []) as ScoreRow[]
@@ -134,6 +192,7 @@ export default function ProgressScreen() {
       setSubjectProgress(buildSubjectRows(progressResult.subjects, scores))
       setRecentScores(buildRecentScores(scores))
       setScores(scores)
+      setReinforcementAreas(buildReinforcementAreas((reinforcementResult.data || []) as ReinforcementAttemptRow[]))
     } catch (error) {
       console.error('Error fetching progress:', error)
     } finally {
@@ -212,6 +271,27 @@ export default function ProgressScreen() {
             />
             <XpEvolution scores={recentScores} />
             <DistributionCard subjects={subjectProgress} />
+          </View>
+
+          <View className="mt-5">
+            <ReinforcementCard
+              areas={reinforcementAreas}
+              onReview={(area) => {
+                if (area.subjectId) {
+                  router.push({
+                    pathname: '/(student)/play/[id]',
+                    params: {
+                      id: String(area.subjectId),
+                      topicId: area.topicId === null || area.topicId === undefined ? 'general' : String(area.topicId),
+                      topicName: area.topicName || area.title,
+                      review: 'failed',
+                    },
+                  } as any)
+                } else {
+                  router.push('/(student)/activity-log' as any)
+                }
+              }}
+            />
           </View>
 
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
@@ -414,6 +494,80 @@ function DistributionCard({ subjects }: { subjects: SubjectProgress[] }) {
   )
 }
 
+function ReinforcementCard({
+  areas,
+  onReview,
+}: {
+  areas: ReinforcementArea[]
+  onReview: (area: ReinforcementArea) => void
+}) {
+  const primaryArea = areas.find((area) => area.subjectId)
+
+  return (
+    <StudentDashboardCard
+      title="Áreas a reforzar"
+      onAction={primaryArea ? () => onReview(primaryArea) : undefined}
+    >
+      {areas.length > 0 ? (
+        <View style={{ gap: 12 }}>
+          {areas.map((area) => (
+            <Pressable
+              key={area.id}
+              onPress={() => onReview(area)}
+              className="flex-row items-center gap-4 rounded-xl border border-[#1A3155] bg-[#0D1D3B] p-4"
+            >
+              <View
+                className="h-12 w-12 items-center justify-center rounded-xl"
+                style={{ backgroundColor: `${area.color}24` }}
+              >
+                <Ionicons name={area.icon} size={22} color={area.color} />
+              </View>
+
+              <View className="min-w-0 flex-1">
+                <View className="mb-1 flex-row flex-wrap items-center gap-2">
+                  <Text className="text-[15px] font-black text-white" numberOfLines={1}>
+                    {area.title}
+                  </Text>
+                  <View className="rounded-full bg-[#13284A] px-2 py-1">
+                    <Text className="text-[11px] font-black text-[#9FD6FF]">
+                      {area.badge}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text className="text-[13px] text-[#AFC2DB]" numberOfLines={2}>
+                  {area.detail}
+                </Text>
+              </View>
+
+              <View className="items-end">
+                <Text className="text-[18px] font-black text-white">
+                  {area.accuracyPercent}%
+                </Text>
+                <Text className="text-[11px] text-[#8FA7C7]">acierto</Text>
+              </View>
+
+              <View className="hidden rounded-xl bg-[#7C5CFF] px-4 py-3 md:flex">
+                <Text className="font-black text-white">{area.actionLabel}</Text>
+              </View>
+
+              <Ionicons name="arrow-forward" size={18} color="#8B5CF6" />
+            </Pressable>
+          ))}
+        </View>
+      ) : (
+        <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B] px-4 py-6">
+          <Ionicons name="sparkles-outline" size={34} color="#43D991" />
+          <Text className="mt-3 text-center font-black text-white">Sin áreas críticas ahora mismo</Text>
+          <Text className="mt-1 max-w-[560px] text-center text-[13px] leading-5 text-[#8FA7C7]">
+            Cuando acumules varios intentos, OmniQuest detectará automáticamente los temas y tipos de pregunta que más necesitas repasar.
+          </Text>
+        </View>
+      )}
+    </StudentDashboardCard>
+  )
+}
+
 function SubjectProgressRow({
   subject,
 }: {
@@ -556,4 +710,177 @@ function getStartOfWeekMonday(date: Date) {
   monday.setDate(date.getDate() + diffToMonday)
   monday.setHours(0, 0, 0, 0)
   return monday
+}
+
+function buildReinforcementAreas(rows: ReinforcementAttemptRow[]): ReinforcementArea[] {
+  type TopicStats = {
+    subjectId: number
+    topicId: number | null
+    topicName: string
+    subjectName: string
+    totalAttempts: number
+    correctAttempts: number
+    failedCount: number
+    lastAttemptAt: string
+  }
+
+  type TypeStats = {
+    type: string
+    totalAttempts: number
+    correctAttempts: number
+    failedCount: number
+  }
+
+  const topicStats = new Map<string, TopicStats>()
+  const typeStats = new Map<string, TypeStats>()
+
+  rows.forEach((row) => {
+    const question = normalizeSingleRelation(row.questions)
+    if (!question || question.subject_id === null) return
+
+    const isCorrect = row.is_correct === true
+    const topic = normalizeSingleRelation(question.subject_topics)
+    const subject = normalizeSingleRelation(question.subjects)
+
+    const topicId = question.topic_id ?? null
+    const topicName = topic?.title || 'Tema general'
+    const subjectName = subject?.name || 'Clase'
+    const topicKey = `${question.subject_id}:${topicId ?? 'general'}`
+
+    const currentTopic = topicStats.get(topicKey) || {
+      subjectId: question.subject_id,
+      topicId,
+      topicName,
+      subjectName,
+      totalAttempts: 0,
+      correctAttempts: 0,
+      failedCount: 0,
+      lastAttemptAt: row.attempted_at || '',
+    }
+
+    currentTopic.totalAttempts += 1
+    currentTopic.correctAttempts += isCorrect ? 1 : 0
+    currentTopic.failedCount += isCorrect ? 0 : 1
+
+    if ((row.attempted_at || '') > currentTopic.lastAttemptAt) {
+      currentTopic.lastAttemptAt = row.attempted_at || ''
+    }
+
+    topicStats.set(topicKey, currentTopic)
+
+    const questionType = question.type || 'unknown'
+    const currentType = typeStats.get(questionType) || {
+      type: questionType,
+      totalAttempts: 0,
+      correctAttempts: 0,
+      failedCount: 0,
+    }
+
+    currentType.totalAttempts += 1
+    currentType.correctAttempts += isCorrect ? 1 : 0
+    currentType.failedCount += isCorrect ? 0 : 1
+
+    typeStats.set(questionType, currentType)
+  })
+
+  const topicAreas: ReinforcementArea[] = Array.from(topicStats.values())
+    .filter((item) => item.failedCount > 0)
+    .map((item) => {
+      const accuracyPercent = Math.round((item.correctAttempts / Math.max(item.totalAttempts, 1)) * 100)
+
+      return {
+        id: `topic-${item.subjectId}-${item.topicId ?? 'general'}`,
+        title: item.topicName,
+        detail: `${item.failedCount} ${item.failedCount === 1 ? 'error reciente' : 'errores recientes'} · ${item.subjectName}`,
+        badge: 'Tema',
+        icon: 'alert-circle',
+        color: '#FB7185',
+        failedCount: item.failedCount,
+        accuracyPercent,
+        totalAttempts: item.totalAttempts,
+        subjectId: item.subjectId,
+        topicId: item.topicId,
+        topicName: item.topicName,
+        actionLabel: 'Repasar',
+      } satisfies ReinforcementArea
+    })
+    .sort((a, b) => {
+      if (b.failedCount !== a.failedCount) return b.failedCount - a.failedCount
+      return a.accuracyPercent - b.accuracyPercent
+    })
+    .slice(0, 3)
+
+  const typeAreas: ReinforcementArea[] = Array.from(typeStats.values())
+    .filter((item) => item.totalAttempts >= 3 && item.failedCount > 0)
+    .map((item) => {
+      const accuracyPercent = Math.round((item.correctAttempts / Math.max(item.totalAttempts, 1)) * 100)
+
+      return {
+        id: `type-${item.type}`,
+        title: getQuestionTypeLabel(item.type),
+        detail: `${item.failedCount} fallos en ${item.totalAttempts} intentos`,
+        badge: 'Tipo de pregunta',
+        icon: getQuestionTypeIcon(item.type),
+        color: '#F6A64A',
+        failedCount: item.failedCount,
+        accuracyPercent,
+        totalAttempts: item.totalAttempts,
+        actionLabel: 'Ver historial',
+      } satisfies ReinforcementArea
+    })
+    .filter((item) => item.accuracyPercent <= 60)
+    .sort((a, b) => {
+      if (a.accuracyPercent !== b.accuracyPercent) return a.accuracyPercent - b.accuracyPercent
+      return b.failedCount - a.failedCount
+    })
+    .slice(0, 2)
+
+  return [...topicAreas, ...typeAreas].slice(0, 4)
+}
+
+function normalizeSingleRelation<T>(relation: T | T[] | null | undefined): T | null {
+  if (Array.isArray(relation)) return relation[0] ?? null
+  return relation ?? null
+}
+
+function getQuestionTypeLabel(type: string) {
+  switch (type) {
+    case 'multiple_choice':
+      return 'Preguntas tipo test'
+    case 'true_false':
+      return 'Verdadero o falso'
+    case 'open_answer':
+      return 'Preguntas abiertas'
+    case 'fill_blank':
+      return 'Rellenar huecos'
+    case 'ordering':
+      return 'Ordenar elementos'
+    case 'match_pairs':
+      return 'Unir parejas'
+    case 'drag_drop':
+      return 'Asignar elementos'
+    default:
+      return 'Tipo de pregunta'
+  }
+}
+
+function getQuestionTypeIcon(type: string): keyof typeof Ionicons.glyphMap {
+  switch (type) {
+    case 'multiple_choice':
+      return 'list-circle'
+    case 'true_false':
+      return 'checkmark-circle'
+    case 'open_answer':
+      return 'chatbubble-ellipses'
+    case 'fill_blank':
+      return 'create'
+    case 'ordering':
+      return 'reorder-three'
+    case 'match_pairs':
+      return 'git-compare'
+    case 'drag_drop':
+      return 'move'
+    default:
+      return 'help-circle'
+  }
 }

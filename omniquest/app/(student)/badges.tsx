@@ -231,7 +231,7 @@ export default function BadgesScreen() {
             <View className={isDesktop ? 'flex-1 flex-row gap-4' : 'flex-row gap-4'}>
               <MetricTile icon="checkmark-circle" color="#34D399" label="Conseguidas" value={String(unlockedBadges.length)} />
               <MetricTile icon="lock-closed" color="#F6A64A" label="Pendientes" value={String(lockedBadges.length)} />
-              <MetricTile icon="flame" color="#FF7B45" label="Racha" value={String(metrics.streakDays)} />
+              <MetricTile icon="flame" color="#FF7B45" label="Días de racha" value={String(metrics.streakDays)} />
             </View>
           </View>
 
