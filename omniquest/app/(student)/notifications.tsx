@@ -222,8 +222,13 @@ export default function StudentNotificationsScreen() {
             <View className="flex-row flex-wrap items-center gap-3">
               <Pressable
                 onPress={() => void onRefresh()}
-                className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
-                style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+                className="flex-row items-center gap-2 rounded-xl px-4 py-3"
+                style={({ pressed }) => ({
+                  borderWidth: 1,
+                  borderColor: '#20375E',
+                  backgroundColor: '#09162C',
+                  opacity: pressed ? 0.82 : 1,
+                })}
               >
                 <Ionicons name="refresh-outline" size={16} color="#AFC2DB" />
                 <Text className="text-[12px] font-bold text-[#DDE7F4]">Actualizar</Text>
@@ -231,8 +236,13 @@ export default function StudentNotificationsScreen() {
               {unreadCount > 0 ? (
                 <Pressable
                   onPress={() => void markAllAsRead()}
-                  className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
-                  style={({ pressed }) => ({ backgroundColor: accentColor, opacity: pressed ? 0.82 : 1 })}
+                  className="flex-row items-center gap-2 rounded-xl px-4 py-3"
+                  style={({ pressed }) => ({
+                    borderWidth: 1,
+                    borderColor: accentColor,
+                    backgroundColor: withAlpha(accentColor, '22'),
+                    opacity: pressed ? 0.82 : 1,
+                  })}
                 >
                   <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
                   <Text className="text-[12px] font-bold text-white">Marcar todo leído</Text>
@@ -311,8 +321,9 @@ function CategoryCard({
   return (
     <Pressable
       onPress={onPress}
-      className="min-w-[160px] flex-1 rounded-xl border p-4"
+      className="min-w-[160px] flex-1 rounded-xl p-4"
       style={({ pressed }) => ({
+        borderWidth: 1,
         borderColor: active ? accentColor : '#183052',
         backgroundColor: active ? withAlpha(accentColor, '24') : '#07162D',
         opacity: pressed ? 0.84 : 1,
@@ -350,10 +361,11 @@ function FilterChip({
   return (
     <Pressable
       onPress={onPress}
-      className={`flex-row items-center gap-2 rounded-full border px-4 py-2`}
+      className="flex-row items-center gap-2 rounded-full px-4 py-2"
       style={({ pressed }) => ({
+        borderWidth: 1,
         borderColor: active ? accentColor : '#20375E',
-        backgroundColor: active ? accentColor : '#09162C',
+        backgroundColor: active ? withAlpha(accentColor, '26') : '#09162C',
         opacity: pressed ? 0.82 : 1,
       })}
     >
@@ -389,8 +401,9 @@ function NotificationItem({
     <View
       onPointerEnter={() => setShowDeleteAction(true)}
       onPointerLeave={() => setShowDeleteAction(Platform.OS !== 'web')}
-      className="flex-row gap-3 rounded-xl border px-4 py-3"
+      className="flex-row gap-3 rounded-xl px-4 py-3"
       style={{
+        borderWidth: 1,
         borderColor: notification.isRead ? '#1A3155' : accentColor,
         backgroundColor: notification.isRead ? '#07162E' : '#0F1E35',
       }}

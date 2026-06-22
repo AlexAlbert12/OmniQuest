@@ -325,6 +325,11 @@ export default function TeacherQuestionForm({
       return false;
     }
 
+    if (selectedType === 'fill' && countFillBlankMarkers(questionText) === 0) {
+      showAlert('Marca el hueco', 'En preguntas de rellenar huecos, escribe ____ en el enunciado donde deba responder el alumno.');
+      return false;
+    }
+
     if (timeLimitError) {
       showAlert('Error', timeLimitError);
       return false;
@@ -571,7 +576,7 @@ export default function TeacherQuestionForm({
                       <HelperTip
                         icon="text-outline"
                         title="Marca los huecos con ____"
-                        detail="El alumno verá un campo por cada solución que añadas. Si además escribes ____ en el enunciado, la frase será mucho más clara."
+                        detail="Escribe ____ justo donde va cada hueco. El alumno verá el espacio dentro del enunciado y un campo por cada solución."
                       />
                     ) : null}
 
@@ -1099,6 +1104,10 @@ function parseLines(value: string) {
     .split('\n')
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function countFillBlankMarkers(text: string) {
+  return (text.match(/_{2,}|\[\[blank\]\]|\{\{blank\}\}/gi) || []).length;
 }
 
 function parsePairLines(value: string) {

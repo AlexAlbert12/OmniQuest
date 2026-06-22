@@ -86,18 +86,14 @@ export default function NotificationBadge({
 
   return (
     <View className="flex-row items-center gap-3">
-      {shouldShowStreak ? (
-        <View className="flex-row items-center gap-3 rounded-2xl border border-[#162B50] bg-[#0B1933] px-4 py-3">
-          <Ionicons name="flash" size={20} color="#FFD34D" />
-          <View>
-            <Text className="text-[16px] font-black text-white">{displayStreakDays}</Text>
-            <Text className="text-[11px] text-[#8FA7C7]">Días de racha</Text>
-          </View>
-        </View>
-      ) : null}
       <Pressable
         onPress={handlePress}
-        className="relative rounded-2xl border border-[#20375E] bg-[#09162C] p-3"
+        className="relative rounded-2xl p-3"
+        style={{
+          borderWidth: 1,
+          borderColor: '#20375E',
+          backgroundColor: '#09162C',
+        }}
       >
         <Ionicons name="notifications-outline" size={22} color="#AFC2DB" />
         {displayCount > 0 ? (

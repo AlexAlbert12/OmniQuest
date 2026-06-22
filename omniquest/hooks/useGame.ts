@@ -29,6 +29,26 @@ type QuestionFeedback = {
   explanation: string | null;
 };
 
+type GameSummary = {
+  questionsTotal: number;
+  answered: number;
+  correct: number;
+  incorrect: number;
+  xp: number;
+  timeSeconds: number;
+  reviewQuestions: { id: number; text: string }[];
+};
+
+const emptySummary: GameSummary = {
+  questionsTotal: 0,
+  answered: 0,
+  correct: 0,
+  incorrect: 0,
+  xp: 0,
+  timeSeconds: 0,
+  reviewQuestions: [],
+};
+
 export function useGame(subjectId: string, topicId?: string, reviewMode?: string) {
   const numericSubjectId = Number(subjectId);
   const numericTopicId = topicId && topicId !== 'general' ? Number(topicId) : null;
@@ -52,6 +72,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   const [hintedAnswerId, setHintedAnswerId] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<QuestionFeedback | null>(null);
   const [feedbackNextStatus, setFeedbackNextStatus] = useState<'gameOver' | 'finished' | null>(null);
+  const [summary, setSummary] = useState<GameSummary>(emptySummary);
 
   const loadGame = useCallback(async () => {
     try {
@@ -131,6 +152,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       setHintedAnswerId(null);
       setFeedback(null);
       setFeedbackNextStatus(null);
+      setSummary({ ...emptySummary, questionsTotal: safeQuestions.length });
       setQuestions(safeQuestions);
       setTimeLeft(safeQuestions[0].time_limit_seconds ?? 30);
       setStatus('playing');
@@ -216,6 +238,21 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       scoreRef.current = nextScore;
       setScore(nextScore);
       setCorrectAnswerId(result.correct_answer_id ?? null);
+      setSummary((current) => {
+        const reviewQuestions = isCorrect
+          ? current.reviewQuestions
+          : appendReviewQuestion(current.reviewQuestions, currentQ);
+
+        return {
+          questionsTotal: questions.length,
+          answered: current.answered + 1,
+          correct: current.correct + (isCorrect ? 1 : 0),
+          incorrect: current.incorrect + (isCorrect ? 0 : 1),
+          xp: nextScore,
+          timeSeconds: current.timeSeconds + timeTaken,
+          reviewQuestions,
+        };
+      });
       setFeedback({
         status: isCorrect ? 'correct' : 'incorrect',
         earnedPoints: earned,
@@ -318,6 +355,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     answerStatus,
     hintedAnswerId,
     feedback,
+    summary,
     submitAnswer,
     submitStructuredAnswer,
     useHint,
@@ -330,4 +368,17 @@ function getCorrectAnswerText(question: any, correctAnswerId?: number | null) {
   if (!question || !correctAnswerId || !Array.isArray(question.answers)) return null;
   const answer = question.answers.find((item: any) => Number(item.id) === Number(correctAnswerId));
   return typeof answer?.text === 'string' ? answer.text : null;
+}
+
+function appendReviewQuestion(current: { id: number; text: string }[], question: any) {
+  const questionId = Number(question?.id);
+  if (!Number.isFinite(questionId) || current.some((item) => item.id === questionId)) return current;
+
+  return [
+    ...current,
+    {
+      id: questionId,
+      text: typeof question?.text === 'string' && question.text.trim() ? question.text.trim() : 'Pregunta sin título',
+    },
+  ];
 }

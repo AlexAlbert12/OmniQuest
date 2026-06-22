@@ -1,5 +1,5 @@
 import React from 'react'
-import { Animated, Easing, Image, Pressable, Text, View } from 'react-native'
+import { Animated, Easing, Image, Pressable, Text, useWindowDimensions, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -48,22 +48,42 @@ export default function StudentSidebar({
   onSignOut,
 }: StudentSidebarProps) {
   const { theme, accentColor } = useAppTheme()
+  const { width } = useWindowDimensions()
   const isDark = theme === 'dark'
+  const isCompact = width >= 1024 && width < 1280
+  const safeProgress = Math.min(Math.max(nextLevelProgress, 0), 100)
 
   return (
     <View
-      className="w-[244px] border-r px-4 py-7"
+      className="border-r py-7"
       style={{
+        width: isCompact ? 88 : 244,
+        paddingHorizontal: isCompact ? 12 : 16,
         borderColor: isDark ? '#183052' : '#29466F',
         backgroundColor: isDark ? '#041024' : '#0E1E38',
       }}
     >
-      <View className="mb-4 flex-row items-center gap-2 px-2">
-        <BrandLogo size={30} />
-        <Ionicons name="rocket" size={18} color="#9FD6FF" />
+      <View
+        className="mb-5 flex-row items-center"
+        style={{
+          justifyContent: isCompact ? 'center' : 'flex-start',
+          paddingHorizontal: isCompact ? 0 : 8,
+          gap: isCompact ? 0 : 8,
+        }}
+      >
+        {isCompact ? (
+          <View className="h-12 w-12 items-center justify-center rounded-2xl border border-[#1A3155] bg-[#091A35]">
+            <Ionicons name="rocket" size={23} color="#9FD6FF" />
+          </View>
+        ) : (
+          <>
+            <BrandLogo size={30} />
+            <Ionicons name="rocket" size={18} color="#9FD6FF" />
+          </>
+        )}
       </View>
 
-      <View style={{ gap: 8 }}>
+      <View style={{ gap: isCompact ? 9 : 8 }}>
         {navItems.map((item) => {
           const isActive = item.section === activeSection
           return (
@@ -73,34 +93,86 @@ export default function StudentSidebar({
               isActive={isActive}
               accentColor={accentColor}
               isDark={isDark}
+              compact={isCompact}
             />
           )
         })}
       </View>
-      <Link href="/(student)/profile" asChild>
+
+      <View className="mt-auto" style={{ gap: 10 }}>
+        <Link href="/(student)/profile" asChild>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Abrir perfil"
+            className="rounded-2xl border"
+            style={{
+              padding: 8,
+              borderColor: isDark ? '#162B50' : '#2E4E78',
+              backgroundColor: isDark ? '#091A35' : '#132A4D',
+            }}
+          >
+            {isCompact ? (
+              <View className="items-center" style={{ gap: 8 }}>
+                <Avatar avatar={avatar} alias={alias} size={44} />
+                <View className="h-1.5 w-full overflow-hidden rounded-full bg-[#13294C]">
+                  <View className="h-full rounded-full" style={{ width: `${safeProgress}%`, backgroundColor: accentColor }} />
+                </View>
+              </View>
+            ) : (
+              <>
+                <View className="flex-row items-center gap-3">
+                  <Avatar avatar={avatar} alias={alias} size={48} />
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-[14px] font-bold text-white" numberOfLines={1}>{alias}</Text>
+                    <Text className="text-[12px] text-[#9BAEC9]">Nivel {level}</Text>
+                  </View>
+                </View>
+              </>
+            )}
+          </Pressable>
+        </Link>
+
         <Pressable
-          className="mt-2 rounded-2xl border p-4"
-          style={{ borderColor: isDark ? '#162B50' : '#2E4E78', backgroundColor: isDark ? '#091A35' : '#132A4D' }}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar sesión"
+          onPress={onSignOut}
+          className="items-center justify-center rounded-2xl"
+          style={({ pressed }) => ({
+            minHeight: isCompact ? 50 : 52,
+            paddingHorizontal: isCompact ? 0 : 14,
+            borderWidth: 1,
+            borderColor: pressed ? '#FB7185' : '#3B1D2A',
+            backgroundColor: pressed ? 'rgba(251,113,133,0.18)' : 'rgba(251,113,133,0.1)',
+            transform: [{ scale: pressed ? 0.985 : 1 }],
+          })}
         >
-          <View className="flex-row items-center gap-3">
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-[#192C62] overflow-hidden">
-              {avatar && avatar.startsWith('http') ? (
-                <Image source={{ uri: avatar }} className="h-full w-full" />
-              ) : (
-                <Ionicons name="person" size={16} color="#9FD6FF" />
-              )}
+          {isCompact ? (
+            <Ionicons name="log-out-outline" size={24} color="#FB7185" />
+          ) : (
+            <View className="flex-row items-center justify-center gap-2">
+              <Ionicons name="log-out-outline" size={18} color="#FB7185" />
+              <Text className="font-black" style={{ color: '#FCA5B5' }}>Cerrar sesión</Text>
             </View>
-            <View className="min-w-0 flex-1">
-              <Text className="text-[14px] font-bold text-white">{alias}</Text>
-              <Text className="text-[12px] text-[#9BAEC9]">Nivel {level}</Text>
-            </View>
-          </View>
-          <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
-            <View className="h-full rounded-full" style={{ width: `${nextLevelProgress}%`, backgroundColor: accentColor }} />
-          </View>
-          <Text className="mt-2 text-[11px] text-[#8FA7C7]">{points.toLocaleString()} XP</Text>
+          )}
         </Pressable>
-      </Link>
+      </View>
+    </View>
+  )
+}
+
+function Avatar({ avatar, alias, size }: { avatar?: string | null; alias: string; size: number }) {
+  const initials = getInitials(alias)
+
+  return (
+    <View
+      className="items-center justify-center overflow-hidden rounded-full bg-[#192C62]"
+      style={{ height: size, width: size }}
+    >
+      {avatar && avatar.startsWith('http') ? (
+        <Image source={{ uri: avatar }} className="h-full w-full" />
+      ) : (
+        <Text className="font-black text-white">{initials}</Text>
+      )}
     </View>
   )
 }
@@ -110,11 +182,13 @@ function StudentNavButton({
   isActive,
   accentColor,
   isDark,
+  compact,
 }: {
   item: NavItem
   isActive: boolean
   accentColor: string
   isDark: boolean
+  compact: boolean
 }) {
   const [isHovered, setIsHovered] = React.useState(false)
   const [isPressed, setIsPressed] = React.useState(false)
@@ -139,6 +213,8 @@ function StudentNavButton({
 
   const content = (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={item.label}
       onHoverIn={() => setIsHovered(true)}
       onHoverOut={() => setIsHovered(false)}
       onPressIn={() => setIsPressed(true)}
@@ -150,9 +226,9 @@ function StudentNavButton({
       <Animated.View
         className="relative overflow-hidden border"
         style={{
-          height: 52,
+          height: compact ? 52 : 52,
           borderRadius: 14,
-          paddingHorizontal: 10,
+          paddingHorizontal: compact ? 0 : 10,
           borderColor: hoverProgress.interpolate({
             inputRange: [0, 1],
             outputRange: ['rgba(83,100,245,0)', isActive ? accentColor : isDark ? 'rgba(159,214,255,0.22)' : 'rgba(96,122,167,0.35)'],
@@ -171,14 +247,16 @@ function StudentNavButton({
             inputRange: [0, 1],
             outputRange: [0, 20],
           }),
-          transform: [
-            {
-              translateX: hoverProgress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, isActive ? 0 : 3],
-              }),
-            },
-          ],
+          transform: compact
+            ? []
+            : [
+                {
+                  translateX: hoverProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, isActive ? 0 : 3],
+                  }),
+                },
+              ],
         }}
       >
         <Animated.View
@@ -219,16 +297,18 @@ function StudentNavButton({
             ],
           }}
         />
-        <View className="h-full flex-row items-center">
+        <View className="h-full flex-row items-center" style={{ justifyContent: compact ? 'center' : 'flex-start' }}>
           <Animated.View
             className="h-10 w-10 items-center justify-center rounded-xl"
             style={{
               transform: [
                 {
-                  translateX: hoverProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, isActive ? 0 : 2],
-                  }),
+                  translateX: compact
+                    ? 0
+                    : hoverProgress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, isActive ? 0 : 2],
+                      }),
                 },
                 {
                   scale: hoverProgress.interpolate({
@@ -241,41 +321,43 @@ function StudentNavButton({
           >
             <Ionicons name={iconName} size={24} color={iconColor} />
           </Animated.View>
-          <Animated.View
-            className="min-w-0 flex-1"
-            style={{
-              marginLeft: 12,
-              opacity: hoverProgress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.9, 1],
-              }),
-              transform: [
-                {
-                  translateX: hoverProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 4],
-                  }),
-                },
-                {
-                  scale: hoverProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 1.02],
-                  }),
-                },
-              ],
-            }}
-          >
-            <Animated.Text
-              numberOfLines={1}
+          {!compact ? (
+            <Animated.View
+              className="min-w-0 flex-1"
               style={{
-                color: textColor,
-                fontSize: 15,
-                fontWeight: '700',
+                marginLeft: 12,
+                opacity: hoverProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.9, 1],
+                }),
+                transform: [
+                  {
+                    translateX: hoverProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 4],
+                    }),
+                  },
+                  {
+                    scale: hoverProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.02],
+                    }),
+                  },
+                ],
               }}
             >
-              {item.label}
-            </Animated.Text>
-          </Animated.View>
+              <Animated.Text
+                numberOfLines={1}
+                style={{
+                  color: textColor,
+                  fontSize: 15,
+                  fontWeight: '700',
+                }}
+              >
+                {item.label}
+              </Animated.Text>
+            </Animated.View>
+          ) : null}
         </View>
       </Animated.View>
     </Pressable>
@@ -294,4 +376,15 @@ function StudentNavButton({
 
 function filledIconFor(icon: IoniconName): IoniconName {
   return icon.endsWith('-outline') ? (icon.replace('-outline', '') as IoniconName) : icon
+}
+
+function getInitials(name: string) {
+  const trimmed = name.trim()
+  if (!trimmed) return 'A'
+
+  return trimmed
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('')
 }

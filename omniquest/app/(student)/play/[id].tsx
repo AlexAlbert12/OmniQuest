@@ -99,6 +99,7 @@ export default function PlayScreen() {
           title="GAME OVER"
           detail="Te has quedado sin vidas. Vuelve a intentarlo y recupera la racha."
           score={game.score}
+          summary={game.summary}
           action="Salir al menú"
           onPress={() => router.back()}
         />
@@ -115,6 +116,7 @@ export default function PlayScreen() {
           title="Preguntas completadas"
           detail="Has superado todas las preguntas de este tema."
           score={game.score}
+          summary={game.summary}
           action="Volver al inicio"
           onPress={() => router.back()}
         />
@@ -506,26 +508,29 @@ function FillBlankQuestion({
         </View>
       </View>
 
-      {markerCount > 0 ? (
-        <View className="flex-row flex-wrap items-center gap-2 rounded-2xl border border-[#243E65] bg-[#061426] p-4">
-          {promptParts.map((part, index) => (
+      <View className="flex-row flex-wrap items-center gap-2 rounded-2xl border border-[#243E65] bg-[#061426] p-4">
+        {markerCount > 0 ? (
+          promptParts.map((part, index) => (
             <React.Fragment key={`${part}-${index}`}>
               {part ? <Text className="text-[16px] font-semibold text-[#DDE7F4]">{part}</Text> : null}
-              {index < promptParts.length - 1 ? (
-                <View className="rounded-xl border border-[#3A4F83] bg-[#111E45] px-4 py-2">
-                  <Text className="text-[13px] font-black text-[#A78BFA]">Hueco {index + 1}</Text>
-                </View>
-              ) : null}
+              {index < promptParts.length - 1 ? <BlankPlaceholder index={index} /> : null}
             </React.Fragment>
-          ))}
-        </View>
-      ) : (
+          ))
+        ) : (
+          <>
+            <Text className="text-[16px] font-semibold text-[#DDE7F4]">{question.text.trim()}</Text>
+            <BlankPlaceholder index={0} />
+          </>
+        )}
+      </View>
+
+      {markerCount === 0 ? (
         <View className="rounded-2xl border border-[#3A315A] bg-[#141A3E] p-4">
           <Text className="text-[13px] font-bold text-[#D8CCFF]">
-            Completa el hueco con la palabra correcta.
+            Completa el hueco indicado. En próximas preguntas verás el espacio dentro del enunciado cuando esté marcado con ____.
           </Text>
         </View>
-      )}
+      ) : null}
 
       <View className="gap-3">
         {values.map((value, index) => {
@@ -564,6 +569,17 @@ function FillBlankQuestion({
       />
 
       <SubmitAnswerButton disabled={hasAnswered || !isReady} onPress={handleSubmit} />
+    </View>
+  )
+}
+
+function BlankPlaceholder({ index }: { index: number }) {
+  return (
+    <View className="rounded-xl border border-[#3A4F83] bg-[#111E45] px-4 py-2">
+      <Text className="text-[15px] font-black tracking-[0.08em] text-[#A78BFA]">______</Text>
+      <Text className="mt-1 text-center text-[10px] font-black uppercase tracking-[0.05em] text-[#8FA7C7]">
+        Hueco {index + 1}
+      </Text>
     </View>
   )
 }
@@ -658,6 +674,9 @@ function PairingQuestion({
 
   const completedCount = leftAnswers.filter((_, index) => Boolean(selections[index])).length
   const isReady = leftAnswers.length > 0 && completedCount === leftAnswers.length
+  const selectedConnections = leftAnswers
+    .map((answer, index) => ({ left: answer.text, right: selections[index]?.text, index }))
+    .filter((connection) => Boolean(connection.right))
 
   const assignOption = (option: PairOptionToken) => {
     if (hasAnswered || leftAnswers.length === 0) return
@@ -759,14 +778,18 @@ function PairingQuestion({
                         {labels.leftLabel}
                       </Text>
                       <Text className="mt-1 text-[17px] font-black text-white">{answer.text}</Text>
-                      <View className="mt-3 rounded-xl border border-[#243E65] bg-[#061426] px-3 py-2">
-                        <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-[#8FA7C7]">
-                          {labels.rightLabel}
-                        </Text>
-                        <Text className={`mt-1 text-[15px] font-black ${selected ? 'text-[#A7F3D0]' : 'text-[#AFC2DB]'}`}>
-                          {selected?.text || `Selecciona ${labels.rightLabel.toLowerCase()} en la columna derecha`}
-                        </Text>
-                      </View>
+                      {selected ? (
+                        <PairConnectionChip left={answer.text} right={selected.text} />
+                      ) : (
+                        <View className="mt-3 rounded-xl border border-[#243E65] bg-[#061426] px-3 py-2">
+                          <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-[#8FA7C7]">
+                            {labels.rightLabel}
+                          </Text>
+                          <Text className="mt-1 text-[15px] font-black text-[#AFC2DB]">
+                            Selecciona {labels.rightLabel.toLowerCase()} en la columna derecha
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     {selected && !hasAnswered ? (
                       <Pressable
@@ -837,6 +860,22 @@ function PairingQuestion({
         </View>
       </View>
 
+      {selectedConnections.length > 0 ? (
+        <View className="rounded-2xl border border-[#243E65] bg-[#061426] p-4">
+          <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#8FA7C7]">Relaciones elegidas</Text>
+          <View className="mt-3 flex-row flex-wrap gap-2">
+            {selectedConnections.map((connection) => (
+              <PairConnectionChip
+                key={`${connection.left}-${connection.index}`}
+                left={connection.left}
+                right={connection.right || ''}
+                compact
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
+
       {!hasAnswered && !isReady ? (
         <View className="rounded-2xl border border-[#2A456A] bg-[#081A37] p-4">
           <Text className="text-[13px] font-semibold text-[#B8C7E0]">
@@ -868,6 +907,33 @@ function SubmitAnswerButton({ disabled, onPress }: { disabled: boolean; onPress:
       <Text className="text-[16px] font-black text-white">Comprobar</Text>
       <Ionicons name="checkmark-circle" size={19} color="#FFFFFF" />
     </Pressable>
+  )
+}
+
+function PairConnectionChip({
+  compact = false,
+  left,
+  right,
+}: {
+  compact?: boolean
+  left: string
+  right: string
+}) {
+  return (
+    <View
+      className={`flex-row items-center rounded-xl border border-[#145B45] bg-[#082B2B] ${
+        compact ? 'px-3 py-2' : 'mt-3 px-4 py-3'
+      }`}
+      style={{ gap: compact ? 7 : 10 }}
+    >
+      <Text className={`${compact ? 'text-[13px]' : 'text-[15px]'} font-black text-white`} numberOfLines={1}>
+        {left}
+      </Text>
+      <Ionicons name="arrow-forward" size={compact ? 14 : 17} color="#43D991" />
+      <Text className={`${compact ? 'text-[13px]' : 'text-[15px]'} font-black text-[#A7F3D0]`} numberOfLines={1}>
+        {right}
+      </Text>
+    </View>
   )
 }
 
@@ -1189,6 +1255,7 @@ function ResultState({
   title,
   detail,
   score,
+  summary,
   action,
   onPress,
 }: {
@@ -1197,6 +1264,15 @@ function ResultState({
   title: string
   detail: string
   score?: number
+  summary?: {
+    questionsTotal: number
+    answered: number
+    correct: number
+    incorrect: number
+    xp: number
+    timeSeconds: number
+    reviewQuestions: { id: number; text: string }[]
+  }
   action: string
   onPress: () => void
 }) {
@@ -1209,7 +1285,9 @@ function ResultState({
         <Text className="mt-5 text-center text-[30px] font-black text-white">{title}</Text>
         <Text className="mt-3 max-w-[420px] text-center text-[15px] leading-6 text-[#B8C7E0]">{detail}</Text>
 
-        {typeof score === 'number' ? (
+        {summary ? (
+          <GameSummaryPanel summary={summary} fallbackScore={score} />
+        ) : typeof score === 'number' ? (
           <View className="my-7 w-full rounded-2xl border border-[#172A4A] bg-[#0D1D3B] p-5">
             <Text className="text-center text-[12px] font-bold uppercase text-[#8FA7C7]">Puntuación final</Text>
             <Text className="mt-2 text-center text-[46px] font-black text-[#9B6CFF]">{score}</Text>
@@ -1226,6 +1304,98 @@ function ResultState({
       </View>
     </View>
   )
+}
+
+function GameSummaryPanel({
+  fallbackScore,
+  summary,
+}: {
+  fallbackScore?: number
+  summary: {
+    questionsTotal: number
+    answered: number
+    correct: number
+    incorrect: number
+    xp: number
+    timeSeconds: number
+    reviewQuestions: { id: number; text: string }[]
+  }
+}) {
+  const answered = Math.max(summary.answered, summary.correct + summary.incorrect)
+  const precision = answered > 0 ? Math.round((summary.correct / answered) * 100) : 0
+  const xp = summary.xp || fallbackScore || 0
+  const totalQuestions = summary.questionsTotal || answered
+
+  return (
+    <View className="my-7 w-full rounded-2xl border border-[#172A4A] bg-[#0D1D3B] p-5">
+      <Text className="text-center text-[12px] font-bold uppercase text-[#8FA7C7]">Resumen de la partida</Text>
+      <Text className="mt-2 text-center text-[44px] font-black text-[#9B6CFF]">{xp} XP</Text>
+
+      <View className="mt-5 flex-row flex-wrap gap-3">
+        <SummaryMetric icon="help-circle-outline" label="Preguntas" value={String(totalQuestions)} color="#60A5FA" />
+        <SummaryMetric icon="checkmark-circle" label="Correctas" value={String(summary.correct)} color="#34D399" />
+        <SummaryMetric icon="close-circle" label="Incorrectas" value={String(summary.incorrect)} color="#FB7185" />
+        <SummaryMetric icon="analytics" label="Precisión" value={`${precision}%`} color="#FBBF24" />
+        <SummaryMetric icon="timer-outline" label="Tiempo total" value={formatDuration(summary.timeSeconds)} color="#A78BFA" />
+        <SummaryMetric icon="refresh" label="A repasar" value={String(summary.reviewQuestions.length)} color="#F97316" />
+      </View>
+
+      <View className="mt-5 rounded-2xl border border-[#243E65] bg-[#061426] p-4">
+        <View className="flex-row items-center gap-2">
+          <Ionicons name="refresh" size={17} color="#F97316" />
+          <Text className="font-black text-white">Preguntas a repasar</Text>
+        </View>
+        {summary.reviewQuestions.length > 0 ? (
+          <View className="mt-3 gap-2">
+            {summary.reviewQuestions.slice(0, 3).map((question) => (
+              <View key={question.id} className="rounded-xl bg-[#0D1D3B] px-3 py-2">
+                <Text className="text-[13px] font-semibold leading-5 text-[#DDE7F4]" numberOfLines={2}>
+                  {question.text}
+                </Text>
+              </View>
+            ))}
+            {summary.reviewQuestions.length > 3 ? (
+              <Text className="text-[12px] font-bold text-[#8FA7C7]">
+                +{summary.reviewQuestions.length - 3} más para repasar
+              </Text>
+            ) : null}
+          </View>
+        ) : (
+          <Text className="mt-2 text-[13px] text-[#8FA7C7]">No tienes preguntas pendientes de repaso en esta partida.</Text>
+        )}
+      </View>
+    </View>
+  )
+}
+
+function SummaryMetric({
+  color,
+  icon,
+  label,
+  value,
+}: {
+  color: string
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  value: string
+}) {
+  return (
+    <View className="min-w-[130px] flex-1 rounded-2xl border border-[#243E65] bg-[#081A37] p-3">
+      <View className="flex-row items-center gap-2">
+        <Ionicons name={icon} size={16} color={color} />
+        <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-[#8FA7C7]">{label}</Text>
+      </View>
+      <Text className="mt-2 text-[20px] font-black text-white">{value}</Text>
+    </View>
+  )
+}
+
+function formatDuration(totalSeconds: number) {
+  const safeSeconds = Math.max(0, Math.round(totalSeconds || 0))
+  const minutes = Math.floor(safeSeconds / 60)
+  const seconds = safeSeconds % 60
+  if (minutes <= 0) return `${seconds}s`
+  return `${minutes}m ${seconds.toString().padStart(2, '0')}s`
 }
 
 function getQuestionType(typeValue: string | null | undefined): QuestionType {
