@@ -280,7 +280,7 @@ export default function StudentHome() {
 
             <View className={isWide ? 'flex-row gap-3' : 'gap-3'}>
               <StudentMetricCard
-                title="Progreso general"
+                title="Avance de clases"
                 value={`${progressPercent}%`}
                 icon="analytics-outline"
                 color="#43D991"
@@ -451,6 +451,7 @@ function SubjectRow({
   const colors = ['#4ADE80', '#8B5CF6', '#3B82F6']
   const hasScore = typeof score === 'number'
   const progressPercent = progress?.percent ?? 0
+  const status = getClassProgressStatus(progress)
   const color = subject.theme_color || colors[index] || '#58B5FF'
   const { accentColor } = useAppTheme()
 
@@ -478,13 +479,27 @@ function SubjectRow({
           <View className="mt-2 flex-row flex-wrap items-center gap-2">
             <View className={`rounded-md px-2 py-1 ${hasScore ? 'bg-[#221B58]' : 'bg-[#122544]'}`}>
               <Text className={`text-[12px] font-bold ${hasScore ? 'text-[#B9A7FF]' : 'text-[#8FA7C7]'}`}>
-                {hasScore ? `Mejor nota: ${score.toLocaleString()} XP` : 'Sin puntuación'}
+                {hasScore ? `Mejor XP: ${score.toLocaleString()} XP` : 'Sin puntuación'}
               </Text>
             </View>
-            {progress?.isCompleted ? (
-              <View className="rounded-md bg-[#0F2F2B] px-2 py-1">
-                <Text className="text-[12px] font-bold text-[#43D991]">Completada</Text>
-              </View>
+            <View className="rounded-md px-2 py-1" style={{ backgroundColor: status.backgroundColor }}>
+              <Text className="text-[12px] font-bold" style={{ color: status.color }}>{status.label}</Text>
+            </View>
+            {progress ? (
+              <>
+                <View className="rounded-md bg-[#122544] px-2 py-1">
+                  <Text className="text-[12px] text-[#AFC2DB]">
+                    {progress.pendingQuestions} por practicar
+                  </Text>
+                </View>
+                {progress.failedQuestions > 0 ? (
+                  <View className="rounded-md bg-[#2A1420] px-2 py-1">
+                    <Text className="text-[12px] font-bold text-[#FB7185]">
+                      {progress.failedQuestions} falladas
+                    </Text>
+                  </View>
+                ) : null}
+              </>
             ) : null}
           </View>
         </View>
@@ -501,6 +516,20 @@ function SubjectRow({
       </Pressable>
     </Link>
   )
+}
+
+function getClassProgressStatus(progress?: StudentProgressSubject) {
+  const percent = progress?.percent ?? 0
+
+  if (progress?.isCompleted || percent >= 100) {
+    return { label: 'Completada', color: '#43D991', backgroundColor: '#0F2F2B' }
+  }
+
+  if (percent > 0) {
+    return { label: 'En progreso', color: '#FBBF24', backgroundColor: '#2A210F' }
+  }
+
+  return { label: 'Sin empezar', color: '#AFC2DB', backgroundColor: '#122544' }
 }
 
 function EmptyClasses() {

@@ -14,16 +14,26 @@ type SubmitAnswerResult = {
   earned_points?: number;
   attempt_score?: number;
   correct_answer_id?: number | null;
+  correct_answer_text?: string | null;
+  explanation?: string | null;
 };
 
 function asSubmitAnswerResult(value: unknown): SubmitAnswerResult {
   return value && typeof value === 'object' ? (value as SubmitAnswerResult) : {};
 }
 
-export function useGame(subjectId: string, topicId?: string) {
+type QuestionFeedback = {
+  status: 'correct' | 'incorrect';
+  earnedPoints: number;
+  correctAnswerText: string | null;
+  explanation: string | null;
+};
+
+export function useGame(subjectId: string, topicId?: string, reviewMode?: string) {
   const numericSubjectId = Number(subjectId);
   const numericTopicId = topicId && topicId !== 'general' ? Number(topicId) : null;
   const isGeneralTopic = topicId === 'general';
+  const isFailedReview = reviewMode === 'failed';
 
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -40,6 +50,8 @@ export function useGame(subjectId: string, topicId?: string) {
   const [hasAnswered, setHasAnswered] = useState(false);
   const [answerStatus, setAnswerStatus] = useState<'correct' | 'incorrect' | null>(null);
   const [hintedAnswerId, setHintedAnswerId] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState<QuestionFeedback | null>(null);
+  const [feedbackNextStatus, setFeedbackNextStatus] = useState<'gameOver' | 'finished' | null>(null);
 
   const loadGame = useCallback(async () => {
     try {
@@ -51,7 +63,47 @@ export function useGame(subjectId: string, topicId?: string) {
 
       if (questionsError) throw questionsError;
 
-      const safeQuestions = Array.isArray(questionsData) ? (questionsData as any[]) : [];
+      let safeQuestions = Array.isArray(questionsData) ? (questionsData as any[]) : [];
+
+      if (isFailedReview && safeQuestions.length > 0) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        const studentId = sessionData.session?.user?.id;
+        if (!studentId) throw new Error('No authenticated user');
+
+        const { data: attemptsData, error: attemptsError } = await supabase
+          .from('attempt_history')
+          .select('question_id,is_correct,attempted_at,questions!inner(id,subject_id,topic_id)')
+          .eq('student_id', studentId)
+          .eq('questions.subject_id', numericSubjectId)
+          .order('attempted_at', { ascending: false });
+
+        if (attemptsError) throw attemptsError;
+
+        const latestByQuestion = new Map<number, { is_correct: boolean | null }>();
+        (attemptsData || []).forEach((attempt: any) => {
+          const questionId = Number(attempt.question_id);
+          const relation = Array.isArray(attempt.questions) ? attempt.questions[0] : attempt.questions;
+          const relationTopicId = relation?.topic_id == null ? null : Number(relation.topic_id);
+          const matchesTopic = isGeneralTopic
+            ? relationTopicId === null
+            : numericTopicId === null || relationTopicId === numericTopicId;
+
+          if (Number.isFinite(questionId) && matchesTopic && !latestByQuestion.has(questionId)) {
+            latestByQuestion.set(questionId, { is_correct: attempt.is_correct ?? null });
+          }
+        });
+
+        const failedQuestionIds = new Set(
+          Array.from(latestByQuestion.entries())
+            .filter(([, attempt]) => attempt.is_correct === false)
+            .map(([questionId]) => questionId),
+        );
+
+        safeQuestions = safeQuestions.filter((question) => failedQuestionIds.has(Number(question.id)));
+      }
+
       if (safeQuestions.length === 0) {
         setStatus('empty');
         return;
@@ -77,6 +129,8 @@ export function useGame(subjectId: string, topicId?: string) {
       setHasAnswered(false);
       setAnswerStatus(null);
       setHintedAnswerId(null);
+      setFeedback(null);
+      setFeedbackNextStatus(null);
       setQuestions(safeQuestions);
       setTimeLeft(safeQuestions[0].time_limit_seconds ?? 30);
       setStatus('playing');
@@ -84,7 +138,7 @@ export function useGame(subjectId: string, topicId?: string) {
       console.error(error);
       Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
     }
-  }, [isGeneralTopic, numericSubjectId, numericTopicId]);
+  }, [isFailedReview, isGeneralTopic, numericSubjectId, numericTopicId]);
 
   useEffect(() => {
     loadGame();
@@ -100,6 +154,8 @@ export function useGame(subjectId: string, topicId?: string) {
     setHasAnswered(false);
     setAnswerStatus(null);
     setHintedAnswerId(null);
+    setFeedback(null);
+    setFeedbackNextStatus(null);
     hintUsedRef.current = false;
 
     if (currentIndex + 1 < questions.length) {
@@ -153,16 +209,25 @@ export function useGame(subjectId: string, topicId?: string) {
       const isCorrect = Boolean(result.is_correct);
       const earned = Math.max(0, Number(result.earned_points ?? 0));
       const nextScore = Number(result.attempt_score ?? scoreRef.current + earned);
+      const nextTerminalStatus = currentIndex + 1 >= questions.length ? 'finished' : null;
+      const correctAnswerText = result.correct_answer_text ?? getCorrectAnswerText(currentQ, result.correct_answer_id);
+      const explanation = result.explanation || currentQ.explanation || null;
 
       scoreRef.current = nextScore;
       setScore(nextScore);
       setCorrectAnswerId(result.correct_answer_id ?? null);
+      setFeedback({
+        status: isCorrect ? 'correct' : 'incorrect',
+        earnedPoints: earned,
+        correctAnswerText,
+        explanation,
+      });
 
       if (isCorrect) {
         setAnswerStatus('correct');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setStreak((prev) => prev + 1);
-        setTimeout(nextQuestion, 1500);
+        setFeedbackNextStatus(nextTerminalStatus);
         return;
       }
 
@@ -171,18 +236,17 @@ export function useGame(subjectId: string, topicId?: string) {
       setStreak(0);
       setLives((prev) => {
         const newLives = prev - 1;
-        setTimeout(() => {
-          if (newLives <= 0) finishGame('gameOver');
-          else nextQuestion();
-        }, 1500);
+        setFeedbackNextStatus(newLives <= 0 ? 'gameOver' : nextTerminalStatus);
         return newLives;
       });
     } catch (error: any) {
       console.error('Error submitting answer:', error);
       setHasAnswered(false);
+      setFeedback(null);
+      setFeedbackNextStatus(null);
       Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
     }
-  }, [currentIndex, finishGame, hasAnswered, nextQuestion, questions, status, timeLeft]);
+  }, [currentIndex, hasAnswered, questions, status, timeLeft]);
 
   const handleTimeOut = useCallback(() => {
     void completeAnswer({ skipped: true, timedOut: true });
@@ -226,6 +290,19 @@ export function useGame(subjectId: string, topicId?: string) {
     void completeAnswer({ skipped: true });
   };
 
+  const continueAfterFeedback = () => {
+    if (!feedback) return;
+
+    if (feedbackNextStatus) {
+      finishGame(feedbackNextStatus);
+      setFeedback(null);
+      setFeedbackNextStatus(null);
+      return;
+    }
+
+    nextQuestion();
+  };
+
   return {
     questions,
     currentIndex,
@@ -240,9 +317,17 @@ export function useGame(subjectId: string, topicId?: string) {
     hasAnswered,
     answerStatus,
     hintedAnswerId,
+    feedback,
     submitAnswer,
     submitStructuredAnswer,
     useHint,
     skipQuestion,
+    continueAfterFeedback,
   };
+}
+
+function getCorrectAnswerText(question: any, correctAnswerId?: number | null) {
+  if (!question || !correctAnswerId || !Array.isArray(question.answers)) return null;
+  const answer = question.answers.find((item: any) => Number(item.id) === Number(correctAnswerId));
+  return typeof answer?.text === 'string' ? answer.text : null;
 }

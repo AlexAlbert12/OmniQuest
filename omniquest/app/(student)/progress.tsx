@@ -277,12 +277,12 @@ function SummaryCard({
       <View className="flex-row items-center gap-6">
         <View className="h-40 w-40 items-center justify-center rounded-full border-[13px] bg-[#13204B]" style={{ borderColor: accentColor }}>
           <Text className="text-[34px] font-black text-white">{progressPercent}%</Text>
-          <Text className="mt-1 text-center text-[13px] text-[#AFC2DB]">Progreso general</Text>
+          <Text className="mt-1 text-center text-[13px] text-[#AFC2DB]">Avance de clases</Text>
         </View>
         <View className="min-w-0 flex-1" style={{ gap: 12 }}>
           <SummaryStat icon="checkmark-done" color="#3B82F6" label="Materias completadas" value={`${completedClasses} / ${totalClasses}`} />
           <SummaryStat icon="trophy" color="#EC4899" label="Notas guardadas" value={String(savedScores)} />
-          <SummaryStat icon="analytics" color="#F6A64A" label="Media general" value={averageScore === null ? 'Sin notas' : `${averageScore.toLocaleString()} XP`} />
+          <SummaryStat icon="analytics" color="#F6A64A" label="Media de XP" value={averageScore === null ? 'Sin puntuaciones' : `${averageScore.toLocaleString()} XP`} />
           <SummaryStat icon="flash" color="#FBBF24" label="XP total acumulada" value={`${points.toLocaleString()} XP`} />
         </View>
       </View>
@@ -322,7 +322,7 @@ function XpEvolution({ scores }: { scores: RecentScore[] }) {
   return (
     <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
       <View className="mb-5 flex-row items-center justify-between">
-        <Text className="text-[15px] font-black text-white">Últimas 7 notas</Text>
+        <Text className="text-[15px] font-black text-white">Últimas 7 puntuaciones</Text>
       </View>
       {scores.length > 0 ? (
         <View style={{ gap: 12 }}>
@@ -353,7 +353,7 @@ function XpEvolution({ scores }: { scores: RecentScore[] }) {
       ) : (
         <View className="h-44 items-center justify-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B]">
           <Ionicons name="analytics-outline" size={30} color="#60799C" />
-          <Text className="mt-3 text-center text-[13px] text-[#AFC2DB]">Aún no hay notas guardadas.</Text>
+          <Text className="mt-3 text-center text-[13px] text-[#AFC2DB]">Aún no hay puntuaciones guardadas.</Text>
         </View>
       )}
     </View>
@@ -455,7 +455,7 @@ function EmptyProgress() {
       <Ionicons name="stats-chart-outline" size={34} color="#60799C" />
       <Text className="mt-3 text-center font-bold text-white">Sin progreso real todavía</Text>
       <Text className="mt-1 text-center text-[13px] leading-5 text-[#8FA7C7]">
-        Cuando completes una partida, se guardará tu nota en subject_scores.
+        Cuando completes una partida, se guardará tu puntuación y se actualizará tu avance.
       </Text>
     </View>
   )

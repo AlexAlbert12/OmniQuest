@@ -259,7 +259,7 @@ export default function BadgesScreen() {
         </ScrollView>
       </View>
 
-      {!isDesktop ? <StudentBottomNav active="progress" /> : null}
+      {!isDesktop ? <StudentBottomNav active="badges" /> : null}
     </View>
   )
 }

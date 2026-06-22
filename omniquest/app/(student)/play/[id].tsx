@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -12,6 +10,7 @@ import {
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import AppConfirmModal from '../../../components/AppConfirmModal'
 import { useGame } from '../../../hooks/useGame'
 import StudentHeaderAvatar from '../../../components/student/StudentHeaderAvatar'
 import type { Json } from '../../../types/database.types'
@@ -40,6 +39,7 @@ type Question = {
   points_base?: number | null
   category?: string | null
   subject?: string | null
+  explanation?: string | null
   answers: Answer[]
   pair_options?: string[]
   blank_count?: number | null
@@ -48,13 +48,19 @@ type Question = {
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
 export default function PlayScreen() {
-  const { id, topicId, topicName } = useLocalSearchParams<{ id: string; topicId?: string; topicName?: string }>()
+  const { id, topicId, topicName, review } = useLocalSearchParams<{ id: string; topicId?: string; topicName?: string; review?: string }>()
   const { width } = useWindowDimensions()
   const router = useRouter()
-  const game = useGame(id as string, Array.isArray(topicId) ? topicId[0] : topicId)
+  const reviewMode = Array.isArray(review) ? review[0] : review
+  const game = useGame(
+    id as string,
+    Array.isArray(topicId) ? topicId[0] : topicId,
+    reviewMode,
+  )
+  const [pendingAction, setPendingAction] = useState<'hint' | 'skip' | null>(null)
+  const [feedbackDialog, setFeedbackDialog] = useState<{ title: string; message: string } | null>(null)
 
   const isDesktop = width >= 1024
-  const isWide = width >= 760
 
   if (game.status === 'loading') {
     return (
@@ -73,8 +79,10 @@ export default function PlayScreen() {
         <ResultState
           icon="construct-outline"
           iconColor="#8FA7C7"
-          title="Todavía no hay preguntas"
-          detail="El profesor aún no ha añadido preguntas a este tema."
+          title={reviewMode === 'failed' ? 'Sin fallos pendientes' : 'Todavía no hay preguntas'}
+          detail={reviewMode === 'failed'
+            ? 'No tienes preguntas falladas para repasar en este tema.'
+            : 'El profesor aún no ha añadido preguntas a este tema.'}
           action="Volver al inicio"
           onPress={() => router.back()}
         />
@@ -119,39 +127,37 @@ export default function PlayScreen() {
   const totalQuestions = Math.max(game.questions.length, 1)
   const progressPercentage = ((game.currentIndex + 1) / totalQuestions) * 100
   const pointsBase = currentQuestion?.points_base ?? 150
-  const levelProgress = Math.min(100, Math.max(18, ((game.score % 3000) / 3000) * 100))
-  const displayLevel = Math.max(1, Math.floor(game.score / 300) + 8)
-  const nextLevelTotal = 3000
-  const nextLevelPoints = Math.min(nextLevelTotal, Math.max(2450, game.score + 450))
   const selectedTopicName = Array.isArray(topicName) ? topicName[0] : topicName
   const category = selectedTopicName || currentQuestion?.category || currentQuestion?.subject || 'Tema'
+  const position = `${Math.min(game.currentIndex + 3, 24)}/24`
 
   const handleHint = () => {
     if (!currentQuestion) return
+    setPendingAction('hint')
+  }
+
+  const confirmHint = () => {
     const used = game.useHint()
     if (!used) {
-      Alert.alert('Pista', 'No puedes usar la pista en este momento.')
+      setPendingAction(null)
+      setFeedbackDialog({
+        title: 'Pista no disponible',
+        message: 'No puedes usar la pista en este momento.',
+      })
       return
     }
 
-    const message = 'Se ha activado la pista. Si aciertas, el servidor aplicará la penalización de puntos.'
-
-    if (Platform.OS === 'web') {
-      window.alert(`Pista\n${message}`)
-    } else {
-      Alert.alert('Pista', message)
-    }
+    setPendingAction(null)
   }
 
   const handleSkip = () => {
     if (!currentQuestion) return
-    game.skipQuestion()
+    setPendingAction('skip')
+  }
 
-    if (Platform.OS === 'web') {
-      window.alert('Pregunta saltada\nHas saltado la pregunta y perdido 20 pts.')
-    } else {
-      Alert.alert('Pregunta saltada', 'Has saltado la pregunta y perdido 20 pts.')
-    }
+  const confirmSkip = () => {
+    game.skipQuestion()
+    setPendingAction(null)
   }
 
   return (
@@ -181,18 +187,9 @@ export default function PlayScreen() {
                 <Text className="text-[18px] font-black text-white">
                   Pregunta {game.currentIndex + 1} de {totalQuestions}
                 </Text>
-                <View className="flex-row items-center gap-4">
+                <View className="flex-row items-center gap-3">
                   <Text className="text-[18px] font-black text-[#9B6CFF]">{game.score} pts</Text>
-                  <View className="hidden flex-row items-center gap-2 md:flex">
-                    {[...Array(3)].map((_, index) => (
-                      <Ionicons
-                        key={index}
-                        name={index < game.lives ? 'heart' : 'heart-outline'}
-                        size={31}
-                        color="#FF647C"
-                      />
-                    ))}
-                  </View>
+                  <LivesBadge lives={game.lives} />
                   <StudentHeaderAvatar />
                 </View>
               </View>
@@ -205,27 +202,20 @@ export default function PlayScreen() {
             </View>
           </View>
 
-          <View className={isWide ? 'mt-8 flex-1 flex-row gap-8' : 'mt-6 flex-1 gap-5'}>
-            {isWide ? (
-              <StatsRail
-                points={pointsBase}
-                streak={game.streak}
-                position={`${Math.min(game.currentIndex + 3, 24)}/24`}
-                category={category}
-              />
-            ) : null}
+          <GameStatsBar points={pointsBase} streak={game.streak} position={position} category={category} lives={game.lives} />
 
-            <View className="min-w-0 flex-1">
+          <View className="mt-6 flex-1 items-center justify-center">
+            <View className="w-full" style={{ maxWidth: 920 }}>
               <View className="items-center">
                 <TimerPill timeLeft={game.timeLeft} />
-                <View className="mt-7 flex-row items-center gap-4">
+                <View className="mt-5 flex-row items-center gap-4">
                   <Ionicons name="sparkles" size={18} color="#6D5AF6" />
                   <Text className="text-[22px] font-black text-[#9B6CFF]">
                     Pregunta {game.currentIndex + 1}
                   </Text>
                   <Ionicons name="sparkles" size={18} color="#6D5AF6" />
                 </View>
-                <Text className="mt-5 max-w-[820px] text-center text-[30px] font-black leading-10 text-white">
+                <Text className="mt-4 max-w-[820px] text-center text-[30px] font-black leading-10 text-white">
                   {currentQuestion?.text}
                 </Text>
                 <View className="mt-4 flex-row items-center gap-2">
@@ -243,19 +233,8 @@ export default function PlayScreen() {
                 ) : null}
               </View>
 
-              {!isWide ? (
-                <View className="mt-6">
-                  <CompactStats
-                    points={pointsBase}
-                    streak={game.streak}
-                    lives={game.lives}
-                    category={category}
-                  />
-                </View>
-              ) : null}
-
               <View
-                className="mt-8 rounded-[24px] bg-[#061426]/80 p-2"
+                className="mt-6 rounded-[24px] bg-[#061426]/80 p-2"
                 style={{
                   shadowColor: '#020817',
                   shadowOpacity: 0.48,
@@ -278,19 +257,49 @@ export default function PlayScreen() {
                   />
                 ) : null}
               </View>
+
+              {game.feedback ? (
+                <QuestionFeedbackCard feedback={game.feedback} onContinue={game.continueAfterFeedback} />
+              ) : null}
             </View>
           </View>
 
           <BottomHud
-            level={displayLevel}
-            levelProgress={levelProgress}
-            points={nextLevelPoints}
-            total={nextLevelTotal}
             onHint={handleHint}
             onSkip={handleSkip}
           />
         </View>
       </ScrollView>
+      <AppConfirmModal
+        visible={pendingAction === 'hint'}
+        variant="info"
+        title="¿Usar pista?"
+        message="Se marcará una ayuda en la pregunta actual. Si aciertas, el servidor aplicará la penalización de puntos."
+        cancelLabel="Cancelar"
+        confirmLabel="Usar pista"
+        onCancel={() => setPendingAction(null)}
+        onConfirm={confirmHint}
+      />
+      <AppConfirmModal
+        visible={pendingAction === 'skip'}
+        variant="warning"
+        title="¿Saltar pregunta?"
+        message="Vas a saltar esta pregunta y perderás 20 puntos. La pregunta quedará como no superada."
+        cancelLabel="Cancelar"
+        confirmLabel="Saltar pregunta"
+        onCancel={() => setPendingAction(null)}
+        onConfirm={confirmSkip}
+      />
+      <AppConfirmModal
+        visible={Boolean(feedbackDialog)}
+        variant="info"
+        title={feedbackDialog?.title ?? ''}
+        message={feedbackDialog?.message ?? ''}
+        cancelLabel="Cerrar"
+        confirmLabel="Entendido"
+        onCancel={() => setFeedbackDialog(null)}
+        onConfirm={() => setFeedbackDialog(null)}
+      />
     </GameShell>
   )
 }
@@ -418,7 +427,7 @@ function TextAnswerQuestion({
         <View className="min-w-0 flex-1">
           <Text className="font-black text-white">Escribe tu respuesta</Text>
           <Text className="mt-1 text-[12px] text-[#AFC2DB]">
-            No importan mayúsculas ni espacios extra.
+            Se corregirá con las respuestas aceptadas por el profesor. No importan mayúsculas ni espacios extra.
           </Text>
         </View>
       </View>
@@ -465,8 +474,8 @@ function FillBlankQuestion({
   const markerCount = countBlankMarkers(question.text)
 
   useEffect(() => {
-    setValues(Array.from({ length: getBlankCount(question) }, () => ''))
-  }, [question.id, question.blank_count, question.text])
+    setValues(Array.from({ length: blankCount }, () => ''))
+  }, [blankCount, question.id])
 
   const updateValue = (index: number, value: string) => {
     setValues((current) => current.map((item, itemIndex) => (itemIndex === index ? value : item)))
@@ -513,7 +522,7 @@ function FillBlankQuestion({
       ) : (
         <View className="rounded-2xl border border-[#3A315A] bg-[#141A3E] p-4">
           <Text className="text-[13px] font-bold text-[#D8CCFF]">
-            Consejo para el profesor: en este tipo queda más claro escribir el enunciado con ____ donde vaya cada hueco.
+            Completa el hueco con la palabra correcta.
           </Text>
         </View>
       )}
@@ -862,6 +871,64 @@ function SubmitAnswerButton({ disabled, onPress }: { disabled: boolean; onPress:
   )
 }
 
+function QuestionFeedbackCard({
+  feedback,
+  onContinue,
+}: {
+  feedback: {
+    status: 'correct' | 'incorrect'
+    earnedPoints: number
+    correctAnswerText: string | null
+    explanation: string | null
+  }
+  onContinue: () => void
+}) {
+  const isCorrect = feedback.status === 'correct'
+  const color = isCorrect ? '#34D399' : '#FB7185'
+  const title = isCorrect ? 'Correcto' : 'Incorrecto'
+
+  return (
+    <View className="mt-5 rounded-[24px] border bg-[#09162C] p-5" style={{ borderColor: color }}>
+      <View className="flex-row flex-wrap items-center justify-between gap-4">
+        <View className="min-w-0 flex-1 flex-row items-center gap-3">
+          <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
+            <Ionicons name={isCorrect ? 'checkmark-circle' : 'close-circle'} size={27} color={color} />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className="text-[20px] font-black text-white">{title}</Text>
+            <Text className="mt-1 text-[13px] font-bold" style={{ color }}>
+              +{feedback.earnedPoints} XP
+            </Text>
+          </View>
+        </View>
+
+        <Pressable
+          onPress={onContinue}
+          className="flex-row items-center justify-center gap-2 rounded-2xl px-5 py-3"
+          style={({ pressed }) => ({ backgroundColor: color, opacity: pressed ? 0.82 : 1 })}
+        >
+          <Text className="font-black text-white">Continuar</Text>
+          <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+        </Pressable>
+      </View>
+
+      {!isCorrect && feedback.correctAnswerText ? (
+        <View className="mt-4 rounded-2xl border border-[#243E65] bg-[#061426] p-4">
+          <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#8FA7C7]">Respuesta correcta</Text>
+          <Text className="mt-2 text-[15px] font-bold leading-6 text-white">{feedback.correctAnswerText}</Text>
+        </View>
+      ) : null}
+
+      {feedback.explanation ? (
+        <View className="mt-4 rounded-2xl border border-[#243E65] bg-[#0D1D3B] p-4">
+          <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#8FA7C7]">Explicación</Text>
+          <Text className="mt-2 text-[14px] leading-6 text-[#DDE7F4]">{feedback.explanation}</Text>
+        </View>
+      ) : null}
+    </View>
+  )
+}
+
 function MoveButton({
   icon,
   disabled,
@@ -922,91 +989,46 @@ function TimerPill({ timeLeft }: { timeLeft: number }) {
   )
 }
 
-function StatsRail({
+function LivesBadge({ lives }: { lives: number }) {
+  return (
+    <View className="flex-row items-center gap-1 rounded-full border border-[#2A456A] bg-[#0D1D3B] px-3 py-2">
+      {[...Array(3)].map((_, index) => (
+        <Ionicons
+          key={index}
+          name={index < lives ? 'heart' : 'heart-outline'}
+          size={18}
+          color="#FF647C"
+        />
+      ))}
+    </View>
+  )
+}
+
+function GameStatsBar({
   points,
   streak,
   position,
   category,
+  lives,
 }: {
   points: number
   streak: number
   position: string
   category: string
-}) {
-  return (
-    <View className="mt-20 w-48 rounded-3xl border border-[#1E355C] bg-[#09182F]/90 px-7 py-8">
-      <View className="items-center">
-        <View className="h-28 w-28 items-center justify-center rounded-full border-[7px] border-[#6D5AF6] bg-[#111D45]">
-          <Ionicons name="flash" size={46} color="#FBBF24" />
-        </View>
-        <Text className="mt-4 text-[30px] font-black text-[#9B6CFF]">{points}</Text>
-        <Text className="text-[18px] font-black text-[#9B6CFF]">XP</Text>
-      </View>
-
-      <RailDivider />
-      <RailMetric label="Racha" value={String(streak)} icon="flame" iconColor="#FF7B45" />
-      <RailDivider />
-      <RailMetric label="Posición" value={position} valueColor="#9B6CFF" />
-      <RailDivider />
-      <RailMetric label="Categoría" value={category} icon="football" iconColor="#9B6CFF" compact />
-    </View>
-  )
-}
-
-function RailMetric({
-  label,
-  value,
-  icon,
-  iconColor,
-  valueColor = '#FFFFFF',
-  compact = false,
-}: {
-  label: string
-  value: string
-  icon?: keyof typeof Ionicons.glyphMap
-  iconColor?: string
-  valueColor?: string
-  compact?: boolean
-}) {
-  return (
-    <View className="items-center">
-      <Text className="text-[15px] text-[#95A6C4]">{label}</Text>
-      <View className="mt-2 flex-row items-center gap-2">
-        {icon ? <Ionicons name={icon} size={compact ? 22 : 26} color={iconColor || '#FFFFFF'} /> : null}
-        <Text className="text-[26px] font-black" style={{ color: valueColor }}>
-          {value}
-        </Text>
-      </View>
-    </View>
-  )
-}
-
-function RailDivider() {
-  return <View className="my-6 h-px bg-[#1A3155]" />
-}
-
-function CompactStats({
-  points,
-  streak,
-  lives,
-  category,
-}: {
-  points: number
-  streak: number
   lives: number
-  category: string
 }) {
   return (
-    <View className="flex-row flex-wrap justify-center gap-3">
-      <MiniStat icon="flash" color="#FBBF24" label={`${points} XP`} />
-      <MiniStat icon="flame" color="#FF7B45" label={`Racha ${streak}`} />
-      <MiniStat icon="heart" color="#FF647C" label={`${lives} vidas`} />
-      <MiniStat icon="football" color="#9B6CFF" label={category} />
+    <View className="mt-5 flex-row flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#172A4A] bg-[#07162E]/88 px-4 py-3">
+      <GameStatPill icon="flash" color="#FBBF24" label={`${points} XP`} />
+      <GameStatPill icon="flame" color="#FF7B45" label={`Racha ${streak}`} />
+      <GameStatPill icon="podium-outline" color="#9B6CFF" label={`Posición ${position}`} />
+      <GameStatPill icon="heart" color="#FF647C" label={`${lives} vidas`} />
+      <GameStatPill icon="albums-outline" color="#60A5FA" label={category} />
     </View>
   )
 }
 
-function MiniStat({
+function GameStatPill({
   icon,
   color,
   label,
@@ -1107,37 +1129,20 @@ function AnswerOption({
 }
 
 function BottomHud({
-  level,
-  levelProgress,
-  points,
-  total,
   onHint,
   onSkip,
 }: {
-  level: number
-  levelProgress: number
-  points: number
-  total: number
   onHint: () => void
   onSkip: () => void
 }) {
   return (
-    <View className="mt-8 rounded-3xl border border-[#172A4A] bg-[#08172E]/95 px-5 py-4">
-      <View className="flex-row flex-wrap items-center justify-between gap-5">
+    <View className="mt-6 rounded-3xl border border-[#172A4A] bg-[#08172E]/95 px-5 py-4">
+      <View className="flex-row flex-wrap items-center justify-center gap-4">
         <HudAction icon="bulb" title="Pista" detail="-10 pts" color="#FBBF24" onPress={onHint} />
 
-        <View className="min-w-[260px] flex-1 flex-row items-center justify-center gap-4 rounded-2xl border border-[#10213E] bg-[#071426] px-5 py-4">
-          <View className="h-12 w-12 items-center justify-center rounded-xl border-2 border-[#7C5CFF] bg-[#1B2058]">
-            <Text className="text-[10px] font-bold text-[#B9A7FF]">Nivel</Text>
-            <Text className="text-[14px] font-black text-[#B9A7FF]">{level}</Text>
-          </View>
-          <Text className="font-bold text-white">Nivel {level}</Text>
-          <View className="h-3 min-w-[120px] flex-1 overflow-hidden rounded-full bg-[#10213E]">
-            <View className="h-full rounded-full bg-[#7C5CFF]" style={{ width: `${levelProgress}%` }} />
-          </View>
-          <Text className="font-black text-[#B9A7FF]">
-            {points.toLocaleString()} / {total.toLocaleString()} XP
-          </Text>
+        <View className="min-w-[220px] flex-row items-center justify-center gap-3 rounded-2xl border border-[#10213E] bg-[#071426] px-5 py-4">
+          <Ionicons name="checkmark-circle-outline" size={22} color="#43D991" />
+          <Text className="text-center font-bold text-[#DDE7F4]">Comprueba desde la tarjeta de respuesta</Text>
         </View>
 
         <HudAction icon="chevron-forward" title="Saltar" detail="-20 pts" color="#A78BFA" onPress={onSkip} />

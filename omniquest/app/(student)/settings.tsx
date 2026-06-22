@@ -19,6 +19,7 @@ import {
 } from 'react-native'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import AppConfirmModal from '../../components/AppConfirmModal'
 import { supabase } from '../../lib/supabase'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentSidebar from '../../components/StudentSidebar'
@@ -210,6 +211,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const [deletingData, setDeletingData] = useState(false)
   const [pendingDestructiveAction, setPendingDestructiveAction] = useState<DestructiveActionType | null>(null)
   const [destructiveConfirmationText, setDestructiveConfirmationText] = useState('')
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
 
   const isDesktop = width >= 1080
   const isWide = width >= 820
@@ -949,9 +951,13 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
     await executeDeletePartialData(action)
   }
 
-  const handleSignOut = async () => {
+  const executeSignOut = async () => {
     await supabase.auth.signOut()
     router.replace('/(auth)/login' as any)
+  }
+
+  const handleSignOut = () => {
+    setShowSignOutConfirm(true)
   }
 
   const updateToggle = (key: ToggleKey) => {
@@ -1621,6 +1627,19 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
         onChangeText={setDestructiveConfirmationText}
         onCancel={closeDestructiveConfirmation}
         onConfirm={() => void confirmDestructiveAction()}
+      />
+      <AppConfirmModal
+        visible={showSignOutConfirm}
+        variant="warning"
+        title="¿Cerrar sesión?"
+        message="Saldrás de tu cuenta en este dispositivo. Podrás volver a entrar con tu correo y contraseña."
+        cancelLabel="Cancelar"
+        confirmLabel="Cerrar sesión"
+        onCancel={() => setShowSignOutConfirm(false)}
+        onConfirm={() => {
+          setShowSignOutConfirm(false)
+          void executeSignOut()
+        }}
       />
 
       {!securityOnly && !isDesktop && !isTeacher ? <StudentBottomNav active="settings" /> : null}

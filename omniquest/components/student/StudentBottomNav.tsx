@@ -5,9 +5,10 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../lib/appTheme'
 
 export type StudentBottomNavKey = 'home' | 'classes' | 'progress' | 'profile' | 'settings' | 'ranking' | 'badges' | 'notifications'
+type VisibleStudentBottomNavKey = 'home' | 'classes' | 'play' | 'ranking' | 'profile'
 
 const navItems: {
-  key: StudentBottomNavKey
+  key: VisibleStudentBottomNavKey
   label: string
   href: string
   icon: keyof typeof Ionicons.glyphMap
@@ -15,21 +16,21 @@ const navItems: {
 }[] = [
   { key: 'home', label: 'Inicio', href: '/(student)/homeStudent', icon: 'home-outline', activeIcon: 'home' },
   { key: 'classes', label: 'Clases', href: '/(student)/classes', icon: 'book-outline', activeIcon: 'book' },
-  { key: 'progress', label: 'Progreso', href: '/(student)/progress', icon: 'stats-chart-outline', activeIcon: 'stats-chart' },
+  { key: 'play', label: 'Jugar', href: '/(student)/classes', icon: 'game-controller-outline', activeIcon: 'game-controller' },
   { key: 'ranking', label: 'Ranking', href: '/(student)/ranking', icon: 'trophy-outline', activeIcon: 'trophy' },
   { key: 'profile', label: 'Perfil', href: '/(student)/profile', icon: 'person-outline', activeIcon: 'person' },
-  { key: 'settings', label: 'Ajustes', href: '/(student)/settings', icon: 'settings-outline', activeIcon: 'settings' },
 ]
 
 export default function StudentBottomNav({ active }: { active: StudentBottomNavKey }) {
   const { accentColor } = useAppTheme()
+  const visibleActive = getVisibleActiveKey(active)
 
   return (
-    <View className="absolute bottom-3 left-4 right-4 flex-row justify-around rounded-2xl border border-[#1A3155] bg-[#09162C] py-3">
+    <View className="absolute bottom-3 left-4 right-4 flex-row justify-around rounded-2xl border border-[#1A3155] bg-[#09162C] px-2 py-3">
       {navItems.map((item) => {
-        const isActive = item.key === active
+        const isActive = item.key === visibleActive
         const content = (
-          <Pressable className={`items-center ${isActive ? '' : 'opacity-70'}`}>
+          <Pressable className={`min-w-[54px] items-center ${isActive ? '' : 'opacity-70'}`}>
             <Ionicons
               name={isActive ? item.activeIcon : item.icon}
               size={22}
@@ -53,4 +54,12 @@ export default function StudentBottomNav({ active }: { active: StudentBottomNavK
       })}
     </View>
   )
+}
+
+function getVisibleActiveKey(active: StudentBottomNavKey): VisibleStudentBottomNavKey {
+  if (active === 'badges' || active === 'notifications' || active === 'settings' || active === 'progress') {
+    return 'profile'
+  }
+
+  return active
 }

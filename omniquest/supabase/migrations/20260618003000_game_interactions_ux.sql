@@ -175,6 +175,7 @@ declare
   v_pair_count integer := 0;
   v_matching_pair_count integer := 0;
   v_attempt public.game_attempts%rowtype;
+  v_correct_answer_text text := null;
 begin
   if v_user_id is null then
     raise exception 'No authenticated user';
@@ -447,11 +448,29 @@ begin
     limit 1;
   end if;
 
+  select string_agg(
+    case
+      when v_question.type in ('match_pairs', 'drag_drop') then concat(split_part(a.text, '|||', 1), ' -> ', split_part(a.text, '|||', 2))
+      else a.text
+    end,
+    ', '
+    order by a.sort_order nulls last, a.id
+  )
+  into v_correct_answer_text
+  from public.answers a
+  where a.question_id = p_question_id
+    and (
+      coalesce(a.is_correct, true)
+      or v_question.type in ('ordering', 'match_pairs', 'drag_drop')
+    );
+
   return jsonb_build_object(
     'is_correct', v_is_correct,
     'earned_points', v_earned_points,
     'attempt_score', v_score_for_best,
-    'correct_answer_id', v_correct_answer_id
+    'correct_answer_id', v_correct_answer_id,
+    'correct_answer_text', v_correct_answer_text,
+    'explanation', v_question.explanation
   );
 end;
 $$;

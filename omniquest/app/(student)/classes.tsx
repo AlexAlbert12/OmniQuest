@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { Link, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import AppConfirmModal from '../../components/AppConfirmModal'
 import { supabase } from '../../lib/supabase'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentSidebar from '../../components/StudentSidebar'
@@ -71,6 +72,8 @@ export default function ClassesScreen() {
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
   const [leavingSubjectId, setLeavingSubjectId] = useState<number | null>(null)
+  const [subjectToLeave, setSubjectToLeave] = useState<Subject | null>(null)
+  const [openFilterMenu, setOpenFilterMenu] = useState<'state' | 'sort' | null>(null)
 
   const isDesktop = width >= 1024
   const { accentColor } = useAppTheme()
@@ -112,7 +115,6 @@ export default function ClassesScreen() {
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)
   const realScores = useMemo(() => Object.values(subjectScores), [subjectScores])
-  const progressSubjects = useMemo(() => Object.values(progressBySubject), [progressBySubject])
   const activeClasses = subjects.length
   const classesWithScore = subjects.filter((subject) => typeof subjectScores[subject.id] === 'number').length
   const averageScore = realScores.length > 0
@@ -254,10 +256,6 @@ export default function ClassesScreen() {
     Alert.alert(title, message)
   }
 
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)
-  }
-
   const handleJoinClass = async () => {
     setJoining(true)
     try {
@@ -301,23 +299,7 @@ export default function ClassesScreen() {
   }
 
   const handleLeaveClass = (subject: Subject) => {
-    const message = `Vas a abandonar ${subject.name}. Si quieres volver, necesitarás de nuevo el código de invitación.`
-
-    if (Platform.OS === 'web') {
-      if (window.confirm(message)) {
-        void executeLeaveClass(subject)
-      }
-      return
-    }
-
-    Alert.alert('Abandonar clase', message, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Abandonar',
-        style: 'destructive',
-        onPress: () => void executeLeaveClass(subject),
-      },
-    ])
+    setSubjectToLeave(subject)
   }
 
   if (loading) {
@@ -375,13 +357,13 @@ export default function ClassesScreen() {
 
           <View className={isDesktop ? 'flex-row gap-4' : 'gap-4'}>
             <StatCard icon="school" color={accentColor} value={String(activeClasses)} label="Clases activas" detail="Sigue aprendiendo 🚀" />
-            <StatCard icon="checkmark-circle" color="#43D991" value={`${classesWithScore} / ${activeClasses}`} label="Clases con nota" detail={`${averageProgress}% de progreso medio`} />
-            <StatCard icon="star" color="#F6A64A" value={averageScore > 0 ? `${averageScore} XP` : '0 XP'} label="Promedio de nota" detail="Basado en tus mejores notas" />
+            <StatCard icon="checkmark-circle" color="#43D991" value={`${classesWithScore} / ${activeClasses}`} label="Clases con actividad" detail={`${averageProgress}% de avance medio`} />
+            <StatCard icon="star" color="#F6A64A" value={averageScore > 0 ? `${averageScore} XP` : '0 XP'} label="Media de XP" detail="Basado en tus mejores puntuaciones" />
             <StatCard icon="time" color="#58B5FF" value={`${points.toLocaleString()} XP`} label="XP global" detail="Acumulada en tu perfil" />
           </View>
 
           <View className="mt-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
-            <View className="mb-4 flex-row flex-wrap items-center gap-3">
+            <View className="mb-4 gap-3">
               <View className="min-w-[220px] flex-1 flex-row items-center rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4">
                 <Ionicons name="search-outline" size={18} color="#7F91AD" />
                 <TextInput
@@ -393,38 +375,75 @@ export default function ClassesScreen() {
                 />
               </View>
 
-              <View className="flex-row gap-2">
-                {studentClassFilters.map((filter) => {
-                  const active = selectedFilter === filter.id
-                  return (
-                  <Pressable
-                    key={filter.id}
-                    onPress={() => setSelectedFilter(filter.id)}
-                    className="rounded-lg px-5 py-3"
-                    style={{ backgroundColor: active ? accentColor : '#0A1A34' }}
-                  >
-                    <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{filter.label}</Text>
-                  </Pressable>
-                  )
-                })}
-              </View>
+              {isDesktop ? (
+                <View className="flex-row flex-wrap items-center gap-3">
+                  <View className="flex-row gap-2">
+                    {studentClassFilters.map((filter) => {
+                      const active = selectedFilter === filter.id
+                      return (
+                        <Pressable
+                          key={filter.id}
+                          onPress={() => setSelectedFilter(filter.id)}
+                          className="rounded-lg px-5 py-3"
+                          style={{ backgroundColor: active ? accentColor : '#0A1A34' }}
+                        >
+                          <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{filter.label}</Text>
+                        </Pressable>
+                      )
+                    })}
+                  </View>
 
-              <View className="ml-auto flex-row flex-wrap items-center gap-2">
-                <Text className="font-semibold text-[#AFC2DB]">Ordenar por:</Text>
-                {studentClassSorts.map((sort) => {
-                  const active = selectedSort === sort.id
-                  return (
-                    <Pressable
-                      key={sort.id}
-                      onPress={() => setSelectedSort(sort.id)}
-                      className="rounded-lg px-4 py-3"
-                      style={{ backgroundColor: active ? accentColor : '#0A1A34' }}
-                    >
-                      <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{sort.label}</Text>
-                    </Pressable>
-                  )
-                })}
-              </View>
+                  <View className="ml-auto flex-row flex-wrap items-center gap-2">
+                    <Text className="font-semibold text-[#AFC2DB]">Ordenar por:</Text>
+                    {studentClassSorts.map((sort) => {
+                      const active = selectedSort === sort.id
+                      return (
+                        <Pressable
+                          key={sort.id}
+                          onPress={() => setSelectedSort(sort.id)}
+                          className="rounded-lg px-4 py-3"
+                          style={{ backgroundColor: active ? accentColor : '#0A1A34' }}
+                        >
+                          <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{sort.label}</Text>
+                        </Pressable>
+                      )
+                    })}
+                  </View>
+                </View>
+              ) : (
+                <View className="flex-row gap-3">
+                  <CompactSelect
+                    label="Estado"
+                    value={getFilterLabel(selectedFilter)}
+                    open={openFilterMenu === 'state'}
+                    onToggle={() => setOpenFilterMenu((current) => current === 'state' ? null : 'state')}
+                    options={studentClassFilters.map((filter) => ({
+                      key: filter.id,
+                      label: filter.label,
+                      active: selectedFilter === filter.id,
+                      onPress: () => {
+                        setSelectedFilter(filter.id)
+                        setOpenFilterMenu(null)
+                      },
+                    }))}
+                  />
+                  <CompactSelect
+                    label="Orden"
+                    value={getSortLabel(selectedSort)}
+                    open={openFilterMenu === 'sort'}
+                    onToggle={() => setOpenFilterMenu((current) => current === 'sort' ? null : 'sort')}
+                    options={studentClassSorts.map((sort) => ({
+                      key: sort.id,
+                      label: sort.label,
+                      active: selectedSort === sort.id,
+                      onPress: () => {
+                        setSelectedSort(sort.id)
+                        setOpenFilterMenu(null)
+                      },
+                    }))}
+                  />
+                </View>
+              )}
             </View>
 
             <View style={{ gap: 8 }}>
@@ -460,6 +479,20 @@ export default function ClassesScreen() {
       </View>
 
       {!isDesktop ? <StudentBottomNav active="classes" /> : null}
+      <AppConfirmModal
+        visible={Boolean(subjectToLeave)}
+        variant="danger"
+        title="¿Abandonar clase?"
+        message={`Vas a salir de “${subjectToLeave?.name ?? ''}”. Si quieres volver, necesitarás el código de invitación.`}
+        cancelLabel="Cancelar"
+        confirmLabel="Abandonar clase"
+        busy={subjectToLeave ? leavingSubjectId === subjectToLeave.id : false}
+        onCancel={() => setSubjectToLeave(null)}
+        onConfirm={() => {
+          if (!subjectToLeave) return
+          void executeLeaveClass(subjectToLeave).then(() => setSubjectToLeave(null))
+        }}
+      />
     </View>
   )
 }
@@ -491,6 +524,77 @@ function StatCard({
   )
 }
 
+function CompactSelect({
+  label,
+  onToggle,
+  open,
+  options,
+  value,
+}: {
+  label: string
+  onToggle: () => void
+  open: boolean
+  options: { key: string; label: string; active: boolean; onPress: () => void }[]
+  value: string
+}) {
+  const { accentColor } = useAppTheme()
+
+  return (
+    <View className="relative flex-1">
+      <Pressable
+        onPress={onToggle}
+        className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3"
+      >
+        <View className="min-w-0 flex-1">
+          <Text className="text-[11px] font-bold uppercase text-[#8FA7C7]">{label}</Text>
+          <Text className="mt-0.5 font-bold text-white" numberOfLines={1}>{value}</Text>
+        </View>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={17} color="#AFC2DB" />
+      </Pressable>
+
+      {open ? (
+        <View className="absolute left-0 right-0 top-[66px] z-30 overflow-hidden rounded-xl border border-[#263E61] bg-[#08172E]">
+          {options.map((option) => (
+            <Pressable
+              key={option.key}
+              onPress={option.onPress}
+              className="flex-row items-center justify-between border-b border-[#172A4A] px-4 py-3 last:border-b-0"
+              style={{ backgroundColor: option.active ? `${accentColor}24` : 'transparent' }}
+            >
+              <Text className="font-bold" style={{ color: option.active ? accentColor : '#DDE7F4' }}>
+                {option.label}
+              </Text>
+              {option.active ? <Ionicons name="checkmark" size={16} color={accentColor} /> : null}
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  )
+}
+
+function getClassProgressStatus(progress?: StudentProgressSubject) {
+  const percent = progress?.percent ?? 0
+
+  if (progress?.isCompleted || percent >= 100) {
+    return { label: 'Completada', color: '#43D991', backgroundColor: '#0F2F2B' }
+  }
+
+  if (percent > 0) {
+    return { label: 'En progreso', color: '#FBBF24', backgroundColor: '#2A210F' }
+  }
+
+  return { label: 'Sin empezar', color: '#AFC2DB', backgroundColor: '#122544' }
+}
+
+function getFilterLabel(value: ClassFilter) {
+  return studentClassFilters.find((filter) => filter.id === value)?.label || 'Todas'
+}
+
+function getSortLabel(value: ClassSort) {
+  return studentClassSorts.find((sort) => sort.id === value)?.label || 'Reciente'
+}
+
 function ClassRow({
   subject,
   index,
@@ -519,12 +623,13 @@ function ClassRow({
   const color = subject.theme_color || colors[index] || '#58B5FF'
   const hasScore = typeof score === 'number'
   const progressPercent = progress?.percent ?? 0
-  const scoreLabel = hasScore ? `${score.toLocaleString()} XP` : isFallback ? 'Demo' : 'Sin nota'
+  const scoreLabel = hasScore ? `${score.toLocaleString()} XP` : isFallback ? 'Demo' : 'Sin XP'
   const teacherLabel = teacherName ? `Profesor/a: ${teacherName}` : 'Profesor/a no asignado'
   const topicsLabel = `${topicsCount} tema${topicsCount === 1 ? '' : 's'}`
-  const statusTag = progress?.isCompleted ? 'Completada' : hasScore ? 'Con nota' : null
+  const status = getClassProgressStatus(progress)
   const activityLabel = formatLastActivity(lastActivityAt)
   const { accentColor } = useAppTheme()
+  const [optionsOpen, setOptionsOpen] = React.useState(false)
 
   const content = (
     <View className="flex-row items-center rounded-xl border border-[#172A4A] bg-[#0B1A32] p-4">
@@ -547,9 +652,21 @@ function ClassRow({
               {teacherLabel}
             </Text>
           </View>
-          {statusTag ? (
-            <View className="rounded bg-[#1F2F42] px-2 py-1">
-              <Text className="text-[12px] font-bold" style={{ color: accentColor }}>{statusTag}</Text>
+          <View className="rounded px-2 py-1" style={{ backgroundColor: status.backgroundColor }}>
+            <Text className="text-[12px] font-bold" style={{ color: status.color }}>{status.label}</Text>
+          </View>
+          {progress ? (
+            <View className="rounded bg-[#122544] px-2 py-1">
+              <Text className="text-[12px] text-[#AFC2DB]">
+                {progress.pendingQuestions} por practicar
+              </Text>
+            </View>
+          ) : null}
+          {progress && progress.failedQuestions > 0 ? (
+            <View className="rounded bg-[#2A1420] px-2 py-1">
+              <Text className="text-[12px] font-bold text-[#FB7185]">
+                {progress.failedQuestions} falladas para repasar
+              </Text>
             </View>
           ) : null}
         </View>
@@ -569,7 +686,7 @@ function ClassRow({
       </View>
 
       <View className="hidden w-28 border-l border-[#172A4A] pl-5 lg:flex">
-        <Text className="text-[13px] text-[#8FA7C7]">Mejor nota</Text>
+        <Text className="text-[13px] text-[#8FA7C7]">Mejor XP</Text>
         <Text className="mt-1 font-bold" style={{ color: accentColor }}>{scoreLabel}</Text>
       </View>
 
@@ -597,18 +714,49 @@ function ClassRow({
                   <Text className="font-bold text-white">Ver temas</Text>
                 </Pressable>
               </Link>
-              <Pressable
-                onPress={() => onLeave(subject)}
-                disabled={leaving}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#7F1D1D] bg-[#120A14]"
-                style={({ pressed }) => ({ opacity: leaving ? 0.7 : pressed ? 0.84 : 1 })}
-              >
-                {leaving ? (
-                  <ActivityIndicator color="#FF6B6B" />
-                ) : (
-                  <Ionicons name="ellipsis-horizontal" size={18} color="#FF6B6B" />
-                )}
-              </Pressable>
+              <View className="relative">
+                <Pressable
+                  onPress={() => setOptionsOpen((current) => !current)}
+                  disabled={leaving}
+                  className="flex-row items-center gap-2 rounded-lg border border-[#263E61] bg-[#071326] px-3 py-3"
+                  style={({ pressed }) => ({ opacity: leaving ? 0.7 : pressed ? 0.84 : 1 })}
+                >
+                  {leaving ? (
+                    <ActivityIndicator color="#AFC2DB" />
+                  ) : (
+                    <>
+                      <Text className="font-bold text-[#DDE7F4]">Más opciones</Text>
+                      <Ionicons name={optionsOpen ? 'chevron-up' : 'chevron-down'} size={15} color="#AFC2DB" />
+                    </>
+                  )}
+                </Pressable>
+                {optionsOpen ? (
+                  <View className="absolute right-0 top-12 z-20 w-48 overflow-hidden rounded-xl border border-[#263E61] bg-[#08172E]">
+                    <Link
+                      href={{
+                        pathname: '/(student)/class/[id]',
+                        params: { id: String(subject.id) },
+                      }}
+                      asChild
+                    >
+                      <Pressable className="flex-row items-center gap-2 px-4 py-3" onPress={() => setOptionsOpen(false)}>
+                        <Ionicons name="albums-outline" size={16} color="#AFC2DB" />
+                        <Text className="font-bold text-[#DDE7F4]">Ver detalles</Text>
+                      </Pressable>
+                    </Link>
+                    <Pressable
+                      onPress={() => {
+                        setOptionsOpen(false)
+                        onLeave(subject)
+                      }}
+                      className="flex-row items-center gap-2 border-t border-[#172A4A] px-4 py-3"
+                    >
+                      <Ionicons name="exit-outline" size={16} color="#FF6B6B" />
+                      <Text className="font-bold text-[#FF6B6B]">Abandonar clase</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+              </View>
             </>
           )}
         </View>
@@ -683,16 +831,6 @@ function EmptyClasses({ hasAnyClasses }: { hasAnyClasses: boolean }) {
       </Text>
     </View>
   )
-}
-
-function getNextClassSort(current: ClassSort) {
-  const currentIndex = studentClassSorts.findIndex((sort) => sort.id === current)
-  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % studentClassSorts.length : 0
-  return studentClassSorts[nextIndex].id
-}
-
-function getClassSortLabel(current: ClassSort) {
-  return studentClassSorts.find((sort) => sort.id === current)?.label || 'Reciente'
 }
 
 function getSortableTimestamp(value: string | null | undefined) {

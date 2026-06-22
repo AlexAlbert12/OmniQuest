@@ -10,6 +10,8 @@ export type StudentProgressSubject = {
   completedTopics: number
   totalQuestions: number
   answeredQuestions: number
+  pendingQuestions: number
+  failedQuestions: number
   percent: number
   isCompleted: boolean
 }
@@ -97,9 +99,15 @@ export async function fetchStudentProgressSummary(userId: string): Promise<Stude
       .map((attempt) => attempt.question_id ?? normalizeRelation(attempt.questions)?.id ?? null)
       .filter((questionId): questionId is number => typeof questionId === 'number')
   )
+  const failedQuestionIds = new Set(
+    attempts
+      .filter((attempt) => attempt.is_correct === false)
+      .map((attempt) => attempt.question_id ?? normalizeRelation(attempt.questions)?.id ?? null)
+      .filter((questionId): questionId is number => typeof questionId === 'number')
+  )
 
   const progressSubjects = subjects.map((subject) =>
-    buildSubjectProgress(subject, topics, questions, answeredQuestionIds)
+    buildSubjectProgress(subject, topics, questions, answeredQuestionIds, failedQuestionIds)
   )
   const totalQuestions = progressSubjects.reduce((total, subject) => total + subject.totalQuestions, 0)
   const answeredQuestions = progressSubjects.reduce((total, subject) => total + subject.answeredQuestions, 0)
@@ -124,11 +132,14 @@ function buildSubjectProgress(
   subject: EnrolledSubject,
   topics: TopicRow[],
   questions: QuestionRow[],
-  answeredQuestionIds: Set<number>
+  answeredQuestionIds: Set<number>,
+  failedQuestionIds: Set<number>
 ): StudentProgressSubject {
   const subjectTopics = topics.filter((topic) => topic.subject_id === subject.id)
   const subjectQuestions = questions.filter((question) => question.subject_id === subject.id)
   const answeredQuestions = subjectQuestions.filter((question) => answeredQuestionIds.has(question.id)).length
+  const pendingQuestions = Math.max(0, subjectQuestions.length - answeredQuestions)
+  const failedQuestions = subjectQuestions.filter((question) => failedQuestionIds.has(question.id)).length
   const completedTopics = subjectTopics.filter((topic) => {
     const topicQuestions = subjectQuestions.filter((question) => question.topic_id === topic.id)
     return topicQuestions.length > 0 && topicQuestions.every((question) => answeredQuestionIds.has(question.id))
@@ -136,10 +147,8 @@ function buildSubjectProgress(
   const questionPercent = subjectQuestions.length > 0
     ? Math.round((answeredQuestions / subjectQuestions.length) * 100)
     : 0
-  const topicPercent = subjectTopics.length > 0
-    ? Math.round((completedTopics / subjectTopics.length) * 100)
-    : questionPercent
-  const percent = subjectTopics.length > 0 ? topicPercent : questionPercent
+  const isCompleted = subjectQuestions.length > 0 && answeredQuestions >= subjectQuestions.length
+  const percent = isCompleted ? 100 : questionPercent
 
   return {
     id: subject.id,
@@ -151,8 +160,10 @@ function buildSubjectProgress(
     completedTopics,
     totalQuestions: subjectQuestions.length,
     answeredQuestions,
+    pendingQuestions,
+    failedQuestions,
     percent,
-    isCompleted: subjectQuestions.length > 0 && answeredQuestions >= subjectQuestions.length,
+    isCompleted,
   }
 }
 

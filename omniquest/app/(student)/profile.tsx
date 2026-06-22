@@ -14,8 +14,6 @@ import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/StudentSidebar'
-import BrandLogo from '../../components/BrandLogo'
-import NotificationBadge from '../../components/NotificationBadge'
 import {
   buildStudentBadges,
   getStudentBadgeMetrics,
@@ -25,8 +23,8 @@ import {
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { fetchStudentProgressSummary, type StudentProgressSubject, type StudentProgressSummary } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
-import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import StudentDashboardCard, { StudentCardLink } from '../../components/student/StudentDashboardCard'
+import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
@@ -276,25 +274,12 @@ export default function ProfileScreen() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row items-start justify-between gap-4">
-            <View className="min-w-0 flex-1">
-              {!isDesktop ? (
-                <BrandLogo size={30} style={{ marginBottom: 12 }} />
-              ) : null}
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="person" size={40} color="#9FD6FF" />
-                <Text className="text-[40px] font-black text-white">Perfil</Text>
-              </View>
-              <Text className="mt-1 text-[13px] text-[#9BAEC9]">
-                Gestiona tu información y revisa tus logros
-              </Text>
-            </View>
-
-            <View className="flex-row items-center gap-3">
-              <NotificationBadge />
-              <StudentHeaderAvatar />
-            </View>
-          </View>
+          <StudentPageHeader
+            icon="person"
+            isDesktop={isDesktop}
+            subtitle="Gestiona tu información y revisa tus logros"
+            title="Perfil"
+          />
 
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
             <ProfileHero
@@ -351,6 +336,39 @@ export default function ProfileScreen() {
                 <Text className="font-bold" style={{ color: accentColor }}>Editar perfil</Text>
                 <Ionicons name="arrow-forward" size={16} color={accentColor} />
               </Pressable>
+            </StudentDashboardCard>
+
+            <StudentDashboardCard title="Accesos del perfil" className={isDesktop ? 'flex-[1.05]' : ''}>
+              <View className="gap-3">
+                <ProfileShortcut
+                  icon="stats-chart-outline"
+                  label="Progreso"
+                  description="Estadísticas, evolución y asignaturas"
+                  color={accentColor}
+                  onPress={() => router.push('/(student)/progress' as any)}
+                />
+                <ProfileShortcut
+                  icon="ribbon-outline"
+                  label="Logros"
+                  description="Insignias conseguidas y pendientes"
+                  color="#A855F7"
+                  onPress={() => router.push('/(student)/badges' as any)}
+                />
+                <ProfileShortcut
+                  icon="notifications-outline"
+                  label="Notificaciones"
+                  description="Avisos y novedades de tus clases"
+                  color="#38BDF8"
+                  onPress={() => router.push('/(student)/notifications' as any)}
+                />
+                <ProfileShortcut
+                  icon="settings-outline"
+                  label="Configuración"
+                  description="Preferencias, privacidad y seguridad"
+                  color="#F6A64A"
+                  onPress={() => router.push('/(student)/settings' as any)}
+                />
+              </View>
             </StudentDashboardCard>
 
             <StudentDashboardCard title="Mis estadísticas" className={isDesktop ? 'flex-[1.18]' : ''}>
@@ -525,6 +543,37 @@ function InfoRow({
         <Text className="mt-1 text-[13px] text-[#DDE7F4]" numberOfLines={1}>{value}</Text>
       </View>
     </View>
+  )
+}
+
+function ProfileShortcut({
+  color,
+  description,
+  icon,
+  label,
+  onPress,
+}: {
+  color: string
+  description: string
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center gap-3 rounded-2xl border border-[#172A4A] bg-[#0D1D3B] p-3"
+      style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+    >
+      <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(color, '24') }}>
+        <Ionicons name={icon} size={21} color={color} />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[14px] font-black text-white">{label}</Text>
+        <Text className="mt-0.5 text-[12px] text-[#8FA7C7]">{description}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color="#8FA7C7" />
+    </Pressable>
   )
 }
 
