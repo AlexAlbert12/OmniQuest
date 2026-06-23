@@ -39,6 +39,7 @@ import {
   type SubjectScore,
 } from '../../../lib/teacherSubjectAnalytics';
 import TeacherSidebar from '../../../components/TeacherSidebar';
+import TeacherStudentImportModal from '../../../components/TeacherStudentImportModal';
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -132,6 +133,7 @@ export default function SubjectDetailScreen() {
   const [studentSearch, setStudentSearch] = useState('');
   const [studentStatusFilter, setStudentStatusFilter] = useState<StudentStatusFilter>('all');
   const [studentSortKey, setStudentSortKey] = useState<StudentSortKey>('xp');
+  const [showStudentImportModal, setShowStudentImportModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -374,6 +376,19 @@ export default function SubjectDetailScreen() {
                   icon="chevron-down"
                   onPress={() => setStudentSortKey(getNextStudentSortKey(studentSortKey))}
                 />
+                <Pressable
+                  onPress={() => setShowStudentImportModal(true)}
+                  className="h-11 flex-row items-center gap-2 rounded-lg px-4"
+                  style={({ pressed }) => ({
+                    borderWidth: 1,
+                    borderColor: '#6D5AF6',
+                    backgroundColor: '#111B3D',
+                    opacity: pressed ? 0.82 : 1,
+                  })}
+                >
+                  <Ionicons name="person-add-outline" size={17} color="#C4B5FD" />
+                  <Text className="text-[12px] font-black text-[#C4B5FD]">Importar alumnos</Text>
+                </Pressable>
               </View>
 
               <View className="hidden flex-row border-b border-[#183052] px-2 pb-3 md:flex">
@@ -1403,6 +1418,13 @@ export default function SubjectDetailScreen() {
           {renderTabContent(currentSubject)}
         </ScrollView>
       </View>
+      <TeacherStudentImportModal
+        visible={showStudentImportModal}
+        subjectId={currentSubject.id}
+        subjectName={currentSubject.name}
+        onClose={() => setShowStudentImportModal(false)}
+        onImported={fetchData}
+      />
     </View>
   );
 }
