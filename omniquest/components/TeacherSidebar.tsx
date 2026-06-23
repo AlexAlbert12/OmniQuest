@@ -23,7 +23,7 @@ const navItems: {
   href?: string
 }[] = [
     { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(teacher)/homeTeacher' },
-    { section: 'classes', label: 'Mis Clases', icon: 'book-outline', href: '/(teacher)/classes' },
+    { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(teacher)/classes' },
     { section: 'students', label: 'Estudiantes', icon: 'people-outline', href: '/(teacher)/students' },
     { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(teacher)/notifications' },
     { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(teacher)/profile' },
@@ -90,7 +90,7 @@ export default function TeacherSidebar({
   }, [alias, avatar])
 
   const displayAlias = (localAlias ?? '').trim() || 'Profesor'
-  const classesLabel = `${subjectsCount} ${subjectsCount === 1 ? 'clase activa' : 'clases activas'}`
+  const classesLabel = `${subjectsCount} ${subjectsCount === 1 ? 'curso activo' : 'cursos activos'}`
 
   return (
     <View

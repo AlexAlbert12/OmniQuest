@@ -37,6 +37,7 @@ type TeacherQuestionFormProps = {
   subjectId?: string;
   questionId?: string;
   initialTopicId?: string | null;
+  initialClassroomId?: string | null;
 };
 
 const questionTypes: QuestionTypeCard[] = [
@@ -66,6 +67,7 @@ export default function TeacherQuestionForm({
   subjectId,
   questionId,
   initialTopicId = null,
+  initialClassroomId = null,
 }: TeacherQuestionFormProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -74,6 +76,7 @@ export default function TeacherQuestionForm({
   const normalizedSubjectId = Array.isArray(subjectId) ? subjectId[0] : subjectId;
   const normalizedQuestionId = Array.isArray(questionId) ? questionId[0] : questionId;
   const normalizedInitialTopicId = Array.isArray(initialTopicId) ? initialTopicId[0] : initialTopicId;
+  const normalizedInitialClassroomId = Array.isArray(initialClassroomId) ? initialClassroomId[0] : initialClassroomId;
 
   const [initializing, setInitializing] = useState(isEdit);
   const [activeStep, setActiveStep] = useState<WizardStep>(1);
@@ -143,13 +146,14 @@ export default function TeacherQuestionForm({
             .from('subject_topics')
             .select('id, title')
             .eq('subject_id', normalizedSubjectId)
+            .match(isNumericId(normalizedInitialClassroomId) ? { classroom_id: Number(normalizedInitialClassroomId) } : {})
             .eq('active', true)
             .order('sort_order', { ascending: true })
             .order('created_at', { ascending: true }),
           isEdit && normalizedQuestionId
             ? supabase
                 .from('questions')
-                .select('id, text, type, points_base, time_limit_seconds, topic_id, explanation, answers(text, is_correct, sort_order)')
+                .select('id, text, type, points_base, time_limit_seconds, topic_id, classroom_id, explanation, answers(text, is_correct, sort_order)')
                 .eq('id', normalizedQuestionId)
                 .eq('subject_id', normalizedSubjectId)
                 .single()
@@ -454,6 +458,7 @@ export default function TeacherQuestionForm({
       const { error: saveQuestionError } = await supabase.rpc('save_teacher_question', {
         p_subject_id: Number(normalizedSubjectId),
         p_question_id: isEdit ? Number(normalizedQuestionId) : null,
+        p_classroom_id: isNumericId(normalizedInitialClassroomId) ? Number(normalizedInitialClassroomId) : null,
         p_topic_id: validTopicId,
         p_type: toDatabaseType(selectedType),
         p_text: questionText.trim(),

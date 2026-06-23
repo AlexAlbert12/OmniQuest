@@ -306,7 +306,7 @@ export default function ClassesScreen() {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
         <ActivityIndicator size="large" color={accentColor} />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando tus clases...</Text>
+        <Text className="mt-4 text-[#8FA7C7]">Cargando tus cursos...</Text>
       </View>
     )
   }
@@ -342,10 +342,10 @@ export default function ClassesScreen() {
               ) : null}
               <View className="flex-row items-center gap-3">
                 <Ionicons name="book" size={40} color="#9FD6FF" />
-                <Text className="text-[40px] font-black text-white">Mis Clases</Text>
+                <Text className="text-[40px] font-black text-white">Mis Cursos</Text>
               </View>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">
-                Administra tus clases y continúa aprendiendo
+                Administra tus cursos y continúa aprendiendo
               </Text>
             </View>
 
@@ -356,8 +356,8 @@ export default function ClassesScreen() {
           </View>
 
           <View className={isDesktop ? 'flex-row gap-4' : 'gap-4'}>
-            <StatCard icon="school" color={accentColor} value={String(activeClasses)} label="Clases activas" detail="Sigue aprendiendo 🚀" />
-            <StatCard icon="checkmark-circle" color="#43D991" value={`${classesWithScore} / ${activeClasses}`} label="Clases con actividad" detail={`${averageProgress}% de avance medio`} />
+            <StatCard icon="school" color={accentColor} value={String(activeClasses)} label="Cursos activos" detail="Sigue aprendiendo 🚀" />
+            <StatCard icon="checkmark-circle" color="#43D991" value={`${classesWithScore} / ${activeClasses}`} label="Cursos con actividad" detail={`${averageProgress}% de avance medio`} />
             <StatCard icon="star" color="#F6A64A" value={averageScore > 0 ? `${averageScore} XP` : '0 XP'} label="Media de XP" detail="Basado en tus mejores puntuaciones" />
             <StatCard icon="time" color="#58B5FF" value={`${points.toLocaleString()} XP`} label="XP global" detail="Acumulada en tu perfil" />
           </View>
@@ -368,7 +368,7 @@ export default function ClassesScreen() {
                 <Ionicons name="search-outline" size={18} color="#7F91AD" />
                 <TextInput
                   className="min-w-0 flex-1 px-3 py-3 text-white"
-                  placeholder="Buscar clase..."
+                  placeholder="Buscar curso..."
                   placeholderTextColor="#60799C"
                   value={search}
                   onChangeText={setSearch}
@@ -788,9 +788,9 @@ function JoinClassCard({
         <Ionicons name="add" size={28} color={accentColor} />
       </View>
       <View className="min-w-[220px] flex-1">
-        <Text className="text-[16px] font-black" style={{ color: accentColor }}>Unirse a una nueva clase</Text>
+        <Text className="text-[16px] font-black" style={{ color: accentColor }}>Unirse a un curso o clase</Text>
         <Text className="mt-1 text-[12px] text-[#AFC2DB]">
-          ¿Tienes un código de clase? Únete y empieza a aprender.
+          ¿Tienes un código de invitación? Únete y empieza a aprender.
         </Text>
       </View>
       <View className="flex-row gap-3">
@@ -809,7 +809,7 @@ function JoinClassCard({
           className="flex-row items-center justify-center gap-2 rounded-xl border px-5 py-3"
           style={({ pressed }) => ({ borderColor: accentColor, opacity: joining ? 0.7 : pressed ? 0.82 : 1 })}
         >
-          {joining ? <ActivityIndicator color={accentColor} /> : <Text className="font-bold" style={{ color: accentColor }}>Unirse a clase</Text>}
+          {joining ? <ActivityIndicator color={accentColor} /> : <Text className="font-bold" style={{ color: accentColor }}>Unirse</Text>}
           {!joining ? <Ionicons name="arrow-forward" size={16} color={accentColor} /> : null}
         </Pressable>
       </View>
@@ -822,12 +822,12 @@ function EmptyClasses({ hasAnyClasses }: { hasAnyClasses: boolean }) {
     <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B] px-4 py-6">
       <Ionicons name="school-outline" size={34} color="#60799C" />
       <Text className="mt-3 text-center font-bold text-white">
-        {hasAnyClasses ? 'No hay clases que coincidan' : 'Aún no tienes clases'}
+        {hasAnyClasses ? 'No hay cursos que coincidan' : 'Aún no tienes cursos'}
       </Text>
       <Text className="mt-1 text-center text-[12px] leading-5 text-[#8FA7C7]">
         {hasAnyClasses
-          ? 'Cambia el filtro o la búsqueda para ver más clases.'
-          : 'Introduce el código de tu profesor para unirte a una clase real.'}
+          ? 'Cambia el filtro o la búsqueda para ver más cursos.'
+          : 'Introduce el código de tu profesor para unirte a un curso o clase real.'}
       </Text>
     </View>
   )

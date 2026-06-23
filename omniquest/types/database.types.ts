@@ -164,21 +164,27 @@ export type Database = {
       }
       classrooms: {
         Row: {
+          active: boolean
           academic_year: string | null
+          code: string | null
           created_at: string
           id: number
           name: string
           subject_id: number | null
         }
         Insert: {
+          active?: boolean
           academic_year?: string | null
+          code?: string | null
           created_at?: string
           id?: number
           name: string
           subject_id?: number | null
         }
         Update: {
+          active?: boolean
           academic_year?: string | null
+          code?: string | null
           created_at?: string
           id?: number
           name?: string
@@ -238,6 +244,7 @@ export type Database = {
       questions: {
         Row: {
           active: boolean | null
+          classroom_id: number | null
           created_at: string
           difficulty: number | null
           explanation: string | null
@@ -251,6 +258,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
+          classroom_id?: number | null
           created_at?: string
           difficulty?: number | null
           explanation?: string | null
@@ -264,6 +272,7 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
+          classroom_id?: number | null
           created_at?: string
           difficulty?: number | null
           explanation?: string | null
@@ -365,18 +374,21 @@ export type Database = {
       }
       enrollments: {
         Row: {
+          classroom_id: number | null
           id: number
           student_id: string
           subject_id: number
           joined_at: string
         }
         Insert: {
+          classroom_id?: number | null
           id?: number
           student_id: string
           subject_id: number
           joined_at?: string
         }
         Update: {
+          classroom_id?: number | null
           id?: number
           student_id?: string
           subject_id?: number
@@ -401,6 +413,7 @@ export type Database = {
       }
       subject_topics: {
         Row: {
+          classroom_id: number | null
           id: number
           subject_id: number
           title: string
@@ -411,6 +424,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
+          classroom_id?: number | null
           id?: number
           subject_id: number
           title: string
@@ -421,6 +435,7 @@ export type Database = {
           created_at?: string
         }
         Update: {
+          classroom_id?: number | null
           id?: number
           subject_id?: number
           title?: string
@@ -442,6 +457,7 @@ export type Database = {
       }
       subject_scores: {
         Row: {
+          classroom_id: number | null
           id: number
           student_id: string
           subject_id: number
@@ -453,6 +469,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          classroom_id?: number | null
           id?: number
           student_id: string
           subject_id: number
@@ -464,6 +481,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          classroom_id?: number | null
           id?: number
           student_id?: string
           subject_id?: number
@@ -493,6 +511,7 @@ export type Database = {
       }
       topic_scores: {
         Row: {
+          classroom_id: number | null
           id: number
           student_id: string
           subject_id: number
@@ -503,6 +522,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          classroom_id?: number | null
           id?: number
           student_id: string
           subject_id: number
@@ -513,6 +533,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          classroom_id?: number | null
           id?: number
           student_id?: string
           subject_id?: number
@@ -784,6 +805,12 @@ export type Database = {
           p_name_suffix?: string | null
         }
         Returns: Json
+      }
+      ensure_default_classroom: {
+        Args: {
+          p_subject_id: number
+        }
+        Returns: number
       }
       generate_unique_subject_code: {
         Args: Record<PropertyKey, never>

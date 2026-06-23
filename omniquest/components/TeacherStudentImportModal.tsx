@@ -20,6 +20,8 @@ type TeacherStudentImportModalProps = {
   visible: boolean
   subjectId: number
   subjectName: string
+  classroomId?: number | null
+  classroomName?: string | null
   onClose: () => void
   onImported: () => void
 }
@@ -28,6 +30,8 @@ export default function TeacherStudentImportModal({
   visible,
   subjectId,
   subjectName,
+  classroomId,
+  classroomName,
   onClose,
   onImported,
 }: TeacherStudentImportModalProps) {
@@ -57,6 +61,7 @@ export default function TeacherStudentImportModal({
       const { data, error } = await supabase.functions.invoke('import-students', {
         body: {
           subjectId,
+          classroomId,
           emails: validEmails,
         },
       })
@@ -109,7 +114,7 @@ export default function TeacherStudentImportModal({
             <View className="min-w-0 flex-1">
               <Text className="text-[22px] font-black text-white">Importar alumnos</Text>
               <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">
-                Inscribe alumnos en {subjectName}. Puedes pegar correos separados por saltos, comas o copiar una columna desde Excel.
+                Inscribe alumnos en {classroomName || 'la clase activa'} del curso {subjectName}. Puedes pegar correos separados por saltos, comas o copiar una columna desde Excel.
               </Text>
             </View>
             <Pressable

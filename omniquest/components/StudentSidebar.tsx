@@ -29,7 +29,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(student)/homeStudent' },
-  { section: 'classes', label: 'Mis Clases', icon: 'book-outline', href: '/(student)/classes' },
+  { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(student)/classes' },
   { section: 'progress', label: 'Progreso', icon: 'stats-chart-outline', href: '/(student)/progress' },
   { section: 'ranking', label: 'Ranking', icon: 'trophy-outline', href: '/(student)/ranking' },
   { section: 'badges', label: 'Logros', icon: 'ribbon-outline', href: '/(student)/badges' },

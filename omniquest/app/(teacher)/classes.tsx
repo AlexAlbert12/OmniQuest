@@ -409,7 +409,7 @@ export default function TeacherClassesScreen() {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
         <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando tus clases...</Text>
+        <Text className="mt-4 text-[#8FA7C7]">Cargando tus cursos...</Text>
       </View>
     );
   }
@@ -442,10 +442,10 @@ export default function TeacherClassesScreen() {
               ) : null}
               <View className="flex-row items-center gap-3">
                 <Ionicons name="book" size={40} color="#9FD6FF" />
-                <Text className="text-[40px] font-black text-white">Mis Clases</Text>
+                <Text className="text-[40px] font-black text-white">Mis Cursos</Text>
               </View>
               <Text className="mt-2 text-[14px] text-[#B7C4D7]">
-                Gestiona tus asignaturas, estudiantes y actividades.
+                Gestiona tus cursos, clases, estudiantes y actividades.
               </Text>
             </View>
 
@@ -455,7 +455,7 @@ export default function TeacherClassesScreen() {
                 className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-5 py-3"
               >
                 <Ionicons name="add" size={18} color="#FFFFFF" />
-                <Text className="font-bold text-white">Crear clase</Text>
+                <Text className="font-bold text-white">Crear curso</Text>
               </Pressable>
               <NotificationBadge
                 audience="teacher"
@@ -466,7 +466,7 @@ export default function TeacherClassesScreen() {
           </View>
 
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
-            <MetricCard icon="school" title="Clases activas" value={String(subjects.length)} trend={formatWeeklyTrend(subjects.filter((subject) => isAfterDate(subject.created_at, getRecentThresholdDate(7))).length, 'clase nueva', 'clases nuevas')} color="#8B5CF6" />
+            <MetricCard icon="school" title="Cursos activos" value={String(subjects.length)} trend={formatWeeklyTrend(subjects.filter((subject) => isAfterDate(subject.created_at, getRecentThresholdDate(7))).length, 'curso nuevo', 'cursos nuevos')} color="#8B5CF6" />
             <MetricCard icon="people" title="Estudiantes" value={String(totals.students)} trend={formatWeeklyTrend(totals.enrolledThisWeek, 'estudiante nuevo', 'estudiantes nuevos')} color="#43D991" />
             <MetricCard icon="clipboard" title="Preguntas" value={String(totals.questions)} trend={formatWeeklyTrend(totals.questionsThisWeek, 'pregunta nueva', 'preguntas nuevas')} color="#3B82F6" />
             <MetricCard icon="people-circle" title="Participación media" value={`${totals.participation}%`} trend={formatWeeklyTrend(totals.activeStudentsThisWeek, 'alumno activo', 'alumnos activos')} color="#F6A64A" />
@@ -478,7 +478,7 @@ export default function TeacherClassesScreen() {
                 <View className="h-12 min-w-[260px] flex-1 flex-row items-center rounded-xl border border-[#20375E] bg-[#09162C] px-4">
                   <TextInput
                     className="min-w-0 flex-1 text-white"
-                    placeholder="Buscar clase..."
+                    placeholder="Buscar curso..."
                     placeholderTextColor="#8FA7C7"
                     value={search}
                     onChangeText={setSearch}
@@ -533,8 +533,8 @@ export default function TeacherClassesScreen() {
                   <Ionicons name="add" size={34} color="#9B8CFF" />
                 </View>
                 <View className="min-w-0">
-                  <Text className="text-[20px] font-black text-white">Crear nueva clase</Text>
-                  <Text className="mt-2 text-[#B7C4D7]">Añade una nueva asignatura y comienza a gestionar a tus alumnos.</Text>
+                  <Text className="text-[20px] font-black text-white">Crear nuevo curso</Text>
+                  <Text className="mt-2 text-[#B7C4D7]">Añade un nuevo curso y comienza a gestionar clases y alumnos.</Text>
                 </View>
               </Pressable>
             </View>
@@ -545,12 +545,12 @@ export default function TeacherClassesScreen() {
                   {activityPlan.length > 0 ? (
                     activityPlan.map((item) => <ActivityPlanRow key={`${item.title}-${item.detail}`} item={item} />)
                   ) : (
-                    <EmptyPanelRow icon="checkmark-done-outline" text="Tus clases no tienen acciones pendientes." />
+                    <EmptyPanelRow icon="checkmark-done-outline" text="Tus cursos no tienen acciones pendientes." />
                   )}
                 </View>
               </SidePanel>
 
-              <SidePanel title="Participación por clase" action="Ver informe">
+              <SidePanel title="Participación por curso" action="Ver informe">
                 <View style={{ gap: 14 }}>
                   {subjects.slice(0, 3).map((subject) => {
                     const analytics = analyticsBySubject[subject.id] || emptySubjectAnalytics;
@@ -560,7 +560,7 @@ export default function TeacherClassesScreen() {
                 </View>
               </SidePanel>
 
-              <SidePanel title="Actividad reciente en clases" action="Ver todo">
+              <SidePanel title="Actividad reciente en cursos" action="Ver todo">
                 <View style={{ gap: 13 }}>
                   {recentActivity.length > 0 ? (
                     recentActivity.map((item) => <RecentActivityRow key={`${item.title}-${item.timestamp}`} item={item} />)
@@ -669,7 +669,7 @@ function ClassCard({
       </Link>
 
       <View className="flex-row flex-wrap border-t border-[#172A4A] bg-[#07162E]">
-        <ClassAction href={`/(teacher)/subject/${subject.id}`} icon="eye-outline" label="Ver clase" />
+        <ClassAction href={`/(teacher)/subject/${subject.id}`} icon="eye-outline" label="Ver curso" />
         <ClassAction href={`/(teacher)/subject/${subject.id}?tab=students`} icon="people-outline" label="Estudiantes" />
         <ClassAction href={`/(teacher)/subject/${subject.id}?tab=reports`} icon="analytics-outline" label="Informes" />
         <ClassAction href={`/(teacher)/edit-subject?id=${subject.id}`} icon="create-outline" label="Editar" />
@@ -729,12 +729,12 @@ function EmptyClasses({ hasAnyClasses }: { hasAnyClasses: boolean }) {
     <View className="items-center justify-center rounded-2xl border border-dashed border-[#20375E] bg-[#09162C] p-8">
       <Ionicons name="school-outline" size={58} color="#60799C" />
       <Text className="mt-4 text-center text-lg font-bold text-white">
-        {hasAnyClasses ? 'No hay clases que coincidan' : 'Aún no tienes clases'}
+        {hasAnyClasses ? 'No hay cursos que coincidan' : 'Aún no tienes cursos'}
       </Text>
       <Text className="mt-2 text-center text-sm text-[#8FA7C7]">
         {hasAnyClasses
-          ? 'Cambia el filtro o la búsqueda para ver más clases.'
-          : 'Crea tu primera asignatura para empezar a gestionar alumnos.'}
+          ? 'Cambia el filtro o la búsqueda para ver más cursos.'
+          : 'Crea tu primer curso para empezar a gestionar clases y alumnos.'}
       </Text>
     </View>
   );
@@ -842,7 +842,7 @@ function buildActivityPlan(subjects: Subject[], analyticsBySubject: Record<numbe
         color: '#38BDF8',
         title: 'Invitar estudiantes',
         detail: subject.name,
-        label: 'Clase vacía',
+        label: 'Curso sin alumnos',
       });
     }
 
@@ -901,7 +901,7 @@ function buildRecentActivity({
         icon: 'trophy',
         color: '#F6A64A',
         title: `${studentName} completó una partida`,
-        detail: `${score.max_score ?? 0} puntos en ${subject?.name || 'una clase'}`,
+        detail: `${score.max_score ?? 0} puntos en ${subject?.name || 'un curso'}`,
         time: formatRelativeDate(score.played_at),
         timestamp,
       };
@@ -917,7 +917,7 @@ function buildRecentActivity({
       return {
         icon: 'person-add',
         color: '#3B82F6',
-        title: `Nueva inscripción en ${subject?.name || 'una clase'}`,
+        title: `Nueva inscripción en ${subject?.name || 'un curso'}`,
         detail: studentName,
         time: formatRelativeDate(enrollment.joined_at),
         timestamp,
@@ -933,7 +933,7 @@ function buildRecentActivity({
       return {
         icon: 'checkmark',
         color: '#34D399',
-        title: `Pregunta creada en ${subject?.name || 'una clase'}`,
+        title: `Pregunta creada en ${subject?.name || 'un curso'}`,
         detail: question.text ? truncateText(question.text, 52) : 'Nueva pregunta disponible',
         time: formatRelativeDate(question.created_at),
         timestamp,

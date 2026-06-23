@@ -2,10 +2,12 @@ import { accuracyToGrade, answersToAccuracyPercent, scoreToGrade } from './grade
 
 export type Enrollment = {
   student_id: string
+  classroom_id?: number | null
 }
 
 export type SubjectScore = {
   student_id: string
+  classroom_id?: number | null
   max_score: number | null
   correct_answers?: number | null
   played_days?: string[] | null

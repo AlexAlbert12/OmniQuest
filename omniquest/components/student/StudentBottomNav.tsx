@@ -15,7 +15,7 @@ const navItems: {
   activeIcon: keyof typeof Ionicons.glyphMap
 }[] = [
   { key: 'home', label: 'Inicio', href: '/(student)/homeStudent', icon: 'home-outline', activeIcon: 'home' },
-  { key: 'classes', label: 'Clases', href: '/(student)/classes', icon: 'book-outline', activeIcon: 'book' },
+  { key: 'classes', label: 'Cursos', href: '/(student)/classes', icon: 'book-outline', activeIcon: 'book' },
   { key: 'play', label: 'Jugar', href: '/(student)/classes', icon: 'game-controller-outline', activeIcon: 'game-controller' },
   { key: 'ranking', label: 'Ranking', href: '/(student)/ranking', icon: 'trophy-outline', activeIcon: 'trophy' },
   { key: 'profile', label: 'Perfil', href: '/(student)/profile', icon: 'person-outline', activeIcon: 'person' },
