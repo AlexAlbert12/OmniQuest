@@ -64,7 +64,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
 
   const previewTitle = useMemo(() => {
     const cleanName = name.trim();
-    return cleanName.length > 0 ? cleanName : 'Nombre de la asignatura';
+    return cleanName.length > 0 ? cleanName : 'Nombre del curso';
   }, [name]);
 
   const previewMeta = useMemo(() => `${educationLevel}  •  ${schoolYear}`, [educationLevel, schoolYear]);
@@ -118,7 +118,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
         setSubjectLabel((data.subject_label || legacyMetadata.subjectLabel || '') as (typeof subjectsCatalog)[number] | '');
         setExistingCode(data.code || '');
       } catch (error: any) {
-        showAlert('Error', error.message || 'No se pudo cargar la asignatura.');
+        showAlert('Error', error.message || 'No se pudo cargar el curso.');
         router.back();
       } finally {
         setLoadingInitial(false);
@@ -146,7 +146,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
     const cleanDescription = description.trim();
 
     if (!cleanName) {
-      showAlert('Error', 'El nombre de la asignatura es obligatorio.');
+      showAlert('Error', 'El nombre del curso es obligatorio.');
       return;
     }
 
@@ -168,7 +168,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
     setSaving(true);
     try {
       if (isEdit) {
-        if (!subjectId) throw new Error('No se encontró la asignatura a editar.');
+        if (!subjectId) throw new Error('No se encontró el curso a editar.');
 
         const { data: sessionData } = await supabase.auth.getSession();
         const teacherId = sessionData.session?.user.id;
@@ -192,7 +192,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
 
         if (error) throw error;
 
-        showAlert('Asignatura actualizada', 'Los cambios se guardaron correctamente.');
+        showAlert('Curso actualizado', 'Los cambios se guardaron correctamente.');
         router.back();
         return;
       }
@@ -230,10 +230,10 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
           ? String((createdSubject as { code?: string }).code || code)
           : code;
 
-      showAlert('Asignatura creada', `Código de invitación: ${createdCode}`);
+      showAlert('Curso creado', `Código de invitación: ${createdCode}`);
       router.back();
     } catch (error: any) {
-      showAlert('Error', error.message || 'No se pudo guardar la asignatura.');
+      showAlert('Error', error.message || 'No se pudo guardar el curso.');
     } finally {
       setSaving(false);
     }
@@ -243,7 +243,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
         <ActivityIndicator size="large" color="#6574FF" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando asignatura...</Text>
+        <Text className="mt-4 text-[#8FA7C7]">Cargando curso...</Text>
       </View>
     );
   }
@@ -262,7 +262,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
                 <Ionicons name="arrow-back" size={22} color="#DDE7F4" />
               </Pressable>
               <View className="min-w-0 flex-1">
-                <Text className="text-[36px] font-black text-white">{isEdit ? 'Editar Asignatura' : 'Nueva Asignatura'}</Text>
+                <Text className="text-[36px] font-black text-white">{isEdit ? 'Editar Curso' : 'Nuevo Curso'}</Text>
                 <Text className="mt-1 text-[14px] text-[#AFC2DB]">
                   Crea un nuevo curso y comienza a añadir clases, contenido y alumnos.
                 </Text>
@@ -271,7 +271,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
 
             <View className={`mt-5 gap-4 ${isWide ? 'flex-row' : ''}`}>
               <View className={`${isWide ? 'flex-[1.65]' : ''}`}>
-                <SectionCard step={1} title="Información básica" description="Completa los datos principales de tu asignatura.">
+                <SectionCard step={1} title="Información básica" description="Completa los datos principales de tu curso.">
                   <View className={`gap-4 ${width >= 760 ? 'flex-row' : ''}`}>
                     <View className={`${width >= 760 ? 'w-[34%]' : ''}`}>
                       <Label text="Icono (Emoji)" />
@@ -293,7 +293,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
                     </View>
 
                     <View className={`${width >= 760 ? 'flex-1' : ''}`}>
-                      <Label text="Nombre de la asignatura" />
+                      <Label text="Nombre del curso" />
                       <TextInput
                         className="mt-3 rounded-xl border border-[#28456B] bg-[#0A2042] px-4 py-3 text-[16px] text-white"
                         placeholder="Ej. Matemáticas Avanzadas"
@@ -307,7 +307,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
                       <Label text="Breve descripción (opcional)" className="mt-3" />
                       <TextInput
                         className="mt-3 min-h-[86px] rounded-xl border border-[#28456B] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
-                        placeholder="Describe brevemente de qué trata esta asignatura..."
+                        placeholder="Describe brevemente de qué trata este curso..."
                         placeholderTextColor="#7F95B7"
                         value={description}
                         onChangeText={setDescription}
@@ -475,7 +475,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
               >
                 {saving ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="sparkles-outline" size={16} color="#FFFFFF" />}
                 <Text className="text-[15px] font-black text-white">
-                  {saving ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Crear Asignatura'}
+                  {saving ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Crear Curso'}
                 </Text>
               </Pressable>
             </View>

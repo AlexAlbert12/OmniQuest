@@ -3,7 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import TeacherQuestionForm from '../../../components/TeacherQuestionForm';
 
 export default function AddQuestionScreen() {
-  const { subjectId, topicId, classroomId } = useLocalSearchParams<{ subjectId: string; topicId?: string; classroomId?: string }>();
+  const { subjectId, topicId, classroomId, difficulty } = useLocalSearchParams<{ subjectId: string; topicId?: string; classroomId?: string; difficulty?: string }>();
 
   return (
     <TeacherQuestionForm
@@ -11,6 +11,7 @@ export default function AddQuestionScreen() {
       subjectId={subjectId}
       initialTopicId={topicId || null}
       initialClassroomId={classroomId || null}
+      initialDifficulty={difficulty || null}
     />
   );
 }

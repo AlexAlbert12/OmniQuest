@@ -297,7 +297,7 @@ export default function ProgressScreen() {
           </View>
 
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
-            <StudentDashboardCard title="Progreso por asignatura" className={isDesktop ? 'flex-[1.55]' : ''}>
+            <StudentDashboardCard title="Progreso por curso" className={isDesktop ? 'flex-[1.55]' : ''}>
               <View style={{ gap: 10 }}>
                 {subjectProgress.length > 0 ? (
                   subjectProgress.map((subject) => (
@@ -359,10 +359,10 @@ function SummaryCard({
       <View className="flex-row items-center gap-6">
         <View className="h-40 w-40 items-center justify-center rounded-full border-[13px] bg-[#13204B]" style={{ borderColor: accentColor }}>
           <Text className="text-[34px] font-black text-white">{progressPercent}%</Text>
-          <Text className="mt-1 text-center text-[13px] text-[#AFC2DB]">Avance de clases</Text>
+          <Text className="mt-1 text-center text-[13px] text-[#AFC2DB]">Avance de cursos</Text>
         </View>
         <View className="min-w-0 flex-1" style={{ gap: 12 }}>
-          <SummaryStat icon="checkmark-done" color="#3B82F6" label="Materias completadas" value={`${completedClasses} / ${totalClasses}`} />
+          <SummaryStat icon="checkmark-done" color="#3B82F6" label="Cursos completados" value={`${completedClasses} / ${totalClasses}`} />
           <SummaryStat icon="trophy" color="#EC4899" label="Notas guardadas" value={String(savedScores)} />
           <SummaryStat icon="analytics" color="#F6A64A" label="Media de XP" value={averageScore === null ? 'Sin puntuaciones' : `${averageScore.toLocaleString()} XP`} />
           <SummaryStat icon="flash" color="#FBBF24" label="XP total acumulada" value={`${points.toLocaleString()} XP`} />
@@ -404,7 +404,7 @@ function XpEvolution({ scores }: { scores: RecentScore[] }) {
   return (
     <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
       <View className="mb-5 flex-row items-center justify-between">
-        <Text className="text-[15px] font-black text-white">Últimas 7 puntuaciones</Text>
+        <Text className="text-[15px] font-black text-white">Últimos resultados</Text>
       </View>
       {scores.length > 0 ? (
         <View style={{ gap: 12 }}>
@@ -452,13 +452,13 @@ function DistributionCard({ subjects }: { subjects: SubjectProgress[] }) {
 
   return (
     <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <Text className="mb-5 text-[15px] font-black text-white">Distribución por asignatura</Text>
+      <Text className="mb-5 text-[15px] font-black text-white">Distribución por curso</Text>
       {scoredSubjects.length > 0 ? (
         <View style={{ gap: 12 }}>
           <View className="flex-row items-end justify-between">
             <View>
               <Text className="text-[28px] font-black text-white">{totalXp.toLocaleString()} XP</Text>
-              <Text className="text-[12px] text-[#8FA7C7]">XP acumulado en asignaturas</Text>
+              <Text className="text-[12px] text-[#8FA7C7]">XP acumulado en cursos</Text>
             </View>
             <View className="rounded-full bg-[#13284A] px-3 py-1">
               <Text className="text-[12px] font-bold text-[#AFC2DB]">{scoredSubjects.length} activas</Text>
@@ -691,22 +691,6 @@ function buildRecentScores(scores: ScoreRow[]): RecentScore[] {
     })
 }
 
-function getTimeUntilSundayLabel() {
-  const now = new Date()
-  const endOfSunday = new Date(now)
-  const daysUntilSunday = (7 - now.getDay()) % 7
-  endOfSunday.setDate(now.getDate() + daysUntilSunday)
-  endOfSunday.setHours(23, 59, 59, 999)
-
-  const diffMs = Math.max(0, endOfSunday.getTime() - now.getTime())
-  const totalHours = Math.floor(diffMs / (1000 * 60 * 60))
-  const days = Math.floor(totalHours / 24)
-  const hours = totalHours % 24
-
-  if (days <= 0) return `${hours}h restantes`
-  return `${days}d ${hours}h restantes`
-}
-
 function getStartOfWeekMonday(date: Date) {
   const day = date.getDay()
   const diffToMonday = day === 0 ? -6 : 1 - day
@@ -748,7 +732,7 @@ function buildReinforcementAreas(rows: ReinforcementAttemptRow[]): Reinforcement
 
     const topicId = question.topic_id ?? null
     const topicName = topic?.title || 'Tema general'
-    const subjectName = subject?.name || 'Clase'
+    const subjectName = subject?.name || 'Curso'
     const topicKey = `${question.subject_id}:${topicId ?? 'general'}`
 
     const currentTopic = topicStats.get(topicKey) || {

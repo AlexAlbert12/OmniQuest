@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Alert, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../lib/supabase';
+import { normalizeDifficulty } from '../lib/difficulty';
 import type { Json } from '../types/database.types';
 
 type StructuredAnswerPayload = {
@@ -49,10 +50,11 @@ const emptySummary: GameSummary = {
   reviewQuestions: [],
 };
 
-export function useGame(subjectId: string, topicId?: string, reviewMode?: string, classroomId?: string | null) {
+export function useGame(subjectId: string, topicId?: string, reviewMode?: string, classroomId?: string | null, difficulty?: string | null) {
   const numericSubjectId = Number(subjectId);
   const numericClassroomId = classroomId && classroomId !== 'null' && classroomId !== 'undefined' ? Number(classroomId) : null;
   const numericTopicId = topicId && topicId !== 'general' ? Number(topicId) : null;
+  const numericDifficulty = normalizeDifficulty(difficulty);
   const isGeneralTopic = topicId === 'general';
   const isFailedReview = reviewMode === 'failed';
 
@@ -82,6 +84,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
         p_classroom_id: numericClassroomId,
         p_topic_id: numericTopicId,
         p_general_topic: isGeneralTopic,
+        p_difficulty: numericDifficulty,
       });
 
       if (questionsError) throw questionsError;
@@ -97,10 +100,11 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
 
         const { data: attemptsData, error: attemptsError } = await supabase
           .from('attempt_history')
-          .select('question_id,is_correct,attempted_at,questions!inner(id,subject_id,topic_id)')
+          .select('question_id,is_correct,attempted_at,questions!inner(id,subject_id,topic_id,difficulty)')
           .eq('student_id', studentId)
           .eq('questions.subject_id', numericSubjectId)
           .match(numericClassroomId ? { 'questions.classroom_id': numericClassroomId } : {})
+          .match(numericDifficulty ? { 'questions.difficulty': numericDifficulty } : {})
           .order('attempted_at', { ascending: false });
 
         if (attemptsError) throw attemptsError;
@@ -138,6 +142,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
         p_classroom_id: numericClassroomId,
         p_topic_id: numericTopicId,
         p_general_topic: isGeneralTopic,
+        p_difficulty: numericDifficulty,
       });
 
       if (attemptError) throw attemptError;
@@ -164,7 +169,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       console.error(error);
       Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
     }
-  }, [isFailedReview, isGeneralTopic, numericClassroomId, numericSubjectId, numericTopicId]);
+  }, [isFailedReview, isGeneralTopic, numericClassroomId, numericDifficulty, numericSubjectId, numericTopicId]);
 
   useEffect(() => {
     loadGame();

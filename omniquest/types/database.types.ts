@@ -872,6 +872,7 @@ export type Database = {
           p_classroom_id?: number | null
           p_topic_id?: number | null
           p_general_topic?: boolean
+          p_difficulty?: number | null
         }
         Returns: Json
       }
@@ -891,6 +892,7 @@ export type Database = {
           p_classroom_id?: number | null
           p_topic_id?: number | null
           p_general_topic?: boolean
+          p_difficulty?: number | null
         }
         Returns: string
       }
@@ -921,6 +923,7 @@ export type Database = {
           p_text?: string
           p_points_base?: number
           p_time_limit_seconds?: number
+          p_difficulty?: number
           p_explanation?: string | null
           p_answers?: Json
         }

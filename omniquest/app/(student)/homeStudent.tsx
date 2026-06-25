@@ -300,7 +300,7 @@ export default function StudentHome() {
 
             <View className={isWide ? 'flex-row gap-3' : 'gap-3'}>
               <StudentMetricCard
-                title="Avance de clases"
+                title="Avance de cursos"
                 value={`${progressPercent}%`}
                 icon="analytics-outline"
                 color="#43D991"

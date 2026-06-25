@@ -13,6 +13,7 @@ import {
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
+import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty';
 import TeacherSidebar from '../../../components/TeacherSidebar';
 
 type IconName = keyof typeof Ionicons.glyphMap
@@ -42,6 +43,7 @@ type Question = {
   id: number
   text: string
   points_base: number | null
+  difficulty?: number | null
   topic_id: number | null
   created_at?: string | null
   answers?: { text: string; is_correct: boolean }[]
@@ -66,12 +68,15 @@ export default function TopicDetailScreen() {
   const [topicScores, setTopicScores] = useState<TopicScore[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [subjectsCount, setSubjectsCount] = useState(0);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel | 'all'>('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const isDesktop = width >= 1080;
   const topicId = Array.isArray(id) ? id[0] : id;
-  const topicQuestions = questions.filter((question) => question.topic_id === Number(topicId));
+  const topicQuestions = questions
+    .filter((question) => question.topic_id === Number(topicId))
+    .filter((question) => selectedDifficulty === 'all' || (question.difficulty || 1) === selectedDifficulty);
 
   const scoreValues = topicScores
     .filter((score) => Number(score.topic_id) === Number(topicId) && typeof score.max_score === 'number')
@@ -269,7 +274,7 @@ export default function TopicDetailScreen() {
                 <Text className="text-[12px] font-bold text-[#DCE7F8]">Editar tema</Text>
               </Pressable>
               <Link
-                href={`/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroom_id ?? ''}&topicId=${topic.id}`}
+                href={`/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroom_id ?? ''}&topicId=${topic.id}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`}
                 asChild
               >
                 <Pressable className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-5 py-3">
@@ -315,13 +320,14 @@ export default function TopicDetailScreen() {
           </View>
 
           <Panel title={`Preguntas del tema: ${topic.title}`}>
+            <DifficultyFilterBar selected={selectedDifficulty} onChange={setSelectedDifficulty} />
             {topicQuestions.length === 0 ? (
               <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
                 <Ionicons name="help-circle-outline" size={44} color="#64748B" />
                 <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
                 <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primera pregunta para activar este tema.</Text>
                 <Link
-                  href={`/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroom_id ?? ''}&topicId=${topic.id}`}
+                  href={`/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroom_id ?? ''}&topicId=${topic.id}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`}
                   asChild
                 >
                   <Pressable className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
@@ -398,6 +404,42 @@ function Panel({ title, children, actionLabel, onAction }: {
   );
 }
 
+function DifficultyFilterBar({
+  onChange,
+  selected,
+}: {
+  selected: DifficultyLevel | 'all'
+  onChange: (value: DifficultyLevel | 'all') => void
+}) {
+  return (
+    <View className="mb-4 flex-row flex-wrap gap-2">
+      <Pressable
+        onPress={() => onChange('all')}
+        className="rounded-lg border px-3 py-2"
+        style={{
+          borderColor: selected === 'all' ? '#8B5CF6' : '#20375E',
+          backgroundColor: selected === 'all' ? '#312E8126' : '#09162C',
+        }}
+      >
+        <Text className="text-[12px] font-bold" style={{ color: selected === 'all' ? '#D8B4FE' : '#AFC2DB' }}>Todas</Text>
+      </Pressable>
+      {difficultyOptions.map((option) => {
+        const active = selected === option.value;
+        return (
+          <Pressable
+            key={option.value}
+            onPress={() => onChange(option.value)}
+            className="rounded-lg border px-3 py-2"
+            style={{ borderColor: active ? option.color : '#20375E', backgroundColor: active ? `${option.color}26` : '#09162C' }}
+          >
+            <Text className="text-[12px] font-bold" style={{ color: active ? '#FFFFFF' : '#AFC2DB' }}>{option.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function QuestionRow({ question, index, subjectId, classroomId, topicId, onDelete }: {
   question: Question
   index: number
@@ -407,6 +449,7 @@ function QuestionRow({ question, index, subjectId, classroomId, topicId, onDelet
   onDelete: () => void
 }) {
   const correctAnswer = question.answers?.find((answer) => answer.is_correct);
+  const difficulty = getDifficultyMeta(question.difficulty || 1);
 
   return (
     <View className="flex-row flex-wrap items-center gap-4 rounded-xl border border-[#183052] bg-[#09162C] p-4">
@@ -418,9 +461,10 @@ function QuestionRow({ question, index, subjectId, classroomId, topicId, onDelet
         <Text className="mt-1 text-[12px] text-[#8FA7C7]">
           {question.points_base} puntos · {question.answers?.length || 0} opciones · Respuesta correcta: {correctAnswer?.text || 'N/A'}
         </Text>
+        <Text className="mt-1 text-[11px] font-black" style={{ color: difficulty.color }}>{difficulty.label}</Text>
       </View>
       <View className="flex-row gap-2">
-        <Link href={`/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${classroomId ? `&classroomId=${classroomId}` : ''}${topicId ? `&topicId=${topicId}` : ''}`} asChild>
+        <Link href={`/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${classroomId ? `&classroomId=${classroomId}` : ''}${topicId ? `&topicId=${topicId}` : ''}&difficulty=${question.difficulty || 1}`} asChild>
           <Pressable className="flex-row items-center gap-2 rounded-lg bg-[#3B82F6] px-3 py-2">
             <Ionicons name="create-outline" size={14} color="#FFFFFF" />
             <Text className="text-[12px] font-semibold text-white">Editar</Text>

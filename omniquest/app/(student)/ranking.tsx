@@ -93,7 +93,7 @@ export default function RankingScreen() {
     [rankingRows, selectedLeague.name]
   )
   const selectedLeagueMaxPoints = Math.max(...selectedLeagueRows.map((item) => item.points ?? 0), 1)
-  const rankingPointsLabel = selectedScope === 'class' ? 'Tu XP en esta clase' : 'Tu XP actual'
+  const rankingPointsLabel = selectedScope === 'class' ? 'Tu XP en esta clase' : 'Tu XP en esta liga'
   const bestPointsLabel = selectedScope === 'class' ? 'Mejor XP de clase' : 'Mejor XP del ranking'
 
   const fetchRanking = useCallback(async () => {
@@ -298,11 +298,11 @@ export default function RankingScreen() {
               <View className="mt-4 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
                 <View className="mb-4 flex-row flex-wrap items-center justify-between gap-3">
                   <View className="min-w-0 flex-1">
-                    <Text className="text-[16px] font-black text-white">Estudiantes en Liga {selectedLeague.name}</Text>
+                    <Text className="text-[16px] font-black text-white">Ranking de Liga {selectedLeague.name}</Text>
                     <Text className="mt-1 text-[12px] text-[#8FA7C7]">
                       {selectedScope === 'class'
                         ? `Dentro de ${selectedClass ? `${selectedClass.name} · ${selectedClass.classroomName}` : 'la clase seleccionada'}`
-                        : 'Ranking global filtrado por liga'}
+                        : 'Compites con estudiantes de tu misma liga.'}
                     </Text>
                   </View>
                   <View className="rounded-full border border-[#243D66] bg-[#0A1A34] px-3 py-2">
@@ -355,6 +355,7 @@ export default function RankingScreen() {
                 league={league}
                 pointsLabel={rankingPointsLabel}
                 bestPointsLabel={bestPointsLabel}
+                selectedScope={selectedScope}
               />
             </View>
           </View>
@@ -806,12 +807,14 @@ function RankingSummaryCard({
   league,
   pointsLabel,
   bestPointsLabel,
+  selectedScope,
 }: {
   points: number
   rankingRows: Profile[]
   league: RankingLeague
   pointsLabel: string
   bestPointsLabel: string
+  selectedScope: RankingScope
 }) {
   const totalStudents = rankingRows.length
   const bestPoints = rankingRows.length > 0 ? Math.max(...rankingRows.map((item) => item.points ?? 0)) : 0
@@ -822,7 +825,7 @@ function RankingSummaryCard({
 
   return (
     <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-6">
-      <Text className="text-[16px] font-black text-white">Resumen real del ranking</Text>
+      <Text className="text-[16px] font-black text-white">{selectedScope === 'class' ? 'Resumen de la clase' : 'Resumen de tu liga'}</Text>
       <View className="mt-5 gap-3">
         <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
           <Text className="text-[13px] text-[#AFC2DB]">Estudiantes en ranking</Text>
@@ -844,7 +847,7 @@ function RankingSummaryCard({
           <Text className="text-[14px] font-black text-white">{bestPoints.toLocaleString()} XP</Text>
         </View>
         <View className="flex-row items-center justify-between rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4 py-3">
-          <Text className="text-[13px] text-[#AFC2DB]">Media del ranking</Text>
+          <Text className="text-[13px] text-[#AFC2DB]">XP medio</Text>
           <Text className="text-[14px] font-black text-white">{averagePoints.toLocaleString()} XP</Text>
         </View>
       </View>

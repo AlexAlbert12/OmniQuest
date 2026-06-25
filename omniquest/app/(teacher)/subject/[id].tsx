@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { accuracyToGrade, answersToAccuracyPercent } from '../../../lib/grades';
 import { generateUniqueClassCode } from '../../../lib/classCode';
+import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty';
 import {
   buildStudentListRows,
   buildStudentReportRows,
@@ -62,6 +63,7 @@ type Question = {
   id: number
   text: string
   points_base: number | null
+  difficulty?: number | null
   topic_id: number | null
   classroom_id?: number | null
   created_at?: string | null
@@ -139,9 +141,11 @@ export default function SubjectDetailScreen() {
   const [profilesById, setProfilesById] = useState<Record<string, StudentProfile>>({});
   const [subjectsCount, setSubjectsCount] = useState(0);
   const [selectedTopicId, setSelectedTopicId] = useState<number | 'all' | 'general'>('all');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel | 'all'>('all');
   const [activeTab, setActiveTab] = useState<SubjectTabKey>(() => getSubjectTabFromParam(tab));
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [newTopicDescription, setNewTopicDescription] = useState('');
+  const [newTopicDifficulty, setNewTopicDifficulty] = useState<DifficultyLevel>(1);
   const [creatingTopic, setCreatingTopic] = useState(false);
   const [newClassroomName, setNewClassroomName] = useState('');
   const [creatingClassroom, setCreatingClassroom] = useState(false);
@@ -168,10 +172,15 @@ export default function SubjectDetailScreen() {
       ? 'Tema general'
       : topics.find((topic) => topic.id === selectedTopicId)?.title || 'Tema';
   const filteredQuestions = useMemo(() => {
-    if (selectedTopicId === 'all') return questions;
-    if (selectedTopicId === 'general') return questionsWithoutTopic;
-    return questions.filter((question) => question.topic_id === selectedTopicId);
-  }, [questions, questionsWithoutTopic, selectedTopicId]);
+    const topicFiltered = selectedTopicId === 'all'
+      ? questions
+      : selectedTopicId === 'general'
+        ? questionsWithoutTopic
+        : questions.filter((question) => question.topic_id === selectedTopicId);
+
+    if (selectedDifficulty === 'all') return topicFiltered;
+    return topicFiltered.filter((question) => (question.difficulty || 1) === selectedDifficulty);
+  }, [questions, questionsWithoutTopic, selectedDifficulty, selectedTopicId]);
 
   const scoreValues = useMemo(
     () => scores.map((item) => item.max_score).filter((score): score is number => typeof score === 'number'),
@@ -512,13 +521,14 @@ export default function SubjectDetailScreen() {
         <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
           <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
             <Panel title={`Preguntas: ${selectedTopicLabel}`}>
+              <DifficultyFilterBar selected={selectedDifficulty} onChange={setSelectedDifficulty} />
               {filteredQuestions.length === 0 ? (
                 <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
                   <Ionicons name="help-circle-outline" size={44} color="#64748B" />
                   <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
                   <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primera pregunta para activar este tema.</Text>
                   <Link
-                    href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${selectedClassroom?.id ? `&classroomId=${selectedClassroom.id}` : ''}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}`}
+                    href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${selectedClassroom?.id ? `&classroomId=${selectedClassroom.id}` : ''}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`}
                     asChild
                   >
                     <Pressable className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
@@ -546,7 +556,7 @@ export default function SubjectDetailScreen() {
           <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
             <Panel title="Gestión rápida">
               <Link
-                href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${selectedClassroom?.id ? `&classroomId=${selectedClassroom.id}` : ''}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}`}
+                href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${selectedClassroom?.id ? `&classroomId=${selectedClassroom.id}` : ''}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`}
                 asChild
               >
                 <Pressable className="mb-3 rounded-xl bg-[#5A46D8] px-4 py-3">
@@ -719,7 +729,7 @@ export default function SubjectDetailScreen() {
               <InfoStack label="Progreso de la clase" value={`${progress}%`} />
               <InfoStack label="Participación" value={`${scores.length} / ${Math.max(enrollments.length, 1)}`} />
               <Link
-                href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${selectedClassroom?.id ? `&classroomId=${selectedClassroom.id}` : ''}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}`}
+                href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${selectedClassroom?.id ? `&classroomId=${selectedClassroom.id}` : ''}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`}
                 asChild
               >
                 <Pressable className="rounded-xl bg-[#1A1E55] px-5 py-3">
@@ -736,13 +746,14 @@ export default function SubjectDetailScreen() {
           </View>
 
           <Panel title={`Preguntas: ${selectedTopicLabel}`}>
+            <DifficultyFilterBar selected={selectedDifficulty} onChange={setSelectedDifficulty} />
             {filteredQuestions.length === 0 ? (
               <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
                 <Ionicons name="help-circle-outline" size={44} color="#64748B" />
                 <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
                 <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primera pregunta para activar este tema.</Text>
                 <Link
-                  href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${selectedClassroom?.id ? `&classroomId=${selectedClassroom.id}` : ''}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}`}
+                  href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${selectedClassroom?.id ? `&classroomId=${selectedClassroom.id}` : ''}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`}
                   asChild
                 >
                   <Pressable className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
@@ -1282,6 +1293,7 @@ export default function SubjectDetailScreen() {
       setSelectedTopicId(Number(data.id));
       setNewTopicTitle('');
       setNewTopicDescription('');
+      router.push(`/(teacher)/subject/add-question?subjectId=${subjectId}${selectedClassroomId ? `&classroomId=${selectedClassroomId}` : ''}&topicId=${data.id}&difficulty=${newTopicDifficulty}` as any);
     } catch (error: any) {
       showAlert('No se pudo crear el tema', error.message);
     } finally {
@@ -1533,6 +1545,29 @@ export default function SubjectDetailScreen() {
                   value={newTopicDescription}
                   onChangeText={setNewTopicDescription}
                 />
+              </View>
+              <View className="min-w-[220px]">
+                <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Dificultad inicial</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {difficultyOptions.map((option) => {
+                    const active = newTopicDifficulty === option.value;
+                    return (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => setNewTopicDifficulty(option.value)}
+                        className="rounded-lg border px-3 py-2"
+                        style={{
+                          borderColor: active ? option.color : '#20375E',
+                          backgroundColor: active ? `${option.color}30` : '#09162C',
+                        }}
+                      >
+                        <Text className="text-[12px] font-bold" style={{ color: active ? '#FFFFFF' : '#AFC2DB' }}>
+                          {option.shortLabel}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
               <Pressable
                 onPress={handleCreateTopic}
@@ -2013,6 +2048,42 @@ function EvolutionRow({ item, maxValue }: { item: EvolutionReport; maxValue: num
   );
 }
 
+function DifficultyFilterBar({
+  onChange,
+  selected,
+}: {
+  selected: DifficultyLevel | 'all'
+  onChange: (value: DifficultyLevel | 'all') => void
+}) {
+  return (
+    <View className="mb-4 flex-row flex-wrap gap-2">
+      <Pressable
+        onPress={() => onChange('all')}
+        className="rounded-lg border px-3 py-2"
+        style={{
+          borderColor: selected === 'all' ? '#8B5CF6' : '#20375E',
+          backgroundColor: selected === 'all' ? '#312E8126' : '#09162C',
+        }}
+      >
+        <Text className="text-[12px] font-bold" style={{ color: selected === 'all' ? '#D8B4FE' : '#AFC2DB' }}>Todas</Text>
+      </Pressable>
+      {difficultyOptions.map((option) => {
+        const active = selected === option.value;
+        return (
+          <Pressable
+            key={option.value}
+            onPress={() => onChange(option.value)}
+            className="rounded-lg border px-3 py-2"
+            style={{ borderColor: active ? option.color : '#20375E', backgroundColor: active ? `${option.color}26` : '#09162C' }}
+          >
+            <Text className="text-[12px] font-bold" style={{ color: active ? '#FFFFFF' : '#AFC2DB' }}>{option.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function QuestionRow({
   question,
   index,
@@ -2027,6 +2098,7 @@ function QuestionRow({
   onDelete: () => void
 }) {
   const answer = question.answers?.find((item) => item.is_correct)?.text || 'Sin respuesta marcada';
+  const difficulty = getDifficultyMeta(question.difficulty || 1);
 
   return (
     <View className="rounded-xl border border-[#183052] bg-[#09162C] p-4">
@@ -2038,11 +2110,12 @@ function QuestionRow({
           <Text className="font-black text-white">{question.text}</Text>
           <Text className="mt-2 text-[12px] text-[#34D399]">✓ {answer}</Text>
           {topicName ? <Text className="mt-1 text-[11px] font-semibold text-[#8FA7C7]">{topicName}</Text> : null}
+          <Text className="mt-1 text-[11px] font-black" style={{ color: difficulty.color }}>{difficulty.label}</Text>
         </View>
         <View className="rounded-lg bg-[#13284A] px-3 py-2">
           <Text className="text-[11px] font-black text-[#C4D0E3]">{question.points_base ?? 0} pts</Text>
         </View>
-        <Link href={`/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${question.classroom_id ? `&classroomId=${question.classroom_id}` : ''}${question.topic_id ? `&topicId=${question.topic_id}` : ''}`} asChild>
+        <Link href={`/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${question.classroom_id ? `&classroomId=${question.classroom_id}` : ''}${question.topic_id ? `&topicId=${question.topic_id}` : ''}&difficulty=${question.difficulty || 1}`} asChild>
           <Pressable className="rounded-lg border border-[#4F46E5] bg-[#312E8126] p-2">
             <Ionicons name="create-outline" size={18} color="#A78BFA" />
           </Pressable>

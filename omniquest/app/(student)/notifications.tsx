@@ -20,8 +20,6 @@ import BrandLogo from '../../components/BrandLogo'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
-import { useAppTheme } from '../../lib/appTheme'
-import { withAlpha } from '../../lib/color'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
 
@@ -70,7 +68,6 @@ export default function StudentNotificationsScreen() {
   const [profileLoading, setProfileLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedFilter, setSelectedFilter] = useState<NotificationFilter>('all')
-  const { accentColor } = useAppTheme()
 
   const isDesktop = width >= 1080
   const isWide = width >= 860
@@ -172,7 +169,7 @@ export default function StudentNotificationsScreen() {
   if (loading || profileLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color={accentColor} />
+        <ActivityIndicator size="large" color="#8B5CF6" />
         <Text className="mt-4 text-[#8FA7C7]">Cargando notificaciones...</Text>
       </View>
     )
@@ -196,11 +193,11 @@ export default function StudentNotificationsScreen() {
         <ScrollView
           className="flex-1"
           contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 34 : 18,
-            paddingTop: isDesktop ? 24 : 18,
+            paddingHorizontal: isDesktop ? 28 : 18,
+            paddingTop: isDesktop ? 28 : 18,
             paddingBottom: isDesktop ? 32 : 104,
           }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accentColor} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
         >
           <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
@@ -235,14 +232,9 @@ export default function StudentNotificationsScreen() {
               </Pressable>
               {unreadCount > 0 ? (
                 <Pressable
-                  onPress={() => void markAllAsRead()}
-                  className="flex-row items-center gap-2 rounded-xl px-4 py-3"
-                  style={({ pressed }) => ({
-                    borderWidth: 1,
-                    borderColor: accentColor,
-                    backgroundColor: withAlpha(accentColor, '22'),
-                    opacity: pressed ? 0.82 : 1,
-                  })}
+                onPress={() => void markAllAsRead()}
+                  className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
+                  style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
                 >
                   <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
                   <Text className="text-[12px] font-bold text-white">Marcar todo leído</Text>
@@ -316,30 +308,23 @@ function CategoryCard({
   active: boolean
   onPress: () => void
 }) {
-  const { accentColor } = useAppTheme()
-
   return (
     <Pressable
       onPress={onPress}
-      className="min-w-[160px] flex-1 rounded-xl p-4"
-      style={({ pressed }) => ({
-        borderWidth: 1,
-        borderColor: active ? accentColor : '#183052',
-        backgroundColor: active ? withAlpha(accentColor, '24') : '#07162D',
-        opacity: pressed ? 0.84 : 1,
-      })}
+      className={`min-w-[160px] flex-1 rounded-xl border p-4 ${active ? 'border-[#6D5AF6] bg-[#1A1E55]' : 'border-[#183052] bg-[#07162D]'}`}
+      style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
     >
       <View className="mb-3 flex-row items-center justify-between">
         <View className="h-10 w-10 items-center justify-center rounded-lg bg-[#13284A]">
-          <Ionicons name={icon} size={20} color={active ? accentColor : '#AFC2DB'} />
+          <Ionicons name={icon} size={20} color={active ? '#C4B5FD' : '#AFC2DB'} />
         </View>
         {unread > 0 ? (
           <View className="rounded-full bg-[#EF4444] px-2 py-1">
-                <Text className="text-[13px] font-bold text-[#DDE7F4]">{unread}</Text>
+            <Text className="text-[10px] font-black text-white">{unread}</Text>
           </View>
         ) : null}
       </View>
-      <Text className="text-[13px] font-semibold text-[#B7C4D7]">{label}</Text>
+      <Text className="text-[12px] font-semibold text-[#B7C4D7]">{label}</Text>
       <Text className="mt-1 text-[24px] font-black text-white">{count}</Text>
     </Pressable>
   )
@@ -356,18 +341,13 @@ function FilterChip({
   count?: number
   onPress: () => void
 }) {
-  const { accentColor } = useAppTheme()
-
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-2 rounded-full px-4 py-2"
-      style={({ pressed }) => ({
-        borderWidth: 1,
-        borderColor: active ? accentColor : '#20375E',
-        backgroundColor: active ? withAlpha(accentColor, '26') : '#09162C',
-        opacity: pressed ? 0.82 : 1,
-      })}
+      className={`flex-row items-center gap-2 rounded-full px-4 py-2 ${
+        active ? 'bg-[#5A46D8]' : 'border border-[#20375E] bg-[#09162C]'
+      }`}
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       <Ionicons name={option.icon} size={14} color={active ? '#FFFFFF' : '#B7C4D7'} />
       <Text className={`text-[13px] font-semibold ${active ? 'text-white' : 'text-[#B7C4D7]'}`}>
@@ -375,7 +355,7 @@ function FilterChip({
       </Text>
       {typeof count === 'number' ? (
         <View className={active ? 'rounded-full bg-white/20 px-2 py-0.5' : 'rounded-full bg-[#13284A] px-2 py-0.5'}>
-          <Text className="text-[13px] font-black text-white">{count}</Text>
+          <Text className="text-[10px] font-black text-white">{count}</Text>
         </View>
       ) : null}
     </Pressable>
@@ -395,18 +375,14 @@ function NotificationItem({
 }) {
   const timeAgo = getTimeAgo(notification.timestamp)
   const [showDeleteAction, setShowDeleteAction] = useState(Platform.OS !== 'web')
-  const { accentColor } = useAppTheme()
 
   return (
     <View
       onPointerEnter={() => setShowDeleteAction(true)}
       onPointerLeave={() => setShowDeleteAction(Platform.OS !== 'web')}
-      className="flex-row gap-3 rounded-xl px-4 py-3"
-      style={{
-        borderWidth: 1,
-        borderColor: notification.isRead ? '#1A3155' : accentColor,
-        backgroundColor: notification.isRead ? '#07162E' : '#0F1E35',
-      }}
+      className={`flex-row gap-3 rounded-xl border px-4 py-3 ${
+        notification.isRead ? 'border-[#1A3155] bg-[#07162E]' : 'border-[#5364F5] bg-[#0F1E35]'
+      }`}
     >
       <View
         className="h-12 w-12 flex-shrink-0 items-center justify-center rounded-full"
@@ -423,18 +399,18 @@ function NotificationItem({
                 {notification.title}
               </Text>
               <View className="rounded-full bg-[#13284A] px-2 py-1">
-                <Text className="text-[12px] font-bold text-[#AFC2DB]">{categoryLabels[notification.type]}</Text>
+                <Text className="text-[10px] font-bold text-[#AFC2DB]">{categoryLabels[notification.type]}</Text>
               </View>
-              {!notification.isRead ? <View className="h-2 w-2 rounded-full" style={{ backgroundColor: accentColor }} /> : null}
+              {!notification.isRead ? <View className="h-2 w-2 rounded-full bg-[#3B82F6]" /> : null}
             </View>
             <Text className="mt-1 text-[13px] leading-5 text-[#8FA7C7]">{notification.description}</Text>
             <View className="mt-2 flex-row flex-wrap items-center gap-2">
               <Ionicons name="time-outline" size={12} color="#64748B" />
-              <Text className="text-[13px] text-[#64748B]">{timeAgo}</Text>
+              <Text className="text-[11px] text-[#64748B]">{timeAgo}</Text>
               {notification.subjectName && (
                 <>
-                  <Text className="text-[13px] text-[#415676]">·</Text>
-                  <Text className="text-[13px] font-semibold text-[#8FA7C7]">{notification.subjectName}</Text>
+                  <Text className="text-[11px] text-[#415676]">·</Text>
+                  <Text className="text-[11px] font-semibold text-[#8FA7C7]">{notification.subjectName}</Text>
                 </>
               )}
             </View>

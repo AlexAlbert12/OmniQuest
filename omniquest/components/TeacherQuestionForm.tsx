@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { difficultyOptions, getDifficultyMeta, normalizeDifficulty, type DifficultyLevel } from '../lib/difficulty';
 import type { Json } from '../types/database.types';
 
 type QuestionTypeId = 'multiple' | 'boolean' | 'dragdrop' | 'match' | 'fill' | 'order' | 'open';
@@ -38,6 +39,7 @@ type TeacherQuestionFormProps = {
   questionId?: string;
   initialTopicId?: string | null;
   initialClassroomId?: string | null;
+  initialDifficulty?: string | null;
 };
 
 const questionTypes: QuestionTypeCard[] = [
@@ -68,6 +70,7 @@ export default function TeacherQuestionForm({
   questionId,
   initialTopicId = null,
   initialClassroomId = null,
+  initialDifficulty = null,
 }: TeacherQuestionFormProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -77,6 +80,7 @@ export default function TeacherQuestionForm({
   const normalizedQuestionId = Array.isArray(questionId) ? questionId[0] : questionId;
   const normalizedInitialTopicId = Array.isArray(initialTopicId) ? initialTopicId[0] : initialTopicId;
   const normalizedInitialClassroomId = Array.isArray(initialClassroomId) ? initialClassroomId[0] : initialClassroomId;
+  const normalizedInitialDifficulty = normalizeDifficulty(Array.isArray(initialDifficulty) ? initialDifficulty[0] : initialDifficulty) || 1;
 
   const [initializing, setInitializing] = useState(isEdit);
   const [activeStep, setActiveStep] = useState<WizardStep>(1);
@@ -86,6 +90,7 @@ export default function TeacherQuestionForm({
   const [points, setPoints] = useState('10');
   const [optionsCount, setOptionsCount] = useState(4);
   const [explanation, setExplanation] = useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel>(normalizedInitialDifficulty);
   const [topics, setTopics] = useState<{ id: number; title: string }[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(() =>
     isNumericId(normalizedInitialTopicId) ? normalizedInitialTopicId : null
@@ -153,7 +158,7 @@ export default function TeacherQuestionForm({
           isEdit && normalizedQuestionId
             ? supabase
                 .from('questions')
-                .select('id, text, type, points_base, time_limit_seconds, topic_id, classroom_id, explanation, answers(text, is_correct, sort_order)')
+                .select('id, text, type, difficulty, points_base, time_limit_seconds, topic_id, classroom_id, explanation, answers(text, is_correct, sort_order)')
                 .eq('id', normalizedQuestionId)
                 .eq('subject_id', normalizedSubjectId)
                 .single()
@@ -176,6 +181,7 @@ export default function TeacherQuestionForm({
           setTimeLimit(String(questionData.time_limit_seconds || 30));
           setPoints(String(questionData.points_base || 10));
           setExplanation(questionData.explanation || '');
+          setSelectedDifficulty(normalizeDifficulty(questionData.difficulty) || 1);
           nextSelectedTopicId = questionData.topic_id ? String(questionData.topic_id) : null;
 
           const fetchedAnswers = Array.isArray(questionData.answers)
@@ -464,6 +470,7 @@ export default function TeacherQuestionForm({
         p_text: questionText.trim(),
         p_points_base: validPoints,
         p_time_limit_seconds: validTimeLimit,
+        p_difficulty: selectedDifficulty,
         p_explanation: explanation.trim() || null,
         p_answers: answersToSave as unknown as Json,
       });
@@ -565,6 +572,33 @@ export default function TeacherQuestionForm({
                         <Text className="text-[12px] text-[#F6CFAE]">Esta clase todavía no tiene temas. La pregunta se guardará sin tema.</Text>
                       </View>
                     )}
+
+                    <FieldLabel label="Dificultad de esta versión del tema" />
+                    <View className="flex-row flex-wrap gap-2">
+                      {difficultyOptions.map((option) => {
+                        const active = selectedDifficulty === option.value;
+                        return (
+                          <Pressable
+                            key={option.value}
+                            onPress={() => setSelectedDifficulty(option.value)}
+                            className="rounded-xl border px-3 py-2"
+                            style={{
+                              borderColor: active ? option.color : '#2A456A',
+                              backgroundColor: active ? `${option.color}33` : '#0A2042',
+                            }}
+                          >
+                            <Text className="font-semibold" style={{ color: active ? '#FFFFFF' : '#B7C4D7' }}>
+                              {option.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                    <HelperTip
+                      icon="layers-outline"
+                      title={`Versión ${getDifficultyMeta(selectedDifficulty).label.toLowerCase()}`}
+                      detail="Las preguntas se guardan dentro del mismo tema, pero separadas por dificultad. El alumno elegirá esta versión antes de jugar si hay varias disponibles."
+                    />
 
                     <FieldLabel label="Enunciado" />
                     <TextInput

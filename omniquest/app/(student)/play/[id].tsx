@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import AppConfirmModal from '../../../components/AppConfirmModal'
 import { useGame } from '../../../hooks/useGame'
+import { getDifficultyMeta, normalizeDifficulty } from '../../../lib/difficulty'
 import StudentHeaderAvatar from '../../../components/student/StudentHeaderAvatar'
 import type { Json } from '../../../types/database.types'
 
@@ -48,16 +49,20 @@ type Question = {
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
 export default function PlayScreen() {
-  const { id, topicId, topicName, review, classroomId } = useLocalSearchParams<{ id: string; topicId?: string; topicName?: string; review?: string; classroomId?: string }>()
+  const { id, topicId, topicName, review, classroomId, difficulty } = useLocalSearchParams<{ id: string; topicId?: string; topicName?: string; review?: string; classroomId?: string; difficulty?: string }>()
   const { width } = useWindowDimensions()
   const router = useRouter()
   const reviewMode = Array.isArray(review) ? review[0] : review
   const selectedClassroomId = Array.isArray(classroomId) ? classroomId[0] : classroomId
+  const selectedDifficulty = Array.isArray(difficulty) ? difficulty[0] : difficulty
+  const normalizedDifficulty = normalizeDifficulty(selectedDifficulty)
+  const difficultyMeta = normalizedDifficulty ? getDifficultyMeta(normalizedDifficulty) : null
   const game = useGame(
     id as string,
     Array.isArray(topicId) ? topicId[0] : topicId,
     reviewMode,
     selectedClassroomId,
+    selectedDifficulty,
   )
   const [pendingAction, setPendingAction] = useState<'hint' | 'skip' | null>(null)
   const [feedbackDialog, setFeedbackDialog] = useState<{ title: string; message: string } | null>(null)
@@ -132,7 +137,8 @@ export default function PlayScreen() {
   const progressPercentage = ((game.currentIndex + 1) / totalQuestions) * 100
   const pointsBase = currentQuestion?.points_base ?? 150
   const selectedTopicName = Array.isArray(topicName) ? topicName[0] : topicName
-  const category = selectedTopicName || currentQuestion?.category || currentQuestion?.subject || 'Tema'
+  const baseCategory = selectedTopicName || currentQuestion?.category || currentQuestion?.subject || 'Tema'
+  const category = difficultyMeta ? `${baseCategory} · ${difficultyMeta.label}` : baseCategory
   const position = `${Math.min(game.currentIndex + 3, 24)}/24`
 
   const handleHint = () => {

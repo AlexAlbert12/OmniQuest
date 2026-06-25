@@ -9,9 +9,10 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../../lib/supabase'
+import { difficultyOptions, getDifficultyMeta, normalizeDifficulty, type DifficultyLevel } from '../../../lib/difficulty'
 import NotificationBadge from '../../../components/NotificationBadge'
 import StudentHeaderAvatar from '../../../components/student/StudentHeaderAvatar'
 
@@ -41,6 +42,15 @@ type Topic = {
   failedQuestions: number
   lastAttemptAt: string | null
   bestScore?: number
+  difficulties: DifficultyTopicStats[]
+}
+
+type DifficultyTopicStats = {
+  difficulty: DifficultyLevel
+  questionsCount: number
+  answeredQuestions: number
+  failedQuestions: number
+  lastAttemptAt: string | null
 }
 
 type RecentAttempt = {
@@ -74,6 +84,7 @@ export default function StudentClassDetailScreen() {
   const [recentAttempts, setRecentAttempts] = useState<RecentAttempt[]>([])
   const [failedQuestions, setFailedQuestions] = useState<FailedQuestion[]>([])
   const [classRanking, setClassRanking] = useState<ClassRankingItem[]>([])
+  const [difficultyChooserTopic, setDifficultyChooserTopic] = useState<Topic | null>(null)
   const [loading, setLoading] = useState(true)
 
   const subjectId = Array.isArray(id) ? id[0] : id
@@ -136,7 +147,7 @@ export default function StudentClassDetailScreen() {
           .order('created_at', { ascending: true }),
         supabase
           .from('questions')
-          .select('id, topic_id, text')
+          .select('id, topic_id, text, difficulty')
           .eq('subject_id', subjectId)
           .eq('classroom_id', selectedEnrollmentClassroomId)
           .eq('active', true),
@@ -155,7 +166,7 @@ export default function StudentClassDetailScreen() {
           .maybeSingle(),
         supabase
           .from('attempt_history')
-          .select('id, question_id, is_correct, attempted_at, questions!inner(id, text, topic_id, subject_id, classroom_id)')
+          .select('id, question_id, is_correct, attempted_at, questions!inner(id, text, topic_id, subject_id, classroom_id, difficulty)')
           .eq('student_id', userId)
           .eq('questions.subject_id', subjectId)
           .eq('questions.classroom_id', selectedEnrollmentClassroomId)
@@ -214,6 +225,7 @@ export default function StudentClassDetailScreen() {
           failedQuestions: topicQuestions.filter((question) => failedQuestionIds.has(Number(question.id))).length,
           lastAttemptAt: getLastAttemptAt(topicQuestions, latestAttemptByQuestion),
           bestScore: scoresByTopic.get(topicId),
+          difficulties: buildTopicDifficulties(topicQuestions, latestAttemptByQuestion),
         }
       })
 
@@ -231,6 +243,7 @@ export default function StudentClassDetailScreen() {
           failedQuestions: generalQuestionRows.filter((question) => failedQuestionIds.has(Number(question.id))).length,
           lastAttemptAt: getLastAttemptAt(generalQuestionRows, latestAttemptByQuestion),
           bestScore: subjectScoreResult.data?.max_score ?? undefined,
+          difficulties: buildTopicDifficulties(generalQuestionRows, latestAttemptByQuestion),
         })
       }
 
@@ -309,6 +322,22 @@ export default function StudentClassDetailScreen() {
     Alert.alert(title, message)
   }
 
+  const openTopic = (topic: Topic, reviewFailed = false) => {
+    if (topic.questionsCount === 0) return
+    if (topic.difficulties.length <= 1) {
+      const difficulty = topic.difficulties[0]?.difficulty || 1
+      router.push(buildPlayHref(subject?.id || Number(subjectId), classroom?.id ?? null, topic, difficulty, reviewFailed || topic.failedQuestions > 0) as any)
+      return
+    }
+
+    setDifficultyChooserTopic(topic)
+  }
+
+  const chooseDifficulty = (topic: Topic, difficulty: DifficultyLevel, reviewFailed = false) => {
+    setDifficultyChooserTopic(null)
+    router.push(buildPlayHref(subject?.id || Number(subjectId), classroom?.id ?? null, topic, difficulty, reviewFailed) as any)
+  }
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
@@ -384,7 +413,7 @@ export default function StudentClassDetailScreen() {
             failed={totals.failed}
             color={color}
           />
-          <NextActionCard subjectId={subject.id} classroomId={classroom?.id ?? null} topic={recommendedTopic} color={color} />
+          <NextActionCard subjectId={subject.id} classroomId={classroom?.id ?? null} topic={recommendedTopic} color={color} onPress={openTopic} />
         </View>
 
         <View className={isDesktop ? 'mb-5 flex-row gap-5' : 'mb-5 gap-5'}>
@@ -439,12 +468,18 @@ export default function StudentClassDetailScreen() {
           ) : (
             <View style={{ gap: 12 }}>
               {topics.map((topic, index) => (
-                <TopicRow key={topic.id} subjectId={subject.id} classroomId={classroom?.id ?? null} topic={topic} index={index} color={color} />
+                <TopicRow key={topic.id} topic={topic} index={index} color={color} onPress={() => openTopic(topic)} />
               ))}
             </View>
           )}
         </View>
       </ScrollView>
+      <DifficultyChooser
+        color={color}
+        topic={difficultyChooserTopic}
+        onClose={() => setDifficultyChooserTopic(null)}
+        onChoose={(difficulty, reviewFailed) => difficultyChooserTopic ? chooseDifficulty(difficultyChooserTopic, difficulty, reviewFailed) : undefined}
+      />
     </View>
   )
 }
@@ -484,7 +519,7 @@ function ClassProgressCard({
   )
 }
 
-function NextActionCard({ subjectId, classroomId, topic, color }: { subjectId: number; classroomId: number | null; topic: Topic | null; color: string }) {
+function NextActionCard({ topic, color, onPress }: { subjectId: number; classroomId: number | null; topic: Topic | null; color: string; onPress: (topic: Topic, reviewFailed?: boolean) => void }) {
   if (!topic) {
     return (
       <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
@@ -503,17 +538,6 @@ function NextActionCard({ subjectId, classroomId, topic, color }: { subjectId: n
       ? `Continúa ${topic.title}: quedan ${pending} ${pending === 1 ? 'pregunta' : 'preguntas'}.`
       : `Repite ${topic.title} para reforzar.`
 
-  const href = {
-    pathname: '/(student)/play/[id]',
-    params: {
-      id: String(subjectId),
-      ...(classroomId ? { classroomId: String(classroomId) } : {}),
-      topicId: String(topic.id),
-      topicName: topic.title,
-      ...(failed > 0 ? { review: 'failed' } : {}),
-    },
-  }
-
   return (
     <View className="flex-1 overflow-hidden rounded-2xl border border-[#1A3155] bg-[#101D4A] p-5">
       <View className="absolute right-[-32px] top-[-34px] h-32 w-32 rounded-full" style={{ backgroundColor: `${color}24` }} />
@@ -522,12 +546,10 @@ function NextActionCard({ subjectId, classroomId, topic, color }: { subjectId: n
       <Text className="mt-2 text-[13px] leading-5 text-[#AFC2DB]">
         La siguiente acción se calcula con tus intentos y preguntas pendientes.
       </Text>
-      <Link href={href as any} asChild>
-        <Pressable className="mt-5 flex-row items-center justify-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: color }}>
-          <Ionicons name={getTopicActionIcon(topic)} size={17} color="#FFFFFF" />
-          <Text className="font-black text-white">{getTopicActionLabel(topic)}</Text>
-        </Pressable>
-      </Link>
+      <Pressable onPress={() => onPress(topic, failed > 0)} className="mt-5 flex-row items-center justify-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: color }}>
+        <Ionicons name={getTopicActionIcon(topic)} size={17} color="#FFFFFF" />
+        <Text className="font-black text-white">{getTopicActionLabel(topic)}</Text>
+      </Pressable>
     </View>
   )
 }
@@ -635,23 +657,12 @@ function SummaryCard({
   )
 }
 
-function TopicRow({ subjectId, classroomId, topic, index, color }: { subjectId: number; classroomId: number | null; topic: Topic; index: number; color: string }) {
+function TopicRow({ topic, index, color, onPress }: { topic: Topic; index: number; color: string; onPress: () => void }) {
   const hasPlayed = topic.answeredQuestions > 0 || typeof topic.bestScore === 'number'
   const topicColor = ['#6574FF', '#43D991', '#F6A64A', '#58B5FF'][index % 4] || color
   const disabled = topic.questionsCount === 0
   const actionLabel = getTopicActionLabel(topic)
   const status = getTopicStatus(topic)
-
-  const href = {
-    pathname: '/(student)/play/[id]',
-    params: {
-      id: String(subjectId),
-      ...(classroomId ? { classroomId: String(classroomId) } : {}),
-      topicId: String(topic.id),
-      topicName: topic.title,
-      ...(topic.failedQuestions > 0 ? { review: 'failed' } : {}),
-    },
-  }
 
   const content = (
     <View className={`flex-row flex-wrap items-center gap-4 rounded-xl border p-4 ${disabled ? 'border-[#172A4A] bg-[#07162E]' : 'border-[#20375E] bg-[#0B1A32]'}`}>
@@ -674,6 +685,10 @@ function TopicRow({ subjectId, classroomId, topic, index, color }: { subjectId: 
           <Badge icon="checkmark-circle-outline" label={`${topic.answeredQuestions} respondidas`} color="#43D991" />
           <Badge icon="star-outline" label={hasPlayed && typeof topic.bestScore === 'number' ? `${topic.bestScore} XP` : 'Sin jugar'} color={hasPlayed ? '#B9A7FF' : '#8FA7C7'} />
           <Badge icon={status.icon} label={status.label} color={status.color} />
+          {topic.difficulties.map((stats) => {
+            const meta = getDifficultyMeta(stats.difficulty)
+            return <Badge key={stats.difficulty} icon="layers-outline" label={`${meta.shortLabel}: ${stats.questionsCount}`} color={meta.color} />
+          })}
           {topic.lastAttemptAt ? (
             <Badge icon="time-outline" label={formatRecentAttemptDate(topic.lastAttemptAt)} color="#AFC2DB" />
           ) : null}
@@ -694,9 +709,70 @@ function TopicRow({ subjectId, classroomId, topic, index, color }: { subjectId: 
   }
 
   return (
-    <Link href={href as any} asChild>
-      <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}>{content}</Pressable>
-    </Link>
+    <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}>{content}</Pressable>
+  )
+}
+
+function DifficultyChooser({
+  color,
+  onChoose,
+  onClose,
+  topic,
+}: {
+  color: string
+  onChoose: (difficulty: DifficultyLevel, reviewFailed: boolean) => void
+  onClose: () => void
+  topic: Topic | null
+}) {
+  if (!topic) return null
+
+  return (
+    <View className="absolute inset-0 items-center justify-center bg-black/70 px-5">
+      <Pressable className="absolute inset-0" onPress={onClose} />
+      <View className="w-full max-w-[560px] rounded-2xl border border-[#244166] bg-[#081832] p-5">
+        <View className="flex-row items-start justify-between gap-4">
+          <View className="min-w-0 flex-1">
+            <Text className="text-[12px] font-black uppercase tracking-[0.08em]" style={{ color }}>Elige dificultad</Text>
+            <Text className="mt-2 text-[24px] font-black text-white">{topic.title}</Text>
+            <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">
+              Este tema tiene varias versiones. Jugarás solo las preguntas de la dificultad seleccionada.
+            </Text>
+          </View>
+          <Pressable onPress={onClose} className="h-10 w-10 items-center justify-center rounded-xl border border-[#20375E] bg-[#0D1D3B]">
+            <Ionicons name="close" size={18} color="#AFC2DB" />
+          </Pressable>
+        </View>
+
+        <View className="mt-5 gap-3">
+          {topic.difficulties.map((stats) => {
+            const meta = getDifficultyMeta(stats.difficulty)
+            const pending = Math.max(0, stats.questionsCount - stats.answeredQuestions)
+            const action = stats.failedQuestions > 0 ? 'Repasar fallos' : stats.answeredQuestions === 0 ? 'Empezar' : pending > 0 ? 'Continuar' : 'Repetir'
+            return (
+              <Pressable
+                key={stats.difficulty}
+                onPress={() => onChoose(stats.difficulty, stats.failedQuestions > 0)}
+                className="flex-row flex-wrap items-center gap-4 rounded-xl border p-4"
+                style={{ borderColor: `${meta.color}88`, backgroundColor: `${meta.color}18` }}
+              >
+                <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${meta.color}24` }}>
+                  <Ionicons name="layers-outline" size={22} color={meta.color} />
+                </View>
+                <View className="min-w-[180px] flex-1">
+                  <Text className="text-[16px] font-black text-white">{meta.label}</Text>
+                  <Text className="mt-1 text-[12px] text-[#AFC2DB]">
+                    {stats.questionsCount} preguntas · {stats.answeredQuestions} respondidas · {stats.failedQuestions} falladas
+                  </Text>
+                </View>
+                <View className="rounded-lg px-4 py-2" style={{ backgroundColor: meta.color }}>
+                  <Text className="font-black text-white">{action}</Text>
+                </View>
+              </Pressable>
+            )
+          })}
+        </View>
+      </View>
+    </View>
   )
 }
 
@@ -738,6 +814,41 @@ function getTopicStatus(topic: Topic): { label: string; color: string; icon: key
   }
 
   return { label: 'Sin empezar', color: '#8FA7C7', icon: 'ellipse-outline' }
+}
+
+function buildPlayHref(
+  subjectId: number,
+  classroomId: number | null,
+  topic: Topic,
+  difficulty: DifficultyLevel,
+  reviewFailed = false,
+) {
+  return {
+    pathname: '/(student)/play/[id]',
+    params: {
+      id: String(subjectId),
+      ...(classroomId ? { classroomId: String(classroomId) } : {}),
+      topicId: String(topic.id),
+      topicName: topic.title,
+      difficulty: String(difficulty),
+      ...(reviewFailed ? { review: 'failed' } : {}),
+    },
+  }
+}
+
+function buildTopicDifficulties(questions: any[], latestAttemptByQuestion: Map<number, any>): DifficultyTopicStats[] {
+  return difficultyOptions
+    .map((option) => {
+      const questionRows = questions.filter((question) => (normalizeDifficulty(question.difficulty) || 1) === option.value)
+      return {
+        difficulty: option.value,
+        questionsCount: questionRows.length,
+        answeredQuestions: questionRows.filter((question) => latestAttemptByQuestion.has(Number(question.id))).length,
+        failedQuestions: questionRows.filter((question) => latestAttemptByQuestion.get(Number(question.id))?.is_correct === false).length,
+        lastAttemptAt: getLastAttemptAt(questionRows, latestAttemptByQuestion),
+      }
+    })
+    .filter((stats) => stats.questionsCount > 0)
 }
 
 function getLastAttemptAt(questions: { id: number }[], latestAttemptByQuestion: Map<number, any>) {
