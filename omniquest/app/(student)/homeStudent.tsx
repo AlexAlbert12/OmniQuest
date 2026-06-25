@@ -20,6 +20,9 @@ import { joinClassByInviteCode } from '../../lib/studentClassJoin'
 
 type Subject = {
   id: number
+  classroom_id: number | null
+  classroom_name: string | null
+  classroom_code: string | null
   name: string
   description: string | null
   icon: string | null
@@ -45,6 +48,7 @@ type ActivityItem = {
 
 type SubjectScore = {
   subject_id: number | null
+  classroom_id?: number | null
   max_score: number | null
   played_at: string | null
   played_days: string[] | null
@@ -54,7 +58,7 @@ export default function StudentHome() {
   const { width } = useWindowDimensions()
   const [inviteCode, setInviteCode] = useState('')
   const [enrolledSubjects, setEnrolledSubjects] = useState<Subject[]>([])
-  const [subjectScores, setSubjectScores] = useState<Record<number, number>>({});
+  const [subjectScores, setSubjectScores] = useState<Record<string, number>>({});
   const [profile, setProfile] = useState<Profile | null>(null)
   const [ranking, setRanking] = useState<Profile[]>([])
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
@@ -108,12 +112,12 @@ export default function StudentHome() {
         supabase.from('profiles').select('id, alias, avatar, points, role_id').eq('id', userId).single(),
         supabase
           .from('enrollments')
-          .select('*, subjects(*)')
+          .select('classroom_id, joined_at, subjects(*), classrooms(id, name, code)')
           .eq('student_id', userId)
           .order('joined_at', { ascending: false }),
         supabase
           .from('subject_scores')
-          .select('subject_id, max_score, played_at, played_days')
+          .select('subject_id, classroom_id, max_score, played_at, played_days')
           .eq('student_id', userId),
         supabase
           .from('profiles')
@@ -151,7 +155,22 @@ export default function StudentHome() {
       if (attemptHistoryResult.error) throw attemptHistoryResult.error;
 
       setProfile(profileResult.data);
-      setEnrolledSubjects(enrollmentsResult.data?.map(e => e.subjects).filter(Boolean) || []);
+      setEnrolledSubjects(
+        enrollmentsResult.data
+          ?.map((enrollment: any) => {
+            const subject = normalizeRelation(enrollment.subjects)
+            const classroom = normalizeRelation(enrollment.classrooms)
+            return subject
+              ? {
+                  ...subject,
+                  classroom_id: Number(enrollment.classroom_id ?? classroom?.id ?? 0) || null,
+                  classroom_name: classroom?.name ?? null,
+                  classroom_code: classroom?.code ?? null,
+                }
+              : null
+          })
+          .filter(Boolean) || []
+      );
       setRanking(rankingResult.data || []);
       setAttemptCount(attemptHistoryResult.count ?? 0);
 
@@ -159,10 +178,11 @@ export default function StudentHome() {
       setProgressSummary(progressResult);
 
       const scoreRows = (scoresResult.data || []) as SubjectScore[];
-      const scoreMap: Record<number, number> = {};
+      const scoreMap: Record<string, number> = {};
       scoreRows.forEach((score) => {
+        const key = getCourseRowKey({ id: Number(score.subject_id), classroom_id: score.classroom_id ?? null });
         if (score.subject_id !== null && score.max_score !== null) {
-          scoreMap[score.subject_id] = score.max_score;
+          scoreMap[key] = score.max_score;
         }
       });
       setSubjectScores(scoreMap);
@@ -215,8 +235,8 @@ export default function StudentHome() {
   const handleJoinClass = async () => {
     setJoining(true)
     try {
-      const { subjectName } = await joinClassByInviteCode(inviteCode)
-      showAlert('¡Éxito!', `Te has unido a ${subjectName}`)
+      const { subjectName, classroomName } = await joinClassByInviteCode(inviteCode)
+      showAlert('¡Éxito!', `Te has unido a ${subjectName}${classroomName ? ` · ${classroomName}` : ''}`)
       setInviteCode('')
       fetchMySubjectsAndScores()
     } catch (error: any) {
@@ -316,11 +336,11 @@ export default function StudentHome() {
                 {enrolledSubjects.length > 0 ? (
                   enrolledSubjects.slice(0, 3).map((subject, index) => (
                     <SubjectRow
-                      key={subject.id}
+                      key={getCourseRowKey(subject)}
                       subject={subject}
                       index={index}
-                      score={subjectScores[subject.id]}
-                      progress={progressSummary?.subjects.find((item) => item.id === subject.id)}
+                      score={subjectScores[getCourseRowKey(subject)]}
+                      progress={progressSummary?.subjects.find((item) => getProgressRowKey(item) === getCourseRowKey(subject))}
                     />
                   ))
                 ) : (
@@ -391,7 +411,7 @@ function HeroCard({ isWide, firstSubject }: { isWide: boolean; firstSubject?: Su
   const playHref = firstSubject
     ? {
       pathname: '/(student)/class/[id]',
-      params: { id: String(firstSubject.id) },
+      params: { id: String(firstSubject.id), ...(firstSubject.classroom_id ? { classroomId: String(firstSubject.classroom_id) } : {}) },
     }
     : undefined
   const { accentColor } = useAppTheme()
@@ -459,7 +479,7 @@ function SubjectRow({
     <Link
       href={{
         pathname: '/(student)/class/[id]',
-        params: { id: String(subject.id) },
+        params: { id: String(subject.id), ...(subject.classroom_id ? { classroomId: String(subject.classroom_id) } : {}) },
       }}
       asChild
     >
@@ -473,6 +493,7 @@ function SubjectRow({
         </View>
         <View className="ml-3 min-w-0 flex-1">
           <Text className="font-black text-white">{subject.name}</Text>
+          {subject.classroom_name ? <Text className="mt-0.5 text-[12px] font-bold text-[#A78BFA]">Clase: {subject.classroom_name}</Text> : null}
           <Text className="mt-1 text-[13px] text-[#8FA7C7]" numberOfLines={1}>
             {subject.description || 'Preguntas y ejercicios disponibles'}
           </Text>
@@ -518,6 +539,20 @@ function SubjectRow({
   )
 }
 
+
+function getCourseRowKey(subject: { id: number; classroom_id?: number | null }) {
+  return `${subject.id}:${subject.classroom_id ?? 'general'}`
+}
+
+function getProgressRowKey(subject: StudentProgressSubject) {
+  return `${subject.id}:${subject.classroomId ?? 'general'}`
+}
+
+function normalizeRelation<T>(value: T | T[] | null | undefined) {
+  if (Array.isArray(value)) return value[0] || null
+  return value || null
+}
+
 function getClassProgressStatus(progress?: StudentProgressSubject) {
   const percent = progress?.percent ?? 0
 
@@ -536,9 +571,9 @@ function EmptyClasses() {
   return (
     <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#091A35] px-4 py-6">
       <Ionicons name="school-outline" size={34} color="#60799C" />
-      <Text className="mt-3 text-center font-bold text-white">Aún no tienes clases</Text>
+      <Text className="mt-3 text-center font-bold text-white">Aún no tienes cursos</Text>
       <Text className="mt-1 text-center text-[13px] leading-5 text-[#8FA7C7]">
-        Introduce el código de tu profesor para empezar a responder preguntas.
+        Introduce el código de tu profesor para unirte a un curso o clase.
       </Text>
     </View>
   )

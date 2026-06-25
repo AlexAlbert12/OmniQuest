@@ -16,6 +16,7 @@ const AUTH_ROUTE_ALIASES: Record<string, string> = {
 
 const TEACHER_HOME = '/(teacher)/homeTeacher'
 const STUDENT_HOME = '/(student)/homeStudent'
+const ADMIN_HOME = '/(admin)/admin'
 
 function normalizeAuthPath(path: string) {
   return AUTH_ROUTE_ALIASES[path] || path
@@ -24,11 +25,13 @@ function normalizeAuthPath(path: string) {
 function getRouteGroup(rootSegment: string | undefined, pathname: string) {
   if (rootSegment === '(teacher)' || pathname.startsWith('/(teacher)')) return 'teacher'
   if (rootSegment === '(student)' || pathname.startsWith('/(student)')) return 'student'
+  if (rootSegment === '(admin)' || pathname.startsWith('/(admin)')) return 'admin'
   if (rootSegment === '(auth)' || pathname.startsWith('/(auth)')) return 'auth'
   return null
 }
 
 function getHomeRouteForRole(roleId: string | null | undefined) {
+  if (roleId === 'admin') return ADMIN_HOME
   return roleId === 'teacher' ? TEACHER_HOME : STUDENT_HOME
 }
 
@@ -152,9 +155,10 @@ function RootNavigator() {
       }
 
       const isTeacherRouteBlocked = routeGroup === 'teacher' && profile.role_id !== 'teacher'
-      const isStudentRouteBlocked = routeGroup === 'student' && profile.role_id === 'teacher'
+      const isStudentRouteBlocked = routeGroup === 'student' && profile.role_id !== 'student' && profile.role_id !== 'guest'
+      const isAdminRouteBlocked = routeGroup === 'admin' && profile.role_id !== 'admin'
 
-      if (isTeacherRouteBlocked || isStudentRouteBlocked) {
+      if (isTeacherRouteBlocked || isStudentRouteBlocked || isAdminRouteBlocked) {
         router.replace(getHomeRouteForRole(profile.role_id) as any)
         setIsInitialized(true)
         return

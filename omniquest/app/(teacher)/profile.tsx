@@ -319,7 +319,7 @@ export default function TeacherProfileScreen() {
 
             <View className={isDesktop ? 'flex-[1.5] flex-row gap-4' : 'flex-row flex-wrap gap-4'}>
               <MetricTile
-                title="Clases activas"
+                title="Cursos activos"
                 value={String(stats.activeClasses)}
                 icon="book"
                 color="#8B5CF6"

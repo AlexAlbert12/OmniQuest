@@ -264,7 +264,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
               <View className="min-w-0 flex-1">
                 <Text className="text-[36px] font-black text-white">{isEdit ? 'Editar Asignatura' : 'Nueva Asignatura'}</Text>
                 <Text className="mt-1 text-[14px] text-[#AFC2DB]">
-                  Crea una nueva clase y comienza a añadir contenido y alumnos.
+                  Crea un nuevo curso y comienza a añadir clases, contenido y alumnos.
                 </Text>
               </View>
             </View>
@@ -322,8 +322,8 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
 
                 <SectionCard
                   step={2}
-                  title="Configuración de la clase"
-                  description="Ajusta las opciones principales de tu clase."
+                  title="Configuración del curso"
+                  description="Ajusta las opciones principales de tu curso."
                   className="mt-4"
                 >
                   <View className={`gap-3 ${width >= 760 ? 'flex-row' : ''}`}>
@@ -367,13 +367,13 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
                 <SectionCard
                   step={3}
                   title="Código de invitación"
-                  description="El código permitirá a tus alumnos unirse a la clase."
+                  description="El código permitirá a tus alumnos unirse al curso y entrar en su clase principal."
                   className="mt-4"
                 >
                   {isEdit ? (
                     <View className={`gap-4 ${width >= 840 ? 'flex-row items-center justify-between' : ''}`}>
                       <View className={`${width >= 840 ? 'flex-1' : ''}`}>
-                        <Text className="font-bold text-[#B9A7FF]">Código actual de la clase</Text>
+                        <Text className="font-bold text-[#B9A7FF]">Código actual del curso</Text>
                         <Text className="mt-1 text-[13px] text-[#AFC2DB]">
                           Este código ya está en uso por tus alumnos y se mantiene sin cambios.
                         </Text>
@@ -442,7 +442,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
               <View className={`${isWide ? 'w-[30%]' : ''}`}>
                 <View className="rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
                   <Text className="text-[20px] font-black text-white">Vista previa</Text>
-                  <Text className="mt-1 text-[14px] text-[#AFC2DB]">Así es como verán tus alumnos la clase.</Text>
+                  <Text className="mt-1 text-[14px] text-[#AFC2DB]">Así es como verán tus alumnos el curso.</Text>
                   <View className="mt-4 rounded-2xl border border-[#5A46D8] bg-[#4F46B8] p-5">
                     <View className="mx-auto h-20 w-20 items-center justify-center rounded-full bg-[#3A3398]">
                       <Text className="text-[36px]">{icon}</Text>

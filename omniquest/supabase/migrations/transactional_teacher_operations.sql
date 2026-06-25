@@ -14,7 +14,8 @@ begin
       v_code := v_code || substr(v_chars, floor(random() * length(v_chars) + 1)::integer, 1);
     end loop;
 
-    if not exists (select 1 from public.subjects where code = v_code) then
+    if not exists (select 1 from public.subjects where code = v_code)
+       and not exists (select 1 from public.classrooms where code = v_code) then
       return v_code;
     end if;
   end loop;
@@ -108,6 +109,7 @@ $$;
 create or replace function public.save_teacher_question(
   p_subject_id bigint,
   p_question_id bigint default null,
+  p_classroom_id bigint default null,
   p_topic_id bigint default null,
   p_type text default 'multiple_choice',
   p_text text default '',
@@ -184,6 +186,7 @@ begin
     update public.questions
     set
       subject_id = p_subject_id,
+      classroom_id = p_classroom_id,
       topic_id = p_topic_id,
       type = p_type,
       text = trim(p_text),
@@ -226,6 +229,20 @@ begin
       coalesce((v_answer->>'sort_order')::integer, 1)
     );
   end loop;
+
+  if p_classroom_id is null then
+    p_classroom_id := public.ensure_default_classroom(p_subject_id);
+  end if;
+
+  if not exists (
+    select 1
+    from public.classrooms
+    where id = p_classroom_id
+      and subject_id = p_subject_id
+      and coalesce(active, true)
+  ) then
+    raise exception 'La clase seleccionada no pertenece a este curso.';
+  end if;
 
   return v_question_id;
 end;
@@ -341,6 +358,7 @@ begin
   loop
     insert into public.questions (
       subject_id,
+      classroom_id = p_classroom_id,
       topic_id,
       type,
       text,
@@ -442,6 +460,6 @@ $$;
 
 grant execute on function public.generate_unique_subject_code() to authenticated;
 grant execute on function public.create_subject_with_default_topic(text, text, text, text, text, text, text, text) to authenticated;
-grant execute on function public.save_teacher_question(bigint, bigint, bigint, text, text, integer, integer, text, jsonb) to authenticated;
+grant execute on function public.save_teacher_question(bigint, bigint, bigint, bigint, text, text, integer, integer, text, jsonb) to authenticated;
 grant execute on function public.duplicate_teacher_subject(bigint, text) to authenticated;
 grant execute on function public.delete_user_relational_data(uuid) to service_role;

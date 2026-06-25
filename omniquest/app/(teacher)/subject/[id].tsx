@@ -949,21 +949,22 @@ export default function SubjectDetailScreen() {
     setCreatingClassroom(true);
     try {
       const { data, error } = await supabase
-        .from('classrooms')
-        .insert({
-          subject_id: subject.id,
-          name: newClassroomName.trim(),
-          academic_year: subject.academic_year ?? null,
-          active: true,
-        })
-        .select('id, name, academic_year, active, code')
-        .single();
+        .rpc('create_teacher_classroom', {
+          p_subject_id: subject.id,
+          p_name: newClassroomName.trim(),
+          p_academic_year: subject.academic_year ?? null,
+        });
 
       if (error) throw error;
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('La base de datos no devolvió la clase creada.');
+      }
+
+      const createdClassroom = data as unknown as Classroom;
 
       setNewClassroomName('');
-      setClassrooms((prevClassrooms) => [...prevClassrooms, data as Classroom]);
-      setSelectedClassroomId(Number(data.id));
+      setClassrooms((prevClassrooms) => [...prevClassrooms, createdClassroom]);
+      setSelectedClassroomId(Number(createdClassroom.id));
       showAlert('Clase creada', 'La clase se ha añadido al curso.');
     } catch (error: any) {
       showAlert('No se pudo crear la clase', error.message || 'Inténtalo de nuevo.');
@@ -1011,7 +1012,7 @@ export default function SubjectDetailScreen() {
           throw error;
         }
 
-        showAlert('Clase archivada', 'La clase se archivó correctamente.');
+        showAlert('Curso archivado', 'El curso se archivó correctamente.');
         router.replace('/(teacher)/classes' as any);
       } catch (archiveError: any) {
         showAlert('No se pudo archivar', archiveError.message || 'Inténtalo de nuevo.');
@@ -1055,10 +1056,10 @@ export default function SubjectDetailScreen() {
           : null;
 
       if (!duplicatedSubjectId) {
-        throw new Error('No se pudo obtener la clase duplicada.');
+        throw new Error('No se pudo obtener el curso duplicado.');
       }
 
-      showAlert('Clase duplicada', 'Se creó una copia completa con temas, preguntas y respuestas.');
+      showAlert('Curso duplicado', 'Se creó una copia completa con clases, temas, preguntas y respuestas.');
       router.push(`/(teacher)/subject/${duplicatedSubjectId}` as any);
     } catch (duplicateError: any) {
       showAlert('No se pudo duplicar', duplicateError.message || 'Inténtalo de nuevo.');
@@ -1085,7 +1086,7 @@ export default function SubjectDetailScreen() {
 
       if (error) throw error;
       setSubject((current) => (current ? { ...current, code: nextCode } : current));
-      showAlert('Código actualizado', `Nuevo código de clase: ${nextCode}`);
+      showAlert('Código actualizado', `Nuevo código del curso: ${nextCode}`);
     } catch (regenerateError: any) {
       showAlert('No se pudo regenerar el código', regenerateError.message || 'Inténtalo de nuevo.');
     }
@@ -2041,7 +2042,7 @@ function QuestionRow({
         <View className="rounded-lg bg-[#13284A] px-3 py-2">
           <Text className="text-[11px] font-black text-[#C4D0E3]">{question.points_base ?? 0} pts</Text>
         </View>
-        <Link href={`/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}`} asChild>
+        <Link href={`/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${question.classroom_id ? `&classroomId=${question.classroom_id}` : ''}${question.topic_id ? `&topicId=${question.topic_id}` : ''}`} asChild>
           <Pressable className="rounded-lg border border-[#4F46E5] bg-[#312E8126] p-2">
             <Ionicons name="create-outline" size={18} color="#A78BFA" />
           </Pressable>

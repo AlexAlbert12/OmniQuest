@@ -315,7 +315,7 @@ export default function ProfileScreen() {
                 onPress={() => router.push('/(student)/progress' as any)}
               />
               <SummaryTile
-                title="Clases completadas"
+                title="Cursos completados"
                 value={String(completedProgressClasses)}
                 icon="book"
                 color="#3B82F6"
@@ -357,7 +357,7 @@ export default function ProfileScreen() {
                 <ProfileShortcut
                   icon="notifications-outline"
                   label="Notificaciones"
-                  description="Avisos y novedades de tus clases"
+                  description="Avisos y novedades de tus cursos"
                   color="#38BDF8"
                   onPress={() => router.push('/(student)/notifications' as any)}
                 />
@@ -378,7 +378,7 @@ export default function ProfileScreen() {
                     <StatBar key={item.label} item={item} />
                   ))
                 ) : (
-                  <EmptyState icon="analytics-outline" message="Juega una clase para ver tus estadísticas." />
+                  <EmptyState icon="analytics-outline" message="Juega una curso para ver tus estadísticas." />
                 )}
               </View>
               <StudentCardLink label="Ver estadísticas detalladas" onPress={() => router.push('/(student)/progress' as any)} />

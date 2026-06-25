@@ -36,6 +36,7 @@ type Profile = {
 
 type ScoreRow = {
   subject_id: number | null
+  classroom_id?: number | null
   max_score: number | null
   played_at?: string | null
   played_days?: string[] | null
@@ -45,6 +46,7 @@ type ScoreRow = {
 
 type SubjectProgress = {
   id: number
+  classroomId?: number | null
   name: string
   detail: string
   icon: keyof typeof Ionicons.glyphMap
@@ -150,7 +152,7 @@ export default function ProgressScreen() {
         supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
         supabase
           .from('subject_scores')
-          .select('subject_id, max_score, played_at, played_days, correct_answers, subjects(name)')
+          .select('subject_id, classroom_id, max_score, played_at, played_days, correct_answers, subjects(name)')
           .eq('student_id', userId)
           .order('played_at', { ascending: false }),
         supabase
@@ -299,13 +301,13 @@ export default function ProgressScreen() {
               <View style={{ gap: 10 }}>
                 {subjectProgress.length > 0 ? (
                   subjectProgress.map((subject) => (
-                    <SubjectProgressRow key={subject.id} subject={subject} />
+                    <SubjectProgressRow key={`${subject.id}:${subject.classroomId ?? 'general'}`} subject={subject} />
                   ))
                 ) : (
                   <EmptyProgress />
                 )}
               </View>
-              <StudentCardLink label="Ver todas mis clases" onPress={() => router.push('/(student)/classes' as any)} />
+              <StudentCardLink label="Ver todos mis cursos" onPress={() => router.push('/(student)/classes' as any)} />
             </StudentDashboardCard>
 
             <View className={isDesktop ? 'flex-1 gap-5' : 'gap-5'}>
@@ -641,15 +643,16 @@ function AchievementRow({ achievement, onPress }: { achievement: StudentBadge; o
 function buildSubjectRows(subjects: StudentProgressSubject[], scores: ScoreRow[]): SubjectProgress[] {
   const colors = ['#43D991', '#8B5CF6', '#3B82F6', '#F6A64A', '#718096']
   const icons: (keyof typeof Ionicons.glyphMap)[] = ['book', 'calculator', 'flask', 'business', 'ellipsis-horizontal']
-  const scoresBySubject = scores.reduce<Record<number, number[]>>((acc, score) => {
+  const scoresBySubject = scores.reduce<Record<string, number[]>>((acc, score) => {
     if (score.subject_id === null || score.max_score === null) return acc
-    if (!acc[score.subject_id]) acc[score.subject_id] = []
-    acc[score.subject_id].push(score.max_score)
+    const key = `${score.subject_id}:${score.classroom_id ?? 'general'}`
+    if (!acc[key]) acc[key] = []
+    acc[key].push(score.max_score)
     return acc
   }, {})
 
   return subjects.map((subject, index) => {
-    const subjectScores = scoresBySubject[subject.id] || []
+    const subjectScores = scoresBySubject[`${subject.id}:${subject.classroomId ?? 'general'}`] || []
     const averageScore = subjectScores.length > 0
       ? Math.round(subjectScores.reduce((total, score) => total + score, 0) / subjectScores.length)
       : null
@@ -657,7 +660,8 @@ function buildSubjectRows(subjects: StudentProgressSubject[], scores: ScoreRow[]
 
     return {
       id: subject.id,
-      name: subject.name,
+      classroomId: subject.classroomId ?? null,
+      name: subject.classroomName ? `${subject.name} · ${subject.classroomName}` : subject.name,
       detail: subject.description || 'Preguntas y ejercicios disponibles',
       icon: icons[index] || 'book',
       color: subject.theme_color || colors[index] || '#43D991',

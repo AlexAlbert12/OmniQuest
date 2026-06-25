@@ -17,7 +17,7 @@ import { supabase } from '../../lib/supabase';
 
 type TicketPriority = 'low' | 'medium' | 'high';
 type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
-type TicketCategory = 'plataforma' | 'clases' | 'preguntas' | 'cuenta' | 'otro';
+type TicketCategory = 'plataforma' | 'cursos' | 'preguntas' | 'cuenta' | 'otro';
 
 type SupportTicket = {
   id: number
@@ -49,7 +49,7 @@ const faqItems = [
 
 const categoryOptions: { key: TicketCategory; label: string }[] = [
   { key: 'plataforma', label: 'Plataforma' },
-  { key: 'clases', label: 'Clases' },
+  { key: 'cursos', label: 'Cursos' },
   { key: 'preguntas', label: 'Preguntas' },
   { key: 'cuenta', label: 'Cuenta' },
   { key: 'otro', label: 'Otro' },
@@ -399,7 +399,7 @@ function getStatusMeta(status: TicketStatus) {
 
 function formatTicketCategory(category: TicketCategory) {
   if (category === 'plataforma') return 'Plataforma';
-  if (category === 'clases') return 'Clases';
+  if (category === 'cursos') return 'Cursos';
   if (category === 'preguntas') return 'Preguntas';
   if (category === 'cuenta') return 'Cuenta';
   return 'Otro';

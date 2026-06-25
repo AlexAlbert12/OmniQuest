@@ -56,6 +56,11 @@ export type Database = {
           time_taken_seconds: number | null
           attempted_at: string
           created_at: string
+          submitted_answer_text: string | null
+          submitted_answer_payload: Json | null
+          earned_points: number
+          hint_used: boolean
+          was_skipped: boolean
         }
         Insert: {
           id?: number
@@ -66,6 +71,11 @@ export type Database = {
           time_taken_seconds?: number | null
           attempted_at?: string
           created_at?: string
+          submitted_answer_text?: string | null
+          submitted_answer_payload?: Json | null
+          earned_points?: number
+          hint_used?: boolean
+          was_skipped?: boolean
         }
         Update: {
           id?: number
@@ -76,6 +86,11 @@ export type Database = {
           time_taken_seconds?: number | null
           attempted_at?: string
           created_at?: string
+          submitted_answer_text?: string | null
+          submitted_answer_payload?: Json | null
+          earned_points?: number
+          hint_used?: boolean
+          was_skipped?: boolean
         }
         Relationships: [
           {
@@ -106,6 +121,7 @@ export type Database = {
           id: string
           student_id: string
           subject_id: number
+          classroom_id: number | null
           topic_id: number | null
           status: string
           total_score: number
@@ -118,6 +134,7 @@ export type Database = {
           id?: string
           student_id: string
           subject_id: number
+          classroom_id?: number | null
           topic_id?: number | null
           status?: string
           total_score?: number
@@ -130,6 +147,7 @@ export type Database = {
           id?: string
           student_id?: string
           subject_id?: number
+          classroom_id?: number | null
           topic_id?: number | null
           status?: string
           total_score?: number
@@ -139,6 +157,13 @@ export type Database = {
           finished_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "game_attempts_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "game_attempts_student_id_fkey"
             columns: ["student_id"]
@@ -206,6 +231,7 @@ export type Database = {
           alias: string
           avatar: string | null
           created_at: string
+          email: string | null
           id: string
           points: number | null
           role_id: string | null
@@ -216,6 +242,7 @@ export type Database = {
           alias: string
           avatar?: string | null
           created_at?: string
+          email?: string | null
           id: string
           points?: number | null
           role_id?: string | null
@@ -226,6 +253,7 @@ export type Database = {
           alias?: string
           avatar?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           points?: number | null
           role_id?: string | null
@@ -285,6 +313,13 @@ export type Database = {
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "questions_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "questions_subject_id_fkey"
             columns: ["subject_id"]
@@ -395,6 +430,13 @@ export type Database = {
           joined_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "enrollments_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "enrollments_student_id_fkey"
             columns: ["student_id"]
@@ -780,6 +822,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_teacher_classroom: {
+        Args: {
+          p_subject_id: number
+          p_name: string
+          p_academic_year?: string | null
+        }
+        Returns: Json
+      }
       create_subject_with_default_topic: {
         Args: {
           p_name: string
@@ -819,6 +869,7 @@ export type Database = {
       get_game_questions: {
         Args: {
           p_subject_id: number
+          p_classroom_id?: number | null
           p_topic_id?: number | null
           p_general_topic?: boolean
         }
@@ -830,9 +881,14 @@ export type Database = {
         }
         Returns: Json
       }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       start_game_attempt: {
         Args: {
           p_subject_id: number
+          p_classroom_id?: number | null
           p_topic_id?: number | null
           p_general_topic?: boolean
         }
@@ -859,6 +915,7 @@ export type Database = {
         Args: {
           p_subject_id: number
           p_question_id?: number | null
+          p_classroom_id?: number | null
           p_topic_id?: number | null
           p_type?: string
           p_text?: string

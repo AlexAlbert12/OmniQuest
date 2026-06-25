@@ -19,32 +19,52 @@ export function isValidInviteCode(value: string) {
   return /^[A-Z0-9]{6}$/.test(value.toUpperCase());
 }
 
-export async function isClassCodeAvailable(code: string, excludeSubjectId?: number | string | null) {
+export async function isClassCodeAvailable(
+  code: string,
+  excludeSubjectId?: number | string | null,
+  excludeClassroomId?: number | string | null
+) {
   const normalizedCode = normalizeInviteCode(code);
 
   if (!isValidInviteCode(normalizedCode)) {
     return false;
   }
 
-  let query = supabase
+  let subjectQuery = supabase
     .from('subjects')
     .select('id')
     .eq('code', normalizedCode);
 
   if (excludeSubjectId) {
-    query = query.neq('id', Number(excludeSubjectId));
+    subjectQuery = subjectQuery.neq('id', Number(excludeSubjectId));
   }
 
-  const { data, error } = await query.maybeSingle();
-  if (error) throw error;
+  const { data: subjectData, error: subjectError } = await subjectQuery.maybeSingle();
+  if (subjectError) throw subjectError;
+  if (subjectData) return false;
 
-  return !data;
+  let classroomQuery = supabase
+    .from('classrooms')
+    .select('id')
+    .eq('code', normalizedCode);
+
+  if (excludeClassroomId) {
+    classroomQuery = classroomQuery.neq('id', Number(excludeClassroomId));
+  }
+
+  const { data: classroomData, error: classroomError } = await classroomQuery.maybeSingle();
+  if (classroomError) throw classroomError;
+
+  return !classroomData;
 }
 
-export async function generateUniqueClassCode(excludeSubjectId?: number | string | null) {
+export async function generateUniqueClassCode(
+  excludeSubjectId?: number | string | null,
+  excludeClassroomId?: number | string | null
+) {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const candidate = generateInviteCode();
-    if (await isClassCodeAvailable(candidate, excludeSubjectId)) {
+    if (await isClassCodeAvailable(candidate, excludeSubjectId, excludeClassroomId)) {
       return candidate;
     }
   }

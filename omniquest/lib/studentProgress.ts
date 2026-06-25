@@ -2,6 +2,9 @@ import { supabase } from './supabase'
 
 export type StudentProgressSubject = {
   id: number
+  classroomId: number | null
+  classroomName: string | null
+  classroomCode: string | null
   name: string
   description: string | null
   icon: string | null
@@ -30,21 +33,40 @@ export type StudentProgressSummary = {
 
 type EnrolledSubject = {
   id: number
+  classroomId: number | null
+  classroomName: string | null
+  classroomCode: string | null
   name: string
   description: string | null
   icon: string | null
   theme_color: string | null
 }
 
+type SubjectRelation = {
+  id: number
+  name: string
+  description: string | null
+  icon: string | null
+  theme_color: string | null
+}
+
+type ClassroomRelation = {
+  id: number
+  name: string
+  code: string | null
+}
+
 type TopicRow = {
   id: number
   subject_id: number | null
+  classroom_id?: number | null
   active?: boolean | null
 }
 
 type QuestionRow = {
   id: number
   subject_id: number | null
+  classroom_id?: number | null
   topic_id?: number | null
   active?: boolean | null
 }
@@ -58,16 +80,34 @@ type AttemptRow = {
 export async function fetchStudentProgressSummary(userId: string): Promise<StudentProgressSummary> {
   const { data: enrollmentsData, error: enrollmentsError } = await supabase
     .from('enrollments')
-    .select('subjects(id, name, description, icon, theme_color)')
+    .select('classroom_id, subjects(id, name, description, icon, theme_color), classrooms(id, name, code)')
     .eq('student_id', userId)
 
   if (enrollmentsError) throw enrollmentsError
 
-  const subjects = ((enrollmentsData || []) as { subjects?: EnrolledSubject | EnrolledSubject[] | null }[])
-    .map((enrollment) => normalizeRelation(enrollment.subjects))
+  const subjects = ((enrollmentsData || []) as unknown as {
+    classroom_id?: number | null
+    subjects?: SubjectRelation | SubjectRelation[] | null
+    classrooms?: ClassroomRelation | ClassroomRelation[] | null
+  }[])
+    .map((enrollment) => {
+      const subject = normalizeRelation(enrollment.subjects)
+      if (!subject?.id) return null
+      const classroom = normalizeRelation(enrollment.classrooms)
+      return {
+        id: subject.id,
+        classroomId: Number(enrollment.classroom_id ?? classroom?.id ?? 0) || null,
+        classroomName: classroom?.name ?? null,
+        classroomCode: classroom?.code ?? null,
+        name: subject.name,
+        description: subject.description,
+        icon: subject.icon,
+        theme_color: subject.theme_color,
+      } satisfies EnrolledSubject
+    })
     .filter((subject): subject is EnrolledSubject => Boolean(subject?.id))
 
-  const subjectIds = subjects.map((subject) => subject.id)
+  const subjectIds = Array.from(new Set(subjects.map((subject) => subject.id)))
   if (subjectIds.length === 0) {
     return emptyStudentProgressSummary()
   }
@@ -75,15 +115,15 @@ export async function fetchStudentProgressSummary(userId: string): Promise<Stude
   const [topicsResult, questionsResult, attemptsResult] = await Promise.all([
     supabase
       .from('subject_topics')
-      .select('id, subject_id, active')
+      .select('id, subject_id, classroom_id, active')
       .in('subject_id', subjectIds),
     supabase
       .from('questions')
-      .select('id, subject_id, topic_id, active')
+      .select('id, subject_id, classroom_id, topic_id, active')
       .in('subject_id', subjectIds),
     supabase
       .from('attempt_history')
-      .select('question_id, is_correct, questions(id, subject_id, topic_id, active)')
+      .select('question_id, is_correct, questions(id, subject_id, classroom_id, topic_id, active)')
       .eq('student_id', userId),
   ])
 
@@ -111,8 +151,17 @@ export async function fetchStudentProgressSummary(userId: string): Promise<Stude
   )
   const totalQuestions = progressSubjects.reduce((total, subject) => total + subject.totalQuestions, 0)
   const answeredQuestions = progressSubjects.reduce((total, subject) => total + subject.answeredQuestions, 0)
-  const totalAttempts = attempts.length
-  const correctAttempts = attempts.filter((attempt) => attempt.is_correct === true).length
+  const relevantQuestionIds = new Set(
+    questions
+      .filter((question) => subjects.some((subject) => question.subject_id === subject.id && matchesClassroom(question.classroom_id, subject.classroomId)))
+      .map((question) => question.id)
+  )
+  const relevantAttempts = attempts.filter((attempt) => {
+    const questionId = attempt.question_id ?? normalizeRelation(attempt.questions)?.id ?? null
+    return typeof questionId === 'number' && relevantQuestionIds.has(questionId)
+  })
+  const totalAttempts = relevantAttempts.length
+  const correctAttempts = relevantAttempts.filter((attempt) => attempt.is_correct === true).length
   const completedClasses = progressSubjects.filter((subject) => subject.isCompleted).length
 
   return {
@@ -135,8 +184,12 @@ function buildSubjectProgress(
   answeredQuestionIds: Set<number>,
   failedQuestionIds: Set<number>
 ): StudentProgressSubject {
-  const subjectTopics = topics.filter((topic) => topic.subject_id === subject.id)
-  const subjectQuestions = questions.filter((question) => question.subject_id === subject.id)
+  const subjectTopics = topics.filter((topic) =>
+    topic.subject_id === subject.id && matchesClassroom(topic.classroom_id, subject.classroomId)
+  )
+  const subjectQuestions = questions.filter((question) =>
+    question.subject_id === subject.id && matchesClassroom(question.classroom_id, subject.classroomId)
+  )
   const answeredQuestions = subjectQuestions.filter((question) => answeredQuestionIds.has(question.id)).length
   const pendingQuestions = Math.max(0, subjectQuestions.length - answeredQuestions)
   const failedQuestions = subjectQuestions.filter((question) => failedQuestionIds.has(question.id)).length
@@ -152,6 +205,9 @@ function buildSubjectProgress(
 
   return {
     id: subject.id,
+    classroomId: subject.classroomId,
+    classroomName: subject.classroomName,
+    classroomCode: subject.classroomCode,
     name: subject.name,
     description: subject.description,
     icon: subject.icon,
@@ -165,6 +221,11 @@ function buildSubjectProgress(
     percent,
     isCompleted,
   }
+}
+
+function matchesClassroom(rowClassroomId: number | null | undefined, classroomId: number | null) {
+  if (!classroomId) return true
+  return Number(rowClassroomId) === Number(classroomId)
 }
 
 function emptyStudentProgressSummary(): StudentProgressSummary {

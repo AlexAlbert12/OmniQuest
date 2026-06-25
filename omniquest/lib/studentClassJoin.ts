@@ -31,13 +31,18 @@ export async function joinClassByInviteCode(inviteCode: string) {
 
   if (joinError) throw joinError
 
-  const subjectName =
-    subject && typeof subject === 'object' && !Array.isArray(subject)
-      ? String((subject as { name?: string }).name || 'la clase')
-      : 'la clase'
+  const payload = subject && typeof subject === 'object' && !Array.isArray(subject)
+    ? subject as { name?: string; classroomName?: string; classroomId?: number }
+    : null
+
+  const subjectName = String(payload?.name || 'el curso')
+  const classroomName = payload?.classroomName ? String(payload.classroomName) : null
+  const classroomId = typeof payload?.classroomId === 'number' ? payload.classroomId : null
 
   return {
     code: normalizedCode,
     subjectName,
+    classroomName,
+    classroomId,
   }
 }

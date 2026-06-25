@@ -333,9 +333,12 @@ async function resolveClassroom(adminClient: any, subjectId: number, requestedCl
     return existingClassroom as { id: number; name: string; subject_id: number; active: boolean | null }
   }
 
+  const { data: generatedCode, error: codeError } = await adminClient.rpc('generate_unique_subject_code')
+  if (codeError) throw codeError
+
   const { data: createdClassroom, error: createError } = await adminClient
     .from('classrooms')
-    .insert({ subject_id: subjectId, name: 'Clase principal', active: true })
+    .insert({ subject_id: subjectId, name: 'Clase principal', code: generatedCode, active: true })
     .select('id, name, subject_id, active')
     .single()
 

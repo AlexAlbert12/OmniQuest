@@ -48,14 +48,16 @@ type Question = {
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
 export default function PlayScreen() {
-  const { id, topicId, topicName, review } = useLocalSearchParams<{ id: string; topicId?: string; topicName?: string; review?: string }>()
+  const { id, topicId, topicName, review, classroomId } = useLocalSearchParams<{ id: string; topicId?: string; topicName?: string; review?: string; classroomId?: string }>()
   const { width } = useWindowDimensions()
   const router = useRouter()
   const reviewMode = Array.isArray(review) ? review[0] : review
+  const selectedClassroomId = Array.isArray(classroomId) ? classroomId[0] : classroomId
   const game = useGame(
     id as string,
     Array.isArray(topicId) ? topicId[0] : topicId,
     reviewMode,
+    selectedClassroomId,
   )
   const [pendingAction, setPendingAction] = useState<'hint' | 'skip' | null>(null)
   const [feedbackDialog, setFeedbackDialog] = useState<{ title: string; message: string } | null>(null)

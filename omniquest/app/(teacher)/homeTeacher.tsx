@@ -277,7 +277,7 @@ export default function TeacherHomeScreen() {
           </View>
 
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
-            <MetricCard icon="school" title="Clases activas" value={String(subjects.length)} color="#8B5CF6" />
+            <MetricCard icon="school" title="Cursos activos" value={String(subjects.length)} color="#8B5CF6" />
             <MetricCard icon="people" title="Estudiantes" value={String(totals.students)} color="#43D991" />
             <MetricCard icon="clipboard" title="Preguntas creadas" value={String(totals.questions)} color="#3B82F6" />
             <MetricCard icon="trophy" title="Puntuación media" value={`${totals.averageScore} Puntos`} color="#F6A64A" />
@@ -286,7 +286,7 @@ export default function TeacherHomeScreen() {
           <View className={isDesktop ? 'mt-8 flex-row gap-6' : 'mt-8 gap-6'}>
             <View className={isDesktop ? 'flex-[1.6]' : ''}>
               <View className="mb-4 flex-row items-center justify-between">
-                <Text className="text-[24px] font-black text-white">Clases recientes</Text>
+                <Text className="text-[24px] font-black text-white">Cursos recientes</Text>
                 <Link href="/(teacher)/classes" asChild>
                   <Pressable className="flex-row items-center gap-2">
                     <Text className="font-bold text-[#B9A7FF]">Ver todas</Text>

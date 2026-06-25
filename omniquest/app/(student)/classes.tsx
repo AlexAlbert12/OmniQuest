@@ -33,6 +33,9 @@ type Profile = {
 
 type Subject = {
   id: number
+  classroom_id: number | null
+  classroom_name: string | null
+  classroom_code: string | null
   name: string
   description: string | null
   icon: string | null
@@ -60,11 +63,11 @@ export default function ClassesScreen() {
   const { width } = useWindowDimensions()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [subjects, setSubjects] = useState<Subject[]>([])
-  const [subjectScores, setSubjectScores] = useState<Record<number, number>>({})
-  const [topicsBySubject, setTopicsBySubject] = useState<Record<number, number>>({})
-  const [teacherNamesBySubject, setTeacherNamesBySubject] = useState<Record<number, string>>({})
-  const [lastActivityBySubject, setLastActivityBySubject] = useState<Record<number, string | null>>({})
-  const [progressBySubject, setProgressBySubject] = useState<Record<number, StudentProgressSubject>>({})
+  const [subjectScores, setSubjectScores] = useState<Record<string, number>>({})
+  const [topicsBySubject, setTopicsBySubject] = useState<Record<string, number>>({})
+  const [teacherNamesBySubject, setTeacherNamesBySubject] = useState<Record<string, string>>({})
+  const [lastActivityBySubject, setLastActivityBySubject] = useState<Record<string, string | null>>({})
+  const [progressBySubject, setProgressBySubject] = useState<Record<string, StudentProgressSubject>>({})
   const [selectedFilter, setSelectedFilter] = useState<ClassFilter>('all')
   const [selectedSort, setSelectedSort] = useState<ClassSort>('recent')
   const [inviteCode, setInviteCode] = useState('')
@@ -82,16 +85,16 @@ export default function ClassesScreen() {
     let rows = subjects
 
     if (selectedFilter === 'in_progress') {
-      rows = rows.filter((subject) => !(progressBySubject[subject.id]?.isCompleted))
+      rows = rows.filter((subject) => !(progressBySubject[getCourseRowKey(subject)]?.isCompleted))
     }
 
     if (selectedFilter === 'completed') {
-      rows = rows.filter((subject) => Boolean(progressBySubject[subject.id]?.isCompleted))
+      rows = rows.filter((subject) => Boolean(progressBySubject[getCourseRowKey(subject)]?.isCompleted))
     }
 
     if (normalizedSearch) {
       rows = rows.filter((subject) =>
-        `${subject.name} ${subject.description || ''}`.toLowerCase().includes(normalizedSearch)
+        `${subject.name} ${subject.classroom_name || ''} ${subject.description || ''}`.toLowerCase().includes(normalizedSearch)
       )
     }
 
@@ -101,8 +104,8 @@ export default function ClassesScreen() {
       }
 
       if (selectedSort === 'progress') {
-        const rightProgress = progressBySubject[right.id]?.percent ?? 0
-        const leftProgress = progressBySubject[left.id]?.percent ?? 0
+        const rightProgress = progressBySubject[getCourseRowKey(right)]?.percent ?? 0
+        const leftProgress = progressBySubject[getCourseRowKey(left)]?.percent ?? 0
         return rightProgress - leftProgress || left.name.localeCompare(right.name, 'es', { sensitivity: 'base' })
       }
 
@@ -116,12 +119,12 @@ export default function ClassesScreen() {
   const nextLevelProgress = getNextLevelProgress(points)
   const realScores = useMemo(() => Object.values(subjectScores), [subjectScores])
   const activeClasses = subjects.length
-  const classesWithScore = subjects.filter((subject) => typeof subjectScores[subject.id] === 'number').length
+  const classesWithScore = subjects.filter((subject) => typeof subjectScores[getCourseRowKey(subject)] === 'number').length
   const averageScore = realScores.length > 0
     ? Math.round(realScores.reduce((total, score) => total + score, 0) / realScores.length)
     : 0
   const averageProgress = subjects.length > 0
-    ? Math.round(subjects.reduce((total, subject) => total + (progressBySubject[subject.id]?.percent ?? 0), 0) / subjects.length)
+    ? Math.round(subjects.reduce((total, subject) => total + (progressBySubject[getCourseRowKey(subject)]?.percent ?? 0), 0) / subjects.length)
     : 0
 
   const fetchClasses = useCallback(async () => {
@@ -137,12 +140,12 @@ export default function ClassesScreen() {
         supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
         supabase
           .from('enrollments')
-          .select('*, subjects(id, name, description, icon, theme_color, teacher_id)')
+          .select('id, student_id, subject_id, classroom_id, joined_at, subjects(id, name, description, icon, theme_color, teacher_id), classrooms(id, name, code)')
           .eq('student_id', userId)
           .order('joined_at', { ascending: false }),
         supabase
           .from('subject_scores')
-          .select('subject_id, max_score, played_at')
+          .select('subject_id, classroom_id, max_score, played_at')
           .eq('student_id', userId),
         fetchStudentProgressSummary(userId),
       ])
@@ -153,39 +156,49 @@ export default function ClassesScreen() {
 
       setProfile(profileResult.data)
       setProgressBySubject(
-        progressResult.subjects.reduce<Record<number, StudentProgressSubject>>((acc, subject) => {
-          acc[subject.id] = subject
+        progressResult.subjects.reduce<Record<string, StudentProgressSubject>>((acc, subject) => {
+          acc[getProgressRowKey(subject)] = subject
           return acc
         }, {})
       )
-      setSubjects(
-        enrollmentsResult.data
-          ?.map((enrollment: any) =>
-            enrollment.subjects
-              ? { ...enrollment.subjects, joined_at: enrollment.joined_at ?? null }
-              : null
-          )
-          .filter(Boolean) || []
-      )
+      const nextSubjects = enrollmentsResult.data
+        ?.map((enrollment: any) => {
+          const subject = normalizeRelation(enrollment.subjects)
+          const classroom = normalizeRelation(enrollment.classrooms)
+          return subject
+            ? {
+                ...subject,
+                classroom_id: Number(enrollment.classroom_id ?? classroom?.id ?? 0) || null,
+                classroom_name: classroom?.name ?? null,
+                classroom_code: classroom?.code ?? null,
+                joined_at: enrollment.joined_at ?? null,
+              }
+            : null
+        })
+        .filter(Boolean) as Subject[] || []
 
-      const subjectIds = enrollmentsResult.data
-        ?.map((enrollment: any) => enrollment.subjects?.id)
-        .filter(Boolean) || []
+      setSubjects(nextSubjects)
+
+      const subjectIds = Array.from(new Set(nextSubjects.map((subject) => subject.id).filter(Boolean)))
+      const classroomIds = nextSubjects
+        .map((subject) => subject.classroom_id)
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
 
       if (subjectIds.length > 0) {
         const teacherIds = Array.from(
           new Set(
-            enrollmentsResult.data
-              ?.map((enrollment: any) => enrollment.subjects?.teacher_id)
-              .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0) || []
+            nextSubjects
+              .map((subject) => subject.teacher_id)
+              .filter((value): value is string => typeof value === 'string' && value.length > 0)
           )
         )
 
         const [topicsResult, teachersResult] = await Promise.all([
           supabase
             .from('subject_topics')
-            .select('subject_id')
+            .select('subject_id, classroom_id')
             .in('subject_id', subjectIds)
+            .in('classroom_id', classroomIds.length > 0 ? classroomIds : [-1])
             .eq('active', true),
           teacherIds.length > 0
             ? supabase.from('profiles').select('id, alias').in('id', teacherIds)
@@ -195,21 +208,24 @@ export default function ClassesScreen() {
         if (topicsResult.error) throw topicsResult.error
         if (teachersResult.error) throw teachersResult.error
 
-        const nextTopicsBySubject: Record<number, number> = {}
-        subjectIds.forEach((subjectId: number) => {
-          nextTopicsBySubject[subjectId] = topicsResult.data?.filter((topic) => Number(topic.subject_id) === Number(subjectId)).length || 0
+        const nextTopicsBySubject: Record<string, number> = {}
+        nextSubjects.forEach((subject) => {
+          const key = getCourseRowKey(subject)
+          nextTopicsBySubject[key] = topicsResult.data?.filter((topic) =>
+            Number(topic.subject_id) === Number(subject.id)
+            && Number(topic.classroom_id ?? 0) === Number(subject.classroom_id ?? 0)
+          ).length || 0
         })
         setTopicsBySubject(nextTopicsBySubject)
 
-        const teachersById = new Map(
+        const teachersById = new Map<string, string>(
           (teachersResult.data || []).map((teacher: { id: string; alias: string | null }) => [teacher.id, teacher.alias || 'Profesor/a'])
         )
-        const nextTeacherNamesBySubject: Record<number, string> = {}
-        enrollmentsResult.data?.forEach((enrollment: any) => {
-          const subjectId = enrollment.subjects?.id
-          const teacherId = enrollment.subjects?.teacher_id
-          if (typeof subjectId === 'number' && typeof teacherId === 'string') {
-            nextTeacherNamesBySubject[subjectId] = teachersById.get(teacherId) || 'Profesor/a'
+        const nextTeacherNamesBySubject: Record<string, string> = {}
+        nextSubjects.forEach((subject) => {
+          const teacherId = subject.teacher_id
+          if (typeof teacherId === 'string') {
+            nextTeacherNamesBySubject[getCourseRowKey(subject)] = teachersById.get(teacherId) || 'Profesor/a'
           }
         })
         setTeacherNamesBySubject(nextTeacherNamesBySubject)
@@ -218,17 +234,18 @@ export default function ClassesScreen() {
         setTeacherNamesBySubject({})
       }
 
-      const scoreMap: Record<number, number> = {}
-      const activityMap: Record<number, string | null> = {}
+      const scoreMap: Record<string, number> = {}
+      const activityMap: Record<string, string | null> = {}
       scoresResult.data?.forEach((score) => {
-        if (score.subject_id !== null && score.max_score !== null) {
-          scoreMap[score.subject_id] = score.max_score
+        const scoreKey = getScoreRowKey(score.subject_id, score.classroom_id)
+        if (scoreKey && score.max_score !== null) {
+          scoreMap[scoreKey] = score.max_score
         }
-        if (score.subject_id !== null) {
-          const currentTimestamp = getSortableTimestamp(activityMap[score.subject_id])
+        if (scoreKey) {
+          const currentTimestamp = getSortableTimestamp(activityMap[scoreKey])
           const nextTimestamp = getSortableTimestamp(score.played_at)
           if (nextTimestamp >= currentTimestamp) {
-            activityMap[score.subject_id] = score.played_at ?? null
+            activityMap[scoreKey] = score.played_at ?? null
           }
         }
       })
@@ -259,8 +276,8 @@ export default function ClassesScreen() {
   const handleJoinClass = async () => {
     setJoining(true)
     try {
-      const { subjectName } = await joinClassByInviteCode(inviteCode)
-      showAlert('¡Éxito!', `Te has unido a ${subjectName}`)
+      const { subjectName, classroomName } = await joinClassByInviteCode(inviteCode)
+      showAlert('¡Éxito!', `Te has unido a ${subjectName}${classroomName ? ` · ${classroomName}` : ''}`)
       setInviteCode('')
       fetchClasses()
     } catch (error: any) {
@@ -271,7 +288,7 @@ export default function ClassesScreen() {
   }
 
   const executeLeaveClass = async (subject: Subject) => {
-    setLeavingSubjectId(subject.id)
+    setLeavingSubjectId(subject.classroom_id ?? subject.id)
 
     try {
       const { data: session } = await supabase.auth.getSession()
@@ -281,15 +298,21 @@ export default function ClassesScreen() {
         throw new Error('No hay sesión activa.')
       }
 
-      const { error } = await supabase
+      let deleteQuery = supabase
         .from('enrollments')
         .delete()
         .eq('student_id', userId)
         .eq('subject_id', subject.id)
 
+      deleteQuery = typeof subject.classroom_id === 'number'
+        ? deleteQuery.eq('classroom_id', subject.classroom_id)
+        : deleteQuery.is('classroom_id', null)
+
+      const { error } = await deleteQuery
+
       if (error) throw error
 
-      showAlert('Clase abandonada', `Has salido de ${subject.name}.`)
+      showAlert('Clase abandonada', `Has salido de ${subject.name}${subject.classroom_name ? ` · ${subject.classroom_name}` : ''}.`)
       fetchClasses()
     } catch (error: any) {
       showAlert('Error', error.message || 'No se pudo abandonar la clase.')
@@ -450,17 +473,17 @@ export default function ClassesScreen() {
               {classRows.length > 0 ? (
                 classRows.map((subject, index) => (
                   <ClassRow
-                    key={subject.id}
+                    key={getCourseRowKey(subject)}
                     subject={subject}
                     index={index}
                     isFallback={false}
-                    score={subjectScores[subject.id]}
-                    topicsCount={topicsBySubject[subject.id] || 0}
-                    teacherName={teacherNamesBySubject[subject.id]}
-                    lastActivityAt={lastActivityBySubject[subject.id] || null}
-                    progress={progressBySubject[subject.id]}
+                    score={subjectScores[getCourseRowKey(subject)]}
+                    topicsCount={topicsBySubject[getCourseRowKey(subject)] || 0}
+                    teacherName={teacherNamesBySubject[getCourseRowKey(subject)]}
+                    lastActivityAt={lastActivityBySubject[getCourseRowKey(subject)] || null}
+                    progress={progressBySubject[getCourseRowKey(subject)]}
                     onLeave={handleLeaveClass}
-                    leaving={leavingSubjectId === subject.id}
+                    leaving={leavingSubjectId === (subject.classroom_id ?? subject.id)}
                   />
                 ))
               ) : (
@@ -483,10 +506,10 @@ export default function ClassesScreen() {
         visible={Boolean(subjectToLeave)}
         variant="danger"
         title="¿Abandonar clase?"
-        message={`Vas a salir de “${subjectToLeave?.name ?? ''}”. Si quieres volver, necesitarás el código de invitación.`}
+        message={`Vas a salir de “${subjectToLeave?.name ?? ''}${subjectToLeave?.classroom_name ? ` · ${subjectToLeave.classroom_name}` : ''}”. Si quieres volver, necesitarás el código de invitación.`}
         cancelLabel="Cancelar"
         confirmLabel="Abandonar clase"
-        busy={subjectToLeave ? leavingSubjectId === subjectToLeave.id : false}
+        busy={subjectToLeave ? leavingSubjectId === (subjectToLeave.classroom_id ?? subjectToLeave.id) : false}
         onCancel={() => setSubjectToLeave(null)}
         onConfirm={() => {
           if (!subjectToLeave) return
@@ -643,6 +666,7 @@ function ClassRow({
 
       <View className="ml-4 min-w-0 flex-[1.25]">
         <Text className="text-[18px] font-black text-white">{subject.name}</Text>
+        {subject.classroom_name ? <Text className="mt-0.5 text-[12px] font-bold text-[#A78BFA]">Clase: {subject.classroom_name}</Text> : null}
         <Text className="mt-1 text-[13px] text-[#AFC2DB]" numberOfLines={1}>
           {subject.description || 'Preguntas y ejercicios disponibles'}
         </Text>
@@ -705,7 +729,7 @@ function ClassRow({
               <Link
                 href={{
                   pathname: '/(student)/class/[id]',
-                  params: { id: String(subject.id) },
+                  params: { id: String(subject.id), ...(subject.classroom_id ? { classroomId: String(subject.classroom_id) } : {}) },
                 }}
                 asChild
               >
@@ -735,7 +759,7 @@ function ClassRow({
                     <Link
                       href={{
                         pathname: '/(student)/class/[id]',
-                        params: { id: String(subject.id) },
+                        params: { id: String(subject.id), ...(subject.classroom_id ? { classroomId: String(subject.classroom_id) } : {}) },
                       }}
                       asChild
                     >
@@ -831,6 +855,25 @@ function EmptyClasses({ hasAnyClasses }: { hasAnyClasses: boolean }) {
       </Text>
     </View>
   )
+}
+
+
+function getCourseRowKey(subject: { id: number; classroom_id?: number | null }) {
+  return getScoreRowKey(subject.id, subject.classroom_id) || String(subject.id)
+}
+
+function getProgressRowKey(subject: StudentProgressSubject) {
+  return getScoreRowKey(subject.id, subject.classroomId) || String(subject.id)
+}
+
+function getScoreRowKey(subjectId?: number | null, classroomId?: number | null) {
+  if (typeof subjectId !== 'number') return null
+  return `${subjectId}:${classroomId ?? 'general'}`
+}
+
+function normalizeRelation<T>(value: T | T[] | null | undefined) {
+  if (Array.isArray(value)) return value[0] || null
+  return value || null
 }
 
 function getSortableTimestamp(value: string | null | undefined) {

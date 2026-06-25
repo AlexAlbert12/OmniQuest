@@ -20,7 +20,7 @@ import { formatRelativeDate } from '../../lib/dateFormat'
 
 type TicketPriority = 'low' | 'medium' | 'high'
 type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
-type TicketCategory = 'plataforma' | 'clases' | 'preguntas' | 'cuenta' | 'otro'
+type TicketCategory = 'plataforma' | 'cursos' | 'preguntas' | 'cuenta' | 'otro'
 
 type SupportTicket = {
   id: number
@@ -33,8 +33,8 @@ type SupportTicket = {
 
 const faqItems = [
   {
-    question: '¿Cómo me uno a una clase?',
-    answer: 'Ve a Inicio o Clases, escribe el código de invitación y pulsa Unirme.',
+    question: '¿Cómo me uno a una curso?',
+    answer: 'Ve a Inicio o Cursos, escribe el código de invitación y pulsa Unirme.',
   },
   {
     question: '¿Cómo puedo ganar más XP?',
@@ -52,7 +52,7 @@ const faqItems = [
 
 const categoryOptions: { key: TicketCategory; label: string }[] = [
   { key: 'plataforma', label: 'Plataforma' },
-  { key: 'clases', label: 'Clases' },
+  { key: 'cursos', label: 'Cursos' },
   { key: 'preguntas', label: 'Preguntas' },
   { key: 'cuenta', label: 'Cuenta' },
   { key: 'otro', label: 'Otro' },
@@ -274,7 +274,7 @@ export default function StudentHelpCenterScreen() {
             <FieldLabel label="Asunto" />
             <TextInput
               className="mt-2 rounded-lg border border-[#264267] bg-[#0A2042] px-4 py-3 text-[14px] text-white"
-              placeholder="Ej. No puedo unirme a una clase"
+              placeholder="Ej. No puedo unirme a una curso"
               placeholderTextColor="#8FA7C7"
               value={subject}
               onChangeText={setSubject}
@@ -406,7 +406,7 @@ function getStatusMeta(status: TicketStatus) {
 
 function formatTicketCategory(category: TicketCategory) {
   if (category === 'plataforma') return 'Plataforma'
-  if (category === 'clases') return 'Clases'
+  if (category === 'cursos') return 'Cursos'
   if (category === 'preguntas') return 'Preguntas'
   if (category === 'cuenta') return 'Cuenta'
   return 'Otro'

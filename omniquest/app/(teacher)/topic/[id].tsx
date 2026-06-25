@@ -24,6 +24,7 @@ type Topic = {
   icon: string | null
   sort_order: number | null
   subject_id: number
+  classroom_id?: number | null
   created_at?: string | null
 }
 
@@ -91,13 +92,14 @@ export default function TopicDetailScreen() {
 
       const { data: topicOwnerData, error: topicError } = await supabase
         .from('subject_topics')
-        .select('id, subject_id')
+        .select('id, subject_id, classroom_id')
         .eq('id', topicId)
         .single();
 
       if (topicError) throw topicError;
 
       const subjectId = topicOwnerData.subject_id;
+      const classroomId = topicOwnerData.classroom_id ?? null;
 
       const subjectResult = await supabase
         .from('subjects')
@@ -120,13 +122,15 @@ export default function TopicDetailScreen() {
           .select('*, answers(*)')
           .eq('topic_id', topicId)
           .eq('subject_id', subjectId)
+          .match(classroomId ? { classroom_id: classroomId } : {})
           .eq('active', true)
           .order('created_at', { ascending: false }),
         supabase
           .from('topic_scores')
-          .select('topic_id, max_score')
-          .eq('topic_id', topicId),
-        supabase.from('enrollments').select('student_id').eq('subject_id', subjectId),
+          .select('topic_id, max_score, classroom_id')
+          .eq('topic_id', topicId)
+          .match(classroomId ? { classroom_id: classroomId } : {}),
+        supabase.from('enrollments').select('student_id, classroom_id').eq('subject_id', subjectId).match(classroomId ? { classroom_id: classroomId } : {}),
         supabase.from('subjects').select('id').eq('teacher_id', teacherId).eq('is_archived', false),
       ]);
 
@@ -223,7 +227,7 @@ export default function TopicDetailScreen() {
         <Ionicons name="alert-circle-outline" size={52} color="#F87171" />
         <Text className="mt-4 text-center text-xl font-black text-white">No se encontró este tema</Text>
         <Pressable onPress={() => router.replace('/(teacher)/classes' as any)} className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
-          <Text className="font-bold text-white">Volver a Mis Clases</Text>
+          <Text className="font-bold text-white">Volver a Cursos</Text>
         </Pressable>
       </View>
     );
@@ -265,7 +269,7 @@ export default function TopicDetailScreen() {
                 <Text className="text-[12px] font-bold text-[#DCE7F8]">Editar tema</Text>
               </Pressable>
               <Link
-                href={`/(teacher)/subject/add-question?subjectId=${subject.id}&topicId=${topic.id}`}
+                href={`/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroom_id ?? ''}&topicId=${topic.id}`}
                 asChild
               >
                 <Pressable className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-5 py-3">
@@ -317,7 +321,7 @@ export default function TopicDetailScreen() {
                 <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
                 <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primera pregunta para activar este tema.</Text>
                 <Link
-                  href={`/(teacher)/subject/add-question?subjectId=${subject.id}&topicId=${topic.id}`}
+                  href={`/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroom_id ?? ''}&topicId=${topic.id}`}
                   asChild
                 >
                   <Pressable className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
@@ -333,6 +337,8 @@ export default function TopicDetailScreen() {
                     question={question}
                     index={index}
                     subjectId={subject.id}
+                    classroomId={topic.classroom_id ?? null}
+                    topicId={topicId}
                     onDelete={() => handleDelete(question.id)}
                   />
                 ))}
@@ -392,10 +398,12 @@ function Panel({ title, children, actionLabel, onAction }: {
   );
 }
 
-function QuestionRow({ question, index, subjectId, onDelete }: {
+function QuestionRow({ question, index, subjectId, classroomId, topicId, onDelete }: {
   question: Question
   index: number
   subjectId: number
+  classroomId: number | null
+  topicId: string | undefined
   onDelete: () => void
 }) {
   const correctAnswer = question.answers?.find((answer) => answer.is_correct);
@@ -412,7 +420,7 @@ function QuestionRow({ question, index, subjectId, onDelete }: {
         </Text>
       </View>
       <View className="flex-row gap-2">
-        <Link href={`/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}`} asChild>
+        <Link href={`/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${classroomId ? `&classroomId=${classroomId}` : ''}${topicId ? `&topicId=${topicId}` : ''}`} asChild>
           <Pressable className="flex-row items-center gap-2 rounded-lg bg-[#3B82F6] px-3 py-2">
             <Ionicons name="create-outline" size={14} color="#FFFFFF" />
             <Text className="text-[12px] font-semibold text-white">Editar</Text>

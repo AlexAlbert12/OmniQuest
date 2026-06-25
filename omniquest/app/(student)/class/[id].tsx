@@ -23,6 +23,13 @@ type Subject = {
   theme_color: string | null
 }
 
+type Classroom = {
+  id: number
+  name: string
+  code: string | null
+  academic_year: string | null
+}
+
 type Topic = {
   id: number | 'general'
   title: string
@@ -58,10 +65,11 @@ type ClassRankingItem = {
 }
 
 export default function StudentClassDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
+  const { id, classroomId } = useLocalSearchParams<{ id: string; classroomId?: string }>()
   const router = useRouter()
   const { width } = useWindowDimensions()
   const [subject, setSubject] = useState<Subject | null>(null)
+  const [classroom, setClassroom] = useState<Classroom | null>(null)
   const [topics, setTopics] = useState<Topic[]>([])
   const [recentAttempts, setRecentAttempts] = useState<RecentAttempt[]>([])
   const [failedQuestions, setFailedQuestions] = useState<FailedQuestion[]>([])
@@ -69,6 +77,7 @@ export default function StudentClassDetailScreen() {
   const [loading, setLoading] = useState(true)
 
   const subjectId = Array.isArray(id) ? id[0] : id
+  const selectedClassroomId = Array.isArray(classroomId) ? classroomId[0] : classroomId
   const isDesktop = width >= 1024
   const color = subject?.theme_color || '#6574FF'
 
@@ -98,39 +107,69 @@ export default function StudentClassDetailScreen() {
       const userId = session.session?.user.id
       if (!userId) return
 
-      const [enrollmentResult, topicsResult, questionsResult, topicScoresResult, subjectScoreResult, attemptsResult, rankingResult] = await Promise.all([
-        supabase
-          .from('enrollments')
-          .select('subjects(id, name, description, icon, theme_color)')
-          .eq('student_id', userId)
-          .eq('subject_id', subjectId)
-          .single(),
+      const enrollmentQuery = supabase
+        .from('enrollments')
+        .select('classroom_id, subjects(id, name, description, icon, theme_color), classrooms(id, name, code, academic_year)')
+        .eq('student_id', userId)
+        .eq('subject_id', subjectId)
+
+      if (selectedClassroomId) {
+        enrollmentQuery.eq('classroom_id', selectedClassroomId)
+      }
+
+      const enrollmentResult = await enrollmentQuery.order('joined_at', { ascending: false }).limit(1).maybeSingle()
+      if (enrollmentResult.error) throw enrollmentResult.error
+
+      const selectedEnrollmentClassroomId = Number(enrollmentResult.data?.classroom_id ?? selectedClassroomId)
+      if (!selectedEnrollmentClassroomId) {
+        throw new Error('No estás matriculado en esta clase.')
+      }
+
+      const [topicsResult, questionsResult, topicScoresResult, subjectScoreResult, attemptsResult, rankingResult] = await Promise.all([
         supabase
           .from('subject_topics')
           .select('id, title, description, icon, sort_order')
           .eq('subject_id', subjectId)
+          .eq('classroom_id', selectedEnrollmentClassroomId)
           .eq('active', true)
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: true }),
-        supabase.from('questions').select('id, topic_id, text').eq('subject_id', subjectId).eq('active', true),
-        supabase.from('topic_scores').select('topic_id, max_score').eq('student_id', userId).eq('subject_id', subjectId),
-        supabase.from('subject_scores').select('max_score').eq('student_id', userId).eq('subject_id', subjectId).maybeSingle(),
+        supabase
+          .from('questions')
+          .select('id, topic_id, text')
+          .eq('subject_id', subjectId)
+          .eq('classroom_id', selectedEnrollmentClassroomId)
+          .eq('active', true),
+        supabase
+          .from('topic_scores')
+          .select('topic_id, max_score')
+          .eq('student_id', userId)
+          .eq('subject_id', subjectId)
+          .eq('classroom_id', selectedEnrollmentClassroomId),
+        supabase
+          .from('subject_scores')
+          .select('max_score')
+          .eq('student_id', userId)
+          .eq('subject_id', subjectId)
+          .eq('classroom_id', selectedEnrollmentClassroomId)
+          .maybeSingle(),
         supabase
           .from('attempt_history')
-          .select('id, question_id, is_correct, attempted_at, questions!inner(id, text, topic_id, subject_id)')
+          .select('id, question_id, is_correct, attempted_at, questions!inner(id, text, topic_id, subject_id, classroom_id)')
           .eq('student_id', userId)
           .eq('questions.subject_id', subjectId)
+          .eq('questions.classroom_id', selectedEnrollmentClassroomId)
           .order('attempted_at', { ascending: false })
           .limit(30),
         supabase
           .from('subject_scores')
           .select('student_id, max_score, profiles(alias, avatar)')
           .eq('subject_id', subjectId)
+          .eq('classroom_id', selectedEnrollmentClassroomId)
           .order('max_score', { ascending: false })
           .limit(5),
       ])
 
-      if (enrollmentResult.error) throw enrollmentResult.error
       if (topicsResult.error) throw topicsResult.error
       if (questionsResult.error) throw questionsResult.error
       if (topicScoresResult.error) throw topicScoresResult.error
@@ -198,12 +237,16 @@ export default function StudentClassDetailScreen() {
       const enrolledSubject = Array.isArray(enrollmentResult.data?.subjects)
         ? enrollmentResult.data.subjects[0]
         : enrollmentResult.data?.subjects
+      const enrolledClassroom = Array.isArray(enrollmentResult.data?.classrooms)
+        ? enrollmentResult.data.classrooms[0]
+        : enrollmentResult.data?.classrooms
 
       if (!enrolledSubject) {
         throw new Error('No estás matriculado en esta clase.')
       }
 
       setSubject(enrolledSubject as Subject)
+      setClassroom(enrolledClassroom as Classroom | null)
       setTopics(nextTopics)
       setRecentAttempts(
         attempts.slice(0, 5).map((attempt) => {
@@ -249,7 +292,7 @@ export default function StudentClassDetailScreen() {
     } finally {
       setLoading(false)
     }
-  }, [subjectId])
+  }, [selectedClassroomId, subjectId])
 
   useFocusEffect(
     useCallback(() => {
@@ -301,7 +344,7 @@ export default function StudentClassDetailScreen() {
         <View className="mb-5 flex-row items-center justify-between gap-3">
           <Pressable onPress={() => router.back()} className="flex-row items-center gap-2">
             <Ionicons name="arrow-back" size={18} color="#8FA7C7" />
-            <Text className="font-semibold text-[#8FA7C7]">Mis Clases</Text>
+            <Text className="font-semibold text-[#8FA7C7]">Mis Cursos</Text>
           </Pressable>
           <View className="flex-row items-center gap-3">
             <NotificationBadge />
@@ -318,6 +361,11 @@ export default function StudentClassDetailScreen() {
             <Text className="mt-2 max-w-[760px] text-[14px] leading-6 text-[#AFC2DB]">
               {subject.description || 'Elige un tema para empezar a responder preguntas.'}
             </Text>
+            {classroom ? (
+              <Text className="mt-1 text-[12px] font-bold text-[#A78BFA]">
+                Clase: {classroom.name}{classroom.code ? ` · Código ${classroom.code}` : ''}
+              </Text>
+            ) : null}
           </View>
         </View>
 
@@ -336,7 +384,7 @@ export default function StudentClassDetailScreen() {
             failed={totals.failed}
             color={color}
           />
-          <NextActionCard subjectId={subject.id} topic={recommendedTopic} color={color} />
+          <NextActionCard subjectId={subject.id} classroomId={classroom?.id ?? null} topic={recommendedTopic} color={color} />
         </View>
 
         <View className={isDesktop ? 'mb-5 flex-row gap-5' : 'mb-5 gap-5'}>
@@ -391,7 +439,7 @@ export default function StudentClassDetailScreen() {
           ) : (
             <View style={{ gap: 12 }}>
               {topics.map((topic, index) => (
-                <TopicRow key={topic.id} subjectId={subject.id} topic={topic} index={index} color={color} />
+                <TopicRow key={topic.id} subjectId={subject.id} classroomId={classroom?.id ?? null} topic={topic} index={index} color={color} />
               ))}
             </View>
           )}
@@ -436,7 +484,7 @@ function ClassProgressCard({
   )
 }
 
-function NextActionCard({ subjectId, topic, color }: { subjectId: number; topic: Topic | null; color: string }) {
+function NextActionCard({ subjectId, classroomId, topic, color }: { subjectId: number; classroomId: number | null; topic: Topic | null; color: string }) {
   if (!topic) {
     return (
       <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
@@ -459,6 +507,7 @@ function NextActionCard({ subjectId, topic, color }: { subjectId: number; topic:
     pathname: '/(student)/play/[id]',
     params: {
       id: String(subjectId),
+      ...(classroomId ? { classroomId: String(classroomId) } : {}),
       topicId: String(topic.id),
       topicName: topic.title,
       ...(failed > 0 ? { review: 'failed' } : {}),
@@ -586,7 +635,7 @@ function SummaryCard({
   )
 }
 
-function TopicRow({ subjectId, topic, index, color }: { subjectId: number; topic: Topic; index: number; color: string }) {
+function TopicRow({ subjectId, classroomId, topic, index, color }: { subjectId: number; classroomId: number | null; topic: Topic; index: number; color: string }) {
   const hasPlayed = topic.answeredQuestions > 0 || typeof topic.bestScore === 'number'
   const topicColor = ['#6574FF', '#43D991', '#F6A64A', '#58B5FF'][index % 4] || color
   const disabled = topic.questionsCount === 0
@@ -597,6 +646,7 @@ function TopicRow({ subjectId, topic, index, color }: { subjectId: number; topic
     pathname: '/(student)/play/[id]',
     params: {
       id: String(subjectId),
+      ...(classroomId ? { classroomId: String(classroomId) } : {}),
       topicId: String(topic.id),
       topicName: topic.title,
       ...(topic.failedQuestions > 0 ? { review: 'failed' } : {}),

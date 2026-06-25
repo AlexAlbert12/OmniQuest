@@ -145,10 +145,6 @@ export default function BadgesScreen() {
     Alert.alert(title, message)
   }
 
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)
-  }
-
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.replace('/login' as any)

@@ -38,7 +38,7 @@ const filterOptions: {
 }[] = [
   { id: 'all', label: 'Todas', icon: 'list' },
   { id: 'unread', label: 'Sin leer', icon: 'mail-unread-outline' },
-  { id: 'new_class', label: 'Clases', icon: 'book-outline' },
+  { id: 'new_class', label: 'Cursos', icon: 'book-outline' },
   { id: 'student_activity', label: 'Actividad', icon: 'checkmark-circle-outline' },
   { id: 'achievement', label: 'Logros', icon: 'trophy-outline' },
   { id: 'announcement', label: 'Avisos', icon: 'alert-circle-outline' },
@@ -48,7 +48,7 @@ const categoryLabels: Record<NotificationType, string> = {
   enrollment: 'Inscripciones',
   student_activity: 'Actividad',
   achievement: 'Logros',
-  new_class: 'Clases',
+  new_class: 'Cursos',
   announcement: 'Avisos',
 }
 
@@ -215,7 +215,7 @@ export default function StudentNotificationsScreen() {
               <Text className="mt-2 text-[14px] text-[#B7C4D7]">
                 {unreadCount > 0
                   ? `Tienes ${unreadCount} notificación${unreadCount === 1 ? '' : 'es'} sin leer`
-                  : 'Todo está al día en tus clases'}
+                  : 'Todo está al día en tus cursos'}
               </Text>
             </View>
 
@@ -469,7 +469,7 @@ function EmptyState({ filter }: { filter: NotificationFilter }) {
   const title = filter === 'unread' ? 'Sin notificaciones sin leer' : 'Sin notificaciones'
   const detail = filter === 'unread'
     ? 'Todo lo importante ya está marcado como leído.'
-    : 'Aquí aparecerán nuevas clases, actividad, logros y avisos de tus asignaturas.'
+    : 'Aquí aparecerán nuevos cursos, actividad, logros y avisos de tus asignaturas.'
 
   return (
     <View className="items-center rounded-2xl border border-dashed border-[#29466F] bg-[#09162C] px-6 py-12">

@@ -42,7 +42,11 @@ type RankingScope = 'global' | 'class'
 
 type ClassOption = {
   id: number
+  subjectId: number
+  classroomId: number
   name: string
+  classroomName: string
+  classroomCode: string | null
   description: string | null
   icon: string | null
   theme_color: string | null
@@ -143,14 +147,14 @@ export default function RankingScreen() {
     }
 
     if (classOptions.length === 0) {
-      return 'Aún no perteneces a ninguna clase.'
+      return 'Aún no perteneces a ningún curso.'
     }
 
     if (!selectedClassId) {
-      return 'Elige una clase para comparar tu XP con sus alumnos.'
+      return 'Elige una clase del curso para comparar tu XP con sus alumnos.'
     }
 
-    return `Aún no hay alumnos con puntuación en ${selectedClass?.name || 'esta clase'}.`
+    return `Aún no hay alumnos con puntuación en ${selectedClass ? `${selectedClass.name} · ${selectedClass.classroomName}` : 'esta clase'}.`
   }, [classOptions.length, selectedClass?.name, selectedClassId, selectedScope])
 
   useFocusEffect(
@@ -297,7 +301,7 @@ export default function RankingScreen() {
                     <Text className="text-[16px] font-black text-white">Estudiantes en Liga {selectedLeague.name}</Text>
                     <Text className="mt-1 text-[12px] text-[#8FA7C7]">
                       {selectedScope === 'class'
-                        ? `Dentro de ${selectedClass?.name || 'la clase seleccionada'}`
+                        ? `Dentro de ${selectedClass ? `${selectedClass.name} · ${selectedClass.classroomName}` : 'la clase seleccionada'}`
                         : 'Ranking global filtrado por liga'}
                     </Text>
                   </View>
@@ -374,29 +378,52 @@ async function fetchGlobalRanking() {
   return (data || []) as Profile[]
 }
 
-async function fetchEnrolledClassOptions(userId: string) {
+async function fetchEnrolledClassOptions(userId: string): Promise<ClassOption[]> {
   const { data, error } = await supabase
     .from('enrollments')
-    .select('joined_at, subjects(id, name, description, icon, theme_color)')
+    .select(`
+      classroom_id,
+      joined_at,
+      subjects(id, name, description, icon, theme_color),
+      classrooms(id, name, code)
+    `)
     .eq('student_id', userId)
     .order('joined_at', { ascending: false })
 
   if (error) throw error
 
-  const classOptions = (data || [])
-    .map((enrollment: any) => enrollment.subjects)
-    .filter((subject: any): subject is ClassOption => Boolean(subject?.id))
+  const classOptions: ClassOption[] = (data || [])
+    .map((enrollment: any) => {
+      const subject = normalizeRelation(enrollment.subjects)
+      const classroom = normalizeRelation(enrollment.classrooms)
+      const classroomId = Number(enrollment.classroom_id ?? classroom?.id)
+
+      if (!subject?.id || !Number.isFinite(classroomId)) return null
+
+      return {
+        id: classroomId,
+        subjectId: Number(subject.id),
+        classroomId,
+        name: subject.name || 'Curso',
+        classroomName: classroom?.name || 'Clase principal',
+        classroomCode: classroom?.code || null,
+        description: subject.description || null,
+        icon: subject.icon || null,
+        theme_color: subject.theme_color || null,
+      } satisfies ClassOption
+    })
+    .filter((classOption: ClassOption | null): classOption is ClassOption => Boolean(classOption))
 
   return Array.from(
-    new Map(classOptions.map((classOption) => [classOption.id, classOption])).values()
+    new Map<number, ClassOption>(classOptions.map((classOption) => [classOption.classroomId, classOption])).values()
   )
 }
 
-async function fetchClassRanking(classId: number) {
+async function fetchClassRanking(classroomId: number): Promise<Profile[]> {
   const { data: classEnrollments, error: classEnrollmentsError } = await supabase
     .from('enrollments')
     .select('student_id')
-    .eq('subject_id', classId)
+    .eq('classroom_id', classroomId)
 
   if (classEnrollmentsError) throw classEnrollmentsError
 
@@ -422,7 +449,7 @@ async function fetchClassRanking(classId: number) {
     supabase
       .from('subject_scores')
       .select('student_id, max_score')
-      .eq('subject_id', classId)
+      .eq('classroom_id', classroomId)
       .in('student_id', studentIds),
   ])
 
@@ -593,7 +620,7 @@ function ClassRankingSelector({
                     {classOption.name}
                   </Text>
                   <Text className="text-[11px] text-[#8FA7C7]" numberOfLines={1}>
-                    {active ? 'Ranking activo' : 'Ver ranking de clase'}
+                    {active ? 'Ranking activo' : classOption.classroomName}
                   </Text>
                 </View>
               </Pressable>
@@ -603,7 +630,7 @@ function ClassRankingSelector({
       ) : (
         <View className="rounded-xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-3">
           <Text className="text-center text-[12px] text-[#AFC2DB]">
-            Únete a una clase para activar este ranking.
+            Únete a un curso y selecciona una clase para activar este ranking.
           </Text>
         </View>
       )}
@@ -825,6 +852,12 @@ function RankingSummaryCard({
   )
 }
 
+
+
+function normalizeRelation<T>(relation: T | T[] | null | undefined): T | null {
+  if (Array.isArray(relation)) return relation[0] ?? null
+  return relation ?? null
+}
 
 function getNextRankingLeague(league: RankingLeague) {
   const index = rankingLeagues.findIndex((item) => item.name === league.name)
