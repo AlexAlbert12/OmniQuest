@@ -695,9 +695,7 @@ export default function TeacherQuestionForm({
                             index={index}
                             text={answer.text}
                             correct={index === correctIndex}
-                            onMarkCorrect={() => markAsCorrect(index)}
-                            onChangeText={(text) => updateAnswerText(text, index)}
-                            editable={isMultipleType}
+                            readOnly
                           />
                         ))}
                       </View>
@@ -842,12 +840,14 @@ export default function TeacherQuestionForm({
                       />
                     )}
 
-                    <View className="mt-5 rounded-xl border border-[#2A456A] bg-[#081A37] p-4">
-                      <Text className="font-bold text-[#A78BFA]">Explicación</Text>
-                      <Text className="mt-2 text-[15px] leading-6 text-[#DDE7F4]">
-                        {explanation.trim() || 'Sin explicación adicional.'}
-                      </Text>
-                    </View>
+                    {explanation.trim() ? (
+                      <View className="mt-5 rounded-xl border border-[#2A456A] bg-[#081A37] p-4">
+                        <Text className="font-bold text-[#A78BFA]">Explicación</Text>
+                        <Text className="mt-2 text-[15px] leading-6 text-[#DDE7F4]">
+                          {explanation.trim()}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
               ) : null}
@@ -1023,37 +1023,49 @@ function PreviewAnswerRow({
   onMarkCorrect,
   onChangeText,
   editable = true,
+  readOnly = false,
 }: {
   index: number;
   text: string;
   correct: boolean;
-  onMarkCorrect: () => void;
-  onChangeText: (text: string) => void;
+  onMarkCorrect?: () => void;
+  onChangeText?: (text: string) => void;
   editable?: boolean;
+  readOnly?: boolean;
 }) {
   const letter = String.fromCharCode(65 + index);
+  const canEdit = editable && !readOnly;
+  const canMark = !readOnly && typeof onMarkCorrect === 'function';
 
   return (
     <View className={`rounded-xl border px-4 py-3 ${correct ? 'border-[#43D991] bg-[#0F3B39]' : 'border-[#28456B] bg-[#0A2042]'}`}>
       <View className="flex-row items-center gap-3">
         <Pressable
-          onPress={onMarkCorrect}
+          onPress={canMark ? onMarkCorrect : undefined}
+          disabled={!canMark}
           className={`h-10 w-10 items-center justify-center rounded-full border ${correct ? 'border-[#43D991] bg-[#43D991]' : 'border-[#8B5CF6]'}`}
         >
           <Text className={`font-black ${correct ? 'text-[#052A22]' : 'text-[#A78BFA]'}`}>{letter}</Text>
         </Pressable>
 
-        <TextInput
-          className={`min-h-[38px] flex-1 text-[16px] font-semibold ${correct ? 'text-white' : 'text-[#DDE7F4]'}`}
-          placeholder={`Opción ${letter}`}
-          placeholderTextColor="#7F95B7"
-          value={text}
-          editable={editable}
-          onChangeText={onChangeText}
-        />
+        {readOnly ? (
+          <Text className={`min-h-[38px] flex-1 py-2 text-[16px] font-semibold ${correct ? 'text-white' : 'text-[#DDE7F4]'}`}>
+            {text || `Opción ${letter}`}
+          </Text>
+        ) : (
+          <TextInput
+            className={`min-h-[38px] flex-1 text-[16px] font-semibold ${correct ? 'text-white' : 'text-[#DDE7F4]'}`}
+            placeholder={`Opción ${letter}`}
+            placeholderTextColor="#7F95B7"
+            value={text}
+            editable={canEdit}
+            onChangeText={onChangeText}
+          />
+        )}
 
         <Pressable
-          onPress={onMarkCorrect}
+          onPress={canMark ? onMarkCorrect : undefined}
+          disabled={!canMark}
           accessibilityRole="button"
           accessibilityLabel={`Marcar opción ${letter} como respuesta correcta`}
           className={`h-10 w-10 items-center justify-center rounded-full border ${

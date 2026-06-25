@@ -12,6 +12,8 @@ type StructuredAnswerPayload = {
 
 type SubmitAnswerResult = {
   is_correct?: boolean;
+  requires_manual_review?: boolean;
+  manual_review_status?: string | null;
   earned_points?: number;
   attempt_score?: number;
   correct_answer_id?: number | null;
@@ -24,7 +26,7 @@ function asSubmitAnswerResult(value: unknown): SubmitAnswerResult {
 }
 
 type QuestionFeedback = {
-  status: 'correct' | 'incorrect';
+  status: 'correct' | 'incorrect' | 'pending';
   earnedPoints: number;
   correctAnswerText: string | null;
   explanation: string | null;
@@ -237,6 +239,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       if (error) throw error;
 
       const result = asSubmitAnswerResult(data);
+      const requiresManualReview = Boolean(result.requires_manual_review);
       const isCorrect = Boolean(result.is_correct);
       const earned = Math.max(0, Number(result.earned_points ?? 0));
       const nextScore = Number(result.attempt_score ?? scoreRef.current + earned);
@@ -248,7 +251,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       setScore(nextScore);
       setCorrectAnswerId(result.correct_answer_id ?? null);
       setSummary((current) => {
-        const reviewQuestions = isCorrect
+        const reviewQuestions = isCorrect || requiresManualReview
           ? current.reviewQuestions
           : appendReviewQuestion(current.reviewQuestions, currentQ);
 
@@ -256,18 +259,25 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
           questionsTotal: questions.length,
           answered: current.answered + 1,
           correct: current.correct + (isCorrect ? 1 : 0),
-          incorrect: current.incorrect + (isCorrect ? 0 : 1),
+          incorrect: current.incorrect + (!isCorrect && !requiresManualReview ? 1 : 0),
           xp: nextScore,
           timeSeconds: current.timeSeconds + timeTaken,
           reviewQuestions,
         };
       });
       setFeedback({
-        status: isCorrect ? 'correct' : 'incorrect',
+        status: requiresManualReview ? 'pending' : isCorrect ? 'correct' : 'incorrect',
         earnedPoints: earned,
         correctAnswerText,
         explanation,
       });
+
+      if (requiresManualReview) {
+        setAnswerStatus(null);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setFeedbackNextStatus(nextTerminalStatus);
+        return;
+      }
 
       if (isCorrect) {
         setAnswerStatus('correct');

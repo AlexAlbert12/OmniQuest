@@ -37,6 +37,7 @@ type Topic = {
   description: string | null
   icon: string | null
   sort_order: number
+  availableUntil: string | null
   questionsCount: number
   answeredQuestions: number
   failedQuestions: number
@@ -104,9 +105,10 @@ export default function StudentClassDetailScreen() {
   }, [topics])
 
   const recommendedTopic = useMemo(() => {
-    return topics.find((topic) => topic.failedQuestions > 0)
-      || topics.find((topic) => topic.questionsCount > topic.answeredQuestions)
-      || topics.find((topic) => topic.questionsCount > 0)
+    const playableTopics = topics.filter((topic) => !isTopicLocked(topic))
+    return playableTopics.find((topic) => topic.failedQuestions > 0)
+      || playableTopics.find((topic) => topic.questionsCount > topic.answeredQuestions)
+      || playableTopics.find((topic) => topic.questionsCount > 0)
       || null
   }, [topics])
 
@@ -139,7 +141,7 @@ export default function StudentClassDetailScreen() {
       const [topicsResult, questionsResult, topicScoresResult, subjectScoreResult, attemptsResult, rankingResult] = await Promise.all([
         supabase
           .from('subject_topics')
-          .select('id, title, description, icon, sort_order')
+          .select('id, title, description, icon, sort_order, available_until')
           .eq('subject_id', subjectId)
           .eq('classroom_id', selectedEnrollmentClassroomId)
           .eq('active', true)
@@ -220,6 +222,7 @@ export default function StudentClassDetailScreen() {
           description: topic.description,
           icon: topic.icon,
           sort_order: topic.sort_order ?? 1,
+          availableUntil: topic.available_until ?? null,
           questionsCount: topicQuestions.length,
           answeredQuestions: topicQuestions.filter((question) => answeredQuestionIds.has(Number(question.id))).length,
           failedQuestions: topicQuestions.filter((question) => failedQuestionIds.has(Number(question.id))).length,
@@ -238,6 +241,7 @@ export default function StudentClassDetailScreen() {
           description: 'Preguntas creadas antes de organizar la clase por temas.',
           icon: 'layers-outline',
           sort_order: 0,
+          availableUntil: null,
           questionsCount: generalQuestionRows.length,
           answeredQuestions: generalQuestionRows.filter((question) => answeredQuestionIds.has(Number(question.id))).length,
           failedQuestions: generalQuestionRows.filter((question) => failedQuestionIds.has(Number(question.id))).length,
@@ -323,7 +327,7 @@ export default function StudentClassDetailScreen() {
   }
 
   const openTopic = (topic: Topic, reviewFailed = false) => {
-    if (topic.questionsCount === 0) return
+    if (topic.questionsCount === 0 || isTopicLocked(topic)) return
     if (topic.difficulties.length <= 1) {
       const difficulty = topic.difficulties[0]?.difficulty || 1
       router.push(buildPlayHref(subject?.id || Number(subjectId), classroom?.id ?? null, topic, difficulty, reviewFailed || topic.failedQuestions > 0) as any)
@@ -660,7 +664,8 @@ function SummaryCard({
 function TopicRow({ topic, index, color, onPress }: { topic: Topic; index: number; color: string; onPress: () => void }) {
   const hasPlayed = topic.answeredQuestions > 0 || typeof topic.bestScore === 'number'
   const topicColor = ['#6574FF', '#43D991', '#F6A64A', '#58B5FF'][index % 4] || color
-  const disabled = topic.questionsCount === 0
+  const locked = isTopicLocked(topic)
+  const disabled = topic.questionsCount === 0 || locked
   const actionLabel = getTopicActionLabel(topic)
   const status = getTopicStatus(topic)
 
@@ -695,11 +700,14 @@ function TopicRow({ topic, index, color, onPress }: { topic: Topic; index: numbe
           {topic.failedQuestions > 0 ? (
             <Badge icon="alert-circle-outline" label={`${topic.failedQuestions} errores`} color="#FB7185" />
           ) : null}
+          {topic.availableUntil ? (
+            <Badge icon={locked ? 'lock-closed-outline' : 'time-outline'} label={locked ? 'Bloqueado' : `Hasta ${formatTopicDeadline(topic.availableUntil)}`} color={locked ? '#FB7185' : '#F6A64A'} />
+          ) : null}
         </View>
       </View>
       <View className={`flex-row items-center gap-2 rounded-lg px-4 py-3 ${disabled ? 'bg-[#172A4A]' : 'bg-[#4F46E5]'}`}>
-        <Ionicons name={getTopicActionIcon(topic)} size={15} color="#FFFFFF" />
-        <Text className="font-bold text-white">{disabled ? 'Sin preguntas' : actionLabel}</Text>
+        <Ionicons name={locked ? 'lock-closed' : getTopicActionIcon(topic)} size={15} color="#FFFFFF" />
+        <Text className="font-bold text-white">{locked ? 'Bloqueado' : disabled ? 'Sin preguntas' : actionLabel}</Text>
       </View>
     </View>
   )
@@ -801,6 +809,10 @@ function getTopicActionIcon(topic: Topic): keyof typeof Ionicons.glyphMap {
 }
 
 function getTopicStatus(topic: Topic): { label: string; color: string; icon: keyof typeof Ionicons.glyphMap } {
+  if (isTopicLocked(topic)) {
+    return { label: 'Bloqueado', color: '#FB7185', icon: 'lock-closed-outline' }
+  }
+
   if (topic.questionsCount === 0) {
     return { label: 'Sin preguntas', color: '#8FA7C7', icon: 'remove-circle-outline' }
   }
@@ -849,6 +861,23 @@ function buildTopicDifficulties(questions: any[], latestAttemptByQuestion: Map<n
       }
     })
     .filter((stats) => stats.questionsCount > 0)
+}
+
+function isTopicLocked(topic: Pick<Topic, 'availableUntil'>) {
+  if (!topic.availableUntil) return false
+  const timestamp = new Date(topic.availableUntil).getTime()
+  return Number.isFinite(timestamp) && timestamp <= Date.now()
+}
+
+function formatTopicDeadline(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'fecha límite'
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
 }
 
 function getLastAttemptAt(questions: { id: number }[], latestAttemptByQuestion: Map<number, any>) {

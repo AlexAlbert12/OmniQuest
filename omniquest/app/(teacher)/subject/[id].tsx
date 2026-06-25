@@ -77,6 +77,7 @@ type Topic = {
   description: string | null
   icon: string | null
   sort_order: number | null
+  available_until?: string | null
 }
 
 type TopicScore = {
@@ -112,13 +113,30 @@ type FailedQuestionReport = {
   failureRate: number
 }
 
-type SubjectTabKey = 'summary' | 'students' | 'activities' | 'questions' | 'reports' | 'resources' | 'settings'
+type ManualReviewRow = {
+  id: number
+  studentId: string
+  studentName: string
+  questionId: number
+  questionText: string
+  answerText: string
+  topicName: string
+  status: string
+  attemptedAt: string
+  reviewedAt: string | null
+  earnedPoints: number
+  possiblePoints: number
+  timeTaken: number | null
+}
+
+type SubjectTabKey = 'summary' | 'students' | 'activities' | 'questions' | 'review' | 'reports' | 'resources' | 'settings'
 
 const tabItems: { key: SubjectTabKey; label: string; icon: IconName }[] = [
   { key: 'summary', label: 'Resumen', icon: 'document-text-outline' },
   { key: 'students', label: 'Estudiantes', icon: 'people-outline' },
   { key: 'activities', label: 'Actividades', icon: 'calendar-outline' },
   { key: 'questions', label: 'Preguntas', icon: 'checkmark-circle-outline' },
+  { key: 'review', label: 'Revisión', icon: 'create-outline' },
   { key: 'reports', label: 'Informes', icon: 'bar-chart-outline' },
   { key: 'resources', label: 'Recursos', icon: 'book-outline' },
   { key: 'settings', label: 'Configuración', icon: 'settings-outline' },
@@ -138,6 +156,8 @@ export default function SubjectDetailScreen() {
   const [topicScores, setTopicScores] = useState<TopicScore[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [scores, setScores] = useState<SubjectScore[]>([]);
+  const [manualReviewRows, setManualReviewRows] = useState<ManualReviewRow[]>([]);
+  const [reviewingAttemptId, setReviewingAttemptId] = useState<number | null>(null);
   const [profilesById, setProfilesById] = useState<Record<string, StudentProfile>>({});
   const [subjectsCount, setSubjectsCount] = useState(0);
   const [selectedTopicId, setSelectedTopicId] = useState<number | 'all' | 'general'>('all');
@@ -145,6 +165,7 @@ export default function SubjectDetailScreen() {
   const [activeTab, setActiveTab] = useState<SubjectTabKey>(() => getSubjectTabFromParam(tab));
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [newTopicDescription, setNewTopicDescription] = useState('');
+  const [newTopicAvailableUntil, setNewTopicAvailableUntil] = useState('');
   const [newTopicDifficulty, setNewTopicDifficulty] = useState<DifficultyLevel>(1);
   const [creatingTopic, setCreatingTopic] = useState(false);
   const [newClassroomName, setNewClassroomName] = useState('');
@@ -222,12 +243,15 @@ export default function SubjectDetailScreen() {
     ? Math.round((answeredClassQuestions / possibleClassQuestions) * 100)
     : 0;
   const latestQuestion = questions[0];
+  const manualReviewPendingCount = manualReviewRows.filter((row) => row.status === 'pending').length;
+  const manualReviewReviewedCount = manualReviewRows.length - manualReviewPendingCount;
   const topicRows = useMemo(() => {
     const rows: {
       id: number | 'general'
       title: string
       description: string | null
       icon: string | null
+      availableUntil: string | null
       questionsCount: number
       playedCount: number
       averageScore: number
@@ -245,6 +269,7 @@ export default function SubjectDetailScreen() {
         title: topic.title,
         description: topic.description,
         icon: topic.icon,
+        availableUntil: topic.available_until ?? null,
         questionsCount: topicQuestions.length,
         playedCount: topicScoreValues.length,
         averageScore: average,
@@ -257,6 +282,7 @@ export default function SubjectDetailScreen() {
         title: 'Tema general',
         description: 'Preguntas creadas antes de organizar la clase por temas.',
         icon: 'layers-outline',
+        availableUntil: null,
         questionsCount: questionsWithoutTopic.length,
         playedCount: scores.length,
         averageScore: averageXp,
@@ -627,6 +653,60 @@ export default function SubjectDetailScreen() {
       );
     }
 
+    if (activeTab === 'review') {
+      return (
+        <View className="gap-5">
+          <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
+            <ReportMetricCard
+              icon="time"
+              label="Pendientes"
+              value={String(manualReviewPendingCount)}
+              color="#F59E0B"
+              detail="Respuestas abiertas sin corregir"
+            />
+            <ReportMetricCard
+              icon="checkmark-done"
+              label="Revisadas"
+              value={String(manualReviewReviewedCount)}
+              color="#34D399"
+              detail="Marcadas como correctas o fallidas"
+            />
+            <ReportMetricCard
+              icon="chatbox-ellipses"
+              label="Total abiertas"
+              value={String(manualReviewRows.length)}
+              color="#38BDF8"
+              detail="Últimas respuestas recibidas"
+            />
+          </View>
+
+          <Panel title="Corrección de respuestas abiertas">
+            {manualReviewRows.length === 0 ? (
+              <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
+                <Ionicons name="chatbox-ellipses-outline" size={44} color="#64748B" />
+                <Text className="mt-3 text-center font-bold text-white">No hay respuestas abiertas para revisar</Text>
+                <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">
+                  Cuando un alumno responda una pregunta abierta, aparecerá aquí para que puedas corregirla.
+                </Text>
+              </View>
+            ) : (
+              <View className="gap-3">
+                {manualReviewRows.map((row) => (
+                  <ManualReviewRowCard
+                    key={row.id}
+                    row={row}
+                    busy={reviewingAttemptId === row.id}
+                    onApprove={() => handleReviewOpenAttempt(row.id, true)}
+                    onReject={() => handleReviewOpenAttempt(row.id, false)}
+                  />
+                ))}
+              </View>
+            )}
+          </Panel>
+        </View>
+      );
+    }
+
     if (activeTab === 'resources') {
       return (
         <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
@@ -862,7 +942,7 @@ export default function SubjectDetailScreen() {
         throw new Error('No se encontró ninguna clase activa en este curso.');
       }
 
-      const [questionsResult, topicsResult, topicScoresResult, enrollmentsResult, scoresResult, subjectsCountResult] = await Promise.all([
+      const [questionsResult, topicsResult, topicScoresResult, enrollmentsResult, scoresResult, subjectsCountResult, manualReviewResult] = await Promise.all([
         supabase
           .from('questions')
           .select('*, answers(*)')
@@ -872,7 +952,7 @@ export default function SubjectDetailScreen() {
           .order('created_at', { ascending: false }),
         supabase
           .from('subject_topics')
-          .select('id, title, description, icon, sort_order, classroom_id')
+          .select('id, title, description, icon, sort_order, available_until, classroom_id')
           .eq('subject_id', subjectId)
           .eq('classroom_id', classroomId)
           .eq('active', true)
@@ -891,6 +971,28 @@ export default function SubjectDetailScreen() {
           .eq('classroom_id', classroomId)
           .order('played_at', { ascending: false }),
         supabase.from('subjects').select('id').eq('teacher_id', teacherId).eq('is_archived', false),
+        supabase
+          .from('attempt_history')
+          .select(`
+            id,
+            student_id,
+            question_id,
+            is_correct,
+            submitted_answer_text,
+            earned_points,
+            attempted_at,
+            time_taken_seconds,
+            manual_review_status,
+            reviewed_at,
+            review_notes,
+            profiles(alias),
+            questions!inner(id, text, type, subject_id, classroom_id, topic_id, points_base)
+          `)
+          .eq('questions.subject_id', subjectId)
+          .eq('questions.classroom_id', classroomId)
+          .eq('questions.type', 'open_answer')
+          .order('attempted_at', { ascending: false })
+          .limit(100),
       ]);
 
       if (questionsResult.error) throw questionsResult.error;
@@ -899,6 +1001,7 @@ export default function SubjectDetailScreen() {
       if (enrollmentsResult.error) throw enrollmentsResult.error;
       if (scoresResult.error) throw scoresResult.error;
       if (subjectsCountResult.error) throw subjectsCountResult.error;
+      if (manualReviewResult.error) throw manualReviewResult.error;
 
       const nextEnrollments = (enrollmentsResult.data || []) as Enrollment[];
       const nextScores = (scoresResult.data || []) as SubjectScore[];
@@ -926,11 +1029,38 @@ export default function SubjectDetailScreen() {
       setClassrooms(nextClassrooms);
       setSelectedClassroomId(classroomId);
       setQuestions((questionsResult.data || []) as Question[]);
-      setTopics((topicsResult.data || []) as Topic[]);
+      const nextTopics = (topicsResult.data || []) as Topic[];
+      const topicTitleById = new Map<number, string>(nextTopics.map((topic) => [topic.id, topic.title]));
+      setTopics(nextTopics);
       setTopicScores((topicScoresResult.data || []) as TopicScore[]);
       setEnrollments(nextEnrollments);
       setScores(nextScores);
       setSubjectsCount(subjectsCountResult.data?.length || 0);
+      setManualReviewRows(
+        ((manualReviewResult.data || []) as any[])
+          .map((row) => {
+            const question = Array.isArray(row.questions) ? row.questions[0] : row.questions;
+            const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+            const topicId = question?.topic_id == null ? null : Number(question.topic_id);
+
+            return {
+              id: Number(row.id),
+              studentId: row.student_id,
+              studentName: profile?.alias || 'Alumno',
+              questionId: Number(row.question_id),
+              questionText: question?.text || 'Pregunta abierta',
+              answerText: row.submitted_answer_text || 'Sin respuesta escrita',
+              topicName: topicId ? topicTitleById.get(topicId) || 'Tema' : 'Tema general',
+              status: row.manual_review_status || 'not_required',
+              attemptedAt: row.attempted_at,
+              reviewedAt: row.reviewed_at ?? null,
+              earnedPoints: row.earned_points ?? 0,
+              possiblePoints: question?.points_base ?? 0,
+              timeTaken: row.time_taken_seconds ?? null,
+            };
+          })
+          .sort((a, b) => Number(b.status === 'pending') - Number(a.status === 'pending') || new Date(b.attemptedAt).getTime() - new Date(a.attemptedAt).getTime())
+      );
     } catch (error: any) {
       console.error('Error cargando detalle de clase:', error.message);
       showAlert('No se pudo cargar la clase', 'Inténtalo de nuevo en unos segundos.');
@@ -1262,6 +1392,9 @@ export default function SubjectDetailScreen() {
   };
 
   const handleCreateTopic = async () => {
+    const cleanAvailableUntil = newTopicAvailableUntil.trim();
+    const parsedAvailableUntil = cleanAvailableUntil ? parseDateTimeInput(cleanAvailableUntil) : null;
+
     if (!newTopicTitle.trim()) {
       showAlert('Tema sin nombre', 'Escribe un nombre para el tema.');
       return;
@@ -1269,6 +1402,11 @@ export default function SubjectDetailScreen() {
 
     if (!selectedClassroomId) {
       showAlert('Selecciona una clase', 'Elige la clase del curso donde quieres crear el tema.');
+      return;
+    }
+
+    if (cleanAvailableUntil && !parsedAvailableUntil) {
+      showAlert('Fecha inválida', 'Usa el formato AAAA-MM-DD HH:mm, por ejemplo 2026-07-01 18:30.');
       return;
     }
 
@@ -1283,8 +1421,9 @@ export default function SubjectDetailScreen() {
           description: newTopicDescription.trim() || null,
           icon: '📘',
           sort_order: topics.length + 1,
+          available_until: parsedAvailableUntil ? parsedAvailableUntil.toISOString() : null,
         }])
-        .select('id, title, description, icon, sort_order, classroom_id')
+        .select('id, title, description, icon, sort_order, available_until, classroom_id')
         .single();
 
       if (error) throw error;
@@ -1293,11 +1432,30 @@ export default function SubjectDetailScreen() {
       setSelectedTopicId(Number(data.id));
       setNewTopicTitle('');
       setNewTopicDescription('');
+      setNewTopicAvailableUntil('');
       router.push(`/(teacher)/subject/add-question?subjectId=${subjectId}${selectedClassroomId ? `&classroomId=${selectedClassroomId}` : ''}&topicId=${data.id}&difficulty=${newTopicDifficulty}` as any);
     } catch (error: any) {
       showAlert('No se pudo crear el tema', error.message);
     } finally {
       setCreatingTopic(false);
+    }
+  };
+
+  const handleReviewOpenAttempt = async (attemptId: number, isCorrect: boolean) => {
+    setReviewingAttemptId(attemptId);
+    try {
+      const { error } = await supabase.rpc('review_open_answer_attempt', {
+        p_attempt_history_id: attemptId,
+        p_is_correct: isCorrect,
+        p_notes: null,
+      });
+
+      if (error) throw error;
+      await fetchData();
+    } catch (error: any) {
+      showAlert('No se pudo revisar la respuesta', error.message || 'Inténtalo de nuevo en unos segundos.');
+    } finally {
+      setReviewingAttemptId(null);
     }
   };
 
@@ -1546,6 +1704,17 @@ export default function SubjectDetailScreen() {
                   onChangeText={setNewTopicDescription}
                 />
               </View>
+              <View className="min-w-[240px] flex-1">
+                <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Límite opcional</Text>
+                <TextInput
+                  className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3 text-white"
+                  placeholder="2026-07-01 18:30"
+                  placeholderTextColor="#60799C"
+                  value={newTopicAvailableUntil}
+                  onChangeText={setNewTopicAvailableUntil}
+                />
+                <Text className="mt-1 text-[10px] text-[#8FA7C7]">Vacío = siempre abierto.</Text>
+              </View>
               <View className="min-w-[220px]">
                 <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Dificultad inicial</Text>
                 <View className="flex-row flex-wrap gap-2">
@@ -1753,6 +1922,7 @@ function TopicSummaryRow({
     title: string
     description: string | null
     icon: string | null
+    availableUntil: string | null
     questionsCount: number
     playedCount: number
     averageScore: number
@@ -1784,6 +1954,7 @@ function TopicSummaryRow({
       <InfoStack label="Preguntas" value={String(topic.questionsCount)} />
       <InfoStack label="Jugados" value={String(topic.playedCount)} />
       <InfoStack label="Puntuación media" value={`${topic.averageScore}`} />
+      <InfoStack label="Acceso" value={formatTopicDeadline(topic.availableUntil)} />
     </Pressable>
   );
 }
@@ -2048,6 +2219,88 @@ function EvolutionRow({ item, maxValue }: { item: EvolutionReport; maxValue: num
   );
 }
 
+function ManualReviewRowCard({
+  busy,
+  onApprove,
+  onReject,
+  row,
+}: {
+  busy: boolean
+  onApprove: () => void
+  onReject: () => void
+  row: ManualReviewRow
+}) {
+  const statusMeta = getManualReviewStatusMeta(row.status);
+  const pending = row.status === 'pending';
+
+  return (
+    <View className="rounded-xl border border-[#183052] bg-[#09162C] p-4">
+      <View className="flex-row flex-wrap items-start gap-4">
+        <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${statusMeta.color}24` }}>
+          <Ionicons name={statusMeta.icon} size={21} color={statusMeta.color} />
+        </View>
+        <View className="min-w-[240px] flex-1">
+          <View className="flex-row flex-wrap items-center gap-2">
+            <Text className="font-black text-white">{row.studentName}</Text>
+            <View className="rounded-full px-2 py-1" style={{ backgroundColor: `${statusMeta.color}22` }}>
+              <Text className="text-[10px] font-black uppercase" style={{ color: statusMeta.color }}>{statusMeta.label}</Text>
+            </View>
+            <Text className="text-[11px] font-semibold text-[#8FA7C7]">{formatDate(row.attemptedAt)}</Text>
+          </View>
+          <Text className="mt-2 text-[13px] font-bold leading-5 text-[#DDE7F4]">{row.questionText}</Text>
+          <Text className="mt-1 text-[11px] font-semibold text-[#8FA7C7]">{row.topicName}</Text>
+          <View className="mt-3 rounded-xl border border-[#243E65] bg-[#07162D] p-3">
+            <Text className="text-[11px] font-black uppercase tracking-[0.06em] text-[#8FA7C7]">Respuesta del alumno</Text>
+            <Text className="mt-2 text-[14px] leading-6 text-white">{row.answerText}</Text>
+          </View>
+          <View className="mt-3 flex-row flex-wrap gap-2">
+            <MiniInfo icon="star-outline" label={`${row.earnedPoints}/${row.possiblePoints} XP`} />
+            {row.timeTaken !== null ? <MiniInfo icon="time-outline" label={`${row.timeTaken}s`} /> : null}
+            {row.reviewedAt ? <MiniInfo icon="checkmark-done-outline" label={`Revisada ${formatDate(row.reviewedAt)}`} /> : null}
+          </View>
+        </View>
+
+        <View className="flex-row flex-wrap gap-2">
+          <Pressable
+            onPress={onApprove}
+            disabled={!pending || busy}
+            className="flex-row items-center gap-2 rounded-lg px-3 py-2"
+            style={{ backgroundColor: pending ? '#047857' : '#123044', opacity: busy ? 0.65 : 1 }}
+          >
+            {busy ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+            <Text className="text-[12px] font-bold text-white">Correcta</Text>
+          </Pressable>
+          <Pressable
+            onPress={onReject}
+            disabled={!pending || busy}
+            className="flex-row items-center gap-2 rounded-lg px-3 py-2"
+            style={{ backgroundColor: pending ? '#BE123C' : '#123044', opacity: busy ? 0.65 : 1 }}
+          >
+            <Ionicons name="close" size={14} color="#FFFFFF" />
+            <Text className="text-[12px] font-bold text-white">Fallida</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function MiniInfo({ icon, label }: { icon: IconName; label: string }) {
+  return (
+    <View className="flex-row items-center gap-1 rounded-lg bg-[#102544] px-2 py-1">
+      <Ionicons name={icon} size={12} color="#AFC2DB" />
+      <Text className="text-[10px] font-bold text-[#C4D0E3]">{label}</Text>
+    </View>
+  );
+}
+
+function getManualReviewStatusMeta(status: string): { label: string; color: string; icon: IconName } {
+  if (status === 'approved') return { label: 'Correcta', color: '#34D399', icon: 'checkmark-circle-outline' };
+  if (status === 'rejected') return { label: 'Fallida', color: '#FB7185', icon: 'close-circle-outline' };
+  if (status === 'pending') return { label: 'Pendiente', color: '#F59E0B', icon: 'time-outline' };
+  return { label: 'Sin revisión', color: '#8FA7C7', icon: 'ellipse-outline' };
+}
+
 function DifficultyFilterBar({
   onChange,
   selected,
@@ -2181,6 +2434,29 @@ function iconForSubject(icon: string | null): IconName {
 function formatDate(value?: string | null) {
   if (!value) return 'recientemente';
   return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
+}
+
+function parseDateTimeInput(value: string) {
+  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
+  if (!match) return null;
+
+  const [, year, month, day, hour, minute] = match;
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function formatTopicDeadline(value?: string | null) {
+  if (!value) return 'Abierto';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Abierto';
+  if (date.getTime() <= Date.now()) return 'Bloqueado';
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
 }
 
 function formatRelative(value: string | null | undefined, index: number) {

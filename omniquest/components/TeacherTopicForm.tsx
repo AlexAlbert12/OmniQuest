@@ -26,6 +26,7 @@ type TopicRow = {
   description: string | null
   icon: string | null
   sort_order: number | null
+  available_until: string | null
   subject_id: number
   subjects?: {
     id: number
@@ -49,6 +50,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState<(typeof iconChoices)[number]>('📘');
   const [sortOrder, setSortOrder] = useState('1');
+  const [availableUntilInput, setAvailableUntilInput] = useState('');
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -94,7 +96,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
 
         const { data, error } = await supabase
           .from('subject_topics')
-          .select('id, title, description, icon, sort_order, subject_id')
+          .select('id, title, description, icon, sort_order, available_until, subject_id')
           .eq('id', normalizedTopicId)
           .eq('subject_id', topicOwnerData.subject_id)
           .single();
@@ -115,6 +117,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
         setDescription(nextTopic.description || '');
         setIcon(topicIcon);
         setSortOrder(String(nextTopic.sort_order || 1));
+        setAvailableUntilInput(formatDateTimeInput(nextTopic.available_until));
       } catch (error: any) {
         showAlert('Error', error.message || 'No se pudo cargar el tema.');
         router.back();
@@ -129,7 +132,9 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
   const handleSave = async () => {
     const cleanTitle = title.trim();
     const cleanDescription = description.trim();
+    const cleanAvailableUntil = availableUntilInput.trim();
     const parsedSortOrder = Number.parseInt(sortOrder, 10);
+    const parsedAvailableUntil = cleanAvailableUntil ? parseDateTimeInput(cleanAvailableUntil) : null;
 
     if (!normalizedTopicId) {
       showAlert('Error', 'No se encontró el tema a editar.');
@@ -161,6 +166,11 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
       return;
     }
 
+    if (cleanAvailableUntil && !parsedAvailableUntil) {
+      showAlert('Fecha inválida', 'Usa el formato AAAA-MM-DD HH:mm, por ejemplo 2026-07-01 18:30.');
+      return;
+    }
+
     setSaving(true);
     try {
       const { error } = await supabase
@@ -170,6 +180,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
           description: cleanDescription || null,
           icon,
           sort_order: parsedSortOrder,
+          available_until: parsedAvailableUntil ? parsedAvailableUntil.toISOString() : null,
         })
         .eq('id', normalizedTopicId)
         .eq('subject_id', topic.subject_id);
@@ -301,6 +312,27 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
                         </View>
                       </View>
                     </View>
+
+                    <View className="min-w-[260px] flex-1 rounded-xl border border-[#28456B] bg-[#0A2042] p-3">
+                      <View className="flex-row items-start gap-3">
+                        <View className="h-11 w-11 items-center justify-center rounded-lg bg-[#F6A64A26]">
+                          <Ionicons name="time-outline" size={20} color="#F6A64A" />
+                        </View>
+                        <View className="min-w-0 flex-1">
+                          <Text className="text-[13px] font-semibold text-[#AFC2DB]">Fecha límite opcional</Text>
+                          <TextInput
+                            className="mt-2 rounded-lg border border-[#35567D] bg-[#0B2348] px-3 py-2 text-[15px] font-bold text-white"
+                            placeholder="2026-07-01 18:30"
+                            placeholderTextColor="#7F95B7"
+                            value={availableUntilInput}
+                            onChangeText={setAvailableUntilInput}
+                          />
+                          <Text className="mt-2 text-[11px] leading-4 text-[#8FA7C7]">
+                            Vacío = siempre abierto. Al pasar la fecha, el tema se bloquea para jugar.
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
                   </View>
                 </SectionCard>
               </View>
@@ -317,6 +349,9 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
                     <Text className="mt-2 text-center text-[15px] text-[#D9D8FF]">{previewDescription}</Text>
                     <Text className="mt-5 text-center text-[13px] font-bold text-[#D9D8FF]">
                       Orden {Number.parseInt(sortOrder, 10) || 1}
+                    </Text>
+                    <Text className="mt-2 text-center text-[12px] font-semibold text-[#FDE68A]">
+                      {availableUntilInput.trim() ? `Disponible hasta ${availableUntilInput.trim()}` : 'Sin fecha límite'}
                     </Text>
                   </View>
                 </View>
@@ -383,6 +418,25 @@ function SectionCard({
 
 function Label({ text, className = '' }: { text: string; className?: string }) {
   return <Text className={`text-[15px] font-semibold text-white ${className}`}>{text}</Text>;
+}
+
+function parseDateTimeInput(value: string) {
+  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
+  if (!match) return null;
+
+  const [, year, month, day, hour, minute] = match;
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function formatDateTimeInput(value?: string | null) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function FeatureRow({

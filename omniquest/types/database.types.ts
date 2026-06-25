@@ -49,6 +49,7 @@ export type Database = {
       attempt_history: {
         Row: {
           id: number
+          attempt_id: string | null
           student_id: string
           question_id: number
           answer_id: number | null
@@ -61,9 +62,14 @@ export type Database = {
           earned_points: number
           hint_used: boolean
           was_skipped: boolean
+          manual_review_status: string
+          reviewed_by: string | null
+          reviewed_at: string | null
+          review_notes: string | null
         }
         Insert: {
           id?: number
+          attempt_id?: string | null
           student_id: string
           question_id: number
           answer_id?: number | null
@@ -76,9 +82,14 @@ export type Database = {
           earned_points?: number
           hint_used?: boolean
           was_skipped?: boolean
+          manual_review_status?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_notes?: string | null
         }
         Update: {
           id?: number
+          attempt_id?: string | null
           student_id?: string
           question_id?: number
           answer_id?: number | null
@@ -91,6 +102,10 @@ export type Database = {
           earned_points?: number
           hint_used?: boolean
           was_skipped?: boolean
+          manual_review_status?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_notes?: string | null
         }
         Relationships: [
           {
@@ -462,6 +477,7 @@ export type Database = {
           description: string | null
           icon: string | null
           sort_order: number | null
+          available_until: string | null
           active: boolean
           created_at: string
         }
@@ -473,6 +489,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           sort_order?: number | null
+          available_until?: string | null
           active?: boolean
           created_at?: string
         }
@@ -484,6 +501,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           sort_order?: number | null
+          available_until?: string | null
           active?: boolean
           created_at?: string
         }
@@ -879,6 +897,14 @@ export type Database = {
       join_subject_by_code: {
         Args: {
           p_code: string
+        }
+        Returns: Json
+      }
+      review_open_answer_attempt: {
+        Args: {
+          p_attempt_history_id: number
+          p_is_correct: boolean
+          p_notes?: string | null
         }
         Returns: Json
       }

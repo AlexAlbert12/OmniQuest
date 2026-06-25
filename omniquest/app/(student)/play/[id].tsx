@@ -950,7 +950,7 @@ function QuestionFeedbackCard({
   onContinue,
 }: {
   feedback: {
-    status: 'correct' | 'incorrect'
+    status: 'correct' | 'incorrect' | 'pending'
     earnedPoints: number
     correctAnswerText: string | null
     explanation: string | null
@@ -958,20 +958,21 @@ function QuestionFeedbackCard({
   onContinue: () => void
 }) {
   const isCorrect = feedback.status === 'correct'
-  const color = isCorrect ? '#34D399' : '#FB7185'
-  const title = isCorrect ? 'Correcto' : 'Incorrecto'
+  const isPending = feedback.status === 'pending'
+  const color = isPending ? '#F6A64A' : isCorrect ? '#34D399' : '#FB7185'
+  const title = isPending ? 'Enviado para revisión' : isCorrect ? 'Correcto' : 'Incorrecto'
 
   return (
     <View className="mt-5 rounded-[24px] border bg-[#09162C] p-5" style={{ borderColor: color }}>
       <View className="flex-row flex-wrap items-center justify-between gap-4">
         <View className="min-w-0 flex-1 flex-row items-center gap-3">
           <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
-            <Ionicons name={isCorrect ? 'checkmark-circle' : 'close-circle'} size={27} color={color} />
+            <Ionicons name={isPending ? 'time-outline' : isCorrect ? 'checkmark-circle' : 'close-circle'} size={27} color={color} />
           </View>
           <View className="min-w-0 flex-1">
             <Text className="text-[20px] font-black text-white">{title}</Text>
             <Text className="mt-1 text-[13px] font-bold" style={{ color }}>
-              +{feedback.earnedPoints} XP
+              {isPending ? 'Tu profesor corregirá esta respuesta' : `+${feedback.earnedPoints} XP`}
             </Text>
           </View>
         </View>
@@ -986,7 +987,7 @@ function QuestionFeedbackCard({
         </Pressable>
       </View>
 
-      {!isCorrect && feedback.correctAnswerText ? (
+      {!isCorrect && !isPending && feedback.correctAnswerText ? (
         <View className="mt-4 rounded-2xl border border-[#243E65] bg-[#061426] p-4">
           <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#8FA7C7]">Respuesta correcta</Text>
           <Text className="mt-2 text-[15px] font-bold leading-6 text-white">{feedback.correctAnswerText}</Text>

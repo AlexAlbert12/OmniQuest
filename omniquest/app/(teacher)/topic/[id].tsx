@@ -24,6 +24,7 @@ type Topic = {
   description: string | null
   icon: string | null
   sort_order: number | null
+  available_until?: string | null
   subject_id: number
   classroom_id?: number | null
   created_at?: string | null
@@ -309,6 +310,9 @@ export default function TopicDetailScreen() {
               <Text className="mt-1 text-[12px] text-[#8FA7C7]">
                 {topicQuestions.length} pregunta{topicQuestions.length === 1 ? '' : 's'} · {scoreValues.length} intento{scoreValues.length === 1 ? '' : 's'}
               </Text>
+              <Text className="mt-1 text-[12px] font-bold text-[#F6A64A]">
+                {formatTopicDeadline(topic.available_until)}
+              </Text>
             </View>
           </View>
 
@@ -438,6 +442,19 @@ function DifficultyFilterBar({
       })}
     </View>
   );
+}
+
+function formatTopicDeadline(value?: string | null) {
+  if (!value) return 'Sin fecha límite';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Sin fecha límite';
+  if (date.getTime() <= Date.now()) return 'Tema bloqueado por fecha límite';
+  return `Disponible hasta ${new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)}`;
 }
 
 function QuestionRow({ question, index, subjectId, classroomId, topicId, onDelete }: {
