@@ -761,15 +761,10 @@ export default function TeacherQuestionForm({
 
                     {selectedType === 'dragdrop' ? (
                       <View>
-                        <FieldLabel label="Relaciones para asignar (elemento | destino)" />
-                        <TextInput
-                          className="mt-2 min-h-[120px] rounded-xl border border-[#2A456A] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
-                          placeholder={'8 - 3 | 5\n2 + 2 | 4\n3 x 2 | 6'}
-                          placeholderTextColor="#7F95B7"
-                          multiline
-                          textAlignVertical="top"
+                        <FieldLabel label="Asignar destinos" />
+                        <PairAssignmentEditor
                           value={dragdropPairsText}
-                          onChangeText={setDragdropPairsText}
+                          onChange={setDragdropPairsText}
                         />
                       </View>
                     ) : null}
@@ -999,6 +994,104 @@ function HelperTip({
   );
 }
 
+function PairAssignmentEditor({
+  onChange,
+  value,
+}: {
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  const rows = ensurePairDraftRows(parsePairDraftLines(value));
+
+  const updateRow = (index: number, field: 'left' | 'right', nextValue: string) => {
+    const nextRows = rows.map((row, rowIndex) => (
+      rowIndex === index ? { ...row, [field]: nextValue } : row
+    ));
+    onChange(serializePairDraftLines(nextRows));
+  };
+
+  const addRow = () => {
+    onChange(serializePairDraftLines([...rows, { left: '', right: '' }]));
+  };
+
+  const removeRow = (index: number) => {
+    const nextRows = rows.filter((_, rowIndex) => rowIndex !== index);
+    onChange(serializePairDraftLines(ensurePairDraftRows(nextRows)));
+  };
+
+  return (
+    <View className="mt-2 rounded-2xl border border-[#2A456A] bg-[#081A37] p-3">
+      <View className="mb-3 flex-row items-center gap-2">
+        <Ionicons name="git-compare-outline" size={17} color="#A78BFA" />
+        <Text className="min-w-0 flex-1 text-[12px] font-semibold text-[#AFC2DB]">
+          Escribe cada elemento y el destino correcto. La flecha muestra la conexión que verá el alumno.
+        </Text>
+      </View>
+
+      <View className="gap-3">
+        {rows.map((row, index) => (
+          <View key={index} className="rounded-xl border border-[#203B63] bg-[#0A2042] p-3">
+            <View className="flex-row flex-wrap items-center gap-3">
+              <View className="min-w-[220px] flex-1">
+                <Text className="mb-2 text-[11px] font-black uppercase tracking-[0.05em] text-[#8FA7C7]">Elemento</Text>
+                <TextInput
+                  className="rounded-xl border border-[#31537B] bg-[#071A36] px-4 py-3 text-[15px] font-bold text-white"
+                  placeholder={index === 0 ? '8 - 3' : 'Elemento'}
+                  placeholderTextColor="#6F86A8"
+                  value={row.left}
+                  onChangeText={(text) => updateRow(index, 'left', text)}
+                />
+              </View>
+
+              <View className="items-center justify-center">
+                <View className="h-11 w-11 items-center justify-center rounded-full border border-[#8B5CF6] bg-[#2E236B]">
+                  <Ionicons name="arrow-forward" size={20} color="#D8B4FE" />
+                </View>
+              </View>
+
+              <View className="min-w-[220px] flex-1">
+                <Text className="mb-2 text-[11px] font-black uppercase tracking-[0.05em] text-[#8FA7C7]">Destino correcto</Text>
+                <TextInput
+                  className="rounded-xl border border-[#31537B] bg-[#071A36] px-4 py-3 text-[15px] font-bold text-white"
+                  placeholder={index === 0 ? '5' : 'Destino'}
+                  placeholderTextColor="#6F86A8"
+                  value={row.right}
+                  onChangeText={(text) => updateRow(index, 'right', text)}
+                />
+              </View>
+
+              <Pressable
+                onPress={() => removeRow(index)}
+                disabled={rows.length <= 1}
+                className="h-11 w-11 items-center justify-center rounded-xl border border-[#3B1D2A] bg-[#160D19]"
+                style={({ pressed }) => ({ opacity: rows.length <= 1 ? 0.45 : pressed ? 0.75 : 1 })}
+              >
+                <Ionicons name="trash-outline" size={17} color="#FB7185" />
+              </Pressable>
+            </View>
+
+            {row.left.trim() || row.right.trim() ? (
+              <View className="mt-3 flex-row flex-wrap items-center gap-2 rounded-xl border border-[#2A456A] bg-[#071A36] px-3 py-2">
+                <Text className="font-bold text-[#DDE7F4]">{row.left.trim() || 'Elemento'}</Text>
+                <Ionicons name="arrow-forward" size={15} color="#A78BFA" />
+                <Text className="font-bold text-[#A7F3D0]">{row.right.trim() || 'Destino'}</Text>
+              </View>
+            ) : null}
+          </View>
+        ))}
+      </View>
+
+      <Pressable
+        onPress={addRow}
+        className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-[#4F46E5] bg-[#312E8126] px-4 py-3"
+      >
+        <Ionicons name="add" size={17} color="#C4B5FD" />
+        <Text className="font-bold text-[#C4B5FD]">Añadir conexión</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function MetricPill({
   icon,
   value,
@@ -1105,12 +1198,25 @@ function TypePreview({
   };
 
   const lines = parseLines(textMap[selectedType] || '');
+  const pairs = selectedType === 'match' || selectedType === 'dragdrop'
+    ? parsePairLines(textMap[selectedType] || '')
+    : [];
   const title = getTypePreviewTitle(selectedType);
 
   return (
     <View className="mt-5 rounded-xl border border-[#2A456A] bg-[#0A2042] p-4">
       <Text className="font-bold text-[#A78BFA]">{title}</Text>
-      {lines.length > 0 ? (
+      {pairs.length > 0 ? (
+        <View className="mt-3 gap-2">
+          {pairs.slice(0, 8).map((pair, index) => (
+            <View key={`${pair.left}-${pair.right}-${index}`} className="flex-row flex-wrap items-center gap-2 rounded-xl border border-[#243E65] bg-[#071A36] px-3 py-2">
+              <Text className="font-bold text-[#DDE7F4]">{pair.left}</Text>
+              <Ionicons name="arrow-forward" size={15} color="#A78BFA" />
+              <Text className="font-bold text-[#A7F3D0]">{pair.right}</Text>
+            </View>
+          ))}
+        </View>
+      ) : lines.length > 0 ? (
         <View className="mt-2 gap-2">
           {lines.slice(0, 6).map((line, index) => (
             <Text key={`${line}-${index}`} className="text-[14px] text-[#DDE7F4]">
@@ -1172,6 +1278,29 @@ function parsePairLines(value: string) {
       };
     })
     .filter((pair) => pair.left.length > 0 && pair.right.length > 0);
+}
+
+function parsePairDraftLines(value: string) {
+  const lines = value.split('\n').filter((line) => line.length > 0);
+  return lines.map((line) => {
+    const [left, ...rest] = line.split('|');
+    return {
+      left: left ?? '',
+      right: rest.join('|'),
+    };
+  });
+}
+
+function ensurePairDraftRows(rows: { left: string; right: string }[]) {
+  return rows.length > 0 ? rows : [
+    { left: '', right: '' },
+    { left: '', right: '' },
+    { left: '', right: '' },
+  ];
+}
+
+function serializePairDraftLines(rows: { left: string; right: string }[]) {
+  return rows.map((row) => `${row.left}|${row.right}`).join('\n');
 }
 
 function sanitizeIntegerInput(value: string) {

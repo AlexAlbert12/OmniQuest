@@ -106,8 +106,7 @@ export default function StudentClassDetailScreen() {
 
   const recommendedTopic = useMemo(() => {
     const playableTopics = topics.filter((topic) => !isTopicLocked(topic))
-    return playableTopics.find((topic) => topic.failedQuestions > 0)
-      || playableTopics.find((topic) => topic.questionsCount > topic.answeredQuestions)
+    return playableTopics.find((topic) => topic.questionsCount > topic.answeredQuestions)
       || playableTopics.find((topic) => topic.questionsCount > 0)
       || null
   }, [topics])
@@ -330,7 +329,7 @@ export default function StudentClassDetailScreen() {
     if (topic.questionsCount === 0 || isTopicLocked(topic)) return
     if (topic.difficulties.length <= 1) {
       const difficulty = topic.difficulties[0]?.difficulty || 1
-      router.push(buildPlayHref(subject?.id || Number(subjectId), classroom?.id ?? null, topic, difficulty, reviewFailed || topic.failedQuestions > 0) as any)
+      router.push(buildPlayHref(subject?.id || Number(subjectId), classroom?.id ?? null, topic, difficulty, reviewFailed) as any)
       return
     }
 
@@ -472,7 +471,14 @@ export default function StudentClassDetailScreen() {
           ) : (
             <View style={{ gap: 12 }}>
               {topics.map((topic, index) => (
-                <TopicRow key={topic.id} topic={topic} index={index} color={color} onPress={() => openTopic(topic)} />
+                <TopicRow
+                  key={topic.id}
+                  topic={topic}
+                  index={index}
+                  color={color}
+                  onPress={() => openTopic(topic)}
+                  onReviewFailures={() => openTopic(topic, true)}
+                />
               ))}
             </View>
           )}
@@ -536,11 +542,11 @@ function NextActionCard({ topic, color, onPress }: { subjectId: number; classroo
 
   const failed = topic.failedQuestions
   const pending = Math.max(0, topic.questionsCount - topic.answeredQuestions)
-  const title = failed > 0
-    ? `Repasa ${topic.title}: tienes ${failed} ${failed === 1 ? 'error reciente' : 'errores recientes'}.`
-    : pending > 0
-      ? `Continúa ${topic.title}: quedan ${pending} ${pending === 1 ? 'pregunta' : 'preguntas'}.`
-      : `Repite ${topic.title} para reforzar.`
+  const title = pending > 0
+    ? `Continúa ${topic.title}: quedan ${pending} ${pending === 1 ? 'pregunta' : 'preguntas'}.`
+    : topic.answeredQuestions > 0
+      ? `Repite ${topic.title} para mejorar tu puntuación.`
+      : `Empieza ${topic.title} y consigue tu primera puntuación.`
 
   return (
     <View className="flex-1 overflow-hidden rounded-2xl border border-[#1A3155] bg-[#101D4A] p-5">
@@ -548,12 +554,18 @@ function NextActionCard({ topic, color, onPress }: { subjectId: number; classroo
       <Text className="text-[12px] font-black uppercase tracking-[0.08em]" style={{ color }}>Recomendado</Text>
       <Text className="mt-3 text-[20px] font-black leading-7 text-white">{title}</Text>
       <Text className="mt-2 text-[13px] leading-5 text-[#AFC2DB]">
-        La siguiente acción se calcula con tus intentos y preguntas pendientes.
+        La opción principal juega el tema entero para que puedas mejorar tu mejor puntuación.
       </Text>
-      <Pressable onPress={() => onPress(topic, failed > 0)} className="mt-5 flex-row items-center justify-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: color }}>
+      <Pressable onPress={() => onPress(topic, false)} className="mt-5 flex-row items-center justify-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: color }}>
         <Ionicons name={getTopicActionIcon(topic)} size={17} color="#FFFFFF" />
         <Text className="font-black text-white">{getTopicActionLabel(topic)}</Text>
       </Pressable>
+      {failed > 0 ? (
+        <Pressable onPress={() => onPress(topic, true)} className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border px-4 py-3" style={{ borderColor: '#FB718588', backgroundColor: '#FB718514' }}>
+          <Ionicons name="refresh" size={17} color="#FB7185" />
+          <Text className="font-black text-[#FDB4C0]">Repasar {failed === 1 ? 'fallo' : 'fallos'}</Text>
+        </Pressable>
+      ) : null}
     </View>
   )
 }
@@ -661,7 +673,19 @@ function SummaryCard({
   )
 }
 
-function TopicRow({ topic, index, color, onPress }: { topic: Topic; index: number; color: string; onPress: () => void }) {
+function TopicRow({
+  topic,
+  index,
+  color,
+  onPress,
+  onReviewFailures,
+}: {
+  topic: Topic
+  index: number
+  color: string
+  onPress: () => void
+  onReviewFailures: () => void
+}) {
   const hasPlayed = topic.answeredQuestions > 0 || typeof topic.bestScore === 'number'
   const topicColor = ['#6574FF', '#43D991', '#F6A64A', '#58B5FF'][index % 4] || color
   const locked = isTopicLocked(topic)
@@ -705,9 +729,23 @@ function TopicRow({ topic, index, color, onPress }: { topic: Topic; index: numbe
           ) : null}
         </View>
       </View>
-      <View className={`flex-row items-center gap-2 rounded-lg px-4 py-3 ${disabled ? 'bg-[#172A4A]' : 'bg-[#4F46E5]'}`}>
-        <Ionicons name={locked ? 'lock-closed' : getTopicActionIcon(topic)} size={15} color="#FFFFFF" />
-        <Text className="font-bold text-white">{locked ? 'Bloqueado' : disabled ? 'Sin preguntas' : actionLabel}</Text>
+      <View className="flex-row flex-wrap items-center gap-2">
+        {topic.failedQuestions > 0 && !disabled ? (
+          <Pressable
+            onPress={(event) => {
+              event.stopPropagation?.()
+              onReviewFailures()
+            }}
+            className="flex-row items-center gap-2 rounded-lg border border-[#FB718566] bg-[#FB718514] px-4 py-3"
+          >
+            <Ionicons name="refresh" size={15} color="#FB7185" />
+            <Text className="font-bold text-[#FDB4C0]">Repasar fallos</Text>
+          </Pressable>
+        ) : null}
+        <View className={`flex-row items-center gap-2 rounded-lg px-4 py-3 ${disabled ? 'bg-[#172A4A]' : 'bg-[#4F46E5]'}`}>
+          <Ionicons name={locked ? 'lock-closed' : getTopicActionIcon(topic)} size={15} color="#FFFFFF" />
+          <Text className="font-bold text-white">{locked ? 'Bloqueado' : disabled ? 'Sin preguntas' : actionLabel}</Text>
+        </View>
       </View>
     </View>
   )
@@ -755,11 +793,11 @@ function DifficultyChooser({
           {topic.difficulties.map((stats) => {
             const meta = getDifficultyMeta(stats.difficulty)
             const pending = Math.max(0, stats.questionsCount - stats.answeredQuestions)
-            const action = stats.failedQuestions > 0 ? 'Repasar fallos' : stats.answeredQuestions === 0 ? 'Empezar' : pending > 0 ? 'Continuar' : 'Repetir'
+            const action = stats.answeredQuestions === 0 ? 'Empezar' : pending > 0 ? 'Continuar' : 'Repetir'
             return (
               <Pressable
                 key={stats.difficulty}
-                onPress={() => onChoose(stats.difficulty, stats.failedQuestions > 0)}
+                onPress={() => onChoose(stats.difficulty, false)}
                 className="flex-row flex-wrap items-center gap-4 rounded-xl border p-4"
                 style={{ borderColor: `${meta.color}88`, backgroundColor: `${meta.color}18` }}
               >
@@ -772,8 +810,21 @@ function DifficultyChooser({
                     {stats.questionsCount} preguntas · {stats.answeredQuestions} respondidas · {stats.failedQuestions} falladas
                   </Text>
                 </View>
-                <View className="rounded-lg px-4 py-2" style={{ backgroundColor: meta.color }}>
-                  <Text className="font-black text-white">{action}</Text>
+                <View className="flex-row flex-wrap items-center gap-2">
+                  {stats.failedQuestions > 0 ? (
+                    <Pressable
+                      onPress={(event) => {
+                        event.stopPropagation?.()
+                        onChoose(stats.difficulty, true)
+                      }}
+                      className="rounded-lg border border-[#FB718566] bg-[#FB718514] px-4 py-2"
+                    >
+                      <Text className="font-black text-[#FDB4C0]">Repasar fallos</Text>
+                    </Pressable>
+                  ) : null}
+                  <View className="rounded-lg px-4 py-2" style={{ backgroundColor: meta.color }}>
+                    <Text className="font-black text-white">{action}</Text>
+                  </View>
                 </View>
               </Pressable>
             )
@@ -795,14 +846,12 @@ function Badge({ icon, label, color }: { icon: keyof typeof Ionicons.glyphMap; l
 
 function getTopicActionLabel(topic: Topic) {
   if (topic.questionsCount === 0) return 'Sin preguntas'
-  if (topic.failedQuestions > 0) return 'Repasar fallos'
   if (topic.answeredQuestions === 0) return 'Empezar'
   if (topic.answeredQuestions < topic.questionsCount) return 'Continuar'
   return 'Repetir'
 }
 
 function getTopicActionIcon(topic: Topic): keyof typeof Ionicons.glyphMap {
-  if (topic.failedQuestions > 0) return 'refresh'
   if (topic.answeredQuestions === 0) return 'play'
   if (topic.answeredQuestions < topic.questionsCount) return 'play-forward'
   return 'repeat'
