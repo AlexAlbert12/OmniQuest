@@ -419,7 +419,34 @@ export default function StudentClassDetailScreen() {
           <NextActionCard subjectId={subject.id} classroomId={classroom?.id ?? null} topic={recommendedTopic} color={color} onPress={openTopic} />
         </View>
 
-        <View className={isDesktop ? 'mb-5 flex-row gap-5' : 'mb-5 gap-5'}>
+        <View className="mb-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+          <Text className="mb-4 text-[18px] font-black text-white">Elige un tema</Text>
+
+          {topics.length === 0 ? (
+            <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#0A1A34] px-4 py-8">
+              <Ionicons name="albums-outline" size={42} color="#60799C" />
+              <Text className="mt-3 text-center font-bold text-white">Aún no hay temas disponibles</Text>
+              <Text className="mt-1 text-center text-[12px] leading-5 text-[#8FA7C7]">
+                Tu profesor añadirá temas con preguntas para esta clase.
+              </Text>
+            </View>
+          ) : (
+            <View style={{ gap: 12 }}>
+              {topics.map((topic, index) => (
+                <TopicRow
+                  key={topic.id}
+                  topic={topic}
+                  index={index}
+                  color={color}
+                  onPress={() => openTopic(topic)}
+                  onReviewFailures={() => openTopic(topic, true)}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
+        <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
           <InfoPanel title="Últimos intentos" icon="time-outline" className={isDesktop ? 'flex-[1.2]' : ''}>
             {recentAttempts.length > 0 ? (
               <View className="gap-3">
@@ -455,33 +482,6 @@ export default function StudentClassDetailScreen() {
               <EmptyPanel icon="podium-outline" message="Aún no hay puntuaciones en esta clase." />
             )}
           </InfoPanel>
-        </View>
-
-        <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-          <Text className="mb-4 text-[18px] font-black text-white">Elige un tema</Text>
-
-          {topics.length === 0 ? (
-            <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#0A1A34] px-4 py-8">
-              <Ionicons name="albums-outline" size={42} color="#60799C" />
-              <Text className="mt-3 text-center font-bold text-white">Aún no hay temas disponibles</Text>
-              <Text className="mt-1 text-center text-[12px] leading-5 text-[#8FA7C7]">
-                Tu profesor añadirá temas con preguntas para esta clase.
-              </Text>
-            </View>
-          ) : (
-            <View style={{ gap: 12 }}>
-              {topics.map((topic, index) => (
-                <TopicRow
-                  key={topic.id}
-                  topic={topic}
-                  index={index}
-                  color={color}
-                  onPress={() => openTopic(topic)}
-                  onReviewFailures={() => openTopic(topic, true)}
-                />
-              ))}
-            </View>
-          )}
         </View>
       </ScrollView>
       <DifficultyChooser
@@ -611,7 +611,10 @@ function FailedQuestionRow({ question }: { question: FailedQuestion }) {
   return (
     <View className="rounded-xl border border-[#3B1D2A] bg-[#160D19] p-3">
       <Text className="text-[13px] font-bold text-white" numberOfLines={2}>{question.text}</Text>
-      <Text className="mt-1 text-[12px] text-[#FB7185]">{question.topicTitle}</Text>
+      <View className="mt-2 flex-row items-center justify-between gap-3">
+        <Text className="min-w-0 flex-1 text-[12px] text-[#FB7185]" numberOfLines={1}>{question.topicTitle}</Text>
+        <Text className="text-[12px] font-black text-[#B9A7FF]">Repasar →</Text>
+      </View>
     </View>
   )
 }
@@ -711,23 +714,18 @@ function TopicRow({
         </Text>
         <View className="mt-2 flex-row flex-wrap gap-2">
           <Badge icon="help-circle-outline" label={`${topic.questionsCount} preguntas`} color="#58B5FF" />
-          <Badge icon="checkmark-circle-outline" label={`${topic.answeredQuestions} respondidas`} color="#43D991" />
-          <Badge icon="star-outline" label={hasPlayed && typeof topic.bestScore === 'number' ? `${topic.bestScore} XP` : 'Sin jugar'} color={hasPlayed ? '#B9A7FF' : '#8FA7C7'} />
           <Badge icon={status.icon} label={status.label} color={status.color} />
-          {topic.difficulties.map((stats) => {
-            const meta = getDifficultyMeta(stats.difficulty)
-            return <Badge key={stats.difficulty} icon="layers-outline" label={`${meta.shortLabel}: ${stats.questionsCount}`} color={meta.color} />
-          })}
-          {topic.lastAttemptAt ? (
-            <Badge icon="time-outline" label={formatRecentAttemptDate(topic.lastAttemptAt)} color="#AFC2DB" />
-          ) : null}
           {topic.failedQuestions > 0 ? (
-            <Badge icon="alert-circle-outline" label={`${topic.failedQuestions} errores`} color="#FB7185" />
+            <Badge icon="alert-circle-outline" label={`${topic.failedQuestions} ${topic.failedQuestions === 1 ? 'error' : 'errores'}`} color="#FB7185" />
           ) : null}
+          <Badge icon="star-outline" label={hasPlayed && typeof topic.bestScore === 'number' ? `${topic.bestScore} XP` : 'Sin jugar'} color={hasPlayed ? '#B9A7FF' : '#8FA7C7'} />
           {topic.availableUntil ? (
             <Badge icon={locked ? 'lock-closed-outline' : 'time-outline'} label={locked ? 'Bloqueado' : `Hasta ${formatTopicDeadline(topic.availableUntil)}`} color={locked ? '#FB7185' : '#F6A64A'} />
           ) : null}
         </View>
+        {topic.lastAttemptAt ? (
+          <Text className="mt-2 text-[11px] text-[#8FA7C7]">Último intento: {formatRecentAttemptDate(topic.lastAttemptAt)}</Text>
+        ) : null}
       </View>
       <View className="flex-row flex-wrap items-center gap-2">
         {topic.failedQuestions > 0 && !disabled ? (

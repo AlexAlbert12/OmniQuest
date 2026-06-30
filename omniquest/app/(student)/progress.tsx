@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -56,6 +56,8 @@ type SubjectProgress = {
   totalXp: number
   scoreCount: number
   totalQuestions: number
+  failedQuestions: number
+  pendingQuestions: number
   barPercent: number
 }
 
@@ -114,15 +116,16 @@ export default function ProgressScreen() {
   const alias = profile?.alias || 'Alex'
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)
-  const scoredSubjects = subjectProgress.filter((subject) => subject.averageScore !== null)
   const totalClasses = subjectProgress.length
-  const completedClasses = subjectProgress.filter((subject) => subject.barPercent >= 100).length
   const savedScores = subjectProgress.reduce((total, subject) => total + subject.scoreCount, 0)
   const totalQuestions = subjectProgress.reduce((total, subject) => total + subject.totalQuestions, 0)
   const progressPercent = totalQuestions > 0 ? Math.round((savedScores / totalQuestions) * 100) : 0
-  const averageScore = scoredSubjects.length > 0
-    ? Math.round(scoredSubjects.reduce((total, subject) => total + (subject.averageScore || 0), 0) / scoredSubjects.length)
-    : null
+  const failedQuestions = subjectProgress.reduce((total, subject) => total + subject.failedQuestions, 0)
+  const accuracyPercent = scores.length > 0
+    ? Math.round(
+        (scores.reduce((total, score) => total + (score.correct_answers ?? 0), 0) / Math.max(savedScores, 1)) * 100
+      )
+    : 0
   const badgeMetrics = getStudentBadgeMetrics({
     scores: scores as StudentBadgeScore[],
     totalPoints: points,
@@ -261,18 +264,15 @@ export default function ProgressScreen() {
             </View>
           </View>
 
-          <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
+          <View>
             <SummaryCard
               progressPercent={progressPercent}
-              completedClasses={completedClasses}
-              totalClasses={totalClasses}
               savedScores={savedScores}
-              averageScore={averageScore}
+              failedQuestions={failedQuestions}
+              accuracyPercent={accuracyPercent}
               points={points}
               accentColor={accentColor}
             />
-            <XpEvolution scores={recentScores} />
-            <DistributionCard subjects={subjectProgress} />
           </View>
 
           <View className="mt-5">
@@ -301,7 +301,19 @@ export default function ProgressScreen() {
               <View style={{ gap: 10 }}>
                 {subjectProgress.length > 0 ? (
                   subjectProgress.map((subject) => (
-                    <SubjectProgressRow key={`${subject.id}:${subject.classroomId ?? 'general'}`} subject={subject} />
+                    <SubjectProgressRow
+                      key={`${subject.id}:${subject.classroomId ?? 'general'}`}
+                      subject={subject}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/(student)/class/[id]',
+                          params: {
+                            id: String(subject.id),
+                            ...(subject.classroomId ? { classroomId: String(subject.classroomId) } : {}),
+                          },
+                        } as any)
+                      }
+                    />
                   ))
                 ) : (
                   <EmptyProgress />
@@ -310,23 +322,25 @@ export default function ProgressScreen() {
               <StudentCardLink label="Ver todos mis cursos" onPress={() => router.push('/(student)/classes' as any)} />
             </StudentDashboardCard>
 
-            <View className={isDesktop ? 'flex-1 gap-5' : 'gap-5'}>
-              <StudentDashboardCard
-                title="Logros recientes"
-                actionLabel="Ver todos"
-                onAction={() => router.push('/(student)/badges' as any)}
-              >
-                <View style={{ gap: 12 }}>
-                  {badges.slice(0, 4).map((achievement) => (
-                    <AchievementRow
-                      key={achievement.title}
-                      achievement={achievement}
-                      onPress={() => router.push('/(student)/badges' as any)}
-                    />
-                  ))}
-                </View>
-              </StudentDashboardCard>
-            </View>
+            <XpEvolution scores={recentScores} />
+          </View>
+
+          <View className="mt-5">
+            <StudentDashboardCard
+              title="Logros recientes"
+              actionLabel="Ver todos"
+              onAction={() => router.push('/(student)/badges' as any)}
+            >
+              <View className={isDesktop ? 'flex-row flex-wrap gap-3' : 'gap-3'}>
+                {badges.slice(0, 4).map((achievement) => (
+                  <AchievementRow
+                    key={achievement.title}
+                    achievement={achievement}
+                    onPress={() => router.push('/(student)/badges' as any)}
+                  />
+                ))}
+              </View>
+            </StudentDashboardCard>
           </View>
         </ScrollView>
       </View>
@@ -338,18 +352,16 @@ export default function ProgressScreen() {
 
 function SummaryCard({
   progressPercent,
-  completedClasses,
-  totalClasses,
   savedScores,
-  averageScore,
+  failedQuestions,
+  accuracyPercent,
   points,
   accentColor,
 }: {
   progressPercent: number
-  completedClasses: number
-  totalClasses: number
   savedScores: number
-  averageScore: number | null
+  failedQuestions: number
+  accuracyPercent: number
   points: number
   accentColor: string
 }) {
@@ -362,13 +374,17 @@ function SummaryCard({
           <Text className="mt-1 text-center text-[13px] text-[#AFC2DB]">Avance de cursos</Text>
         </View>
         <View className="min-w-0 flex-1" style={{ gap: 12 }}>
-          <SummaryStat icon="checkmark-done" color="#3B82F6" label="Cursos completados" value={`${completedClasses} / ${totalClasses}`} />
-          <SummaryStat icon="trophy" color="#EC4899" label="Notas guardadas" value={String(savedScores)} />
-          <SummaryStat icon="analytics" color="#F6A64A" label="Media de XP" value={averageScore === null ? 'Sin puntuaciones' : `${averageScore.toLocaleString()} XP`} />
+          <SummaryStat icon="help-circle" color="#58B5FF" label="Preguntas respondidas" value={String(savedScores)} />
+          <SummaryStat icon="speedometer" color="#F6A64A" label="Precisión global" value={`${accuracyPercent}%`} />
+          <SummaryStat icon="refresh-circle" color="#FB7185" label="Fallos para repasar" value={String(failedQuestions)} />
           <SummaryStat icon="flash" color="#FBBF24" label="XP total acumulada" value={`${points.toLocaleString()} XP`} />
         </View>
       </View>
-      <Text className="mt-5 text-center text-[13px] text-[#AFC2DB]">¡Vas por muy buen camino! 🚀</Text>
+      <Text className="mt-5 text-center text-[13px] text-[#AFC2DB]">
+        {failedQuestions > 0
+          ? `Tienes ${failedQuestions} ${failedQuestions === 1 ? 'fallo pendiente' : 'fallos pendientes'}. Repasa para mejorar tu precisión.`
+          : '¡Buen trabajo! No tienes áreas críticas ahora mismo.'}
+      </Text>
     </View>
   )
 }
@@ -437,60 +453,6 @@ function XpEvolution({ scores }: { scores: RecentScore[] }) {
           <Ionicons name="analytics-outline" size={30} color="#60799C" />
           <Text className="mt-3 text-center text-[13px] text-[#AFC2DB]">Aún no hay puntuaciones guardadas.</Text>
         </View>
-      )}
-    </View>
-  )
-}
-
-function DistributionCard({ subjects }: { subjects: SubjectProgress[] }) {
-  const scoredSubjects = subjects
-    .filter((subject) => subject.totalXp > 0)
-    .sort((a, b) => b.totalXp - a.totalXp)
-    .slice(0, 6)
-  const maxXp = Math.max(...scoredSubjects.map((subject) => subject.totalXp), 1)
-  const totalXp = scoredSubjects.reduce((total, subject) => total + subject.totalXp, 0)
-
-  return (
-    <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <Text className="mb-5 text-[15px] font-black text-white">Distribución por curso</Text>
-      {scoredSubjects.length > 0 ? (
-        <View style={{ gap: 12 }}>
-          <View className="flex-row items-end justify-between">
-            <View>
-              <Text className="text-[28px] font-black text-white">{totalXp.toLocaleString()} XP</Text>
-              <Text className="text-[12px] text-[#8FA7C7]">XP acumulado en cursos</Text>
-            </View>
-            <View className="rounded-full bg-[#13284A] px-3 py-1">
-              <Text className="text-[12px] font-bold text-[#AFC2DB]">{scoredSubjects.length} activas</Text>
-            </View>
-          </View>
-
-          {scoredSubjects.map((subject) => {
-            const percent = Math.max(8, Math.round((subject.totalXp / maxXp) * 100))
-            const share = totalXp > 0 ? Math.round((subject.totalXp / totalXp) * 100) : 0
-
-            return (
-              <View key={subject.id}>
-                <View className="mb-2 flex-row items-center justify-between gap-3">
-                  <View className="min-w-0 flex-1 flex-row items-center gap-2">
-                    <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: subject.color }} />
-                    <Text className="min-w-0 flex-1 text-[13px] font-semibold text-[#DDE7F4]" numberOfLines={1}>
-                      {subject.name}
-                    </Text>
-                  </View>
-                  <Text className="text-[12px] font-bold text-[#AFC2DB]">
-                    {subject.totalXp.toLocaleString()} XP · {share}%
-                  </Text>
-                </View>
-                <View className="h-2.5 overflow-hidden rounded-full bg-[#13294C]">
-                  <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: subject.color }} />
-                </View>
-              </View>
-            )
-          })}
-        </View>
-      ) : (
-        <EmptyProgress />
       )}
     </View>
   )
@@ -571,12 +533,18 @@ function ReinforcementCard({
 }
 
 function SubjectProgressRow({
+  onPress,
   subject,
 }: {
+  onPress: () => void
   subject: SubjectProgress
 }) {
   return (
-    <View className="flex-row items-center rounded-xl bg-[#0D1D3B] p-3">
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center rounded-xl bg-[#0D1D3B] p-3"
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+    >
       <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${subject.color}24` }}>
         <Ionicons name={subject.icon} size={24} color={subject.color} />
       </View>
@@ -594,6 +562,19 @@ function SubjectProgressRow({
         <Text className="text-[12px] text-[#60799C]">Respondidas</Text>
         <Text className="text-[13px] font-bold text-[#DDE7F4]">{subject.scoreCount} / {subject.totalQuestions}</Text>
       </View>
+      <View className="hidden w-24 border-l border-[#172A4A] pl-4 lg:flex">
+        <Text className="text-[12px] text-[#60799C]">Fallos</Text>
+        <Text
+          className="text-[13px] font-bold"
+          style={{ color: subject.failedQuestions > 0 ? '#FB7185' : '#43D991' }}
+        >
+          {subject.failedQuestions}
+        </Text>
+      </View>
+      <View className="hidden w-24 border-l border-[#172A4A] pl-4 lg:flex">
+        <Text className="text-[12px] text-[#60799C]">Pendientes</Text>
+        <Text className="text-[13px] font-bold text-[#DDE7F4]">{subject.pendingQuestions}</Text>
+      </View>
       <View className="hidden w-16 lg:flex">
         <Text className="text-[12px] text-[#60799C]">Mejor</Text>
         <Text className="text-[12px] font-bold text-[#DDE7F4]">
@@ -601,7 +582,7 @@ function SubjectProgressRow({
         </Text>
       </View>
       <Ionicons name="arrow-forward" size={16} color="#7F91AD" />
-    </View>
+    </Pressable>
   )
 }
 
@@ -670,6 +651,8 @@ function buildSubjectRows(subjects: StudentProgressSubject[], scores: ScoreRow[]
       totalXp: subjectScores.reduce((total, score) => total + score, 0),
       scoreCount: subject.answeredQuestions,
       totalQuestions: subject.totalQuestions,
+      failedQuestions: subject.failedQuestions,
+      pendingQuestions: subject.pendingQuestions,
       barPercent: subject.percent,
     }
   })

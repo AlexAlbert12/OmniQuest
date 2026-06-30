@@ -44,11 +44,12 @@ type Subject = {
   joined_at?: string | null
 }
 
-type ClassFilter = 'all' | 'in_progress' | 'completed'
+type ClassFilter = 'all' | 'review' | 'in_progress' | 'completed'
 type ClassSort = 'recent' | 'name' | 'progress'
 
 const studentClassFilters: { id: ClassFilter; label: string }[] = [
   { id: 'all', label: 'Todas' },
+  { id: 'review', label: 'Para repasar' },
   { id: 'in_progress', label: 'En progreso' },
   { id: 'completed', label: 'Completadas' },
 ]
@@ -84,12 +85,22 @@ export default function ClassesScreen() {
     const normalizedSearch = search.trim().toLowerCase()
     let rows = subjects
 
+    if (selectedFilter === 'review') {
+      rows = rows.filter((subject) => (progressBySubject[getCourseRowKey(subject)]?.failedQuestions ?? 0) > 0)
+    }
+
     if (selectedFilter === 'in_progress') {
-      rows = rows.filter((subject) => !(progressBySubject[getCourseRowKey(subject)]?.isCompleted))
+      rows = rows.filter((subject) => {
+        const progress = progressBySubject[getCourseRowKey(subject)]
+        return (progress?.failedQuestions ?? 0) === 0 && (progress?.pendingQuestions ?? 0) > 0
+      })
     }
 
     if (selectedFilter === 'completed') {
-      rows = rows.filter((subject) => Boolean(progressBySubject[getCourseRowKey(subject)]?.isCompleted))
+      rows = rows.filter((subject) => {
+        const progress = progressBySubject[getCourseRowKey(subject)]
+        return Boolean(progress?.isCompleted) && (progress?.failedQuestions ?? 0) === 0
+      })
     }
 
     if (normalizedSearch) {
@@ -113,19 +124,36 @@ export default function ClassesScreen() {
     })
   }, [progressBySubject, search, selectedFilter, selectedSort, subjects])
 
+  const recommendedCourse = useMemo(() => {
+    return classRows
+      .map((subject) => ({
+        subject,
+        progress: progressBySubject[getCourseRowKey(subject)],
+      }))
+      .sort((a, b) => {
+        const failedDiff = (b.progress?.failedQuestions ?? 0) - (a.progress?.failedQuestions ?? 0)
+        if (failedDiff !== 0) return failedDiff
+
+        const pendingDiff = (b.progress?.pendingQuestions ?? 0) - (a.progress?.pendingQuestions ?? 0)
+        if (pendingDiff !== 0) return pendingDiff
+
+        return (b.progress?.percent ?? 0) - (a.progress?.percent ?? 0)
+      })[0]
+  }, [classRows, progressBySubject])
+
   const points = profile?.points ?? 0
   const alias = profile?.alias || 'Alex'
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)
-  const realScores = useMemo(() => Object.values(subjectScores), [subjectScores])
   const activeClasses = subjects.length
-  const classesWithScore = subjects.filter((subject) => typeof subjectScores[getCourseRowKey(subject)] === 'number').length
-  const averageScore = realScores.length > 0
-    ? Math.round(realScores.reduce((total, score) => total + score, 0) / realScores.length)
-    : 0
-  const averageProgress = subjects.length > 0
-    ? Math.round(subjects.reduce((total, subject) => total + (progressBySubject[getCourseRowKey(subject)]?.percent ?? 0), 0) / subjects.length)
-    : 0
+  const failedQuestions = subjects.reduce(
+    (total, subject) => total + (progressBySubject[getCourseRowKey(subject)]?.failedQuestions ?? 0),
+    0
+  )
+  const pendingQuestions = subjects.reduce(
+    (total, subject) => total + (progressBySubject[getCourseRowKey(subject)]?.pendingQuestions ?? 0),
+    0
+  )
 
   const fetchClasses = useCallback(async () => {
     setLoading(true)
@@ -380,10 +408,17 @@ export default function ClassesScreen() {
 
           <View className={isDesktop ? 'flex-row gap-4' : 'gap-4'}>
             <StatCard icon="school" color={accentColor} value={String(activeClasses)} label="Cursos activos" detail="Sigue aprendiendo 🚀" />
-            <StatCard icon="checkmark-circle" color="#43D991" value={`${classesWithScore} / ${activeClasses}`} label="Cursos con actividad" detail={`${averageProgress}% de avance medio`} />
-            <StatCard icon="star" color="#F6A64A" value={averageScore > 0 ? `${averageScore} XP` : '0 XP'} label="Media de XP" detail="Basado en tus mejores puntuaciones" />
-            <StatCard icon="time" color="#58B5FF" value={`${points.toLocaleString()} XP`} label="XP global" detail="Acumulada en tu perfil" />
+            <StatCard icon="refresh-circle" color="#FB7185" value={String(failedQuestions)} label="Fallos pendientes" detail="Para repasar" />
+            <StatCard icon="help-circle" color="#58B5FF" value={String(pendingQuestions)} label="Por practicar" detail="Preguntas disponibles" />
+            <StatCard icon="time" color="#F6A64A" value={`${points.toLocaleString()} XP`} label="XP global" detail="Acumulada en tu perfil" />
           </View>
+
+          {recommendedCourse?.progress ? (
+            <RecommendedCourseCard
+              subject={recommendedCourse.subject}
+              progress={recommendedCourse.progress}
+            />
+          ) : null}
 
           <View className="mt-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
             <View className="mb-4 gap-3">
@@ -596,18 +631,118 @@ function CompactSelect({
   )
 }
 
+function RecommendedCourseCard({
+  progress,
+  subject,
+}: {
+  progress: StudentProgressSubject
+  subject: Subject
+}) {
+  const { accentColor } = useAppTheme()
+  const failed = progress.failedQuestions ?? 0
+  const pending = progress.pendingQuestions ?? 0
+  const title = failed > 0 ? `Repasa ${subject.name}` : `Continúa ${subject.name}`
+  const detail = failed > 0
+    ? `Tienes ${failed} ${failed === 1 ? 'fallo pendiente' : 'fallos pendientes'} en ${subject.classroom_name || 'tu clase'}.`
+    : pending > 0
+      ? `Tienes ${pending} ${pending === 1 ? 'pregunta' : 'preguntas'} por practicar.`
+      : `Puedes repetir el curso para mejorar tu puntuación.`
+  const buttonLabel = failed > 0 ? 'Repasar ahora' : pending > 0 ? 'Continuar' : 'Repetir'
+
+  return (
+    <View className="mt-5 overflow-hidden rounded-2xl border border-[#2B3F7A] bg-[#101D4A] p-5">
+      <View className="absolute right-[-34px] top-[-44px] h-36 w-36 rounded-full bg-[#6C5CE7]/20" />
+      <Text className="text-[12px] font-black uppercase tracking-[0.08em] text-[#A78BFA]">Recomendado para ti</Text>
+      <Text className="mt-2 text-[22px] font-black text-white">{title}</Text>
+      <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">{detail}</Text>
+      <Link href={buildClassHref(subject) as any} asChild>
+        <Pressable className="mt-4 flex-row items-center justify-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: accentColor }}>
+          <Ionicons name={failed > 0 ? 'refresh' : pending > 0 ? 'play-forward' : 'repeat'} size={16} color="#FFFFFF" />
+          <Text className="font-black text-white">{buttonLabel}</Text>
+        </Pressable>
+      </Link>
+    </View>
+  )
+}
+
 function getClassProgressStatus(progress?: StudentProgressSubject) {
   const percent = progress?.percent ?? 0
+  const failed = progress?.failedQuestions ?? 0
+  const pending = progress?.pendingQuestions ?? 0
+
+  if (failed > 0) {
+    return {
+      label: 'Repasar fallos',
+      color: '#FB7185',
+      backgroundColor: '#2A1420',
+      icon: 'refresh-circle-outline' as const,
+    }
+  }
+
+  if (pending > 0 && percent > 0) {
+    return {
+      label: 'Continuar',
+      color: '#FBBF24',
+      backgroundColor: '#2A210F',
+      icon: 'play-forward-outline' as const,
+    }
+  }
 
   if (progress?.isCompleted || percent >= 100) {
-    return { label: 'Completada', color: '#43D991', backgroundColor: '#0F2F2B' }
+    return {
+      label: 'Completado',
+      color: '#43D991',
+      backgroundColor: '#0F2F2B',
+      icon: 'checkmark-circle-outline' as const,
+    }
   }
 
-  if (percent > 0) {
-    return { label: 'En progreso', color: '#FBBF24', backgroundColor: '#2A210F' }
+  return {
+    label: 'Sin empezar',
+    color: '#AFC2DB',
+    backgroundColor: '#122544',
+    icon: 'play-circle-outline' as const,
+  }
+}
+
+function getPrimaryCourseActionLabel(progress: StudentProgressSubject | undefined, progressPercent: number) {
+  if ((progress?.failedQuestions ?? 0) > 0) return 'Repasar fallos'
+  if ((progress?.pendingQuestions ?? 0) > 0) return 'Continuar'
+  if (progressPercent > 0) return 'Repetir'
+  return 'Empezar'
+}
+
+function getPrimaryCourseActionIcon(progress: StudentProgressSubject | undefined, progressPercent: number): keyof typeof Ionicons.glyphMap {
+  if ((progress?.failedQuestions ?? 0) > 0) return 'refresh'
+  if ((progress?.pendingQuestions ?? 0) > 0) return 'play-forward'
+  if (progressPercent > 0) return 'repeat'
+  return 'play'
+}
+
+function getCourseActionMessage(progress?: StudentProgressSubject) {
+  const failed = progress?.failedQuestions ?? 0
+  const pending = progress?.pendingQuestions ?? 0
+
+  if (failed > 0) {
+    return `Tienes ${failed} ${failed === 1 ? 'fallo' : 'fallos'} para repasar`
   }
 
-  return { label: 'Sin empezar', color: '#AFC2DB', backgroundColor: '#122544' }
+  if (pending > 0) {
+    return `${pending} ${pending === 1 ? 'pregunta pendiente' : 'preguntas pendientes'} por practicar`
+  }
+
+  if ((progress?.percent ?? 0) > 0) {
+    return 'Curso completado'
+  }
+
+  return 'Listo para empezar'
+}
+
+function buildClassHref(subject: Subject) {
+  return {
+    pathname: '/(student)/class/[id]',
+    params: { id: String(subject.id), ...(subject.classroom_id ? { classroomId: String(subject.classroom_id) } : {}) },
+  }
 }
 
 function getFilterLabel(value: ClassFilter) {
@@ -653,69 +788,54 @@ function ClassRow({
   const activityLabel = formatLastActivity(lastActivityAt)
   const { accentColor } = useAppTheme()
   const [optionsOpen, setOptionsOpen] = React.useState(false)
+  const totalQuestions = progress?.totalQuestions ?? 0
+  const primaryActionLabel = getPrimaryCourseActionLabel(progress, progressPercent)
+  const primaryActionIcon = getPrimaryCourseActionIcon(progress, progressPercent)
+  const actionMessage = getCourseActionMessage(progress)
+  const metaParts = [
+    subject.classroom_name || 'Clase principal',
+    topicsLabel,
+    `${totalQuestions} pregunta${totalQuestions === 1 ? '' : 's'}`,
+  ]
 
   const content = (
-    <View className="flex-row items-center rounded-xl border border-[#172A4A] bg-[#0B1A32] p-4">
-      <View className="h-14 w-14 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}24` }}>
-        {subject.icon && !isFallback ? (
-          <Text className="text-2xl">{subject.icon}</Text>
-        ) : (
-          <Ionicons name={iconNames[index] || 'book'} size={28} color={color} />
-        )}
-      </View>
+    <View className="rounded-xl border border-[#172A4A] bg-[#0B1A32] p-4">
+      <View className="flex-row flex-wrap items-start gap-4">
+        <View className="h-14 w-14 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}24` }}>
+          {subject.icon && !isFallback ? (
+            <Text className="text-2xl">{subject.icon}</Text>
+          ) : (
+            <Ionicons name={iconNames[index] || 'book'} size={28} color={color} />
+          )}
+        </View>
 
-      <View className="ml-4 min-w-0 flex-[1.25]">
-        <Text className="text-[18px] font-black text-white">{subject.name}</Text>
-        {subject.classroom_name ? <Text className="mt-0.5 text-[12px] font-bold text-[#A78BFA]">Clase: {subject.classroom_name}</Text> : null}
-        <Text className="mt-1 text-[13px] text-[#AFC2DB]" numberOfLines={1}>
-          {subject.description || 'Preguntas y ejercicios disponibles'}
-        </Text>
-        <View className="mt-2 flex-row flex-wrap gap-2">
-          <View className="rounded bg-[#122544] px-2 py-1">
-            <Text className="text-[12px] text-[#AFC2DB]">
-              {teacherLabel}
-            </Text>
+        <View className="min-w-[240px] flex-1">
+          <Text className="text-[18px] font-black text-white">{subject.name}</Text>
+          <Text className="mt-1 text-[13px] text-[#AFC2DB]" numberOfLines={1}>{metaParts.join(' · ')}</Text>
+          <Text className="mt-2 text-[14px] font-black" style={{ color: status.color }}>{actionMessage}</Text>
+
+          <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
+            <View className="h-full rounded-full" style={{ width: `${progressPercent}%`, backgroundColor: status.color }} />
           </View>
-          <View className="rounded px-2 py-1" style={{ backgroundColor: status.backgroundColor }}>
-            <Text className="text-[12px] font-bold" style={{ color: status.color }}>{status.label}</Text>
-          </View>
-          {progress ? (
+          <View className="mt-2 flex-row flex-wrap items-center gap-2">
+            <View className="flex-row items-center gap-1 rounded px-2 py-1" style={{ backgroundColor: status.backgroundColor }}>
+              <Ionicons name={status.icon} size={12} color={status.color} />
+              <Text className="text-[12px] font-bold" style={{ color: status.color }}>{status.label}</Text>
+            </View>
             <View className="rounded bg-[#122544] px-2 py-1">
-              <Text className="text-[12px] text-[#AFC2DB]">
-                {progress.pendingQuestions} por practicar
-              </Text>
+              <Text className="text-[12px] text-[#AFC2DB]">{progressPercent}% completado</Text>
             </View>
-          ) : null}
-          {progress && progress.failedQuestions > 0 ? (
-            <View className="rounded bg-[#2A1420] px-2 py-1">
-              <Text className="text-[12px] font-bold text-[#FB7185]">
-                {progress.failedQuestions} falladas para repasar
-              </Text>
+            <View className="rounded bg-[#122544] px-2 py-1">
+              <Text className="text-[12px] text-[#AFC2DB]">{scoreLabel}</Text>
             </View>
-          ) : null}
+            <View className="rounded bg-[#122544] px-2 py-1">
+              <Text className="text-[12px] text-[#AFC2DB]">{teacherLabel}</Text>
+            </View>
+          </View>
         </View>
-      </View>
 
-      <View className="hidden flex-1 md:flex">
-        <Text className="mb-2 text-[13px] text-[#AFC2DB]">Progreso</Text>
-        <View className="h-2 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full" style={{ width: `${progressPercent}%`, backgroundColor: color }} />
-        </View>
-      </View>
-      <Text className="mx-4 hidden w-10 text-right text-[13px] text-[#DDE7F4] md:flex">{progressPercent}%</Text>
-
-      <View className="hidden w-24 border-l border-[#172A4A] pl-5 lg:flex">
-        <Text className="text-[13px] text-[#8FA7C7]">Temas</Text>
-        <Text className="mt-1 font-bold text-[#43D991]">{topicsLabel}</Text>
-      </View>
-
-      <View className="hidden w-28 border-l border-[#172A4A] pl-5 lg:flex">
-        <Text className="text-[13px] text-[#8FA7C7]">Mejor XP</Text>
-        <Text className="mt-1 font-bold" style={{ color: accentColor }}>{scoreLabel}</Text>
-      </View>
-
-      <View className="ml-4 items-end">
-        <View className="flex-row items-center gap-3">
+        <View className="items-end">
+          <View className="flex-row items-center gap-3">
           {isFallback ? (
             <Pressable
               className="flex-row items-center gap-2 rounded-lg px-4 py-3"
@@ -734,8 +854,8 @@ function ClassRow({
                 asChild
               >
                 <Pressable className="flex-row items-center gap-2 rounded-lg px-4 py-3" style={{ backgroundColor: accentColor }}>
-                  <Ionicons name="albums" size={15} color="#FFFFFF" />
-                  <Text className="font-bold text-white">Ver temas</Text>
+                  <Ionicons name={primaryActionIcon} size={15} color="#FFFFFF" />
+                  <Text className="font-bold text-white">{primaryActionLabel}</Text>
                 </Pressable>
               </Link>
               <View className="relative">
@@ -783,9 +903,10 @@ function ClassRow({
               </View>
             </>
           )}
-        </View>
+          </View>
 
-        <Text className="mt-2 text-right text-[13px] text-[#8FA7C7]">{activityLabel}</Text>
+          <Text className="mt-2 text-right text-[13px] text-[#8FA7C7]">{activityLabel}</Text>
+        </View>
       </View>
     </View>
   )
