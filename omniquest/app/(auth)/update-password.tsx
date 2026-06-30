@@ -16,6 +16,7 @@ import SpaceBackground from '../../components/SpaceBackground'
 import BrandLogo from '../../components/BrandLogo'
 import { getAuthErrorMessage } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
+import { createShadowStyle } from '../../lib/platformShadow'
 
 export default function UpdatePasswordScreen() {
   const { width, height } = useWindowDimensions()
@@ -74,11 +75,14 @@ export default function UpdatePasswordScreen() {
         className="overflow-hidden rounded-[34px] border border-[#27436F] bg-[#071630]"
         style={{
           minHeight: isDesktop ? Math.max(height, 720) : Math.max(height - 28, 720),
-          shadowColor: '#132C59',
-          shadowOpacity: isWeb ? 0 : 0.35,
-          shadowRadius: isWeb ? 0 : 28,
-          shadowOffset: { width: 0, height: isWeb ? 0 : 18 },
-          elevation: isWeb ? 0 : 12,
+          ...createShadowStyle({
+            color: '#132C59',
+            opacity: 0.35,
+            radius: 28,
+            offsetY: 18,
+            elevation: 12,
+            web: '0 18px 28px rgba(19, 44, 89, 0.25)',
+          }),
           borderRadius: isWeb ? 0 : 34,
         }}
       >
@@ -97,11 +101,14 @@ export default function UpdatePasswordScreen() {
             className="mt-8 w-full overflow-hidden rounded-[20px] border border-[#3B6FA5] bg-[#081D3D]/92"
             style={{
               maxWidth: isTablet ? 560 : 430,
-              shadowColor: '#1B75D8',
-              shadowOpacity: isWeb ? 0 : 0.28,
-              shadowRadius: isWeb ? 0 : 24,
-              shadowOffset: { width: 0, height: isWeb ? 0 : 12 },
-              elevation: isWeb ? 0 : 10,
+              ...createShadowStyle({
+                color: '#1B75D8',
+                opacity: 0.28,
+                radius: 24,
+                offsetY: 12,
+                elevation: 10,
+                web: '0 12px 24px rgba(27, 117, 216, 0.22)',
+              }),
             }}
           >
             <View className="p-6" style={{ gap: 18 }}>

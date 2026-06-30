@@ -66,6 +66,77 @@ type SubjectProgressRow = {
   progress?: StudentProgressSubject
 }
 
+function buildHomeHeroAction(
+  subjects: Subject[],
+  progressRows: StudentProgressSubject[],
+  failedQuestions: number
+): HomeHeroAction {
+  const rows = getSubjectProgressRows(subjects, progressRows)
+  const failedRow = rows.find((row) => (row.progress?.failedQuestions ?? 0) > 0)
+  const pendingRow = rows.find((row) => (row.progress?.pendingQuestions ?? 0) > 0)
+
+  if (failedRow && failedQuestions > 0) {
+    return {
+      title: `Tienes ${failedQuestions} ${failedQuestions === 1 ? 'pregunta fallada' : 'preguntas falladas'} para repasar`,
+      description: `Empieza por ${failedRow.subject.name} y refuerza lo que más te está costando.`,
+      buttonLabel: 'Repasar fallos',
+      icon: 'refresh-circle',
+      href: buildClassHref(failedRow.subject),
+    }
+  }
+
+  if (pendingRow?.progress) {
+    const pending = pendingRow.progress.pendingQuestions
+    return {
+      title: `Continúa con ${pendingRow.subject.name}`,
+      description: `Te ${pending === 1 ? 'queda' : 'quedan'} ${pending} ${pending === 1 ? 'pregunta' : 'preguntas'} por practicar.`,
+      buttonLabel: 'Continuar',
+      icon: 'play-forward',
+      href: buildClassHref(pendingRow.subject),
+    }
+  }
+
+  if (subjects.length === 0) {
+    return {
+      title: 'Empieza tu primer reto',
+      description: 'Únete a un curso con el código de tu profesor y empieza a practicar.',
+      buttonLabel: 'Unirse a un curso',
+      icon: 'add-circle',
+      href: '/(student)/classes',
+    }
+  }
+
+  return {
+    title: 'Elige tu siguiente tema',
+    description: 'Tienes cursos activos listos para repetir, practicar o explorar nuevos temas.',
+    buttonLabel: 'Elegir tema',
+    icon: 'albums',
+    href: buildClassHref(subjects[0]),
+  }
+}
+
+function getRecommendedSubject(subjects: Subject[], progressRows: StudentProgressSubject[]): SubjectProgressRow | null {
+  return getSubjectProgressRows(subjects, progressRows)[0] ?? null
+}
+
+function getSubjectProgressRows(subjects: Subject[], progressRows: StudentProgressSubject[]): SubjectProgressRow[] {
+  return subjects
+    .map((subject) => ({
+      subject,
+      progress: progressRows.find((item) => getProgressRowKey(item) === getCourseRowKey(subject)),
+    }))
+    .sort((a, b) => {
+      const failedDiff = (b.progress?.failedQuestions ?? 0) - (a.progress?.failedQuestions ?? 0)
+      if (failedDiff !== 0) return failedDiff
+
+      const pendingDiff = (b.progress?.pendingQuestions ?? 0) - (a.progress?.pendingQuestions ?? 0)
+      if (pendingDiff !== 0) return pendingDiff
+
+      return (b.progress?.percent ?? 0) - (a.progress?.percent ?? 0)
+    })
+}
+
+
 export default function StudentHome() {
   const { width } = useWindowDimensions()
   const [inviteCode, setInviteCode] = useState('')
@@ -594,76 +665,6 @@ function RankingSummaryCard({
   )
 }
 
-
-function buildHomeHeroAction(
-  subjects: Subject[],
-  progressRows: StudentProgressSubject[],
-  failedQuestions: number
-): HomeHeroAction {
-  const rows = getSubjectProgressRows(subjects, progressRows)
-  const failedRow = rows.find((row) => (row.progress?.failedQuestions ?? 0) > 0)
-  const pendingRow = rows.find((row) => (row.progress?.pendingQuestions ?? 0) > 0)
-
-  if (failedRow && failedQuestions > 0) {
-    return {
-      title: `Tienes ${failedQuestions} ${failedQuestions === 1 ? 'pregunta fallada' : 'preguntas falladas'} para repasar`,
-      description: `Empieza por ${failedRow.subject.name} y refuerza lo que más te está costando.`,
-      buttonLabel: 'Repasar fallos',
-      icon: 'refresh-circle',
-      href: buildClassHref(failedRow.subject),
-    }
-  }
-
-  if (pendingRow?.progress) {
-    const pending = pendingRow.progress.pendingQuestions
-    return {
-      title: `Continúa con ${pendingRow.subject.name}`,
-      description: `Te ${pending === 1 ? 'queda' : 'quedan'} ${pending} ${pending === 1 ? 'pregunta' : 'preguntas'} por practicar.`,
-      buttonLabel: 'Continuar',
-      icon: 'play-forward',
-      href: buildClassHref(pendingRow.subject),
-    }
-  }
-
-  if (subjects.length === 0) {
-    return {
-      title: 'Empieza tu primer reto',
-      description: 'Únete a un curso con el código de tu profesor y empieza a practicar.',
-      buttonLabel: 'Unirse a un curso',
-      icon: 'add-circle',
-      href: '/(student)/classes',
-    }
-  }
-
-  return {
-    title: 'Elige tu siguiente tema',
-    description: 'Tienes cursos activos listos para repetir, practicar o explorar nuevos temas.',
-    buttonLabel: 'Elegir tema',
-    icon: 'albums',
-    href: buildClassHref(subjects[0]),
-  }
-}
-
-function getRecommendedSubject(subjects: Subject[], progressRows: StudentProgressSubject[]): SubjectProgressRow | null {
-  return getSubjectProgressRows(subjects, progressRows)[0] ?? null
-}
-
-function getSubjectProgressRows(subjects: Subject[], progressRows: StudentProgressSubject[]): SubjectProgressRow[] {
-  return subjects
-    .map((subject) => ({
-      subject,
-      progress: progressRows.find((item) => getProgressRowKey(item) === getCourseRowKey(subject)),
-    }))
-    .sort((a, b) => {
-      const failedDiff = (b.progress?.failedQuestions ?? 0) - (a.progress?.failedQuestions ?? 0)
-      if (failedDiff !== 0) return failedDiff
-
-      const pendingDiff = (b.progress?.pendingQuestions ?? 0) - (a.progress?.pendingQuestions ?? 0)
-      if (pendingDiff !== 0) return pendingDiff
-
-      return (b.progress?.percent ?? 0) - (a.progress?.percent ?? 0)
-    })
-}
 
 function getRankingSummary(rankingRows: Profile[], currentUserId: string | null, points: number) {
   const sortedRows = [...rankingRows].sort((a, b) => (b.points ?? 0) - (a.points ?? 0))

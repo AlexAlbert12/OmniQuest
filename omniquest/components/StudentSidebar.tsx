@@ -1,5 +1,5 @@
 import React from 'react'
-import { Animated, Easing, Image, Pressable, Text, useWindowDimensions, View } from 'react-native'
+import { Animated, Easing, Image, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -237,16 +237,20 @@ function StudentNavButton({
             inputRange: [0, 1],
             outputRange: ['rgba(8,24,51,0)', isActive ? 'rgba(26,35,92,0.92)' : 'rgba(11,30,61,0.82)'],
           }),
-          shadowColor: accentColor,
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: hoverProgress.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, isActive ? 0.25 : 0.15],
-          }),
-          shadowRadius: hoverProgress.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 20],
-          }),
+          ...(Platform.OS === 'web'
+            ? ({ boxShadow: isActive ? '0 10px 24px rgba(124, 92, 255, 0.18)' : 'none' } as any)
+            : {
+                shadowColor: accentColor,
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: hoverProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, isActive ? 0.25 : 0.15],
+                }),
+                shadowRadius: hoverProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 20],
+                }),
+              }),
           transform: compact
             ? []
             : [

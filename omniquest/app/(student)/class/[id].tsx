@@ -695,12 +695,13 @@ function TopicRow({
   const disabled = topic.questionsCount === 0 || locked
   const actionLabel = getTopicActionLabel(topic)
   const status = getTopicStatus(topic)
+  const ioniconName = getValidIoniconName(topic.icon)
 
   const content = (
     <View className={`flex-row flex-wrap items-center gap-4 rounded-xl border p-4 ${disabled ? 'border-[#172A4A] bg-[#07162E]' : 'border-[#20375E] bg-[#0B1A32]'}`}>
       <View className="h-14 w-14 items-center justify-center rounded-xl" style={{ backgroundColor: `${topicColor}26` }}>
-        {topic.icon && topic.icon.includes('-outline') ? (
-          <Ionicons name={topic.icon as keyof typeof Ionicons.glyphMap} size={27} color={topicColor} />
+        {ioniconName ? (
+          <Ionicons name={ioniconName} size={27} color={topicColor} />
         ) : topic.icon ? (
           <Text className="text-2xl">{topic.icon}</Text>
         ) : (
@@ -847,6 +848,14 @@ function getTopicActionLabel(topic: Topic) {
   if (topic.answeredQuestions === 0) return 'Empezar'
   if (topic.answeredQuestions < topic.questionsCount) return 'Continuar'
   return 'Repetir'
+}
+
+function getValidIoniconName(icon: string | null | undefined): keyof typeof Ionicons.glyphMap | null {
+  if (icon && icon in Ionicons.glyphMap) {
+    return icon as keyof typeof Ionicons.glyphMap
+  }
+
+  return null
 }
 
 function getTopicActionIcon(topic: Topic): keyof typeof Ionicons.glyphMap {

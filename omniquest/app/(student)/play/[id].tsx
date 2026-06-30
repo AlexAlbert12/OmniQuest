@@ -15,6 +15,7 @@ import { useGame } from '../../../hooks/useGame'
 import { getDifficultyMeta, normalizeDifficulty } from '../../../lib/difficulty'
 import StudentHeaderAvatar from '../../../components/student/StudentHeaderAvatar'
 import type { Json } from '../../../types/database.types'
+import { createShadowStyle } from '../../../lib/platformShadow'
 
 type Answer = {
   id: number
@@ -246,11 +247,14 @@ export default function PlayScreen() {
               <View
                 className="mt-6 rounded-[24px] bg-[#061426]/80 p-2"
                 style={{
-                  shadowColor: '#020817',
-                  shadowOpacity: 0.48,
-                  shadowRadius: 28,
-                  shadowOffset: { width: 0, height: 18 },
-                  elevation: 12,
+                  ...createShadowStyle({
+                    color: '#020817',
+                    opacity: 0.48,
+                    radius: 28,
+                    offsetY: 18,
+                    elevation: 12,
+                    web: '0 18px 28px rgba(2, 8, 23, 0.32)',
+                  }),
                 }}
               >
                 {currentQuestion ? (

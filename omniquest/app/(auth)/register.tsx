@@ -16,6 +16,7 @@ import BrandLogo from '../../components/BrandLogo'
 import SpaceBackground from '../../components/SpaceBackground'
 import { getAuthErrorMessage, getEmailRedirectTo, isValidEmail, normalizeEmail } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
+import { createShadowStyle } from '../../lib/platformShadow'
 
 type RegisterErrors = {
   alias?: string
@@ -120,11 +121,14 @@ export default function RegisterScreen() {
         className="overflow-hidden rounded-[34px] border border-[#27436F] bg-[#071630]"
         style={{
           minHeight: isDesktop ? Math.max(height, 760) : Math.max(height - 28, 760),
-          shadowColor: '#132C59',
-          shadowOpacity: isWeb ? 0 : 0.35,
-          shadowRadius: isWeb ? 0 : 28,
-          shadowOffset: { width: 0, height: isWeb ? 0 : 18 },
-          elevation: isWeb ? 0 : 12,
+          ...createShadowStyle({
+            color: '#132C59',
+            opacity: 0.35,
+            radius: 28,
+            offsetY: 18,
+            elevation: 12,
+            web: '0 18px 28px rgba(19, 44, 89, 0.25)',
+          }),
           borderRadius: isWeb ? 0 : 34,
         }}
       >
@@ -170,11 +174,14 @@ export default function RegisterScreen() {
             className="w-full overflow-hidden rounded-[20px] border border-[#3B6FA5] bg-[#081D3D]/92"
             style={{
               maxWidth: isTablet ? 620 : 440,
-              shadowColor: '#1B75D8',
-              shadowOpacity: isWeb ? 0 : 0.28,
-              shadowRadius: isWeb ? 0 : 24,
-              shadowOffset: { width: 0, height: isWeb ? 0 : 12 },
-              elevation: isWeb ? 0 : 10,
+              ...createShadowStyle({
+                color: '#1B75D8',
+                opacity: 0.28,
+                radius: 24,
+                offsetY: 12,
+                elevation: 10,
+                web: '0 12px 24px rgba(27, 117, 216, 0.22)',
+              }),
             }}
           >
             <View style={{ padding: isDesktop ? 30 : 20, gap: 18 }}>
@@ -255,11 +262,14 @@ export default function RegisterScreen() {
                 className="w-full flex-row items-center justify-center rounded-xl bg-[#1C4D8D] px-5 py-4"
                 style={({ pressed }) => ({
                   opacity: loading ? 0.7 : pressed ? 0.86 : 1,
-                  shadowColor: '#4FB8FF',
-                  shadowOpacity: isWeb ? 0 : 0.22,
-                  shadowRadius: isWeb ? 0 : 14,
-                  shadowOffset: { width: 0, height: isWeb ? 0 : 8 },
-                  elevation: isWeb ? 0 : 6,
+                  ...createShadowStyle({
+                    color: '#4FB8FF',
+                    opacity: 0.22,
+                    radius: 14,
+                    offsetY: 8,
+                    elevation: 6,
+                    web: '0 8px 14px rgba(79, 184, 255, 0.18)',
+                  }),
                 })}
               >
                 <View className="flex-row items-center gap-3">

@@ -1,4 +1,5 @@
 import { Text, View, type ViewStyle } from 'react-native'
+import { createTextShadowStyle } from '../lib/platformShadow'
 
 type BrandLogoProps = {
   center?: boolean
@@ -21,9 +22,11 @@ export default function BrandLogo({ center = false, size = 30, style }: BrandLog
           fontFamily: 'Pacifico_400Regular',
           fontSize: size,
           lineHeight: Math.round(size * 1.25),
-          textShadowColor: 'rgba(255, 255, 255, 0.18)',
-          textShadowOffset: { width: 0, height: 2 },
-          textShadowRadius: Math.max(6, Math.round(size * 0.14)),
+          ...createTextShadowStyle({
+            color: 'rgba(255, 255, 255, 0.18)',
+            offsetY: 2,
+            radius: Math.max(6, Math.round(size * 0.14)),
+          }),
         }}
       >
         Omni
@@ -34,9 +37,11 @@ export default function BrandLogo({ center = false, size = 30, style }: BrandLog
           fontFamily: 'Pacifico_400Regular',
           fontSize: size,
           lineHeight: Math.round(size * 1.25),
-          textShadowColor: 'rgba(66, 185, 255, 0.32)',
-          textShadowOffset: { width: 0, height: 2 },
-          textShadowRadius: Math.max(6, Math.round(size * 0.16)),
+          ...createTextShadowStyle({
+            color: 'rgba(66, 185, 255, 0.32)',
+            offsetY: 2,
+            radius: Math.max(6, Math.round(size * 0.16)),
+          }),
         }}
       >
         Quest

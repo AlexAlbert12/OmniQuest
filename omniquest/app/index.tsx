@@ -5,6 +5,7 @@ import { useState } from 'react'
 import BrandLogo from '../components/BrandLogo'
 import SpaceBackground from '../components/SpaceBackground'
 import { supabase } from '../lib/supabase'
+import { createShadowStyle } from '../lib/platformShadow'
 
 type Feature = {
   accent: string
@@ -278,9 +279,13 @@ function LandingAction({
           backgroundColor,
           borderColor,
           minHeight: 30,
-          shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: 0.24,
-          shadowRadius: 20,
+          ...createShadowStyle({
+            color: '#4FB8FF',
+            opacity: 0.24,
+            radius: 20,
+            offsetY: 12,
+            web: '0 12px 20px rgba(79, 184, 255, 0.20)',
+          }),
           width: '100%',
         }}
       >
@@ -317,10 +322,13 @@ function FeatureCard({
         minHeight: isDesktop ? 320 : undefined,
         paddingHorizontal: 30,
         paddingVertical: 22,
-        shadowColor: feature.accent,
-        shadowOpacity: 0.12,
-        shadowRadius: 24,
-        shadowOffset: { width: 0, height: 12 },
+        ...createShadowStyle({
+          color: feature.accent,
+          opacity: 0.12,
+          radius: 24,
+          offsetY: 12,
+          web: `0 12px 24px ${feature.accent}24`,
+        }),
         width: isDesktop ? 350 : '100%',
       }}
     >
