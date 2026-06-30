@@ -1,0 +1,1200 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import BrandLogo from '../BrandLogo'
+import { supabase } from '../../lib/supabase'
+
+type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms'
+type IconName = keyof typeof Ionicons.glyphMap
+
+type ProfileRow = {
+  id: string
+  alias: string
+  email: string | null
+  role_id: string | null
+  active: boolean | null
+  created_at: string
+}
+
+type SubjectRow = {
+  id: number
+  name: string
+  teacher_id: string | null
+  active: boolean | null
+  is_archived: boolean | null
+  created_at: string | null
+}
+
+type ClassroomRow = {
+  id: number
+  subject_id: number | null
+  name: string
+  code: string | null
+  active: boolean | null
+  created_at: string
+}
+
+type EnrollmentRow = {
+  id: number
+  student_id: string
+  subject_id: number
+  classroom_id: number | null
+}
+
+type SubjectScoreRow = {
+  student_id: string | null
+  subject_id?: number | null
+}
+
+type AttemptRow = {
+  student_id: string | null
+  question_id?: number | null
+}
+
+type CreateTeacherResult = {
+  status: 'created' | 'existing'
+  teacher: {
+    id: string
+    alias: string
+    email: string
+  }
+  temporaryPassword?: string
+}
+
+type AdminData = {
+  profiles: ProfileRow[]
+  teachers: ProfileRow[]
+  students: ProfileRow[]
+  subjects: SubjectRow[]
+  classrooms: ClassroomRow[]
+  enrollments: EnrollmentRow[]
+  scores: SubjectScoreRow[]
+  attempts: AttemptRow[]
+  teacherById: Map<string, ProfileRow>
+  studentById: Map<string, ProfileRow>
+  subjectById: Map<number, SubjectRow>
+  classroomById: Map<number, ClassroomRow>
+  loading: boolean
+  refreshing: boolean
+  onRefresh: () => void
+  refresh: () => Promise<void>
+}
+
+const adminSections: { section: AdminSection; label: string; icon: IconName; href: string }[] = [
+  { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(admin)/homeAdmin' },
+  { section: 'teachers', label: 'Profesores', icon: 'school-outline', href: '/(admin)/teachers' },
+  { section: 'students', label: 'Alumnos', icon: 'people-outline', href: '/(admin)/students' },
+  { section: 'courses', label: 'Cursos', icon: 'book-outline', href: '/(admin)/courses' },
+  { section: 'classrooms', label: 'Clases', icon: 'albums-outline', href: '/(admin)/classrooms' },
+]
+
+function isMissingSchemaError(errorCode?: string) {
+  return errorCode === '42P01' || errorCode === '42703' || errorCode === 'PGRST204'
+}
+
+function showAlert(title: string, message: string) {
+  if (Platform.OS === 'web') {
+    window.alert(`${title}\n${message}`)
+    return
+  }
+
+  Alert.alert(title, message)
+}
+
+function confirmAction(title: string, message: string, onConfirm: () => void) {
+  if (Platform.OS === 'web') {
+    if (window.confirm(`${title}\n${message}`)) {
+      onConfirm()
+    }
+    return
+  }
+
+  Alert.alert(title, message, [
+    { text: 'Cancelar', style: 'cancel' },
+    { text: 'Confirmar', style: 'destructive', onPress: onConfirm },
+  ])
+}
+
+async function fetchOptionalRows<T>(table: string, select: string) {
+  const { data, error } = await (supabase.from(table as any) as any).select(select)
+  if (error && !isMissingSchemaError(error.code)) {
+    console.warn(`[admin] No se pudo cargar ${table}:`, error.message)
+  }
+  return error ? [] : ((data || []) as T[])
+}
+
+function useAdminData(): AdminData {
+  const [profiles, setProfiles] = useState<ProfileRow[]>([])
+  const [subjects, setSubjects] = useState<SubjectRow[]>([])
+  const [classrooms, setClassrooms] = useState<ClassroomRow[]>([])
+  const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([])
+  const [scores, setScores] = useState<SubjectScoreRow[]>([])
+  const [attempts, setAttempts] = useState<AttemptRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [profilesResult, subjectsResult, classroomsResult, enrollmentsResult, scoresData, attemptsData] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, alias, email, role_id, active, created_at')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('subjects')
+          .select('id, name, teacher_id, active, is_archived, created_at')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('classrooms')
+          .select('id, subject_id, name, code, active, created_at')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('enrollments')
+          .select('id, student_id, subject_id, classroom_id'),
+        fetchOptionalRows<SubjectScoreRow>('subject_scores', 'student_id, subject_id'),
+        fetchOptionalRows<AttemptRow>('attempt_history', 'student_id, question_id'),
+      ])
+
+      if (profilesResult.error) throw profilesResult.error
+      if (subjectsResult.error) throw subjectsResult.error
+      if (classroomsResult.error) throw classroomsResult.error
+      if (enrollmentsResult.error) throw enrollmentsResult.error
+
+      setProfiles((profilesResult.data || []) as ProfileRow[])
+      setSubjects((subjectsResult.data || []) as SubjectRow[])
+      setClassrooms((classroomsResult.data || []) as ClassroomRow[])
+      setEnrollments((enrollmentsResult.data || []) as EnrollmentRow[])
+      setScores(scoresData)
+      setAttempts(attemptsData)
+    } catch (error: any) {
+      showAlert('No se pudo cargar el portal', error.message || 'Revisa los permisos de administrador y las políticas RLS.')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void fetchData()
+  }, [fetchData])
+
+  const teachers = useMemo(() => profiles.filter((profile) => profile.role_id === 'teacher'), [profiles])
+  const students = useMemo(
+    () => profiles.filter((profile) => profile.role_id === 'student' || profile.role_id === 'guest'),
+    [profiles]
+  )
+  const teacherById = useMemo(() => new Map(teachers.map((teacher) => [teacher.id, teacher])), [teachers])
+  const studentById = useMemo(() => new Map(students.map((student) => [student.id, student])), [students])
+  const subjectById = useMemo(() => new Map(subjects.map((subject) => [subject.id, subject])), [subjects])
+  const classroomById = useMemo(() => new Map(classrooms.map((classroom) => [classroom.id, classroom])), [classrooms])
+
+  const onRefresh = () => {
+    setRefreshing(true)
+    void fetchData()
+  }
+
+  return {
+    profiles,
+    teachers,
+    students,
+    subjects,
+    classrooms,
+    enrollments,
+    scores,
+    attempts,
+    teacherById,
+    studentById,
+    subjectById,
+    classroomById,
+    loading,
+    refreshing,
+    onRefresh,
+    refresh: fetchData,
+  }
+}
+
+function useAdminActions(data: AdminData) {
+  const router = useRouter()
+
+  const toggleProfileActive = useCallback(
+    async (profile: ProfileRow) => {
+      const nextActive = profile.active === false
+      confirmAction(
+        nextActive ? 'Activar usuario' : 'Desactivar usuario',
+        `${nextActive ? 'Se activará' : 'Se desactivará'} la cuenta de ${profile.alias}.`,
+        async () => {
+          const { error } = await supabase.from('profiles').update({ active: nextActive }).eq('id', profile.id)
+          if (error) {
+            showAlert('No se pudo actualizar', error.message)
+            return
+          }
+          await data.refresh()
+        }
+      )
+    },
+    [data]
+  )
+
+  const resetPassword = useCallback(async (profile: ProfileRow) => {
+    if (!profile.email) {
+      showAlert('Sin correo', 'Este usuario no tiene correo guardado en profiles.email.')
+      return
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(profile.email)
+    if (error) {
+      showAlert('No se pudo restablecer', error.message)
+      return
+    }
+
+    showAlert('Correo enviado', `Se ha enviado un enlace de restablecimiento a ${profile.email}.`)
+  }, [])
+
+  const deleteStudentProgress = useCallback(
+    async (student: ProfileRow) => {
+      confirmAction(
+        'Eliminar progreso',
+        `Se eliminarán puntuaciones, progreso por tema e intentos de ${student.alias}. Esta acción no se puede deshacer.`,
+        async () => {
+          const tables = ['subject_scores', 'topic_scores', 'attempt_history']
+          for (const table of tables) {
+            const { error } = await (supabase.from(table as any) as any).delete().eq('student_id', student.id)
+            if (error && !isMissingSchemaError(error.code)) {
+              showAlert('No se pudo eliminar progreso', error.message)
+              return
+            }
+          }
+          await data.refresh()
+          showAlert('Progreso eliminado', `El progreso de ${student.alias} se ha eliminado.`)
+        }
+      )
+    },
+    [data]
+  )
+
+  const toggleCourseArchive = useCallback(
+    async (subject: SubjectRow) => {
+      const archive = !subject.is_archived
+      confirmAction(
+        archive ? 'Archivar curso' : 'Restaurar curso',
+        `${archive ? 'Se archivará' : 'Se restaurará'} el curso ${subject.name}.`,
+        async () => {
+          const { error } = await supabase
+            .from('subjects')
+            .update({ is_archived: archive, active: archive ? subject.active : true })
+            .eq('id', subject.id)
+          if (error) {
+            showAlert('No se pudo actualizar el curso', error.message)
+            return
+          }
+          await data.refresh()
+        }
+      )
+    },
+    [data]
+  )
+
+  const toggleClassroomActive = useCallback(
+    async (classroom: ClassroomRow) => {
+      const nextActive = classroom.active === false
+      confirmAction(
+        nextActive ? 'Activar clase' : 'Desactivar clase',
+        `${nextActive ? 'Se activará' : 'Se desactivará'} la clase ${classroom.name}.`,
+        async () => {
+          const { error } = await supabase.from('classrooms').update({ active: nextActive }).eq('id', classroom.id)
+          if (error) {
+            showAlert('No se pudo actualizar la clase', error.message)
+            return
+          }
+          await data.refresh()
+        }
+      )
+    },
+    [data]
+  )
+
+  const copyClassroomCode = useCallback(async (classroom: ClassroomRow) => {
+    if (!classroom.code) {
+      showAlert('Sin código', 'Esta clase no tiene código disponible.')
+      return
+    }
+
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(classroom.code)
+      showAlert('Código copiado', `Código ${classroom.code} copiado al portapapeles.`)
+      return
+    }
+
+    showAlert('Código de clase', classroom.code)
+  }, [])
+
+  return {
+    router,
+    toggleProfileActive,
+    resetPassword,
+    deleteStudentProgress,
+    toggleCourseArchive,
+    toggleClassroomActive,
+    copyClassroomCode,
+  }
+}
+
+export function AdminHomeScreen() {
+  const data = useAdminData()
+  const actions = useAdminActions(data)
+  const dashboard = useAdminDashboard(data)
+
+  return (
+    <AdminScaffold activeSection="home" title="Inicio Admin" subtitle="Vista general del sistema, alertas y accesos rápidos." data={data}>
+      <AdminMetrics data={data} />
+
+      <View className="mt-5">
+        <AdminSectionIntro
+          title="Panel de control"
+          description="Supervisa usuarios, cursos, clases e inscripciones desde una vista general."
+        />
+      </View>
+
+      <View className="mt-5 flex-row flex-wrap gap-4">
+        <HomeShortcut icon="person-add-outline" label="Crear profesor" onPress={() => actions.router.push('/(admin)/teachers' as any)} />
+        <HomeShortcut icon="archive-outline" label="Cursos archivados" onPress={() => actions.router.push('/(admin)/courses?archived=1' as any)} />
+        <HomeShortcut icon="download-outline" label="Exportar usuarios" onPress={() => showAlert('Exportar usuarios', 'Usa las secciones Profesores o Alumnos para exportar el listado filtrado.')} />
+        <HomeShortcut icon="albums-outline" label="Revisar clases" onPress={() => actions.router.push('/(admin)/classrooms' as any)} />
+      </View>
+
+      <View className="mt-5 flex-row flex-wrap gap-5">
+        <View className="min-w-[280px] flex-1">
+          <Panel title="Alertas del sistema" icon="alert-circle-outline">
+            <SystemAlertRow icon="person-remove-outline" label="Usuarios inactivos" value={dashboard.inactiveUsers} color="#FB7185" />
+            <SystemAlertRow icon="book-outline" label="Cursos sin clases" value={dashboard.coursesWithoutClassrooms} color="#F59E0B" />
+            <SystemAlertRow icon="time-outline" label="Alumnos sin actividad" value={dashboard.studentsWithoutActivity} color="#8FA7C7" />
+            <SystemAlertRow icon="key-outline" label="Clases sin código" value={dashboard.classroomsWithoutCode} color="#38BDF8" />
+          </Panel>
+        </View>
+
+        <View className="min-w-[280px] flex-1">
+          <Panel title="Actividad administrativa" icon="analytics-outline">
+            <SideFact label="Cursos activos" value={String(dashboard.activeCourses)} />
+            <SideFact label="Cursos archivados" value={String(dashboard.archivedCourses)} />
+            <SideFact label="Clases activas" value={String(dashboard.activeClassrooms)} />
+            <SideFact label="Inscripciones" value={String(data.enrollments.length)} />
+          </Panel>
+        </View>
+      </View>
+
+      <View className="mt-5">
+        <Panel title="Modelo de acceso" icon="lock-closed-outline" compact>
+          <Text className="text-[13px] leading-5 text-[#B7C4D7]">
+            Los alumnos se registran desde la app o se importan por clase. Los profesores se crean desde el portal de administración.
+          </Text>
+          <Text className="mt-2 text-[12px] leading-5 text-[#8FA7C7]">
+            Para activar el primer administrador, asigna role_id = admin al perfil correspondiente en Supabase.
+          </Text>
+        </Panel>
+      </View>
+    </AdminScaffold>
+  )
+}
+
+export function AdminTeachersScreen() {
+  const data = useAdminData()
+  const actions = useAdminActions(data)
+  const params = useLocalSearchParams<{ teacherId?: string }>()
+  const [search, setSearch] = useState('')
+  const [teacherAlias, setTeacherAlias] = useState('')
+  const [teacherEmail, setTeacherEmail] = useState('')
+  const [teacherPassword, setTeacherPassword] = useState('')
+  const [creatingTeacher, setCreatingTeacher] = useState(false)
+  const [createdTeacher, setCreatedTeacher] = useState<CreateTeacherResult | null>(null)
+
+  const normalizedSearch = search.trim().toLowerCase()
+  const visibleTeachers = useMemo(() => {
+    let rows = filterProfiles(data.teachers, normalizedSearch)
+    if (params.teacherId) rows = rows.filter((teacher) => teacher.id === params.teacherId)
+    return rows
+  }, [data.teachers, normalizedSearch, params.teacherId])
+
+  const handleCreateTeacher = async () => {
+    const email = teacherEmail.trim().toLowerCase()
+    const alias = teacherAlias.trim() || email.split('@')[0]
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showAlert('Correo no válido', 'Introduce el correo del profesor.')
+      return
+    }
+
+    setCreatingTeacher(true)
+    setCreatedTeacher(null)
+
+    try {
+      const { data: resultData, error } = await supabase.functions.invoke('admin-create-teacher', {
+        body: {
+          alias,
+          email,
+          password: teacherPassword.trim() || undefined,
+        },
+      })
+
+      if (error) throw error
+
+      const result = resultData as CreateTeacherResult
+      setCreatedTeacher(result)
+      setTeacherAlias('')
+      setTeacherEmail('')
+      setTeacherPassword('')
+      await data.refresh()
+    } catch (error: any) {
+      showAlert('No se pudo crear el profesor', error.message || 'Revisa la Edge Function y los permisos del usuario administrador.')
+    } finally {
+      setCreatingTeacher(false)
+    }
+  }
+
+  return (
+    <AdminScaffold activeSection="teachers" title="Profesores" subtitle="Crea y gestiona las cuentas docentes." data={data}>
+      <AdminMetrics data={data} />
+
+      <View className="mt-5">
+        <AdminSectionIntro title="Gestión de profesores" description="Administra cuentas docentes, sus cursos y el acceso a la plataforma." />
+      </View>
+
+      <Panel title="Crear cuenta de profesor" icon="person-add-outline" className="mt-5">
+        <View className="flex-row flex-wrap items-end gap-3">
+          <AdminInput label="Alias" value={teacherAlias} onChangeText={setTeacherAlias} placeholder="Ej. Profesor Random" />
+          <AdminInput label="Correo" value={teacherEmail} onChangeText={setTeacherEmail} placeholder="profesor@centro.es" autoCapitalize="none" />
+          <AdminInput label="Contraseña temporal" value={teacherPassword} onChangeText={setTeacherPassword} placeholder="Autogenerar" />
+          <Pressable
+            onPress={handleCreateTeacher}
+            disabled={creatingTeacher}
+            className="h-12 flex-row items-center justify-center gap-2 rounded-xl bg-[#5A46D8] px-5"
+            style={({ pressed }) => ({ opacity: creatingTeacher ? 0.6 : pressed ? 0.82 : 1 })}
+          >
+            {creatingTeacher ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="add" size={18} color="#FFFFFF" />}
+            <Text className="font-black text-white">{creatingTeacher ? 'Creando...' : 'Crear profesor'}</Text>
+          </Pressable>
+        </View>
+
+        {createdTeacher ? (
+          <View className="mt-4 rounded-xl border border-[#1E3A8A] bg-[#10224A] p-4">
+            <Text className="font-black text-white">
+              {createdTeacher.status === 'created' ? 'Profesor creado' : 'Profesor actualizado'}
+            </Text>
+            <Text className="mt-1 text-[13px] text-[#B7C4D7]">
+              {createdTeacher.teacher.alias} · {createdTeacher.teacher.email}
+            </Text>
+            {createdTeacher.temporaryPassword ? (
+              <Text className="mt-2 text-[13px] text-[#DDE7F4]">
+                Contraseña temporal:{' '}
+                <Text className="font-mono font-black text-[#9FD6FF]">{createdTeacher.temporaryPassword}</Text>
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+      </Panel>
+
+      <Panel title="Listado de profesores" icon="school-outline" className="mt-5">
+        <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar profesor por nombre o correo..." />
+        <View className="mt-4" style={{ gap: 12 }}>
+          {visibleTeachers.map((profile) => (
+            <ProfileRowCard
+              key={profile.id}
+              profile={profile}
+              meta={`${data.subjects.filter((subject) => subject.teacher_id === profile.id).length} curso(s)`}
+              actions={[
+                { label: 'Ver cursos', icon: 'book-outline', onPress: () => actions.router.push(`/(admin)/courses?teacherId=${profile.id}` as any) },
+                { label: profile.active === false ? 'Activar' : 'Desactivar', icon: profile.active === false ? 'checkmark-circle-outline' : 'ban-outline', destructive: profile.active !== false, onPress: () => actions.toggleProfileActive(profile) },
+                { label: 'Restablecer contraseña', icon: 'key-outline', onPress: () => actions.resetPassword(profile) },
+              ]}
+            />
+          ))}
+          {visibleTeachers.length === 0 ? <EmptyState label="No hay profesores que coincidan." /> : null}
+        </View>
+      </Panel>
+    </AdminScaffold>
+  )
+}
+
+export function AdminStudentsScreen() {
+  const data = useAdminData()
+  const actions = useAdminActions(data)
+  const params = useLocalSearchParams<{ classroomId?: string; subjectId?: string }>()
+  const [search, setSearch] = useState('')
+
+  const normalizedSearch = search.trim().toLowerCase()
+  const visibleStudents = useMemo(() => {
+    let rows = filterProfiles(data.students, normalizedSearch)
+
+    if (params.subjectId) {
+      const targetSubjectId = Number(params.subjectId)
+      const studentIds = new Set(data.enrollments.filter((enrollment) => enrollment.subject_id === targetSubjectId).map((enrollment) => enrollment.student_id))
+      rows = rows.filter((student) => studentIds.has(student.id))
+    }
+
+    if (params.classroomId) {
+      const targetClassroomId = Number(params.classroomId)
+      const studentIds = new Set(data.enrollments.filter((enrollment) => enrollment.classroom_id === targetClassroomId).map((enrollment) => enrollment.student_id))
+      rows = rows.filter((student) => studentIds.has(student.id))
+    }
+
+    return rows
+  }, [data.enrollments, data.students, normalizedSearch, params.classroomId, params.subjectId])
+
+  return (
+    <AdminScaffold activeSection="students" title="Alumnos" subtitle="Consulta cuentas, inscripciones y progreso acumulado." data={data}>
+      <AdminMetrics data={data} />
+
+      <View className="mt-5">
+        <AdminSectionIntro title="Gestión de alumnos" description="Revisa alumnos registrados, inscripciones activas y acciones de mantenimiento." />
+      </View>
+
+      <Panel title="Listado de alumnos" icon="people-outline" className="mt-5">
+        <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar alumno por nombre o correo..." />
+        <View className="mt-4" style={{ gap: 12 }}>
+          {visibleStudents.map((profile) => {
+            const studentEnrollments = data.enrollments.filter((enrollment) => enrollment.student_id === profile.id)
+            return (
+              <ProfileRowCard
+                key={profile.id}
+                profile={profile}
+                meta={`${studentEnrollments.length} inscripción(es)`}
+                actions={[
+                  { label: 'Ver inscripciones', icon: 'albums-outline', onPress: () => actions.router.push(`/(admin)/classrooms?studentId=${profile.id}` as any) },
+                  { label: profile.active === false ? 'Activar' : 'Desactivar', icon: profile.active === false ? 'checkmark-circle-outline' : 'ban-outline', destructive: profile.active !== false, onPress: () => actions.toggleProfileActive(profile) },
+                  { label: 'Eliminar progreso', icon: 'trash-outline', destructive: true, onPress: () => actions.deleteStudentProgress(profile) },
+                ]}
+              />
+            )
+          })}
+          {visibleStudents.length === 0 ? <EmptyState label="No hay alumnos que coincidan." /> : null}
+        </View>
+      </Panel>
+    </AdminScaffold>
+  )
+}
+
+export function AdminCoursesScreen() {
+  const data = useAdminData()
+  const actions = useAdminActions(data)
+  const params = useLocalSearchParams<{ teacherId?: string; archived?: string }>()
+  const [search, setSearch] = useState('')
+
+  const normalizedSearch = search.trim().toLowerCase()
+  const visibleSubjects = useMemo(() => {
+    return data.subjects.filter((subject) => {
+      if (params.teacherId && subject.teacher_id !== params.teacherId) return false
+      if (params.archived === '1' && !subject.is_archived) return false
+      if (!normalizedSearch) return true
+      const teacher = subject.teacher_id ? data.teacherById.get(subject.teacher_id) : null
+      return `${subject.name} ${teacher?.alias || ''} ${teacher?.email || ''}`.toLowerCase().includes(normalizedSearch)
+    })
+  }, [data.subjects, data.teacherById, normalizedSearch, params.archived, params.teacherId])
+
+  return (
+    <AdminScaffold activeSection="courses" title="Cursos" subtitle="Administra cursos activos, archivados y docentes responsables." data={data}>
+      <AdminMetrics data={data} />
+
+      <View className="mt-5">
+        <AdminSectionIntro title="Gestión de cursos" description="Consulta cursos, clases asociadas, inscripciones y estado de archivo." />
+      </View>
+
+      <Panel title="Listado de cursos" icon="book-outline" className="mt-5">
+        <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar curso o profesor..." />
+        <View className="mt-4" style={{ gap: 12 }}>
+          {visibleSubjects.map((subject) => (
+            <CourseRowCard
+              key={subject.id}
+              subject={subject}
+              teacher={subject.teacher_id ? data.teacherById.get(subject.teacher_id) : undefined}
+              classesCount={data.classrooms.filter((classroom) => classroom.subject_id === subject.id).length}
+              enrollmentsCount={data.enrollments.filter((enrollment) => enrollment.subject_id === subject.id).length}
+              actions={[
+                { label: 'Ver clases', icon: 'albums-outline', onPress: () => actions.router.push(`/(admin)/classrooms?subjectId=${subject.id}` as any) },
+                { label: subject.is_archived ? 'Restaurar' : 'Archivar', icon: subject.is_archived ? 'refresh-outline' : 'archive-outline', destructive: !subject.is_archived, onPress: () => actions.toggleCourseArchive(subject) },
+                { label: 'Ver profesor', icon: 'school-outline', onPress: () => subject.teacher_id ? actions.router.push(`/(admin)/teachers?teacherId=${subject.teacher_id}` as any) : showAlert('Sin profesor', 'Este curso no tiene profesor asignado.') },
+              ]}
+            />
+          ))}
+          {visibleSubjects.length === 0 ? <EmptyState label="No hay cursos que coincidan." /> : null}
+        </View>
+      </Panel>
+    </AdminScaffold>
+  )
+}
+
+export function AdminClassroomsScreen() {
+  const data = useAdminData()
+  const actions = useAdminActions(data)
+  const params = useLocalSearchParams<{ subjectId?: string; studentId?: string }>()
+  const [search, setSearch] = useState('')
+
+  const normalizedSearch = search.trim().toLowerCase()
+  const visibleClassrooms = useMemo(() => {
+    return data.classrooms.filter((classroom) => {
+      if (params.subjectId && classroom.subject_id !== Number(params.subjectId)) return false
+      if (params.studentId) {
+        const studentClassroomIds = new Set(
+          data.enrollments
+            .filter((enrollment) => enrollment.student_id === params.studentId)
+            .map((enrollment) => enrollment.classroom_id)
+            .filter((id): id is number => typeof id === 'number')
+        )
+        if (!studentClassroomIds.has(classroom.id)) return false
+      }
+      if (!normalizedSearch) return true
+      const subject = classroom.subject_id ? data.subjectById.get(classroom.subject_id) : null
+      return `${classroom.name} ${classroom.code || ''} ${subject?.name || ''}`.toLowerCase().includes(normalizedSearch)
+    })
+  }, [data.classrooms, data.enrollments, data.subjectById, normalizedSearch, params.studentId, params.subjectId])
+
+  return (
+    <AdminScaffold activeSection="classrooms" title="Clases" subtitle="Gestiona códigos, estado e inscripciones por clase." data={data}>
+      <AdminMetrics data={data} />
+
+      <View className="mt-5">
+        <AdminSectionIntro title="Gestión de clases" description="Revisa clases de cada curso, códigos de acceso y alumnos inscritos." />
+      </View>
+
+      <Panel title="Listado de clases" icon="albums-outline" className="mt-5">
+        <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar clase, código o curso..." />
+        <View className="mt-4" style={{ gap: 12 }}>
+          {visibleClassrooms.map((classroom) => (
+            <ClassroomRowCard
+              key={classroom.id}
+              classroom={classroom}
+              subject={classroom.subject_id ? data.subjectById.get(classroom.subject_id) : undefined}
+              enrollmentsCount={data.enrollments.filter((enrollment) => enrollment.classroom_id === classroom.id).length}
+              actions={[
+                { label: 'Copiar código', icon: 'copy-outline', onPress: () => actions.copyClassroomCode(classroom) },
+                { label: 'Ver alumnos', icon: 'people-outline', onPress: () => actions.router.push(`/(admin)/students?classroomId=${classroom.id}` as any) },
+                { label: classroom.active === false ? 'Activar' : 'Desactivar', icon: classroom.active === false ? 'checkmark-circle-outline' : 'ban-outline', destructive: classroom.active !== false, onPress: () => actions.toggleClassroomActive(classroom) },
+              ]}
+            />
+          ))}
+          {visibleClassrooms.length === 0 ? <EmptyState label="No hay clases que coincidan." /> : null}
+        </View>
+      </Panel>
+    </AdminScaffold>
+  )
+}
+
+function AdminScaffold({
+  activeSection,
+  children,
+  data,
+  subtitle,
+  title,
+}: {
+  activeSection: AdminSection
+  children: React.ReactNode
+  data: AdminData
+  subtitle: string
+  title: string
+}) {
+  const { width } = useWindowDimensions()
+  const router = useRouter()
+  const isDesktop = width >= 1040
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.replace('/(auth)/login' as any)
+  }
+
+  if (data.loading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-[#061126]">
+        <ActivityIndicator size="large" color="#8B5CF6" />
+        <Text className="mt-4 text-[#8FA7C7]">Cargando portal de administrador...</Text>
+      </View>
+    )
+  }
+
+  return (
+    <View className="flex-1 bg-[#061126]">
+      <View className="flex-1 flex-row">
+        {isDesktop ? <AdminSidebar activeSection={activeSection} onSignOut={handleSignOut} /> : null}
+
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{
+            paddingHorizontal: isDesktop ? 28 : 16,
+            paddingTop: isDesktop ? 24 : 18,
+            paddingBottom: 36,
+          }}
+          refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={data.onRefresh} tintColor="#8B5CF6" />}
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
+            <View className="min-w-[260px] flex-1">
+              {!isDesktop ? <BrandLogo size={30} style={{ marginBottom: 12 }} /> : null}
+              <View className="flex-row items-center gap-3">
+                <Ionicons name={activeSection === 'home' ? 'shield-checkmark' : getAdminSectionIcon(activeSection)} size={42} color="#9FD6FF" />
+                <Text className="text-[36px] font-black text-white">{title}</Text>
+              </View>
+              <Text className="mt-2 text-[14px] text-[#B7C4D7]">{subtitle}</Text>
+            </View>
+
+            {!isDesktop ? (
+              <Pressable
+                onPress={handleSignOut}
+                className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
+              >
+                <Ionicons name="log-out-outline" size={18} color="#FB7185" />
+                <Text className="font-bold text-[#FCA5A5]">Cerrar sesión</Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          {!isDesktop ? <AdminMobileNav activeSection={activeSection} /> : null}
+
+          {children}
+        </ScrollView>
+      </View>
+    </View>
+  )
+}
+
+function AdminSidebar({ activeSection, onSignOut }: { activeSection: AdminSection; onSignOut: () => void }) {
+  return (
+    <View className="w-[244px] border-r border-[#183052] bg-[#041024] px-4 py-7">
+      <View className="mb-5 flex-row items-center gap-2 px-2">
+        <BrandLogo size={30} />
+        <Ionicons name="shield-checkmark" size={19} color="#9FD6FF" />
+      </View>
+
+      <View style={{ gap: 8 }}>
+        {adminSections.map((item) => (
+          <AdminNavButton key={item.section} item={item} active={item.section === activeSection} />
+        ))}
+      </View>
+
+      <View className="mt-auto" style={{ gap: 10 }}>
+        <View className="rounded-2xl border border-[#162B50] bg-[#091A35] p-4">
+          <Text className="text-[14px] font-bold text-white">Administrador</Text>
+          <Text className="mt-1 text-[12px] text-[#9BAEC9]">Portal privado</Text>
+          <View className="mt-3 flex-row items-center gap-1">
+            <Ionicons name="lock-closed-outline" size={13} color="#8FA7C7" />
+            <Text className="text-[11px] text-[#8FA7C7]">Gestión interna</Text>
+          </View>
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar sesión"
+          onPress={onSignOut}
+          className="items-center justify-center rounded-2xl"
+          style={({ pressed }) => ({
+            minHeight: 52,
+            paddingHorizontal: 14,
+            borderWidth: 1,
+            borderColor: pressed ? '#FB7185' : '#3B1D2A',
+            backgroundColor: pressed ? 'rgba(251,113,133,0.18)' : 'rgba(251,113,133,0.1)',
+            transform: [{ scale: pressed ? 0.985 : 1 }],
+          })}
+        >
+          <View className="flex-row items-center justify-center gap-2">
+            <Ionicons name="log-out-outline" size={18} color="#FB7185" />
+            <Text className="font-black text-[#FCA5B5]">Cerrar sesión</Text>
+          </View>
+        </Pressable>
+      </View>
+    </View>
+  )
+}
+
+function AdminNavButton({ active, item }: { active: boolean; item: { label: string; icon: IconName; href: string } }) {
+  const router = useRouter()
+
+  return (
+    <Pressable
+      onPress={() => router.push(item.href as any)}
+      className="flex-row items-center gap-3 rounded-xl px-4 py-3"
+      style={({ pressed }) => ({
+        backgroundColor: active ? '#28357D' : 'transparent',
+        borderWidth: 1,
+        borderColor: active ? '#6D5AF6' : 'transparent',
+        opacity: pressed ? 0.82 : 1,
+      })}
+    >
+      <Ionicons name={active ? filledIconFor(item.icon) : item.icon} size={19} color={active ? '#FFFFFF' : '#AFC2DB'} />
+      <Text className={`font-black ${active ? 'text-white' : 'text-[#B7C4D7]'}`}>{item.label}</Text>
+    </Pressable>
+  )
+}
+
+function AdminMobileNav({ activeSection }: { activeSection: AdminSection }) {
+  const router = useRouter()
+
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5" contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
+      {adminSections.map((item) => {
+        const active = item.section === activeSection
+        return (
+          <Pressable
+            key={item.section}
+            onPress={() => router.push(item.href as any)}
+            className="flex-row items-center gap-2 rounded-full border px-4 py-2"
+            style={({ pressed }) => ({
+              borderColor: active ? '#6D5AF6' : '#20375E',
+              backgroundColor: active ? '#28357D' : '#09162C',
+              opacity: pressed ? 0.82 : 1,
+            })}
+          >
+            <Ionicons name={item.icon} size={15} color={active ? '#FFFFFF' : '#AFC2DB'} />
+            <Text className={`text-[12px] font-black ${active ? 'text-white' : 'text-[#B7C4D7]'}`}>{item.label}</Text>
+          </Pressable>
+        )
+      })}
+    </ScrollView>
+  )
+}
+
+function AdminMetrics({ data }: { data: AdminData }) {
+  return (
+    <View className="flex-row flex-wrap gap-4">
+      <AdminMetric icon="school" label="Profesores" value={String(data.teachers.length)} color="#8B5CF6" />
+      <AdminMetric icon="people" label="Alumnos" value={String(data.students.length)} color="#34D399" />
+      <AdminMetric icon="book" label="Cursos" value={String(data.subjects.length)} color="#38BDF8" />
+      <AdminMetric icon="albums" label="Clases" value={String(data.classrooms.length)} color="#F59E0B" />
+      <AdminMetric icon="person-add" label="Inscripciones" value={String(data.enrollments.length)} color="#FB7185" />
+    </View>
+  )
+}
+
+function AdminSectionIntro({ title, description }: { title: string; description: string }) {
+  return (
+    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+      <Text className="text-[18px] font-black text-white">{title}</Text>
+      <Text className="mt-1 text-[13px] leading-5 text-[#B7C4D7]">{description}</Text>
+    </View>
+  )
+}
+
+function HomeShortcut({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="min-w-[185px] flex-1 flex-row items-center gap-3 rounded-2xl border border-[#20375E] bg-[#09162C] p-4"
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+    >
+      <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#102A54]">
+        <Ionicons name={icon} size={20} color="#9FD6FF" />
+      </View>
+      <Text className="min-w-0 flex-1 font-black text-white">{label}</Text>
+      <Ionicons name="chevron-forward" size={16} color="#8FA7C7" />
+    </Pressable>
+  )
+}
+
+function Panel({
+  children,
+  className = '',
+  compact = false,
+  icon,
+  title,
+}: {
+  children: React.ReactNode
+  className?: string
+  compact?: boolean
+  icon: IconName
+  title: string
+}) {
+  return (
+    <View className={`rounded-2xl border border-[#1A3155] bg-[#07162D] ${compact ? 'p-4' : 'p-5'} ${className}`}>
+      <View className="mb-4 flex-row items-center gap-3">
+        <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#102A54]">
+          <Ionicons name={icon} size={20} color="#9FD6FF" />
+        </View>
+        <Text className="text-[18px] font-black text-white">{title}</Text>
+      </View>
+      {children}
+    </View>
+  )
+}
+
+function AdminMetric({ color, icon, label, value }: { color: string; icon: IconName; label: string; value: string }) {
+  return (
+    <View className="min-w-[160px] flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+      <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}26` }}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <Text className="mt-4 text-[28px] font-black text-white">{value}</Text>
+      <Text className="mt-1 text-[12px] font-semibold text-[#AFC2DB]">{label}</Text>
+    </View>
+  )
+}
+
+function AdminInput({
+  autoCapitalize,
+  label,
+  onChangeText,
+  placeholder,
+  value,
+}: {
+  autoCapitalize?: 'none'
+  label: string
+  onChangeText: (value: string) => void
+  placeholder: string
+  value: string
+}) {
+  return (
+    <View className="min-w-[210px] flex-1">
+      <Text className="mb-2 text-[12px] font-bold text-[#AFC2DB]">{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        autoCapitalize={autoCapitalize}
+        placeholder={placeholder}
+        placeholderTextColor="#60799C"
+        className="h-12 rounded-xl border border-[#20375E] bg-[#09162C] px-4 text-white"
+      />
+    </View>
+  )
+}
+
+function AdminSearch({ value, onChangeText, placeholder }: { value: string; onChangeText: (value: string) => void; placeholder: string }) {
+  return (
+    <View className="h-12 flex-row items-center rounded-xl border border-[#20375E] bg-[#09162C] px-4">
+      <TextInput
+        className="min-w-0 flex-1 text-white"
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="#60799C"
+      />
+      <Ionicons name="search-outline" size={19} color="#8FA7C7" />
+    </View>
+  )
+}
+
+type RowAction = {
+  label: string
+  icon: IconName
+  destructive?: boolean
+  onPress: () => void
+}
+
+function ProfileRowCard({ actions, meta, profile }: { actions: RowAction[]; meta: string; profile: ProfileRow }) {
+  return (
+    <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+      <View className="flex-row flex-wrap items-center gap-4">
+        <View className="h-12 w-12 items-center justify-center rounded-full bg-[#102A54]">
+          <Text className="font-black text-[#9FD6FF]">{getInitials(profile.alias)}</Text>
+        </View>
+        <View className="min-w-[220px] flex-1">
+          <Text className="font-black text-white">{profile.alias}</Text>
+          <Text className="mt-1 text-[12px] text-[#8FA7C7]">{profile.email || 'Sin correo guardado'}</Text>
+        </View>
+        <StatusPill active={profile.active !== false} />
+        <Text className="text-[12px] font-semibold text-[#AFC2DB]">{meta}</Text>
+      </View>
+      <RowActions actions={actions} />
+    </View>
+  )
+}
+
+function CourseRowCard({
+  actions,
+  classesCount,
+  enrollmentsCount,
+  subject,
+  teacher,
+}: {
+  actions: RowAction[]
+  classesCount: number
+  enrollmentsCount: number
+  subject: SubjectRow
+  teacher?: ProfileRow
+}) {
+  return (
+    <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+      <View className="flex-row flex-wrap items-center justify-between gap-3">
+        <View className="min-w-[240px] flex-1">
+          <Text className="font-black text-white">{subject.name}</Text>
+          <Text className="mt-1 text-[12px] text-[#8FA7C7]">Profesor: {teacher?.alias || 'Sin asignar'}</Text>
+        </View>
+        <StatusPill active={subject.active !== false && !subject.is_archived} label={subject.is_archived ? 'Archivado' : undefined} />
+      </View>
+      <View className="mt-3 flex-row flex-wrap gap-2">
+        <MiniPill icon="albums-outline" label={`${classesCount} clase(s)`} />
+        <MiniPill icon="people-outline" label={`${enrollmentsCount} inscripción(es)`} />
+      </View>
+      <RowActions actions={actions} />
+    </View>
+  )
+}
+
+function ClassroomRowCard({
+  actions,
+  classroom,
+  enrollmentsCount,
+  subject,
+}: {
+  actions: RowAction[]
+  classroom: ClassroomRow
+  enrollmentsCount: number
+  subject?: SubjectRow
+}) {
+  return (
+    <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+      <View className="flex-row flex-wrap items-center gap-4">
+        <View className="h-12 w-12 items-center justify-center rounded-xl bg-[#1A1E55]">
+          <Ionicons name="albums-outline" size={22} color="#C4B5FD" />
+        </View>
+        <View className="min-w-[240px] flex-1">
+          <Text className="font-black text-white">{classroom.name}</Text>
+          <Text className="mt-1 text-[12px] text-[#8FA7C7]">{subject?.name || 'Curso no disponible'}</Text>
+        </View>
+        {classroom.code ? <Text className="rounded-lg bg-[#102A54] px-3 py-2 font-mono text-[12px] font-black text-[#9FD6FF]">{classroom.code}</Text> : null}
+        <MiniPill icon="people-outline" label={`${enrollmentsCount} alumno(s)`} />
+        <StatusPill active={classroom.active !== false} />
+      </View>
+      <RowActions actions={actions} />
+    </View>
+  )
+}
+
+function RowActions({ actions }: { actions: RowAction[] }) {
+  return (
+    <View className="mt-4 flex-row flex-wrap gap-2">
+      {actions.map((action) => (
+        <Pressable
+          key={action.label}
+          onPress={action.onPress}
+          className="flex-row items-center gap-2 rounded-xl border px-3 py-2"
+          style={({ pressed }) => ({
+            borderColor: action.destructive ? '#4A1E2B' : '#20375E',
+            backgroundColor: action.destructive ? '#2A0B18' : '#07162D',
+            opacity: pressed ? 0.82 : 1,
+          })}
+        >
+          <Ionicons name={action.icon} size={14} color={action.destructive ? '#FB7185' : '#AFC2DB'} />
+          <Text className="text-[12px] font-bold" style={{ color: action.destructive ? '#FCA5A5' : '#DDE7F4' }}>{action.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  )
+}
+
+function StatusPill({ active, label }: { active: boolean; label?: string }) {
+  const resolvedLabel = label || (active ? 'Activo' : 'Inactivo')
+  return (
+    <View className="rounded-full px-3 py-1" style={{ backgroundColor: active ? '#063D31' : '#3B1D2A' }}>
+      <Text className="text-[11px] font-black" style={{ color: active ? '#34D399' : '#FB7185' }}>
+        {resolvedLabel}
+      </Text>
+    </View>
+  )
+}
+
+function MiniPill({ icon, label }: { icon: IconName; label: string }) {
+  return (
+    <View className="flex-row items-center gap-2 rounded-lg border border-[#20375E] bg-[#07162D] px-3 py-2">
+      <Ionicons name={icon} size={14} color="#AFC2DB" />
+      <Text className="text-[12px] font-semibold text-[#DDE7F4]">{label}</Text>
+    </View>
+  )
+}
+
+function SideFact({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-row items-center justify-between border-b border-[#13284A] py-3">
+      <Text className="text-[13px] font-semibold text-[#AFC2DB]">{label}</Text>
+      <Text className="font-black text-white">{value}</Text>
+    </View>
+  )
+}
+
+function SystemAlertRow({ color, icon, label, value }: { color: string; icon: IconName; label: string; value: number }) {
+  return (
+    <View className="flex-row items-center justify-between border-b border-[#13284A] py-3">
+      <View className="min-w-0 flex-1 flex-row items-center gap-3">
+        <View className="h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}24` }}>
+          <Ionicons name={icon} size={17} color={color} />
+        </View>
+        <Text className="min-w-0 flex-1 text-[13px] font-semibold text-[#AFC2DB]">{label}</Text>
+      </View>
+      <Text className="text-[18px] font-black text-white">{value}</Text>
+    </View>
+  )
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
+      <Ionicons name="search-outline" size={34} color="#60799C" />
+      <Text className="mt-3 text-center font-bold text-[#AFC2DB]">{label}</Text>
+    </View>
+  )
+}
+
+function useAdminDashboard(data: AdminData) {
+  return useMemo(() => {
+    const subjectIdsWithClassrooms = new Set(
+      data.classrooms
+        .map((classroom) => classroom.subject_id)
+        .filter((id): id is number => typeof id === 'number')
+    )
+    const studentsWithScores = new Set(data.scores.map((score) => score.student_id).filter((id): id is string => Boolean(id)))
+    const studentsWithAttempts = new Set(data.attempts.map((attempt) => attempt.student_id).filter((id): id is string => Boolean(id)))
+    const studentsWithEnrollments = new Set(data.enrollments.map((enrollment) => enrollment.student_id))
+
+    let studentsWithoutActivity = 0
+    studentsWithEnrollments.forEach((studentId) => {
+      if (!studentsWithScores.has(studentId) && !studentsWithAttempts.has(studentId)) {
+        studentsWithoutActivity += 1
+      }
+    })
+
+    return {
+      activeCourses: data.subjects.filter((subject) => subject.active !== false && !subject.is_archived).length,
+      archivedCourses: data.subjects.filter((subject) => subject.is_archived).length,
+      activeClassrooms: data.classrooms.filter((classroom) => classroom.active !== false).length,
+      inactiveUsers: data.profiles.filter((profile) => profile.active === false).length,
+      coursesWithoutClassrooms: data.subjects.filter((subject) => !subjectIdsWithClassrooms.has(subject.id)).length,
+      studentsWithoutActivity,
+      classroomsWithoutCode: data.classrooms.filter((classroom) => !classroom.code).length,
+    }
+  }, [data.attempts, data.classrooms, data.enrollments, data.profiles, data.scores, data.subjects])
+}
+
+function filterProfiles(rows: ProfileRow[], search: string) {
+  if (!search) return rows
+  return rows.filter((profile) => `${profile.alias} ${profile.email || ''}`.toLowerCase().includes(search))
+}
+
+function getInitials(value: string) {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'U'
+}
+
+function getAdminSectionIcon(section: AdminSection): IconName {
+  const item = adminSections.find((entry) => entry.section === section)
+  return item?.icon || 'shield-checkmark-outline'
+}
+
+function filledIconFor(icon: IconName): IconName {
+  const map: Partial<Record<IconName, IconName>> = {
+    'home-outline': 'home',
+    'school-outline': 'school',
+    'people-outline': 'people',
+    'book-outline': 'book',
+    'albums-outline': 'albums',
+  }
+  return map[icon] || icon
+}

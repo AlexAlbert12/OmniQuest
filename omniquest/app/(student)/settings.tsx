@@ -4,10 +4,7 @@ import * as Sharing from 'expo-sharing'
 import {
   ActivityIndicator,
   Alert,
-  LayoutChangeEvent,
   Modal,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -33,14 +30,14 @@ import { withAlpha } from '../../lib/color'
 
 type IconName = keyof typeof Ionicons.glyphMap
 type AppRole = 'student' | 'teacher'
-type ToggleKey = 'twoFactor'
 type PreferenceKey = 'language' | 'timezone' | 'dateFormat' | 'timeFormat' | 'weekStart'
 type NotificationSettingKey = 'push' | 'email' | 'daily' | 'activities' | 'news'
 type NotificationFrequency = 'instant' | 'daily' | 'weekly'
-type SettingsMenuSectionKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'about'
-type SettingsAnchorKey = 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'security' | 'about'
+type SettingsMenuSectionKey = | 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'data' | 'security' | 'about'
+type SettingsAnchorKey = | 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'data' | 'security' | 'about'
 type ProfileVisibility = 'public' | 'private'
 type DestructiveActionType = 'scores' | 'enrollments' | 'all' | 'account'
+type SettingsMenuVariant = 'side' | 'tabs' | 'chips'
 
 type UserProfile = {
   id: string
@@ -164,14 +161,15 @@ const studentSettingsSections: { key: SettingsMenuSectionKey; label: string; ico
   { key: 'preferences', label: 'Idioma y región', icon: 'globe-outline', anchor: 'preferences' },
   { key: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', anchor: 'notifications' },
   { key: 'privacy', label: 'Privacidad', icon: 'shield-checkmark-outline', anchor: 'privacy' },
+  { key: 'data', label: 'Datos', icon: 'server-outline', anchor: 'data' },
   { key: 'security', label: 'Seguridad', icon: 'lock-closed-outline', anchor: 'security' },
   { key: 'about', label: 'Acerca de', icon: 'information-circle-outline', anchor: 'about' },
 ]
 
 const teacherSettingsSections: { key: SettingsMenuSectionKey; label: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
-  ...studentSettingsSections.slice(0, 6),
-  studentSettingsSections[6],
+  ...studentSettingsSections,
 ]
+
 const accentColors = ['#7C5CFF', '#3B82F6', '#38BDF8', '#58D17A', '#F6A64A', '#EF5350', '#D94A9A'] as const
 
 export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { forcedRole?: AppRole; securityOnly?: boolean }) {
@@ -180,11 +178,10 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const { section } = useLocalSearchParams<{ section?: string }>()
   const { theme, accentColor, setAccentColor } = useAppTheme()
   const scrollRef = useRef<ScrollView | null>(null)
-  const sectionPositionsRef = useRef<Partial<Record<SettingsAnchorKey, number>>>({})
-  const [initialScrollAnchor, setInitialScrollAnchor] = useState<SettingsAnchorKey | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [role, setRole] = useState<AppRole>(forcedRole || 'student')
   const [subjectsCount, setSubjectsCount] = useState(0)
+  const [classroomsCount, setClassroomsCount] = useState(0)
   const [name, setName] = useState('Alumno')
   const [email, setEmail] = useState('alumno@omniquest.com')
   const [loading, setLoading] = useState(true)
@@ -207,9 +204,6 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const [savingNotificationKey, setSavingNotificationKey] = useState<NotificationSettingKey | 'frequency' | null>(null)
   const [openNotificationFrequency, setOpenNotificationFrequency] = useState(false)
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsMenuSectionKey>('general')
-  const [toggles, setToggles] = useState<Record<ToggleKey, boolean>>({
-    twoFactor: false,
-  })
   const [profileVisibility, setProfileVisibility] = useState<ProfileVisibility | null>(null)
   const [profileVisibilityAvailable, setProfileVisibilityAvailable] = useState(false)
   const [exportingData, setExportingData] = useState(false)
@@ -219,7 +213,6 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
 
   const isDesktop = width >= 1080
-  const isWide = width >= 820
   const isTeacher = role === 'teacher'
   const isDark = theme === 'dark'
   const settingsSections = isTeacher ? teacherSettingsSections : studentSettingsSections
@@ -228,6 +221,10 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)
   const userInitials = getInitials(name)
+  const isLargeDesktop = width >= 1280
+  const isMediumSettings = width >= 760
+  const settingsMenuVariant: SettingsMenuVariant = isLargeDesktop ? 'side' : isMediumSettings ? 'tabs' : 'chips'
+  const settingsHorizontalPadding = isDesktop ? 28 : 14
   const passwordChecks = useMemo(() => {
     const hasCurrentPassword = currentPassword.length > 0
     const hasMinimumLength = newPassword.length >= 6
@@ -244,15 +241,6 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
       canSubmit: hasCurrentPassword && hasMinimumLength && passwordsMatch && isDifferentFromCurrent && !changingPassword,
     }
   }, [confirmPassword, currentPassword, changingPassword, newPassword])
-  const orderedAnchors = useMemo(
-    () =>
-      (securityOnly
-        ? ['security']
-        : isTeacher
-        ? ['general', 'profile', 'preferences', 'notifications', 'privacy', 'security', 'about']
-        : ['general', 'profile', 'preferences', 'notifications', 'privacy', 'security', 'about']) as SettingsAnchorKey[],
-    [isTeacher, securityOnly]
-  )
 
   useEffect(() => {
     if (!settingsSections.some((section) => section.key === activeSettingsSection)) {
@@ -631,6 +619,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
         setProfile(prev => prev ? { ...prev, ...(isTeacher ? {} : { points: 0 }), avatar: null } : null)
         if (isTeacher) {
           setSubjectsCount(0)
+          setClassroomsCount(0)
         }
       }
 
@@ -694,69 +683,19 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
     return notificationFrequencyLabels[value] || value
   }
 
-  const menuKeyFromAnchor = (anchor: SettingsAnchorKey): SettingsMenuSectionKey => {
-    switch (anchor) {
-      case 'general':
-        return 'general'
-      case 'profile':
-        return 'profile'
-      case 'preferences':
-        return 'preferences'
-      case 'notifications':
-        return 'notifications'
-      case 'privacy':
-        return 'privacy'
-      case 'security':
-        return 'security'
-      case 'about':
-        return 'about'
-      default:
-        return 'general'
-    }
-  }
-
-  const handleSectionLayout = (key: SettingsAnchorKey) => (event: LayoutChangeEvent) => {
-    sectionPositionsRef.current[key] = event.nativeEvent.layout.y
-    if (initialScrollAnchor === key) {
-      scrollToAnchor(key, key === 'profile' ? 'profile' : 'general')
-      setInitialScrollAnchor(null)
-    }
-  }
-
-  const scrollToAnchor = (anchor: SettingsAnchorKey, menuKey: SettingsMenuSectionKey) => {
-    const y = sectionPositionsRef.current[anchor]
-    if (typeof y === 'number') {
-      scrollRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true })
-    }
-    setActiveSettingsSection(menuKey)
-  }
-
   const handleMenuSectionPress = (section: { key: SettingsMenuSectionKey; anchor: SettingsAnchorKey }) => {
-    scrollToAnchor(section.anchor, section.key)
+    setActiveSettingsSection(section.key)
+    scrollRef.current?.scrollTo({ y: 0, animated: true })
   }
 
   useEffect(() => {
-    if (section === 'profile') {
-      setInitialScrollAnchor('profile')
-    }
-  }, [section])
+    if (!section) return
 
-  const handleSettingsScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetY = event.nativeEvent.contentOffset.y + 90
-    let currentAnchor: SettingsAnchorKey = 'general'
-
-    for (const anchor of orderedAnchors) {
-      const y = sectionPositionsRef.current[anchor]
-      if (typeof y === 'number' && offsetY >= y) {
-        currentAnchor = anchor
-      }
+    const exists = settingsSections.some((item) => item.key === section)
+    if (exists) {
+      setActiveSettingsSection(section as SettingsMenuSectionKey)
     }
-
-    const nextMenuKey = menuKeyFromAnchor(currentAnchor)
-    if (nextMenuKey !== activeSettingsSection) {
-      setActiveSettingsSection(nextMenuKey)
-    }
-  }
+  }, [section, settingsSections])
 
   const savePreferences = async (targetUserId: string, next: UserPreferencesState) => {
     const { error } = await supabase.from('user_preferences').upsert(
@@ -838,7 +777,29 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
       const detectedRole = forcedRole || (nextProfile?.role_id === 'teacher' ? 'teacher' : 'student')
       setRole(detectedRole)
       setName(nextProfile?.alias || (detectedRole === 'teacher' ? 'Profesor' : 'Alumno'))
-      setSubjectsCount(subjectsResult.data?.length || 0)
+
+      const teacherSubjectIds = (subjectsResult.data || [])
+        .map((subject: { id: number | null }) => subject.id)
+        .filter((id): id is number => typeof id === 'number')
+
+      setSubjectsCount(teacherSubjectIds.length)
+
+      if (detectedRole === 'teacher' && teacherSubjectIds.length > 0) {
+        const { count: classroomsCountResult, error: classroomsCountError } = await supabase
+          .from('classrooms')
+          .select('id', { count: 'exact', head: true })
+          .in('subject_id', teacherSubjectIds)
+          .neq('active', false)
+
+        if (classroomsCountError && !isMissingSchemaError(classroomsCountError.code)) {
+          throw classroomsCountError
+        }
+
+        setClassroomsCount(classroomsCountResult || 0)
+      } else {
+        setClassroomsCount(0)
+      }
+
       setPreferences(toPreferenceState((preferencesResult.data as UserPreferencesRow | null) || null))
       setNotificationSettings(
         toNotificationSettingsState((notificationSettingsResult.data as NotificationSettingsRow | null) || null)
@@ -996,10 +957,6 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
     setShowSignOutConfirm(true)
   }
 
-  const updateToggle = (key: ToggleKey) => {
-    setToggles((current) => ({ ...current, [key]: !current[key] }))
-  }
-
   const updateNotificationToggle = async (key: NotificationSettingKey) => {
     if (!userId) {
       showAlert('Sesión no disponible', 'No se pudo identificar el usuario para guardar notificaciones.')
@@ -1138,59 +1095,127 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
           )
         ) : null}
 
-        <ScrollView
-          ref={scrollRef}
-          className="flex-1"
-          contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 28 : 14,
-            paddingTop: isDesktop ? 24 : 18,
-            paddingBottom: 96,
-          }}
-          onScroll={handleSettingsScroll}
-          scrollEventThrottle={16}
-          showsVerticalScrollIndicator={false}
-        >
-          <View onLayout={handleSectionLayout('general')} className="mb-5 flex-row flex-wrap items-start justify-between gap-4">
-            <View className="min-w-[260px] flex-1">
-              {!isDesktop ? (
-                <BrandLogo size={30} style={{ marginBottom: 12 }} />
-              ) : null}
-              <View className="flex-row items-center gap-3">
-                <Ionicons name={securityOnly ? 'lock-closed' : 'settings'} size={40} color="#9FD6FF" />
-                <Text className="text-[40px] font-black text-white">{securityOnly ? 'Seguridad' : 'Configuración'}</Text>
+        <View className="flex-1">
+          <View
+            style={{
+              paddingHorizontal: settingsHorizontalPadding,
+              paddingTop: isDesktop ? 24 : 18,
+            }}
+          >
+            <View className="mb-4 flex-row flex-wrap items-start justify-between gap-4">
+              <View className="min-w-[260px] flex-1">
+                {!isDesktop ? <BrandLogo size={30} style={{ marginBottom: 12 }} /> : null}
+
+                <View className="flex-row items-center gap-3">
+                  <Ionicons name={securityOnly ? 'lock-closed' : 'settings'} size={40} color="#9FD6FF" />
+                  <Text className="text-[40px] font-black text-white">
+                    {securityOnly ? 'Seguridad' : 'Configuración'}
+                  </Text>
+                </View>
+
+                <Text className="mt-2 text-[13px] text-[#B7C4D7]">
+                  {securityOnly
+                    ? 'Gestiona acceso, contraseña y acciones críticas de tu cuenta.'
+                    : `Personaliza tu experiencia y controla tu cuenta de ${isTeacher ? 'profesor' : 'alumno'}.`}
+                </Text>
               </View>
-              <Text className="mt-2 text-[13px] text-[#B7C4D7]">
-                {securityOnly
-                  ? 'Gestiona acceso, contraseña y acciones críticas de tu cuenta.'
-                  : `Personaliza tu experiencia y controla tu cuenta de ${isTeacher ? 'profesor' : 'alumno'}.`}
-              </Text>
+
+              <View className="flex-row items-center gap-3">
+                <NotificationBadge
+                  audience={isTeacher ? 'teacher' : 'student'}
+                  onPress={() => router.push((isTeacher ? '/(teacher)/notifications' : '/(student)/notifications') as any)}
+                />
+                {!isTeacher ? <StudentHeaderAvatar /> : null}
+              </View>
             </View>
 
-            <View className="flex-row items-center gap-3">
-              <NotificationBadge
-                audience={isTeacher ? 'teacher' : 'student'}
-                onPress={() => router.push((isTeacher ? '/(teacher)/notifications' : '/(student)/notifications') as any)}
+            {!securityOnly && settingsMenuVariant !== 'side' ? (
+              <SettingsMenu
+                variant={settingsMenuVariant}
+                onSignOut={handleSignOut}
+                activeSection={activeSettingsSection}
+                onSectionPress={handleMenuSectionPress}
+                sections={settingsSections}
               />
-              {!isTeacher ? <StudentHeaderAvatar /> : null}
-            </View>
+            ) : null}
           </View>
 
-          <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
-            {!securityOnly ? (
+          <View
+            className={settingsMenuVariant === 'side' ? 'flex-1 flex-row gap-5' : 'flex-1'}
+            style={{
+              paddingHorizontal: settingsHorizontalPadding,
+              paddingTop: 16,
+            }}
+          >
+            {!securityOnly && settingsMenuVariant === 'side' ? (
               <SettingsMenu
+                variant="side"
                 onSignOut={handleSignOut}
-                isDesktop={isDesktop}
                 activeSection={activeSettingsSection}
                 onSectionPress={handleMenuSectionPress}
                 sections={settingsSections}
               />
             ) : null}
 
-            <View className="flex-1 gap-5">
-              {!securityOnly ? (
-                <>
-              <View className={isWide ? 'flex-row gap-5' : 'gap-5'}>
-                <View onLayout={handleSectionLayout('profile')} className={isWide ? 'flex-1' : ''}>
+            <ScrollView
+              ref={scrollRef}
+              className="flex-1"
+              contentContainerStyle={{ paddingBottom: 96 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <View className="gap-5">
+                {!securityOnly && activeSettingsSection === 'general' ? (
+                  <Panel title="Configuración general">
+                    <View className="gap-4">
+                      <ActionRow
+                        icon="person-outline"
+                        title="Editar perfil"
+                        description="Actualiza tu alias, idioma preferido y datos básicos."
+                        onPress={() => setActiveSettingsSection('profile')}
+                      />
+                      <ActionRow
+                        icon="globe-outline"
+                        title="Idioma y región"
+                        description="Ajusta idioma, zona horaria, fecha, hora e inicio de semana."
+                        onPress={() => setActiveSettingsSection('preferences')}
+                      />
+                      <ActionRow
+                        icon="notifications-outline"
+                        title="Preferencias de notificación"
+                        description="Configura avisos, resumen diario y novedades."
+                        onPress={() => setActiveSettingsSection('notifications')}
+                      />
+                      <ActionRow
+                        icon="shield-checkmark-outline"
+                        title="Privacidad"
+                        description="Controla la visibilidad de tu perfil y revisa el centro de privacidad."
+                        onPress={() => setActiveSettingsSection('privacy')}
+                      />
+                      <ActionRow
+                        icon="server-outline"
+                        title="Datos"
+                        description="Exporta o elimina datos asociados a tu cuenta."
+                        onPress={() => setActiveSettingsSection('data')}
+                      />
+                      <ActionRow
+                        icon="lock-closed-outline"
+                        title="Seguridad"
+                        description="Cambia tu contraseña o revisa el estado de tu cuenta."
+                        onPress={() => setActiveSettingsSection('security')}
+                      />
+                      {!isDesktop ? (
+                        <ActionRow
+                          icon="log-out-outline"
+                          title="Cerrar sesión"
+                          description="Salir de tu cuenta en este dispositivo."
+                          onPress={handleSignOut}
+                        />
+                      ) : null}
+                    </View>
+                  </Panel>
+                ) : null}
+
+                {!securityOnly && activeSettingsSection === 'profile' ? (
                   <Panel title={`Información del ${isTeacher ? 'profesor' : 'alumno'}`}>
                     <View className={width >= 520 ? 'flex-row gap-5' : 'gap-4'}>
                       <View className="items-center">
@@ -1203,7 +1228,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                           className="mt-5 rounded-lg px-5 py-3"
                           style={{ backgroundColor: accentColor }}
                         >
-                          <Text className="text-[12px] font-bold text-white">{saving ? 'Guardando...' : 'Editar perfil'}</Text>
+                          <Text className="text-[12px] font-bold text-white">{saving ? 'Guardando...' : 'Guardar perfil'}</Text>
                         </Pressable>
                       </View>
 
@@ -1249,10 +1274,10 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                       />
                     </View>
                   </Panel>
-                </View>
+                ) : null}
 
-                <View onLayout={handleSectionLayout('preferences')} className={isWide ? 'flex-1' : ''}>
-                  <Panel title="Preferencias generales">
+                {!securityOnly && activeSettingsSection === 'preferences' ? (
+                  <Panel title="Idioma y región">
                     <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
                       <Text className="text-[12px] font-bold text-white">Color de acento</Text>
                       <Text className="mt-1 text-[11px] text-[#AFC2DB]">
@@ -1324,11 +1349,9 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                       loading={savingPreference === 'weekStart'}
                     />
                   </Panel>
-                </View>
-              </View>
+                ) : null}
 
-              <View className={isWide ? 'flex-row gap-5' : 'gap-5'}>
-                <View onLayout={handleSectionLayout('notifications')} className={isWide ? 'flex-1' : ''}>
+                {!securityOnly && activeSettingsSection === 'notifications' ? (
                   <Panel title="Notificaciones">
                     <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
                       <Text className="text-[12px] font-bold text-white">Preferencias guardadas</Text>
@@ -1380,7 +1403,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                     <NotificationRow
                       icon="clipboard-outline"
                       title="Actividades y preguntas"
-                      description="Alertas de nuevas actividades en tus clases."
+                      description="Alertas de nuevas actividades en tus cursos."
                       enabled={notificationSettings.activities}
                       onPress={() => void updateNotificationToggle('activities')}
                       disabled={Boolean(savingNotificationKey)}
@@ -1400,20 +1423,21 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                       onPress={() => showAlert('Notificaciones', 'Estas opciones se guardan, pero OmniQuest todavía no envía push ni emails automáticos.')}
                     />
                   </Panel>
-                </View>
+                ) : null}
 
-                <View onLayout={handleSectionLayout('privacy')} className={isWide ? 'flex-1' : ''}>
-                  <Panel title="Privacidad y datos">
+                {!securityOnly && activeSettingsSection === 'privacy' ? (
+                  <Panel title="Privacidad">
                     <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-4">
-                      <View className="flex-row items-center justify-between">
+                      <View className="flex-row flex-wrap items-center justify-between gap-3">
                         <View className="min-w-0 flex-1">
                           <Text className="font-bold text-white">Visibilidad del perfil</Text>
                           <Text className="mt-1 text-[12px] text-[#AFC2DB]">
-                            {profileVisibilityAvailable
-                              ? 'Controla quién puede ver tu perfil y actividad'
-                              : 'Pendiente de columna profiles.visibility y tipos actualizados'}
+                            {isTeacher
+                              ? 'Decide cómo se muestra tu perfil docente dentro de OmniQuest.'
+                              : 'Decide si otros estudiantes pueden ver tu perfil en rankings y logros.'}
                           </Text>
                         </View>
+
                         <View className="flex-row gap-2">
                           <Pressable
                             onPress={() => handleProfileVisibilityChange('public')}
@@ -1426,6 +1450,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                           >
                             <Text className="text-[12px] font-semibold text-white">Público</Text>
                           </Pressable>
+
                           <Pressable
                             onPress={() => handleProfileVisibilityChange('private')}
                             disabled={!profileVisibilityAvailable}
@@ -1439,6 +1464,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                           </Pressable>
                         </View>
                       </View>
+
                       {!profileVisibilityAvailable ? (
                         <Text className="mt-3 text-[12px] leading-5 text-[#FBBF24]">
                           Esta preferencia no se guardará hasta aplicar la migración y regenerar types/database.types.ts.
@@ -1446,12 +1472,32 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                       ) : null}
                     </View>
 
+                    <View className="rounded-xl border border-[#4733B7] bg-[#151A47] p-4">
+                      <View className="flex-row gap-3">
+                        <Ionicons name="shield-checkmark-outline" size={22} color={accentColor} />
+                        <View className="min-w-0 flex-1">
+                          <Text className="font-black text-white">Tu privacidad es importante</Text>
+                          <Text className="mt-1 text-[12px] leading-5 text-[#B7C4D7]">
+                            Protegemos tu información y tu historial académico.
+                          </Text>
+                          <Pressable onPress={showPrivacyCenter} className="mt-2 flex-row items-center gap-1">
+                            <Text className="text-[12px] font-bold text-[#A78BFA]">Centro de privacidad</Text>
+                            <Ionicons name="open-outline" size={13} color="#A78BFA" />
+                          </Pressable>
+                        </View>
+                      </View>
+                    </View>
+                  </Panel>
+                ) : null}
+
+                {!securityOnly && activeSettingsSection === 'data' ? (
+                  <Panel title="Datos">
                     <ActionRow
                       icon="download-outline"
                       title="Exportar datos"
                       description={
                         isTeacher
-                          ? 'Descarga perfil, clases, temas, preguntas, respuestas, inscripciones, puntuaciones, preferencias y notificaciones.'
+                          ? 'Descarga perfil, cursos, clases, temas, preguntas, respuestas, inscripciones, puntuaciones, preferencias y notificaciones.'
                           : 'Descarga una copia de todos tus datos personales.'
                       }
                       onPress={handleExportData}
@@ -1459,13 +1505,14 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                       loading={exportingData}
                     />
 
-                    <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-4">
-                      <Text className="font-bold text-white">Eliminar datos parciales</Text>
-                      <Text className="mt-1 text-[12px] text-[#AFC2DB] mb-3">
+                    <View className="mt-4 rounded-lg border border-[#183052] bg-[#071A32] p-4">
+                      <Text className="font-bold text-white">Zona de datos</Text>
+                      <Text className="mb-3 mt-1 text-[12px] text-[#AFC2DB]">
                         {isTeacher
                           ? 'Puedes limpiar progreso o reiniciar por completo tu espacio docente. Estas acciones no se pueden deshacer.'
-                          : 'Elimina selectivamente progreso, clases o preferencias guardadas. Esta acción no se puede deshacer.'}
+                          : 'Elimina selectivamente progreso, cursos o preferencias guardadas. Estas acciones no se pueden deshacer.'}
                       </Text>
+
                       <View className="gap-2">
                         <Pressable
                           onPress={() => handleDeletePartialData('scores')}
@@ -1481,11 +1528,12 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                               </Text>
                               <Text className="mt-1 text-[11px] text-[#FECACA]">
                                 {isTeacher
-                                  ? 'Borra puntuaciones e intentos de alumnos en tus clases.'
+                                  ? 'Borra puntuaciones e intentos de alumnos en tus cursos.'
                                   : 'Borra tus puntuaciones y reinicia tu XP global.'}
                               </Text>
                             </View>
                           </View>
+
                           {deletingData ? (
                             <ActivityIndicator size="small" color="#FB7185" />
                           ) : (
@@ -1502,8 +1550,9 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                           >
                             <View className="flex-row items-center gap-3">
                               <Ionicons name="exit-outline" size={16} color="#FB7185" />
-                              <Text className="text-[13px] font-semibold text-white">Salir de todas las clases</Text>
+                              <Text className="text-[13px] font-semibold text-white">Salir de todos los cursos</Text>
                             </View>
+
                             {deletingData ? (
                               <ActivityIndicator size="small" color="#FB7185" />
                             ) : (
@@ -1526,11 +1575,12 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                               </Text>
                               <Text className="mt-1 text-[11px] text-[#FECACA]">
                                 {isTeacher
-                                  ? 'Borra clases, temas, preguntas, respuestas, inscripciones, puntuaciones, intentos, preferencias, notificaciones y avatar.'
+                                  ? 'Borra cursos, clases, temas, preguntas, respuestas, inscripciones, puntuaciones, intentos, preferencias, notificaciones y avatar.'
                                   : 'Borra progreso, intentos, preferencias, notificaciones y avatar.'}
                               </Text>
                             </View>
                           </View>
+
                           {deletingData ? (
                             <ActivityIndicator size="small" color="#FB7185" />
                           ) : (
@@ -1539,86 +1589,80 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                         </Pressable>
                       </View>
                     </View>
+                  </Panel>
+                ) : null}
 
-                    <View className="mt-3 rounded-xl border border-[#4733B7] bg-[#151A47] p-4">
-                      <View className="flex-row gap-3">
-                        <Ionicons name="shield-checkmark-outline" size={22} color={accentColor} />
-                        <View className="min-w-0 flex-1">
-                          <Text className="font-black text-white">Tu privacidad es importante</Text>
-                          <Text className="mt-1 text-[12px] leading-5 text-[#B7C4D7]">
-                            Protegemos tu información y tu historial académico.
-                          </Text>
-                          <Pressable onPress={showPrivacyCenter} className="mt-2 flex-row items-center gap-1">
-                            <Text className="text-[12px] font-bold text-[#A78BFA]">Centro de privacidad</Text>
-                            <Ionicons name="open-outline" size={13} color="#A78BFA" />
-                          </Pressable>
-                        </View>
+                {securityOnly || activeSettingsSection === 'security' ? (
+                  <Panel title="Seguridad">
+                    {!securityOnly ? (
+                      <ActionRow
+                        icon="lock-closed-outline"
+                        title="Gestionar seguridad"
+                        description="Cambiar contraseña y borrar cuenta en una pantalla dedicada."
+                        onPress={() => router.push((isTeacher ? '/(teacher)/security' : '/(student)/security') as any)}
+                      />
+                    ) : (
+                      <View className="gap-4">
+                        <SecurityPasswordCard
+                          accentColor={accentColor}
+                          currentPassword={currentPassword}
+                          newPassword={newPassword}
+                          confirmPassword={confirmPassword}
+                          showCurrentPassword={showCurrentPassword}
+                          showNewPassword={showNewPassword}
+                          showConfirmPassword={showConfirmPassword}
+                          changingPassword={changingPassword}
+                          checks={passwordChecks}
+                          onCurrentPasswordChange={setCurrentPassword}
+                          onNewPasswordChange={setNewPassword}
+                          onConfirmPasswordChange={setConfirmPassword}
+                          onToggleCurrentPassword={() => setShowCurrentPassword((value) => !value)}
+                          onToggleNewPassword={() => setShowNewPassword((value) => !value)}
+                          onToggleConfirmPassword={() => setShowConfirmPassword((value) => !value)}
+                          onSubmit={handleChangePassword}
+                        />
+
+                        <SecurityAccountStatusCard
+                          email={email}
+                          emailConfirmedAt={emailConfirmedAt}
+                          lastSignInAt={lastSignInAt}
+                          onSignOut={handleSignOut}
+                        />
+
+                        <SecurityDangerCard
+                          deletingAccount={deletingAccount}
+                          onDeleteAccount={handleDeleteAccount}
+                        />
                       </View>
+                    )}
+                  </Panel>
+                ) : null}
+
+                {!securityOnly && activeSettingsSection === 'about' ? (
+                  <Panel title="Acerca de OmniQuest">
+                    <View className="gap-4">
+                      <Text className="text-[13px] leading-5 text-[#AFC2DB]">
+                        OmniQuest es una plataforma educativa gamificada para practicar contenidos mediante cursos, clases, temas y preguntas interactivas.
+                      </Text>
+
+                      <View className="rounded-xl border border-[#183052] bg-[#071A32] p-4">
+                        <Text className="text-[12px] text-[#8FA7C7]">Versión</Text>
+                        <Text className="mt-1 font-black text-white">1.0.0</Text>
+                      </View>
+
+                      <ActionRow
+                        icon="help-circle-outline"
+                        title="Centro de ayuda"
+                        description="Consulta ayuda, soporte y preguntas frecuentes."
+                        onPress={() => router.push((isTeacher ? '/(teacher)/help-center' : '/(student)/help-center') as any)}
+                      />
                     </View>
                   </Panel>
-                </View>
+                ) : null}
               </View>
-                </>
-              ) : null}
-
-              <View onLayout={handleSectionLayout('security')}>
-                <Panel title="Seguridad">
-                  {!securityOnly ? (
-                    <ActionRow
-                      icon="lock-closed-outline"
-                      title="Gestionar seguridad"
-                      description="Cambiar contraseña y borrar cuenta en una pantalla dedicada."
-                      onPress={() => router.push((isTeacher ? '/(teacher)/security' : '/(student)/security') as any)}
-                    />
-                  ) : (
-                    <View className="gap-4">
-                      <SecurityPasswordCard
-                        accentColor={accentColor}
-                        currentPassword={currentPassword}
-                        newPassword={newPassword}
-                        confirmPassword={confirmPassword}
-                        showCurrentPassword={showCurrentPassword}
-                        showNewPassword={showNewPassword}
-                        showConfirmPassword={showConfirmPassword}
-                        changingPassword={changingPassword}
-                        checks={passwordChecks}
-                        onCurrentPasswordChange={setCurrentPassword}
-                        onNewPasswordChange={setNewPassword}
-                        onConfirmPasswordChange={setConfirmPassword}
-                        onToggleCurrentPassword={() => setShowCurrentPassword((value) => !value)}
-                        onToggleNewPassword={() => setShowNewPassword((value) => !value)}
-                        onToggleConfirmPassword={() => setShowConfirmPassword((value) => !value)}
-                        onSubmit={handleChangePassword}
-                      />
-
-                      <SecurityAccountStatusCard
-                        email={email}
-                        emailConfirmedAt={emailConfirmedAt}
-                        lastSignInAt={lastSignInAt}
-                        onSignOut={handleSignOut}
-                      />
-
-                      <SecurityDangerCard
-                        deletingAccount={deletingAccount}
-                        onDeleteAccount={handleDeleteAccount}
-                      />
-                    </View>
-                  )}
-                </Panel>
-              </View>
-            </View>
+            </ScrollView>
           </View>
-
-          {!securityOnly ? (
-          <View onLayout={handleSectionLayout('about')} className="mt-6 flex-row flex-wrap items-center justify-end gap-6">
-            <Text className="text-[12px] text-[#8FA7C7]">Versión 2.4.0</Text>
-            <Pressable onPress={() => router.push((isTeacher ? '/(teacher)/help-center' : '/(student)/help-center') as any)} className="flex-row items-center gap-2">
-              <Ionicons name="help-circle-outline" size={16} color="#A78BFA" />
-              <Text className="text-[12px] font-semibold text-[#A78BFA]">Centro de ayuda</Text>
-            </Pressable>
-          </View>
-          ) : null}
-        </ScrollView>
+        </View>
       </View>
 
       <DestructiveConfirmModal
@@ -2032,45 +2076,45 @@ function getDestructiveActionDetails(action: DestructiveActionType | null, isTea
     case 'scores':
       return isTeacher
         ? {
-            title: 'Eliminar progreso de alumnos',
-            description: 'Se borrarán puntuaciones por clase, puntuaciones por tema e intentos de alumnos en tus clases. No se borran clases, preguntas ni perfiles.',
-            confirmLabel: 'Eliminar progreso',
-          }
+          title: 'Eliminar progreso de alumnos',
+          description: 'Se borrarán puntuaciones por curso, clase, puntuaciones por tema e intentos de alumnos en tus cursos. No se borran cursos, clases, preguntas ni perfiles.',
+          confirmLabel: 'Eliminar progreso',
+        }
         : {
-            title: 'Eliminar puntuaciones',
-            description: 'Se borrarán subject_scores y topic_scores, y tu XP global se reseteará a 0.',
-            confirmLabel: 'Eliminar puntuaciones',
-          }
+          title: 'Eliminar puntuaciones',
+          description: 'Se borrarán subject_scores y topic_scores, y tu XP global se reseteará a 0.',
+          confirmLabel: 'Eliminar puntuaciones',
+        }
     case 'enrollments':
       return {
-        title: 'Salir de todas las clases',
+        title: 'Salir de todas los cursos',
         description: 'Se eliminarán tus inscripciones actuales. Tu cuenta seguirá activa.',
-        confirmLabel: 'Salir de clases',
+        confirmLabel: 'Salir de cursos',
       }
     case 'all':
       return isTeacher
         ? {
-            title: 'Eliminar todos mis datos docentes',
-            description: 'Se borrarán tus clases, temas, preguntas, respuestas, inscripciones, puntuaciones de alumnos, intentos, preferencias, notificaciones y avatar. Tu cuenta seguirá activa.',
-            confirmLabel: 'Eliminar todo',
-          }
+          title: 'Eliminar todos mis datos docentes',
+          description: 'Se borrarán tus cursos, clases, temas, preguntas, respuestas, inscripciones, puntuaciones de alumnos, intentos, preferencias, notificaciones y avatar. Tu cuenta seguirá activa.',
+          confirmLabel: 'Eliminar todo',
+        }
         : {
-            title: 'Eliminar datos de uso',
-            description: 'Se borrarán progreso, intentos, estado de notificaciones, preferencias y avatar. Tu cuenta seguirá activa.',
-            confirmLabel: 'Eliminar datos',
-          }
+          title: 'Eliminar datos de uso',
+          description: 'Se borrarán progreso, intentos, estado de notificaciones, preferencias y avatar. Tu cuenta seguirá activa.',
+          confirmLabel: 'Eliminar datos',
+        }
     case 'account':
       return isTeacher
         ? {
-            title: 'Borrar mi cuenta',
-            description: 'Se eliminarán tu usuario, perfil docente y datos asociados. Revisa antes tus clases y contenido creado. No se puede deshacer.',
-            confirmLabel: 'Borrar cuenta',
-          }
+          title: 'Borrar mi cuenta',
+          description: 'Se eliminarán tu usuario, perfil docente y datos asociados. Revisa antes tus clases y contenido creado. No se puede deshacer.',
+          confirmLabel: 'Borrar cuenta',
+        }
         : {
-            title: 'Borrar mi cuenta',
-            description: 'Se eliminarán tu usuario, perfil, progreso académico y datos asociados. No se puede deshacer.',
-            confirmLabel: 'Borrar cuenta',
-          }
+          title: 'Borrar mi cuenta',
+          description: 'Se eliminarán tu usuario, perfil, progreso académico y datos asociados. No se puede deshacer.',
+          confirmLabel: 'Borrar cuenta',
+        }
     default:
       return {
         title: 'Confirmar acción',
@@ -2081,50 +2125,91 @@ function getDestructiveActionDetails(action: DestructiveActionType | null, isTea
 }
 
 function SettingsMenu({
+  variant,
   onSignOut,
-  isDesktop,
   activeSection,
   onSectionPress,
   sections,
 }: {
+  variant: SettingsMenuVariant
   onSignOut: () => void
-  isDesktop: boolean
   activeSection: SettingsMenuSectionKey
   onSectionPress: (section: { key: SettingsMenuSectionKey; anchor: SettingsAnchorKey }) => void
   sections: { key: SettingsMenuSectionKey; label: string; icon: IconName; anchor: SettingsAnchorKey }[]
 }) {
   const { accentColor } = useAppTheme()
 
-  return (
-    <View
-      className={`rounded-xl border border-[#183052] bg-[#07162D] p-3 ${isDesktop ? 'w-[205px] self-start' : ''
-        }`}
-    >
-      <View className={isDesktop ? 'gap-1' : 'flex-row flex-wrap gap-2'}>
-        {sections.map((section) => (
-          <Pressable
-            key={section.label}
-            onPress={() => onSectionPress(section)}
-            className="flex-row items-center gap-3 rounded-lg border px-3 py-3"
-            style={{
-              borderColor: section.key === activeSection ? accentColor : 'transparent',
-              backgroundColor: section.key === activeSection ? withAlpha(accentColor, '24') : 'transparent',
-            }}
-          >
-            <Ionicons name={section.icon} size={16} color={section.key === activeSection ? accentColor : '#AFC2DB'} />
-            <Text className={`text-[12px] font-semibold ${section.key === activeSection ? 'text-white' : 'text-[#B7C4D7]'}`}>
-              {section.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+  const renderMenuItem = (section: {
+    key: SettingsMenuSectionKey
+    label: string
+    icon: IconName
+    anchor: SettingsAnchorKey
+  }) => {
+    const active = section.key === activeSection
+    const isChip = variant === 'chips'
+
+    return (
       <Pressable
-        onPress={onSignOut}
-        className="mt-4 flex-row items-center gap-2 rounded-lg border border-[#20375E] bg-[#071326] px-3 py-3"
+        key={section.key}
+        onPress={() => onSectionPress(section)}
+        className={`flex-row items-center gap-2 border ${isChip ? 'rounded-full px-4 py-2' : 'rounded-xl px-4 py-3'
+          }`}
+        style={({ pressed }) => ({
+          opacity: pressed ? 0.82 : 1,
+          borderColor: active ? accentColor : '#183052',
+          backgroundColor: active ? withAlpha(accentColor, '24') : '#071A32',
+        })}
       >
-        <Ionicons name="log-out-outline" size={15} color="#F87171" />
-        <Text className="text-[12px] font-bold text-[#F87171]">Cerrar sesión</Text>
+        {isChip ? null : (
+          <Ionicons
+            name={section.icon}
+            size={16}
+            color={active ? accentColor : '#AFC2DB'}
+          />
+        )}
+
+        <Text
+          className={`text-[12px] font-black ${active ? 'text-white' : 'text-[#B7C4D7]'
+            }`}
+          numberOfLines={1}
+        >
+          {section.label}
+        </Text>
       </Pressable>
+    )
+  }
+
+  if (variant === 'side') {
+    return (
+      <View className="w-[220px] self-start rounded-xl border border-[#183052] bg-[#07162D] p-3">
+        <View className="gap-1">
+          {sections.map(renderMenuItem)}
+        </View>
+
+        <Pressable
+          onPress={onSignOut}
+          className="mt-4 flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#071326] px-3 py-3"
+          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+        >
+          <Ionicons name="log-out-outline" size={15} color="#F87171" />
+          <Text className="text-[12px] font-bold text-[#F87171]">Cerrar sesión</Text>
+        </Pressable>
+      </View>
+    )
+  }
+
+  return (
+    <View className="rounded-xl border border-[#183052] bg-[#07162D] p-2">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          gap: 8,
+          paddingRight: 8,
+        }}
+      >
+        {sections.map(renderMenuItem)}
+      </ScrollView>
     </View>
   )
 }

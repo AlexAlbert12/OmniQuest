@@ -16,7 +16,7 @@ const AUTH_ROUTE_ALIASES: Record<string, string> = {
 
 const TEACHER_HOME = '/(teacher)/homeTeacher'
 const STUDENT_HOME = '/(student)/homeStudent'
-const ADMIN_HOME = '/(admin)/admin'
+const ADMIN_HOME = '/(admin)/homeAdmin'
 
 function normalizeAuthPath(path: string) {
   return AUTH_ROUTE_ALIASES[path] || path

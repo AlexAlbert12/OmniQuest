@@ -30,12 +30,19 @@ type SubjectAnalytics = {
   playedCount: number
   averageScore: number
   questionsCount: number
+  classroomCount: number
 }
 
 type QuestionSummary = {
   id: number
   subject_id: number | null
   text?: string | null
+}
+
+type ClassroomSummary = {
+  id: number
+  subject_id: number | null
+  name: string | null
 }
 
 type RecentActivityItem = {
@@ -72,6 +79,17 @@ type ProfileSummary = {
   alias: string | null
 }
 
+type ProblematicQuestionItem = {
+  id: string
+  questionId: number
+  subjectId: number
+  subjectName: string
+  text: string
+  failures: number
+  editHref: string
+  reportHref: string
+}
+
 type PendingActionItem = {
   id: string
   icon: keyof typeof Ionicons.glyphMap
@@ -85,10 +103,13 @@ type PendingActionItem = {
 export default function TeacherHomeScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
+  const [teacherAlias, setTeacherAlias] = useState('Profesor');
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [analyticsBySubject, setAnalyticsBySubject] = useState<Record<number, SubjectAnalytics>>({});
   const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
   const [pendingActions, setPendingActions] = useState<PendingActionItem[]>([]);
+  const [problematicQuestions, setProblematicQuestions] = useState<ProblematicQuestionItem[]>([]);
+  const [weeklyActiveStudentCount, setWeeklyActiveStudentCount] = useState(0);
   const [uniqueStudentCount, setUniqueStudentCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -101,13 +122,11 @@ export default function TeacherHomeScreen() {
     const students = uniqueStudentCount;
     const questions = analytics.reduce((total, item) => total + item.questionsCount, 0);
     const attempts = analytics.reduce((total, item) => total + item.playedCount, 0);
-    const weightedScore = analytics.reduce((total, item) => total + item.averageScore * item.playedCount, 0);
 
     return {
       students,
       questions,
       attempts,
-      averageScore: attempts > 0 ? Math.round(weightedScore / attempts) : 0,
     };
   }, [analyticsBySubject, uniqueStudentCount]);
 
@@ -115,6 +134,19 @@ export default function TeacherHomeScreen() {
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) return;
+
+      const { data: teacherProfile } = await supabase
+        .from('profiles')
+        .select('alias')
+        .eq('id', session.session.user.id)
+        .maybeSingle();
+
+      setTeacherAlias(
+        teacherProfile?.alias ||
+        session.session.user.user_metadata?.alias ||
+        session.session.user.email?.split('@')[0] ||
+        'Profesor'
+      );
 
       const { data, error } = await supabase
         .from('subjects')
@@ -133,11 +165,13 @@ export default function TeacherHomeScreen() {
         setAnalyticsBySubject({});
         setRecentActivity([]);
         setPendingActions([]);
+        setProblematicQuestions([]);
+        setWeeklyActiveStudentCount(0);
         setUniqueStudentCount(0);
         return;
       }
 
-      const [enrollmentsResult, scoresResult, questionsResult, attemptsResult] = await Promise.all([
+      const [enrollmentsResult, scoresResult, questionsResult, attemptsResult, classroomsResult] = await Promise.all([
         supabase
           .from('enrollments')
           .select('subject_id, student_id, joined_at')
@@ -150,16 +184,23 @@ export default function TeacherHomeScreen() {
           .select('student_id, is_correct, question_id, attempted_at, questions(id, subject_id, text)')
           .order('attempted_at', { ascending: false })
           .limit(500),
+        supabase
+          .from('classrooms')
+          .select('id, subject_id, name')
+          .in('subject_id', subjectIds)
+          .neq('active', false),
       ]);
 
       if (enrollmentsResult.error) throw enrollmentsResult.error;
       if (scoresResult.error) throw scoresResult.error;
       if (questionsResult.error) throw questionsResult.error;
       if (attemptsResult.error) throw attemptsResult.error;
+      if (classroomsResult.error && !isMissingSchemaError(classroomsResult.error.code)) throw classroomsResult.error;
       const enrollments = (enrollmentsResult.data || []) as EnrollmentActivityRow[];
       const scores = (scoresResult.data || []) as SubjectScoreRow[];
       const questions = (questionsResult.data || []) as QuestionSummary[];
       const attempts = (attemptsResult.data || []) as AttemptActivityRow[];
+      const classrooms = (classroomsResult.error ? [] : classroomsResult.data || []) as ClassroomSummary[];
       setUniqueStudentCount(getUniqueStudentCount(enrollments));
 
       const nextAnalytics: Record<number, SubjectAnalytics> = {};
@@ -169,6 +210,7 @@ export default function TeacherHomeScreen() {
           (item) => item.subject_id === subjectId && typeof item.max_score === 'number'
         ) || [];
         const subjectQuestions = questions.filter((item) => item.subject_id === subjectId) || [];
+        const subjectClassrooms = classrooms.filter((item) => item.subject_id === subjectId) || [];
         const totalScore = subjectScores.reduce((total, item) => total + (item.max_score ?? 0), 0);
 
         nextAnalytics[subjectId] = {
@@ -176,6 +218,7 @@ export default function TeacherHomeScreen() {
           playedCount: subjectScores.length,
           averageScore: subjectScores.length > 0 ? Math.round(totalScore / subjectScores.length) : 0,
           questionsCount: subjectQuestions.length,
+          classroomCount: subjectClassrooms.length,
         };
       });
       setAnalyticsBySubject(nextAnalytics);
@@ -199,6 +242,8 @@ export default function TeacherHomeScreen() {
           profilesById,
         })
       );
+      setProblematicQuestions(buildProblematicQuestions({ subjects: nextSubjects, attempts }));
+      setWeeklyActiveStudentCount(getWeeklyActiveStudentCount(attempts, new Set(subjectIds)));
       setRecentActivity(
         buildRecentActivity({
           subjects: nextSubjects,
@@ -261,10 +306,16 @@ export default function TeacherHomeScreen() {
               {!isDesktop ? (
                 <BrandLogo size={30} style={{ marginBottom: 12 }} />
               ) : null}
-              <Text className="text-[40px] font-black text-white">¡Bienvenido de nuevo, Profesor! 👋</Text>
+              <Text className="text-[40px] font-black text-white">¡Bienvenido de nuevo, {teacherAlias}! 👋</Text>
               <Text className="mt-2 text-[14px] text-[#B7C4D7]">
-                Aquí tienes un resumen de tus clases y estudiantes.
+                Aquí tienes el estado de tus cursos, clases y estudiantes.
               </Text>
+              <View className="mt-5 flex-row flex-wrap gap-3">
+                <QuickActionButton icon="add-circle-outline" label="Crear curso" onPress={() => router.push('/(teacher)/create-subject' as any)} />
+                <QuickActionButton icon="person-add-outline" label="Importar alumnos" onPress={() => router.push(subjects[0] ? `/(teacher)/subject/${subjects[0].id}?tab=students` as any : '/(teacher)/students' as any)} />
+                <QuickActionButton icon="help-circle-outline" label="Crear pregunta" onPress={() => router.push(subjects[0] ? `/(teacher)/subject/add-question?subjectId=${subjects[0].id}` as any : '/(teacher)/create-subject' as any)} />
+                <QuickActionButton icon="people-outline" label="Ver estudiantes" onPress={() => router.push('/(teacher)/students' as any)} />
+              </View>
             </View>
 
             <View className="flex-row items-center gap-3">
@@ -278,10 +329,16 @@ export default function TeacherHomeScreen() {
 
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
             <MetricCard icon="school" title="Cursos activos" value={String(subjects.length)} color="#8B5CF6" />
-            <MetricCard icon="people" title="Estudiantes" value={String(totals.students)} color="#43D991" />
+            <MetricCard icon="people" title="Estudiantes inscritos" value={String(totals.students)} color="#43D991" />
+            <MetricCard icon="pulse" title="Alumnos activos" value={String(weeklyActiveStudentCount)} detail="esta semana" color="#38BDF8" />
             <MetricCard icon="clipboard" title="Preguntas creadas" value={String(totals.questions)} color="#3B82F6" />
-            <MetricCard icon="trophy" title="Puntuación media" value={`${totals.averageScore} Puntos`} color="#F6A64A" />
           </View>
+
+          <RecommendedActionsPanel
+            items={pendingActions}
+            onPress={(item) => router.push(item.href as any)}
+            onViewAll={() => router.push('/(teacher)/students' as any)}
+          />
 
           <View className={isDesktop ? 'mt-8 flex-row gap-6' : 'mt-8 gap-6'}>
             <View className={isDesktop ? 'flex-[1.6]' : ''}>
@@ -302,6 +359,7 @@ export default function TeacherHomeScreen() {
                     playedCount: 0,
                     averageScore: 0,
                     questionsCount: 0,
+                    classroomCount: 0,
                   };
 
                   return <SubjectPreview key={subject.id} subject={subject} analytics={analytics} />;
@@ -314,9 +372,9 @@ export default function TeacherHomeScreen() {
                   className="items-center justify-center rounded-2xl border border-dashed border-[#5364F5] bg-[#07162E] p-8"
                 >
                   <Ionicons name="add-circle-outline" size={52} color="#9B8CFF" />
-                  <Text className="mt-4 text-lg font-black text-white">Crea tu primera clase</Text>
+                  <Text className="mt-4 text-lg font-black text-white">Crea tu primer curso</Text>
                   <Text className="mt-2 text-center text-[#B7C4D7]">
-                    Añade una asignatura para empezar a gestionar alumnos y preguntas.
+                    Añade un curso para empezar a gestionar clases, alumnos y preguntas.
                   </Text>
                 </Pressable>
               ) : null}
@@ -332,27 +390,28 @@ export default function TeacherHomeScreen() {
                   ) : (
                     <View className="rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
                       <Text className="text-center text-[12px] text-[#8FA7C7]">
-                        Aún no hay actividad reciente en tus clases.
+                        Aún no hay actividad reciente en tus cursos.
                       </Text>
                     </View>
                   )}
                 </View>
               </Panel>
 
-              <Panel title="Acciones pendientes" action="Ver clases" onAction={() => router.push('/(teacher)/classes' as any)}>
+              <Panel title="Preguntas a revisar" action="Ver informes" onAction={() => router.push('/(teacher)/classes' as any)}>
                 <View style={{ gap: 10 }}>
-                  {pendingActions.length > 0 ? (
-                    pendingActions.map((item) => (
-                      <PendingActionRow
+                  {problematicQuestions.length > 0 ? (
+                    problematicQuestions.map((item) => (
+                      <ProblematicQuestionRow
                         key={item.id}
                         item={item}
-                        onPress={() => router.push(item.href as any)}
+                        onEdit={() => router.push(item.editHref as any)}
+                        onReport={() => router.push(item.reportHref as any)}
                       />
                     ))
                   ) : (
                     <View className="rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
                       <Text className="text-center text-[12px] text-[#8FA7C7]">
-                        No hay acciones pendientes ahora mismo.
+                        Todavía no hay preguntas problemáticas detectadas.
                       </Text>
                     </View>
                   )}
@@ -370,11 +429,13 @@ function MetricCard({
   icon,
   title,
   value,
+  detail,
   color,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   title: string
   value: string
+  detail?: string
   color: string
 }) {
   return (
@@ -384,27 +445,101 @@ function MetricCard({
       </View>
       <Text className="text-[13px] text-[#B7C4D7]">{title}</Text>
       <Text className="mt-2 text-[28px] font-black text-white">{value}</Text>
+      {detail ? <Text className="mt-1 text-[12px] font-semibold text-[#8FA7C7]">{detail}</Text> : null}
     </View>
   );
 }
 
+function QuickActionButton({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+    >
+      <Ionicons name={icon} size={16} color="#B9A7FF" />
+      <Text className="text-[12px] font-black text-white">{label}</Text>
+    </Pressable>
+  );
+}
+
+function RecommendedActionsPanel({
+  items,
+  onPress,
+  onViewAll,
+}: {
+  items: PendingActionItem[]
+  onPress: (item: PendingActionItem) => void
+  onViewAll: () => void
+}) {
+  return (
+    <View className="mt-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+      <View className="mb-4 flex-row flex-wrap items-center justify-between gap-3">
+        <View>
+          <Text className="text-[20px] font-black text-white">Acciones recomendadas</Text>
+          <Text className="mt-1 text-[12px] text-[#8FA7C7]">Prioriza lo que más impacto puede tener en tus cursos.</Text>
+        </View>
+        <Pressable onPress={onViewAll} className="flex-row items-center gap-1">
+          <Text className="text-[12px] font-semibold text-[#B9A7FF]">Ver estudiantes</Text>
+          <Ionicons name="arrow-forward" size={13} color="#B9A7FF" />
+        </Pressable>
+      </View>
+
+      <View className="gap-3">
+        {items.length > 0 ? (
+          items.slice(0, 3).map((item) => (
+            <PendingActionRow key={item.id} item={item} onPress={() => onPress(item)} />
+          ))
+        ) : (
+          <View className="rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
+            <Text className="text-center text-[12px] text-[#8FA7C7]">
+              No hay acciones pendientes ahora mismo.
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+
 function SubjectPreview({ subject, analytics }: { subject: Subject; analytics: SubjectAnalytics }) {
   return (
-    <Link href={`/(teacher)/subject/${subject.id}`} asChild>
-      <Pressable className="flex-row items-center gap-4 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+      <View className="flex-row items-start gap-4">
         <View className="h-14 w-14 items-center justify-center rounded-xl bg-[#172554]">
           {subject.icon ? <Text className="text-2xl">{subject.icon}</Text> : <Ionicons name="book-outline" size={26} color="#9B8CFF" />}
         </View>
         <View className="min-w-0 flex-1">
           <Text className="text-lg font-black text-white" numberOfLines={1}>{subject.name}</Text>
-          <Text className="mt-1 text-[12px] text-[#B7C4D7]" numberOfLines={1}>Código: {subject.code}</Text>
+          <Text className="mt-1 text-[12px] text-[#B7C4D7]" numberOfLines={1}>
+            {analytics.classroomCount} {analytics.classroomCount === 1 ? 'clase' : 'clases'} · {analytics.enrolledCount} alumnos · {analytics.questionsCount} preguntas
+          </Text>
+          <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>Código del curso: {subject.code}</Text>
         </View>
-        <View className="items-end">
-          <Text className="font-black text-[#B9A7FF]">{analytics.averageScore} Puntos</Text>
-          <Text className="text-[11px] text-[#8FA7C7]">{analytics.enrolledCount} alumnos</Text>
-        </View>
-      </Pressable>
-    </Link>
+      </View>
+
+      <View className="mt-4 flex-row flex-wrap gap-2">
+        <Link href={`/(teacher)/subject/${subject.id}`} asChild>
+          <Pressable className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3">
+            <Ionicons name="settings-outline" size={15} color="#FFFFFF" />
+            <Text className="text-[12px] font-black text-white">Gestionar</Text>
+          </Pressable>
+        </Link>
+        <Link href={`/(teacher)/subject/add-question?subjectId=${subject.id}`} asChild>
+          <Pressable className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3">
+            <Ionicons name="help-circle-outline" size={15} color="#DDE7F4" />
+            <Text className="text-[12px] font-black text-[#DDE7F4]">Crear pregunta</Text>
+          </Pressable>
+        </Link>
+        <Link href={`/(teacher)/subject/${subject.id}?tab=students`} asChild>
+          <Pressable className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3">
+            <Ionicons name="person-add-outline" size={15} color="#DDE7F4" />
+            <Text className="text-[12px] font-black text-[#DDE7F4]">Importar alumnos</Text>
+          </Pressable>
+        </Link>
+      </View>
+    </View>
   );
 }
 
@@ -415,7 +550,7 @@ function Panel({
   children,
 }: {
   title: string
-  action: string
+  action?: string
   onAction?: () => void
   children: React.ReactNode
 }) {
@@ -423,14 +558,14 @@ function Panel({
     <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
       <View className="mb-4 flex-row items-center justify-between">
         <Text className="font-black text-white">{title}</Text>
-        {onAction ? (
+        {action && onAction ? (
           <Pressable onPress={onAction} className="flex-row items-center gap-1">
             <Text className="text-[12px] font-semibold text-[#B9A7FF]">{action}</Text>
             <Ionicons name="arrow-forward" size={13} color="#B9A7FF" />
           </Pressable>
-        ) : (
+        ) : action ? (
           <Text className="text-[12px] font-semibold text-[#B9A7FF]">{action}</Text>
-        )}
+        ) : null}
       </View>
       {children}
     </View>
@@ -467,6 +602,39 @@ function PendingActionRow({ item, onPress }: { item: PendingActionItem; onPress:
     </Pressable>
   );
 }
+
+function ProblematicQuestionRow({
+  item,
+  onEdit,
+  onReport,
+}: {
+  item: ProblematicQuestionItem
+  onEdit: () => void
+  onReport: () => void
+}) {
+  return (
+    <View className="rounded-xl border border-[#3F2430] bg-[#160D19] px-4 py-3">
+      <View className="flex-row items-start gap-3">
+        <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#F43F5E29]">
+          <Ionicons name="warning-outline" size={18} color="#F43F5E" />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="font-bold text-white" numberOfLines={2}>{item.text}</Text>
+          <Text className="mt-1 text-[11px] text-[#FCA5A5]">{item.failures} fallos · {item.subjectName}</Text>
+        </View>
+      </View>
+      <View className="mt-3 flex-row flex-wrap gap-2">
+        <Pressable onPress={onEdit} className="rounded-lg bg-[#BE123C] px-3 py-2">
+          <Text className="text-[11px] font-black text-white">Editar pregunta</Text>
+        </Pressable>
+        <Pressable onPress={onReport} className="rounded-lg border border-[#4A1E2B] bg-[#2A0B18] px-3 py-2">
+          <Text className="text-[11px] font-black text-[#FCA5A5]">Ver intentos</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 
 async function fetchProfilesById(studentIds: string[]) {
   const { data, error } = await supabase.from('profiles').select('id, alias').in('id', studentIds);
@@ -506,9 +674,9 @@ function buildPendingActions({
         id: `no-questions-${subject.id}`,
         icon: 'help-circle-outline',
         color: '#38BDF8',
-        title: 'Clase sin preguntas',
+        title: 'Curso sin preguntas',
         detail: `${subject.name} todavía no tiene contenido.`,
-        actionLabel: 'Añadir',
+        actionLabel: 'Añadir pregunta',
         href: `/(teacher)/subject/add-question?subjectId=${subject.id}`,
       });
     });
@@ -521,10 +689,10 @@ function buildPendingActions({
         id: `no-students-${subject.id}`,
         icon: 'person-add-outline',
         color: '#F6A64A',
-        title: 'Clase sin alumnos',
+        title: 'Curso sin alumnos',
         detail: `${subject.name} no tiene estudiantes inscritos.`,
         actionLabel: 'Invitar',
-        href: `/(teacher)/subject/students?subjectId=${subject.id}`,
+        href: `/(teacher)/subject/${subject.id}?tab=students`,
       });
     });
 
@@ -613,6 +781,73 @@ function buildPendingActions({
   return actions.slice(0, 5);
 }
 
+function buildProblematicQuestions({
+  subjects,
+  attempts,
+}: {
+  subjects: Subject[]
+  attempts: AttemptActivityRow[]
+}): ProblematicQuestionItem[] {
+  const subjectsById = new Map(subjects.map((subject) => [subject.id, subject]));
+  const teacherSubjectIds = new Set(subjects.map((subject) => subject.id));
+  const failedQuestions = new Map<number, { subjectId: number; text: string; failures: number }>();
+
+  attempts.forEach((attempt) => {
+    if (attempt.is_correct !== false) return;
+
+    const question = normalizeQuestionRelation(attempt.questions);
+    const questionId = attempt.question_id ?? question?.id ?? null;
+    const subjectId = question?.subject_id ?? null;
+
+    if (!questionId || !subjectId || !teacherSubjectIds.has(subjectId)) return;
+
+    const current = failedQuestions.get(questionId) || {
+      subjectId,
+      text: question?.text || 'Pregunta sin texto',
+      failures: 0,
+    };
+
+    current.failures += 1;
+    failedQuestions.set(questionId, current);
+  });
+
+  return Array.from(failedQuestions.entries())
+    .map(([questionId, item]) => {
+      const subject = subjectsById.get(item.subjectId);
+      return {
+        id: `problematic-${questionId}`,
+        questionId,
+        subjectId: item.subjectId,
+        subjectName: subject?.name || 'Curso',
+        text: item.text,
+        failures: item.failures,
+        editHref: `/(teacher)/subject/edit-question?subjectId=${item.subjectId}&questionId=${questionId}`,
+        reportHref: `/(teacher)/subject/${item.subjectId}?tab=reports`,
+      } satisfies ProblematicQuestionItem;
+    })
+    .filter((item) => item.failures >= 3)
+    .sort((left, right) => right.failures - left.failures)
+    .slice(0, 4);
+}
+
+function getWeeklyActiveStudentCount(attempts: AttemptActivityRow[], teacherSubjectIds: Set<number>) {
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const activeStudentIds = new Set<string>();
+
+  attempts.forEach((attempt) => {
+    const question = normalizeQuestionRelation(attempt.questions);
+    const subjectId = question?.subject_id ?? null;
+    const timestamp = toTimestamp(attempt.attempted_at);
+
+    if (attempt.student_id && subjectId && teacherSubjectIds.has(subjectId) && timestamp >= weekAgo) {
+      activeStudentIds.add(attempt.student_id);
+    }
+  });
+
+  return activeStudentIds.size;
+}
+
+
 function buildRecentActivity({
   subjects,
   enrollments,
@@ -626,50 +861,106 @@ function buildRecentActivity({
 }) {
   const subjectsById = new Map(subjects.map((subject) => [subject.id, subject]));
   const teacherSubjectIds = new Set(subjects.map((subject) => subject.id));
+  const items: RecentActivityItem[] = [];
+  const enrollmentGroups = new Map<string, { subjectName: string; count: number; timestamp: number; date: string | null }>();
 
-  const enrollmentItems: RecentActivityItem[] = enrollments
+  enrollments
     .filter((enrollment) => enrollment.subject_id && enrollment.student_id && enrollment.joined_at)
-    .map((enrollment) => {
+    .forEach((enrollment) => {
       const subject = enrollment.subject_id ? subjectsById.get(enrollment.subject_id) : null;
-      const studentName = getStudentName(enrollment.student_id, profilesById);
-      const timestamp = toTimestamp(enrollment.joined_at);
-
-      return {
-        id: `enrollment-${enrollment.subject_id}-${enrollment.student_id}-${timestamp}`,
-        icon: 'person-add-outline',
-        color: '#8B5CF6',
-        title: `${studentName} se unió a ${subject?.name || 'una clase'}`,
-        time: formatRelativeDate(enrollment.joined_at),
-        timestamp,
+      const dateKey = getDateKey(enrollment.joined_at);
+      const key = `${enrollment.subject_id}-${dateKey}`;
+      const previous = enrollmentGroups.get(key) || {
+        subjectName: subject?.name || 'un curso',
+        count: 0,
+        timestamp: 0,
+        date: enrollment.joined_at || null,
       };
+      const timestamp = toTimestamp(enrollment.joined_at);
+      enrollmentGroups.set(key, {
+        ...previous,
+        count: previous.count + 1,
+        timestamp: Math.max(previous.timestamp, timestamp),
+        date: timestamp >= previous.timestamp ? enrollment.joined_at || null : previous.date,
+      });
     });
 
-  const attemptItems: RecentActivityItem[] = attempts
-    .map((attempt) => {
-      const question = normalizeQuestionRelation(attempt.questions);
-      const subjectId = question?.subject_id ?? null;
-      if (!subjectId || !teacherSubjectIds.has(subjectId) || !attempt.attempted_at) return null;
+  Array.from(enrollmentGroups.entries()).forEach(([key, group]) => {
+    items.push({
+      id: `enrollment-group-${key}`,
+      icon: 'person-add-outline',
+      color: '#8B5CF6',
+      title: `${group.count} alumno${group.count === 1 ? '' : 's'} se ${group.count === 1 ? 'unió' : 'unieron'} a ${group.subjectName}`,
+      time: formatRelativeDate(group.date),
+      timestamp: group.timestamp,
+    });
+  });
 
-      const subject = subjectsById.get(subjectId);
+  const attemptGroups = new Map<string, { subjectName: string; count: number; timestamp: number; date: string | null }>();
+  const failedAttemptItems: RecentActivityItem[] = [];
+
+  attempts.forEach((attempt) => {
+    const question = normalizeQuestionRelation(attempt.questions);
+    const subjectId = question?.subject_id ?? null;
+    if (!subjectId || !teacherSubjectIds.has(subjectId) || !attempt.attempted_at) return;
+
+    const subject = subjectsById.get(subjectId);
+    const timestamp = toTimestamp(attempt.attempted_at);
+    const dateKey = getDateKey(attempt.attempted_at);
+    const key = `${subjectId}-${dateKey}`;
+    const previous = attemptGroups.get(key) || {
+      subjectName: subject?.name || 'un curso',
+      count: 0,
+      timestamp: 0,
+      date: attempt.attempted_at || null,
+    };
+
+    attemptGroups.set(key, {
+      ...previous,
+      count: previous.count + 1,
+      timestamp: Math.max(previous.timestamp, timestamp),
+      date: timestamp >= previous.timestamp ? attempt.attempted_at || null : previous.date,
+    });
+
+    if (attempt.is_correct === false) {
       const studentName = getStudentName(attempt.student_id, profilesById);
-      const timestamp = toTimestamp(attempt.attempted_at);
-      const wasCorrect = Boolean(attempt.is_correct);
-
-      return {
-        id: `attempt-${subjectId}-${attempt.student_id}-${timestamp}-${wasCorrect ? 'ok' : 'ko'}`,
-        icon: wasCorrect ? 'checkmark-circle-outline' : 'close-circle-outline',
-        color: wasCorrect ? '#34D399' : '#F97316',
-        title: `${studentName} respondió ${wasCorrect ? 'correctamente' : 'un reto'} en ${subject?.name || 'una clase'}`,
+      failedAttemptItems.push({
+        id: `failed-attempt-${attempt.question_id}-${attempt.student_id}-${timestamp}`,
+        icon: 'close-circle-outline',
+        color: '#F97316',
+        title: `${studentName} falló “${truncateText(question?.text || 'Pregunta sin texto', 34)}”`,
         time: formatRelativeDate(attempt.attempted_at),
         timestamp,
-      };
-    })
-    .filter((item): item is RecentActivityItem => Boolean(item));
+      });
+    }
+  });
 
-  return [...enrollmentItems, ...attemptItems]
+  Array.from(attemptGroups.entries()).forEach(([key, group]) => {
+    items.push({
+      id: `attempt-group-${key}`,
+      icon: 'checkmark-circle-outline',
+      color: '#34D399',
+      title: `${group.count} respuesta${group.count === 1 ? '' : 's'} registrada${group.count === 1 ? '' : 's'} en ${group.subjectName}`,
+      time: formatRelativeDate(group.date),
+      timestamp: group.timestamp,
+    });
+  });
+
+  return [...items, ...failedAttemptItems]
     .sort((left, right) => right.timestamp - left.timestamp)
     .slice(0, 5);
 }
+
+function isMissingSchemaError(errorCode?: string) {
+  return errorCode === '42P01' || errorCode === '42703' || errorCode === 'PGRST204';
+}
+
+function getDateKey(value: string | null | undefined) {
+  const timestamp = toTimestamp(value);
+  if (timestamp === 0) return 'unknown';
+  return new Date(timestamp).toISOString().slice(0, 10);
+}
+
 
 function normalizeQuestionRelation(value: AttemptActivityRow['questions']) {
   if (Array.isArray(value)) return value[0] || null;
