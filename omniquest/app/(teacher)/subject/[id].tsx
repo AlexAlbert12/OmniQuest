@@ -39,8 +39,8 @@ import {
   type StudentStatusFilter,
   type SubjectScore,
 } from '../../../lib/teacherSubjectAnalytics';
-import TeacherSidebar from '../../../components/TeacherSidebar';
-import TeacherStudentImportModal from '../../../components/TeacherStudentImportModal';
+import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
+import TeacherStudentImportModal from '../../../components/teacher/TeacherStudentImportModal';
 
 type IconName = keyof typeof Ionicons.glyphMap
 

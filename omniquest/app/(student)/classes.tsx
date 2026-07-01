@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons'
 import AppConfirmModal from '../../components/AppConfirmModal'
 import { supabase } from '../../lib/supabase'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
-import StudentSidebar from '../../components/StudentSidebar'
+import StudentSidebar from '../../components/student/StudentSidebar'
 import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge'
 import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
@@ -651,16 +651,31 @@ function RecommendedCourseCard({
 
   return (
     <View className="mt-5 overflow-hidden rounded-2xl border border-[#2B3F7A] bg-[#101D4A] p-5">
-      <View className="absolute right-[-34px] top-[-44px] h-36 w-36 rounded-full bg-[#6C5CE7]/20" />
-      <Text className="text-[12px] font-black uppercase tracking-[0.08em] text-[#A78BFA]">Recomendado para ti</Text>
-      <Text className="mt-2 text-[22px] font-black text-white">{title}</Text>
-      <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">{detail}</Text>
+      <View className="absolute inset-0 bg-[#17135A]" />
+      <View className="absolute top-5 h-24 w-24 rounded-full bg-[#6C5CE7]/20" style={{ right: '34%' }} />
+      <View className="absolute top-8 h-10 w-28 rounded-full border border-[#7B68FF]/35" style={{ right: '26%', transform: [{ rotate: '-18deg' }] }} />
+      <Ionicons
+        name="rocket"
+        size={76}
+        color="#7C5CFF"
+        style={{ position: 'absolute', right: '38%', top: 24, transform: [{ rotate: '28deg' }] }}
+      />
+      <View className="relative flex-row flex-wrap items-center gap-5">
+        <View className="min-w-[260px] flex-1">
+          <Text className="text-[12px] font-black uppercase tracking-[0.08em] text-[#A78BFA]">Recomendado para ti</Text>
+          <Text className="mt-3 text-[24px] font-black text-white">{title}</Text>
+          <Text className="mt-2 text-[13px] leading-5 text-[#D8E3F3]">{detail}</Text>
+        </View>
+        <View className="hidden h-24 w-px bg-[#364172] lg:flex" />
+        <View className="min-w-[210px] items-end">
       <Link href={buildClassHref(subject) as any} asChild>
-        <Pressable className="mt-4 flex-row items-center justify-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: accentColor }}>
+        <Pressable className="flex-row items-center justify-center gap-2 rounded-xl px-6 py-4" style={{ backgroundColor: accentColor }}>
           <Ionicons name={failed > 0 ? 'refresh' : pending > 0 ? 'play-forward' : 'repeat'} size={16} color="#FFFFFF" />
           <Text className="font-black text-white">{buttonLabel}</Text>
         </Pressable>
       </Link>
+        </View>
+      </View>
     </View>
   )
 }
@@ -928,35 +943,46 @@ function JoinClassCard({
   const { accentColor } = useAppTheme()
 
   return (
-    <View className="mt-4 flex-row flex-wrap items-center gap-4 rounded-2xl border border-dashed bg-[#101B49] p-5" style={{ borderColor: accentColor }}>
-      <View className="h-14 w-14 items-center justify-center rounded-full border bg-[#0D1D3B]" style={{ borderColor: accentColor }}>
-        <Ionicons name="add" size={28} color={accentColor} />
-      </View>
-      <View className="min-w-[220px] flex-1">
-        <Text className="text-[16px] font-black" style={{ color: accentColor }}>Unirse a un curso o clase</Text>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]">
-          ¿Tienes un código de invitación? Únete y empieza a aprender.
-        </Text>
-      </View>
-      <View className="flex-row gap-3">
-        <TextInput
-          className="w-36 rounded-xl border border-[#253C67] bg-[#091A35] px-4 py-3 text-center font-bold uppercase tracking-widest text-white"
-          placeholder="CÓDIGO"
-          placeholderTextColor="#60799C"
-          value={inviteCode}
-          onChangeText={(value) => onChangeCode(value.trim().toUpperCase())}
-          maxLength={6}
-          autoCapitalize="characters"
-        />
-        <Pressable
-          onPress={onJoin}
-          disabled={joining}
-          className="flex-row items-center justify-center gap-2 rounded-xl border px-5 py-3"
-          style={({ pressed }) => ({ borderColor: accentColor, opacity: joining ? 0.7 : pressed ? 0.82 : 1 })}
-        >
-          {joining ? <ActivityIndicator color={accentColor} /> : <Text className="font-bold" style={{ color: accentColor }}>Unirse</Text>}
-          {!joining ? <Ionicons name="arrow-forward" size={16} color={accentColor} /> : null}
-        </Pressable>
+    <View className="mt-4 rounded-2xl border border-dashed border-[#6C5CE7] bg-[#0A1730] p-4">
+      <View className="flex-row flex-wrap items-center gap-5">
+        <View className="h-14 w-14 items-center justify-center rounded-full border border-[#6C5CE7] bg-[#0D1D3B]">
+          <Ionicons name="add" size={28} color={accentColor} />
+        </View>
+        <View className="min-w-[240px] flex-1">
+          <Text className="text-[16px] font-black" style={{ color: accentColor }}>Unirse a un curso o clase</Text>
+          <Text className="mt-1 text-[13px] text-[#AFC2DB]">
+            ¿Tienes un código de invitación? Únete y empieza a aprender.
+          </Text>
+        </View>
+        <View className="min-w-[360px] flex-1 flex-row overflow-hidden rounded-xl border border-[#20375E] bg-[#091A35]">
+          <View className="items-center justify-center px-4">
+            <Ionicons name="keypad-outline" size={20} color="#8FA7C7" />
+          </View>
+          <TextInput
+            className="min-w-0 flex-1 px-4 py-3 text-white"
+            placeholder="Código de clase"
+            placeholderTextColor="#60799C"
+            value={inviteCode}
+            onChangeText={(value) => onChangeCode(value.trim().toUpperCase())}
+            maxLength={6}
+            autoCapitalize="characters"
+          />
+          <Pressable
+            onPress={onJoin}
+            disabled={joining}
+            className="items-center justify-center px-7"
+            style={({ pressed }) => ({ backgroundColor: accentColor, opacity: joining ? 0.7 : pressed ? 0.82 : 1 })}
+          >
+            {joining ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <View className="flex-row items-center gap-2">
+                <Text className="font-black text-white">Unirse</Text>
+                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+              </View>
+            )}
+          </Pressable>
+        </View>
       </View>
     </View>
   )

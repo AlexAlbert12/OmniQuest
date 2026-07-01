@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import { getStudentLevel, getNextLevelProgress } from '../../lib/studentLevel'
 import { getTimeAgo } from '../../lib/time'
-import StudentSidebar from '../../components/StudentSidebar'
+import StudentSidebar from '../../components/student/StudentSidebar'
 import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge'
 import { fetchStudentProgressSummary, type StudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
@@ -14,7 +14,6 @@ import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import StudentDashboardCard, { StudentCardLink as CardLink } from '../../components/student/StudentDashboardCard'
 import StudentMetricCard from '../../components/student/StudentMetricCard'
 import { useAppTheme } from '../../lib/appTheme'
-import { withAlpha } from '../../lib/color'
 import { joinClassByInviteCode } from '../../lib/studentClassJoin'
 
 type Subject = {
@@ -41,16 +40,9 @@ type ActivityItem = {
   icon: keyof typeof Ionicons.glyphMap
   color: string
   title: string
+  course: string
   detail: string
   time: string
-}
-
-type SubjectScore = {
-  subject_id: number | null
-  classroom_id?: number | null
-  max_score: number | null
-  played_at: string | null
-  played_days: string[] | null
 }
 
 type HomeHeroAction = {
@@ -77,8 +69,8 @@ function buildHomeHeroAction(
 
   if (failedRow && failedQuestions > 0) {
     return {
-      title: `Tienes ${failedQuestions} ${failedQuestions === 1 ? 'pregunta fallada' : 'preguntas falladas'} para repasar`,
-      description: `Empieza por ${failedRow.subject.name} y refuerza lo que más te está costando.`,
+      title: `Resumen del día`,
+      description: `Tienes ${failedQuestions} ${failedQuestions === 1 ? 'pregunta fallada' : 'fallos'} por repasar. Empieza por ${failedRow.subject.name} y refuerza lo que más te está costando.`,
       buttonLabel: 'Repasar fallos',
       icon: 'refresh-circle',
       href: buildClassHref(failedRow.subject),
@@ -88,8 +80,8 @@ function buildHomeHeroAction(
   if (pendingRow?.progress) {
     const pending = pendingRow.progress.pendingQuestions
     return {
-      title: `Continúa con ${pendingRow.subject.name}`,
-      description: `Te ${pending === 1 ? 'queda' : 'quedan'} ${pending} ${pending === 1 ? 'pregunta' : 'preguntas'} por practicar.`,
+      title: `Resumen del día`,
+      description: `Continúa con ${pendingRow.subject.name}. Te ${pending === 1 ? 'queda' : 'quedan'} ${pending} ${pending === 1 ? 'pregunta' : 'preguntas'} por practicar.`,
       buttonLabel: 'Continuar',
       icon: 'play-forward',
       href: buildClassHref(pendingRow.subject),
@@ -115,10 +107,6 @@ function buildHomeHeroAction(
   }
 }
 
-function getRecommendedSubject(subjects: Subject[], progressRows: StudentProgressSubject[]): SubjectProgressRow | null {
-  return getSubjectProgressRows(subjects, progressRows)[0] ?? null
-}
-
 function getSubjectProgressRows(subjects: Subject[], progressRows: StudentProgressSubject[]): SubjectProgressRow[] {
   return subjects
     .map((subject) => ({
@@ -136,12 +124,10 @@ function getSubjectProgressRows(subjects: Subject[], progressRows: StudentProgre
     })
 }
 
-
 export default function StudentHome() {
   const { width } = useWindowDimensions()
   const [inviteCode, setInviteCode] = useState('')
   const [enrolledSubjects, setEnrolledSubjects] = useState<Subject[]>([])
-  const [subjectScores, setSubjectScores] = useState<Record<string, number>>({});
   const [profile, setProfile] = useState<Profile | null>(null)
   const [ranking, setRanking] = useState<Profile[]>([])
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
@@ -164,9 +150,15 @@ export default function StudentHome() {
     (sum, subject) => sum + subject.failedQuestions,
     0
   ) ?? 0
+
   const heroAction = useMemo(
     () => buildHomeHeroAction(enrolledSubjects, progressSummary?.subjects ?? [], failedQuestions),
     [enrolledSubjects, failedQuestions, progressSummary?.subjects]
+  )
+
+  const subjectProgressRows = useMemo(
+    () => getSubjectProgressRows(enrolledSubjects, progressSummary?.subjects ?? []),
+    [enrolledSubjects, progressSummary?.subjects]
   )
 
   const displayedRanking = useMemo(() => {
@@ -182,11 +174,6 @@ export default function StudentHome() {
       { id: 'demo-4', alias: 'Lucho94', avatar: null, points: 2980 },
     ]
   }, [alias, currentUserId, points, profile?.role_id, ranking])
-
-  const recommendedSubject = useMemo(
-    () => getRecommendedSubject(enrolledSubjects, progressSummary?.subjects ?? []),
-    [enrolledSubjects, progressSummary?.subjects]
-  )
 
   const rankingSummary = useMemo(
     () => getRankingSummary(displayedRanking, currentUserId, points),
@@ -208,17 +195,13 @@ export default function StudentHome() {
       startOfWeek.setDate(now.getDate() - diffToMonday);
       startOfWeek.setHours(0, 0, 0, 0);
 
-      const [profileResult, enrollmentsResult, scoresResult, rankingResult, activityResult, attemptHistoryResult, progressResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, rankingResult, activityResult, attemptHistoryResult, progressResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, points, role_id').eq('id', userId).single(),
         supabase
           .from('enrollments')
           .select('classroom_id, joined_at, subjects(*), classrooms(id, name, code)')
           .eq('student_id', userId)
           .order('joined_at', { ascending: false }),
-        supabase
-          .from('subject_scores')
-          .select('subject_id, classroom_id, max_score, played_at, played_days')
-          .eq('student_id', userId),
         supabase
           .from('profiles')
           .select('id, alias, avatar, points')
@@ -233,6 +216,7 @@ export default function StudentHome() {
             attempted_at,
             questions (
               text,
+              subjects ( name ),
               subject_topics ( title )
             )
           `)
@@ -248,7 +232,6 @@ export default function StudentHome() {
 
       if (profileResult.error) throw profileResult.error;
       if (enrollmentsResult.error) throw enrollmentsResult.error;
-      if (scoresResult.error) throw scoresResult.error;
       if (rankingResult.error) throw rankingResult.error;
       if (activityResult.error) throw activityResult.error;
       if (attemptHistoryResult.error) throw attemptHistoryResult.error;
@@ -261,11 +244,11 @@ export default function StudentHome() {
             const classroom = normalizeRelation(enrollment.classrooms)
             return subject
               ? {
-                  ...subject,
-                  classroom_id: Number(enrollment.classroom_id ?? classroom?.id ?? 0) || null,
-                  classroom_name: classroom?.name ?? null,
-                  classroom_code: classroom?.code ?? null,
-                }
+                ...subject,
+                classroom_id: Number(enrollment.classroom_id ?? classroom?.id ?? 0) || null,
+                classroom_name: classroom?.name ?? null,
+                classroom_code: classroom?.code ?? null,
+              }
               : null
           })
           .filter(Boolean) || []
@@ -274,29 +257,22 @@ export default function StudentHome() {
       setAttemptCount(attemptHistoryResult.count ?? 0);
 
       setProgressSummary(progressResult);
-
-      const scoreRows = (scoresResult.data || []) as SubjectScore[];
-      const scoreMap: Record<string, number> = {};
-      scoreRows.forEach((score) => {
-        const key = getCourseRowKey({ id: Number(score.subject_id), classroom_id: score.classroom_id ?? null });
-        if (score.subject_id !== null && score.max_score !== null) {
-          scoreMap[key] = score.max_score;
-        }
-      });
-      setSubjectScores(scoreMap);
       const activities: ActivityItem[] = (activityResult.data || []).map((attempt: any) => {
         const timeAgo = getTimeAgo(attempt.attempted_at);
         const isCorrect = attempt.is_correct;
         const topicData = attempt.questions?.subject_topics;
         const topicTitle = Array.isArray(topicData) ? topicData[0]?.title : topicData?.title;
         const questionText = attempt.questions?.text;
+        const subjectData = attempt.questions?.subjects;
+        const courseName = Array.isArray(subjectData) ? subjectData[0]?.name : subjectData?.name;
 
         return {
           id: String(attempt.id),
           icon: isCorrect ? 'checkmark' : 'close',
           color: isCorrect ? '#70E0A5' : '#FB7185',
           title: isCorrect ? 'Acertaste una pregunta' : 'Fallaste una pregunta',
-          detail: questionText || (topicTitle ? `Tema: ${topicTitle}` : 'Práctica'),
+          course: courseName || topicTitle || 'Práctica',
+          detail: questionText || (topicTitle ? `Tema: ${topicTitle}` : 'Sin pregunta registrada'),
           time: timeAgo,
         };
       });
@@ -306,6 +282,7 @@ export default function StudentHome() {
         icon: 'rocket',
         color: '#3B82F6',
         title: '¡Tu aventura comienza aquí!',
+        course: 'OmniQuest',
         detail: 'Juega tu primera partida para ver tu historial.',
         time: 'Ahora'
       }]);
@@ -399,14 +376,14 @@ export default function StudentHome() {
 
             <View className={isWide ? 'flex-row gap-3' : 'gap-3'}>
               <StudentMetricCard
-                title="Avance de cursos"
+                title="Contenido visto"
                 value={`${progressPercent}%`}
                 icon="analytics-outline"
                 color="#43D991"
                 onPress={() => router.push('/(student)/progress')}
               />
               <StudentMetricCard
-                title="Preguntas completadas"
+                title="Preguntas hechas"
                 value={attemptCount.toString()}
                 icon="trophy"
                 color={accentColor}
@@ -429,27 +406,23 @@ export default function StudentHome() {
             </View>
           </View>
 
-          {recommendedSubject ? (
-            <RecommendedSubjectCard row={recommendedSubject} className="mt-5" />
-          ) : null}
-
-          <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
-            <StudentDashboardCard title="Continúa aprendiendo" className={isDesktop ? 'flex-[1.15]' : ''} compact>
+          <View className={isDesktop ? 'mt-5 flex-row items-start gap-5' : 'mt-5 gap-5'}>
+            <StudentDashboardCard title="Continúa aprendiendo" className={isDesktop ? 'flex-1' : ''} compact>
               <View style={{ gap: 10 }}>
                 {enrolledSubjects.length > 0 ? (
-                  enrolledSubjects.slice(0, 3).map((subject, index) => (
-                    <SubjectRow
-                      key={getCourseRowKey(subject)}
-                      subject={subject}
-                      index={index}
-                      score={subjectScores[getCourseRowKey(subject)]}
-                      progress={progressSummary?.subjects.find((item) => getProgressRowKey(item) === getCourseRowKey(subject))}
-                    />
+                  subjectProgressRows.slice(0, 3).map((row, index) => (
+                      <SubjectRow
+                        key={getCourseRowKey(row.subject)}
+                        subject={row.subject}
+                        index={index}
+                        progress={row.progress}
+                      />
                   ))
                 ) : (
                   <EmptyClasses />
                 )}
               </View>
+              <CardLink label="Ver todos mis cursos" onPress={() => router.push('/(student)/classes' as any)} />
             </StudentDashboardCard>
 
             <StudentDashboardCard title="Actividad reciente" className={isDesktop ? 'flex-1' : ''} compact>
@@ -468,36 +441,49 @@ export default function StudentHome() {
             </StudentDashboardCard>
           </View>
 
-          <StudentDashboardCard title="¿Tienes un código de clase?" className="mt-5" compact>
-            <View className={isWide ? 'flex-row items-center gap-3' : 'gap-3'}>
-              <Text className="flex-1 text-[13px] leading-5 text-[#AFC2DB]">
-                Únete a otro curso o clase con el código que te haya dado tu profesor.
-              </Text>
-              <View className={isWide ? 'min-w-[360px] flex-row gap-3' : 'flex-row gap-3'}>
+          <View className="mt-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+            <View className={isWide ? 'flex-row items-center gap-5' : 'gap-3'}>
+              <View className="min-w-[220px] flex-1">
+                <Text className="text-[16px] font-black text-white">Unirse a un curso</Text>
+                <Text className="mt-1 text-[13px] text-[#AFC2DB]">Introduce el código que te haya dado tu profesor.</Text>
+              </View>
+              <View className={isWide ? 'min-w-[420px] flex-row gap-0 overflow-hidden rounded-xl border border-[#20375E] bg-[#091A35]' : 'flex-row gap-0 overflow-hidden rounded-xl border border-[#20375E] bg-[#091A35]'}>
+                <View className="items-center justify-center px-4">
+                  <Ionicons name="keypad-outline" size={20} color="#8FA7C7" />
+                </View>
                 <TextInput
-                  className="min-w-0 flex-1 rounded-xl border border-[#20375E] bg-[#091A35] px-4 py-3 text-center font-bold uppercase tracking-widest text-white"
-                  placeholder="CÓDIGO"
+                  className="min-w-0 flex-1 px-4 py-3 text-white"
+                  placeholder="Introduce el código"
                   placeholderTextColor="#60799C"
                   value={inviteCode}
-                  onChangeText={setInviteCode}
+                  onChangeText={(value) => setInviteCode(value.trim().toUpperCase())}
                   maxLength={6}
                   autoCapitalize="characters"
                 />
                 <Pressable
                   onPress={handleJoinClass}
                   disabled={joining}
-                  className="items-center justify-center rounded-xl px-5"
+                  className="items-center justify-center px-6"
                   style={({ pressed }) => ({ backgroundColor: accentColor, opacity: joining ? 0.7 : pressed ? 0.82 : 1 })}
                 >
                   {joining ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <Text className="font-bold text-white">Unirse</Text>
+                    <View className="flex-row items-center gap-2">
+                      <Text className="font-bold text-white">Unirse</Text>
+                      <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                    </View>
                   )}
                 </Pressable>
               </View>
+              {isWide ? (
+                <View className="hidden min-w-[230px] border-l border-[#172A4A] pl-5 lg:flex">
+                  <Text className="text-[13px] font-bold text-[#DDE7F4]">¿No tienes un código?</Text>
+                  <Text className="mt-1 text-[12px] leading-5 text-[#8FA7C7]">Pide a tu profesor uno nuevo.</Text>
+                </View>
+              ) : null}
             </View>
-          </StudentDashboardCard>
+          </View>
         </ScrollView>
       </View>
 
@@ -528,7 +514,7 @@ function HeroCard({ isWide, action }: { isWide: boolean; action: HomeHeroAction 
       />
 
       <View className="relative flex-1 justify-center p-8">
-        <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: 30 }} className="max-w-[420px] text-[24px] leading-10 text-white">{action.title}</Text>
+        <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: 32 }} className="max-w-[420px] text-[24px] leading-10 text-white">{action.title}</Text>
         <Text className="mt-3 max-w-[360px] text-[14px] leading-6 text-[#B4C4DA]">
           {action.description}
         </Text>
@@ -547,21 +533,15 @@ function HeroCard({ isWide, action }: { isWide: boolean; action: HomeHeroAction 
 function SubjectRow({
   subject,
   index,
-  score,
   progress,
 }: {
   subject: Subject
   index: number
-  score?: number
   progress?: StudentProgressSubject
 }) {
   const colors = ['#4ADE80', '#8B5CF6', '#3B82F6']
-  const hasScore = typeof score === 'number'
   const progressPercent = progress?.percent ?? 0
-  const status = getClassProgressStatus(progress)
-  const action = getSubjectAction(progress)
   const color = subject.theme_color || colors[index] || '#58B5FF'
-  const { accentColor } = useAppTheme()
 
   return (
     <Link
@@ -585,54 +565,10 @@ function SubjectRow({
             {subject.classroom_name ? `${subject.classroom_name} · ` : ''}
             {progress ? `${progressPercent}% completado` : 'Sin progreso registrado'}
           </Text>
-          <Text className="mt-1 text-[12px] font-bold" style={{ color: action.color }}>
-            {getSubjectActionDetail(progress, hasScore ? score : undefined, status.label)}
-          </Text>
-        </View>
-        <View
-          className="min-w-[96px] flex-row items-center justify-center gap-2 rounded-lg px-3 py-2"
-          style={{ backgroundColor: action.isPrimary ? accentColor : withAlpha(action.color, '28') }}
-        >
-          <Ionicons name={action.icon} size={14} color="#FFFFFF" />
-          <Text className="hidden text-[12px] font-bold text-white sm:flex">
-            {action.label}
-          </Text>
+
         </View>
       </Pressable>
     </Link>
-  )
-}
-
-function RecommendedSubjectCard({ row, className = '' }: { row: SubjectProgressRow; className?: string }) {
-  const { accentColor } = useAppTheme()
-  const action = getSubjectAction(row.progress)
-  const detail = getSubjectActionDetail(row.progress, undefined, getClassProgressStatus(row.progress).label)
-
-  return (
-    <StudentDashboardCard title="Recomendado para ti" className={className} compact>
-      <Link href={buildClassHref(row.subject) as any} asChild>
-        <Pressable className="flex-row flex-wrap items-center gap-4 rounded-xl border border-[#20375E] bg-[#0D1D3B] p-4">
-          <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(action.color, '28') }}>
-            <Ionicons name={action.icon} size={24} color={action.color} />
-          </View>
-          <View className="min-w-[220px] flex-1">
-            <Text className="text-[12px] font-black uppercase tracking-[0.08em]" style={{ color: action.color }}>
-              Recomendado
-            </Text>
-            <Text className="mt-1 text-[18px] font-black text-white">{row.subject.name}</Text>
-            <Text className="mt-1 text-[13px] text-[#AFC2DB]" numberOfLines={1}>
-              {detail}{row.subject.classroom_name ? ` · ${row.subject.classroom_name}` : ''}
-            </Text>
-          </View>
-          <View className="flex-row items-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: action.isPrimary ? accentColor : withAlpha(action.color, '30') }}>
-            <Ionicons name={action.icon} size={16} color="#FFFFFF" />
-            <Text className="font-black text-white">
-              {action.label === 'Repasar' ? 'Repasar ahora' : action.label}
-            </Text>
-          </View>
-        </Pressable>
-      </Link>
-    </StudentDashboardCard>
   )
 }
 
@@ -644,22 +580,33 @@ function RankingSummaryCard({
     points: number
     aheadAlias?: string
     gapToAhead: number
+    rivalAlias?: string
+    rivalGap: number
   }
 }) {
   return (
-    <View className="rounded-xl border border-[#20375E] bg-[#0D1D3B] p-4">
-      <View className="flex-row items-center gap-3">
-        <View className="h-12 w-12 items-center justify-center rounded-xl bg-[#241B62]">
-          <Ionicons name="trophy" size={24} color="#B9A7FF" />
+    <View className="rounded-xl border border-[#4F46E5]/70 bg-[#1A1450] p-4">
+      <View className="flex-row items-center gap-4">
+        <View className="h-14 w-14 items-center justify-center rounded-xl bg-[#2B1D73]">
+          <Ionicons name="trophy" size={30} color="#B9A7FF" />
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="text-[24px] font-black text-white">{summary.position}º · {summary.points.toLocaleString()} XP</Text>
-          <Text className="mt-1 text-[13px] text-[#AFC2DB]">
-            {summary.aheadAlias
-              ? `${summary.aheadAlias} está a ${summary.gapToAhead.toLocaleString()} XP`
-              : 'Vas en cabeza entre los datos visibles'}
-          </Text>
+          <View className="flex-row flex-wrap items-center gap-2">
+            <Text className="text-[24px] font-black text-white">{summary.position}º · {summary.points.toLocaleString()} XP</Text>
+            <View className="rounded-full bg-[#2D256B] px-2 py-1">
+              <Text className="text-[11px] font-bold text-[#B9A7FF]">Global</Text>
+            </View>
+          </View>
+          <Text className="mt-1 text-[13px] text-[#AFC2DB]">Tu posición actual en el ranking</Text>
         </View>
+      </View>
+      <View className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-[#263E61] bg-[#0D1D3B] px-3 py-3">
+        <Ionicons name="trending-up" size={18} color="#43D991" />
+        <Text className="text-[13px] font-bold text-[#DDE7F4]">
+          {summary.rivalAlias
+            ? `${summary.rivalAlias} está a ${summary.rivalGap.toLocaleString()} XP`
+            : 'Vas primero en el ranking'}
+        </Text>
       </View>
     </View>
   )
@@ -675,12 +622,23 @@ function getRankingSummary(rankingRows: Profile[], currentUserId: string | null,
   const ahead = sortedRows
     .filter((item) => item.id !== currentUserId && (item.points ?? 0) > points)
     .sort((a, b) => (a.points ?? 0) - (b.points ?? 0))[0]
+  const behind = sortedRows
+    .filter((item) => item.id !== currentUserId && (item.points ?? 0) <= points)
+    .sort((a, b) => (b.points ?? 0) - (a.points ?? 0))[0]
+  const rival = ahead || behind
+  const rivalGap = ahead
+    ? Math.max(0, (ahead.points ?? 0) - points)
+    : behind
+      ? Math.max(0, points - (behind.points ?? 0))
+      : 0
 
   return {
     position,
     points,
     aheadAlias: ahead?.alias,
     gapToAhead: ahead ? Math.max(0, (ahead.points ?? 0) - points) : 0,
+    rivalAlias: rival?.alias,
+    rivalGap,
   }
 }
 
@@ -689,41 +647,6 @@ function buildClassHref(subject: Subject) {
     pathname: '/(student)/class/[id]',
     params: { id: String(subject.id), ...(subject.classroom_id ? { classroomId: String(subject.classroom_id) } : {}) },
   }
-}
-
-function getSubjectAction(progress?: StudentProgressSubject): {
-  label: string
-  icon: keyof typeof Ionicons.glyphMap
-  color: string
-  isPrimary: boolean
-} {
-  if (progress?.failedQuestions && progress.failedQuestions > 0) {
-    return { label: 'Repasar', icon: 'refresh-circle', color: '#FB7185', isPrimary: false }
-  }
-
-  if (progress?.pendingQuestions && progress.pendingQuestions > 0) {
-    return progress.answeredQuestions > 0
-      ? { label: 'Continuar', icon: 'play-forward', color: '#8B5CF6', isPrimary: true }
-      : { label: 'Empezar', icon: 'play', color: '#43D991', isPrimary: true }
-  }
-
-  return { label: 'Ver temas', icon: 'albums', color: '#58B5FF', isPrimary: false }
-}
-
-function getSubjectActionDetail(progress: StudentProgressSubject | undefined, score: number | undefined, statusLabel: string) {
-  if (!progress) {
-    return score !== undefined ? `Mejor puntuación: ${score.toLocaleString()} XP` : statusLabel
-  }
-
-  if (progress.failedQuestions > 0) {
-    return `${progress.failedQuestions} ${progress.failedQuestions === 1 ? 'pregunta fallada' : 'preguntas falladas'}`
-  }
-
-  if (progress.pendingQuestions > 0) {
-    return `${progress.pendingQuestions} ${progress.pendingQuestions === 1 ? 'pendiente' : 'pendientes'} por practicar`
-  }
-
-  return score !== undefined ? `Mejor puntuación: ${score.toLocaleString()} XP` : statusLabel
 }
 
 function getCourseRowKey(subject: { id: number; classroom_id?: number | null }) {
@@ -737,25 +660,6 @@ function getProgressRowKey(subject: StudentProgressSubject) {
 function normalizeRelation<T>(value: T | T[] | null | undefined) {
   if (Array.isArray(value)) return value[0] || null
   return value || null
-}
-
-function getClassProgressStatus(progress?: StudentProgressSubject) {
-  const percent = progress?.percent ?? 0
-  const failed = progress?.failedQuestions ?? 0
-
-  if (percent >= 100 && failed > 0) {
-    return { label: 'Repasar fallos', color: '#FB7185', backgroundColor: '#2A1420' }
-  }
-
-  if (progress?.isCompleted || percent >= 100) {
-    return { label: 'Completada', color: '#43D991', backgroundColor: '#0F2F2B' }
-  }
-
-  if (percent > 0) {
-    return { label: 'En progreso', color: '#FBBF24', backgroundColor: '#2A210F' }
-  }
-
-  return { label: 'Sin empezar', color: '#AFC2DB', backgroundColor: '#122544' }
 }
 
 function EmptyClasses() {
@@ -778,7 +682,9 @@ function ActivityRow({ item }: { item: ActivityItem }) {
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[13px] font-bold text-white">{item.title}</Text>
-        <Text className="mt-1 text-[13px] text-[#8FA7C7]">{item.detail}</Text>
+        <Text className="mt-1 text-[13px] text-[#AFC2DB]" numberOfLines={2}>
+          {item.course} · {item.detail}
+        </Text>
       </View>
       <Text className="text-[13px] text-[#8FA7C7]">{item.time}</Text>
     </View>

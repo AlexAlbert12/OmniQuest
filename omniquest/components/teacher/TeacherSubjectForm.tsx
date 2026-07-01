@@ -12,13 +12,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import {
   generateUniqueClassCode,
   isClassCodeAvailable,
   isValidInviteCode,
   normalizeInviteCode,
-} from '../lib/classCode';
+} from '../../lib/classCode';
 
 type TeacherSubjectFormProps = {
   mode: 'create' | 'edit';

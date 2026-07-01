@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
-import StudentSidebar, { StudentSection } from '../StudentSidebar'
+import StudentSidebar, { StudentSection } from './StudentSidebar'
 import StudentBottomNav, { StudentBottomNavKey } from './StudentBottomNav'
 import { useAppTheme } from '../../lib/appTheme'
 

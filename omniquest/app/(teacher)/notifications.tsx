@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import { getTimeAgo } from '../../lib/time'
-import TeacherSidebar from '../../components/TeacherSidebar'
+import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import BrandLogo from '../../components/BrandLogo'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 

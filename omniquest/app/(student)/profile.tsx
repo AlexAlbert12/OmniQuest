@@ -13,7 +13,7 @@ import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { supabase } from '../../lib/supabase'
-import StudentSidebar from '../../components/StudentSidebar'
+import StudentSidebar from '../../components/student/StudentSidebar'
 import {
   buildStudentBadges,
   getStudentBadgeMetrics,

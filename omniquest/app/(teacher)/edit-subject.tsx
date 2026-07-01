@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import TeacherSubjectForm from '../../components/TeacherSubjectForm';
+import TeacherSubjectForm from '../../components/teacher/TeacherSubjectForm';
 
 export default function EditSubjectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

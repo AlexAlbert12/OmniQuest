@@ -12,7 +12,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
-import StudentSidebar from '../../components/StudentSidebar'
+import StudentSidebar from '../../components/student/StudentSidebar'
 import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge'
 import {

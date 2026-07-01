@@ -3,10 +3,10 @@ import { Animated, Easing, Image, Platform, Pressable, Text, useWindowDimensions
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
-import BrandLogo from './BrandLogo'
-import { useAppTheme } from '../lib/appTheme'
+import BrandLogo from '../BrandLogo'
+import { useAppTheme } from '../../lib/appTheme'
 
-export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings'
+export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'profile' | 'settings'
 
 type StudentSidebarProps = {
   activeSection: StudentSection
@@ -33,7 +33,6 @@ const navItems: NavItem[] = [
   { section: 'progress', label: 'Progreso', icon: 'stats-chart-outline', href: '/(student)/progress' },
   { section: 'ranking', label: 'Ranking', icon: 'trophy-outline', href: '/(student)/ranking' },
   { section: 'badges', label: 'Logros', icon: 'ribbon-outline', href: '/(student)/badges' },
-  { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(student)/notifications' },
   { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(student)/profile' },
   { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(student)/settings' },
 ]
@@ -124,8 +123,19 @@ export default function StudentSidebar({
                   <Avatar avatar={avatar} alias={alias} size={48} />
                   <View className="min-w-0 flex-1">
                     <Text className="text-[14px] font-bold text-white" numberOfLines={1}>{alias}</Text>
-                    <Text className="text-[12px] text-[#9BAEC9]">Nivel {level}</Text>
+                    <View className="mt-1 flex-row items-center gap-1">
+                      <View className="h-5 w-5 items-center justify-center rounded-md" style={{ backgroundColor: accentColor }}>
+                        <Ionicons name="star" size={12} color="#FFFFFF" />
+                      </View>
+                      <Text className="text-[12px] text-[#B9A7FF]">Nivel {level}</Text>
+                    </View>
                   </View>
+                </View>
+                <Text className="mt-4 text-[12px] text-[#B7C7DE]">
+                  {(points % 100).toLocaleString()} / 100 XP para Nivel {level + 1}
+                </Text>
+                <View className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#13294C]">
+                  <View className="h-full rounded-full" style={{ width: `${safeProgress}%`, backgroundColor: accentColor }} />
                 </View>
               </>
             )}
@@ -149,9 +159,9 @@ export default function StudentSidebar({
           {isCompact ? (
             <Ionicons name="log-out-outline" size={24} color="#FB7185" />
           ) : (
-            <View className="flex-row items-center justify-center gap-2">
-              <Ionicons name="log-out-outline" size={18} color="#FB7185" />
-              <Text className="font-black" style={{ color: '#FCA5B5' }}>Cerrar sesión</Text>
+            <View className="flex-row items-center justify-center gap-1 mt-2">
+              <Ionicons name="log-out-outline" size={16} color="#FB7185" />
+              <Text className='text-xs' style={{ color: '#FCA5B5' }}>Cerrar sesión</Text>
             </View>
           )}
         </Pressable>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, Pressable, Text } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 type TeacherProfile = {
   alias: string | null

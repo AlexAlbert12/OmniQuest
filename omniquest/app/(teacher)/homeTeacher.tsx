@@ -11,10 +11,10 @@ import {
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import TeacherSidebar from '../../components/TeacherSidebar';
+import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge';
-import TeacherHeaderAvatar from '../../components/TeacherHeaderAvatar';
+import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
 
 type Subject = {
   id: number

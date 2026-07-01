@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react'
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { supabase } from '../lib/supabase'
-import { isValidEmail, normalizeEmail } from '../lib/auth'
+import { supabase } from '../../lib/supabase'
+import { isValidEmail, normalizeEmail } from '../../lib/auth'
 
 type ImportResult = {
   total: number

@@ -14,7 +14,7 @@ import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rout
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty';
-import TeacherSidebar from '../../../components/TeacherSidebar';
+import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
 
 type IconName = keyof typeof Ionicons.glyphMap
 

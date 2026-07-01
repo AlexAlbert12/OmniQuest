@@ -12,9 +12,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../lib/supabase';
-import { difficultyOptions, getDifficultyMeta, normalizeDifficulty, type DifficultyLevel } from '../lib/difficulty';
-import type { Json } from '../types/database.types';
+import { supabase } from '../../lib/supabase';
+import { difficultyOptions, getDifficultyMeta, normalizeDifficulty, type DifficultyLevel } from '../../lib/difficulty';
+import type { Json } from '../../types/database.types';
 
 type QuestionTypeId = 'multiple' | 'boolean' | 'dragdrop' | 'match' | 'fill' | 'order' | 'open';
 type WizardStep = 1 | 2 | 3 | 4;

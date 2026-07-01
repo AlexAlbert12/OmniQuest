@@ -3,11 +3,11 @@ import { Animated, Easing, Image, Platform, Pressable, Text, View } from 'react-
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
-import BrandLogo from './BrandLogo'
-import { useAppTheme } from '../lib/appTheme'
-import { supabase } from '../lib/supabase'
+import BrandLogo from '../BrandLogo'
+import { useAppTheme } from '../../lib/appTheme'
+import { supabase } from '../../lib/supabase'
 
-export type TeacherSection = 'home' | 'classes' | 'students' | 'notifications' | 'profile' | 'settings'
+export type TeacherSection = 'home' | 'classes' | 'students' | 'profile' | 'settings'
 
 type TeacherSidebarProps = {
   activeSection: TeacherSection
@@ -25,7 +25,6 @@ const navItems: {
     { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(teacher)/homeTeacher' },
     { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(teacher)/classes' },
     { section: 'students', label: 'Estudiantes', icon: 'people-outline', href: '/(teacher)/students' },
-    { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(teacher)/notifications' },
     { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(teacher)/profile' },
     { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(teacher)/settings' },
   ]
