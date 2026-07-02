@@ -18,6 +18,22 @@ export type AppNotification = {
   subjectName?: string
   studentName?: string
   actionUrl?: string
+  source?: 'database' | 'derived'
+}
+
+type PersistentNotificationRow = {
+  id: string
+  audience: NotificationAudience
+  type: NotificationType
+  title: string
+  description: string
+  icon: keyof typeof Ionicons.glyphMap | string | null
+  color: string | null
+  created_at: string | null
+  read_at: string | null
+  action_url: string | null
+  related_id: string | null
+  metadata: Record<string, unknown> | null
 }
 
 type SubjectRow = {
@@ -191,13 +207,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setReadIds(latestRead)
       setDeletedIds(latestDeleted)
 
+      const persistentNotifications = await fetchPersistentNotifications({ userId, audience })
+
       if (audience === 'student') {
-        const nextNotifications = await fetchStudentNotifications({
+        const derivedNotifications = await fetchStudentNotifications({
           userId,
           readIds: latestRead,
           deletedIds: latestDeleted,
         })
-        setAudienceNotifications(audience, nextNotifications)
+        setAudienceNotifications(audience, mergeNotificationSources(persistentNotifications, derivedNotifications))
         return
       }
 
@@ -254,7 +272,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       )
       const profilesById = studentIds.length > 0 ? await fetchProfilesById(studentIds) : {}
 
-      const nextNotifications = buildTeacherNotifications({
+      const derivedNotifications = buildTeacherNotifications({
         subjects,
         enrollments,
         scores,
@@ -264,7 +282,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         deletedIds: latestDeleted,
       })
 
-      setAudienceNotifications(audience, nextNotifications)
+      setAudienceNotifications(audience, mergeNotificationSources(persistentNotifications, derivedNotifications))
     } catch (error: any) {
       console.error('Error cargando notificaciones:', error.message)
       setAudienceError(
@@ -292,7 +310,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       setAudienceState((current) => markNotificationReadInState(current, id))
       try {
-        await persistNotificationStateToDb(userId, id, { isRead: true, isDeleted: deletedIds.has(id) })
+        const dbNotificationId = getDatabaseNotificationId(id)
+        if (dbNotificationId) {
+          await updatePersistentNotificationState(dbNotificationId, { read: true })
+        } else {
+          await persistNotificationStateToDb(userId, id, { isRead: true, isDeleted: deletedIds.has(id) })
+        }
       } catch (error) {
         console.error('Error marcando notificación como leída:', error)
       }
@@ -317,10 +340,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     try {
       for (const notification of unreadNotifications) {
-        await persistNotificationStateToDb(userId, notification.id, {
-          isRead: true,
-          isDeleted: deletedIds.has(notification.id),
-        })
+        const dbNotificationId = getDatabaseNotificationId(notification.id)
+        if (dbNotificationId) {
+          await updatePersistentNotificationState(dbNotificationId, { read: true })
+        } else {
+          await persistNotificationStateToDb(userId, notification.id, {
+            isRead: true,
+            isDeleted: deletedIds.has(notification.id),
+          })
+        }
       }
     } catch (error) {
       console.error('Error marcando todas las notificaciones como leídas:', error)
@@ -339,7 +367,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       setAudienceState((current) => deleteNotificationFromState(current, id))
       try {
-        await persistNotificationStateToDb(userId, id, { isRead: readIds.has(id), isDeleted: true })
+        const dbNotificationId = getDatabaseNotificationId(id)
+        if (dbNotificationId) {
+          await updatePersistentNotificationState(dbNotificationId, { deleted: true })
+        } else {
+          await persistNotificationStateToDb(userId, id, { isRead: readIds.has(id), isDeleted: true })
+        }
       } catch (error) {
         console.error('Error eliminando notificación:', error)
       }
@@ -479,6 +512,102 @@ function mapAudienceNotifications(
       notifications: current.student.notifications.map(mapper),
     },
   }
+}
+
+
+async function fetchPersistentNotifications({
+  userId,
+  audience,
+}: {
+  userId: string
+  audience: NotificationAudience
+}): Promise<AppNotification[]> {
+  try {
+    const { data, error } = await (supabase as any)
+      .from('notifications')
+      .select('id, audience, type, title, description, icon, color, created_at, read_at, action_url, related_id, metadata')
+      .eq('user_id', userId)
+      .eq('audience', audience)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(60)
+
+    if (error) throw error
+
+    return ((data || []) as PersistentNotificationRow[])
+      .filter((row) => isNotificationType(row.type))
+      .map((row) => ({
+        id: `db:${row.id}`,
+        type: row.type,
+        title: row.title,
+        description: row.description,
+        icon: getSafeNotificationIcon(row.icon),
+        color: row.color || getNotificationTypeColor(row.type),
+        timestamp: row.created_at || new Date().toISOString(),
+        isRead: Boolean(row.read_at),
+        relatedId: row.related_id && /^\d+$/.test(row.related_id) ? Number(row.related_id) : undefined,
+        subjectName: typeof row.metadata?.subject_name === 'string' ? row.metadata.subject_name : undefined,
+        studentName: typeof row.metadata?.student_name === 'string' ? row.metadata.student_name : undefined,
+        actionUrl: row.action_url || undefined,
+        source: 'database',
+      }))
+  } catch (error: any) {
+    // Si la migración nueva aún no está aplicada, mantenemos las notificaciones derivadas.
+    if (String(error?.message || '').includes('notifications')) {
+      return []
+    }
+    console.error('Error cargando notificaciones persistentes:', error)
+    return []
+  }
+}
+
+function mergeNotificationSources(persistent: AppNotification[], derived: AppNotification[]) {
+  const seen = new Set<string>()
+
+  return [...persistent, ...derived.map((notification) => ({ ...notification, source: 'derived' as const }))]
+    .filter((notification) => {
+      const key = [notification.type, notification.title, notification.description, notification.actionUrl || ''].join('|')
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .sort((a, b) => toTimestamp(b.timestamp) - toTimestamp(a.timestamp))
+    .slice(0, 60)
+}
+
+function getDatabaseNotificationId(id: string) {
+  return id.startsWith('db:') ? id.slice(3) : null
+}
+
+async function updatePersistentNotificationState(id: string, state: { read?: boolean; deleted?: boolean }) {
+  const payload: Record<string, string> = { updated_at: new Date().toISOString() }
+
+  if (state.read) payload.read_at = new Date().toISOString()
+  if (state.deleted) payload.deleted_at = new Date().toISOString()
+
+  const { error } = await (supabase as any)
+    .from('notifications')
+    .update(payload)
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+function isNotificationType(value: string): value is NotificationType {
+  return ['enrollment', 'student_activity', 'achievement', 'new_class', 'announcement'].includes(value)
+}
+
+function getSafeNotificationIcon(icon: string | null | undefined): keyof typeof Ionicons.glyphMap {
+  if (icon && icon in Ionicons.glyphMap) return icon as keyof typeof Ionicons.glyphMap
+  return 'notifications-outline'
+}
+
+function getNotificationTypeColor(type: NotificationType) {
+  if (type === 'enrollment') return '#8B5CF6'
+  if (type === 'student_activity') return '#43D991'
+  if (type === 'achievement') return '#F6A64A'
+  if (type === 'new_class') return '#58B5FF'
+  return '#F97316'
 }
 
 async function fetchStudentNotifications({

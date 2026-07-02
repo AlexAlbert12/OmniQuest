@@ -775,7 +775,7 @@ function buildPendingActions({
         title: 'Pregunta con muchos fallos',
         detail: `${item.failures} fallos · ${truncateText(item.text, 42)}`,
         actionLabel: 'Informe',
-        href: `/(teacher)/subject/${item.subjectId}?tab=reports`,
+        href: `/(teacher)/question-report/${item.questionId}`,
       });
     });
 
@@ -823,7 +823,7 @@ function buildProblematicQuestions({
         text: item.text,
         failures: item.failures,
         editHref: `/(teacher)/subject/edit-question?subjectId=${item.subjectId}&questionId=${questionId}`,
-        reportHref: `/(teacher)/subject/${item.subjectId}?tab=reports`,
+        reportHref: `/(teacher)/question-report/${questionId}`,
       } satisfies ProblematicQuestionItem;
     })
     .filter((item) => item.failures >= 3)

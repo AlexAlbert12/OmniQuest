@@ -15,6 +15,8 @@ import StudentDashboardCard, { StudentCardLink as CardLink } from '../../compone
 import StudentMetricCard from '../../components/student/StudentMetricCard'
 import { useAppTheme } from '../../lib/appTheme'
 import { joinClassByInviteCode } from '../../lib/studentClassJoin'
+import { calculateStreakDays } from '../../lib/studentBadges'
+import { getStartOfWeekMonday, getTimeUntilSundayLabel } from '../../lib/weeklyGoal'
 
 type Subject = {
   id: number
@@ -135,6 +137,8 @@ export default function StudentHome() {
   const [joining, setJoining] = useState(false)
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([])
   const [attemptCount, setAttemptCount] = useState(0)
+  const [weeklyAttemptCount, setWeeklyAttemptCount] = useState(0)
+  const [streakDays, setStreakDays] = useState(0)
   const [progressSummary, setProgressSummary] = useState<StudentProgressSummary | null>(null)
   const router = useRouter()
   const { accentColor } = useAppTheme()
@@ -146,6 +150,8 @@ export default function StudentHome() {
   const level = getStudentLevel(points)
   const progressPercent = progressSummary?.overallPercent ?? 0
   const nextLevelProgress = getNextLevelProgress(points)
+  const weeklyGoalTarget = 20
+  const weeklyGoalPercent = Math.min(100, Math.round((weeklyAttemptCount / weeklyGoalTarget) * 100))
   const failedQuestions = progressSummary?.subjects.reduce(
     (sum, subject) => sum + subject.failedQuestions,
     0
@@ -189,13 +195,10 @@ export default function StudentHome() {
       setCurrentUserId(userId);
 
       const now = new Date();
-      const dayOfWeek = now.getDay();
-      const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - diffToMonday);
-      startOfWeek.setHours(0, 0, 0, 0);
+      const startOfWeek = getStartOfWeekMonday(now);
+      const startOfWeekIso = startOfWeek.toISOString();
 
-      const [profileResult, enrollmentsResult, rankingResult, activityResult, attemptHistoryResult, progressResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, rankingResult, activityResult, attemptHistoryResult, weeklyAttemptsResult, streakAttemptsResult, progressResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, points, role_id').eq('id', userId).single(),
         supabase
           .from('enrollments')
@@ -227,6 +230,17 @@ export default function StudentHome() {
           .from('attempt_history')
           .select('id', { head: true, count: 'exact' })
           .eq('student_id', userId),
+        supabase
+          .from('attempt_history')
+          .select('id', { head: true, count: 'exact' })
+          .eq('student_id', userId)
+          .gte('attempted_at', startOfWeekIso),
+        supabase
+          .from('attempt_history')
+          .select('attempted_at')
+          .eq('student_id', userId)
+          .order('attempted_at', { ascending: false })
+          .limit(120),
         fetchStudentProgressSummary(userId),
       ]);
 
@@ -235,6 +249,8 @@ export default function StudentHome() {
       if (rankingResult.error) throw rankingResult.error;
       if (activityResult.error) throw activityResult.error;
       if (attemptHistoryResult.error) throw attemptHistoryResult.error;
+      if (weeklyAttemptsResult.error) throw weeklyAttemptsResult.error;
+      if (streakAttemptsResult.error) throw streakAttemptsResult.error;
 
       setProfile(profileResult.data);
       setEnrolledSubjects(
@@ -255,6 +271,8 @@ export default function StudentHome() {
       );
       setRanking(rankingResult.data || []);
       setAttemptCount(attemptHistoryResult.count ?? 0);
+      setWeeklyAttemptCount(weeklyAttemptsResult.count ?? 0);
+      setStreakDays(calculateStreakDays(((streakAttemptsResult.data || []) as { attempted_at: string | null }[]).map((attempt) => attempt.attempted_at).filter((value): value is string => Boolean(value))));
 
       setProgressSummary(progressResult);
       const activities: ActivityItem[] = (activityResult.data || []).map((attempt: any) => {
@@ -406,6 +424,14 @@ export default function StudentHome() {
             </View>
           </View>
 
+          <WeeklyGoalCard
+            count={weeklyAttemptCount}
+            target={weeklyGoalTarget}
+            percent={weeklyGoalPercent}
+            streakDays={streakDays}
+            className="mt-5"
+          />
+
           <View className={isDesktop ? 'mt-5 flex-row items-start gap-5' : 'mt-5 gap-5'}>
             <StudentDashboardCard title="Continúa aprendiendo" className={isDesktop ? 'flex-1' : ''} compact>
               <View style={{ gap: 10 }}>
@@ -488,6 +514,56 @@ export default function StudentHome() {
       </View>
 
       {!isDesktop ? <StudentBottomNav active="home" /> : null}
+    </View>
+  )
+}
+
+
+function WeeklyGoalCard({
+  count,
+  target,
+  percent,
+  streakDays,
+  className = '',
+}: {
+  count: number
+  target: number
+  percent: number
+  streakDays: number
+  className?: string
+}) {
+  const completed = count >= target
+  const remaining = Math.max(0, target - count)
+
+  return (
+    <View className={`rounded-2xl border border-[#1A3155] bg-[#09162C] p-4 ${className}`}>
+      <View className="flex-row flex-wrap items-center gap-4">
+        <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#1F2B67]">
+          <Ionicons name={completed ? 'checkmark-done' : 'flag'} size={26} color={completed ? '#43D991' : '#B9A7FF'} />
+        </View>
+        <View className="min-w-[240px] flex-1">
+          <View className="flex-row flex-wrap items-center gap-2">
+            <Text className="text-[17px] font-black text-white">Objetivo semanal</Text>
+            <View className="rounded-full bg-[#13284A] px-3 py-1">
+              <Text className="text-[11px] font-black text-[#9FD6FF]">{getTimeUntilSundayLabel()}</Text>
+            </View>
+          </View>
+          <Text className="mt-1 text-[13px] text-[#AFC2DB]">
+            {completed
+              ? `Has completado ${count} preguntas esta semana. ¡Objetivo superado!`
+              : `${count} / ${target} preguntas completadas. Te faltan ${remaining} para cumplir tu meta.`}
+          </Text>
+        </View>
+        <View className="min-w-[180px] flex-row items-center justify-end gap-4">
+          <View className="items-end">
+            <Text className="text-[24px] font-black text-white">{count} / {target}</Text>
+            <Text className="text-[12px] text-[#8FA7C7]">Racha: {streakDays} día{streakDays === 1 ? '' : 's'}</Text>
+          </View>
+        </View>
+      </View>
+      <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#13294C]">
+        <View className="h-full rounded-full bg-[#7C5CFF]" style={{ width: `${percent}%` }} />
+      </View>
     </View>
   )
 }
