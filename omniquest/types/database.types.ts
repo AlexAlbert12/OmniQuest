@@ -202,6 +202,74 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          action_url: string | null
+          audience: string
+          color: string
+          created_at: string
+          deleted_at: string | null
+          description: string
+          fingerprint: string
+          icon: string
+          id: string
+          metadata: Json
+          read_at: string | null
+          related_id: string | null
+          related_table: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          audience: string
+          color?: string
+          created_at?: string
+          deleted_at?: string | null
+          description: string
+          fingerprint: string
+          icon?: string
+          id?: string
+          metadata?: Json
+          read_at?: string | null
+          related_id?: string | null
+          related_table?: string | null
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          audience?: string
+          color?: string
+          created_at?: string
+          deleted_at?: string | null
+          description?: string
+          fingerprint?: string
+          icon?: string
+          id?: string
+          metadata?: Json
+          read_at?: string | null
+          related_id?: string | null
+          related_table?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classrooms: {
         Row: {
           active: boolean
@@ -507,6 +575,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "subject_topics_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "subject_topics_subject_id_fkey"
             columns: ["subject_id"]
             isOneToOne: false
@@ -553,6 +628,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "subject_scores_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subject_scores_student_id_fkey"
             columns: ["student_id"]
@@ -604,6 +686,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "topic_scores_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "topic_scores_student_id_fkey"
             columns: ["student_id"]
@@ -840,6 +929,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_notification: {
+        Args: {
+          p_user_id: string
+          p_audience: string
+          p_type: string
+          p_title: string
+          p_description: string
+          p_icon?: string
+          p_color?: string
+          p_action_url?: string | null
+          p_related_table?: string | null
+          p_related_id?: string | null
+          p_metadata?: Json
+          p_fingerprint?: string | null
+        }
+        Returns: string
+      }
       create_teacher_classroom: {
         Args: {
           p_subject_id: number

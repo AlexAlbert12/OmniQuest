@@ -1,6 +1,7 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../lib/supabase'
+import type { Database, Json, Tables } from '../types/database.types'
 
 export type NotificationType = 'enrollment' | 'student_activity' | 'achievement' | 'new_class' | 'announcement'
 export type NotificationAudience = 'teacher' | 'student'
@@ -21,20 +22,8 @@ export type AppNotification = {
   source?: 'database' | 'derived'
 }
 
-type PersistentNotificationRow = {
-  id: string
-  audience: NotificationAudience
-  type: NotificationType
-  title: string
-  description: string
-  icon: keyof typeof Ionicons.glyphMap | string | null
-  color: string | null
-  created_at: string | null
-  read_at: string | null
-  action_url: string | null
-  related_id: string | null
-  metadata: Record<string, unknown> | null
-}
+type PersistentNotificationRow = Tables<'notifications'>
+type PersistentNotificationUpdate = Database['public']['Tables']['notifications']['Update']
 
 type SubjectRow = {
   id: number
@@ -523,7 +512,7 @@ async function fetchPersistentNotifications({
   audience: NotificationAudience
 }): Promise<AppNotification[]> {
   try {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('notifications')
       .select('id, audience, type, title, description, icon, color, created_at, read_at, action_url, related_id, metadata')
       .eq('user_id', userId)
@@ -536,21 +525,26 @@ async function fetchPersistentNotifications({
 
     return ((data || []) as PersistentNotificationRow[])
       .filter((row) => isNotificationType(row.type))
-      .map((row) => ({
-        id: `db:${row.id}`,
-        type: row.type,
-        title: row.title,
-        description: row.description,
-        icon: getSafeNotificationIcon(row.icon),
-        color: row.color || getNotificationTypeColor(row.type),
-        timestamp: row.created_at || new Date().toISOString(),
-        isRead: Boolean(row.read_at),
-        relatedId: row.related_id && /^\d+$/.test(row.related_id) ? Number(row.related_id) : undefined,
-        subjectName: typeof row.metadata?.subject_name === 'string' ? row.metadata.subject_name : undefined,
-        studentName: typeof row.metadata?.student_name === 'string' ? row.metadata.student_name : undefined,
-        actionUrl: row.action_url || undefined,
-        source: 'database',
-      }))
+      .map((row) => {
+        const type = row.type as NotificationType
+        const metadata = getNotificationMetadata(row.metadata)
+
+        return {
+          id: `db:${row.id}`,
+          type,
+          title: row.title,
+          description: row.description,
+          icon: getSafeNotificationIcon(row.icon),
+          color: row.color || getNotificationTypeColor(type),
+          timestamp: row.created_at || new Date().toISOString(),
+          isRead: Boolean(row.read_at),
+          relatedId: row.related_id && /^\d+$/.test(row.related_id) ? Number(row.related_id) : undefined,
+          subjectName: typeof metadata.subject_name === 'string' ? metadata.subject_name : undefined,
+          studentName: typeof metadata.student_name === 'string' ? metadata.student_name : undefined,
+          actionUrl: row.action_url || undefined,
+          source: 'database' as const,
+        }
+      })
   } catch (error: any) {
     // Si la migración nueva aún no está aplicada, mantenemos las notificaciones derivadas.
     if (String(error?.message || '').includes('notifications')) {
@@ -580,17 +574,25 @@ function getDatabaseNotificationId(id: string) {
 }
 
 async function updatePersistentNotificationState(id: string, state: { read?: boolean; deleted?: boolean }) {
-  const payload: Record<string, string> = { updated_at: new Date().toISOString() }
+  const payload: PersistentNotificationUpdate = { updated_at: new Date().toISOString() }
 
   if (state.read) payload.read_at = new Date().toISOString()
   if (state.deleted) payload.deleted_at = new Date().toISOString()
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('notifications')
     .update(payload)
     .eq('id', id)
 
   if (error) throw error
+}
+
+function getNotificationMetadata(value: Json | null): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+
+  return {}
 }
 
 function isNotificationType(value: string): value is NotificationType {

@@ -265,6 +265,7 @@ export default function PlayScreen() {
                     correctAnswerId={game.correctAnswerId}
                     hintedAnswerId={game.hintedAnswerId}
                     hasAnswered={game.hasAnswered}
+                    isSubmitting={game.isSubmitting}
                     answerStatus={game.answerStatus}
                     onChoiceAnswer={game.submitAnswer}
                     onStructuredAnswer={game.submitStructuredAnswer}
@@ -278,10 +279,12 @@ export default function PlayScreen() {
             </View>
           </View>
 
-          <BottomHud
-            onHint={handleHint}
-            onSkip={handleSkip}
-          />
+          {!game.hasAnswered && !game.isSubmitting && !game.feedback ? (
+            <BottomHud
+              onHint={handleHint}
+              onSkip={handleSkip}
+            />
+          ) : null}
         </View>
       </ScrollView>
       <AppConfirmModal
@@ -325,6 +328,7 @@ function QuestionInteraction({
   correctAnswerId,
   hintedAnswerId,
   hasAnswered,
+  isSubmitting,
   answerStatus,
   onChoiceAnswer,
   onStructuredAnswer,
@@ -335,6 +339,7 @@ function QuestionInteraction({
   correctAnswerId: number | null
   hintedAnswerId: number | null
   hasAnswered: boolean
+  isSubmitting: boolean
   answerStatus: 'correct' | 'incorrect' | null
   onChoiceAnswer: (answerId: number) => void
   onStructuredAnswer: (payload: StructuredAnswerPayload) => void
@@ -351,6 +356,7 @@ function QuestionInteraction({
             correctAnswerId={correctAnswerId}
             hintedAnswerId={hintedAnswerId}
             hasAnswered={hasAnswered}
+            isSubmitting={isSubmitting}
             onPress={() => onChoiceAnswer(answer.id)}
           />
         ))}
@@ -364,6 +370,7 @@ function QuestionInteraction({
         key={question.id}
         question={question}
         hasAnswered={hasAnswered}
+        isSubmitting={isSubmitting}
         answerStatus={answerStatus}
         onSubmit={onStructuredAnswer}
       />
@@ -376,6 +383,7 @@ function QuestionInteraction({
         key={question.id}
         question={question}
         hasAnswered={hasAnswered}
+        isSubmitting={isSubmitting}
         answerStatus={answerStatus}
         onSubmit={onStructuredAnswer}
       />
@@ -388,6 +396,7 @@ function QuestionInteraction({
         key={question.id}
         question={question}
         hasAnswered={hasAnswered}
+        isSubmitting={isSubmitting}
         answerStatus={answerStatus}
         onSubmit={onStructuredAnswer}
       />
@@ -404,6 +413,7 @@ function QuestionInteraction({
       question={question}
       questionType={questionType}
       hasAnswered={hasAnswered}
+      isSubmitting={isSubmitting}
       answerStatus={answerStatus}
       onSubmit={onStructuredAnswer}
     />
@@ -413,11 +423,13 @@ function QuestionInteraction({
 function TextAnswerQuestion({
   question,
   hasAnswered,
+  isSubmitting,
   answerStatus,
   onSubmit,
 }: {
   question: Question
   hasAnswered: boolean
+  isSubmitting: boolean
   answerStatus: 'correct' | 'incorrect' | null
   onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
@@ -428,7 +440,7 @@ function TextAnswerQuestion({
   }, [question.id])
 
   const handleSubmit = () => {
-    if (hasAnswered || !value.trim()) return
+    if (hasAnswered || isSubmitting || !value.trim()) return
     onSubmit({ answerText: value.trim() })
   }
 
@@ -449,7 +461,7 @@ function TextAnswerQuestion({
       <TextInput
         value={value}
         onChangeText={setValue}
-        editable={!hasAnswered}
+        editable={!hasAnswered && !isSubmitting}
         multiline
         textAlignVertical="top"
         placeholder="Tu respuesta"
@@ -466,7 +478,9 @@ function TextAnswerQuestion({
         incorrectDetail="Revisa el contenido y vuelve a intentarlo en la siguiente partida."
       />
 
-      <SubmitAnswerButton disabled={hasAnswered || !value.trim()} onPress={handleSubmit} />
+      {!hasAnswered ? (
+        <SubmitAnswerButton disabled={isSubmitting || !value.trim()} onPress={handleSubmit} />
+      ) : null}
     </View>
   )
 }
@@ -474,11 +488,13 @@ function TextAnswerQuestion({
 function FillBlankQuestion({
   question,
   hasAnswered,
+  isSubmitting,
   answerStatus,
   onSubmit,
 }: {
   question: Question
   hasAnswered: boolean
+  isSubmitting: boolean
   answerStatus: 'correct' | 'incorrect' | null
   onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
@@ -499,7 +515,7 @@ function FillBlankQuestion({
   const isReady = completedCount === blankCount
 
   const handleSubmit = () => {
-    if (hasAnswered || !isReady) return
+    if (hasAnswered || isSubmitting || !isReady) return
     onSubmit({ answerText: values.map((value) => value.trim()).join(', ') })
   }
 
@@ -563,7 +579,7 @@ function FillBlankQuestion({
               <TextInput
                 value={value}
                 onChangeText={(nextValue) => updateValue(index, nextValue)}
-                editable={!hasAnswered}
+                editable={!hasAnswered && !isSubmitting}
                 placeholder={`Respuesta del hueco ${index + 1}`}
                 placeholderTextColor="#7388A7"
                 className="mt-2 min-h-[46px] text-[18px] font-black text-white"
@@ -580,7 +596,9 @@ function FillBlankQuestion({
         incorrectDetail="Comprueba que has escrito todos los huecos y que están en el mismo orden que en el enunciado."
       />
 
-      <SubmitAnswerButton disabled={hasAnswered || !isReady} onPress={handleSubmit} />
+      {!hasAnswered ? (
+        <SubmitAnswerButton disabled={isSubmitting || !isReady} onPress={handleSubmit} />
+      ) : null}
     </View>
   )
 }
@@ -599,11 +617,13 @@ function BlankPlaceholder({ index }: { index: number }) {
 function OrderingQuestion({
   question,
   hasAnswered,
+  isSubmitting,
   answerStatus,
   onSubmit,
 }: {
   question: Question
   hasAnswered: boolean
+  isSubmitting: boolean
   answerStatus: 'correct' | 'incorrect' | null
   onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
@@ -614,7 +634,7 @@ function OrderingQuestion({
   }, [question.id, question.answers])
 
   const moveAnswer = (index: number, direction: -1 | 1) => {
-    if (hasAnswered) return
+    if (hasAnswered || isSubmitting) return
     const nextIndex = index + direction
     if (nextIndex < 0 || nextIndex >= orderedAnswers.length) return
 
@@ -626,6 +646,7 @@ function OrderingQuestion({
   }
 
   const handleSubmit = () => {
+    if (hasAnswered || isSubmitting) return
     onSubmit({ payload: { answer_ids: orderedAnswers.map((answer) => answer.id) } })
   }
 
@@ -646,14 +667,16 @@ function OrderingQuestion({
             </View>
             <Text className="min-w-0 flex-1 text-[17px] font-semibold text-white">{answer.text}</Text>
             <View className="flex-row gap-2">
-              <MoveButton icon="chevron-up" disabled={hasAnswered || index === 0} onPress={() => moveAnswer(index, -1)} />
-              <MoveButton icon="chevron-down" disabled={hasAnswered || index === orderedAnswers.length - 1} onPress={() => moveAnswer(index, 1)} />
+              <MoveButton icon="chevron-up" disabled={hasAnswered || isSubmitting || index === 0} onPress={() => moveAnswer(index, -1)} />
+              <MoveButton icon="chevron-down" disabled={hasAnswered || isSubmitting || index === orderedAnswers.length - 1} onPress={() => moveAnswer(index, 1)} />
             </View>
           </View>
         )
       })}
 
-      <SubmitAnswerButton disabled={hasAnswered || orderedAnswers.length < 2} onPress={handleSubmit} />
+      {!hasAnswered ? (
+        <SubmitAnswerButton disabled={isSubmitting || orderedAnswers.length < 2} onPress={handleSubmit} />
+      ) : null}
     </View>
   )
 }
@@ -662,12 +685,14 @@ function PairingQuestion({
   question,
   questionType,
   hasAnswered,
+  isSubmitting,
   answerStatus,
   onSubmit,
 }: {
   question: Question
   questionType: 'match_pairs' | 'drag_drop'
   hasAnswered: boolean
+  isSubmitting: boolean
   answerStatus: 'correct' | 'incorrect' | null
   onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
@@ -691,7 +716,7 @@ function PairingQuestion({
     .filter((connection) => Boolean(connection.right))
 
   const assignOption = (option: PairOptionToken) => {
-    if (hasAnswered || leftAnswers.length === 0) return
+    if (hasAnswered || isSubmitting || leftAnswers.length === 0) return
 
     const targetIndex = Math.max(0, Math.min(activeIndex, leftAnswers.length - 1))
     setSelections((current) => {
@@ -713,7 +738,7 @@ function PairingQuestion({
   }
 
   const clearSelection = (index: number) => {
-    if (hasAnswered) return
+    if (hasAnswered || isSubmitting) return
     setSelections((current) => {
       const nextSelections = { ...current }
       delete nextSelections[index]
@@ -723,7 +748,7 @@ function PairingQuestion({
   }
 
   const handleSubmit = () => {
-    if (!isReady) return
+    if (hasAnswered || isSubmitting || !isReady) return
     onSubmit({
       payload: {
         pairs: leftAnswers.map((answer, index) => ({
@@ -773,8 +798,8 @@ function PairingQuestion({
               return (
                 <Pressable
                   key={`${answer.id}-${index}`}
-                  onPress={() => !hasAnswered && setActiveIndex(index)}
-                  disabled={hasAnswered}
+                  onPress={() => !hasAnswered && !isSubmitting && setActiveIndex(index)}
+                  disabled={hasAnswered || isSubmitting}
                   className="rounded-2xl border bg-[#0D1D3B] p-4"
                   style={({ pressed }) => ({ borderColor, opacity: pressed ? 0.86 : 1 })}
                 >
@@ -803,7 +828,7 @@ function PairingQuestion({
                         </View>
                       )}
                     </View>
-                    {selected && !hasAnswered ? (
+                    {selected && !hasAnswered && !isSubmitting ? (
                       <Pressable
                         onPress={() => clearSelection(index)}
                         className="h-9 w-9 items-center justify-center rounded-full border border-[#2A456A] bg-[#081A37]"
@@ -834,7 +859,7 @@ function PairingQuestion({
                 <Pressable
                   key={option.key}
                   onPress={() => assignOption(option)}
-                  disabled={hasAnswered}
+                  disabled={hasAnswered || isSubmitting}
                   className="rounded-2xl border px-4 py-3"
                   style={({ pressed }) => ({
                     borderColor: usedByCurrent ? '#8B5CF6' : usedByOther ? '#145B45' : '#314E78',
@@ -888,7 +913,7 @@ function PairingQuestion({
         </View>
       ) : null}
 
-      {!hasAnswered && !isReady ? (
+      {!hasAnswered && !isSubmitting && !isReady ? (
         <View className="rounded-2xl border border-[#2A456A] bg-[#081A37] p-4">
           <Text className="text-[13px] font-semibold text-[#B8C7E0]">
             Completa todas las relaciones para activar el botón de comprobar.
@@ -903,7 +928,9 @@ function PairingQuestion({
         incorrectDetail="Vuelve a fijarte en cada origen y destino. En este tipo la respuesta solo cuenta si todas las relaciones son correctas."
       />
 
-      <SubmitAnswerButton disabled={hasAnswered || !isReady} onPress={handleSubmit} />
+      {!hasAnswered ? (
+        <SubmitAnswerButton disabled={isSubmitting || !isReady} onPress={handleSubmit} />
+      ) : null}
     </View>
   )
 }
@@ -1131,6 +1158,7 @@ function AnswerOption({
   correctAnswerId,
   hintedAnswerId,
   hasAnswered,
+  isSubmitting,
   onPress,
 }: {
   answer: Answer
@@ -1139,6 +1167,7 @@ function AnswerOption({
   correctAnswerId: number | null
   hintedAnswerId: number | null
   hasAnswered: boolean
+  isSubmitting: boolean
   onPress: () => void
 }) {
   const isSelected = selectedAnswerId === answer.id
@@ -1184,7 +1213,7 @@ function AnswerOption({
   return (
     <Pressable
       onPress={onPress}
-      disabled={hasAnswered}
+      disabled={hasAnswered || isSubmitting}
       className="min-h-[86px] flex-row items-center rounded-2xl border-2 px-8 py-4"
       style={({ pressed }) => ({
         borderColor,

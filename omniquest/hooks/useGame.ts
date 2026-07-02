@@ -66,6 +66,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   const scoreRef = useRef(0);
   const attemptIdRef = useRef<string | null>(null);
   const hintUsedRef = useRef(false);
+  const isSubmittingRef = useRef(false);
   const [lives, setLives] = useState(3);
   const [streak, setStreak] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -73,6 +74,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   const [selectedAnswerId, setSelectedAnswerId] = useState<number | null>(null);
   const [correctAnswerId, setCorrectAnswerId] = useState<number | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [answerStatus, setAnswerStatus] = useState<'correct' | 'incorrect' | null>(null);
   const [hintedAnswerId, setHintedAnswerId] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<QuestionFeedback | null>(null);
@@ -159,6 +161,8 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       setSelectedAnswerId(null);
       setCorrectAnswerId(null);
       setHasAnswered(false);
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
       setAnswerStatus(null);
       setHintedAnswerId(null);
       setFeedback(null);
@@ -185,6 +189,8 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     setSelectedAnswerId(null);
     setCorrectAnswerId(null);
     setHasAnswered(false);
+    isSubmittingRef.current = false;
+    setIsSubmitting(false);
     setAnswerStatus(null);
     setHintedAnswerId(null);
     setFeedback(null);
@@ -213,12 +219,13 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     skipped?: boolean;
     timedOut?: boolean;
   }) => {
-    if (hasAnswered || status !== 'playing') return;
+    if (hasAnswered || isSubmittingRef.current || status !== 'playing') return;
 
     const currentQ = questions[currentIndex];
     if (!currentQ) return;
 
-    setHasAnswered(true);
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
     setSelectedAnswerId(answerId ?? null);
     setCorrectAnswerId(null);
 
@@ -250,6 +257,9 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       scoreRef.current = nextScore;
       setScore(nextScore);
       setCorrectAnswerId(result.correct_answer_id ?? null);
+      setHasAnswered(true);
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
       setSummary((current) => {
         const reviewQuestions = isCorrect || requiresManualReview
           ? current.reviewQuestions
@@ -298,6 +308,8 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     } catch (error: any) {
       console.error('Error submitting answer:', error);
       setHasAnswered(false);
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
       setFeedback(null);
       setFeedbackNextStatus(null);
       Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
@@ -309,7 +321,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   }, [completeAnswer]);
 
   useEffect(() => {
-    if (status !== 'playing' || hasAnswered) return;
+    if (status !== 'playing' || hasAnswered || isSubmitting) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -323,7 +335,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [status, hasAnswered, currentIndex, handleTimeOut]);
+  }, [status, hasAnswered, isSubmitting, currentIndex, handleTimeOut]);
 
   const submitAnswer = (answerId: number) => {
     void completeAnswer({ answerId });
@@ -334,7 +346,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   };
 
   const useHint = () => {
-    if (hasAnswered || status !== 'playing' || hintUsedRef.current) return false;
+    if (hasAnswered || isSubmitting || status !== 'playing' || hintUsedRef.current) return false;
 
     hintUsedRef.current = true;
     setHintedAnswerId(-1);
@@ -371,6 +383,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     selectedAnswerId,
     correctAnswerId,
     hasAnswered,
+    isSubmitting,
     answerStatus,
     hintedAnswerId,
     feedback,
