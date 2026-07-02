@@ -23,7 +23,7 @@ import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
-import StudentDashboardCard, { StudentCardLink } from '../../components/student/StudentDashboardCard'
+import StudentDashboardCard from '../../components/student/StudentDashboardCard'
 import { formatShortDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
 
@@ -106,6 +106,7 @@ export default function ProgressScreen() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [subjectProgress, setSubjectProgress] = useState<SubjectProgress[]>([])
   const [recentScores, setRecentScores] = useState<RecentScore[]>([])
+  const [weeklyAttemptsCount, setWeeklyAttemptsCount] = useState(0)
   const [scores, setScores] = useState<ScoreRow[]>([])
   const [reinforcementAreas, setReinforcementAreas] = useState<ReinforcementArea[]>([])
   const [loading, setLoading] = useState(true)
@@ -126,6 +127,8 @@ export default function ProgressScreen() {
         (scores.reduce((total, score) => total + (score.correct_answers ?? 0), 0) / Math.max(savedScores, 1)) * 100
       )
     : 0
+  const safeProgressPercent = Math.min(100, Math.max(0, progressPercent))
+  const safeAccuracyPercent = Math.min(100, Math.max(0, accuracyPercent))
   const badgeMetrics = getStudentBadgeMetrics({
     scores: scores as StudentBadgeScore[],
     totalPoints: points,
@@ -192,6 +195,7 @@ export default function ProgressScreen() {
       if (reinforcementResult.error) throw reinforcementResult.error
 
       setProfile(profileResult.data)
+      setWeeklyAttemptsCount(weeklyAttemptsResult.count || 0)
       const scores = (scoresResult.data || []) as ScoreRow[]
 
       setSubjectProgress(buildSubjectRows(progressResult.subjects, scores))
@@ -264,20 +268,53 @@ export default function ProgressScreen() {
             </View>
           </View>
 
-          <View>
-            <SummaryCard
-              progressPercent={progressPercent}
-              savedScores={savedScores}
-              failedQuestions={failedQuestions}
-              accuracyPercent={accuracyPercent}
-              points={points}
+          <View className={isDesktop ? 'flex-row flex-wrap items-stretch justify-between gap-4' : 'gap-4'}>
+            <ProgressOverviewCard
+              progressPercent={safeProgressPercent}
               accentColor={accentColor}
+              className={isDesktop ? 'flex-[1] min-w-[250px] max-w-[270px]' : ''}
+            />
+            <ProgressMetricCard
+              icon="help-circle"
+              title="Preguntas respondidas"
+              value={String(savedScores)}
+              detail={weeklyAttemptsCount > 0 ? `Esta semana: ${weeklyAttemptsCount}` : 'Empieza tu primera práctica'}
+              color="#58B5FF"
+              className={isDesktop ? 'flex-1 min-w-[200px] max-w-[220px]' : ''}
+            />
+            <ProgressMetricCard
+              icon="speedometer"
+              title="Precisión global"
+              value={`${safeAccuracyPercent}%`}
+              detail={safeAccuracyPercent >= 80 ? '¡Excelente!' : failedQuestions > 0 ? 'Mejora repasando' : 'Buen ritmo'}
+              detailColor={safeAccuracyPercent >= 70 ? '#22C55E' : '#FBBF24'}
+              color="#F6A64A"
+              className={isDesktop ? 'flex-1 min-w-[200px] max-w-[220px]' : ''}
+            />
+            <ProgressMetricCard
+              icon="refresh-circle"
+              title="Fallos para repasar"
+              value={String(failedQuestions)}
+              detail={failedQuestions > 0 ? 'Prioridad alta' : 'Sin pendientes'}
+              detailColor={failedQuestions > 0 ? '#FB7185' : '#22C55E'}
+              color="#FB7185"
+              className={isDesktop ? 'flex-1 min-w-[200px] max-w-[220px]' : ''}
+            />
+            <ProgressMetricCard
+              icon="flash"
+              title="XP total acumulada"
+              value={`${points.toLocaleString()} XP`}
+              detail={points > 0 ? 'Sigue así' : 'Aún sin XP'}
+              color="#FBBF24"
+              className={isDesktop ? 'flex-1 min-w-[200px] max-w-[220px]' : ''}
             />
           </View>
 
-          <View className="mt-5">
+          <View className={isDesktop ? 'mt-5 flex-row flex-wrap items-stretch gap-5' : 'mt-5 gap-5'}>
             <ReinforcementCard
+              className={isDesktop ? 'flex-[1.55] min-w-[360px]' : ''}
               areas={reinforcementAreas}
+              onSeeAll={() => router.push('/(student)/activity-log' as any)}
               onReview={(area) => {
                 if (area.subjectId) {
                   router.push({
@@ -294,10 +331,21 @@ export default function ProgressScreen() {
                 }
               }}
             />
+
+            <XpEvolution
+              scores={recentScores}
+              className={isDesktop ? 'flex-1 min-w-[320px]' : ''}
+              onSeeAll={() => router.push('/(student)/activity-log' as any)}
+            />
           </View>
 
-          <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
-            <StudentDashboardCard title="Progreso por curso" className={isDesktop ? 'flex-[1.55]' : ''}>
+          <View className={isDesktop ? 'mt-5 flex-row flex-wrap items-stretch gap-5' : 'mt-5 gap-5'}>
+            <StudentDashboardCard
+              title="Progreso por curso"
+              actionLabel="Ver todos mis cursos"
+              onAction={() => router.push('/(student)/classes' as any)}
+              className={isDesktop ? 'flex-[1.55] min-w-[360px]' : ''}
+            >
               <View style={{ gap: 10 }}>
                 {subjectProgress.length > 0 ? (
                   subjectProgress.map((subject) => (
@@ -319,19 +367,15 @@ export default function ProgressScreen() {
                   <EmptyProgress />
                 )}
               </View>
-              <StudentCardLink label="Ver todos mis cursos" onPress={() => router.push('/(student)/classes' as any)} />
             </StudentDashboardCard>
 
-            <XpEvolution scores={recentScores} />
-          </View>
-
-          <View className="mt-5">
             <StudentDashboardCard
               title="Logros recientes"
               actionLabel="Ver todos"
               onAction={() => router.push('/(student)/badges' as any)}
+              className={isDesktop ? 'flex-1 min-w-[320px]' : ''}
             >
-              <View className={isDesktop ? 'flex-row flex-wrap gap-3' : 'gap-3'}>
+              <View style={{ gap: 10 }}>
                 {badges.slice(0, 4).map((achievement) => (
                   <AchievementRow
                     key={achievement.title}
@@ -350,99 +394,116 @@ export default function ProgressScreen() {
   )
 }
 
-function SummaryCard({
+function ProgressOverviewCard({
   progressPercent,
-  savedScores,
-  failedQuestions,
-  accuracyPercent,
-  points,
   accentColor,
+  className = '',
 }: {
   progressPercent: number
-  savedScores: number
-  failedQuestions: number
-  accuracyPercent: number
-  points: number
   accentColor: string
+  className?: string
 }) {
   return (
-    <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <Text className="mb-5 text-[15px] font-black text-white">Resumen general</Text>
-      <View className="flex-row items-center gap-6">
-        <View className="h-40 w-40 items-center justify-center rounded-full border-[13px] bg-[#13204B]" style={{ borderColor: accentColor }}>
-          <Text className="text-[34px] font-black text-white">{progressPercent}%</Text>
-          <Text className="mt-1 text-center text-[13px] text-[#AFC2DB]">Avance de cursos</Text>
+    <View className={`min-w-[210px] rounded-2xl border border-[#1A3155] bg-[#09162C] p-4 ${className}`}>
+      <View className="flex-row items-center gap-4">
+        <View className="relative h-24 w-24 items-center justify-center rounded-full bg-[#101B43]">
+          <View className="absolute inset-0 rounded-full border border-white/20" style={{ borderColor: accentColor }} />
+          <Text className="text-[24px] font-black text-white">{progressPercent}%</Text>
         </View>
-        <View className="min-w-0 flex-1" style={{ gap: 12 }}>
-          <SummaryStat icon="help-circle" color="#58B5FF" label="Preguntas respondidas" value={String(savedScores)} />
-          <SummaryStat icon="speedometer" color="#F6A64A" label="Precisión global" value={`${accuracyPercent}%`} />
-          <SummaryStat icon="refresh-circle" color="#FB7185" label="Fallos para repasar" value={String(failedQuestions)} />
-          <SummaryStat icon="flash" color="#FBBF24" label="XP total acumulada" value={`${points.toLocaleString()} XP`} />
+        <View className="min-w-0 flex-1">
+          <Text className="text-[13px] font-black text-[#DDE7F4]">Avance de cursos</Text>
         </View>
       </View>
-      <Text className="mt-5 text-center text-[13px] text-[#AFC2DB]">
-        {failedQuestions > 0
-          ? `Tienes ${failedQuestions} ${failedQuestions === 1 ? 'fallo pendiente' : 'fallos pendientes'}. Repasa para mejorar tu precisión.`
-          : '¡Buen trabajo! No tienes áreas críticas ahora mismo.'}
-      </Text>
     </View>
   )
 }
 
-function SummaryStat({
+function ProgressMetricCard({
   icon,
-  color,
-  label,
+  title,
   value,
+  detail,
+  color,
+  detailColor = '#8FA7C7',
+  className = '',
 }: {
   icon: keyof typeof Ionicons.glyphMap
-  color: string
-  label: string
+  title: string
   value: string
+  detail: string
+  color: string
+  detailColor?: string
+  className?: string
 }) {
   return (
-    <View className="flex-row items-center gap-3">
-      <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
-        <Ionicons name={icon} size={18} color={color} />
-      </View>
-      <View>
-        <Text className="text-[13px] text-[#AFC2DB]">{label}</Text>
-        <Text className="text-[13px] font-bold text-white">{value}</Text>
+    <View className={`min-w-[175px] rounded-2xl border border-[#1A3155] bg-[#09162C] p-5 ${className}`}>
+      <View className="flex-row items-start gap-4">
+        <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
+          <Ionicons name={icon} size={23} color={color} />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="text-[13px] font-bold leading-5 text-[#AFC2DB]" numberOfLines={2}>
+            {title}
+          </Text>
+          <Text className="mt-2 text-[26px] font-black text-white" numberOfLines={1}>
+            {value}
+          </Text>
+          <Text className="mt-1 text-[12px] font-bold" style={{ color: detailColor }} numberOfLines={1}>
+            {detail}
+          </Text>
+        </View>
       </View>
     </View>
   )
 }
 
-function XpEvolution({ scores }: { scores: RecentScore[] }) {
+function XpEvolution({
+  scores,
+  className = '',
+  onSeeAll,
+}: {
+  scores: RecentScore[]
+  className?: string
+  onSeeAll?: () => void
+}) {
   const maxScore = Math.max(...scores.map((score) => score.value), 1)
   const { accentColor } = useAppTheme()
 
   return (
-    <View className="flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <View className="mb-5 flex-row items-center justify-between">
-        <Text className="text-[15px] font-black text-white">Últimos resultados</Text>
-      </View>
+    <StudentDashboardCard
+      title="Últimos resultados"
+      actionLabel={onSeeAll ? 'Ver todas' : undefined}
+      onAction={onSeeAll}
+      className={className}
+    >
       {scores.length > 0 ? (
-        <View style={{ gap: 12 }}>
-          {scores.map((score, index) => {
-            const percent = Math.max(10, Math.round((score.value / maxScore) * 100))
+        <View style={{ gap: 16 }}>
+          {scores.slice(0, 3).map((score, index) => {
+            const percent = score.value <= 0 ? 0 : Math.max(8, Math.round((score.value / maxScore) * 100))
 
             return (
               <View key={`${score.label}-${score.meta}-${index}`}>
                 <View className="mb-2 flex-row items-center justify-between gap-3">
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-[13px] font-bold text-[#DDE7F4]" numberOfLines={1}>
-                      {score.label}
-                    </Text>
-                    <Text className="text-[11px] text-[#60799C]" numberOfLines={1}>{score.meta}</Text>
+                  <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                    <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#13284A]">
+                      <Ionicons name={index === 0 ? 'sparkles' : 'analytics'} size={18} color={index === 0 ? '#FBBF24' : '#43D991'} />
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-[13px] font-black text-[#DDE7F4]" numberOfLines={1}>
+                        {score.label}
+                      </Text>
+                      <Text className="mt-1 text-[11px] text-[#60799C]" numberOfLines={1}>{score.meta}</Text>
+                    </View>
                   </View>
                   <Text className="text-[13px] font-black text-white">{score.value.toLocaleString()} XP</Text>
                 </View>
-                <View className="h-2.5 overflow-hidden rounded-full bg-[#13294C]">
-                  <View
-                    className="h-full rounded-full"
-                    style={{ width: `${percent}%`, opacity: index === 0 ? 1 : 0.72, backgroundColor: accentColor }}
-                  />
+                <View className="ml-[52px] h-2.5 overflow-hidden rounded-full bg-[#13294C]">
+                  {percent > 0 ? (
+                    <View
+                      className="h-full rounded-full"
+                      style={{ width: `${percent}%`, opacity: index === 0 ? 1 : 0.72, backgroundColor: accentColor }}
+                    />
+                  ) : null}
                 </View>
               </View>
             )
@@ -454,70 +515,88 @@ function XpEvolution({ scores }: { scores: RecentScore[] }) {
           <Text className="mt-3 text-center text-[13px] text-[#AFC2DB]">Aún no hay puntuaciones guardadas.</Text>
         </View>
       )}
-    </View>
+    </StudentDashboardCard>
   )
+}
+
+function splitReinforcementDetail(detail: string) {
+  const parts = detail.split(' · ')
+  if (parts.length >= 2) {
+    return { main: parts.slice(0, -1).join(' · '), context: parts[parts.length - 1] }
+  }
+  return { main: '', context: detail }
 }
 
 function ReinforcementCard({
   areas,
   onReview,
+  onSeeAll,
+  className = '',
 }: {
   areas: ReinforcementArea[]
   onReview: (area: ReinforcementArea) => void
+  onSeeAll?: () => void
+  className?: string
 }) {
-  const primaryArea = areas.find((area) => area.subjectId)
-
   return (
     <StudentDashboardCard
       title="Áreas a reforzar"
-      onAction={primaryArea ? () => onReview(primaryArea) : undefined}
+      actionLabel={onSeeAll ? 'Ver todas' : undefined}
+      onAction={onSeeAll}
+      className={className}
     >
       {areas.length > 0 ? (
-        <View style={{ gap: 12 }}>
-          {areas.map((area) => (
-            <Pressable
-              key={area.id}
-              onPress={() => onReview(area)}
-              className="flex-row items-center gap-4 rounded-xl border border-[#1A3155] bg-[#0D1D3B] p-4"
-            >
-              <View
-                className="h-12 w-12 items-center justify-center rounded-xl"
-                style={{ backgroundColor: `${area.color}24` }}
-              >
-                <Ionicons name={area.icon} size={22} color={area.color} />
-              </View>
+        <View style={{ gap: 10 }}>
+          {areas.slice(0, 3).map((area) => {
+            const safeAccuracy = Math.min(100, Math.max(0, area.accuracyPercent))
+            const detail = splitReinforcementDetail(area.detail)
 
-              <View className="min-w-0 flex-1">
-                <View className="mb-1 flex-row flex-wrap items-center gap-2">
-                  <Text className="text-[15px] font-black text-white" numberOfLines={1}>
-                    {area.title}
-                  </Text>
-                  <View className="rounded-full bg-[#13284A] px-2 py-1">
-                    <Text className="text-[11px] font-black text-[#9FD6FF]">
-                      {area.badge}
-                    </Text>
-                  </View>
+            return (
+              <Pressable
+                key={area.id}
+                onPress={() => onReview(area)}
+                className="flex-row items-center gap-4 rounded-xl border border-[#1A3155] bg-[#0D1D3B] p-3"
+                style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
+              >
+                <View
+                  className="h-12 w-12 items-center justify-center rounded-full"
+                  style={{ backgroundColor: `${area.color}24` }}
+                >
+                  <Ionicons name={area.icon} size={24} color={area.color} />
                 </View>
 
-                <Text className="text-[13px] text-[#AFC2DB]" numberOfLines={2}>
-                  {area.detail}
-                </Text>
-              </View>
+                <View className="min-w-0 flex-[1.25]">
+                  <View className="flex-row flex-wrap items-center gap-2">
+                    <Text className="text-[15px] font-black text-white" numberOfLines={1}>
+                      {area.title}
+                    </Text>
+                    {detail.main ? (
+                      <Text className="text-[13px] font-bold text-[#AFC2DB]" numberOfLines={1}>
+                        · {detail.main}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Text className="mt-1 text-[12px] text-[#8FA7C7]" numberOfLines={1}>
+                    {detail.context}
+                  </Text>
+                </View>
 
-              <View className="items-end">
-                <Text className="text-[18px] font-black text-white">
-                  {area.accuracyPercent}%
-                </Text>
-                <Text className="text-[11px] text-[#8FA7C7]">acierto</Text>
-              </View>
+                <View className="hidden min-w-[180px] flex-[0.65] flex-row items-center gap-3 md:flex">
+                  <View className="h-2 flex-1 overflow-hidden rounded-full bg-[#13294C]">
+                    <View
+                      className="h-full rounded-full"
+                      style={{ width: `${safeAccuracy}%`, backgroundColor: area.color }}
+                    />
+                  </View>
+                  <Text className="w-12 text-right text-[18px] font-black" style={{ color: area.color }}>
+                    {safeAccuracy}%
+                  </Text>
+                </View>
 
-              <View className="hidden rounded-xl bg-[#7C5CFF] px-4 py-3 md:flex">
-                <Text className="font-black text-white">{area.actionLabel}</Text>
-              </View>
-
-              <Ionicons name="arrow-forward" size={18} color="#8B5CF6" />
-            </Pressable>
-          ))}
+                <Ionicons name="arrow-forward" size={18} color="#8B5CF6" />
+              </Pressable>
+            )
+          })}
         </View>
       ) : (
         <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B] px-4 py-6">
@@ -539,30 +618,50 @@ function SubjectProgressRow({
   onPress: () => void
   subject: SubjectProgress
 }) {
+  const safePercent = Math.min(100, Math.max(0, subject.barPercent))
+
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center rounded-xl bg-[#0D1D3B] p-3"
+      className="flex-row items-center gap-4 rounded-xl border border-[#172A4A] bg-[#0D1D3B] p-3"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${subject.color}24` }}>
         <Ionicons name={subject.icon} size={24} color={subject.color} />
       </View>
-      <View className="ml-3 min-w-0 flex-1">
-        <Text className="font-black text-white">{subject.name}</Text>
-        <Text className="mt-1 text-[13px] text-[#8FA7C7]" numberOfLines={1}>{subject.detail}</Text>
+
+      <View className="min-w-0 flex-[1.45]">
+        <View className="flex-row items-center gap-2">
+          <Text className="min-w-0 flex-shrink text-[15px] font-black text-white" numberOfLines={1}>
+            {subject.name}
+          </Text>
+          {subject.classroomId ? (
+            <View className="hidden rounded-full bg-[#123154] px-2 py-1 md:flex">
+              <Text className="text-[10px] font-black text-[#9FD6FF]">Clase principal</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>
+          {subject.detail}
+        </Text>
+        <View className="mt-2 h-2 overflow-hidden rounded-full bg-[#13294C] md:hidden">
+          <View className="h-full rounded-full" style={{ width: `${safePercent}%`, backgroundColor: subject.color }} />
+        </View>
       </View>
-      <View className="mx-4 hidden h-2 flex-[0.9] overflow-hidden rounded-full bg-[#13294C] md:flex">
-        <View className="h-full rounded-full" style={{ width: `${subject.barPercent}%`, backgroundColor: subject.color }} />
+
+      <View className="hidden min-w-[130px] flex-[0.55] items-end md:flex">
+        <Text className="text-[18px] font-black text-white">{safePercent}%</Text>
+        <Text className="text-[11px] text-[#8FA7C7]">completado</Text>
+        <View className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#13294C]">
+          <View className="h-full rounded-full" style={{ width: `${safePercent}%`, backgroundColor: subject.color }} />
+        </View>
       </View>
-      <Text className="w-24 text-right text-[13px] text-[#AFC2DB]">
-        {subject.barPercent}%
-      </Text>
-      <View className="mx-4 hidden w-28 border-l border-[#172A4A] pl-4 lg:flex">
+
+      <View className="hidden w-24 border-l border-[#172A4A] pl-4 lg:flex">
         <Text className="text-[12px] text-[#60799C]">Respondidas</Text>
         <Text className="text-[13px] font-bold text-[#DDE7F4]">{subject.scoreCount} / {subject.totalQuestions}</Text>
       </View>
-      <View className="hidden w-24 border-l border-[#172A4A] pl-4 lg:flex">
+      <View className="hidden w-20 border-l border-[#172A4A] pl-4 lg:flex">
         <Text className="text-[12px] text-[#60799C]">Fallos</Text>
         <Text
           className="text-[13px] font-bold"
@@ -571,14 +670,14 @@ function SubjectProgressRow({
           {subject.failedQuestions}
         </Text>
       </View>
-      <View className="hidden w-24 border-l border-[#172A4A] pl-4 lg:flex">
+      <View className="hidden w-24 border-l border-[#172A4A] pl-4 xl:flex">
         <Text className="text-[12px] text-[#60799C]">Pendientes</Text>
         <Text className="text-[13px] font-bold text-[#DDE7F4]">{subject.pendingQuestions}</Text>
       </View>
-      <View className="hidden w-16 lg:flex">
+      <View className="hidden w-16 xl:flex">
         <Text className="text-[12px] text-[#60799C]">Mejor</Text>
         <Text className="text-[12px] font-bold text-[#DDE7F4]">
-          {subject.bestScore === null ? '-' : subject.bestScore.toLocaleString()}
+          {subject.bestScore === null ? '-' : `${subject.bestScore.toLocaleString()} XP`}
         </Text>
       </View>
       <Ionicons name="arrow-forward" size={16} color="#7F91AD" />
@@ -639,11 +738,15 @@ function buildSubjectRows(subjects: StudentProgressSubject[], scores: ScoreRow[]
       : null
     const bestScore = subjectScores.length > 0 ? Math.max(...subjectScores) : null
 
+    const classroomLabel = subject.classroomName || 'Clase principal'
+    const questionsLabel = `${subject.totalQuestions} ${subject.totalQuestions === 1 ? 'pregunta' : 'preguntas'}`
+    const topicsLabel = `${Math.max(1, subject.totalTopics)} ${Math.max(1, subject.totalTopics) === 1 ? 'tema' : 'temas'}`
+
     return {
       id: subject.id,
       classroomId: subject.classroomId ?? null,
-      name: subject.classroomName ? `${subject.name} · ${subject.classroomName}` : subject.name,
-      detail: subject.description || 'Preguntas y ejercicios disponibles',
+      name: subject.name,
+      detail: `${classroomLabel} · ${topicsLabel} · ${questionsLabel}`,
       icon: icons[index] || 'book',
       color: subject.theme_color || colors[index] || '#43D991',
       averageScore,
