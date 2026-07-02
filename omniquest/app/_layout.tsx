@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { View, ActivityIndicator } from 'react-native'
 import { AppThemeProvider, useAppTheme } from '../lib/appTheme'
 import { NotificationProvider } from '../hooks/useNotifications'
+import { AppModalProvider } from '../components/AppModalProvider'
 
 const AUTH_ROUTE_ALIASES: Record<string, string> = {
   '/login': '/(auth)/login',
@@ -38,9 +39,11 @@ function getHomeRouteForRole(roleId: string | null | undefined) {
 export default function RootLayout() {
   return (
     <AppThemeProvider>
-      <NotificationProvider>
-        <RootNavigator />
-      </NotificationProvider>
+      <AppModalProvider>
+        <NotificationProvider>
+          <RootNavigator />
+        </NotificationProvider>
+      </AppModalProvider>
     </AppThemeProvider>
   )
 }
@@ -116,7 +119,7 @@ function RootNavigator() {
 
       let { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role_id')
+        .select('role_id, active')
         .eq('id', session.user.id)
         .maybeSingle()
 
@@ -128,8 +131,9 @@ function RootNavigator() {
             alias: session.user.user_metadata?.alias || 'Invitado',
             role_id: 'guest',
             points: 0,
+            active: true,
           })
-          .select('role_id')
+          .select('role_id, active')
           .single()
 
         profile = guestProfile
@@ -142,6 +146,14 @@ function RootNavigator() {
 
       if (profileError || !profile) {
         console.error('[auth] failed to fetch profile or profile not found', profileError)
+        await clearInvalidSession()
+        redirectToLogin()
+        setIsInitialized(true)
+        return
+      }
+
+      if (profile.active === false) {
+        console.warn('[auth] inactive user blocked')
         await clearInvalidSession()
         redirectToLogin()
         setIsInitialized(true)

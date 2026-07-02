@@ -181,7 +181,8 @@ export default function TeacherHomeScreen() {
         supabase.from('questions').select('id, subject_id, text').in('subject_id', subjectIds),
         supabase
           .from('attempt_history')
-          .select('student_id, is_correct, question_id, attempted_at, questions(id, subject_id, text)')
+          .select('student_id, is_correct, question_id, attempted_at, questions!inner(id, subject_id, text)')
+          .in('questions.subject_id', subjectIds)
           .order('attempted_at', { ascending: false })
           .limit(500),
         supabase

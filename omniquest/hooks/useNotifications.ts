@@ -41,6 +41,12 @@ type SubjectScoreRow = {
   played_at?: string | null
 }
 
+type StudentBadgeAwardRow = {
+  badge_id: string | null
+  awarded_at: string | null
+  reward_xp: number | null
+}
+
 type QuestionRow = {
   subject_id: number | null
   created_at?: string | null
@@ -374,10 +380,38 @@ export function useNotifications(audience: NotificationAudience = 'teacher') {
     throw new Error('useNotifications debe usarse dentro de NotificationProvider')
   }
 
-  const { notifications, loading, error } = context.getAudienceState(audience)
+  const {
+    clearError: clearAudienceError,
+    deleteNotification: deleteAudienceNotification,
+    getAudienceState,
+    markAllAsRead: markAllAudienceAsRead,
+    markAsRead: markAudienceAsRead,
+    refresh: refreshAudience,
+  } = context
+  const { notifications, loading, error } = getAudienceState(audience)
   const unreadCount = useMemo(
     () => notifications.filter((notification) => !notification.isRead).length,
     [notifications]
+  )
+  const markAsRead = useCallback(
+    (id: string) => markAudienceAsRead(audience, id),
+    [audience, markAudienceAsRead]
+  )
+  const deleteNotification = useCallback(
+    (id: string) => deleteAudienceNotification(audience, id),
+    [audience, deleteAudienceNotification]
+  )
+  const markAllAsRead = useCallback(
+    () => markAllAudienceAsRead(audience),
+    [audience, markAllAudienceAsRead]
+  )
+  const refresh = useCallback(
+    () => refreshAudience(audience),
+    [audience, refreshAudience]
+  )
+  const clearError = useCallback(
+    () => clearAudienceError(audience),
+    [audience, clearAudienceError]
   )
 
   return {
@@ -385,11 +419,11 @@ export function useNotifications(audience: NotificationAudience = 'teacher') {
     unreadCount,
     loading,
     error,
-    markAsRead: (id: string) => context.markAsRead(audience, id),
-    markAllAsRead: () => context.markAllAsRead(audience),
-    deleteNotification: (id: string) => context.deleteNotification(audience, id),
-    refresh: () => context.refresh(audience),
-    clearError: () => context.clearError(audience),
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    refresh,
+    clearError,
   }
 }
 
@@ -456,7 +490,7 @@ async function fetchStudentNotifications({
   readIds: Set<string>
   deletedIds: Set<string>
 }) {
-  const [enrollmentsResult, scoresResult] = await Promise.all([
+  const [enrollmentsResult, scoresResult, badgeAwardsResult] = await Promise.all([
     supabase
       .from('enrollments')
       .select('subject_id, student_id, joined_at, subjects(id, name, created_at)')
@@ -467,13 +501,21 @@ async function fetchStudentNotifications({
       .select('subject_id, student_id, max_score, correct_answers, played_days, played_at, subjects(id, name, created_at)')
       .eq('student_id', userId)
       .order('played_at', { ascending: false }),
+    supabase
+      .from('student_badges')
+      .select('badge_id, awarded_at, reward_xp')
+      .eq('student_id', userId)
+      .order('awarded_at', { ascending: false })
+      .limit(12),
   ])
 
   if (enrollmentsResult.error) throw enrollmentsResult.error
   if (scoresResult.error) throw scoresResult.error
+  if (badgeAwardsResult.error) throw badgeAwardsResult.error
 
   const enrollments = (enrollmentsResult.data || []) as (EnrollmentRow & { subjects?: SubjectRow | SubjectRow[] | null })[]
   const scores = (scoresResult.data || []) as (SubjectScoreRow & { subjects?: SubjectRow | SubjectRow[] | null })[]
+  const badgeAwards = (badgeAwardsResult.data || []) as StudentBadgeAwardRow[]
   const subjectRows = [...enrollments, ...scores]
     .map((row) => normalizeSubjectRelation(row.subjects))
     .filter((subject): subject is SubjectRow => Boolean(subject))
@@ -484,6 +526,7 @@ async function fetchStudentNotifications({
   return buildStudentNotifications({
     enrollments,
     scores,
+    badgeAwards,
     subjectsById,
     questionsBySubject,
     readIds,
@@ -604,6 +647,7 @@ function buildTeacherNotifications({
 function buildStudentNotifications({
   enrollments,
   scores,
+  badgeAwards,
   subjectsById,
   questionsBySubject,
   readIds,
@@ -611,6 +655,7 @@ function buildStudentNotifications({
 }: {
   enrollments: (EnrollmentRow & { subjects?: SubjectRow | SubjectRow[] | null })[]
   scores: (SubjectScoreRow & { subjects?: SubjectRow | SubjectRow[] | null })[]
+  badgeAwards: StudentBadgeAwardRow[]
   subjectsById: Map<number, SubjectRow>
   questionsBySubject: Record<number, number>
   readIds: Set<string>
@@ -685,6 +730,28 @@ function buildStudentNotifications({
       }
     })
 
+  const badgeNotifications: AppNotification[] = badgeAwards
+    .filter((award) => award.badge_id)
+    .slice(0, 12)
+    .map((award) => {
+      const badge = getBadgeNotificationDetails(String(award.badge_id))
+      const rewardXp = award.reward_xp ?? badge.rewardXp
+
+      return {
+        id: `student-badge-${award.badge_id}-${toStableDate(award.awarded_at)}`,
+        type: 'achievement',
+        title: 'Logro desbloqueado',
+        description: rewardXp > 0
+          ? `Has conseguido "${badge.title}" y ganado ${rewardXp.toLocaleString()} XP.`
+          : `Has conseguido "${badge.title}".`,
+        icon: badge.icon,
+        color: badge.color,
+        timestamp: award.awarded_at || nowIso,
+        isRead: false,
+        actionUrl: '/(student)/badges',
+      }
+    })
+
   const announcementNotifications: AppNotification[] = enrollments
     .filter((enrollment) => enrollment.subject_id)
     .flatMap((enrollment) => {
@@ -730,6 +797,7 @@ function buildStudentNotifications({
     ...classNotifications,
     ...activityNotifications,
     ...achievementNotifications,
+    ...badgeNotifications,
     ...announcementNotifications,
   ]
     .map((notification) => ({
@@ -739,6 +807,106 @@ function buildStudentNotifications({
     .filter((notification) => !deletedIds.has(notification.id))
     .sort((a, b) => toTimestamp(b.timestamp) - toTimestamp(a.timestamp))
     .slice(0, 40)
+}
+
+function getBadgeNotificationDetails(badgeId: string): {
+  title: string
+  icon: keyof typeof Ionicons.glyphMap
+  color: string
+  rewardXp: number
+} {
+  return badgeNotificationDetails[badgeId] || {
+    title: 'Nuevo logro',
+    icon: 'trophy-outline',
+    color: '#F6A64A',
+    rewardXp: 0,
+  }
+}
+
+const badgeNotificationDetails: Record<string, {
+  title: string
+  icon: keyof typeof Ionicons.glyphMap
+  color: string
+  rewardXp: number
+}> = {
+  'first-step': {
+    title: 'Primer paso',
+    icon: 'sparkles',
+    color: '#58B5FF',
+    rewardXp: 50,
+  },
+  'first-session': {
+    title: 'Primera sesión',
+    icon: 'play-circle',
+    color: '#8B5CF6',
+    rewardXp: 60,
+  },
+  'practice-25': {
+    title: 'En marcha',
+    icon: 'rocket',
+    color: '#7C5CFF',
+    rewardXp: 100,
+  },
+  'practice-100': {
+    title: 'Maestro de retos',
+    icon: 'trophy',
+    color: '#FBBF24',
+    rewardXp: 250,
+  },
+  'correct-50': {
+    title: 'Buena puntería',
+    icon: 'checkmark-circle',
+    color: '#34D399',
+    rewardXp: 180,
+  },
+  'accuracy-80': {
+    title: 'Precisión brillante',
+    icon: 'speedometer',
+    color: '#43D991',
+    rewardXp: 200,
+  },
+  'streak-3': {
+    title: 'Constante',
+    icon: 'flame',
+    color: '#F97316',
+    rewardXp: 100,
+  },
+  'streak-7': {
+    title: 'Racha semanal',
+    icon: 'bonfire',
+    color: '#FB7185',
+    rewardXp: 220,
+  },
+  'course-explorer': {
+    title: 'Explorador de cursos',
+    icon: 'map',
+    color: '#38BDF8',
+    rewardXp: 150,
+  },
+  'class-explorer': {
+    title: 'Explorador de clases',
+    icon: 'compass',
+    color: '#34D399',
+    rewardXp: 150,
+  },
+  'question-type-explorer': {
+    title: 'Explorador de formatos',
+    icon: 'shapes',
+    color: '#EC4899',
+    rewardXp: 120,
+  },
+  'xp-500': {
+    title: 'Cazador de XP',
+    icon: 'flash',
+    color: '#FBBF24',
+    rewardXp: 120,
+  },
+  'xp-2000': {
+    title: 'Leyenda XP',
+    icon: 'star',
+    color: '#F59E0B',
+    rewardXp: 300,
+  },
 }
 
 function buildAnnouncementNotifications({

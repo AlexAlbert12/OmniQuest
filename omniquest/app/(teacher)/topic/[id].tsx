@@ -201,12 +201,6 @@ export default function TopicDetailScreen() {
   };
 
   const handleDelete = (questionId: number) => {
-    if (Platform.OS === 'web') {
-      const confirmDelete = window.confirm('¿Estás seguro de que quieres eliminar esta pregunta? Esta acción no se puede deshacer.');
-      if (confirmDelete) executeDelete(questionId);
-      return;
-    }
-
     Alert.alert('Borrar pregunta', '¿Estás seguro de que quieres eliminar esta pregunta? Esta acción no se puede deshacer.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Sí, borrar', style: 'destructive', onPress: () => executeDelete(questionId) },

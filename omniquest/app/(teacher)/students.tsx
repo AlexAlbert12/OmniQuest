@@ -348,8 +348,9 @@ export default function TeacherStudentsScreen() {
           .select('id, alias, avatar, points')
           .in('id', studentIds),
         (supabase.from('attempt_history') as any)
-          .select('id, student_id, question_id, is_correct, attempted_at, created_at, earned_points, questions(text, subject_id, topic_id, subject_topics(title))')
+          .select('id, student_id, question_id, is_correct, attempted_at, created_at, earned_points, questions!inner(text, subject_id, topic_id, subject_topics(title))')
           .in('student_id', studentIds)
+          .in('questions.subject_id', subjectIds)
           .order('attempted_at', { ascending: false })
           .limit(500),
       ]);

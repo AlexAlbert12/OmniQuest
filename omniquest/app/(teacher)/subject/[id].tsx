@@ -1160,14 +1160,6 @@ export default function SubjectDetailScreen() {
       }
     };
 
-    if (Platform.OS === 'web') {
-      const confirmArchive = window.confirm('¿Seguro que quieres archivar este curso? Se ocultará de la lista activa.');
-      if (confirmArchive) {
-        await executeArchive();
-      }
-      return;
-    }
-
     Alert.alert('Archivar curso', 'El curso se ocultará de los cursos activos.', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -1474,12 +1466,6 @@ export default function SubjectDetailScreen() {
   };
 
   const handleDelete = (questionId: number) => {
-    if (Platform.OS === 'web') {
-      const confirmDelete = window.confirm('¿Estás seguro de que quieres eliminar esta pregunta? Esta acción no se puede deshacer.');
-      if (confirmDelete) executeDelete(questionId);
-      return;
-    }
-
     Alert.alert('Borrar pregunta', '¿Estás seguro de que quieres eliminar esta pregunta? Esta acción no se puede deshacer.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Sí, borrar', style: 'destructive', onPress: () => executeDelete(questionId) },

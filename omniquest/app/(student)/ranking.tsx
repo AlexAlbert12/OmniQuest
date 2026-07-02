@@ -165,11 +165,18 @@ export default function RankingScreen() {
       const nextClassOptions = userId ? await fetchEnrolledClassOptions(userId) : []
       setClassOptions(nextClassOptions)
 
-      const hasSelectedClass = selectedClassId
+      let effectiveSelectedClassId = selectedClassId
+      const hasSelectedClass = effectiveSelectedClassId
         ? nextClassOptions.some((classOption) => classOption.id === selectedClassId)
         : false
 
-      if (selectedClassId && !hasSelectedClass) {
+      if (selectedScope === 'class' && !hasSelectedClass) {
+        effectiveSelectedClassId = nextClassOptions[0]?.id ?? null
+        if (effectiveSelectedClassId !== selectedClassId) {
+          setSelectedClassId(effectiveSelectedClassId)
+        }
+      } else if (selectedScope !== 'class' && selectedClassId && !hasSelectedClass) {
+        effectiveSelectedClassId = null
         setSelectedClassId(null)
       }
 
@@ -177,8 +184,8 @@ export default function RankingScreen() {
         ? await fetchGlobalRanking()
         : selectedScope === 'weekly'
           ? await fetchWeeklyRanking()
-          : selectedClassId && hasSelectedClass
-            ? await fetchClassRanking(selectedClassId)
+          : effectiveSelectedClassId
+            ? await fetchClassRanking(effectiveSelectedClassId)
             : []
 
       setProfiles(nextProfiles)
@@ -208,12 +215,6 @@ export default function RankingScreen() {
 
     return `Aún no hay alumnos con puntuación en ${selectedClass ? `${selectedClass.name} · ${selectedClass.classroomName}` : 'esta clase'}.`
   }, [classOptions.length, selectedClass?.classroomName, selectedClass?.name, selectedClassId, selectedScope])
-
-  useEffect(() => {
-    if (selectedScope === 'class' && !selectedClassId && classOptions.length > 0) {
-      setSelectedClassId(classOptions[0].id)
-    }
-  }, [selectedScope, selectedClassId, classOptions])
 
   useFocusEffect(
     useCallback(() => {
@@ -345,7 +346,15 @@ export default function RankingScreen() {
 
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
             <View className={isDesktop ? 'flex-[1.45]' : ''}>
-              <RankingTabs activeScope={selectedScope} onSelect={setSelectedScope} />
+              <RankingTabs
+                activeScope={selectedScope}
+                onSelect={(nextScope) => {
+                  if (nextScope === 'class' && !selectedClassId && classOptions.length > 0) {
+                    setSelectedClassId(classOptions[0].id)
+                  }
+                  setSelectedScope(nextScope)
+                }}
+              />
               {selectedScope === 'class' ? (
                 <ClassRankingSelector
                   classOptions={classOptions}

@@ -29,6 +29,7 @@ import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
+import { useNotifications } from '../../hooks/useNotifications'
 
 type Profile = {
   id: string
@@ -52,6 +53,7 @@ export default function BadgesScreen() {
 
   const isDesktop = width >= 1024
   const { accentColor } = useAppTheme()
+  const { refresh: refreshStudentNotifications } = useNotifications('student')
   const points = profile?.points ?? 0
   const alias = profile?.alias || 'Alex'
   const level = getStudentLevel(points)
@@ -130,6 +132,8 @@ export default function BadgesScreen() {
         setSyncedBadges(syncResult.badges)
 
         if (syncResult.awardedXp > 0) {
+          void refreshStudentNotifications()
+
           setProfile((current) =>
             current ? { ...current, points: (current.points ?? 0) + syncResult.awardedXp } : current
           )
@@ -152,7 +156,7 @@ export default function BadgesScreen() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [refreshStudentNotifications])
 
   useFocusEffect(
     useCallback(() => {
