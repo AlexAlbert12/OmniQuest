@@ -343,7 +343,7 @@ export default function ProfileScreen() {
                 <ProfileShortcut
                   icon="stats-chart-outline"
                   label="Progreso"
-                  description="Estadísticas, evolución y asignaturas"
+                  description="Estadísticas, evolución y cursos"
                   color={accentColor}
                   onPress={() => router.push('/(student)/progress' as any)}
                 />

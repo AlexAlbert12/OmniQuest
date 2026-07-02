@@ -313,7 +313,7 @@ export default function TopicDetailScreen() {
           <View className="mb-5 flex-row flex-wrap gap-4">
             <MetricCard icon="help-circle" label="Preguntas" value={String(topicQuestions.length)} color="#8B5CF6" />
             <MetricCard icon="radio-button-on" label="Intentos" value={String(scoreValues.length)} color="#F59E0B" />
-            <MetricCard icon="star" label="Puntuación media" value={`${averageXp.toLocaleString('es-ES')} XP`} color="#3B82F6" />
+            <MetricCard icon="star" label="XP media" value={`${averageXp.toLocaleString('es-ES')} XP`} color="#3B82F6" />
             <MetricCard icon="trending-up" label="Participación" value={`${participation}%`} color="#F43F5E" />
           </View>
 

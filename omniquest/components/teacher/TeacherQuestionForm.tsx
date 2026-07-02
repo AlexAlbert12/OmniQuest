@@ -309,7 +309,7 @@ export default function TeacherQuestionForm({
 
   const handleTypeSelection = (typeId: QuestionTypeId, supported: boolean) => {
     if (!supported) {
-      showAlert('Próximamente', 'Este tipo de pregunta estará disponible en una próxima iteración.');
+      showAlert('Tipo no disponible', 'Este tipo de pregunta no está activo en este momento.');
       return;
     }
 

@@ -1,8 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -392,19 +390,6 @@ export default function TeacherClassesScreen() {
     fetchSubjects();
   };
 
-  const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`);
-      return;
-    }
-
-    Alert.alert(title, message);
-  };
-
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`);
-  };
-
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
@@ -517,7 +502,6 @@ export default function TeacherClassesScreen() {
                     subject={subject}
                     index={index}
                     analytics={analyticsBySubject[subject.id] || emptySubjectAnalytics}
-                    onComingSoon={showComingSoon}
                   />
                 ))}
               </View>
@@ -616,12 +600,10 @@ function ClassCard({
   subject,
   index,
   analytics,
-  onComingSoon,
 }: {
   subject: Subject
   index: number
   analytics: SubjectAnalytics
-  onComingSoon: (feature: string) => void
 }) {
   const fallbackColors = ['#8B5CF6', '#3B82F6', '#34D399', '#F6A64A'];
   const color = subject.theme_color || fallbackColors[index % fallbackColors.length];
@@ -656,7 +638,7 @@ function ClassCard({
               <SmallPill icon={status.icon} label={status.label} color={status.color} />
               <SmallPill icon="albums-outline" label={`${analytics.topicsCount} temas`} color="#F6A64A" />
               <SmallPill icon="people-outline" label={`${analytics.enrolledCount} alumnos`} color="#38bdf8" />
-              <SmallPill icon="trophy-outline" label={`${analytics.averageScore} Puntuación media`} color="#B9A7FF" />
+              <SmallPill icon="trophy-outline" label={`${analytics.averageScore} XP media`} color="#B9A7FF" />
               <SmallPill icon="people-circle-outline" label={`${participation}% participación`} color="#58E28B" />
               <SmallPill icon="checkmark-circle-outline" label={`${analytics.answeredQuestionsCount} respondidas`} color="#43D991" />            </View>
           </View>

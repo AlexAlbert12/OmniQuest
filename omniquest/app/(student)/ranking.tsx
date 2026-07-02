@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Image,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -271,19 +269,6 @@ export default function RankingScreen() {
     }
   }, [currentUserId, selectedScope])
 
-  const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`)
-      return
-    }
-
-    Alert.alert(title, message)
-  }
-
-  const showComingSoon = (feature: string) => {
-    showAlert('Próximamente', `${feature} estará disponible en una próxima iteración.`)
-  }
-
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
@@ -466,7 +451,8 @@ async function fetchGlobalRanking() {
     .from('profiles')
     .select('id, alias, points, avatar')
     .eq('role_id', 'student')
-    .limit(80)
+    .order('points', { ascending: false, nullsFirst: false })
+    .limit(500)
 
   if (profilesError) throw profilesError
 
@@ -498,7 +484,8 @@ async function fetchWeeklyRanking(): Promise<Profile[]> {
     .from('profiles')
     .select('id, alias, points, avatar')
     .eq('role_id', 'student')
-    .limit(80)
+    .order('points', { ascending: false, nullsFirst: false })
+    .limit(500)
 
   if (profilesError) throw profilesError
 

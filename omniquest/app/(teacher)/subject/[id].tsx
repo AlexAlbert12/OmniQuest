@@ -400,7 +400,7 @@ export default function SubjectDetailScreen() {
             <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
               <StudentMetricCard icon="people" label="Alumnos inscritos" value={String(enrollments.length)} detail={`${studentReportRows.length} en esta clase`} color="#8B5CF6" />
               <StudentMetricCard icon="checkmark-circle" label="Activos esta semana" value={String(activeStudents)} detail={`${reportSummary.participation}% del total`} color="#34D399" />
-              <StudentMetricCard icon="star" label="XP media de la clase" value={`${averageXp} XP`} detail="Puntuación media" color="#3B82F6" />
+              <StudentMetricCard icon="star" label="XP media de la clase" value={`${averageXp} XP`} detail="Media de puntos con bonus" color="#3B82F6" />
               <StudentMetricCard icon="trophy" label="Mejor alumno" value={`${bestStudent?.score ?? 0} XP`} detail={bestStudent?.name || 'Sin actividad'} color="#F59E0B" />
             </View>
 
@@ -605,7 +605,7 @@ export default function SubjectDetailScreen() {
             <ReportMetricCard icon="people" label="Alumnos evaluados" value={`${reportSummary.answered}/${reportSummary.enrolled}`} color="#38BDF8" detail={`${reportSummary.participation}% participación`} />
             <ReportMetricCard icon="shield-checkmark" label="Nota media" value={reportSummary.averageGrade.toFixed(1)} suffix="/10" color="#F59E0B" detail={`${reportSummary.averageAccuracy}% precisión media`} />
             <ReportMetricCard icon="close-circle" label="Preguntas falladas" value={String(reportSummary.failedAnswers)} color="#F43F5E" detail={`${reportSummary.correctAnswers} correctas registradas`} />
-            <ReportMetricCard icon="star" label="Puntuación media" value={`${averageXp.toLocaleString('es-ES')}`} color="#3B82F6" detail="puntos con bonus aparte" />
+            <ReportMetricCard icon="star" label="XP media" value={`${averageXp.toLocaleString('es-ES')}`} color="#3B82F6" detail="puntos con bonus aparte" />
           </View>
 
           <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
@@ -1621,7 +1621,7 @@ export default function SubjectDetailScreen() {
           <View className={isWide ? 'mb-5 flex-row gap-4' : 'mb-5 gap-4'}>
             <MetricCard icon="checkmark-circle" label="Precisión media" value={`${averageAccuracy}%`} color="#34D399" detail="Aciertos sobre respuestas estimadas" />
             <MetricCard icon="shield-checkmark" label="Nota media" value={`${averageGrade.toFixed(1)}`} suffix="/10" color="#F59E0B" detail="Calculada por precisión" />
-            <MetricCard icon="star" label="Puntuación media" value={`${averageXp.toLocaleString('es-ES')} pts`} color="#3B82F6" detail="Puntos y bonus separados" />
+            <MetricCard icon="star" label="XP media" value={`${averageXp.toLocaleString('es-ES')} pts`} color="#3B82F6" detail="Puntos y bonus separados" />
             <MetricCard icon="radio-button-on" label="Preguntas respondidas" value={`${answeredClassQuestions}/${possibleClassQuestions}`} color="#F43F5E" detail="Respuestas sobre preguntas posibles" />
             <MetricCard icon="trending-up" label="Participación" value={`${participation}%`} color="#8B5CF6" detail={INSUFFICIENT_TREND_DATA} />
           </View>
@@ -1939,7 +1939,7 @@ function TopicSummaryRow({
       </View>
       <InfoStack label="Preguntas" value={String(topic.questionsCount)} />
       <InfoStack label="Jugados" value={String(topic.playedCount)} />
-      <InfoStack label="Puntuación media" value={`${topic.averageScore}`} />
+      <InfoStack label="XP media" value={`${topic.averageScore}`} />
       <InfoStack label="Acceso" value={formatTopicDeadline(topic.availableUntil)} />
     </Pressable>
   );

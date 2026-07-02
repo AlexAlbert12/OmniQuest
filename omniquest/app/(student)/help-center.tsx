@@ -33,12 +33,12 @@ type SupportTicket = {
 
 const faqItems = [
   {
-    question: '¿Cómo me uno a una curso?',
+    question: '¿Cómo me uno a un curso?',
     answer: 'Ve a Inicio o Cursos, escribe el código de invitación y pulsa Unirme.',
   },
   {
     question: '¿Cómo puedo ganar más XP?',
-    answer: 'Completa preguntas, mantén tu racha diaria y participa en todas tus asignaturas.',
+    answer: 'Completa preguntas, mantén tu racha diaria y participa en tus cursos.',
   },
   {
     question: '¿Dónde veo mis logros e insignias?',

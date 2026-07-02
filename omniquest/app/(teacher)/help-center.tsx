@@ -30,16 +30,16 @@ type SupportTicket = {
 
 const faqItems = [
   {
-    question: '¿Cómo invito alumnos a una asignatura?',
-    answer: 'Abre la asignatura, copia el código de clase y compártelo con tus alumnos.',
+    question: '¿Cómo invito alumnos a un curso?',
+    answer: 'Abre el curso, copia el código de clase y compártelo con tus alumnos.',
   },
   {
     question: '¿Cómo puedo editar una pregunta ya creada?',
-    answer: 'Entra en la asignatura, abre el tema y usa la opción editar en la pregunta.',
+    answer: 'Entra en el curso, abre el tema y usa la opción editar en la pregunta.',
   },
   {
     question: '¿Dónde veo el progreso de mi clase?',
-    answer: 'En el detalle de la asignatura puedes revisar participación, notas y actividad reciente.',
+    answer: 'En el detalle del curso puedes revisar participación, notas y actividad reciente por clase.',
   },
   {
     question: '¿Cómo recupero acceso si olvidé la contraseña?',
@@ -267,7 +267,7 @@ export default function TeacherHelpCenterScreen() {
             <FieldLabel label="Asunto" />
             <TextInput
               className="mt-2 rounded-lg border border-[#264267] bg-[#0A2042] px-4 py-3 text-[14px] text-white"
-              placeholder="Ej. No se guardan preguntas en una asignatura"
+              placeholder="Ej. No se guardan preguntas en un curso"
               placeholderTextColor="#8FA7C7"
               value={subject}
               onChangeText={setSubject}

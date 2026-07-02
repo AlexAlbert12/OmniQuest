@@ -445,7 +445,7 @@ function EmptyState({ filter }: { filter: NotificationFilter }) {
   const title = filter === 'unread' ? 'Sin notificaciones sin leer' : 'Sin notificaciones'
   const detail = filter === 'unread'
     ? 'Todo lo importante ya está marcado como leído.'
-    : 'Aquí aparecerán nuevos cursos, actividad, logros y avisos de tus asignaturas.'
+    : 'Aquí aparecerán nuevos cursos, actividad, logros y avisos de tus clases.'
 
   return (
     <View className="items-center rounded-2xl border border-dashed border-[#29466F] bg-[#09162C] px-6 py-12">

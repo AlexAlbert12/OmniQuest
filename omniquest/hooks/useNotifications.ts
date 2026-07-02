@@ -616,8 +616,8 @@ function buildTeacherNotifications({
     .map((subject) => ({
       id: `new-class-${subject.id}-${toStableDate(subject.created_at)}`,
       type: 'new_class',
-      title: 'Clase nueva',
-      description: `${subject.name} ya aparece en tu panel de clases.`,
+      title: 'Curso nuevo',
+      description: `${subject.name} ya aparece en tu panel de cursos.`,
       icon: 'book-outline',
       color: '#8B5CF6',
       timestamp: subject.created_at || nowIso,
