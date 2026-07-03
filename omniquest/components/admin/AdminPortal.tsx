@@ -92,6 +92,11 @@ type AdminData = {
   refresh: () => Promise<void>
 }
 
+type AdminActionResult = {
+  error?: string
+  ok?: boolean
+}
+
 const adminSections: { section: AdminSection; label: string; icon: IconName; href: string }[] = [
   { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(admin)/homeAdmin' },
   { section: 'teachers', label: 'Profesores', icon: 'school-outline', href: '/(admin)/teachers' },
@@ -126,6 +131,24 @@ async function fetchOptionalRows<T>(table: string, select: string) {
     console.warn(`[admin] No se pudo cargar ${table}:`, error.message)
   }
   return error ? [] : ((data || []) as T[])
+}
+
+async function invokeAdminAction<T extends AdminActionResult>(
+  functionName: string,
+  body: Record<string, unknown>
+): Promise<T> {
+  const { data, error } = await supabase.functions.invoke(functionName, { body })
+
+  if (error) {
+    throw error
+  }
+
+  const result = (data || {}) as T
+  if (result.error) {
+    throw new Error(result.error)
+  }
+
+  return result
 }
 
 function useAdminData(): AdminData {
@@ -228,12 +251,15 @@ function useAdminActions(data: AdminData) {
         nextActive ? 'Activar usuario' : 'Desactivar usuario',
         `${nextActive ? 'Se activará' : 'Se desactivará'} la cuenta de ${profile.alias}.`,
         async () => {
-          const { error } = await supabase.from('profiles').update({ active: nextActive }).eq('id', profile.id)
-          if (error) {
+          try {
+            await invokeAdminAction('admin-toggle-user', {
+              active: nextActive,
+              profileId: profile.id,
+            })
+            await data.refresh()
+          } catch (error: any) {
             showAlert('No se pudo actualizar', error.message)
-            return
           }
-          await data.refresh()
         }
       )
     },
@@ -246,13 +272,14 @@ function useAdminActions(data: AdminData) {
       return
     }
 
-    const { error } = await supabase.auth.resetPasswordForEmail(profile.email)
-    if (error) {
+    try {
+      await invokeAdminAction('admin-reset-password', {
+        profileId: profile.id,
+      })
+      showAlert('Correo enviado', `Se ha enviado un enlace de restablecimiento a ${profile.email}.`)
+    } catch (error: any) {
       showAlert('No se pudo restablecer', error.message)
-      return
     }
-
-    showAlert('Correo enviado', `Se ha enviado un enlace de restablecimiento a ${profile.email}.`)
   }, [])
 
   const deleteStudentProgress = useCallback(
@@ -261,16 +288,15 @@ function useAdminActions(data: AdminData) {
         'Eliminar progreso',
         `Se eliminarán puntuaciones, progreso por tema e intentos de ${student.alias}. Esta acción no se puede deshacer.`,
         async () => {
-          const tables = ['subject_scores', 'topic_scores', 'attempt_history']
-          for (const table of tables) {
-            const { error } = await (supabase.from(table as any) as any).delete().eq('student_id', student.id)
-            if (error && !isMissingSchemaError(error.code)) {
-              showAlert('No se pudo eliminar progreso', error.message)
-              return
-            }
+          try {
+            await invokeAdminAction('admin-delete-student-progress', {
+              studentId: student.id,
+            })
+            await data.refresh()
+            showAlert('Progreso eliminado', `El progreso de ${student.alias} se ha eliminado.`)
+          } catch (error: any) {
+            showAlert('No se pudo eliminar progreso', error.message)
           }
-          await data.refresh()
-          showAlert('Progreso eliminado', `El progreso de ${student.alias} se ha eliminado.`)
         }
       )
     },
@@ -284,15 +310,15 @@ function useAdminActions(data: AdminData) {
         archive ? 'Archivar curso' : 'Restaurar curso',
         `${archive ? 'Se archivará' : 'Se restaurará'} el curso ${subject.name}.`,
         async () => {
-          const { error } = await supabase
-            .from('subjects')
-            .update({ is_archived: archive, active: archive ? subject.active : true })
-            .eq('id', subject.id)
-          if (error) {
+          try {
+            await invokeAdminAction('admin-archive-course', {
+              archive,
+              subjectId: subject.id,
+            })
+            await data.refresh()
+          } catch (error: any) {
             showAlert('No se pudo actualizar el curso', error.message)
-            return
           }
-          await data.refresh()
         }
       )
     },
@@ -306,12 +332,15 @@ function useAdminActions(data: AdminData) {
         nextActive ? 'Activar clase' : 'Desactivar clase',
         `${nextActive ? 'Se activará' : 'Se desactivará'} la clase ${classroom.name}.`,
         async () => {
-          const { error } = await supabase.from('classrooms').update({ active: nextActive }).eq('id', classroom.id)
-          if (error) {
+          try {
+            await invokeAdminAction('admin-deactivate-classroom', {
+              active: nextActive,
+              classroomId: classroom.id,
+            })
+            await data.refresh()
+          } catch (error: any) {
             showAlert('No se pudo actualizar la clase', error.message)
-            return
           }
-          await data.refresh()
         }
       )
     },
