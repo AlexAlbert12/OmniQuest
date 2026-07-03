@@ -102,7 +102,7 @@ function getDestructiveActionDetails(action: DestructiveActionType | null, isTea
           }
         : {
             title: 'Eliminar puntuaciones',
-            description: 'Se borrarán subject_scores y topic_scores, y tu XP global se reseteará a 0.',
+            description: 'Se borrarán subject_scores, topic_scores, intentos e insignias; tu XP global se recalculará a 0.',
             confirmLabel: 'Eliminar puntuaciones',
           }
     case 'enrollments':

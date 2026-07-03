@@ -12,4 +12,4 @@ Si trabajas contra una base local:
 npx supabase gen types typescript --local > types/database.types.ts
 ```
 
-Este ZIP ya incluye `types/database.types.ts` actualizado manualmente según las migraciones actuales del proyecto, incluyendo `public.notifications`, `public.admin_audit_log` y la RPC `create_notification`.
+Este ZIP ya incluye `types/database.types.ts` actualizado manualmente según las migraciones actuales del proyecto, incluyendo `public.notifications`, `public.admin_audit_logs` y la RPC `create_notification`.

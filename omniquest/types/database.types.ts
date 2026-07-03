@@ -1083,6 +1083,12 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      sync_student_points: {
+        Args: {
+          student_id: string
+        }
+        Returns: number
+      }
       save_teacher_question: {
         Args: {
           p_subject_id: number

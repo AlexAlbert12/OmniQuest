@@ -16,7 +16,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import BrandLogo from '../BrandLogo'
 import { supabase } from '../../lib/supabase'
 
-type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms'
+type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'audit'
 type IconName = keyof typeof Ionicons.glyphMap
 
 type ProfileRow = {
@@ -43,6 +43,16 @@ type ClassroomRow = {
   name: string
   code: string | null
   active: boolean | null
+  created_at: string
+}
+
+type AdminAuditLogRow = {
+  id: number
+  admin_id: string
+  action: string
+  target_table: string | null
+  target_id: string | null
+  metadata: Record<string, unknown> | null
   created_at: string
 }
 
@@ -82,6 +92,7 @@ type AdminData = {
   enrollments: EnrollmentRow[]
   scores: SubjectScoreRow[]
   attempts: AttemptRow[]
+  auditLogs: AdminAuditLogRow[]
   teacherById: Map<string, ProfileRow>
   studentById: Map<string, ProfileRow>
   subjectById: Map<number, SubjectRow>
@@ -103,10 +114,11 @@ const adminSections: { section: AdminSection; label: string; icon: IconName; hre
   { section: 'students', label: 'Alumnos', icon: 'people-outline', href: '/(admin)/students' },
   { section: 'courses', label: 'Cursos', icon: 'book-outline', href: '/(admin)/courses' },
   { section: 'classrooms', label: 'Clases', icon: 'albums-outline', href: '/(admin)/classrooms' },
+  { section: 'audit', label: 'Auditoría', icon: 'receipt-outline', href: '/(admin)/audit' },
 ]
 
 function isMissingSchemaError(errorCode?: string) {
-  return errorCode === '42P01' || errorCode === '42703' || errorCode === 'PGRST204'
+  return errorCode === '42P01' || errorCode === '42703' || errorCode === 'PGRST204' || errorCode === 'PGRST205'
 }
 
 function showAlert(title: string, message: string) {
@@ -125,8 +137,16 @@ function confirmAction(title: string, message: string, onConfirm: () => void) {
   ])
 }
 
-async function fetchOptionalRows<T>(table: string, select: string) {
-  const { data, error } = await (supabase.from(table as any) as any).select(select)
+async function fetchOptionalRows<T>(
+  table: string,
+  select: string,
+  options: { ascending?: boolean; limit?: number; orderBy?: string } = {}
+) {
+  let query = (supabase.from(table as any) as any).select(select)
+  if (options.orderBy) query = query.order(options.orderBy, { ascending: options.ascending ?? true })
+  if (options.limit) query = query.limit(options.limit)
+
+  const { data, error } = await query
   if (error && !isMissingSchemaError(error.code)) {
     console.warn(`[admin] No se pudo cargar ${table}:`, error.message)
   }
@@ -158,12 +178,13 @@ function useAdminData(): AdminData {
   const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([])
   const [scores, setScores] = useState<SubjectScoreRow[]>([])
   const [attempts, setAttempts] = useState<AttemptRow[]>([])
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLogRow[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
-      const [profilesResult, subjectsResult, classroomsResult, enrollmentsResult, scoresData, attemptsData] = await Promise.all([
+      const [profilesResult, subjectsResult, classroomsResult, enrollmentsResult, scoresData, attemptsData, auditLogData] = await Promise.all([
         supabase
           .from('profiles')
           .select('id, alias, email, role_id, active, created_at')
@@ -181,6 +202,11 @@ function useAdminData(): AdminData {
           .select('id, student_id, subject_id, classroom_id'),
         fetchOptionalRows<SubjectScoreRow>('subject_scores', 'student_id, subject_id'),
         fetchOptionalRows<AttemptRow>('attempt_history', 'student_id, question_id'),
+        fetchOptionalRows<AdminAuditLogRow>('admin_audit_logs', 'id, admin_id, action, target_table, target_id, metadata, created_at', {
+          orderBy: 'created_at',
+          ascending: false,
+          limit: 50,
+        }),
       ])
 
       if (profilesResult.error) throw profilesResult.error
@@ -194,6 +220,7 @@ function useAdminData(): AdminData {
       setEnrollments((enrollmentsResult.data || []) as EnrollmentRow[])
       setScores(scoresData)
       setAttempts(attemptsData)
+      setAuditLogs(auditLogData)
     } catch (error: any) {
       showAlert('No se pudo cargar el portal', error.message || 'Revisa los permisos de administrador y las políticas RLS.')
     } finally {
@@ -230,6 +257,7 @@ function useAdminData(): AdminData {
     enrollments,
     scores,
     attempts,
+    auditLogs,
     teacherById,
     studentById,
     subjectById,
@@ -394,6 +422,7 @@ export function AdminHomeScreen() {
         <HomeShortcut icon="archive-outline" label="Cursos archivados" onPress={() => actions.router.push('/(admin)/courses?archived=1' as any)} />
         <HomeShortcut icon="download-outline" label="Exportar usuarios" onPress={() => showAlert('Exportar usuarios', 'Usa las secciones Profesores o Alumnos para exportar el listado filtrado.')} />
         <HomeShortcut icon="albums-outline" label="Revisar clases" onPress={() => actions.router.push('/(admin)/classrooms' as any)} />
+        <HomeShortcut icon="receipt-outline" label="Ver auditoría" onPress={() => actions.router.push('/(admin)/audit' as any)} />
       </View>
 
       <View className="mt-5 flex-row flex-wrap gap-5">
@@ -414,6 +443,10 @@ export function AdminHomeScreen() {
             <SideFact label="Inscripciones" value={String(data.enrollments.length)} />
           </Panel>
         </View>
+      </View>
+
+      <View className="mt-5">
+        <RecentAuditPanel data={data} />
       </View>
 
       <View className="mt-5">
@@ -705,6 +738,41 @@ export function AdminClassroomsScreen() {
             />
           ))}
           {visibleClassrooms.length === 0 ? <EmptyState label="No hay clases que coincidan." /> : null}
+        </View>
+      </Panel>
+    </AdminScaffold>
+  )
+}
+
+
+export function AdminAuditScreen() {
+  const data = useAdminData()
+  const [search, setSearch] = useState('')
+  const normalizedSearch = search.trim().toLowerCase()
+
+  const visibleLogs = useMemo(() => {
+    if (!normalizedSearch) return data.auditLogs
+    return data.auditLogs.filter((log) => auditSearchText(log, data).includes(normalizedSearch))
+  }, [data, normalizedSearch])
+
+  return (
+    <AdminScaffold activeSection="audit" title="Auditoría" subtitle="Registro de acciones sensibles realizadas desde el portal admin." data={data}>
+      <AdminMetrics data={data} />
+
+      <View className="mt-5">
+        <AdminSectionIntro
+          title="Registro de auditoría"
+          description="Consulta quién ejecutó cada acción crítica, sobre qué entidad y cuándo se realizó."
+        />
+      </View>
+
+      <Panel title="Últimas acciones registradas" icon="receipt-outline" className="mt-5">
+        <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar por acción, admin, objetivo o metadata..." />
+        <View className="mt-4" style={{ gap: 12 }}>
+          {visibleLogs.map((log) => (
+            <AuditLogCard key={log.id} log={log} data={data} />
+          ))}
+          {visibleLogs.length === 0 ? <EmptyState label="No hay acciones de auditoría que coincidan." /> : null}
         </View>
       </Panel>
     </AdminScaffold>
@@ -1087,6 +1155,109 @@ function ClassroomRowCard({
   )
 }
 
+
+function RecentAuditPanel({ data }: { data: AdminData }) {
+  const latestLogs = data.auditLogs.slice(0, 5)
+
+  return (
+    <Panel title="Últimas acciones admin" icon="receipt-outline" compact>
+      <View style={{ gap: 10 }}>
+        {latestLogs.map((log) => (
+          <AuditLogCard key={log.id} log={log} data={data} compact />
+        ))}
+        {latestLogs.length === 0 ? <EmptyState label="Todavía no hay acciones de auditoría registradas." /> : null}
+      </View>
+    </Panel>
+  )
+}
+
+function AuditLogCard({ compact, data, log }: { compact?: boolean; data: AdminData; log: AdminAuditLogRow }) {
+  const admin = data.profiles.find((profile) => profile.id === log.admin_id)
+  const targetLabel = getAuditTargetLabel(log)
+
+  return (
+    <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+      <View className="flex-row flex-wrap items-start justify-between gap-3">
+        <View className="min-w-[220px] flex-1">
+          <Text className="font-black text-white">{getAuditActionLabel(log.action)}</Text>
+          <Text className="mt-1 text-[12px] text-[#8FA7C7]">
+            {admin?.alias || 'Admin desconocido'} · {formatAuditDate(log.created_at)}
+          </Text>
+        </View>
+        <MiniPill icon="shield-checkmark-outline" label={log.target_table || 'sistema'} />
+      </View>
+
+      <Text className="mt-3 text-[13px] text-[#DDE7F4]">{targetLabel}</Text>
+
+      {!compact ? (
+        <Text className="mt-2 font-mono text-[11px] leading-4 text-[#8FA7C7]" numberOfLines={4}>
+          {JSON.stringify(log.metadata || {}, null, 2)}
+        </Text>
+      ) : null}
+    </View>
+  )
+}
+
+function getAuditActionLabel(action: string) {
+  const labels: Record<string, string> = {
+    'admin.classroom.activate': 'Admin activó una clase',
+    'admin.classroom.deactivate': 'Admin desactivó una clase',
+    'admin.course.archive': 'Admin archivó un curso',
+    'admin.course.restore': 'Admin restauró un curso',
+    'admin.student.delete_progress': 'Admin eliminó progreso de un alumno',
+    'admin.teacher.create': 'Admin creó un profesor',
+    'admin.teacher.update_existing': 'Admin actualizó un profesor existente',
+    'admin.user.activate': 'Admin activó un usuario',
+    'admin.user.deactivate': 'Admin desactivó un usuario',
+    'admin.user.reset_password': 'Admin restableció una contraseña',
+  }
+  return labels[action] || action
+}
+
+function getAuditTargetLabel(log: AdminAuditLogRow) {
+  const metadata = log.metadata || {}
+  const name = stringMetadata(metadata, 'alias') || stringMetadata(metadata, 'name') || stringMetadata(metadata, 'email')
+  const target = [log.target_table, log.target_id].filter(Boolean).join(': ')
+
+  if (name && target) return `${name} · ${target}`
+  return name || target || 'Acción sin objetivo concreto'
+}
+
+function auditSearchText(log: AdminAuditLogRow, data: AdminData) {
+  const admin = data.profiles.find((profile) => profile.id === log.admin_id)
+  return [
+    log.action,
+    getAuditActionLabel(log.action),
+    getAuditTargetLabel(log),
+    log.target_table,
+    log.target_id,
+    admin?.alias,
+    admin?.email,
+    JSON.stringify(log.metadata || {}),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
+
+function stringMetadata(metadata: Record<string, unknown>, key: string) {
+  const value = metadata[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function formatAuditDate(value?: string | null) {
+  if (!value) return 'Sin fecha'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Sin fecha'
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
 function RowActions({ actions }: { actions: RowAction[] }) {
   return (
     <View className="mt-4 flex-row flex-wrap gap-2">
@@ -1217,6 +1388,7 @@ function filledIconFor(icon: IconName): IconName {
     'people-outline': 'people',
     'book-outline': 'book',
     'albums-outline': 'albums',
+    'receipt-outline': 'receipt',
   }
   return map[icon] || icon
 }

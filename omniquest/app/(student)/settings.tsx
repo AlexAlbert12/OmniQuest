@@ -284,6 +284,12 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
     }
   }
 
+  const syncStudentPoints = async (studentId: string) => {
+    const { data, error } = await supabase.rpc('sync_student_points', { student_id: studentId })
+    if (error) throw error
+    return typeof data === 'number' ? data : 0
+  }
+
   const selectOptionalRows = async (table: string, column: string, value: string) => {
     const { data, error } = await (supabase.from(table as any) as any).select('*').eq(column, value)
     if (error && !isMissingSchemaError(error.code)) {
@@ -577,14 +583,11 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
         } else {
           await deleteOptionalRows('subject_scores', 'student_id', userId)
           await deleteOptionalRows('topic_scores', 'student_id', userId)
+          await deleteOptionalRows('attempt_history', 'student_id', userId)
+          await deleteOptionalRows('student_badges', 'student_id', userId)
 
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update({ points: 0 })
-            .eq('id', userId)
-          if (profileError) throw profileError
-
-          setProfile(prev => prev ? { ...prev, points: 0 } : null)
+          const syncedPoints = await syncStudentPoints(userId)
+          setProfile(prev => prev ? { ...prev, points: syncedPoints } : null)
         }
       }
 
@@ -597,6 +600,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
           await deleteTeacherTeachingData(userId)
         } else {
           await deleteOptionalRows('attempt_history', 'student_id', userId)
+          await deleteOptionalRows('student_badges', 'student_id', userId)
         }
         await deleteOptionalRows('notification_state', 'user_id', userId)
         await deleteOptionalRows('user_preferences', 'user_id', userId)
@@ -608,15 +612,16 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
           if (storageError && !isMissingSchemaError((storageError as any).code)) throw storageError
         }
 
+        const syncedPoints = isTeacher ? null : await syncStudentPoints(userId)
         const { error: profileError } = await supabase
           .from('profiles')
-          .update(isTeacher ? { avatar: null } : { points: 0, avatar: null })
+          .update({ avatar: null })
           .eq('id', userId)
         if (profileError) throw profileError
 
         setPreferences(DEFAULT_PREFERENCES)
         setNotificationSettings(DEFAULT_NOTIFICATION_SETTINGS)
-        setProfile(prev => prev ? { ...prev, ...(isTeacher ? {} : { points: 0 }), avatar: null } : null)
+        setProfile(prev => prev ? { ...prev, ...(isTeacher ? {} : { points: syncedPoints ?? 0 }), avatar: null } : null)
         if (isTeacher) {
           setSubjectsCount(0)
           setClassroomsCount(0)
@@ -2082,7 +2087,7 @@ function getDestructiveActionDetails(action: DestructiveActionType | null, isTea
         }
         : {
           title: 'Eliminar puntuaciones',
-          description: 'Se borrarán subject_scores y topic_scores, y tu XP global se reseteará a 0.',
+          description: 'Se borrarán subject_scores, topic_scores, intentos e insignias; tu XP global se recalculará a 0.',
           confirmLabel: 'Eliminar puntuaciones',
         }
     case 'enrollments':

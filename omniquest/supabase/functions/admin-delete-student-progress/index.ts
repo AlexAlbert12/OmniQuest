@@ -41,12 +41,10 @@ Deno.serve(async (req) => {
       deleted[table] = error ? null : count
     }
 
-    const { error: profileUpdateError } = await context.adminClient
-      .from('profiles')
-      .update({ points: 0 })
-      .eq('id', studentId)
+    const { data: syncedPoints, error: syncPointsError } = await context.adminClient
+      .rpc('sync_student_points', { student_id: studentId })
 
-    if (profileUpdateError) throw profileUpdateError
+    if (syncPointsError) throw syncPointsError
 
     await writeAdminAudit(context.adminClient, {
       action: 'admin.student.delete_progress',
@@ -56,11 +54,12 @@ Deno.serve(async (req) => {
       metadata: {
         alias: profile.alias,
         previous_points: profile.points,
+        synced_points: syncedPoints,
         deleted,
       },
     })
 
-    return json({ ok: true, studentId, deleted })
+    return json({ ok: true, studentId, deleted, points: syncedPoints })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'No se pudo eliminar el progreso.'
     return json({ error: message }, 500)

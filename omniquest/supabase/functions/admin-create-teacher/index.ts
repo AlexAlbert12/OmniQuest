@@ -1,9 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders, getAdminContext, isResponse, json, readJsonBody, writeAdminAudit } from '../_shared/admin.ts'
 
 type CreateTeacherRequest = {
   alias?: string
@@ -12,29 +7,14 @@ type CreateTeacherRequest = {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
-  if (req.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, 405)
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_ROLE_KEY')
+    const context = await getAdminContext(req)
+    if (isResponse(context)) return context
 
-    if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
-      return json({ error: 'Missing Supabase environment variables.' }, 500)
-    }
-
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return json({ error: 'Missing authorization header.' }, 401)
-    }
-
-    const body = await req.json() as CreateTeacherRequest
+    const body = await readJsonBody<CreateTeacherRequest>(req)
     const email = normalizeEmail(body.email)
     const alias = String(body.alias || '').trim() || aliasFromEmail(email)
     const password = String(body.password || '').trim() || generateTemporaryPassword()
@@ -47,31 +27,9 @@ Deno.serve(async (req) => {
       return json({ error: 'La contraseña debe tener al menos 6 caracteres.' }, 400)
     }
 
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    })
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-
-    const { data: userData, error: userError } = await userClient.auth.getUser()
-    if (userError || !userData.user) {
-      return json({ error: 'Sesión no válida o caducada.' }, 401)
-    }
-
-    const { data: adminProfile, error: adminProfileError } = await adminClient
-      .from('profiles')
-      .select('role_id, active')
-      .eq('id', userData.user.id)
-      .single()
-
-    if (adminProfileError || adminProfile?.role_id !== 'admin' || adminProfile.active === false) {
-      return json({ error: 'No tienes permisos de administrador.' }, 403)
-    }
-
-    const existingUser = await findAuthUserByEmail(adminClient, email)
+    const existingUser = await findAuthUserByEmail(context.adminClient, email)
     if (existingUser) {
-      const { error: updateError } = await adminClient.auth.admin.updateUserById(existingUser.id, {
+      const { error: updateError } = await context.adminClient.auth.admin.updateUserById(existingUser.id, {
         user_metadata: {
           ...(existingUser.user_metadata || {}),
           alias,
@@ -81,7 +39,7 @@ Deno.serve(async (req) => {
 
       if (updateError) throw updateError
 
-      const { error: profileError } = await adminClient
+      const { error: profileError } = await context.adminClient
         .from('profiles')
         .upsert({
           id: existingUser.id,
@@ -94,6 +52,19 @@ Deno.serve(async (req) => {
 
       if (profileError) throw profileError
 
+      await writeAdminAudit(context.adminClient, {
+        action: 'admin.teacher.update_existing',
+        adminUserId: context.adminUserId,
+        targetTable: 'profiles',
+        targetId: existingUser.id,
+        metadata: {
+          alias,
+          email,
+          role_id: 'teacher',
+          source: 'admin-create-teacher',
+        },
+      })
+
       return json({
         status: 'existing',
         teacher: {
@@ -104,7 +75,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { data: createdUser, error: createError } = await adminClient.auth.admin.createUser({
+    const { data: createdUser, error: createError } = await context.adminClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -118,7 +89,7 @@ Deno.serve(async (req) => {
       throw createError || new Error('No se pudo crear el usuario docente.')
     }
 
-    const { error: profileError } = await adminClient
+    const { error: profileError } = await context.adminClient
       .from('profiles')
       .upsert({
         id: createdUser.user.id,
@@ -131,6 +102,19 @@ Deno.serve(async (req) => {
       })
 
     if (profileError) throw profileError
+
+    await writeAdminAudit(context.adminClient, {
+      action: 'admin.teacher.create',
+      adminUserId: context.adminUserId,
+      targetTable: 'profiles',
+      targetId: createdUser.user.id,
+      metadata: {
+        alias,
+        email,
+        role_id: 'teacher',
+        source: 'admin-create-teacher',
+      },
+    })
 
     return json({
       status: 'created',
@@ -146,13 +130,6 @@ Deno.serve(async (req) => {
     return json({ error: message }, 500)
   }
 })
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}
 
 async function findAuthUserByEmail(adminClient: any, email: string) {
   let page = 1

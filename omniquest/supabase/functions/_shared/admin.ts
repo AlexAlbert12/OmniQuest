@@ -78,7 +78,7 @@ export async function writeAdminAudit(
   }
 ) {
   const { error } = await adminClient
-    .from('admin_audit_log')
+    .from('admin_audit_logs')
     .insert({
       admin_id: params.adminUserId,
       action: params.action,

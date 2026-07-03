@@ -457,24 +457,8 @@ async function fetchGlobalRanking() {
   if (profilesError) throw profilesError
 
   const profiles = (profilesData || []) as Profile[]
-  if (profiles.length === 0) return []
-
-  const studentIds = profiles.map((profile) => profile.id)
-  const allTimePointsByStudent = await fetchAttemptPointsByStudent({
-    studentIds,
-    limit: 10000,
-  })
 
   return profiles
-    .map((profile) => {
-      const profilePoints = profile.points ?? 0
-      const attemptsPoints = allTimePointsByStudent.get(profile.id) ?? 0
-
-      return {
-        ...profile,
-        points: Math.max(profilePoints, attemptsPoints),
-      }
-    })
     .sort((left, right) => (right.points ?? 0) - (left.points ?? 0))
     .slice(0, 50)
 }
