@@ -23,6 +23,11 @@ import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
+type TeacherActionResult = {
+  error?: string
+  [key: string]: unknown
+}
+
 type Subject = {
   id: number
   name: string
@@ -181,6 +186,9 @@ export default function TeacherStudentsScreen() {
   const [actionStudent, setActionStudent] = useState<StudentRow | null>(null);
   const [detailStudent, setDetailStudent] = useState<StudentRow | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null);
+  const [temporaryPasswordsByStudent, setTemporaryPasswordsByStudent] = useState<Record<string, string>>({});
+  const [reminderStudentIds, setReminderStudentIds] = useState<Record<string, boolean>>({});
+  const [sendingBulkReminders, setSendingBulkReminders] = useState(false);
 
   const isDesktop = width >= 1080;
   const isWide = width >= 900;
@@ -453,6 +461,19 @@ export default function TeacherStudentsScreen() {
     Alert.alert(title, message);
   };
 
+  const invokeTeacherAction = async <T extends TeacherActionResult>(
+    functionName: string,
+    body: Record<string, unknown>
+  ): Promise<T> => {
+    const { data, error } = await supabase.functions.invoke(functionName, { body });
+
+    if (error) throw error;
+
+    const result = (data || {}) as T;
+    if (result.error) throw new Error(result.error);
+    return result;
+  };
+
   const handleViewStudentDetails = (student: StudentRow) => {
     setActionStudent(null);
     setDetailStudent(student);
@@ -466,14 +487,11 @@ export default function TeacherStudentsScreen() {
     }
 
     try {
-      await deleteStudentProgressForSubjects(student.id, subjectIds);
-
-      const deleteEnrollments = await supabase
-        .from('enrollments')
-        .delete()
-        .eq('student_id', student.id)
-        .in('subject_id', subjectIds);
-      if (deleteEnrollments.error) throw deleteEnrollments.error;
+      await invokeTeacherAction('teacher-remove-student-from-class', {
+        studentId: student.id,
+        subjectIds,
+        classroomIds: student.classroomIds,
+      });
 
       setStudents((prev) => prev.filter((row) => row.id !== student.id));
       showAlert('Estudiante eliminado', `${student.alias} ha sido removido de sus cursos y clases.`);
@@ -502,7 +520,10 @@ export default function TeacherStudentsScreen() {
     }
 
     try {
-      await deleteStudentProgressForSubjects(student.id, subjectIds);
+      await invokeTeacherAction('teacher-reset-student-progress', {
+        studentId: student.id,
+        subjectIds,
+      });
 
       setStudents((prev) => prev.map((row) => (
         row.id === student.id
@@ -558,16 +579,123 @@ export default function TeacherStudentsScreen() {
     } as any);
   };
 
-  const handleSendReminder = () => {
-    if (pendingStudents.length === 0) {
+  const handleSendReminder = async () => {
+    if (pendingStudents.length === 0 || sendingBulkReminders) {
       showAlert('Sin pendientes', 'No hay estudiantes pendientes de empezar con los filtros actuales.');
       return;
     }
 
-    showAlert(
-      'Recordatorio preparado',
-      `Hay ${pendingStudents.length} estudiante${pendingStudents.length === 1 ? '' : 's'} sin actividad. Puedes exportar la lista y enviarles sus credenciales o un recordatorio.`
-    );
+    try {
+      setSendingBulkReminders(true);
+      const { data, error } = await supabase.functions.invoke('teacher-student-reminder', {
+        body: {
+          studentIds: pendingStudents.map((student) => student.id),
+          subjectIds: Array.from(new Set(pendingStudents.flatMap((student) => student.subjectIds))),
+          mode: 'reminder',
+        },
+      });
+
+      if (error) throw new Error(error.message || 'No se pudo enviar el recordatorio.');
+
+      const sent = Number((data as any)?.sent || 0);
+      const failed = Number((data as any)?.failed || 0);
+      showAlert(
+        'Recordatorio enviado',
+        `${sent} alumno${sent === 1 ? '' : 's'} recibieron el recordatorio${failed > 0 ? ` · ${failed} error${failed === 1 ? '' : 'es'}` : ''}.`
+      );
+    } catch (error: any) {
+      showAlert('Error', error.message || 'No se pudo enviar el recordatorio.');
+    } finally {
+      setSendingBulkReminders(false);
+    }
+  };
+
+  const handleSendStudentReminder = async (student: StudentRow) => {
+    if (reminderStudentIds[student.id]) return;
+
+    try {
+      setActionStudent(null);
+      setReminderStudentIds((prev) => ({ ...prev, [student.id]: true }));
+      const { data, error } = await supabase.functions.invoke('teacher-student-reminder', {
+        body: {
+          studentIds: [student.id],
+          subjectIds: student.subjectIds,
+          mode: 'reminder',
+        },
+      });
+
+      if (error) throw new Error(error.message || 'No se pudo enviar el recordatorio.');
+      const result = (data as any)?.results?.[0];
+      if (result && result.sent === false) {
+        throw new Error(result.error || 'No se pudo enviar el recordatorio.');
+      }
+
+      showAlert('Recordatorio enviado', `${student.alias} recibirá un recordatorio para empezar a practicar.`);
+    } catch (error: any) {
+      showAlert('Error', error.message || 'No se pudo enviar el recordatorio.');
+    } finally {
+      setReminderStudentIds((prev) => ({ ...prev, [student.id]: false }));
+    }
+  };
+
+  const handleResendStudentCredentials = async (student: StudentRow) => {
+    if (reminderStudentIds[student.id]) return;
+
+    try {
+      setActionStudent(null);
+      setReminderStudentIds((prev) => ({ ...prev, [student.id]: true }));
+      const { data, error } = await supabase.functions.invoke('teacher-student-reminder', {
+        body: {
+          studentIds: [student.id],
+          subjectIds: student.subjectIds,
+          mode: 'credentials',
+        },
+      });
+
+      if (error) throw new Error(error.message || 'No se pudieron reenviar las credenciales.');
+      const result = (data as any)?.results?.[0];
+      const temporaryPassword = result?.temporaryPassword;
+
+      if (temporaryPassword) {
+        setTemporaryPasswordsByStudent((prev) => ({ ...prev, [student.id]: temporaryPassword }));
+      }
+
+      if (result && result.sent === false) {
+        showAlert(
+          'Contraseña generada',
+          `Se generó una nueva contraseña temporal para ${student.alias}, pero no se pudo enviar el email: ${result.error || 'error desconocido'}. Puedes copiarla desde sus acciones rápidas.`
+        );
+        return;
+      }
+
+      showAlert('Credenciales reenviadas', `${student.alias} recibirá un email con una nueva contraseña temporal.`);
+    } catch (error: any) {
+      showAlert('Error', error.message || 'No se pudieron reenviar las credenciales.');
+    } finally {
+      setReminderStudentIds((prev) => ({ ...prev, [student.id]: false }));
+    }
+  };
+
+  const handleCopyTemporaryPassword = async (student: StudentRow) => {
+    const temporaryPassword = temporaryPasswordsByStudent[student.id];
+    if (!temporaryPassword) {
+      showAlert('Sin contraseña temporal', 'Primero reenvía las credenciales para generar una nueva contraseña temporal.');
+      return;
+    }
+
+    const text = `Usuario: ${student.alias}\nContraseña temporal: ${temporaryPassword}`;
+
+    try {
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        showAlert('Copiado', 'Contraseña temporal copiada al portapapeles.');
+        return;
+      }
+
+      showAlert('Contraseña temporal', temporaryPassword);
+    } catch (_error) {
+      showAlert('Contraseña temporal', temporaryPassword);
+    }
   };
 
   const handleViewHistory = (student: StudentRow) => {
@@ -796,6 +924,7 @@ export default function TeacherStudentsScreen() {
           {pendingStudents.length > 0 ? (
             <PendingFirstAccessCard
               count={pendingStudents.length}
+              sendingReminder={sendingBulkReminders}
               onSendReminder={handleSendReminder}
               onExport={handleExportStudentsCsv}
             />
@@ -818,9 +947,14 @@ export default function TeacherStudentsScreen() {
                     key={student.id}
                     student={student}
                     isWide={isWide}
+                    temporaryPassword={temporaryPasswordsByStudent[student.id] ?? null}
+                    reminderBusy={Boolean(reminderStudentIds[student.id])}
                     onViewDetails={handleViewStudentDetails}
                     onAssignActivity={handleAssignActivity}
                     onOpenActions={openStudentActions}
+                    onSendReminder={handleSendStudentReminder}
+                    onResendCredentials={handleResendStudentCredentials}
+                    onCopyTemporaryPassword={handleCopyTemporaryPassword}
                   />
                 ))}
 
@@ -876,11 +1010,16 @@ export default function TeacherStudentsScreen() {
       <StudentActionsModal
         student={actionStudent}
         visible={Boolean(actionStudent)}
+        temporaryPassword={actionStudent ? temporaryPasswordsByStudent[actionStudent.id] ?? null : null}
+        reminderBusy={actionStudent ? Boolean(reminderStudentIds[actionStudent.id]) : false}
         onClose={() => setActionStudent(null)}
         onViewDetails={handleViewStudentDetails}
         onViewHistory={handleViewHistory}
         onRemoveFromClass={requestRemoveFromClass}
         onResetProgress={requestResetProgress}
+        onSendReminder={handleSendStudentReminder}
+        onResendCredentials={handleResendStudentCredentials}
+        onCopyTemporaryPassword={handleCopyTemporaryPassword}
         onAssignActivity={(student) => {
           setActionStudent(null);
           handleAssignActivity(student);
@@ -889,6 +1028,8 @@ export default function TeacherStudentsScreen() {
       <StudentDetailModal
         student={detailStudent}
         visible={Boolean(detailStudent)}
+        temporaryPassword={detailStudent ? temporaryPasswordsByStudent[detailStudent.id] ?? null : null}
+        reminderBusy={detailStudent ? Boolean(reminderStudentIds[detailStudent.id]) : false}
         onClose={() => setDetailStudent(null)}
         onAssignActivity={(student) => {
           setDetailStudent(null);
@@ -896,6 +1037,9 @@ export default function TeacherStudentsScreen() {
         }}
         onViewHistory={handleViewHistory}
         onRemoveFromClass={requestRemoveFromClass}
+        onSendReminder={handleSendStudentReminder}
+        onResendCredentials={handleResendStudentCredentials}
+        onCopyTemporaryPassword={handleCopyTemporaryPassword}
       />
       <ConfirmModal
         dialog={confirmDialog}
@@ -909,20 +1053,30 @@ export default function TeacherStudentsScreen() {
 function StudentActionsModal({
   student,
   visible,
+  temporaryPassword,
+  reminderBusy,
   onClose,
   onViewDetails,
   onViewHistory,
   onRemoveFromClass,
   onResetProgress,
+  onSendReminder,
+  onResendCredentials,
+  onCopyTemporaryPassword,
   onAssignActivity,
 }: {
   student: StudentRow | null
   visible: boolean
+  temporaryPassword: string | null
+  reminderBusy: boolean
   onClose: () => void
   onViewDetails: (student: StudentRow) => void
   onViewHistory: (student: StudentRow) => void
   onRemoveFromClass: (student: StudentRow) => void
   onResetProgress: (student: StudentRow) => void
+  onSendReminder: (student: StudentRow) => void
+  onResendCredentials: (student: StudentRow) => void
+  onCopyTemporaryPassword: (student: StudentRow) => void
   onAssignActivity: (student: StudentRow) => void
 }) {
   const { width } = useWindowDimensions();
@@ -959,6 +1113,30 @@ function StudentActionsModal({
               detail="Evolución, errores y acciones docentes"
               onPress={() => onViewHistory(student)}
             />
+            {student.status === 'no_activity' ? (
+              <>
+                <ModalActionButton
+                  icon="mail-outline"
+                  title={reminderBusy ? 'Enviando recordatorio...' : 'Enviar recordatorio'}
+                  detail="Avisar al alumno para que haga su primer acceso"
+                  onPress={() => onSendReminder(student)}
+                />
+                <ModalActionButton
+                  icon="key-outline"
+                  title={reminderBusy ? 'Reenviando credenciales...' : 'Reenviar credenciales'}
+                  detail="Genera una nueva contraseña temporal y la envía por email"
+                  onPress={() => onResendCredentials(student)}
+                />
+                {temporaryPassword ? (
+                  <ModalActionButton
+                    icon="copy-outline"
+                    title="Copiar contraseña temporal"
+                    detail="Disponible solo después de reenviar credenciales"
+                    onPress={() => onCopyTemporaryPassword(student)}
+                  />
+                ) : null}
+              </>
+            ) : null}
             <ModalActionButton
               icon="add-circle-outline"
               title="Asignar repaso"
@@ -989,17 +1167,27 @@ function StudentActionsModal({
 function StudentDetailModal({
   student,
   visible,
+  temporaryPassword,
+  reminderBusy,
   onClose,
   onAssignActivity,
   onViewHistory,
   onRemoveFromClass,
+  onSendReminder,
+  onResendCredentials,
+  onCopyTemporaryPassword,
 }: {
   student: StudentRow | null
   visible: boolean
+  temporaryPassword: string | null
+  reminderBusy: boolean
   onClose: () => void
   onAssignActivity: (student: StudentRow) => void
   onViewHistory: (student: StudentRow) => void
   onRemoveFromClass: (student: StudentRow) => void
+  onSendReminder: (student: StudentRow) => void
+  onResendCredentials: (student: StudentRow) => void
+  onCopyTemporaryPassword: (student: StudentRow) => void
 }) {
   const { width } = useWindowDimensions();
   const isPhone = width < 640;
@@ -1113,6 +1301,18 @@ function StudentDetailModal({
                   ) : null}
                 </View>
               </DetailSection>
+
+              {student.status === 'no_activity' ? (
+                <DetailSection title="Acciones de primer acceso">
+                  <View className="flex-row flex-wrap gap-3">
+                    <DetailActionButton icon="mail-outline" label={reminderBusy ? 'Enviando...' : 'Enviar recordatorio'} onPress={() => onSendReminder(student)} />
+                    <DetailActionButton icon="key-outline" label={reminderBusy ? 'Reenviando...' : 'Reenviar credenciales'} onPress={() => onResendCredentials(student)} />
+                    {temporaryPassword ? (
+                      <DetailActionButton icon="copy-outline" label="Copiar contraseña" onPress={() => onCopyTemporaryPassword(student)} />
+                    ) : null}
+                  </View>
+                </DetailSection>
+              ) : null}
 
               <View className="flex-row flex-wrap gap-3 pt-1">
                 <DetailActionButton icon="add-circle-outline" label="Asignar repaso" onPress={() => onAssignActivity(student)} />
@@ -1246,10 +1446,12 @@ function MetricCard({
 
 function PendingFirstAccessCard({
   count,
+  sendingReminder,
   onSendReminder,
   onExport,
 }: {
   count: number
+  sendingReminder?: boolean
   onSendReminder: () => void
   onExport: () => void
 }) {
@@ -1268,13 +1470,18 @@ function PendingFirstAccessCard({
           </View>
         </View>
         <View className="flex-row flex-wrap gap-2">
-          <Pressable onPress={onSendReminder} className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3">
-            <Ionicons name="send-outline" size={16} color="#FFFFFF" />
-            <Text className="text-[12px] font-black text-white">Enviar recordatorio</Text>
+          <Pressable
+            onPress={onSendReminder}
+            disabled={sendingReminder}
+            className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
+            style={({ pressed }) => ({ opacity: sendingReminder ? 0.65 : pressed ? 0.82 : 1 })}
+          >
+            {sendingReminder ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="send-outline" size={16} color="#FFFFFF" />}
+            <Text className="text-[12px] font-black text-white">{sendingReminder ? 'Enviando...' : 'Enviar recordatorio'}</Text>
           </Pressable>
           <Pressable onPress={onExport} className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3">
             <Ionicons name="download-outline" size={16} color="#DDE7F4" />
-            <Text className="text-[12px] font-black text-[#DDE7F4]">Exportar credenciales</Text>
+            <Text className="text-[12px] font-black text-[#DDE7F4]">Exportar pendientes</Text>
           </Pressable>
         </View>
       </View>
@@ -1345,15 +1552,25 @@ function CycleStringSelectButton<T extends string>({
 function StudentCard({
   student,
   isWide,
+  temporaryPassword,
+  reminderBusy,
   onViewDetails,
   onAssignActivity,
   onOpenActions,
+  onSendReminder,
+  onResendCredentials,
+  onCopyTemporaryPassword,
 }: {
   student: StudentRow
   isWide: boolean
+  temporaryPassword: string | null
+  reminderBusy: boolean
   onViewDetails: (student: StudentRow) => void
   onAssignActivity: (student: StudentRow) => void
   onOpenActions: (student: StudentRow) => void
+  onSendReminder: (student: StudentRow) => void
+  onResendCredentials: (student: StudentRow) => void
+  onCopyTemporaryPassword: (student: StudentRow) => void
 }) {
   const status = getStatusMeta(student.status);
   const mainContext = student.courseContexts[0];
@@ -1388,6 +1605,17 @@ function StudentCard({
         <StudentMiniStat label="XP" value={student.subjectScore.toLocaleString()} color="#FBBF24" />
       </View>
 
+      {student.status === 'no_activity' ? (
+        <NoActivityQuickActions
+          student={student}
+          temporaryPassword={temporaryPassword}
+          reminderBusy={reminderBusy}
+          onSendReminder={onSendReminder}
+          onResendCredentials={onResendCredentials}
+          onCopyTemporaryPassword={onCopyTemporaryPassword}
+        />
+      ) : null}
+
       <View className="mt-4 rounded-xl border border-[#20375E] bg-[#07162E] p-3">
         <View className="mb-2 flex-row items-center justify-between">
           <Text className="text-[12px] font-bold text-white">Participación</Text>
@@ -1413,6 +1641,77 @@ function StudentCard({
         </Pressable>
       </View>
     </View>
+  );
+}
+
+
+function NoActivityQuickActions({
+  student,
+  temporaryPassword,
+  reminderBusy,
+  onSendReminder,
+  onResendCredentials,
+  onCopyTemporaryPassword,
+}: {
+  student: StudentRow
+  temporaryPassword: string | null
+  reminderBusy: boolean
+  onSendReminder: (student: StudentRow) => void
+  onResendCredentials: (student: StudentRow) => void
+  onCopyTemporaryPassword: (student: StudentRow) => void
+}) {
+  return (
+    <View className="mt-4 rounded-xl border border-[#2B3F70] bg-[#101B3A] p-3">
+      <View className="mb-3 flex-row items-center gap-2">
+        <Ionicons name="mail-unread-outline" size={16} color="#C4B5FD" />
+        <Text className="text-[12px] font-black text-white">Acciones de primer acceso</Text>
+      </View>
+      <View className="flex-row flex-wrap gap-2">
+        <QuickStudentAction
+          icon="send-outline"
+          label={reminderBusy ? 'Enviando...' : 'Recordatorio'}
+          disabled={reminderBusy}
+          onPress={() => onSendReminder(student)}
+        />
+        <QuickStudentAction
+          icon="key-outline"
+          label={reminderBusy ? 'Reenviando...' : 'Credenciales'}
+          disabled={reminderBusy}
+          onPress={() => onResendCredentials(student)}
+        />
+        {temporaryPassword ? (
+          <QuickStudentAction
+            icon="copy-outline"
+            label="Copiar clave"
+            onPress={() => onCopyTemporaryPassword(student)}
+          />
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function QuickStudentAction({
+  disabled,
+  icon,
+  label,
+  onPress,
+}: {
+  disabled?: boolean
+  icon: IconName
+  label: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      className="flex-row items-center gap-2 rounded-lg border border-[#4B3FA8] bg-[#191C4C] px-3 py-2"
+      style={({ pressed }) => ({ opacity: disabled ? 0.55 : pressed ? 0.82 : 1 })}
+    >
+      {disabled ? <ActivityIndicator size="small" color="#C4B5FD" /> : <Ionicons name={icon} size={14} color="#C4B5FD" />}
+      <Text className="text-[11px] font-black text-[#C4B5FD]">{label}</Text>
+    </Pressable>
   );
 }
 
@@ -1828,47 +2127,6 @@ function formatRelativeDate(value: string | null | undefined) {
 function getInitials(value: string) {
   const parts = value.trim().split(/\s+/).slice(0, 2);
   return parts.map((part) => part[0]?.toUpperCase()).join('') || 'AL';
-}
-
-async function deleteStudentProgressForSubjects(studentId: string, subjectIds: number[]) {
-  if (subjectIds.length === 0) return;
-
-  const questionsResult = await supabase
-    .from('questions')
-    .select('id')
-    .in('subject_id', subjectIds);
-
-  if (questionsResult.error) throw questionsResult.error;
-
-  const questionIds = (questionsResult.data || [])
-    .map((question: { id: number | null }) => question.id)
-    .filter((id): id is number => typeof id === 'number');
-
-  if (questionIds.length > 0) {
-    const deleteAttempts = await supabase
-      .from('attempt_history')
-      .delete()
-      .eq('student_id', studentId)
-      .in('question_id', questionIds);
-
-    if (deleteAttempts.error) throw deleteAttempts.error;
-  }
-
-  const deleteTopicScores = await supabase
-    .from('topic_scores')
-    .delete()
-    .eq('student_id', studentId)
-    .in('subject_id', subjectIds);
-
-  if (deleteTopicScores.error) throw deleteTopicScores.error;
-
-  const deleteSubjectScores = await supabase
-    .from('subject_scores')
-    .delete()
-    .eq('student_id', studentId)
-    .in('subject_id', subjectIds);
-
-  if (deleteSubjectScores.error) throw deleteSubjectScores.error;
 }
 
 function groupBy<T extends Record<string, any>>(items: T[], key: keyof T) {

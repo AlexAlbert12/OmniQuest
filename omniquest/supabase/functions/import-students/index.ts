@@ -15,7 +15,11 @@ type ImportRow = {
   email: string
   status: 'created' | 'existing'
   studentId: string
-  password?: string
+  temporaryPassword?: string
+  enrolled: boolean
+  alreadyEnrolled: boolean
+  emailSent: boolean
+  emailError?: string
 }
 
 type EmailDeliveryResult = {
@@ -202,8 +206,6 @@ Deno.serve(async (req) => {
           enrolled += 1
         }
 
-        rows.push({ email, status, studentId, password })
-
         const emailDelivery = await sendStudentEmail({
           email,
           password,
@@ -217,6 +219,17 @@ Deno.serve(async (req) => {
           emailsSkipped += 1
           failed.push({ email, reason: emailDelivery.error || 'No se pudo enviar el email.' })
         }
+
+        rows.push({
+          email,
+          status,
+          studentId,
+          temporaryPassword: password,
+          enrolled: !existingEnrollment,
+          alreadyEnrolled: Boolean(existingEnrollment),
+          emailSent: emailDelivery.sent,
+          emailError: emailDelivery.sent ? undefined : emailDelivery.error,
+        })
       } catch (error) {
         const reason = error instanceof Error ? error.message : 'Unexpected error.'
         failed.push({ email, reason })
@@ -233,7 +246,7 @@ Deno.serve(async (req) => {
       failed,
       emailsSent,
       emailsSkipped,
-      students: rows.map(({ password: _password, ...row }) => row),
+      students: rows,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected import error.'

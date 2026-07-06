@@ -15,7 +15,6 @@ import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rout
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { accuracyToGrade, answersToAccuracyPercent } from '../../../lib/grades';
-import { generateUniqueClassCode } from '../../../lib/classCode';
 import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty';
 import {
   buildStudentListRows,
@@ -43,6 +42,11 @@ import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
 import TeacherStudentImportModal from '../../../components/teacher/TeacherStudentImportModal';
 
 type IconName = keyof typeof Ionicons.glyphMap
+
+type TeacherActionResult = {
+  error?: string
+  [key: string]: unknown
+}
 
 type Subject = {
   id: number
@@ -1123,6 +1127,19 @@ export default function SubjectDetailScreen() {
     Alert.alert(title, message);
   };
 
+  const invokeTeacherAction = async <T extends TeacherActionResult>(
+    functionName: string,
+    body: Record<string, unknown>
+  ): Promise<T> => {
+    const { data, error } = await supabase.functions.invoke(functionName, { body });
+
+    if (error) throw error;
+
+    const result = (data || {}) as T;
+    if (result.error) throw new Error(result.error);
+    return result;
+  };
+
   const handleEditClass = () => {
     if (!subject) return;
     router.push(`/(teacher)/edit-subject?id=${subject.id}` as any);
@@ -1133,25 +1150,10 @@ export default function SubjectDetailScreen() {
 
     const executeArchive = async () => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const teacherId = sessionData.session?.user.id;
-
-        if (!teacherId) {
-          throw new Error('No se encontró una sesión activa.');
-        }
-
-        const { error } = await supabase
-          .from('subjects')
-          .update({ is_archived: true })
-          .eq('id', subject.id)
-          .eq('teacher_id', teacherId);
-
-        if (error) {
-          if (error.code === '42703') {
-            throw new Error('Falta la columna is_archived en subjects. Aplica la migración de archivado.');
-          }
-          throw error;
-        }
+        await invokeTeacherAction('teacher-archive-subject', {
+          archive: true,
+          subjectId: subject.id,
+        });
 
         showAlert('Curso archivado', 'El curso se archivó correctamente.');
         router.replace('/(teacher)/classes' as any);
@@ -1203,21 +1205,12 @@ export default function SubjectDetailScreen() {
     if (!subject) return;
 
     try {
-      const nextCode = await generateUniqueClassCode();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const teacherId = sessionData.session?.user.id;
+      const result = await invokeTeacherAction<{ code?: string; error?: string }>('teacher-regenerate-class-code', {
+        subjectId: subject.id,
+      });
+      const nextCode = String(result.code || '');
+      if (!nextCode) throw new Error('No se recibió el nuevo código.');
 
-      if (!teacherId) {
-        throw new Error('No se encontró una sesión activa.');
-      }
-
-      const { error } = await supabase
-        .from('subjects')
-        .update({ code: nextCode })
-        .eq('id', subject.id)
-        .eq('teacher_id', teacherId);
-
-      if (error) throw error;
       setSubject((current) => (current ? { ...current, code: nextCode } : current));
       showAlert('Código actualizado', `Nuevo código del curso: ${nextCode}`);
     } catch (regenerateError: any) {
@@ -1453,12 +1446,7 @@ export default function SubjectDetailScreen() {
 
   const executeDelete = async (questionId: number) => {
     try {
-      const { error } = await supabase
-        .from('questions')
-        .delete()
-        .eq('id', questionId)
-        .eq('subject_id', subjectId);
-      if (error) throw error;
+      await invokeTeacherAction('teacher-delete-question', { questionId });
       setQuestions((prevQuestions) => prevQuestions.filter((question) => question.id !== questionId));
     } catch (error: any) {
       showAlert('Error al borrar', error.message);
@@ -1777,6 +1765,12 @@ export default function SubjectDetailScreen() {
         classroomName={selectedClassroom?.name ?? null}
         onClose={() => setShowStudentImportModal(false)}
         onImported={fetchData}
+        onViewInactiveStudents={() => {
+          setShowStudentImportModal(false);
+          setActiveTab('students');
+          setStudentStatusFilter('no_activity');
+          setStudentSortKey('last_activity');
+        }}
       />
     </View>
   );

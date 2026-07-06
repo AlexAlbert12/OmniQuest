@@ -18,6 +18,11 @@ import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
 
 type IconName = keyof typeof Ionicons.glyphMap
 
+type TeacherActionResult = {
+  error?: string
+  [key: string]: unknown
+}
+
 type Topic = {
   id: number
   title: string
@@ -183,17 +188,24 @@ export default function TopicDetailScreen() {
     Alert.alert(title, message);
   };
 
+  const invokeTeacherAction = async <T extends TeacherActionResult>(
+    functionName: string,
+    body: Record<string, unknown>
+  ): Promise<T> => {
+    const { data, error } = await supabase.functions.invoke(functionName, { body });
+
+    if (error) throw error;
+
+    const result = (data || {}) as T;
+    if (result.error) throw new Error(result.error);
+    return result;
+  };
+
   const executeDelete = async (questionId: number) => {
     if (!subject) return;
 
     try {
-      const { error } = await supabase
-        .from('questions')
-        .delete()
-        .eq('id', questionId)
-        .eq('topic_id', topicId)
-        .eq('subject_id', subject.id);
-      if (error) throw error;
+      await invokeTeacherAction('teacher-delete-question', { questionId });
       setQuestions((prevQuestions) => prevQuestions.filter((question) => question.id !== questionId));
     } catch (error: any) {
       showAlert('Error al borrar', error.message);

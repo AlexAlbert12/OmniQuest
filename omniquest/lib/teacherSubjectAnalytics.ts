@@ -33,8 +33,8 @@ export type StudentReport = {
   hasActivity: boolean
 }
 
-export type StudentStatusFilter = 'all' | 'active' | 'inactive' | 'needs_help'
-export type StudentSortKey = 'xp' | 'progress' | 'grade' | 'recent'
+export type StudentStatusFilter = 'all' | 'active' | 'inactive' | 'needs_help' | 'no_activity'
+export type StudentSortKey = 'xp' | 'progress' | 'grade' | 'recent' | 'last_activity'
 
 export type EvolutionReport = {
   label: string
@@ -61,13 +61,14 @@ export function buildStudentListRows(
     .sort((a, b) => {
       if (sortKey === 'progress') return b.participation - a.participation || b.score - a.score
       if (sortKey === 'grade') return b.grade - a.grade || b.score - a.score
-      if (sortKey === 'recent') return getSortableTime(b.lastActivity) - getSortableTime(a.lastActivity)
+      if (sortKey === 'recent' || sortKey === 'last_activity') return getSortableTime(b.lastActivity) - getSortableTime(a.lastActivity)
       return b.score - a.score || b.participation - a.participation
     })
 }
 
 export function getStudentStatus(student: StudentReport): StudentStatusFilter {
-  if (!student.hasActivity || student.participation < 35 || student.grade < 5) return 'needs_help'
+  if (!student.hasActivity) return 'no_activity'
+  if (student.participation < 35 || student.grade < 5) return 'needs_help'
   if (student.participation < 60) return 'inactive'
   return 'active'
 }
@@ -75,6 +76,7 @@ export function getStudentStatus(student: StudentReport): StudentStatusFilter {
 export function getStudentStatusMeta(status: StudentStatusFilter) {
   if (status === 'active') return { label: 'Activo', color: '#34D399' }
   if (status === 'inactive') return { label: 'Inactivo', color: '#8FA7C7' }
+  if (status === 'no_activity') return { label: 'Sin actividad', color: '#AFC2DB' }
   if (status === 'needs_help') return { label: 'Necesita apoyo', color: '#F59E0B' }
   return { label: 'Todos', color: '#A78BFA' }
 }
@@ -82,12 +84,13 @@ export function getStudentStatusMeta(status: StudentStatusFilter) {
 export function getStudentStatusFilterLabel(status: StudentStatusFilter) {
   if (status === 'active') return 'Activos'
   if (status === 'inactive') return 'Inactivos'
+  if (status === 'no_activity') return 'Sin actividad'
   if (status === 'needs_help') return 'Necesitan apoyo'
   return 'Todos'
 }
 
 export function getNextStudentStatusFilter(status: StudentStatusFilter): StudentStatusFilter {
-  const options: StudentStatusFilter[] = ['all', 'active', 'inactive', 'needs_help']
+  const options: StudentStatusFilter[] = ['all', 'active', 'inactive', 'no_activity', 'needs_help']
   const index = options.indexOf(status)
   return options[(index + 1) % options.length]
 }
@@ -95,7 +98,7 @@ export function getNextStudentStatusFilter(status: StudentStatusFilter): Student
 export function getStudentSortLabel(sortKey: StudentSortKey) {
   if (sortKey === 'progress') return 'Progreso'
   if (sortKey === 'grade') return 'Nota'
-  if (sortKey === 'recent') return 'Actividad'
+  if (sortKey === 'recent' || sortKey === 'last_activity') return 'Actividad'
   return 'XP'
 }
 

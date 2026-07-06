@@ -875,7 +875,7 @@ function AdminSidebar({ activeSection, onSignOut }: { activeSection: AdminSectio
           <Text className="mt-1 text-[12px] text-[#9BAEC9]">Portal privado</Text>
           <View className="mt-3 flex-row items-center gap-1">
             <Ionicons name="lock-closed-outline" size={13} color="#8FA7C7" />
-            <Text className="text-[11px] text-[#8FA7C7]">Gestión interna</Text>
+            <Text className="text-[12px] text-[#AFC2DB]">Gestión interna</Text>
           </View>
         </View>
 
@@ -1046,7 +1046,7 @@ function AdminInput({
         onChangeText={onChangeText}
         autoCapitalize={autoCapitalize}
         placeholder={placeholder}
-        placeholderTextColor="#60799C"
+        placeholderTextColor="#8FA7C7"
         className="h-12 rounded-xl border border-[#20375E] bg-[#09162C] px-4 text-white"
       />
     </View>
@@ -1061,7 +1061,7 @@ function AdminSearch({ value, onChangeText, placeholder }: { value: string; onCh
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#60799C"
+        placeholderTextColor="#8FA7C7"
       />
       <Ionicons name="search-outline" size={19} color="#8FA7C7" />
     </View>
@@ -1190,7 +1190,7 @@ function AuditLogCard({ compact, data, log }: { compact?: boolean; data: AdminDa
       <Text className="mt-3 text-[13px] text-[#DDE7F4]">{targetLabel}</Text>
 
       {!compact ? (
-        <Text className="mt-2 font-mono text-[11px] leading-4 text-[#8FA7C7]" numberOfLines={4}>
+        <Text className="mt-2 font-mono text-[12px] leading-5 text-[#AFC2DB]" numberOfLines={4}>
           {JSON.stringify(log.metadata || {}, null, 2)}
         </Text>
       ) : null}
@@ -1284,7 +1284,7 @@ function StatusPill({ active, label }: { active: boolean; label?: string }) {
   const resolvedLabel = label || (active ? 'Activo' : 'Inactivo')
   return (
     <View className="rounded-full px-3 py-1" style={{ backgroundColor: active ? '#063D31' : '#3B1D2A' }}>
-      <Text className="text-[11px] font-black" style={{ color: active ? '#34D399' : '#FB7185' }}>
+      <Text className="text-[12px] font-black" style={{ color: active ? '#34D399' : '#FB7185' }}>
         {resolvedLabel}
       </Text>
     </View>
@@ -1326,7 +1326,7 @@ function SystemAlertRow({ color, icon, label, value }: { color: string; icon: Ic
 function EmptyState({ label }: { label: string }) {
   return (
     <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
-      <Ionicons name="search-outline" size={34} color="#60799C" />
+      <Ionicons name="search-outline" size={34} color="#8FA7C7" />
       <Text className="mt-3 text-center font-bold text-[#AFC2DB]">{label}</Text>
     </View>
   )

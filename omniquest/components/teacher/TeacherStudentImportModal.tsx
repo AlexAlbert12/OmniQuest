@@ -4,6 +4,17 @@ import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import { isValidEmail, normalizeEmail } from '../../lib/auth'
 
+type ImportedStudentRow = {
+  email: string
+  status: 'created' | 'existing'
+  studentId: string
+  temporaryPassword?: string
+  enrolled?: boolean
+  alreadyEnrolled?: boolean
+  emailSent?: boolean
+  emailError?: string
+}
+
 type ImportResult = {
   total: number
   enrolled: number
@@ -14,6 +25,7 @@ type ImportResult = {
   failed: { email: string; reason: string }[]
   emailsSent: number
   emailsSkipped: number
+  students?: ImportedStudentRow[]
 }
 
 type TeacherStudentImportModalProps = {
@@ -24,6 +36,7 @@ type TeacherStudentImportModalProps = {
   classroomName?: string | null
   onClose: () => void
   onImported: () => void
+  onViewInactiveStudents?: () => void
 }
 
 export default function TeacherStudentImportModal({
@@ -34,11 +47,14 @@ export default function TeacherStudentImportModal({
   classroomName,
   onClose,
   onImported,
+  onViewInactiveStudents,
 }: TeacherStudentImportModalProps) {
   const [rawEmails, setRawEmails] = useState('')
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<ImportResult | null>(null)
   const [fileMessage, setFileMessage] = useState<string | null>(null)
+  const [sendingReminder, setSendingReminder] = useState(false)
+  const [postImportMessage, setPostImportMessage] = useState<string | null>(null)
   const { width } = useWindowDimensions()
   const isPhone = width < 640
 
@@ -46,10 +62,14 @@ export default function TeacherStudentImportModal({
   const validEmails = parsed.valid
   const invalidEmails = parsed.invalid
 
+  const importedStudents = result?.students || []
+  const hasTemporaryCredentials = importedStudents.some((student) => Boolean(student.temporaryPassword))
+
   const resetAndClose = () => {
-    if (importing) return
+    if (importing || sendingReminder) return
     setResult(null)
     setFileMessage(null)
+    setPostImportMessage(null)
     onClose()
   }
 
@@ -59,6 +79,7 @@ export default function TeacherStudentImportModal({
     try {
       setImporting(true)
       setResult(null)
+      setPostImportMessage(null)
 
       const { data, error } = await supabase.functions.invoke('import-students', {
         body: {
@@ -83,6 +104,7 @@ export default function TeacherStudentImportModal({
         failed: [{ email: 'Importación', reason: error.message || 'Error inesperado.' }],
         emailsSent: 0,
         emailsSkipped: 0,
+        students: [],
       })
     } finally {
       setImporting(false)
@@ -108,10 +130,79 @@ export default function TeacherStudentImportModal({
     input.click()
   }
 
+  const handleExportCredentials = () => {
+    if (!result || importedStudents.length === 0) {
+      setPostImportMessage('No hay alumnos importados para exportar todavía.')
+      return
+    }
+
+    const csvText = buildCredentialsCsv(importedStudents, {
+      subjectName,
+      classroomName: classroomName || 'Clase principal',
+    })
+    const filename = `omniquest_credenciales_${slugify(subjectName)}_${new Date().toISOString().slice(0, 10)}.csv`
+
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      setPostImportMessage(hasTemporaryCredentials
+        ? 'CSV de credenciales descargado. Las contraseñas temporales solo se muestran en esta sesión.'
+        : 'CSV descargado. Los alumnos existentes entran con su cuenta habitual.')
+      return
+    }
+
+    setPostImportMessage('La descarga CSV está disponible desde la versión web. En móvil puedes reenviar el correo de credenciales.')
+  }
+
+  const handleSendReminder = async () => {
+    if (!result || importedStudents.length === 0 || sendingReminder) return
+
+    try {
+      setSendingReminder(true)
+      setPostImportMessage(null)
+      const { data, error } = await supabase.functions.invoke('teacher-student-reminder', {
+        body: {
+          studentIds: importedStudents.map((student) => student.studentId),
+          subjectIds: [subjectId],
+          mode: 'reminder',
+        },
+      })
+
+      if (error) throw new Error(error.message || 'No se pudo enviar el recordatorio.')
+      const sent = Number((data as any)?.sent || 0)
+      const failed = Number((data as any)?.failed || 0)
+      setPostImportMessage(`Recordatorio enviado a ${sent} alumno${sent === 1 ? '' : 's'}${failed > 0 ? ` · ${failed} error${failed === 1 ? '' : 'es'}` : ''}.`)
+    } catch (error: any) {
+      setPostImportMessage(error.message || 'No se pudo enviar el recordatorio.')
+    } finally {
+      setSendingReminder(false)
+    }
+  }
+
+  const handleCopyCredential = async (student: ImportedStudentRow) => {
+    if (!student.temporaryPassword) return
+    const text = `Correo: ${student.email}\nContraseña temporal: ${student.temporaryPassword}`
+
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(text)
+      setPostImportMessage(`Credenciales de ${student.email} copiadas al portapapeles.`)
+      return
+    }
+
+    setPostImportMessage(`Credenciales de ${student.email}: ${student.temporaryPassword}`)
+  }
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={resetAndClose}>
       <View className={`flex-1 bg-black/70 ${isPhone ? 'justify-end' : 'items-center justify-center px-4 py-8'}`}>
-        <View className={`${isPhone ? 'h-[94%] w-full rounded-t-3xl' : 'max-h-full w-full max-w-[760px] rounded-3xl'} overflow-hidden border border-[#1A3155] bg-[#07162D]`}>
+        <View className={`${isPhone ? 'h-[94%] w-full rounded-t-3xl' : 'max-h-full w-full max-w-[800px] rounded-3xl'} overflow-hidden border border-[#1A3155] bg-[#07162D]`}>
           <View className="flex-row items-start justify-between gap-4 border-b border-[#1A3155] px-5 py-4">
             <View className="min-w-0 flex-1">
               <Text className="text-[22px] font-black text-white">Importar alumnos</Text>
@@ -128,7 +219,7 @@ export default function TeacherStudentImportModal({
             </Pressable>
           </View>
 
-          <ScrollView className={isPhone ? 'flex-1' : 'max-h-[680px]'} contentContainerStyle={{ padding: isPhone ? 16 : 20, paddingBottom: isPhone ? 28 : 20 }} showsVerticalScrollIndicator={false}>
+          <ScrollView className={isPhone ? 'flex-1' : 'max-h-[720px]'} contentContainerStyle={{ padding: isPhone ? 16 : 20, paddingBottom: isPhone ? 28 : 20 }} showsVerticalScrollIndicator={false}>
             <View className="rounded-2xl border border-[#20375E] bg-[#09162C] p-4">
               <View className="flex-row flex-wrap items-center justify-between gap-3">
                 <View className="min-w-0 flex-1">
@@ -176,12 +267,22 @@ export default function TeacherStudentImportModal({
               ) : null}
             </View>
 
-            {result ? <ImportResultPanel result={result} /> : null}
+            {result ? (
+              <ImportResultPanel
+                result={result}
+                postImportMessage={postImportMessage}
+                sendingReminder={sendingReminder}
+                onCopyCredential={handleCopyCredential}
+                onExportCredentials={handleExportCredentials}
+                onSendReminder={handleSendReminder}
+                onViewInactiveStudents={onViewInactiveStudents}
+              />
+            ) : null}
 
             <View className={`${isPhone ? 'mt-5 gap-3' : 'mt-5 flex-row flex-wrap justify-end gap-3'}`}>
               <Pressable
                 onPress={resetAndClose}
-                disabled={importing}
+                disabled={importing || sendingReminder}
                 className="rounded-xl px-5 py-3"
                 style={({ pressed }) => ({
                   borderWidth: 1,
@@ -194,15 +295,15 @@ export default function TeacherStudentImportModal({
               </Pressable>
               <Pressable
                 onPress={() => void importStudents()}
-                disabled={importing || validEmails.length === 0}
-                className="flex-row items-center gap-2 rounded-xl px-5 py-3"
+                disabled={importing || sendingReminder || validEmails.length === 0}
+                className="flex-row items-center justify-center gap-2 rounded-xl px-5 py-3"
                 style={({ pressed }) => ({
                   backgroundColor: '#6D5AF6',
-                  opacity: importing || validEmails.length === 0 ? 0.55 : pressed ? 0.82 : 1,
+                  opacity: importing || sendingReminder || validEmails.length === 0 ? 0.55 : pressed ? 0.82 : 1,
                 })}
               >
                 {importing ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="person-add-outline" size={18} color="#FFFFFF" />}
-                <Text className="font-black text-white">{importing ? 'Importando...' : 'Importar alumnos'}</Text>
+                <Text className="font-black text-white">{importing ? 'Importando...' : result ? 'Importar otra lista' : 'Importar alumnos'}</Text>
               </Pressable>
             </View>
           </ScrollView>
@@ -222,35 +323,167 @@ function ImportCounter({ icon, label, value, color }: { icon: keyof typeof Ionic
   )
 }
 
-function ImportResultPanel({ result }: { result: ImportResult }) {
+function ImportResultPanel({
+  result,
+  postImportMessage,
+  sendingReminder,
+  onCopyCredential,
+  onExportCredentials,
+  onSendReminder,
+  onViewInactiveStudents,
+}: {
+  result: ImportResult
+  postImportMessage: string | null
+  sendingReminder: boolean
+  onCopyCredential: (student: ImportedStudentRow) => void
+  onExportCredentials: () => void
+  onSendReminder: () => void
+  onViewInactiveStudents?: () => void
+}) {
+  const students = result.students || []
+  const successful = students.length || Math.max(0, result.total - result.failed.length)
+  const createdWithPassword = students.filter((student) => student.temporaryPassword)
+  const errorsCount = result.failed.length + result.invalid.length
+
   return (
-    <View className="mt-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
-      <Text className="font-black text-white">Resultado de la importación</Text>
-      <View className="mt-3 flex-row flex-wrap gap-3">
-        <ImportCounter icon="person-add-outline" label="Creados" value={result.created} color="#60A5FA" />
-        <ImportCounter icon="school-outline" label="Inscritos" value={result.enrolled} color="#34D399" />
-        <ImportCounter icon="person-outline" label="Ya tenían cuenta" value={result.existing} color="#A78BFA" />
-        <ImportCounter icon="checkmark-done-outline" label="Ya inscritos" value={result.alreadyEnrolled} color="#FBBF24" />
-        <ImportCounter icon="mail-outline" label="Emails enviados" value={result.emailsSent} color="#38BDF8" />
+    <View className="mt-5 overflow-hidden rounded-2xl border border-[#2A456A] bg-[#081A34]">
+      <View className="border-b border-[#1A3155] bg-[#0D1D3B] p-5">
+        <View className="flex-row items-start gap-4">
+          <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#22C55E26]">
+            <Ionicons name="checkmark-done-outline" size={25} color="#34D399" />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className="text-[20px] font-black text-white">Importación completada</Text>
+            <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">
+              {successful} alumno{successful === 1 ? '' : 's'} procesado{successful === 1 ? '' : 's'} correctamente para esta clase.
+            </Text>
+          </View>
+        </View>
+
+        <View className="mt-4 flex-row flex-wrap gap-3">
+          <ResultMetric label="Importados" value={successful} color="#34D399" />
+          <ResultMetric label="Ya existían" value={result.existing} color="#A78BFA" />
+          <ResultMetric label="Errores" value={errorsCount} color={errorsCount > 0 ? '#FB7185' : '#8FA7C7'} />
+        </View>
       </View>
 
-      {result.emailsSkipped > 0 ? (
-        <Text className="mt-3 text-[12px] leading-5 text-[#FBBF24]">
-          {result.emailsSkipped} email{result.emailsSkipped === 1 ? '' : 's'} no se enviaron. Configura RESEND_API_KEY y MAIL_FROM en Supabase Functions.
-        </Text>
-      ) : null}
-
-      {result.failed.length > 0 ? (
-        <View className="mt-4 rounded-xl border border-[#3B1D2A] bg-[#1F1020] p-3">
-          <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#FB7185]">Errores</Text>
-          {result.failed.slice(0, 6).map((item) => (
-            <Text key={`${item.email}-${item.reason}`} className="mt-2 text-[12px] text-[#FCA5A5]">
-              {item.email}: {item.reason}
-            </Text>
-          ))}
+      <View className="p-4">
+        <View className="flex-row flex-wrap gap-3">
+          <ImportCounter icon="person-add-outline" label="Creados" value={result.created} color="#60A5FA" />
+          <ImportCounter icon="school-outline" label="Inscritos" value={result.enrolled} color="#34D399" />
+          <ImportCounter icon="checkmark-done-outline" label="Ya inscritos" value={result.alreadyEnrolled} color="#FBBF24" />
+          <ImportCounter icon="mail-outline" label="Emails enviados" value={result.emailsSent} color="#38BDF8" />
         </View>
-      ) : null}
+
+        <View className="mt-4 flex-row flex-wrap gap-3">
+          <PostImportAction
+            icon="send-outline"
+            label={sendingReminder ? 'Enviando...' : 'Enviar recordatorio'}
+            disabled={sendingReminder || students.length === 0}
+            onPress={onSendReminder}
+          />
+          <PostImportAction
+            icon="download-outline"
+            label="Exportar credenciales"
+            disabled={students.length === 0}
+            onPress={onExportCredentials}
+          />
+          {onViewInactiveStudents ? (
+            <PostImportAction
+              icon="eye-outline"
+              label="Ver alumnos sin actividad"
+              onPress={onViewInactiveStudents}
+            />
+          ) : null}
+        </View>
+
+        {postImportMessage ? (
+          <View className="mt-4 rounded-xl border border-[#25456E] bg-[#07162D] p-3">
+            <Text className="text-[12px] leading-5 text-[#DDE7F4]">{postImportMessage}</Text>
+          </View>
+        ) : null}
+
+        {createdWithPassword.length > 0 ? (
+          <View className="mt-4 rounded-xl border border-[#243B66] bg-[#07162D] p-3">
+            <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#C4B5FD]">Credenciales temporales de esta sesión</Text>
+            <Text className="mt-1 text-[12px] leading-5 text-[#8FA7C7]">
+              Solo se muestran ahora. Después conviene usar “Reenviar credenciales” desde la ficha del alumno.
+            </Text>
+            <View className="mt-3 gap-2">
+              {createdWithPassword.slice(0, 6).map((student) => (
+                <View key={student.studentId} className="flex-row items-center gap-2 rounded-lg bg-[#0D1D3B] px-3 py-2">
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-[12px] font-bold text-white" numberOfLines={1}>{student.email}</Text>
+                    <Text className="mt-0.5 text-[11px] text-[#AFC2DB]" numberOfLines={1}>Contraseña: {student.temporaryPassword}</Text>
+                  </View>
+                  <Pressable onPress={() => onCopyCredential(student)} className="rounded-lg bg-[#5A46D8] px-3 py-2">
+                    <Text className="text-[11px] font-black text-white">Copiar</Text>
+                  </Pressable>
+                </View>
+              ))}
+              {createdWithPassword.length > 6 ? (
+                <Text className="text-[11px] text-[#8FA7C7]">Hay {createdWithPassword.length - 6} credencial{createdWithPassword.length - 6 === 1 ? '' : 'es'} más en el CSV.</Text>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
+
+        {result.emailsSkipped > 0 ? (
+          <Text className="mt-3 text-[12px] leading-5 text-[#FBBF24]">
+            {result.emailsSkipped} email{result.emailsSkipped === 1 ? '' : 's'} no se enviaron. Configura RESEND_API_KEY y MAIL_FROM en Supabase Functions.
+          </Text>
+        ) : null}
+
+        {result.failed.length > 0 ? (
+          <View className="mt-4 rounded-xl border border-[#3B1D2A] bg-[#1F1020] p-3">
+            <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#FB7185]">Errores</Text>
+            {result.failed.slice(0, 6).map((item) => (
+              <Text key={`${item.email}-${item.reason}`} className="mt-2 text-[12px] text-[#FCA5A5]">
+                {item.email}: {item.reason}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+      </View>
     </View>
+  )
+}
+
+function ResultMetric({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <View className="min-w-[125px] flex-1 rounded-xl border border-[#20375E] bg-[#07162D] p-3">
+      <Text className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#8FA7C7]">{label}</Text>
+      <Text className="mt-1 text-[24px] font-black" style={{ color }}>{value}</Text>
+    </View>
+  )
+}
+
+function PostImportAction({
+  disabled,
+  icon,
+  label,
+  onPress,
+}: {
+  disabled?: boolean
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      className="flex-row items-center gap-2 rounded-xl px-4 py-3"
+      style={({ pressed }) => ({
+        borderWidth: 1,
+        borderColor: '#6D5AF6',
+        backgroundColor: '#111B3D',
+        opacity: disabled ? 0.55 : pressed ? 0.82 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={16} color="#C4B5FD" />
+      <Text className="text-[12px] font-black text-[#C4B5FD]">{label}</Text>
+    </Pressable>
   )
 }
 
@@ -276,4 +509,35 @@ function parseEmails(value: string) {
   })
 
   return { valid, invalid }
+}
+
+function buildCredentialsCsv(students: ImportedStudentRow[], context: { subjectName: string; classroomName: string }) {
+  const headers = ['Email', 'Estado', 'Contraseña temporal', 'Curso', 'Clase', 'Email enviado']
+  const rows = students.map((student) => [
+    student.email,
+    student.status === 'created' ? 'Cuenta creada' : 'Cuenta existente',
+    student.temporaryPassword || '',
+    context.subjectName,
+    context.classroomName,
+    student.emailSent === false ? 'No' : 'Sí',
+  ])
+
+  return `\uFEFF${[headers, ...rows].map((row) => row.map(escapeCsv).join(',')).join('\n')}`
+}
+
+function escapeCsv(value: string | number | null | undefined) {
+  const text = String(value ?? '')
+  if (/[",\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`
+  }
+  return text
+}
+
+function slugify(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'alumnos'
 }

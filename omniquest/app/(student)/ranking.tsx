@@ -730,7 +730,7 @@ function LeagueCarousel({
                   className="rounded-full px-3 py-1"
                   style={{ backgroundColor: isLocked ? '#111C31' : withAlpha(rankingLeague.color, '22') }}
                 >
-                  <Text className="text-[11px] font-black" style={{ color: isLocked ? '#8FA7C7' : rankingLeague.color }}>
+                  <Text className="text-[12px] font-black" style={{ color: isLocked ? '#AFC2DB' : rankingLeague.color }}>
                     {statusLabel}
                   </Text>
                 </View>
@@ -745,10 +745,10 @@ function LeagueCarousel({
 
               <View className="mt-4">
                 <View className="mb-2 flex-row items-center justify-between">
-                  <Text className="text-[11px] text-[#8FA7C7]">
+                  <Text className="text-[12px] text-[#AFC2DB]">
                     Desde {rankingLeague.minPoints.toLocaleString()} XP
                   </Text>
-                  <Text className="text-[11px] text-[#8FA7C7]">
+                  <Text className="text-[12px] text-[#AFC2DB]">
                     {rankingLeague.nextMinPoints === null ? 'Sin límite' : `${rankingLeague.nextMinPoints.toLocaleString()} XP`}
                   </Text>
                 </View>
@@ -1014,7 +1014,7 @@ function PodiumCard({
         <Text className="mt-1 text-center text-[12px] font-black text-white" numberOfLines={1}>
           {item.alias}{isMe ? ' (Tú)' : ''}
         </Text>
-        <Text className="mt-1 text-center text-[11px] font-bold text-[#AFC2DB]" numberOfLines={1}>
+        <Text className="mt-1 text-center text-[12px] font-bold text-[#AFC2DB]" numberOfLines={1}>
           {points.toLocaleString()} XP
         </Text>
       </View>

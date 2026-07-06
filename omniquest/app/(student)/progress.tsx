@@ -486,7 +486,7 @@ function XpEvolution({
                       <Text className="text-[13px] font-black text-[#DDE7F4]" numberOfLines={1}>
                         {score.label}
                       </Text>
-                      <Text className="mt-1 text-[11px] text-[#60799C]" numberOfLines={1}>{score.meta}</Text>
+                      <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>{score.meta}</Text>
                     </View>
                   </View>
                   <Text className="text-[13px] font-black text-white">{score.value.toLocaleString()} XP</Text>
@@ -505,7 +505,7 @@ function XpEvolution({
         </View>
       ) : (
         <View className="h-44 items-center justify-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B]">
-          <Ionicons name="analytics-outline" size={30} color="#60799C" />
+          <Ionicons name="analytics-outline" size={30} color="#8FA7C7" />
           <Text className="mt-3 text-center text-[13px] text-[#AFC2DB]">Aún no hay puntuaciones guardadas.</Text>
         </View>
       )}

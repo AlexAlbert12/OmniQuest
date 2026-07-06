@@ -1285,7 +1285,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                   <Panel title="Idioma y región">
                     <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
                       <Text className="text-[12px] font-bold text-white">Color de acento</Text>
-                      <Text className="mt-1 text-[11px] text-[#AFC2DB]">
+                      <Text className="mt-1 text-[12px] text-[#AFC2DB]">
                         El modo visual está optimizado en oscuro para mantener consistencia en toda la app.
                       </Text>
                       <View className="mt-2 flex-row flex-wrap gap-3">
@@ -1531,7 +1531,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                               <Text className="text-[13px] font-semibold text-white">
                                 {isTeacher ? 'Eliminar progreso de alumnos' : 'Eliminar puntuaciones'}
                               </Text>
-                              <Text className="mt-1 text-[11px] text-[#FECACA]">
+                              <Text className="mt-1 text-[12px] text-[#FECACA]">
                                 {isTeacher
                                   ? 'Borra puntuaciones e intentos de alumnos en tus cursos.'
                                   : 'Borra tus puntuaciones y reinicia tu XP global.'}
@@ -1578,7 +1578,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                               <Text className="text-[13px] font-semibold text-white">
                                 {isTeacher ? 'Eliminar todos mis datos docentes' : 'Eliminar datos de uso'}
                               </Text>
-                              <Text className="mt-1 text-[11px] text-[#FECACA]">
+                              <Text className="mt-1 text-[12px] text-[#FECACA]">
                                 {isTeacher
                                   ? 'Borra cursos, clases, temas, preguntas, respuestas, inscripciones, puntuaciones, intentos, preferencias, notificaciones y avatar.'
                                   : 'Borra progreso, intentos, preferencias, notificaciones y avatar.'}
@@ -1954,7 +1954,7 @@ function SecurityStatusRow({
       <View className="min-w-0 flex-1">
         <Text className="text-[12px] font-bold text-[#8FA7C7]">{title}</Text>
         <Text className="mt-1 text-[13px] font-black text-white">{value}</Text>
-        <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>{description}</Text>
+        <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>{description}</Text>
       </View>
     </View>
   )
