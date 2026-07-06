@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Pressable,
   ScrollView,
   Text,
@@ -69,6 +71,20 @@ export default function PlayScreen() {
   const [feedbackDialog, setFeedbackDialog] = useState<{ title: string; message: string } | null>(null)
 
   const isDesktop = width >= 1024
+  const selectedTopicName = Array.isArray(topicName) ? topicName[0] : topicName
+  const playRouteParams = {
+    id: id as string,
+    ...(topicId ? { topicId: Array.isArray(topicId) ? topicId[0] : topicId } : {}),
+    ...(selectedTopicName ? { topicName: selectedTopicName } : {}),
+    ...(selectedClassroomId ? { classroomId: selectedClassroomId } : {}),
+    ...(selectedDifficulty ? { difficulty: selectedDifficulty } : {}),
+  }
+  const handleReviewMistakes = () => {
+    router.replace({
+      pathname: '/(student)/play/[id]',
+      params: { ...playRouteParams, review: 'failed' },
+    } as any)
+  }
 
   if (game.status === 'loading') {
     return (
@@ -104,12 +120,15 @@ export default function PlayScreen() {
         <ResultState
           icon="skull-outline"
           iconColor="#FB7185"
-          title="GAME OVER"
-          detail="Te has quedado sin vidas. Vuelve a intentarlo y recupera la racha."
+          title="Partida terminada"
+          detail="Te has quedado sin vidas, pero ya tienes pistas claras para mejorar."
           score={game.score}
           summary={game.summary}
-          action="Salir al menú"
+          topicLabel={selectedTopicName || 'Tema actual'}
+          action="Volver al curso"
           onPress={() => router.back()}
+          secondaryAction={game.summary.reviewQuestions.length > 0 ? 'Repasar fallos' : undefined}
+          onSecondaryPress={game.summary.reviewQuestions.length > 0 ? handleReviewMistakes : undefined}
         />
       </GameShell>
     )
@@ -121,12 +140,15 @@ export default function PlayScreen() {
         <ResultState
           icon="trophy"
           iconColor="#FBBF24"
-          title="Preguntas completadas"
-          detail="Has superado todas las preguntas de este tema."
+          title="Partida completada"
+          detail="Buen cierre. Revisa tu XP, precisión y los fallos que conviene reforzar."
           score={game.score}
           summary={game.summary}
-          action="Volver al inicio"
+          topicLabel={selectedTopicName || 'Tema actual'}
+          action="Volver al curso"
           onPress={() => router.back()}
+          secondaryAction={game.summary.reviewQuestions.length > 0 ? 'Repasar fallos' : undefined}
+          onSecondaryPress={game.summary.reviewQuestions.length > 0 ? handleReviewMistakes : undefined}
         />
       </GameShell>
     )
@@ -137,7 +159,6 @@ export default function PlayScreen() {
   const totalQuestions = Math.max(game.questions.length, 1)
   const progressPercentage = ((game.currentIndex + 1) / totalQuestions) * 100
   const pointsBase = currentQuestion?.points_base ?? 150
-  const selectedTopicName = Array.isArray(topicName) ? topicName[0] : topicName
   const baseCategory = selectedTopicName || currentQuestion?.category || currentQuestion?.subject || 'Tema'
   const category = difficultyMeta ? `${baseCategory} · ${difficultyMeta.label}` : baseCategory
   const position = `${Math.min(game.currentIndex + 3, 24)}/24`
@@ -274,7 +295,7 @@ export default function PlayScreen() {
               </View>
 
               {game.feedback ? (
-                <QuestionFeedbackCard feedback={game.feedback} onContinue={game.continueAfterFeedback} />
+                <QuestionFeedbackCard feedback={game.feedback} streak={game.streak} onContinue={game.continueAfterFeedback} />
               ) : null}
             </View>
           </View>
@@ -979,6 +1000,7 @@ function PairConnectionChip({
 function QuestionFeedbackCard({
   feedback,
   onContinue,
+  streak,
 }: {
   feedback: {
     status: 'correct' | 'incorrect' | 'pending'
@@ -987,24 +1009,73 @@ function QuestionFeedbackCard({
     explanation: string | null
   }
   onContinue: () => void
+  streak: number
 }) {
   const isCorrect = feedback.status === 'correct'
   const isPending = feedback.status === 'pending'
   const color = isPending ? '#F6A64A' : isCorrect ? '#34D399' : '#FB7185'
   const title = isPending ? 'Enviado para revisión' : isCorrect ? 'Correcto' : 'Incorrecto'
+  const pulse = useRef(new Animated.Value(0)).current
+  const streakBonus = isCorrect && streak >= 3
+
+  useEffect(() => {
+    if (!isCorrect) return
+
+    pulse.setValue(0)
+    Animated.sequence([
+      Animated.timing(pulse, {
+        toValue: 1,
+        duration: 360,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(pulse, {
+        toValue: 0,
+        duration: 260,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }, [isCorrect, pulse])
+
+  const iconScale = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.18],
+  })
+  const glowOpacity = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.18, 0.52],
+  })
 
   return (
     <View className="mt-5 rounded-[24px] border bg-[#09162C] p-5" style={{ borderColor: color }}>
       <View className="flex-row flex-wrap items-center justify-between gap-4">
         <View className="min-w-0 flex-1 flex-row items-center gap-3">
-          <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
+          <Animated.View
+            className="absolute left-0 h-12 w-12 rounded-full"
+            style={{ backgroundColor: color, opacity: glowOpacity, transform: [{ scale: iconScale }] }}
+          />
+          <Animated.View
+            className="h-12 w-12 items-center justify-center rounded-full"
+            style={{ backgroundColor: `${color}24`, transform: [{ scale: iconScale }] }}
+          >
             <Ionicons name={isPending ? 'time-outline' : isCorrect ? 'checkmark-circle' : 'close-circle'} size={27} color={color} />
-          </View>
+          </Animated.View>
           <View className="min-w-0 flex-1">
             <Text className="text-[20px] font-black text-white">{title}</Text>
-            <Text className="mt-1 text-[13px] font-bold" style={{ color }}>
-              {isPending ? 'Tu profesor corregirá esta respuesta' : `+${feedback.earnedPoints} XP`}
-            </Text>
+            <View className="mt-1 flex-row flex-wrap items-center gap-2">
+              <Text className="text-[13px] font-bold" style={{ color }}>
+                {isPending ? 'Tu profesor corregirá esta respuesta' : `+${feedback.earnedPoints} XP`}
+              </Text>
+              {isCorrect ? (
+                <View className="flex-row items-center gap-1 rounded-full bg-[#2A210F] px-2 py-1">
+                  <Ionicons name="flame" size={12} color="#FF7B45" />
+                  <Text className="text-[11px] font-black text-[#FFB38A]">
+                    Racha {streak}{streakBonus ? ' · bonus' : ''}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </View>
         </View>
 
@@ -1123,10 +1194,12 @@ function GameStatsBar({
   category: string
   lives: number
 }) {
+  const hasStreakBonus = streak >= 3
+
   return (
     <View className="mt-5 flex-row flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#172A4A] bg-[#07162E]/88 px-4 py-3">
       <GameStatPill icon="flash" color="#FBBF24" label={`${points} XP`} />
-      <GameStatPill icon="flame" color="#FF7B45" label={`Racha ${streak}`} />
+      <GameStatPill icon="flame" color="#FF7B45" label={hasStreakBonus ? `Racha ${streak} · bonus` : `Racha ${streak}`} />
       <GameStatPill icon="podium-outline" color="#9B6CFF" label={`Posición ${position}`} />
       <GameStatPill icon="heart" color="#FF647C" label={`${lives} vidas`} />
       <GameStatPill icon="albums-outline" color="#60A5FA" label={category} />
@@ -1298,8 +1371,11 @@ function ResultState({
   detail,
   score,
   summary,
+  topicLabel,
   action,
   onPress,
+  secondaryAction,
+  onSecondaryPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   iconColor: string
@@ -1315,12 +1391,25 @@ function ResultState({
     timeSeconds: number
     reviewQuestions: { id: number; text: string }[]
   }
+  topicLabel?: string
   action: string
   onPress: () => void
+  secondaryAction?: string
+  onSecondaryPress?: () => void
 }) {
   return (
-    <View className="flex-1 items-center justify-center px-6">
-      <View className="items-center rounded-3xl border border-[#1A3155] bg-[#09162C]/95 p-8">
+    <ScrollView
+      className="flex-1"
+      contentContainerStyle={{
+        alignItems: 'center',
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingHorizontal: 24,
+        paddingVertical: 32,
+      }}
+      showsVerticalScrollIndicator={false}
+    >
+      <View className="w-full max-w-[760px] items-center rounded-3xl border border-[#1A3155] bg-[#09162C]/95 p-8">
         <View className="h-24 w-24 items-center justify-center rounded-full bg-[#10213E]">
           <Ionicons name={icon} size={58} color={iconColor} />
         </View>
@@ -1328,7 +1417,7 @@ function ResultState({
         <Text className="mt-3 max-w-[420px] text-center text-[15px] leading-6 text-[#B8C7E0]">{detail}</Text>
 
         {summary ? (
-          <GameSummaryPanel summary={summary} fallbackScore={score} />
+          <GameSummaryPanel summary={summary} fallbackScore={score} topicLabel={topicLabel} />
         ) : typeof score === 'number' ? (
           <View className="my-7 w-full rounded-2xl border border-[#172A4A] bg-[#0D1D3B] p-5">
             <Text className="text-center text-[12px] font-bold uppercase text-[#8FA7C7]">Puntuación final</Text>
@@ -1336,21 +1425,35 @@ function ResultState({
           </View>
         ) : null}
 
-        <Pressable
-          onPress={onPress}
-          className="min-w-[220px] rounded-2xl bg-[#5A46D8] px-7 py-4"
-          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-        >
-          <Text className="text-center text-[16px] font-black text-white">{action}</Text>
-        </Pressable>
+        <View className="w-full flex-row flex-wrap justify-center gap-3">
+          {secondaryAction && onSecondaryPress ? (
+            <Pressable
+              onPress={onSecondaryPress}
+              className="min-w-[220px] flex-row items-center justify-center gap-2 rounded-2xl bg-[#FB7185] px-7 py-4"
+              style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+            >
+              <Ionicons name="refresh" size={17} color="#FFFFFF" />
+              <Text className="text-center text-[16px] font-black text-white">{secondaryAction}</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            onPress={onPress}
+            className="min-w-[220px] flex-row items-center justify-center gap-2 rounded-2xl bg-[#5A46D8] px-7 py-4"
+            style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+          >
+            <Text className="text-center text-[16px] font-black text-white">{action}</Text>
+            <Ionicons name="arrow-back" size={17} color="#FFFFFF" />
+          </Pressable>
+        </View>
       </View>
-    </View>
+    </ScrollView>
   )
 }
 
 function GameSummaryPanel({
   fallbackScore,
   summary,
+  topicLabel,
 }: {
   fallbackScore?: number
   summary: {
@@ -1362,16 +1465,32 @@ function GameSummaryPanel({
     timeSeconds: number
     reviewQuestions: { id: number; text: string }[]
   }
+  topicLabel?: string
 }) {
   const answered = Math.max(summary.answered, summary.correct + summary.incorrect)
   const precision = answered > 0 ? Math.round((summary.correct / answered) * 100) : 0
   const xp = summary.xp || fallbackScore || 0
   const totalQuestions = summary.questionsTotal || answered
+  const reviewCount = summary.reviewQuestions.length
 
   return (
     <View className="my-7 w-full rounded-2xl border border-[#172A4A] bg-[#0D1D3B] p-5">
       <Text className="text-center text-[12px] font-bold uppercase text-[#8FA7C7]">Resumen de la partida</Text>
-      <Text className="mt-2 text-center text-[44px] font-black text-[#9B6CFF]">{xp} XP</Text>
+      <Text className="mt-2 text-center text-[42px] font-black text-white">
+        {summary.correct}/{totalQuestions} correctas
+      </Text>
+      <Text className="mt-1 text-center text-[28px] font-black text-[#9B6CFF]">+{xp} XP</Text>
+
+      <View className="mt-4 flex-row flex-wrap justify-center gap-2">
+        <View className="rounded-full bg-[#10213E] px-3 py-2">
+          <Text className="text-[12px] font-black text-[#DDE7F4]">
+            {reviewCount} {reviewCount === 1 ? 'fallo para repasar' : 'fallos para repasar'}
+          </Text>
+        </View>
+        <View className="rounded-full bg-[#10213E] px-3 py-2">
+          <Text className="text-[12px] font-black text-[#DDE7F4]">Mejor tema: {topicLabel || 'Tema actual'}</Text>
+        </View>
+      </View>
 
       <View className="mt-5 flex-row flex-wrap gap-3">
         <SummaryMetric icon="help-circle-outline" label="Preguntas" value={String(totalQuestions)} color="#60A5FA" />

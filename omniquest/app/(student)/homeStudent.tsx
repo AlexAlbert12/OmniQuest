@@ -13,6 +13,8 @@ import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import StudentDashboardCard, { StudentCardLink as CardLink } from '../../components/student/StudentDashboardCard'
 import StudentMetricCard from '../../components/student/StudentMetricCard'
+import StudentActionBanner from '../../components/student/StudentActionBanner'
+import StudentEmptyState from '../../components/student/StudentEmptyState'
 import { useAppTheme } from '../../lib/appTheme'
 import { joinClassByInviteCode } from '../../lib/studentClassJoin'
 import { calculateStreakDays } from '../../lib/studentBadges'
@@ -536,35 +538,25 @@ function WeeklyGoalCard({
   const remaining = Math.max(0, target - count)
 
   return (
-    <View className={`rounded-2xl border border-[#1A3155] bg-[#09162C] p-4 ${className}`}>
-      <View className="flex-row flex-wrap items-center gap-4">
-        <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#1F2B67]">
-          <Ionicons name={completed ? 'checkmark-done' : 'flag'} size={26} color={completed ? '#43D991' : '#B9A7FF'} />
+    <StudentActionBanner
+      className={className}
+      color={completed ? '#43D991' : '#8B5CF6'}
+      icon={completed ? 'checkmark-done' : 'flag'}
+      kicker="Objetivo semanal"
+      title={`${count} / ${target} preguntas`}
+      detail={completed
+        ? `Has completado ${count} preguntas esta semana. Objetivo superado.`
+        : `Te faltan ${remaining} para cumplir tu meta. Racha: ${streakDays} día${streakDays === 1 ? '' : 's'}.`}
+    >
+      <View className="flex-row items-center gap-3">
+        <View className="h-2 flex-1 overflow-hidden rounded-full bg-[#13294C]">
+          <View className="h-full rounded-full bg-[#7C5CFF]" style={{ width: `${percent}%` }} />
         </View>
-        <View className="min-w-[240px] flex-1">
-          <View className="flex-row flex-wrap items-center gap-2">
-            <Text className="text-[17px] font-black text-white">Objetivo semanal</Text>
-            <View className="rounded-full bg-[#13284A] px-3 py-1">
-              <Text className="text-[11px] font-black text-[#9FD6FF]">{getTimeUntilSundayLabel()}</Text>
-            </View>
-          </View>
-          <Text className="mt-1 text-[13px] text-[#AFC2DB]">
-            {completed
-              ? `Has completado ${count} preguntas esta semana. ¡Objetivo superado!`
-              : `${count} / ${target} preguntas completadas. Te faltan ${remaining} para cumplir tu meta.`}
-          </Text>
-        </View>
-        <View className="min-w-[180px] flex-row items-center justify-end gap-4">
-          <View className="items-end">
-            <Text className="text-[24px] font-black text-white">{count} / {target}</Text>
-            <Text className="text-[12px] text-[#8FA7C7]">Racha: {streakDays} día{streakDays === 1 ? '' : 's'}</Text>
-          </View>
+        <View className="rounded-full bg-[#13284A] px-3 py-1">
+          <Text className="text-[11px] font-black text-[#9FD6FF]">{getTimeUntilSundayLabel()}</Text>
         </View>
       </View>
-      <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#13294C]">
-        <View className="h-full rounded-full bg-[#7C5CFF]" style={{ width: `${percent}%` }} />
-      </View>
-    </View>
+    </StudentActionBanner>
   )
 }
 
@@ -740,13 +732,11 @@ function normalizeRelation<T>(value: T | T[] | null | undefined) {
 
 function EmptyClasses() {
   return (
-    <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#091A35] px-4 py-6">
-      <Ionicons name="school-outline" size={34} color="#60799C" />
-      <Text className="mt-3 text-center font-bold text-white">Aún no tienes cursos</Text>
-      <Text className="mt-1 text-center text-[13px] leading-5 text-[#8FA7C7]">
-        Introduce el código de tu profesor para unirte a un curso o clase.
-      </Text>
-    </View>
+    <StudentEmptyState
+      icon="school-outline"
+      title="Aún no tienes cursos"
+      message="Introduce el código de tu profesor para unirte a un curso o clase."
+    />
   )
 }
 

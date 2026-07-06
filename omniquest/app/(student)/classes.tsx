@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { Link, useFocusEffect } from 'expo-router'
+import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import AppConfirmModal from '../../components/AppConfirmModal'
 import { supabase } from '../../lib/supabase'
@@ -23,6 +23,9 @@ import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { useAppTheme } from '../../lib/appTheme'
 import { joinClassByInviteCode } from '../../lib/studentClassJoin'
+import StudentKpiCard from '../../components/student/StudentKpiCard'
+import StudentActionBanner from '../../components/student/StudentActionBanner'
+import StudentEmptyState from '../../components/student/StudentEmptyState'
 
 type Profile = {
   id: string
@@ -407,10 +410,10 @@ export default function ClassesScreen() {
           </View>
 
           <View className={isDesktop ? 'flex-row gap-4' : 'gap-4'}>
-            <StatCard icon="school" color={accentColor} value={String(activeClasses)} label="Cursos activos" detail="Sigue aprendiendo 🚀" />
-            <StatCard icon="refresh-circle" color="#FB7185" value={String(failedQuestions)} label="Fallos pendientes" detail="Para repasar" />
-            <StatCard icon="help-circle" color="#58B5FF" value={String(pendingQuestions)} label="Por practicar" detail="Preguntas disponibles" />
-            <StatCard icon="time" color="#F6A64A" value={`${points.toLocaleString()} XP`} label="XP global" detail="Acumulada en tu perfil" />
+            <StudentKpiCard icon="school" color={accentColor} value={String(activeClasses)} label="Cursos activos" detail="Sigue aprendiendo" />
+            <StudentKpiCard icon="refresh-circle" color="#FB7185" value={String(failedQuestions)} label="Fallos pendientes" detail="Para repasar" />
+            <StudentKpiCard icon="help-circle" color="#58B5FF" value={String(pendingQuestions)} label="Por practicar" detail="Preguntas disponibles" />
+            <StudentKpiCard icon="time" color="#F6A64A" value={`${points.toLocaleString()} XP`} label="XP global" detail="Acumulada en tu perfil" />
           </View>
 
           {recommendedCourse?.progress ? (
@@ -555,33 +558,6 @@ export default function ClassesScreen() {
   )
 }
 
-function StatCard({
-  icon,
-  color,
-  value,
-  label,
-  detail,
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  color: string
-  value: string
-  label: string
-  detail: string
-}) {
-  return (
-    <View className="min-w-[210px] flex-1 flex-row items-center gap-4 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
-        <Ionicons name={icon} size={28} color={color} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="text-[24px] font-black text-white">{value}</Text>
-        <Text className="mt-1 text-[13px] font-bold text-[#DDE7F4]">{label}</Text>
-        <Text className="mt-1 text-[13px] text-[#8FA7C7]">{detail}</Text>
-      </View>
-    </View>
-  )
-}
-
 function CompactSelect({
   label,
   onToggle,
@@ -639,6 +615,7 @@ function RecommendedCourseCard({
   subject: Subject
 }) {
   const { accentColor } = useAppTheme()
+  const router = useRouter()
   const failed = progress.failedQuestions ?? 0
   const pending = progress.pendingQuestions ?? 0
   const title = failed > 0 ? `Repasa ${subject.name}` : `Continúa ${subject.name}`
@@ -650,33 +627,16 @@ function RecommendedCourseCard({
   const buttonLabel = failed > 0 ? 'Repasar ahora' : pending > 0 ? 'Continuar' : 'Repetir'
 
   return (
-    <View className="mt-5 overflow-hidden rounded-2xl border border-[#2B3F7A] bg-[#101D4A] p-5">
-      <View className="absolute inset-0 bg-[#17135A]" />
-      <View className="absolute top-5 h-24 w-24 rounded-full bg-[#6C5CE7]/20" style={{ right: '34%' }} />
-      <View className="absolute top-8 h-10 w-28 rounded-full border border-[#7B68FF]/35" style={{ right: '26%', transform: [{ rotate: '-18deg' }] }} />
-      <Ionicons
-        name="rocket"
-        size={76}
-        color="#7C5CFF"
-        style={{ position: 'absolute', right: '38%', top: 24, transform: [{ rotate: '28deg' }] }}
-      />
-      <View className="relative flex-row flex-wrap items-center gap-5">
-        <View className="min-w-[260px] flex-1">
-          <Text className="text-[12px] font-black uppercase tracking-[0.08em] text-[#A78BFA]">Recomendado para ti</Text>
-          <Text className="mt-3 text-[24px] font-black text-white">{title}</Text>
-          <Text className="mt-2 text-[13px] leading-5 text-[#D8E3F3]">{detail}</Text>
-        </View>
-        <View className="hidden h-24 w-px bg-[#364172] lg:flex" />
-        <View className="min-w-[210px] items-end">
-      <Link href={buildClassHref(subject) as any} asChild>
-        <Pressable className="flex-row items-center justify-center gap-2 rounded-xl px-6 py-4" style={{ backgroundColor: accentColor }}>
-          <Ionicons name={failed > 0 ? 'refresh' : pending > 0 ? 'play-forward' : 'repeat'} size={16} color="#FFFFFF" />
-          <Text className="font-black text-white">{buttonLabel}</Text>
-        </Pressable>
-      </Link>
-        </View>
-      </View>
-    </View>
+    <StudentActionBanner
+      className="mt-5"
+      color={accentColor}
+      kicker="Recomendado para ti"
+      title={title}
+      detail={detail}
+      actionLabel={buttonLabel}
+      actionIcon={failed > 0 ? 'refresh' : pending > 0 ? 'play-forward' : 'repeat'}
+      onPress={() => router.push(buildClassHref(subject) as any)}
+    />
   )
 }
 
@@ -990,17 +950,13 @@ function JoinClassCard({
 
 function EmptyClasses({ hasAnyClasses }: { hasAnyClasses: boolean }) {
   return (
-    <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B] px-4 py-6">
-      <Ionicons name="school-outline" size={34} color="#60799C" />
-      <Text className="mt-3 text-center font-bold text-white">
-        {hasAnyClasses ? 'No hay cursos que coincidan' : 'Aún no tienes cursos'}
-      </Text>
-      <Text className="mt-1 text-center text-[12px] leading-5 text-[#8FA7C7]">
-        {hasAnyClasses
-          ? 'Cambia el filtro o la búsqueda para ver más cursos.'
-          : 'Introduce el código de tu profesor para unirte a un curso o clase real.'}
-      </Text>
-    </View>
+    <StudentEmptyState
+      icon="school-outline"
+      title={hasAnyClasses ? 'No hay cursos que coincidan' : 'Aún no tienes cursos'}
+      message={hasAnyClasses
+        ? 'Cambia el filtro o la búsqueda para ver más cursos.'
+        : 'Introduce el código de tu profesor para unirte a un curso o clase real.'}
+    />
   )
 }
 

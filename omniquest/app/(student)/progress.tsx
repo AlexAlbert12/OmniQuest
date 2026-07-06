@@ -24,6 +24,9 @@ import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import StudentDashboardCard from '../../components/student/StudentDashboardCard'
+import StudentEmptyState from '../../components/student/StudentEmptyState'
+import StudentKpiCard from '../../components/student/StudentKpiCard'
+import StudentListRow from '../../components/student/StudentListRow'
 import { formatShortDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
 
@@ -436,24 +439,15 @@ function ProgressMetricCard({
   className?: string
 }) {
   return (
-    <View className={`min-w-[175px] rounded-2xl border border-[#1A3155] bg-[#09162C] p-5 ${className}`}>
-      <View className="flex-row items-start gap-4">
-        <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
-          <Ionicons name={icon} size={23} color={color} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className="text-[13px] font-bold leading-5 text-[#AFC2DB]" numberOfLines={2}>
-            {title}
-          </Text>
-          <Text className="mt-2 text-[26px] font-black text-white" numberOfLines={1}>
-            {value}
-          </Text>
-          <Text className="mt-1 text-[12px] font-bold" style={{ color: detailColor }} numberOfLines={1}>
-            {detail}
-          </Text>
-        </View>
-      </View>
-    </View>
+    <StudentKpiCard
+      className={className}
+      color={color}
+      detail={detail}
+      detailColor={detailColor}
+      icon={icon}
+      label={title}
+      value={value}
+    />
   )
 }
 
@@ -552,36 +546,24 @@ function ReinforcementCard({
             const detail = splitReinforcementDetail(area.detail)
 
             return (
-              <Pressable
+              <StudentListRow
                 key={area.id}
                 onPress={() => onReview(area)}
-                className="flex-row items-center gap-4 rounded-xl border border-[#1A3155] bg-[#0D1D3B] p-3"
-                style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
+                icon={area.icon}
+                color={area.color}
+                title={area.title}
+                subtitle={detail.context}
+                actionLabel="Repasar"
+                meta={[
+                  { label: 'Precisión', value: `${safeAccuracy}%`, color: area.color },
+                ]}
               >
-                <View
-                  className="h-12 w-12 items-center justify-center rounded-full"
-                  style={{ backgroundColor: `${area.color}24` }}
-                >
-                  <Ionicons name={area.icon} size={24} color={area.color} />
-                </View>
-
-                <View className="min-w-0 flex-[1.25]">
-                  <View className="flex-row flex-wrap items-center gap-2">
-                    <Text className="text-[15px] font-black text-white" numberOfLines={1}>
-                      {area.title}
-                    </Text>
-                    {detail.main ? (
-                      <Text className="text-[13px] font-bold text-[#AFC2DB]" numberOfLines={1}>
-                        · {detail.main}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <Text className="mt-1 text-[12px] text-[#8FA7C7]" numberOfLines={1}>
-                    {detail.context}
+                {detail.main ? (
+                  <Text className="mt-1 text-[12px] font-bold text-[#AFC2DB]" numberOfLines={1}>
+                    {detail.main}
                   </Text>
-                </View>
-
-                <View className="hidden min-w-[180px] flex-[0.65] flex-row items-center gap-3 md:flex">
+                ) : null}
+                <View className="mt-2 flex-row items-center gap-3">
                   <View className="h-2 flex-1 overflow-hidden rounded-full bg-[#13294C]">
                     <View
                       className="h-full rounded-full"
@@ -592,20 +574,16 @@ function ReinforcementCard({
                     {safeAccuracy}%
                   </Text>
                 </View>
-
-                <Ionicons name="arrow-forward" size={18} color="#8B5CF6" />
-              </Pressable>
+              </StudentListRow>
             )
           })}
         </View>
       ) : (
-        <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B] px-4 py-6">
-          <Ionicons name="sparkles-outline" size={34} color="#43D991" />
-          <Text className="mt-3 text-center font-black text-white">Sin áreas críticas ahora mismo</Text>
-          <Text className="mt-1 max-w-[560px] text-center text-[13px] leading-5 text-[#8FA7C7]">
-            Cuando acumules varios intentos, OmniQuest detectará automáticamente los temas y tipos de pregunta que más necesitas repasar.
-          </Text>
-        </View>
+        <StudentEmptyState
+          icon="sparkles-outline"
+          title="Sin áreas críticas ahora mismo"
+          message="Cuando acumules varios intentos, OmniQuest detectará automáticamente los temas y tipos de pregunta que más necesitas repasar."
+        />
       )}
     </StudentDashboardCard>
   )
@@ -621,79 +599,35 @@ function SubjectProgressRow({
   const safePercent = Math.min(100, Math.max(0, subject.barPercent))
 
   return (
-    <Pressable
+    <StudentListRow
       onPress={onPress}
-      className="flex-row items-center gap-4 rounded-xl border border-[#172A4A] bg-[#0D1D3B] p-3"
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+      icon={subject.icon}
+      color={subject.color}
+      title={subject.name}
+      subtitle={subject.detail}
+      actionLabel="Ver curso"
+      meta={[
+        { label: 'Progreso', value: `${safePercent}%` },
+        { label: 'Respondidas', value: `${subject.scoreCount} / ${subject.totalQuestions}` },
+        { label: 'Fallos', value: String(subject.failedQuestions), color: subject.failedQuestions > 0 ? '#FB7185' : '#43D991' },
+        { label: 'Pendientes', value: String(subject.pendingQuestions) },
+        { label: 'Mejor', value: subject.bestScore === null ? '-' : `${subject.bestScore.toLocaleString()} XP` },
+      ]}
     >
-      <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${subject.color}24` }}>
-        <Ionicons name={subject.icon} size={24} color={subject.color} />
+      <View className="mt-2 h-2 overflow-hidden rounded-full bg-[#13294C]">
+        <View className="h-full rounded-full" style={{ width: `${safePercent}%`, backgroundColor: subject.color }} />
       </View>
-
-      <View className="min-w-0 flex-[1.45]">
-        <View className="flex-row items-center gap-2">
-          <Text className="min-w-0 flex-shrink text-[15px] font-black text-white" numberOfLines={1}>
-            {subject.name}
-          </Text>
-          {subject.classroomId ? (
-            <View className="hidden rounded-full bg-[#123154] px-2 py-1 md:flex">
-              <Text className="text-[10px] font-black text-[#9FD6FF]">Clase principal</Text>
-            </View>
-          ) : null}
-        </View>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>
-          {subject.detail}
-        </Text>
-        <View className="mt-2 h-2 overflow-hidden rounded-full bg-[#13294C] md:hidden">
-          <View className="h-full rounded-full" style={{ width: `${safePercent}%`, backgroundColor: subject.color }} />
-        </View>
-      </View>
-
-      <View className="hidden min-w-[130px] flex-[0.55] items-end md:flex">
-        <Text className="text-[18px] font-black text-white">{safePercent}%</Text>
-        <Text className="text-[11px] text-[#8FA7C7]">completado</Text>
-        <View className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full" style={{ width: `${safePercent}%`, backgroundColor: subject.color }} />
-        </View>
-      </View>
-
-      <View className="hidden w-24 border-l border-[#172A4A] pl-4 lg:flex">
-        <Text className="text-[12px] text-[#60799C]">Respondidas</Text>
-        <Text className="text-[13px] font-bold text-[#DDE7F4]">{subject.scoreCount} / {subject.totalQuestions}</Text>
-      </View>
-      <View className="hidden w-20 border-l border-[#172A4A] pl-4 lg:flex">
-        <Text className="text-[12px] text-[#60799C]">Fallos</Text>
-        <Text
-          className="text-[13px] font-bold"
-          style={{ color: subject.failedQuestions > 0 ? '#FB7185' : '#43D991' }}
-        >
-          {subject.failedQuestions}
-        </Text>
-      </View>
-      <View className="hidden w-24 border-l border-[#172A4A] pl-4 xl:flex">
-        <Text className="text-[12px] text-[#60799C]">Pendientes</Text>
-        <Text className="text-[13px] font-bold text-[#DDE7F4]">{subject.pendingQuestions}</Text>
-      </View>
-      <View className="hidden w-16 xl:flex">
-        <Text className="text-[12px] text-[#60799C]">Mejor</Text>
-        <Text className="text-[12px] font-bold text-[#DDE7F4]">
-          {subject.bestScore === null ? '-' : `${subject.bestScore.toLocaleString()} XP`}
-        </Text>
-      </View>
-      <Ionicons name="arrow-forward" size={16} color="#7F91AD" />
-    </Pressable>
+    </StudentListRow>
   )
 }
 
 function EmptyProgress() {
   return (
-    <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B] px-4 py-6">
-      <Ionicons name="stats-chart-outline" size={34} color="#60799C" />
-      <Text className="mt-3 text-center font-bold text-white">Sin progreso real todavía</Text>
-      <Text className="mt-1 text-center text-[13px] leading-5 text-[#8FA7C7]">
-        Cuando completes una partida, se guardará tu puntuación y se actualizará tu avance.
-      </Text>
-    </View>
+    <StudentEmptyState
+      icon="stats-chart-outline"
+      title="Sin progreso real todavía"
+      message="Cuando completes una partida, se guardará tu puntuación y se actualizará tu avance."
+    />
   )
 }
 
