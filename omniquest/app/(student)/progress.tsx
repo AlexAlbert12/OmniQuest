@@ -257,8 +257,8 @@ export default function ProgressScreen() {
                 <BrandLogo size={30} style={{ marginBottom: 12 }} />
               ) : null}
               <View className="flex-row items-center gap-3">
-                <Ionicons name="stats-chart" size={40} color="#9FD6FF" />
-                <Text className="text-[40px] font-black text-white">Progreso</Text>
+                <Ionicons name="stats-chart" size={isDesktop ? 40 : 34} color="#9FD6FF" />
+                <Text className={`${isDesktop ? 'text-[40px]' : 'text-[32px]'} flex-shrink font-black text-white`} numberOfLines={1}>Progreso</Text>
               </View>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">
                 Analiza tu aprendizaje y sigue mejorando cada día.

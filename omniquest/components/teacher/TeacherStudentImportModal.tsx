@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import { isValidEmail, normalizeEmail } from '../../lib/auth'
@@ -39,6 +39,8 @@ export default function TeacherStudentImportModal({
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<ImportResult | null>(null)
   const [fileMessage, setFileMessage] = useState<string | null>(null)
+  const { width } = useWindowDimensions()
+  const isPhone = width < 640
 
   const parsed = useMemo(() => parseEmails(rawEmails), [rawEmails])
   const validEmails = parsed.valid
@@ -108,8 +110,8 @@ export default function TeacherStudentImportModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={resetAndClose}>
-      <View className="flex-1 items-center justify-center bg-black/70 px-4 py-8">
-        <View className="max-h-full w-full max-w-[760px] overflow-hidden rounded-3xl border border-[#1A3155] bg-[#07162D]">
+      <View className={`flex-1 bg-black/70 ${isPhone ? 'justify-end' : 'items-center justify-center px-4 py-8'}`}>
+        <View className={`${isPhone ? 'h-[94%] w-full rounded-t-3xl' : 'max-h-full w-full max-w-[760px] rounded-3xl'} overflow-hidden border border-[#1A3155] bg-[#07162D]`}>
           <View className="flex-row items-start justify-between gap-4 border-b border-[#1A3155] px-5 py-4">
             <View className="min-w-0 flex-1">
               <Text className="text-[22px] font-black text-white">Importar alumnos</Text>
@@ -126,7 +128,7 @@ export default function TeacherStudentImportModal({
             </Pressable>
           </View>
 
-          <ScrollView className="max-h-[680px]" contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
+          <ScrollView className={isPhone ? 'flex-1' : 'max-h-[680px]'} contentContainerStyle={{ padding: isPhone ? 16 : 20, paddingBottom: isPhone ? 28 : 20 }} showsVerticalScrollIndicator={false}>
             <View className="rounded-2xl border border-[#20375E] bg-[#09162C] p-4">
               <View className="flex-row flex-wrap items-center justify-between gap-3">
                 <View className="min-w-0 flex-1">
@@ -176,7 +178,7 @@ export default function TeacherStudentImportModal({
 
             {result ? <ImportResultPanel result={result} /> : null}
 
-            <View className="mt-5 flex-row flex-wrap justify-end gap-3">
+            <View className={`${isPhone ? 'mt-5 gap-3' : 'mt-5 flex-row flex-wrap justify-end gap-3'}`}>
               <Pressable
                 onPress={resetAndClose}
                 disabled={importing}

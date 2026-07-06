@@ -134,6 +134,7 @@ export default function TeacherQuestionReportScreen() {
 
   const isDesktop = width >= 1080
   const isWide = width >= 900
+  const isPhone = width < 640
   const questionId = Number(Array.isArray(id) ? id[0] : id)
 
   const fetchReport = useCallback(async () => {
@@ -451,7 +452,7 @@ export default function TeacherQuestionReportScreen() {
                       {classroom?.name ? <Badge label={classroom.name} color="#43D991" /> : null}
                       {topic?.title ? <Badge label={topic.title} color="#F6A64A" /> : null}
                     </View>
-                    <Text className="text-[26px] font-black leading-8 text-white">{question.text}</Text>
+                    <Text className={`${isPhone ? 'text-[22px] leading-7' : 'text-[26px] leading-8'} font-black text-white`}>{question.text}</Text>
                     {question.explanation ? (
                       <Text className="mt-3 text-[13px] leading-5 text-[#AFC2DB]">
                         Explicación: {question.explanation}
@@ -459,11 +460,11 @@ export default function TeacherQuestionReportScreen() {
                     ) : null}
                   </View>
 
-                  <View className="flex-row flex-wrap gap-2">
+                  <View className={`${isPhone ? 'gap-2' : 'flex-row flex-wrap gap-2'}`}>
                     <Pressable
                       onPress={handleCreateReviewQuestion}
                       disabled={creatingReview || duplicating}
-                      className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
+                      className={`${isPhone ? 'justify-center py-4' : 'px-4 py-3'} flex-row items-center gap-2 rounded-xl bg-[#5A46D8]`}
                       style={({ pressed }) => ({ opacity: creatingReview || duplicating ? 0.62 : pressed ? 0.82 : 1 })}
                     >
                       <Ionicons name="sparkles-outline" size={16} color="#FFFFFF" />
@@ -472,7 +473,7 @@ export default function TeacherQuestionReportScreen() {
                     <Pressable
                       onPress={handleDuplicateQuestion}
                       disabled={creatingReview || duplicating}
-                      className="flex-row items-center gap-2 rounded-xl border border-[#4F46E5] bg-[#312E8126] px-4 py-3"
+                      className={`${isPhone ? 'justify-center py-4' : 'px-4 py-3'} flex-row items-center gap-2 rounded-xl border border-[#4F46E5] bg-[#312E8126]`}
                       style={({ pressed }) => ({ opacity: creatingReview || duplicating ? 0.62 : pressed ? 0.82 : 1 })}
                     >
                       <Ionicons name="copy-outline" size={16} color="#C4B5FD" />
@@ -480,7 +481,7 @@ export default function TeacherQuestionReportScreen() {
                     </Pressable>
                     <Pressable
                       onPress={() => router.push(`/(teacher)/subject/edit-question?subjectId=${question.subject_id}&questionId=${question.id}` as any)}
-                      className="flex-row items-center gap-2 rounded-xl bg-[#7C5CFF] px-4 py-3"
+                      className={`${isPhone ? 'justify-center py-4' : 'px-4 py-3'} flex-row items-center gap-2 rounded-xl bg-[#7C5CFF]`}
                       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
                     >
                       <Ionicons name="create-outline" size={16} color="#FFFFFF" />
@@ -488,7 +489,7 @@ export default function TeacherQuestionReportScreen() {
                     </Pressable>
                     <Pressable
                       onPress={() => router.push(`/(teacher)/subject/${question.subject_id}` as any)}
-                      className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3"
+                      className={`${isPhone ? 'justify-center py-4' : 'px-4 py-3'} flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E]`}
                       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
                     >
                       <Ionicons name="book-outline" size={16} color="#DDE7F4" />
@@ -502,7 +503,11 @@ export default function TeacherQuestionReportScreen() {
                 <View className="gap-4">
                   <View>
                     <Text className="mb-2 text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Clase</Text>
-                    <View className="flex-row flex-wrap gap-2">
+                    <ScrollView
+                      horizontal={isPhone}
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 8, flexWrap: isPhone ? 'nowrap' : 'wrap', paddingRight: isPhone ? 8 : 0 }}
+                    >
                       <FilterChip
                         icon="albums-outline"
                         label="Todas las clases"
@@ -518,13 +523,17 @@ export default function TeacherQuestionReportScreen() {
                           onPress={() => setSelectedClassroomId(classroomOption.id)}
                         />
                       ))}
-                    </View>
+                    </ScrollView>
                   </View>
 
                   <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
                     <View className="flex-1">
                       <Text className="mb-2 text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Fecha</Text>
-                      <View className="flex-row flex-wrap gap-2">
+                      <ScrollView
+                        horizontal={isPhone}
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: 8, flexWrap: isPhone ? 'nowrap' : 'wrap', paddingRight: isPhone ? 8 : 0 }}
+                      >
                         {attemptDateFilters.map((filter) => (
                           <FilterChip
                             key={filter.value}
@@ -534,12 +543,16 @@ export default function TeacherQuestionReportScreen() {
                             onPress={() => setSelectedDateFilter(filter.value)}
                           />
                         ))}
-                      </View>
+                      </ScrollView>
                     </View>
 
                     <View className="flex-1">
                       <Text className="mb-2 text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Resultado</Text>
-                      <View className="flex-row flex-wrap gap-2">
+                      <ScrollView
+                        horizontal={isPhone}
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: 8, flexWrap: isPhone ? 'nowrap' : 'wrap', paddingRight: isPhone ? 8 : 0 }}
+                      >
                         {attemptStatusFilters.map((filter) => (
                           <FilterChip
                             key={filter.value}
@@ -549,7 +562,7 @@ export default function TeacherQuestionReportScreen() {
                             onPress={() => setSelectedStatusFilter(filter.value)}
                           />
                         ))}
-                      </View>
+                      </ScrollView>
                     </View>
                   </View>
                 </View>
@@ -667,10 +680,13 @@ function FilterChip({
   active: boolean
   onPress: () => void
 }) {
+  const { width } = useWindowDimensions()
+  const isPhone = width < 640
+
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-2 rounded-xl border px-3 py-2"
+      className={`${isPhone ? 'min-h-[44px] px-4 py-3' : 'px-3 py-2'} flex-row items-center gap-2 rounded-xl border`}
       style={({ pressed }) => ({
         opacity: pressed ? 0.82 : 1,
         borderColor: active ? '#8B5CF6' : '#20375E',

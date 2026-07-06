@@ -224,7 +224,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const isLargeDesktop = width >= 1280
   const isMediumSettings = width >= 760
   const settingsMenuVariant: SettingsMenuVariant = isLargeDesktop ? 'side' : isMediumSettings ? 'tabs' : 'chips'
-  const settingsHorizontalPadding = isDesktop ? 28 : 14
+  const settingsHorizontalPadding = isDesktop ? 28 : 16
   const passwordChecks = useMemo(() => {
     const hasCurrentPassword = currentPassword.length > 0
     const hasMinimumLength = newPassword.length >= 6
@@ -1113,7 +1113,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
                 <View className="flex-row items-center gap-3">
                   <Ionicons name={securityOnly ? 'lock-closed' : 'settings'} size={40} color="#9FD6FF" />
-                  <Text className="text-[40px] font-black text-white">
+                  <Text className={`${isDesktop ? 'text-[40px]' : 'text-[32px]'} flex-shrink font-black text-white`} numberOfLines={1}>
                     {securityOnly ? 'Seguridad' : 'Configuración'}
                   </Text>
                 </View>
@@ -1165,7 +1165,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
             <ScrollView
               ref={scrollRef}
               className="flex-1"
-              contentContainerStyle={{ paddingBottom: 96 }}
+              contentContainerStyle={{ paddingBottom: isDesktop || isTeacher ? 96 : 124 }}
               showsVerticalScrollIndicator={false}
             >
               <View className="gap-5">
@@ -2021,11 +2021,13 @@ function DestructiveConfirmModal({
 }) {
   const details = getDestructiveActionDetails(action, isTeacher)
   const canConfirm = value.trim() === REQUIRED_DESTRUCTIVE_CONFIRMATION && !busy
+  const { width } = useWindowDimensions()
+  const isPhone = width < 640
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View className="flex-1 items-center justify-center bg-black/70 px-5">
-        <View className="w-full max-w-[430px] rounded-2xl border border-[#4A1E2B] bg-[#07162D] p-5">
+      <View className={`flex-1 bg-black/70 ${isPhone ? 'justify-end' : 'items-center justify-center px-5'}`}>
+        <View className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[430px] rounded-2xl p-5'} border border-[#4A1E2B] bg-[#07162D]`}>
           <View className="flex-row items-center gap-3">
             <View className="h-10 w-10 items-center justify-center rounded-full bg-[#2A0B18]">
               <Ionicons name="warning-outline" size={20} color="#FB7185" />
@@ -2048,11 +2050,11 @@ function DestructiveConfirmModal({
             className="mt-2 rounded-lg border border-[#4A1E2B] bg-[#0D1D3B] px-4 py-3 text-[13px] font-bold text-white"
           />
 
-          <View className="mt-5 flex-row justify-end gap-3">
+          <View className={`mt-5 gap-3 ${isPhone ? '' : 'flex-row justify-end'}`}>
             <Pressable
               onPress={onCancel}
               disabled={busy}
-              className="rounded-lg border border-[#263E61] px-4 py-3"
+              className={`${isPhone ? 'items-center py-4' : 'px-4 py-3'} rounded-lg border border-[#263E61]`}
               style={({ pressed }) => ({ opacity: busy ? 0.55 : pressed ? 0.8 : 1 })}
             >
               <Text className="text-[12px] font-bold text-[#DDE7F4]">Cancelar</Text>
@@ -2060,7 +2062,7 @@ function DestructiveConfirmModal({
             <Pressable
               onPress={onConfirm}
               disabled={!canConfirm}
-              className="rounded-lg bg-[#BE123C] px-4 py-3"
+              className={`${isPhone ? 'items-center py-4' : 'px-4 py-3'} rounded-lg bg-[#BE123C]`}
               style={({ pressed }) => ({ opacity: !canConfirm ? 0.45 : pressed ? 0.82 : 1 })}
             >
               {busy ? (
@@ -2157,7 +2159,7 @@ function SettingsMenu({
       <Pressable
         key={section.key}
         onPress={() => onSectionPress(section)}
-        className={`flex-row items-center gap-2 border ${isChip ? 'rounded-full px-4 py-2' : 'rounded-xl px-4 py-3'
+        className={`flex-row items-center gap-2 border ${isChip ? 'min-h-[44px] rounded-full px-4 py-3' : 'rounded-xl px-4 py-3'
           }`}
         style={({ pressed }) => ({
           opacity: pressed ? 0.82 : 1,

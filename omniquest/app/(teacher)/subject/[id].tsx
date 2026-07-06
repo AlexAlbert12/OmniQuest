@@ -454,7 +454,7 @@ export default function SubjectDetailScreen() {
 
               {studentListRows.length > 0 ? (
                 studentListRows.map((student, index) => (
-                  <StudentClassRow key={student.id} student={student} index={index} />
+                  <StudentClassRow key={student.id} student={student} index={index} mobile={!isWide} />
                 ))
               ) : (
                 <View className="items-center justify-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
@@ -1517,7 +1517,7 @@ export default function SubjectDetailScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 14,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: 36,
+            paddingBottom: isDesktop ? 36 : 56,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
@@ -1550,12 +1550,12 @@ export default function SubjectDetailScreen() {
           </View>
 
           <View className="mb-6 flex-row flex-wrap items-center gap-4">
-            <View className="h-20 w-20 items-center justify-center rounded-2xl border border-[#6D5AF6] bg-[#2A1C61]">
-              <Ionicons name={iconForSubject(currentSubject.icon)} size={42} color="#D8B4FE" />
+            <View className={`${isDesktop ? 'h-20 w-20' : 'h-16 w-16'} items-center justify-center rounded-2xl border border-[#6D5AF6] bg-[#2A1C61]`}>
+              <Ionicons name={iconForSubject(currentSubject.icon)} size={isDesktop ? 42 : 34} color="#D8B4FE" />
             </View>
             <View className="min-w-[230px] flex-1">
               <View className="flex-row items-center gap-2">
-                <Text className="text-[26px] font-black text-white">{currentSubject.name}</Text>
+                <Text className={`${isDesktop ? 'text-[26px]' : 'text-[24px]'} min-w-0 flex-1 font-black text-white`} numberOfLines={2}>{currentSubject.name}</Text>
                 <Ionicons name="pencil-outline" size={16} color="#8FA7C7" />
               </View>
               <Text className="mt-1 text-[13px] font-semibold text-[#B7C4D7]">
@@ -1569,7 +1569,11 @@ export default function SubjectDetailScreen() {
           </View>
 
           <Panel title="Clases del curso">
-            <View className="flex-row flex-wrap gap-3">
+            <ScrollView
+              horizontal={!isWide}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, flexWrap: isWide ? 'wrap' : 'nowrap', paddingRight: isWide ? 0 : 8 }}
+            >
               {classrooms.map((classroom) => {
                 const active = classroom.id === selectedClassroomId;
                 return (
@@ -1593,7 +1597,7 @@ export default function SubjectDetailScreen() {
                   </Pressable>
                 );
               })}
-            </View>
+            </ScrollView>
 
             <View className="mt-4 flex-row flex-wrap items-end gap-3 border-t border-[#13284A] pt-4">
               <View className="min-w-[240px] flex-1">
@@ -1627,7 +1631,12 @@ export default function SubjectDetailScreen() {
           </View>
 
           <Panel title={`Temas de ${selectedClassroom?.name || 'la clase activa'}`}>
-            <View className="mb-4 flex-row flex-wrap gap-3">
+            <ScrollView
+              horizontal={!isWide}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, flexWrap: isWide ? 'wrap' : 'nowrap', paddingRight: isWide ? 0 : 8 }}
+              className="mb-4"
+            >
               <TopicFilterChip
                 label="Todos"
                 icon="albums-outline"
@@ -1643,7 +1652,7 @@ export default function SubjectDetailScreen() {
                   onPress={() => setSelectedTopicId(topic.id)}
                 />
               ))}
-            </View>
+            </ScrollView>
 
             <View style={{ gap: 12 }}>
               {topicRows.length === 0 ? (
@@ -1736,8 +1745,13 @@ export default function SubjectDetailScreen() {
             </View>
           </Panel>
 
-          <View className="mb-5 flex-row flex-wrap rounded-xl border border-[#183052] bg-[#07162D] p-2">
-            {tabItems.map((tab) => {
+          <View className="mb-5 rounded-xl border border-[#183052] bg-[#07162D] p-2">
+            <ScrollView
+              horizontal={!isWide}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, flexWrap: isWide ? 'wrap' : 'nowrap', paddingRight: isWide ? 0 : 8 }}
+            >
+              {tabItems.map((tab) => {
               const isActive = activeTab === tab.key;
 
               return (
@@ -1748,7 +1762,8 @@ export default function SubjectDetailScreen() {
                   </View>
                 </Pressable>
               );
-            })}
+              })}
+            </ScrollView>
           </View>
 
           {renderTabContent(currentSubject)}
@@ -2066,10 +2081,40 @@ function StudentTableHeader({ label, flex }: { label: string; flex: number }) {
   );
 }
 
-function StudentClassRow({ student, index }: { student: StudentReport; index: number }) {
+function StudentClassRow({ student, index, mobile = false }: { student: StudentReport; index: number; mobile?: boolean }) {
   const status = getStudentStatus(student);
   const statusMeta = getStudentStatusMeta(status);
   const gradeColor = getGradeColor(student.grade);
+
+  if (mobile) {
+    return (
+      <View className="rounded-2xl border border-[#183052] bg-[#09162C] p-4">
+        <View className="flex-row items-start gap-3">
+          <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? '#F59E0B' : '#1E3356' }}>
+            <Text className="text-[12px] font-black text-white">{index + 1}</Text>
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className="font-black text-white" numberOfLines={1}>{student.name}</Text>
+            <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>@{slugifyStudentName(student.name)} · {formatRelative(student.lastActivity, index)}</Text>
+          </View>
+          <View className="rounded-full px-3 py-1" style={{ backgroundColor: `${statusMeta.color}24` }}>
+            <Text className="text-[11px] font-black" style={{ color: statusMeta.color }}>{statusMeta.label}</Text>
+          </View>
+        </View>
+
+        <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#13294C]">
+          <View className="h-full rounded-full bg-[#7C5CFF]" style={{ width: `${student.participation}%` }} />
+        </View>
+
+        <View className="mt-4 flex-row flex-wrap gap-2">
+          <StudentMobileStat label="Progreso" value={`${student.participation}%`} color="#7C5CFF" />
+          <StudentMobileStat label="XP" value={`${student.score.toLocaleString('es-ES')}`} color="#3B82F6" />
+          <StudentMobileStat label="Retos" value={String(student.playedSessions)} color="#A78BFA" />
+          <StudentMobileStat label="Nota" value={student.hasActivity ? student.grade.toFixed(1) : '-'} color={gradeColor} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-row flex-wrap items-center gap-y-3 border-b border-[#13284A] px-2 py-4">
@@ -2111,6 +2156,16 @@ function StudentClassRow({ student, index }: { student: StudentReport; index: nu
       <Text className="min-w-[110px] flex-[0.9] text-[12px] text-[#B7C4D7]">
         {formatRelative(student.lastActivity, index)}
       </Text>
+    </View>
+  );
+}
+
+
+function StudentMobileStat({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <View className="min-w-[92px] flex-1 rounded-xl border border-[#20375E] bg-[#07162D] p-3">
+      <Text className="text-[11px] font-semibold text-[#8FA7C7]">{label}</Text>
+      <Text className="mt-1 text-[15px] font-black" style={{ color }} numberOfLines={1}>{value}</Text>
     </View>
   );
 }
@@ -2294,8 +2349,16 @@ function DifficultyFilterBar({
   selected: DifficultyLevel | 'all'
   onChange: (value: DifficultyLevel | 'all') => void
 }) {
+  const { width } = useWindowDimensions();
+  const isPhone = width < 640;
+
   return (
-    <View className="mb-4 flex-row flex-wrap gap-2">
+    <ScrollView
+      horizontal={isPhone}
+      showsHorizontalScrollIndicator={false}
+      className="mb-4"
+      contentContainerStyle={{ gap: 8, flexWrap: isPhone ? 'nowrap' : 'wrap', paddingRight: isPhone ? 8 : 0 }}
+    >
       <Pressable
         onPress={() => onChange('all')}
         className="rounded-lg border px-3 py-2"
@@ -2319,7 +2382,7 @@ function DifficultyFilterBar({
           </Pressable>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 

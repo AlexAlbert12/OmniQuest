@@ -50,12 +50,6 @@ type ClassOption = {
   theme_color: string | null
 }
 
-type WeeklyAttemptRow = {
-  student_id: string | null
-  earned_points?: number | null
-  is_correct?: boolean | null
-}
-
 type RankingAttemptRow = {
   student_id: string | null
   earned_points?: number | null
@@ -85,6 +79,7 @@ export default function RankingScreen() {
   const { accentColor } = useAppTheme()
 
   const isDesktop = width >= 1024
+  const isPhone = width < 640
   const rankingRows = useMemo(() => profiles, [profiles])
   const selectedClass = classOptions.find((classOption) => classOption.id === selectedClassId) || null
 
@@ -308,8 +303,8 @@ export default function RankingScreen() {
                 <BrandLogo size={30} style={{ marginBottom: 12 }} />
               ) : null}
               <View className="flex-row items-center gap-3">
-                <Ionicons name="trophy" size={40} color="#9FD6FF" />
-                <Text className="text-[40px] font-black text-white">Ranking</Text>
+                <Ionicons name="trophy" size={isDesktop ? 40 : 34} color="#9FD6FF" />
+                <Text className={`${isDesktop ? 'text-[40px]' : 'text-[32px]'} flex-shrink font-black text-white`} numberOfLines={1}>Ranking</Text>
               </View>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">
                 Compite, aprende y sube posiciones 🚀
@@ -382,15 +377,17 @@ export default function RankingScreen() {
                   </View>
                 ) : null}
 
-                <View className="mb-4 flex-row items-center border-b border-[#172A4A] pb-3">
-                  <Text className="w-24 text-[12px] font-bold uppercase text-[#8FA7C7]">Posición</Text>
-                  <Text className="min-w-0 flex-1 text-[12px] font-bold uppercase text-[#8FA7C7]">
-                    Estudiante
-                  </Text>
-                  <Text className="w-24 text-right text-[12px] font-bold uppercase text-[#8FA7C7]">
-                    {selectedScope === 'class' ? 'XP Clase' : 'XP'}
-                  </Text>
-                </View>
+                {!isPhone ? (
+                  <View className="mb-4 flex-row items-center border-b border-[#172A4A] pb-3">
+                    <Text className="w-24 text-[12px] font-bold uppercase text-[#8FA7C7]">Posición</Text>
+                    <Text className="min-w-0 flex-1 text-[12px] font-bold uppercase text-[#8FA7C7]">
+                      Estudiante
+                    </Text>
+                    <Text className="w-24 text-right text-[12px] font-bold uppercase text-[#8FA7C7]">
+                      {selectedScope === 'class' ? 'XP Clase' : 'XP'}
+                    </Text>
+                  </View>
+                ) : null}
 
                 <View style={{ gap: 6 }}>
                   {selectedLeagueRows.length > 0 ? (
@@ -841,6 +838,8 @@ function RankingTabs({
   onSelect: (scope: RankingScope) => void
 }) {
   const { accentColor } = useAppTheme()
+  const { width } = useWindowDimensions()
+  const isPhone = width < 640
   const tabs: { label: string; icon: keyof typeof Ionicons.glyphMap; scope: RankingScope }[] = [
     { label: 'Esta semana', icon: 'calendar-outline', scope: 'weekly' },
     { label: 'Todo el tiempo', icon: 'globe-outline', scope: 'global' },
@@ -848,7 +847,11 @@ function RankingTabs({
   ] as const
 
   return (
-    <View className="flex-row flex-wrap gap-2">
+    <ScrollView
+      horizontal={isPhone}
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 8, flexWrap: isPhone ? 'nowrap' : 'wrap', paddingRight: isPhone ? 8 : 0 }}
+    >
       {tabs.map((tab) => {
         const active = activeScope === tab.scope
         return (
@@ -866,7 +869,7 @@ function RankingTabs({
           </Pressable>
         )
       })}
-    </View>
+    </ScrollView>
   )
 }
 
@@ -885,10 +888,44 @@ function RankingRow({
   const level = getStudentLevel(points)
   const medalColors = ['#FBBF24', '#CBD5E1', '#F97316']
   const { accentColor } = useAppTheme()
+  const { width } = useWindowDimensions()
+  const isPhone = width < 640
   const progressColor = index === 0 ? '#FBBF24' : isMe ? accentColor : '#3B82F6'
   const progress = points <= 0
     ? 0
     : Math.max(6, Math.round((points / maxPoints) * 100))
+
+  if (isPhone) {
+    return (
+      <View
+        className={`rounded-2xl px-4 py-4 ${isMe ? 'border' : 'border border-[#172A4A] bg-[#0A1A34]'}`}
+        style={isMe ? { borderColor: accentColor, backgroundColor: withAlpha(accentColor, '24') } : undefined}
+      >
+        <View className="flex-row items-center gap-3">
+          <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? medalColors[index] : '#1E3356' }}>
+            <Text className="font-black text-white">{index + 1}</Text>
+          </View>
+          <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#17315E]">
+            {item.avatar && item.avatar.startsWith('http') ? (
+              <Image source={{ uri: item.avatar }} className="h-full w-full" />
+            ) : (
+              <Ionicons name="person" size={20} color="#9FD6FF" />
+            )}
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className={`font-black ${isMe ? 'text-white' : 'text-[#DDE7F4]'}`} numberOfLines={1}>
+              {item.alias}{isMe ? ' (Tú)' : ''}
+            </Text>
+            <Text className="mt-1 text-[12px] text-[#AFC2DB]">Nivel {level}</Text>
+          </View>
+          <Text className="text-right text-[14px] font-black text-white">{points.toLocaleString()} XP</Text>
+        </View>
+        <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
+          {progress > 0 ? <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: progressColor }} /> : null}
+        </View>
+      </View>
+    )
+  }
 
   return (
     <View

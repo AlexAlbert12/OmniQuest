@@ -703,8 +703,8 @@ export default function TeacherStudentsScreen() {
                 <BrandLogo size={30} style={{ marginBottom: 12 }} />
               ) : null}
               <View className="flex-row items-center gap-3">
-                <Ionicons name="people" size={40} color="#9FD6FF" />
-                <Text className="text-[40px] font-black text-white">Estudiantes</Text>
+                <Ionicons name="people" size={isDesktop ? 40 : 34} color="#9FD6FF" />
+                <Text className={`${isDesktop ? 'text-[40px]' : 'text-[32px]'} flex-shrink font-black text-white`} numberOfLines={1}>Estudiantes</Text>
               </View>
               <Text className="mt-2 text-[13px] text-[#B7C4D7]">
                 Gestiona tus alumnos por curso, clase, actividad y necesidades de refuerzo.
@@ -720,9 +720,19 @@ export default function TeacherStudentsScreen() {
             </View>
           </View>
 
-          <View className="mb-4 flex-row flex-wrap items-center gap-3 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
-            <CycleSelectButton
-              label="Curso"
+          <View className="mb-4 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+            <ScrollView
+              horizontal={!isWide}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                gap: 12,
+                flexGrow: isWide ? 1 : undefined,
+                flexWrap: isWide ? 'wrap' : 'nowrap',
+                alignItems: 'center',
+              }}
+            >
+              <CycleSelectButton
+                label="Curso"
               value={selectedSubjectId}
               allLabel="Todos"
               options={subjects.map((subject) => ({ id: subject.id, label: subject.name }))}
@@ -760,17 +770,18 @@ export default function TeacherStudentsScreen() {
               />
               <Ionicons name="search-outline" size={20} color="#AFC2DB" />
             </View>
-            <Pressable
-              onPress={handleExportStudentsCsv}
-              disabled={visibleStudents.length === 0}
-              className="h-12 flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4"
-              style={({ pressed }) => ({
-                opacity: visibleStudents.length === 0 ? 0.55 : pressed ? 0.86 : 1,
-              })}
-            >
-              <Ionicons name="download-outline" size={16} color="#AFC2DB" />
-              <Text className="font-semibold text-[#DDE7F4]">Exportar</Text>
-            </Pressable>
+              <Pressable
+                onPress={handleExportStudentsCsv}
+                disabled={visibleStudents.length === 0}
+                className="h-12 flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4"
+                style={({ pressed }) => ({
+                  opacity: visibleStudents.length === 0 ? 0.55 : pressed ? 0.86 : 1,
+                })}
+              >
+                <Ionicons name="download-outline" size={16} color="#AFC2DB" />
+                <Text className="font-semibold text-[#DDE7F4]">Exportar</Text>
+              </Pressable>
+            </ScrollView>
           </View>
 
           <View className={isWide ? 'flex-row flex-wrap gap-4' : 'gap-4'}>
@@ -867,6 +878,7 @@ export default function TeacherStudentsScreen() {
         visible={Boolean(actionStudent)}
         onClose={() => setActionStudent(null)}
         onViewDetails={handleViewStudentDetails}
+        onViewHistory={handleViewHistory}
         onRemoveFromClass={requestRemoveFromClass}
         onResetProgress={requestResetProgress}
         onAssignActivity={(student) => {
@@ -899,6 +911,7 @@ function StudentActionsModal({
   visible,
   onClose,
   onViewDetails,
+  onViewHistory,
   onRemoveFromClass,
   onResetProgress,
   onAssignActivity,
@@ -907,17 +920,21 @@ function StudentActionsModal({
   visible: boolean
   onClose: () => void
   onViewDetails: (student: StudentRow) => void
+  onViewHistory: (student: StudentRow) => void
   onRemoveFromClass: (student: StudentRow) => void
   onResetProgress: (student: StudentRow) => void
   onAssignActivity: (student: StudentRow) => void
 }) {
+  const { width } = useWindowDimensions();
+  const isPhone = width < 640;
+
   if (!student) return null;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 justify-end p-4 md:items-center md:justify-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
+      <View className={`flex-1 ${isPhone ? 'justify-end' : 'justify-center p-4 md:items-center'}`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
         <Pressable className="absolute inset-0" onPress={onClose} />
-        <View className="w-full max-w-[420px] rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+        <View className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[420px] rounded-2xl p-5'} border border-[#1A3155] bg-[#09162C]`}>
           <View className="flex-row items-start justify-between gap-4">
             <View className="min-w-0 flex-1">
               <Text className="text-[13px] font-semibold text-[#9FD6FF]">Acciones del estudiante</Text>
@@ -935,6 +952,12 @@ function StudentActionsModal({
               title="Ver detalle"
               detail="Resumen, cursos, áreas a reforzar y últimos intentos"
               onPress={() => onViewDetails(student)}
+            />
+            <ModalActionButton
+              icon="time-outline"
+              title="Historial completo"
+              detail="Evolución, errores y acciones docentes"
+              onPress={() => onViewHistory(student)}
             />
             <ModalActionButton
               icon="add-circle-outline"
@@ -978,15 +1001,18 @@ function StudentDetailModal({
   onViewHistory: (student: StudentRow) => void
   onRemoveFromClass: (student: StudentRow) => void
 }) {
+  const { width } = useWindowDimensions();
+  const isPhone = width < 640;
+
   if (!student) return null;
 
   const status = getStatusMeta(student.status);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 justify-end p-4 md:items-center md:justify-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
+      <View className={`flex-1 ${isPhone ? 'justify-end' : 'justify-center p-4 md:items-center'}`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
         <Pressable className="absolute inset-0" onPress={onClose} />
-        <View className="max-h-[92%] w-full max-w-[620px] rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+        <View className={`${isPhone ? 'max-h-[94%] w-full rounded-t-3xl p-5' : 'max-h-[92%] w-full max-w-[620px] rounded-2xl p-5'} border border-[#1A3155] bg-[#09162C]`}>
           <View className="flex-row items-start justify-between gap-4">
             <View className="min-w-0 flex-1">
               <Text className="text-[13px] font-semibold text-[#9FD6FF]">Detalle del estudiante</Text>
@@ -1110,6 +1136,9 @@ function ConfirmModal({
   visible: boolean
   onClose: () => void
 }) {
+  const { width } = useWindowDimensions();
+  const isPhone = width < 640;
+
   if (!dialog) return null;
 
   const handleConfirm = () => {
@@ -1120,16 +1149,16 @@ function ConfirmModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 justify-end p-4 md:items-center md:justify-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
+      <View className={`flex-1 ${isPhone ? 'justify-end' : 'justify-center p-4 md:items-center'}`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
         <Pressable className="absolute inset-0" onPress={onClose} />
-        <View className="w-full max-w-[420px] rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+        <View className={`${isPhone ? 'w-full rounded-t-3xl p-5' : 'w-full max-w-[420px] rounded-2xl p-5'} border border-[#1A3155] bg-[#09162C]`}>
           <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: dialog.destructive ? '#EF444433' : '#8B5CF633' }}>
             <Ionicons name={dialog.destructive ? 'warning-outline' : 'information-circle-outline'} size={24} color={dialog.destructive ? '#FF8A8A' : '#B9A7FF'} />
           </View>
           <Text className="mt-4 text-[24px] font-black text-white">{dialog.title}</Text>
           <Text className="mt-2 text-[14px] leading-6 text-[#B7C4D7]">{dialog.message}</Text>
 
-          <View className="mt-6 flex-row gap-3">
+          <View className={`mt-6 gap-3 ${isPhone ? '' : 'flex-row'}`}>
             <Pressable onPress={onClose} className="flex-1 items-center justify-center rounded-xl border border-[#20375E] bg-[#111E3C] px-4 py-3">
               <Text className="font-bold text-[#DDE7F4]">Cancelar</Text>
             </Pressable>

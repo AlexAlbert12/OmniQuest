@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
-import { ActivityIndicator, Modal, Pressable, Text, View } from 'react-native'
+import { ActivityIndicator, Modal, Pressable, Text, useWindowDimensions, View } from 'react-native'
 
 type AppConfirmModalVariant = 'danger' | 'info' | 'warning'
 
@@ -33,12 +33,14 @@ export default function AppConfirmModal({
   visible,
 }: AppConfirmModalProps) {
   const style = variantStyles[variant]
+  const { width } = useWindowDimensions()
+  const isPhone = width < 640
 
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onCancel}>
-      <View className="flex-1 items-center justify-center bg-black/70 px-5">
+      <View className={`flex-1 bg-black/70 ${isPhone ? 'justify-end' : 'items-center justify-center px-5'}`}>
         <View
-          className="w-full max-w-[440px] rounded-3xl border bg-[#08172E] p-6"
+          className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[440px] rounded-3xl p-6'} border bg-[#08172E]`}
           style={{ borderColor: `${style.color}80` }}
         >
           <View className="flex-row items-start gap-4">
@@ -51,11 +53,11 @@ export default function AppConfirmModal({
             </View>
           </View>
 
-          <View className="mt-6 flex-row justify-end gap-3">
+          <View className={`mt-6 gap-3 ${isPhone ? '' : 'flex-row justify-end'}`}>
             <Pressable
               onPress={onCancel}
               disabled={busy}
-              className="rounded-xl border border-[#263E61] px-4 py-3"
+              className={`${isPhone ? 'items-center py-4' : 'px-4 py-3'} rounded-xl border border-[#263E61]`}
               style={({ pressed }) => ({ opacity: busy ? 0.55 : pressed ? 0.8 : 1 })}
             >
               <Text className="text-[13px] font-bold text-[#DDE7F4]">{cancelLabel}</Text>
@@ -63,7 +65,7 @@ export default function AppConfirmModal({
             <Pressable
               onPress={onConfirm}
               disabled={busy}
-              className="min-w-[132px] items-center rounded-xl px-4 py-3"
+              className={`${isPhone ? 'py-4' : 'min-w-[132px] px-4 py-3'} items-center rounded-xl`}
               style={({ pressed }) => ({
                 backgroundColor: style.color,
                 opacity: busy ? 0.7 : pressed ? 0.84 : 1,
