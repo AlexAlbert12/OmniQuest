@@ -1641,15 +1641,18 @@ function buildWeakAreas(
     mistakesByTopic.set(key, { ...previous, mistakes: previous.mistakes + 1 });
   });
 
-  const areasFromAttempts = Array.from(mistakesByTopic.values())
+  const areasFromAttempts: StudentWeakArea[] = Array.from(mistakesByTopic.values())
     .sort((a, b) => b.mistakes - a.mistakes)
     .slice(0, 4)
-    .map((area) => ({ ...area, accuracyPercent: null }));
+    .map((area): StudentWeakArea => ({
+      ...area,
+      accuracyPercent: null,
+    }));
 
   if (areasFromAttempts.length > 0) return areasFromAttempts;
 
-  return scores
-    .map((score) => {
+  const areasFromScores = scores
+    .map<StudentWeakArea | null>((score) => {
       const questionsCount = questionsCountBySubject.get(score.subject_id) || 0;
       const playedSessions = getPlayedSessions(score, questionsCount);
       const totalAnswers = questionsCount > 0 ? playedSessions * questionsCount : 0;
@@ -1666,11 +1669,13 @@ function buildWeakAreas(
         detail: 'Curso con errores acumulados',
         mistakes,
         accuracyPercent,
-      } satisfies StudentWeakArea;
+      };
     })
-    .filter((area): area is StudentWeakArea => Boolean(area))
+    .filter((area): area is StudentWeakArea => area !== null)
     .sort((a, b) => b.mistakes - a.mistakes)
     .slice(0, 4);
+
+  return areasFromScores;
 }
 
 function getAnswerTotals(scores: SubjectScore[], questionsCountBySubject: Map<number, number>) {
