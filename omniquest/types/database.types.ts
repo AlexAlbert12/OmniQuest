@@ -52,6 +52,44 @@ export type Database = {
           },
         ]
       }
+      teacher_audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: number
+          metadata: Json
+          target_id: string | null
+          target_table: string | null
+          teacher_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: number
+          metadata?: Json
+          target_id?: string | null
+          target_table?: string | null
+          teacher_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: number
+          metadata?: Json
+          target_id?: string | null
+          target_table?: string | null
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_audit_logs_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       answers: {
         Row: {
           id: number
@@ -1028,6 +1066,19 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_class_ranking_profiles: {
+        Args: {
+          p_classroom_id: number
+          p_limit?: number
+        }
+        Returns: {
+          id: string
+          alias: string
+          avatar: string | null
+          points: number
+          visibility: string
+        }[]
+      }
       get_game_questions: {
         Args: {
           p_subject_id: number
@@ -1037,6 +1088,18 @@ export type Database = {
           p_difficulty?: number | null
         }
         Returns: Json
+      }
+      get_ranking_profiles: {
+        Args: {
+          p_limit?: number
+        }
+        Returns: {
+          id: string
+          alias: string
+          avatar: string | null
+          points: number
+          visibility: string
+        }[]
       }
       join_subject_by_code: {
         Args: {

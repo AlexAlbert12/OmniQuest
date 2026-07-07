@@ -37,6 +37,7 @@ type Profile = {
   avatar: string | null
   points: number | null
   role_id?: string | null
+  visibility?: string | null
 }
 
 type ActivityItem = {
@@ -55,6 +56,15 @@ type HomeHeroAction = {
   buttonLabel: string
   icon: keyof typeof Ionicons.glyphMap
   href: unknown
+}
+
+type OnboardingStep = {
+  title: string
+  description: string
+  icon: keyof typeof Ionicons.glyphMap
+  done: boolean
+  actionLabel: string
+  onPress: () => void
 }
 
 type SubjectProgressRow = {
@@ -168,6 +178,44 @@ export default function StudentHome() {
     () => getSubjectProgressRows(enrolledSubjects, progressSummary?.subjects ?? []),
     [enrolledSubjects, progressSummary?.subjects]
   )
+  const hasCourses = enrolledSubjects.length > 0
+  const hasPlayedFirstQuestion = attemptCount > 0
+  const showGuidedOnboarding = !hasCourses || !hasPlayedFirstQuestion
+  const onboardingSteps = useMemo<OnboardingStep[]>(() => {
+    const firstSubject = subjectProgressRows[0]?.subject || enrolledSubjects[0]
+    return [
+      {
+        title: 'Únete a un curso',
+        description: hasCourses ? 'Ya tienes un curso activo para empezar.' : 'Introduce el código que te ha dado tu profesor.',
+        icon: 'key-outline',
+        done: hasCourses,
+        actionLabel: hasCourses ? 'Completado' : 'Unirme',
+        onPress: () => router.push('/(student)/classes' as any),
+      },
+      {
+        title: 'Haz tu primera pregunta',
+        description: hasPlayedFirstQuestion ? 'Ya hay actividad guardada en tu historial.' : 'Elige un tema y responde tu primera pregunta.',
+        icon: 'play-circle-outline',
+        done: hasPlayedFirstQuestion,
+        actionLabel: hasPlayedFirstQuestion ? 'Completado' : 'Empezar',
+        onPress: () => {
+          if (firstSubject) {
+            router.push(buildClassHref(firstSubject) as any)
+            return
+          }
+          router.push('/(student)/classes' as any)
+        },
+      },
+      {
+        title: 'Revisa tu progreso',
+        description: hasPlayedFirstQuestion ? 'Mira fallos, precisión y XP para saber qué repasar.' : 'Después de jugar verás tus métricas aquí.',
+        icon: 'bar-chart-outline',
+        done: hasPlayedFirstQuestion,
+        actionLabel: 'Ver progreso',
+        onPress: () => router.push('/(student)/progress' as any),
+      },
+    ]
+  }, [enrolledSubjects, hasCourses, hasPlayedFirstQuestion, router, subjectProgressRows])
 
   const displayedRanking = useMemo(() => {
     if (ranking.length > 0) return ranking.slice(0, 5)
@@ -207,12 +255,7 @@ export default function StudentHome() {
           .select('classroom_id, joined_at, subjects(*), classrooms(id, name, code)')
           .eq('student_id', userId)
           .order('joined_at', { ascending: false }),
-        supabase
-          .from('profiles')
-          .select('id, alias, avatar, points')
-          .eq('role_id', 'student')
-          .order('points', { ascending: false })
-          .limit(5),
+        supabase.rpc('get_ranking_profiles', { p_limit: 5 }),
         supabase
           .from('attempt_history')
           .select(`
@@ -391,6 +434,10 @@ export default function StudentHome() {
             </View>
           </View>
 
+          {showGuidedOnboarding ? (
+            <StudentMobileOnboardingCard steps={onboardingSteps} className="mb-5" />
+          ) : null}
+
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
             <HeroCard isWide={isWide} action={heroAction} />
 
@@ -520,6 +567,82 @@ export default function StudentHome() {
   )
 }
 
+
+function StudentMobileOnboardingCard({
+  steps,
+  className = '',
+}: {
+  steps: OnboardingStep[]
+  className?: string
+}) {
+  const completed = steps.filter((step) => step.done).length
+  const progressPercent = Math.round((completed / Math.max(steps.length, 1)) * 100)
+
+  return (
+    <View className={`overflow-hidden rounded-2xl border border-[#2B3F7A] bg-[#101D4A] p-4 ${className}`}>
+      <View className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#7C5CFF]/20" />
+      <View className="absolute -bottom-10 left-8 h-24 w-24 rounded-full bg-[#58B5FF]/10" />
+      <View className="relative">
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="min-w-0 flex-1">
+            <Text className="text-[12px] font-black uppercase tracking-[0.08em] text-[#9FD6FF]">
+              Primeros pasos
+            </Text>
+            <Text className="mt-2 text-[20px] font-black text-white">Empieza con OmniQuest</Text>
+            <Text className="mt-1 text-[13px] leading-5 text-[#D8E3F3]">
+              Sigue esta guía para entrar a un curso, jugar y ver tu progreso.
+            </Text>
+          </View>
+          <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#192D68]">
+            <Ionicons name="compass-outline" size={25} color="#9FD6FF" />
+          </View>
+        </View>
+
+        <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#13294C]">
+          <View className="h-full rounded-full bg-[#7C5CFF]" style={{ width: `${progressPercent}%` }} />
+        </View>
+        <Text className="mt-2 text-[12px] font-bold text-[#AFC2DB]">
+          {completed} de {steps.length} pasos completados
+        </Text>
+
+        <View className="mt-4 gap-3">
+          {steps.map((step, index) => (
+            <View key={step.title} className="rounded-xl border border-[#1A3155] bg-[#0D1D3B] p-3">
+              <View className="flex-row items-center gap-3">
+                <View
+                  className="h-10 w-10 items-center justify-center rounded-xl"
+                  style={{ backgroundColor: step.done ? '#123D35' : '#142A51' }}
+                >
+                  <Ionicons
+                    name={step.done ? 'checkmark-circle' : step.icon}
+                    size={21}
+                    color={step.done ? '#43D991' : '#9FD6FF'}
+                  />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="text-[13px] font-black text-white">
+                    {index + 1}. {step.title}
+                  </Text>
+                  <Text className="mt-1 text-[12px] leading-5 text-[#AFC2DB]">{step.description}</Text>
+                </View>
+                <Pressable
+                  onPress={step.onPress}
+                  className="rounded-xl px-3 py-2"
+                  style={({ pressed }) => ({
+                    backgroundColor: step.done ? '#102846' : '#5A46D8',
+                    opacity: pressed ? 0.82 : 1,
+                  })}
+                >
+                  <Text className="text-[12px] font-black text-white">{step.actionLabel}</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  )
+}
 
 function WeeklyGoalCard({
   count,

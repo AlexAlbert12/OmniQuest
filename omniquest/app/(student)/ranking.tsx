@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -26,6 +26,7 @@ type Profile = {
   avatar: string | null
   points: number | null
   role_id?: string | null
+  visibility?: string | null
 }
 
 type RankingLeague = {
@@ -215,55 +216,6 @@ export default function RankingScreen() {
     }, [fetchRanking])
   )
 
-  useEffect(() => {
-    let isMounted = true
-    let subscription: any = null
-
-    const setupSubscription = async () => {
-      try {
-        subscription = supabase
-          .channel('public:profiles')
-          .on(
-            'postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'profiles' },
-            (payload) => {
-              if (!isMounted) return
-
-              setProfiles((currentProfiles) => {
-                const updated = currentProfiles.map((profile) =>
-                  profile.id === payload.new.id
-                    ? {
-                      ...profile,
-                      alias: payload.new.alias ?? profile.alias,
-                      avatar: payload.new.avatar ?? profile.avatar,
-                      points: selectedScope === 'global' ? payload.new.points : profile.points,
-                    }
-                    : profile
-                )
-                return updated.sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
-              })
-
-              if (payload.new.id === currentUserId) {
-                setCurrentProfile((profile) => (profile ? { ...profile, ...payload.new } : profile))
-              }
-            }
-          )
-          .subscribe()
-      } catch (error) {
-        console.error('Error setting up Realtime subscription:', error)
-      }
-    }
-
-    setupSubscription()
-
-    return () => {
-      isMounted = false
-      if (subscription) {
-        supabase.removeChannel(subscription)
-      }
-    }
-  }, [currentUserId, selectedScope])
-
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
@@ -444,12 +396,9 @@ export default function RankingScreen() {
 }
 
 async function fetchGlobalRanking() {
-  const { data: profilesData, error: profilesError } = await supabase
-    .from('profiles')
-    .select('id, alias, points, avatar')
-    .eq('role_id', 'student')
-    .order('points', { ascending: false, nullsFirst: false })
-    .limit(500)
+  const { data: profilesData, error: profilesError } = await supabase.rpc('get_ranking_profiles', {
+    p_limit: 50,
+  })
 
   if (profilesError) throw profilesError
 
@@ -461,12 +410,9 @@ async function fetchGlobalRanking() {
 }
 
 async function fetchWeeklyRanking(): Promise<Profile[]> {
-  const { data: profilesData, error: profilesError } = await supabase
-    .from('profiles')
-    .select('id, alias, points, avatar')
-    .eq('role_id', 'student')
-    .order('points', { ascending: false, nullsFirst: false })
-    .limit(500)
+  const { data: profilesData, error: profilesError } = await supabase.rpc('get_ranking_profiles', {
+    p_limit: 500,
+  })
 
   if (profilesError) throw profilesError
 
@@ -603,54 +549,14 @@ async function fetchEnrolledClassOptions(userId: string): Promise<ClassOption[]>
 }
 
 async function fetchClassRanking(classroomId: number): Promise<Profile[]> {
-  const { data: classEnrollments, error: classEnrollmentsError } = await supabase
-    .from('enrollments')
-    .select('student_id')
-    .eq('classroom_id', classroomId)
+  const { data, error } = await supabase.rpc('get_class_ranking_profiles', {
+    p_classroom_id: classroomId,
+    p_limit: 50,
+  })
 
-  if (classEnrollmentsError) throw classEnrollmentsError
+  if (error) throw error
 
-  const studentIds = Array.from(
-    new Set(
-      (classEnrollments || [])
-        .map((enrollment: { student_id: string | null }) => enrollment.student_id)
-        .filter((value): value is string => Boolean(value))
-    )
-  )
-
-  if (studentIds.length === 0) {
-    return []
-  }
-
-  const [profilesResult, scoresResult] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id, alias, points, avatar')
-      .eq('role_id', 'student')
-      .in('id', studentIds)
-      .limit(50),
-    supabase
-      .from('subject_scores')
-      .select('student_id, max_score')
-      .eq('classroom_id', classroomId)
-      .in('student_id', studentIds),
-  ])
-
-  if (profilesResult.error) throw profilesResult.error
-  if (scoresResult.error) throw scoresResult.error
-
-  const scoresByStudent = new Map<string, number>()
-    ; (scoresResult.data || []).forEach((score: { student_id: string | null; max_score: number | null }) => {
-      if (!score.student_id) return
-      scoresByStudent.set(score.student_id, Math.max(scoresByStudent.get(score.student_id) ?? 0, score.max_score ?? 0))
-    })
-
-  return ((profilesResult.data || []) as Profile[])
-    .map((profile) => ({
-      ...profile,
-      points: scoresByStudent.get(profile.id) ?? 0,
-    }))
-    .sort((left, right) => (right.points ?? 0) - (left.points ?? 0))
+  return ((data || []) as Profile[]).sort((left, right) => (right.points ?? 0) - (left.points ?? 0))
 }
 
 

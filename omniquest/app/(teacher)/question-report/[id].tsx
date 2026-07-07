@@ -78,6 +78,25 @@ type AnswerDistributionItem = {
   percent: number
 }
 
+type ClassroomPerformanceRow = {
+  key: string
+  classroomName: string
+  attempts: number
+  correct: number
+  failed: number
+  failureRate: number
+  affectedStudents: number
+}
+
+type TemporalPerformanceRow = {
+  key: string
+  label: string
+  attempts: number
+  correct: number
+  failed: number
+  failureRate: number
+}
+
 type ClassroomOption = {
   id: number
   name: string | null
@@ -296,6 +315,8 @@ export default function TeacherQuestionReportScreen() {
   const stats = useMemo(() => buildReportStats(filteredAttempts), [filteredAttempts])
   const answerDistribution = useMemo(() => buildAnswerDistribution(filteredAttempts, answers), [answers, filteredAttempts])
   const mostFailedStudents = useMemo(() => buildAffectedStudentRows(filteredAttempts), [filteredAttempts])
+  const classroomPerformance = useMemo(() => buildClassroomPerformanceRows(filteredAttempts), [filteredAttempts])
+  const temporalPerformance = useMemo(() => buildTemporalPerformanceRows(filteredAttempts), [filteredAttempts])
   const affectedStudents = useMemo(
     () => Array.from(
       new Set(
@@ -576,6 +597,23 @@ export default function TeacherQuestionReportScreen() {
               </View>
 
               <View className={isWide ? 'mt-5 flex-row items-start gap-5' : 'mt-5 gap-5'}>
+                <Panel title="Rendimiento por clase" action={`${classroomPerformance.length} clases`} className={isWide ? 'flex-1' : ''}>
+                  <View className="gap-3">
+                    {classroomPerformance.map((item) => (
+                      <ClassroomPerformanceRowItem key={item.key} item={item} />
+                    ))}
+                    {classroomPerformance.length === 0 ? (
+                      <EmptyBox text="Aún no hay intentos suficientes para comparar clases." />
+                    ) : null}
+                  </View>
+                </Panel>
+
+                <Panel title="Evolución temporal" action="Últimos 7 días" className={isWide ? 'flex-1' : ''}>
+                  <TemporalPerformanceChart rows={temporalPerformance} />
+                </Panel>
+              </View>
+
+              <View className={isWide ? 'mt-5 flex-row items-start gap-5' : 'mt-5 gap-5'}>
                 <Panel title="Distribución de respuestas" action={`${answerDistribution.length} opciones`} className={isWide ? 'flex-1' : ''}>
                   <View className="gap-3">
                     {answerDistribution.length > 0 ? (
@@ -721,6 +759,71 @@ function AnswerDistributionRow({ item }: { item: AnswerDistributionItem }) {
   )
 }
 
+function ClassroomPerformanceRowItem({ item }: { item: ClassroomPerformanceRow }) {
+  const color = item.failureRate >= 60 ? '#FB7185' : item.failureRate >= 35 ? '#F6A64A' : '#43D991'
+
+  return (
+    <View className="rounded-xl border border-[#172A4A] bg-[#0D1D3B] p-3">
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="text-[13px] font-black text-white" numberOfLines={1}>
+            {item.classroomName}
+          </Text>
+          <Text className="mt-1 text-[12px] text-[#AFC2DB]">
+            {item.failed} fallos · {item.correct} aciertos · {item.affectedStudents} alumno{item.affectedStudents === 1 ? '' : 's'} afectado{item.affectedStudents === 1 ? '' : 's'}
+          </Text>
+        </View>
+        <Text className="text-[20px] font-black" style={{ color }}>
+          {item.failureRate}%
+        </Text>
+      </View>
+      <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
+        <View className="h-full rounded-full" style={{ width: `${item.failureRate}%`, backgroundColor: color }} />
+      </View>
+      <Text className="mt-2 text-[12px] text-[#AFC2DB]">
+        {item.attempts} intento{item.attempts === 1 ? '' : 's'} registrados
+      </Text>
+    </View>
+  )
+}
+
+function TemporalPerformanceChart({ rows }: { rows: TemporalPerformanceRow[] }) {
+  const hasAttempts = rows.some((row) => row.attempts > 0)
+  const maxAttempts = Math.max(1, ...rows.map((row) => row.attempts))
+
+  if (!hasAttempts) {
+    return <EmptyBox text="Todavía no hay intentos recientes para dibujar la evolución." />
+  }
+
+  return (
+    <View className="gap-3">
+      {rows.map((row) => {
+        const color = row.failureRate >= 60 ? '#FB7185' : row.failureRate >= 35 ? '#F6A64A' : '#43D991'
+        const width = row.attempts > 0 ? Math.max(8, Math.round((row.attempts / maxAttempts) * 100)) : 0
+
+        return (
+          <View key={row.key} className="rounded-xl border border-[#172A4A] bg-[#0D1D3B] p-3">
+            <View className="mb-2 flex-row items-center justify-between gap-3">
+              <Text className="text-[12px] font-black uppercase text-[#DDE7F4]">{row.label}</Text>
+              <Text className="text-[12px] font-black" style={{ color }}>
+                {row.failureRate}% fallos
+              </Text>
+            </View>
+            <View className="h-2 overflow-hidden rounded-full bg-[#13294C]">
+              {width > 0 ? (
+                <View className="h-full rounded-full" style={{ width: `${width}%`, backgroundColor: color }} />
+              ) : null}
+            </View>
+            <Text className="mt-2 text-[12px] text-[#AFC2DB]">
+              {row.attempts} intento{row.attempts === 1 ? '' : 's'} · {row.failed} fallos · {row.correct} aciertos
+            </Text>
+          </View>
+        )
+      })}
+    </View>
+  )
+}
+
 function AttemptRowItem({ attempt }: { attempt: AttemptDetail }) {
   const color = attempt.is_correct ? '#43D991' : '#FB7185'
   return (
@@ -734,7 +837,7 @@ function AttemptRowItem({ attempt }: { attempt: AttemptDetail }) {
           <Text className="text-[11px] font-bold" style={{ color }}>{attempt.is_correct ? 'Correcta' : 'Incorrecta'}</Text>
         </View>
         <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={2}>{attempt.answerLabel}</Text>
-        <Text className="mt-1 text-[11px] text-[#60799C]">
+        <Text className="mt-1 text-[12px] text-[#AFC2DB]">
           {attempt.attempted_at ? getTimeAgo(attempt.attempted_at) : 'Sin fecha'} · {attempt.earned_points ?? 0} XP · {attempt.classroomName}
         </Text>
       </View>
@@ -810,6 +913,81 @@ function buildAnswerDistribution(attempts: AttemptDetail[], answers: AnswerRow[]
     .sort((left, right) => right.count - left.count)
 }
 
+function buildClassroomPerformanceRows(attempts: AttemptDetail[]): ClassroomPerformanceRow[] {
+  const rows = new Map<string, ClassroomPerformanceRow & { failedStudentIds: Set<string> }>()
+
+  attempts.forEach((attempt) => {
+    const key = typeof attempt.classroomId === 'number' ? String(attempt.classroomId) : 'unknown'
+    const current = rows.get(key) || {
+      key,
+      classroomName: attempt.classroomName || 'Clase sin identificar',
+      attempts: 0,
+      correct: 0,
+      failed: 0,
+      failureRate: 0,
+      affectedStudents: 0,
+      failedStudentIds: new Set<string>(),
+    }
+
+    current.attempts += 1
+    if (attempt.is_correct === true) current.correct += 1
+    if (attempt.is_correct === false) {
+      current.failed += 1
+      if (attempt.student_id) current.failedStudentIds.add(attempt.student_id)
+    }
+    rows.set(key, current)
+  })
+
+  return Array.from(rows.values())
+    .map((row) => ({
+      key: row.key,
+      classroomName: row.classroomName,
+      attempts: row.attempts,
+      correct: row.correct,
+      failed: row.failed,
+      failureRate: row.attempts > 0 ? Math.round((row.failed / row.attempts) * 100) : 0,
+      affectedStudents: row.failedStudentIds.size,
+    }))
+    .sort((left, right) => right.failureRate - left.failureRate || right.failed - left.failed || right.attempts - left.attempts)
+}
+
+function buildTemporalPerformanceRows(attempts: AttemptDetail[]): TemporalPerformanceRow[] {
+  const today = new Date()
+  const rows = new Map<string, TemporalPerformanceRow>()
+
+  for (let index = 6; index >= 0; index -= 1) {
+    const date = new Date(today)
+    date.setHours(0, 0, 0, 0)
+    date.setDate(today.getDate() - index)
+    const key = getDateKey(date)
+    rows.set(key, {
+      key,
+      label: formatShortDate(date),
+      attempts: 0,
+      correct: 0,
+      failed: 0,
+      failureRate: 0,
+    })
+  }
+
+  attempts.forEach((attempt) => {
+    if (!attempt.attempted_at) return
+    const date = new Date(attempt.attempted_at)
+    if (Number.isNaN(date.getTime())) return
+
+    const key = getDateKey(date)
+    const current = rows.get(key)
+    if (!current) return
+
+    current.attempts += 1
+    if (attempt.is_correct === true) current.correct += 1
+    if (attempt.is_correct === false) current.failed += 1
+    current.failureRate = current.attempts > 0 ? Math.round((current.failed / current.attempts) * 100) : 0
+  })
+
+  return Array.from(rows.values())
+}
+
 function buildAffectedStudentRows(attempts: AttemptDetail[]) {
   const rows = new Map<string, { studentId: string; alias: string; failures: number; attempts: number; lastAttemptAt: string | null }>()
 
@@ -835,6 +1013,17 @@ function buildAffectedStudentRows(attempts: AttemptDetail[]) {
   return Array.from(rows.values())
     .filter((item) => item.failures > 0)
     .sort((left, right) => right.failures - left.failures)
+}
+
+function getDateKey(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatShortDate(date: Date) {
+  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(date)
 }
 
 async function fetchProfilesById(studentIds: string[]) {

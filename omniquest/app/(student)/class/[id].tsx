@@ -173,13 +173,10 @@ export default function StudentClassDetailScreen() {
           .eq('questions.classroom_id', selectedEnrollmentClassroomId)
           .order('attempted_at', { ascending: false })
           .limit(30),
-        supabase
-          .from('subject_scores')
-          .select('student_id, max_score, profiles(alias, avatar)')
-          .eq('subject_id', subjectId)
-          .eq('classroom_id', selectedEnrollmentClassroomId)
-          .order('max_score', { ascending: false })
-          .limit(5),
+        supabase.rpc('get_class_ranking_profiles', {
+          p_classroom_id: selectedEnrollmentClassroomId,
+          p_limit: 5,
+        }),
       ])
 
       if (topicsResult.error) throw topicsResult.error
@@ -293,12 +290,11 @@ export default function StudentClassDetailScreen() {
       )
       setClassRanking(
         ((rankingResult.data || []) as any[]).map((row) => {
-          const profile = normalizeRelation(row.profiles)
           return {
-            studentId: row.student_id,
-            alias: profile?.alias || 'Alumno',
-            avatar: profile?.avatar ?? null,
-            points: row.max_score ?? 0,
+            studentId: row.id,
+            alias: row.alias || 'Alumno',
+            avatar: row.avatar ?? null,
+            points: row.points ?? 0,
           }
         })
       )
