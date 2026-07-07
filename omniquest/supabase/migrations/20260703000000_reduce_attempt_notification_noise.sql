@@ -87,6 +87,8 @@ begin
 end;
 $$;
 
+drop trigger if exists notify_question_failure_threshold_event on public.attempt_history;
+
 create trigger notify_question_failure_threshold_event
 after insert on public.attempt_history
 for each row execute function public.notify_question_failure_threshold_event();

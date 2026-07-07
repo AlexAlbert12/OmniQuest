@@ -752,30 +752,42 @@ function RankingTabs({
     { label: 'Clase', icon: 'school-outline', scope: 'class' },
   ] as const
 
+  const renderTab = (tab: (typeof tabs)[number]) => {
+    const active = activeScope === tab.scope
+
+    return (
+      <Pressable
+        key={tab.label}
+        onPress={() => onSelect(tab.scope)}
+        className="flex-row items-center justify-center gap-2 rounded-xl border px-4 py-3"
+        style={{
+          minWidth: isPhone ? 154 : 168,
+          borderColor: active ? accentColor : '#172A4A',
+          backgroundColor: active ? accentColor : '#09162C',
+        }}
+      >
+        <Ionicons name={tab.icon} size={18} color={active ? '#FFFFFF' : '#AFC2DB'} />
+        <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{tab.label}</Text>
+      </Pressable>
+    )
+  }
+
+  if (isPhone) {
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8, paddingRight: 8 }}
+      >
+        {tabs.map(renderTab)}
+      </ScrollView>
+    )
+  }
+
   return (
-    <ScrollView
-      horizontal={isPhone}
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 8, flexWrap: isPhone ? 'nowrap' : 'wrap', paddingRight: isPhone ? 8 : 0 }}
-    >
-      {tabs.map((tab) => {
-        const active = activeScope === tab.scope
-        return (
-          <Pressable
-            key={tab.label}
-            onPress={() => onSelect(tab.scope)}
-            className="min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border px-4 py-4"
-            style={{
-              borderColor: active ? accentColor : '#172A4A',
-              backgroundColor: active ? accentColor : '#09162C',
-            }}
-          >
-            <Ionicons name={tab.icon} size={18} color={active ? '#FFFFFF' : '#AFC2DB'} />
-            <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{tab.label}</Text>
-          </Pressable>
-        )
-      })}
-    </ScrollView>
+    <View className="flex-row flex-wrap gap-2">
+      {tabs.map(renderTab)}
+    </View>
   )
 }
 

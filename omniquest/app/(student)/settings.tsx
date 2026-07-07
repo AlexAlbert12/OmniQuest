@@ -778,7 +778,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
       const nextProfile = profileResult.data as UserProfile | null
       setProfile(nextProfile)
       setProfileVisibilityAvailable(profileFetch.hasVisibility)
-      setProfileVisibility(profileFetch.hasVisibility ? nextProfile?.visibility || 'private' : null)
+      setProfileVisibility(profileFetch.hasVisibility ? nextProfile?.visibility || 'public' : null)
       const detectedRole = forcedRole || (nextProfile?.role_id === 'teacher' ? 'teacher' : 'student')
       setRole(detectedRole)
       setName(nextProfile?.alias || (detectedRole === 'teacher' ? 'Profesor' : 'Alumno'))

@@ -176,13 +176,13 @@ Deno.serve(async (req) => {
               role_id: 'student',
               points: 0,
               active: true,
-              visibility: 'private',
+              visibility: 'public',
             })
           if (profileInsertError) throw profileInsertError
         } else if (profile.role_id !== 'student') {
           const { error: profileUpdateError } = await adminClient
             .from('profiles')
-            .update({ role_id: 'student' })
+            .update({ role_id: 'student', active: true, visibility: 'public' })
             .eq('id', studentId)
           if (profileUpdateError) throw profileUpdateError
         }

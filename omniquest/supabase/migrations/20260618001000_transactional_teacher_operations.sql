@@ -358,7 +358,6 @@ begin
   loop
     insert into public.questions (
       subject_id,
-      classroom_id = p_classroom_id,
       topic_id,
       type,
       text,
