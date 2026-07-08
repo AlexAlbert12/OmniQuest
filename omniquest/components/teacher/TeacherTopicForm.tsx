@@ -173,19 +173,19 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('subject_topics')
-        .update({
+      const { data, error } = await supabase.functions.invoke('teacher-update-topic', {
+        body: {
+          topicId: Number(normalizedTopicId),
           title: cleanTitle,
           description: cleanDescription || null,
           icon,
-          sort_order: parsedSortOrder,
-          available_until: parsedAvailableUntil ? parsedAvailableUntil.toISOString() : null,
-        })
-        .eq('id', normalizedTopicId)
-        .eq('subject_id', topic.subject_id);
+          sortOrder: parsedSortOrder,
+          availableUntil: parsedAvailableUntil ? parsedAvailableUntil.toISOString() : null,
+        },
+      });
 
       if (error) throw error;
+      if ((data as { error?: string } | null)?.error) throw new Error((data as { error: string }).error);
 
       showAlert('Tema actualizado', 'Los cambios se guardaron correctamente.');
       router.back();

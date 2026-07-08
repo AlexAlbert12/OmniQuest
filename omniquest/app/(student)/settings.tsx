@@ -286,10 +286,16 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
     }
   }
 
-  const syncStudentPoints = async (studentId: string) => {
-    const { data, error } = await supabase.rpc('sync_student_points', { student_id: studentId })
+
+  const resetOwnStudentProgress = async (resetType: Exclude<DestructiveActionType, 'account'>) => {
+    const { data, error } = await supabase.functions.invoke('student-reset-own-progress', {
+      body: { resetType },
+    })
+
     if (error) throw error
-    return typeof data === 'number' ? data : 0
+    const result = (data || {}) as { avatar?: string | null; error?: string; points?: number }
+    if (result.error) throw new Error(result.error)
+    return result
   }
 
   const selectOptionalRows = async (table: string, column: string, value: string) => {
@@ -579,31 +585,29 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
     setDeletingData(true)
     try {
-      if (dataType === 'scores' || (!isTeacher && dataType === 'all')) {
-        if (isTeacher) {
-          await deleteTeacherClassProgress(userId)
-        } else {
-          await deleteOptionalRows('subject_scores', 'student_id', userId)
-          await deleteOptionalRows('topic_scores', 'student_id', userId)
-          await deleteOptionalRows('attempt_history', 'student_id', userId)
-          await deleteOptionalRows('student_badges', 'student_id', userId)
+      if (!isTeacher) {
+        const result = await resetOwnStudentProgress(dataType)
 
-          const syncedPoints = await syncStudentPoints(userId)
-          setProfile(prev => prev ? { ...prev, points: syncedPoints } : null)
+        if (dataType === 'scores' || dataType === 'all') {
+          setProfile(prev => prev ? { ...prev, points: result.points ?? 0 } : null)
         }
+
+        if (dataType === 'all') {
+          setPreferences(DEFAULT_PREFERENCES)
+          setNotificationSettings(DEFAULT_NOTIFICATION_SETTINGS)
+          setProfile(prev => prev ? { ...prev, points: result.points ?? 0, avatar: result.avatar ?? null } : null)
+        }
+
+        showAlert('Datos eliminados', 'Los datos seleccionados han sido eliminados correctamente.')
+        return
       }
 
-      if (!isTeacher && (dataType === 'enrollments' || dataType === 'all')) {
-        await deleteOptionalRows('enrollments', 'student_id', userId)
+      if (dataType === 'scores') {
+        await deleteTeacherClassProgress(userId)
       }
 
       if (dataType === 'all') {
-        if (isTeacher) {
-          await deleteTeacherTeachingData(userId)
-        } else {
-          await deleteOptionalRows('attempt_history', 'student_id', userId)
-          await deleteOptionalRows('student_badges', 'student_id', userId)
-        }
+        await deleteTeacherTeachingData(userId)
         await deleteOptionalRows('notification_state', 'user_id', userId)
         await deleteOptionalRows('user_preferences', 'user_id', userId)
         await deleteOptionalRows('user_notification_preferences', 'user_id', userId)
@@ -614,20 +618,17 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
           if (storageError && !isMissingSchemaError((storageError as any).code)) throw storageError
         }
 
-        const syncedPoints = isTeacher ? null : await syncStudentPoints(userId)
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ avatar: null })
-          .eq('id', userId)
-        if (profileError) throw profileError
+        const { data, error: avatarError } = await supabase.functions.invoke('profile-update-avatar', {
+          body: { clear: true },
+        })
+        if (avatarError) throw avatarError
+        if ((data as { error?: string } | null)?.error) throw new Error((data as { error: string }).error)
 
         setPreferences(DEFAULT_PREFERENCES)
         setNotificationSettings(DEFAULT_NOTIFICATION_SETTINGS)
-        setProfile(prev => prev ? { ...prev, ...(isTeacher ? {} : { points: syncedPoints ?? 0 }), avatar: null } : null)
-        if (isTeacher) {
-          setSubjectsCount(0)
-          setClassroomsCount(0)
-        }
+        setProfile(prev => prev ? { ...prev, avatar: null } : null)
+        setSubjectsCount(0)
+        setClassroomsCount(0)
       }
 
       showAlert('Datos eliminados', 'Los datos seleccionados han sido eliminados correctamente.')

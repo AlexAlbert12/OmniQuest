@@ -220,18 +220,15 @@ export default function TeacherProfileScreen() {
 
       if (uploadError) throw uploadError
 
-      const { data: publicUrl } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName)
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar: publicUrl.publicUrl })
-        .eq('id', profile.id)
+      const { data, error: updateError } = await supabase.functions.invoke('profile-update-avatar', {
+        body: { avatarPath: fileName },
+      })
 
       if (updateError) throw updateError
+      const result = (data || {}) as { avatar?: string | null; error?: string }
+      if (result.error) throw new Error(result.error)
 
-      setProfile({ ...profile, avatar: publicUrl.publicUrl })
+      setProfile({ ...profile, avatar: result.avatar || null })
 
       if (Platform.OS === 'web') {
         window.alert('Foto de perfil actualizada.')

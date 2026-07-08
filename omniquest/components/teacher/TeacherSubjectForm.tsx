@@ -177,20 +177,20 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
           throw new Error('No se encontró una sesión activa.');
         }
 
-        const { error } = await supabase
-          .from('subjects')
-          .update({
+        const { data, error } = await supabase.functions.invoke('teacher-update-subject', {
+          body: {
+            subjectId: Number(subjectId),
             name: cleanName,
             description: cleanDescription || null,
             icon,
-            education_level: educationLevel,
-            academic_year: schoolYear,
-            subject_label: subjectLabel || null,
-          })
-          .eq('id', Number(subjectId))
-          .eq('teacher_id', teacherId);
+            educationLevel,
+            academicYear: schoolYear,
+            subjectLabel: subjectLabel || null,
+          },
+        });
 
         if (error) throw error;
+        if ((data as { error?: string } | null)?.error) throw new Error((data as { error: string }).error);
 
         showAlert('Curso actualizado', 'Los cambios se guardaron correctamente.');
         router.back();

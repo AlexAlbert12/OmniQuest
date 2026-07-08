@@ -875,28 +875,29 @@ export function useTeacherSubjectDetail({
 
     setCreatingTopic(true);
     try {
-      const { data, error } = await supabase
-        .from('subject_topics')
-        .insert([{
-          subject_id: subjectIdNumber,
-          classroom_id: selectedClassroomId,
+      const { data, error } = await supabase.functions.invoke('teacher-create-topic', {
+        body: {
+          subjectId: subjectIdNumber,
+          classroomId: selectedClassroomId,
           title: newTopicTitle.trim(),
           description: newTopicDescription.trim() || null,
           icon: '📘',
-          sort_order: topics.length + 1,
-          available_until: parsedAvailableUntil ? parsedAvailableUntil.toISOString() : null,
-        }])
-        .select('id, title, description, icon, sort_order, available_until, classroom_id')
-        .single();
+          sortOrder: topics.length + 1,
+          availableUntil: parsedAvailableUntil ? parsedAvailableUntil.toISOString() : null,
+        },
+      });
 
       if (error) throw error;
+      const result = (data || {}) as { error?: string; topic?: Topic };
+      if (result.error) throw new Error(result.error);
+      if (!result.topic) throw new Error('No se recibió el tema creado.');
 
-      setTopics((prevTopics) => [...prevTopics, data as Topic]);
-      setSelectedTopicId(Number(data.id));
+      setTopics((prevTopics) => [...prevTopics, result.topic as Topic]);
+      setSelectedTopicId(Number(result.topic.id));
       setNewTopicTitle('');
       setNewTopicDescription('');
       setNewTopicAvailableUntil('');
-      router.push(`/(teacher)/subject/add-question?subjectId=${subjectId}${selectedClassroomId ? `&classroomId=${selectedClassroomId}` : ''}&topicId=${data.id}&difficulty=${newTopicDifficulty}` as any);
+      router.push(`/(teacher)/subject/add-question?subjectId=${subjectId}${selectedClassroomId ? `&classroomId=${selectedClassroomId}` : ''}&topicId=${result.topic.id}&difficulty=${newTopicDifficulty}` as any);
     } catch (error: any) {
       showAlert('No se pudo crear el tema', error.message);
     } finally {
