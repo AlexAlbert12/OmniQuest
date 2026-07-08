@@ -81,6 +81,7 @@ export default function ClassesScreen() {
   const [leavingSubjectId, setLeavingSubjectId] = useState<number | null>(null)
   const [subjectToLeave, setSubjectToLeave] = useState<Subject | null>(null)
   const [openFilterMenu, setOpenFilterMenu] = useState<'state' | 'sort' | null>(null)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   const isDesktop = width >= 1024
   const { accentColor } = useAppTheme()
@@ -389,17 +390,23 @@ export default function ClassesScreen() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row items-start justify-between gap-4">
+          <View className={isDesktop ? 'mb-6 flex-row items-start justify-between gap-4' : 'mb-7 flex-row items-start justify-between gap-4'}>
             <View className="min-w-0 flex-1">
               {!isDesktop ? (
-                <BrandLogo size={30} style={{ marginBottom: 12 }} />
+                <BrandLogo size={34} style={{ marginBottom: 18 }} />
               ) : null}
               <View className="flex-row items-center gap-3">
-                <Ionicons name="book" size={40} color="#9FD6FF" />
-                <Text className="text-[40px] font-black text-white">Mis Cursos</Text>
+                {!isDesktop ? (
+                  <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#5646D8]">
+                    <Ionicons name="book" size={30} color="#FFFFFF" />
+                  </View>
+                ) : (
+                  <Ionicons name="book" size={40} color="#9FD6FF" />
+                )}
+                <Text className={isDesktop ? 'text-[40px] font-black text-white' : 'text-[38px] font-black text-white'}>Mis cursos</Text>
               </View>
-              <Text className="mt-1 text-[13px] text-[#9BAEC9]">
-                Administra tus cursos y continúa aprendiendo
+              <Text className={isDesktop ? 'mt-1 text-[13px] text-[#9BAEC9]' : 'mt-3 text-[18px] leading-7 text-[#AFC2DB]'}>
+                Sigue aprendiendo a tu ritmo 🚀
               </Text>
             </View>
 
@@ -409,105 +416,137 @@ export default function ClassesScreen() {
             </View>
           </View>
 
-          <View className={isDesktop ? 'flex-row gap-4' : 'gap-4'}>
-            <StudentKpiCard icon="school" color={accentColor} value={String(activeClasses)} label="Cursos activos" detail="Sigue aprendiendo" />
-            <StudentKpiCard icon="refresh-circle" color="#FB7185" value={String(failedQuestions)} label="Fallos pendientes" detail="Para repasar" />
-            <StudentKpiCard icon="help-circle" color="#58B5FF" value={String(pendingQuestions)} label="Por practicar" detail="Preguntas disponibles" />
-            <StudentKpiCard icon="time" color="#F6A64A" value={`${points.toLocaleString()} XP`} label="XP global" detail="Acumulada en tu perfil" />
-          </View>
+          {isDesktop ? (
+            <View className="flex-row gap-4">
+              <StudentKpiCard icon="school" color={accentColor} value={String(activeClasses)} label="Cursos activos" detail="Sigue aprendiendo" />
+              <StudentKpiCard icon="refresh-circle" color="#FB7185" value={String(failedQuestions)} label="Fallos pendientes" detail="Para repasar" />
+              <StudentKpiCard icon="help-circle" color="#58B5FF" value={String(pendingQuestions)} label="Por practicar" detail="Preguntas disponibles" />
+              <StudentKpiCard icon="time" color="#F6A64A" value={`${points.toLocaleString()} XP`} label="XP global" detail="Acumulada en tu perfil" />
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="-mx-[18px]"
+              contentContainerStyle={{ paddingHorizontal: 18, gap: 12 }}
+            >
+              <MobileCourseKpiCard icon="school" color={accentColor} value={String(activeClasses)} label="Cursos" progress={Math.min(100, activeClasses * 34)} />
+              <MobileCourseKpiCard icon="compass" color="#FB7185" value={String(failedQuestions)} label="Repasar" progress={Math.min(100, failedQuestions * 12)} />
+              <MobileCourseKpiCard icon="checkmark-circle" color="#58B5FF" value={String(pendingQuestions)} label="Practicar" progress={Math.min(100, pendingQuestions * 18)} />
+              <MobileCourseKpiCard icon="star" color="#F6A64A" value={`${points.toLocaleString()} XP`} label="Total" progress={Math.min(100, points % 100)} />
+            </ScrollView>
+          )}
 
-          {recommendedCourse?.progress ? (
+          {isDesktop && recommendedCourse?.progress ? (
             <RecommendedCourseCard
               subject={recommendedCourse.subject}
               progress={recommendedCourse.progress}
             />
           ) : null}
 
-          <View className="mt-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
-            <View className="mb-4 gap-3">
-              <View className="min-w-[220px] flex-1 flex-row items-center rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4">
-                <Ionicons name="search-outline" size={18} color="#7F91AD" />
-                <TextInput
-                  className="min-w-0 flex-1 px-3 py-3 text-white"
-                  placeholder="Buscar curso..."
-                  placeholderTextColor="#60799C"
-                  value={search}
-                  onChangeText={setSearch}
-                />
-              </View>
+          <View className={isDesktop ? 'mt-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4' : 'mt-8'}>
+            <View className={isDesktop ? 'mb-4 gap-3' : 'mb-4'}>
+              {!isDesktop ? (
+                <View className="mb-4 flex-row items-center justify-between">
+                  <Text className="text-[24px] font-black text-white">Mis cursos</Text>
+                  <Pressable
+                    onPress={() => setShowMobileFilters((value) => !value)}
+                    className="flex-row items-center gap-2 rounded-2xl border border-[#20375E] bg-[#0A1A34] px-5 py-3"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+                  >
+                    <Ionicons name="filter" size={20} color={accentColor} />
+                    <Text className="text-[15px] font-black" style={{ color: accentColor }}>Filtrar</Text>
+                  </Pressable>
+                </View>
+              ) : null}
 
-              {isDesktop ? (
-                <View className="flex-row flex-wrap items-center gap-3">
-                  <View className="flex-row gap-2">
-                    {studentClassFilters.map((filter) => {
-                      const active = selectedFilter === filter.id
-                      return (
-                        <Pressable
-                          key={filter.id}
-                          onPress={() => setSelectedFilter(filter.id)}
-                          className="rounded-lg px-5 py-3"
-                          style={{ backgroundColor: active ? accentColor : '#0A1A34' }}
-                        >
-                          <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{filter.label}</Text>
-                        </Pressable>
-                      )
-                    })}
+              {(isDesktop || showMobileFilters) ? (
+                <>
+                  <View className="min-w-[220px] flex-1 flex-row items-center rounded-xl border border-[#172A4A] bg-[#0A1A34] px-4">
+                    <Ionicons name="search-outline" size={18} color="#7F91AD" />
+                    <TextInput
+                      className="min-w-0 flex-1 px-3 py-3 text-white"
+                      placeholder="Buscar curso..."
+                      placeholderTextColor="#60799C"
+                      value={search}
+                      onChangeText={setSearch}
+                    />
                   </View>
 
-                  <View className="ml-auto flex-row flex-wrap items-center gap-2">
-                    <Text className="font-semibold text-[#AFC2DB]">Ordenar por:</Text>
-                    {studentClassSorts.map((sort) => {
-                      const active = selectedSort === sort.id
-                      return (
-                        <Pressable
-                          key={sort.id}
-                          onPress={() => setSelectedSort(sort.id)}
-                          className="rounded-lg px-4 py-3"
-                          style={{ backgroundColor: active ? accentColor : '#0A1A34' }}
-                        >
-                          <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{sort.label}</Text>
-                        </Pressable>
-                      )
-                    })}
-                  </View>
-                </View>
-              ) : (
-                <View className="flex-row gap-3">
-                  <CompactSelect
-                    label="Estado"
-                    value={getFilterLabel(selectedFilter)}
-                    open={openFilterMenu === 'state'}
-                    onToggle={() => setOpenFilterMenu((current) => current === 'state' ? null : 'state')}
-                    options={studentClassFilters.map((filter) => ({
-                      key: filter.id,
-                      label: filter.label,
-                      active: selectedFilter === filter.id,
-                      onPress: () => {
-                        setSelectedFilter(filter.id)
-                        setOpenFilterMenu(null)
-                      },
-                    }))}
-                  />
-                  <CompactSelect
-                    label="Orden"
-                    value={getSortLabel(selectedSort)}
-                    open={openFilterMenu === 'sort'}
-                    onToggle={() => setOpenFilterMenu((current) => current === 'sort' ? null : 'sort')}
-                    options={studentClassSorts.map((sort) => ({
-                      key: sort.id,
-                      label: sort.label,
-                      active: selectedSort === sort.id,
-                      onPress: () => {
-                        setSelectedSort(sort.id)
-                        setOpenFilterMenu(null)
-                      },
-                    }))}
-                  />
-                </View>
-              )}
+                  {isDesktop ? (
+                    <View className="flex-row flex-wrap items-center gap-3">
+                      <View className="flex-row gap-2">
+                        {studentClassFilters.map((filter) => {
+                          const active = selectedFilter === filter.id
+                          return (
+                            <Pressable
+                              key={filter.id}
+                              onPress={() => setSelectedFilter(filter.id)}
+                              className="rounded-lg px-5 py-3"
+                              style={{ backgroundColor: active ? accentColor : '#0A1A34' }}
+                            >
+                              <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{filter.label}</Text>
+                            </Pressable>
+                          )
+                        })}
+                      </View>
+
+                      <View className="ml-auto flex-row flex-wrap items-center gap-2">
+                        <Text className="font-semibold text-[#AFC2DB]">Ordenar por:</Text>
+                        {studentClassSorts.map((sort) => {
+                          const active = selectedSort === sort.id
+                          return (
+                            <Pressable
+                              key={sort.id}
+                              onPress={() => setSelectedSort(sort.id)}
+                              className="rounded-lg px-4 py-3"
+                              style={{ backgroundColor: active ? accentColor : '#0A1A34' }}
+                            >
+                              <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{sort.label}</Text>
+                            </Pressable>
+                          )
+                        })}
+                      </View>
+                    </View>
+                  ) : (
+                    <View className="mt-3 flex-row gap-3">
+                      <CompactSelect
+                        label="Estado"
+                        value={getFilterLabel(selectedFilter)}
+                        open={openFilterMenu === 'state'}
+                        onToggle={() => setOpenFilterMenu((current) => current === 'state' ? null : 'state')}
+                        options={studentClassFilters.map((filter) => ({
+                          key: filter.id,
+                          label: filter.label,
+                          active: selectedFilter === filter.id,
+                          onPress: () => {
+                            setSelectedFilter(filter.id)
+                            setOpenFilterMenu(null)
+                          },
+                        }))}
+                      />
+                      <CompactSelect
+                        label="Orden"
+                        value={getSortLabel(selectedSort)}
+                        open={openFilterMenu === 'sort'}
+                        onToggle={() => setOpenFilterMenu((current) => current === 'sort' ? null : 'sort')}
+                        options={studentClassSorts.map((sort) => ({
+                          key: sort.id,
+                          label: sort.label,
+                          active: selectedSort === sort.id,
+                          onPress: () => {
+                            setSelectedSort(sort.id)
+                            setOpenFilterMenu(null)
+                          },
+                        }))}
+                      />
+                    </View>
+                  )}
+                </>
+              ) : null}
             </View>
 
-            <View style={{ gap: 8 }}>
+            <View style={{ gap: isDesktop ? 8 : 16 }}>
               {classRows.length > 0 ? (
                 classRows.map((subject, index) => (
                   <ClassRow
@@ -520,6 +559,7 @@ export default function ClassesScreen() {
                     teacherName={teacherNamesBySubject[getCourseRowKey(subject)]}
                     lastActivityAt={lastActivityBySubject[getCourseRowKey(subject)] || null}
                     progress={progressBySubject[getCourseRowKey(subject)]}
+                    isDesktop={isDesktop}
                     onLeave={handleLeaveClass}
                     leaving={leavingSubjectId === (subject.classroom_id ?? subject.id)}
                   />
@@ -534,6 +574,7 @@ export default function ClassesScreen() {
               joining={joining}
               onChangeCode={setInviteCode}
               onJoin={handleJoinClass}
+              isDesktop={isDesktop}
             />
           </View>
         </ScrollView>
@@ -554,6 +595,36 @@ export default function ClassesScreen() {
           void executeLeaveClass(subjectToLeave).then(() => setSubjectToLeave(null))
         }}
       />
+    </View>
+  )
+}
+
+
+function MobileCourseKpiCard({
+  color,
+  icon,
+  label,
+  progress,
+  value,
+}: {
+  color: string
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  progress: number
+  value: string
+}) {
+  return (
+    <View className="h-[118px] w-[122px] justify-between rounded-3xl border border-[#162A49] bg-[#0A1830] p-4">
+      <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <View>
+        <Text className="text-[24px] font-black text-white" numberOfLines={1}>{value}</Text>
+        <Text className="mt-1 text-[13px] font-semibold text-[#DDE7F4]" numberOfLines={1}>{label}</Text>
+      </View>
+      <View className="h-2 overflow-hidden rounded-full bg-[#20375E]">
+        <View className="h-full rounded-full" style={{ width: `${Math.max(8, Math.min(100, progress))}%`, backgroundColor: color }} />
+      </View>
     </View>
   )
 }
@@ -638,6 +709,26 @@ function RecommendedCourseCard({
       onPress={() => router.push(buildClassHref(subject) as any)}
     />
   )
+}
+
+function getMobileCourseStatusBadge(progress?: StudentProgressSubject) {
+  const percent = progress?.percent ?? 0
+  const failed = progress?.failedQuestions ?? 0
+  const pending = progress?.pendingQuestions ?? 0
+
+  if (failed > 0) {
+    return { label: 'Repasar', color: '#FB7185', backgroundColor: '#7F1D3A99' }
+  }
+
+  if (progress?.isCompleted || percent >= 100) {
+    return { label: 'Completado', color: '#43D991', backgroundColor: '#04785799' }
+  }
+
+  if (pending > 0 || percent > 0) {
+    return { label: 'En progreso', color: '#8B5CF6', backgroundColor: '#4C1D9599' }
+  }
+
+  return { label: 'No iniciado', color: '#F97316', backgroundColor: '#7C2D1299' }
 }
 
 function getClassProgressStatus(progress?: StudentProgressSubject) {
@@ -737,6 +828,7 @@ function ClassRow({
   teacherName,
   lastActivityAt,
   progress,
+  isDesktop,
   onLeave,
   leaving,
 }: {
@@ -748,6 +840,7 @@ function ClassRow({
   teacherName?: string
   lastActivityAt?: string | null
   progress?: StudentProgressSubject
+  isDesktop: boolean
   onLeave: (subject: Subject) => void
   leaving: boolean
 }) {
@@ -762,6 +855,7 @@ function ClassRow({
   const status = getClassProgressStatus(progress)
   const activityLabel = formatLastActivity(lastActivityAt)
   const { accentColor } = useAppTheme()
+  const { width: screenWidth } = useWindowDimensions()
   const [optionsOpen, setOptionsOpen] = React.useState(false)
   const totalQuestions = progress?.totalQuestions ?? 0
   const primaryActionLabel = getPrimaryCourseActionLabel(progress, progressPercent)
@@ -772,6 +866,108 @@ function ClassRow({
     topicsLabel,
     `${totalQuestions} pregunta${totalQuestions === 1 ? '' : 's'}`,
   ]
+
+  if (!isDesktop) {
+    const statusBadge = getMobileCourseStatusBadge(progress)
+    const imageSize = screenWidth < 380 ? 78 : 104
+    return (
+      <View className="rounded-[26px] border border-[#182D4F] bg-[#091A34] p-4">
+        <View className="flex-row gap-4">
+          <View className="overflow-hidden rounded-[22px]" style={{ backgroundColor: `${color}30`, height: imageSize, width: imageSize }}>
+            <View className="absolute inset-0 opacity-40" style={{ backgroundColor: color }} />
+            <View className="absolute left-2 top-2 flex-row items-center gap-1 rounded-full px-2 py-1" style={{ backgroundColor: statusBadge.backgroundColor }}>
+              <View className="h-2 w-2 rounded-full" style={{ backgroundColor: statusBadge.color }} />
+              <Text className="text-[10px] font-black text-white" numberOfLines={1}>{statusBadge.label}</Text>
+            </View>
+            <View className="flex-1 items-center justify-center pt-4">
+              {subject.icon && !isFallback ? (
+                <Text className="text-[42px]">{subject.icon}</Text>
+              ) : (
+                <Ionicons name={iconNames[index] || 'book'} size={44} color="#FFFFFF" />
+              )}
+            </View>
+          </View>
+
+          <View className="min-w-0 flex-1 py-1">
+            <View className="flex-row items-start gap-2">
+              <View className="min-w-0 flex-1">
+                <Text className="text-[18px] font-black text-white" numberOfLines={2}>{subject.name}</Text>
+                <Text className="mt-1 text-[12px] text-[#9BAEC9]" numberOfLines={1}>{subject.classroom_name || 'Clase principal'}</Text>
+              </View>
+              {!isFallback ? (
+                <View className="relative">
+                  <Pressable
+                    onPress={() => setOptionsOpen((current) => !current)}
+                    disabled={leaving}
+                    className="h-9 w-9 items-center justify-center rounded-full bg-[#102543]"
+                  >
+                    {leaving ? <ActivityIndicator color="#AFC2DB" /> : <Ionicons name="ellipsis-horizontal" size={18} color="#DDE7F4" />}
+                  </Pressable>
+                  {optionsOpen ? (
+                    <View className="absolute right-0 top-11 z-30 w-44 overflow-hidden rounded-xl border border-[#263E61] bg-[#08172E]">
+                      <Link href={buildClassHref(subject) as any} asChild>
+                        <Pressable className="flex-row items-center gap-2 px-4 py-3" onPress={() => setOptionsOpen(false)}>
+                          <Ionicons name="albums-outline" size={16} color="#AFC2DB" />
+                          <Text className="font-bold text-[#DDE7F4]">Ver detalles</Text>
+                        </Pressable>
+                      </Link>
+                      <Pressable
+                        onPress={() => {
+                          setOptionsOpen(false)
+                          onLeave(subject)
+                        }}
+                        className="flex-row items-center gap-2 border-t border-[#172A4A] px-4 py-3"
+                      >
+                        <Ionicons name="exit-outline" size={16} color="#FF6B6B" />
+                        <Text className="font-bold text-[#FF6B6B]">Salir</Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+
+            <View className="mt-3 flex-row items-center justify-between gap-3">
+              <Text className="text-[13px] font-black" style={{ color: status.color }}>{progressPercent}% completado</Text>
+              <Text className="text-[12px] text-[#AFC2DB]">{progress?.completedTopics ?? 0} / {Math.max(progress?.totalTopics ?? topicsCount, topicsCount)} temas</Text>
+            </View>
+            <View className="mt-2 h-2.5 overflow-hidden rounded-full bg-[#162B4E]">
+              <View className="h-full rounded-full" style={{ width: `${Math.max(4, progressPercent)}%`, backgroundColor: status.color }} />
+            </View>
+
+            <View className="mt-4 flex-row items-center justify-between gap-3">
+              <View className="min-w-0 flex-row items-center gap-2">
+                <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#13284A]">
+                  <Ionicons name="calendar-outline" size={16} color="#8FA7C7" />
+                </View>
+                <View className="min-w-0">
+                  <Text className="text-[11px] text-[#8FA7C7]">Última actividad</Text>
+                  <Text className="text-[12px] font-bold text-white" numberOfLines={1}>{activityLabel}</Text>
+                </View>
+              </View>
+
+              {isFallback ? (
+                <Pressable className="flex-row items-center gap-2 rounded-2xl px-4 py-3" style={{ backgroundColor: accentColor }}>
+                  <Text className="font-black text-white">Continuar</Text>
+                  <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+                </Pressable>
+              ) : (
+                <Link href={buildClassHref(subject) as any} asChild>
+                  <Pressable
+                    className="flex-row items-center gap-1 rounded-2xl px-3 py-3"
+                    style={({ pressed }) => ({ backgroundColor: status.color, opacity: pressed ? 0.86 : 1 })}
+                  >
+                    <Text className="font-black text-white">{primaryActionLabel}</Text>
+                    <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+                  </Pressable>
+                </Link>
+              )}
+            </View>
+          </View>
+        </View>
+      </View>
+    )
+  }
 
   const content = (
     <View className="rounded-xl border border-[#172A4A] bg-[#0B1A32] p-4">
@@ -894,13 +1090,57 @@ function JoinClassCard({
   joining,
   onChangeCode,
   onJoin,
+  isDesktop,
 }: {
   inviteCode: string
   joining: boolean
   onChangeCode: (value: string) => void
   onJoin: () => void
+  isDesktop: boolean
 }) {
   const { accentColor } = useAppTheme()
+
+  if (!isDesktop) {
+    return (
+      <View className="mt-5 rounded-[26px] border border-dashed border-[#6C5CE7] bg-[#0A1730] p-4">
+        <View className="flex-row items-center gap-3">
+          <View className="h-12 w-12 items-center justify-center rounded-full border border-[#6C5CE7] bg-[#0D1D3B]">
+            <Ionicons name="add" size={26} color={accentColor} />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className="text-[16px] font-black" style={{ color: accentColor }}>Añadir curso</Text>
+            <Text className="mt-1 text-[12px] text-[#AFC2DB]">Introduce tu código de clase.</Text>
+          </View>
+        </View>
+        <View className="mt-4 flex-row overflow-hidden rounded-2xl border border-[#20375E] bg-[#091A35]">
+          <View className="items-center justify-center px-4">
+            <Ionicons name="keypad-outline" size={20} color="#8FA7C7" />
+          </View>
+          <TextInput
+            className="min-w-0 flex-1 px-2 py-4 text-white"
+            placeholder="Código"
+            placeholderTextColor="#60799C"
+            value={inviteCode}
+            onChangeText={(value) => onChangeCode(value.trim().toUpperCase())}
+            maxLength={6}
+            autoCapitalize="characters"
+          />
+          <Pressable
+            onPress={onJoin}
+            disabled={joining}
+            className="items-center justify-center px-5"
+            style={({ pressed }) => ({ backgroundColor: accentColor, opacity: joining ? 0.7 : pressed ? 0.82 : 1 })}
+          >
+            {joining ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            )}
+          </Pressable>
+        </View>
+      </View>
+    )
+  }
 
   return (
     <View className="mt-4 rounded-2xl border border-dashed border-[#6C5CE7] bg-[#0A1730] p-4">

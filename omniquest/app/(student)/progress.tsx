@@ -9,6 +9,7 @@ import {
 } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import BrandLogo from '../../components/BrandLogo'
@@ -227,6 +228,26 @@ export default function ProgressScreen() {
     )
   }
 
+  if (!isDesktop) {
+    return (
+      <MobileStudentProgress
+        level={level}
+        points={points}
+        nextLevelProgress={nextLevelProgress}
+        progressPercent={safeProgressPercent}
+        answeredQuestions={savedScores}
+        weeklyAttemptsCount={weeklyAttemptsCount}
+        accuracyPercent={safeAccuracyPercent}
+        failedQuestions={failedQuestions}
+        streakDays={badgeMetrics.streakDays}
+        subjectProgress={subjectProgress}
+        recentScores={recentScores}
+        reinforcementAreas={reinforcementAreas}
+        accentColor={accentColor}
+      />
+    )
+  }
+
   return (
     <View className="flex-1 bg-[#061126]">
       <View className="flex-1 flex-row">
@@ -396,6 +417,418 @@ export default function ProgressScreen() {
     </View>
   )
 }
+
+function MobileStudentProgress({
+  level,
+  points,
+  nextLevelProgress,
+  progressPercent,
+  answeredQuestions,
+  weeklyAttemptsCount,
+  accuracyPercent,
+  failedQuestions,
+  streakDays,
+  subjectProgress,
+  recentScores,
+  reinforcementAreas,
+  accentColor,
+}: {
+  level: number
+  points: number
+  nextLevelProgress: number
+  progressPercent: number
+  answeredQuestions: number
+  weeklyAttemptsCount: number
+  accuracyPercent: number
+  failedQuestions: number
+  streakDays: number
+  subjectProgress: SubjectProgress[]
+  recentScores: RecentScore[]
+  reinforcementAreas: ReinforcementArea[]
+  accentColor: string
+}) {
+  const router = useRouter()
+  const xpToNextLevel = Math.max(0, 100 - nextLevelProgress)
+
+  const handleReviewArea = (area: ReinforcementArea) => {
+    if (area.subjectId) {
+      router.push({
+        pathname: '/(student)/play/[id]',
+        params: {
+          id: String(area.subjectId),
+          topicId: area.topicId === null || area.topicId === undefined ? 'general' : String(area.topicId),
+          topicName: area.topicName || area.title,
+          review: 'failed',
+        },
+      } as any)
+      return
+    }
+
+    router.push('/(student)/activity-log' as any)
+  }
+
+  return (
+    <View className="flex-1 bg-[#061126]">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 116 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-8 flex-row items-center justify-between">
+          <BrandLogo size={32} />
+          <View className="flex-row items-center gap-3">
+            <NotificationBadge />
+            <StudentHeaderAvatar />
+          </View>
+        </View>
+
+        <View className="mb-5 flex-row items-center gap-3">
+          <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#7C3AED]">
+            <Ionicons name="stats-chart" size={27} color="#FFFFFF" />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className="text-[34px] font-black leading-[38px] text-white" numberOfLines={1}>Mi progreso</Text>
+            <Text className="mt-1 text-[15px] leading-5 text-[#B7C4D7]" numberOfLines={2}>
+              Sigue aprendiendo cada día.
+            </Text>
+          </View>
+        </View>
+
+        <MobileProgressHero
+          level={level}
+          points={points}
+          nextLevelProgress={nextLevelProgress}
+          progressPercent={progressPercent}
+          xpToNextLevel={xpToNextLevel}
+          accentColor={accentColor}
+        />
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="-mx-5 mt-5"
+          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+        >
+          <MobileProgressStat icon="help-circle" label="Respondidas" value={String(answeredQuestions)} helper={weeklyAttemptsCount > 0 ? `+${weeklyAttemptsCount} semana` : 'Empieza'} color="#38BDF8" />
+          <MobileProgressStat icon="speedometer" label="Precisión" value={`${accuracyPercent}%`} helper={accuracyPercent >= 80 ? '¡Excelente!' : 'A mejorar'} color="#22C55E" />
+          <MobileProgressStat icon="close-circle" label="Fallos" value={String(failedQuestions)} helper={failedQuestions > 0 ? 'Repasar' : 'Limpio'} color="#FB7185" />
+          <MobileProgressStat icon="flash" label="XP total" value={points.toLocaleString()} helper="Acumulada" color="#F59E0B" />
+          <MobileProgressStat icon="flame" label="Racha" value={String(streakDays)} helper="días" color="#A855F7" />
+        </ScrollView>
+
+        <MobileSectionHeader
+          icon="alert-circle"
+          title="Áreas a reforzar"
+          actionLabel="Ver todas"
+          onAction={() => router.push('/(student)/activity-log' as any)}
+        />
+        <View className="overflow-hidden rounded-[24px] border border-[#1C3156] bg-[#09162C]">
+          {reinforcementAreas.length > 0 ? (
+            reinforcementAreas.slice(0, 3).map((area, index) => (
+              <MobileReinforcementRow
+                key={area.id}
+                area={area}
+                isLast={index === Math.min(reinforcementAreas.length, 3) - 1}
+                onPress={() => handleReviewArea(area)}
+              />
+            ))
+          ) : (
+            <MobileCompactEmpty icon="sparkles-outline" title="Sin puntos críticos" subtitle="Cuando practiques más, aparecerán aquí." />
+          )}
+        </View>
+
+        <View className="mt-6 gap-5">
+          <MobileRecentScoresCard scores={recentScores} onSeeAll={() => router.push('/(student)/activity-log' as any)} />
+          <MobileCourseProgressCard subjects={subjectProgress} onSeeAll={() => router.push('/(student)/classes' as any)} />
+        </View>
+
+        <MobileStreakCard streakDays={streakDays} />
+      </ScrollView>
+
+      <StudentBottomNav active="progress" />
+    </View>
+  )
+}
+
+function MobileProgressHero({
+  level,
+  points,
+  nextLevelProgress,
+  progressPercent,
+  xpToNextLevel,
+  accentColor,
+}: {
+  level: number
+  points: number
+  nextLevelProgress: number
+  progressPercent: number
+  xpToNextLevel: number
+  accentColor: string
+}) {
+  return (
+    <LinearGradient
+      colors={['#251466', '#111A45', '#0A1733']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ borderRadius: 28, borderWidth: 1, borderColor: '#4C2CA3', overflow: 'hidden' }}
+    >
+      <View className="relative min-h-[180px] flex-row items-center gap-5 p-5">
+        <View className="absolute -right-8 -top-8 h-32 w-32 rounded-full" style={{ backgroundColor: '#7C3AED33' }} />
+        <View className="absolute bottom-0 right-4 h-24 w-28 items-center justify-center rounded-full" style={{ backgroundColor: '#0EA5E933' }}>
+          <Ionicons name="rocket" size={56} color="#9FD6FF" />
+        </View>
+
+        <View
+          className="h-[118px] w-[118px] items-center justify-center rounded-full bg-[#070F26]"
+          style={{ borderColor: accentColor, borderWidth: 9 }}
+        >
+          <Text className="text-[32px] font-black text-white">{progressPercent}%</Text>
+          <Text className="text-[11px] font-semibold text-[#B7C4D7]">Avance</Text>
+        </View>
+
+        <View className="min-w-0 flex-1 pr-12">
+          <Text className="text-[28px] font-black text-white">{points.toLocaleString()} XP</Text>
+          <Text className="mt-1 text-[13px] text-[#B7C4D7]">Nivel {level}</Text>
+          <View className="mt-4 h-3 overflow-hidden rounded-full bg-[#17264D]">
+            <View className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(6, nextLevelProgress))}%`, backgroundColor: accentColor }} />
+          </View>
+          <Text className="mt-2 text-[12px] font-semibold text-[#C9D7EA]">
+            {xpToNextLevel} XP para subir
+          </Text>
+        </View>
+      </View>
+    </LinearGradient>
+  )
+}
+
+function MobileProgressStat({
+  icon,
+  label,
+  value,
+  helper,
+  color,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  value: string
+  helper: string
+  color: string
+}) {
+  return (
+    <View className="h-[128px] w-[118px] items-center justify-center rounded-[24px] border border-[#1A3155] bg-[#0A1830] px-3">
+      <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
+        <Ionicons name={icon} size={22} color={color} />
+      </View>
+      <Text className="mt-3 text-[28px] font-black text-white" numberOfLines={1}>{value}</Text>
+      <Text className="text-center text-[13px] font-bold text-[#DDE7F4]" numberOfLines={1}>{label}</Text>
+      <Text className="mt-1 text-center text-[11px] font-bold" style={{ color }} numberOfLines={1}>{helper}</Text>
+    </View>
+  )
+}
+
+function MobileSectionHeader({
+  icon,
+  title,
+  actionLabel,
+  onAction,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  title: string
+  actionLabel?: string
+  onAction?: () => void
+}) {
+  return (
+    <View className="mb-3 mt-7 flex-row items-center justify-between gap-3">
+      <View className="min-w-0 flex-1 flex-row items-center gap-2">
+        <Ionicons name={icon} size={22} color="#FB7185" />
+        <Text className="text-[22px] font-black text-white" numberOfLines={1}>{title}</Text>
+      </View>
+      {actionLabel && onAction ? (
+        <Pressable onPress={onAction} className="flex-row items-center gap-1 px-1 py-2">
+          <Text className="text-[13px] font-black text-[#A78BFA]">{actionLabel}</Text>
+          <Ionicons name="chevron-forward" size={15} color="#A78BFA" />
+        </Pressable>
+      ) : null}
+    </View>
+  )
+}
+
+function MobileReinforcementRow({
+  area,
+  isLast,
+  onPress,
+}: {
+  area: ReinforcementArea
+  isLast: boolean
+  onPress: () => void
+}) {
+  const detail = splitReinforcementDetail(area.detail)
+  const safeAccuracy = Math.min(100, Math.max(0, area.accuracyPercent))
+  const title = detail.context ? `${detail.context} · ${area.title}` : area.title
+
+  return (
+    <Pressable
+      onPress={onPress}
+      className={`flex-row items-center gap-4 p-4 ${isLast ? '' : 'border-b border-[#13294C]'}`}
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+    >
+      <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: `${area.color}24` }}>
+        <Ionicons name={area.icon} size={25} color={area.color} />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[15px] font-black text-white" numberOfLines={1}>{title}</Text>
+        <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>{detail.main || `${area.failedCount} fallos recientes`}</Text>
+        <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#17284B]">
+          <View className="h-full rounded-full" style={{ width: `${safeAccuracy}%`, backgroundColor: area.color }} />
+        </View>
+      </View>
+      <View className="items-end gap-2">
+        <Text className="text-[18px] font-black" style={{ color: area.color }}>{safeAccuracy}%</Text>
+        <Ionicons name="chevron-forward" size={18} color="#8FA7C7" />
+      </View>
+    </Pressable>
+  )
+}
+
+function MobileRecentScoresCard({ scores, onSeeAll }: { scores: RecentScore[]; onSeeAll: () => void }) {
+  const maxScore = Math.max(...scores.map((score) => score.value), 1)
+
+  return (
+    <View className="rounded-[24px] border border-[#1C3156] bg-[#09162C] p-4">
+      <View className="mb-4 flex-row items-center justify-between">
+        <View className="flex-row items-center gap-2">
+          <Ionicons name="trophy" size={20} color="#8B5CF6" />
+          <Text className="text-[18px] font-black text-white">Actividad reciente</Text>
+        </View>
+        <Pressable onPress={onSeeAll} className="flex-row items-center gap-1">
+          <Text className="text-[12px] font-black text-[#A78BFA]">Ver todo</Text>
+          <Ionicons name="chevron-forward" size={14} color="#A78BFA" />
+        </Pressable>
+      </View>
+
+      {scores.length > 0 ? (
+        <View className="gap-3">
+          {scores.slice(0, 3).map((score, index) => {
+            const percent = score.value <= 0 ? 0 : Math.max(10, Math.round((score.value / maxScore) * 100))
+            return (
+              <View key={`${score.label}-${score.meta}-${index}`}>
+                <View className="mb-2 flex-row items-center gap-3">
+                  <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#123154]">
+                    <Ionicons name={index === 0 ? 'checkmark' : 'analytics'} size={20} color={index === 0 ? '#22C55E' : '#8B5CF6'} />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-[13px] font-black text-white" numberOfLines={1}>{score.label}</Text>
+                    <Text className="mt-0.5 text-[11px] text-[#8FA7C7]" numberOfLines={1}>{score.meta}</Text>
+                  </View>
+                  <Text className="text-[13px] font-black text-white">{score.value.toLocaleString()} XP</Text>
+                </View>
+                <View className="ml-[56px] h-2 overflow-hidden rounded-full bg-[#17284B]">
+                  <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${percent}%` }} />
+                </View>
+              </View>
+            )
+          })}
+        </View>
+      ) : (
+        <MobileCompactEmpty icon="analytics-outline" title="Sin actividad todavía" subtitle="Completa una práctica para verla aquí." />
+      )}
+    </View>
+  )
+}
+
+function MobileCourseProgressCard({ subjects, onSeeAll }: { subjects: SubjectProgress[]; onSeeAll: () => void }) {
+  const router = useRouter()
+
+  return (
+    <View className="rounded-[24px] border border-[#1C3156] bg-[#09162C] p-4">
+      <View className="mb-4 flex-row items-center justify-between gap-3">
+        <View className="min-w-0 flex-1 flex-row items-center gap-2">
+          <Ionicons name="book" size={20} color="#8B5CF6" />
+          <Text className="text-[18px] font-black text-white" numberOfLines={1}>Progreso por curso</Text>
+        </View>
+        <Pressable onPress={onSeeAll} className="flex-row items-center gap-1">
+          <Text className="text-[12px] font-black text-[#A78BFA]">Ver todos</Text>
+          <Ionicons name="chevron-forward" size={14} color="#A78BFA" />
+        </Pressable>
+      </View>
+
+      {subjects.length > 0 ? (
+        <View className="gap-3">
+          {subjects.slice(0, 3).map((subject) => {
+            const safePercent = Math.min(100, Math.max(0, subject.barPercent))
+            return (
+              <Pressable
+                key={`${subject.id}:${subject.classroomId ?? 'general'}`}
+                onPress={() => router.push({
+                  pathname: '/(student)/class/[id]',
+                  params: {
+                    id: String(subject.id),
+                    ...(subject.classroomId ? { classroomId: String(subject.classroomId) } : {}),
+                  },
+                } as any)}
+                className="flex-row items-center gap-4 rounded-2xl bg-[#0D1D3B] p-3"
+                style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+              >
+                <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: `${subject.color}24` }}>
+                  <Ionicons name={subject.icon} size={25} color={subject.color} />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <View className="flex-row items-center justify-between gap-3">
+                    <Text className="min-w-0 flex-1 text-[15px] font-black text-white" numberOfLines={1}>{subject.name}</Text>
+                    <Text className="text-[15px] font-black" style={{ color: subject.color }}>{safePercent}%</Text>
+                  </View>
+                  <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>{subject.scoreCount} / {subject.totalQuestions} preguntas</Text>
+                  <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#17284B]">
+                    <View className="h-full rounded-full" style={{ width: `${safePercent}%`, backgroundColor: subject.color }} />
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#8FA7C7" />
+              </Pressable>
+            )
+          })}
+        </View>
+      ) : (
+        <MobileCompactEmpty icon="book-outline" title="Sin cursos activos" subtitle="Únete a una clase para empezar." />
+      )}
+    </View>
+  )
+}
+
+function MobileStreakCard({ streakDays }: { streakDays: number }) {
+  return (
+    <LinearGradient
+      colors={['#32136C', '#1B1555', '#0B1B35']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ marginTop: 24, borderRadius: 24, borderWidth: 1, borderColor: '#4C2CA3' }}
+    >
+      <View className="flex-row items-center gap-4 p-4">
+        <View className="h-16 w-16 items-center justify-center rounded-2xl" style={{ backgroundColor: '#F59E0B24' }}>
+          <Ionicons name="trophy" size={34} color="#FBBF24" />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="text-[20px] font-black text-white">¡Sigue así!</Text>
+          <Text className="mt-1 text-[13px] text-[#C9D7EA]">Cada paso te acerca a tu meta.</Text>
+        </View>
+        <View className="h-16 w-20 items-center justify-center rounded-2xl border border-[#5B3BB6] bg-[#151543]">
+          <Text className="text-[24px] font-black text-white">{streakDays}</Text>
+          <Text className="text-[11px] text-[#C9D7EA]">días</Text>
+        </View>
+      </View>
+    </LinearGradient>
+  )
+}
+
+function MobileCompactEmpty({ icon, title, subtitle }: { icon: keyof typeof Ionicons.glyphMap; title: string; subtitle: string }) {
+  return (
+    <View className="items-center justify-center rounded-2xl bg-[#0D1D3B] p-6">
+      <Ionicons name={icon} size={28} color="#8FA7C7" />
+      <Text className="mt-3 text-center text-[15px] font-black text-white">{title}</Text>
+      <Text className="mt-1 text-center text-[12px] leading-5 text-[#8FA7C7]">{subtitle}</Text>
+    </View>
+  )
+}
+
 
 function ProgressOverviewCard({
   progressPercent,

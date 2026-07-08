@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react'
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View, } from 'react-native'
 import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import { getStudentLevel, getNextLevelProgress } from '../../lib/studentLevel'
 import { getTimeAgo } from '../../lib/time'
@@ -394,6 +395,31 @@ export default function StudentHome() {
     )
   }
 
+  if (!isDesktop) {
+    return (
+      <MobileStudentHome
+        alias={alias}
+        level={level}
+        points={points}
+        nextLevelProgress={nextLevelProgress}
+        heroAction={heroAction}
+        progressPercent={progressPercent}
+        attemptCount={attemptCount}
+        failedQuestions={failedQuestions}
+        accuracyPercent={progressSummary?.accuracyPercent ?? 0}
+        weeklyAttemptCount={weeklyAttemptCount}
+        weeklyGoalTarget={weeklyGoalTarget}
+        weeklyGoalPercent={weeklyGoalPercent}
+        streakDays={streakDays}
+        subjectProgressRows={subjectProgressRows}
+        inviteCode={inviteCode}
+        setInviteCode={setInviteCode}
+        joining={joining}
+        onJoinClass={handleJoinClass}
+      />
+    )
+  }
+
   return (
     <View className="flex-1 bg-[#061126]">
       <View className="flex-1 flex-row">
@@ -563,6 +589,433 @@ export default function StudentHome() {
       </View>
 
       {!isDesktop ? <StudentBottomNav active="home" /> : null}
+    </View>
+  )
+}
+
+
+type MobileStudentHomeProps = {
+  alias: string
+  level: number
+  points: number
+  nextLevelProgress: number
+  heroAction: HomeHeroAction
+  progressPercent: number
+  attemptCount: number
+  failedQuestions: number
+  accuracyPercent: number
+  weeklyAttemptCount: number
+  weeklyGoalTarget: number
+  weeklyGoalPercent: number
+  streakDays: number
+  subjectProgressRows: SubjectProgressRow[]
+  inviteCode: string
+  setInviteCode: (value: string) => void
+  joining: boolean
+  onJoinClass: () => void
+}
+
+function MobileStudentHome({
+  alias,
+  level,
+  points,
+  nextLevelProgress,
+  heroAction,
+  progressPercent,
+  attemptCount,
+  failedQuestions,
+  accuracyPercent,
+  weeklyAttemptCount,
+  weeklyGoalTarget,
+  weeklyGoalPercent,
+  streakDays,
+  subjectProgressRows,
+  inviteCode,
+  setInviteCode,
+  joining,
+  onJoinClass,
+}: MobileStudentHomeProps) {
+  return (
+    <View className="flex-1 bg-[#061126]">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 112 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <MobileTopBar />
+
+        <View className="mt-8">
+          <Text className="text-[34px] font-black leading-[40px] text-white" numberOfLines={2}>
+            ¡Hola, {alias}!
+          </Text>
+          <Text className="mt-2 text-[17px] leading-6 text-[#B9C7DA]">
+            Sigue aprendiendo y alcanza tus metas.
+          </Text>
+        </View>
+
+        <MobileLevelCard
+          level={level}
+          points={points}
+          nextLevelProgress={nextLevelProgress}
+          className="mt-8"
+        />
+
+        <MobileReviewCard action={heroAction} failedQuestions={failedQuestions} className="mt-5" />
+
+        <MobileMetricGrid
+          attemptCount={attemptCount}
+          failedQuestions={failedQuestions}
+          accuracyPercent={accuracyPercent}
+          progressPercent={progressPercent}
+          className="mt-5"
+        />
+
+        <MobileWeeklyGoalCard
+          count={weeklyAttemptCount}
+          target={weeklyGoalTarget}
+          percent={weeklyGoalPercent}
+          streakDays={streakDays}
+          className="mt-5"
+        />
+
+        <MobileCoursesSection rows={subjectProgressRows} className="mt-7" />
+
+        <MobileJoinClassCard
+          inviteCode={inviteCode}
+          setInviteCode={setInviteCode}
+          joining={joining}
+          onJoinClass={onJoinClass}
+          className="mt-5"
+        />
+      </ScrollView>
+
+      <StudentBottomNav active="home" />
+    </View>
+  )
+}
+
+function MobileTopBar() {
+  return (
+    <View className="flex-row items-center justify-between">
+      <BrandLogo size={34} />
+      <View className="flex-row items-center gap-3">
+        <NotificationBadge />
+        <StudentHeaderAvatar />
+      </View>
+    </View>
+  )
+}
+
+function MobileLevelCard({
+  level,
+  points,
+  nextLevelProgress,
+  className = '',
+}: {
+  level: number
+  points: number
+  nextLevelProgress: number
+  className?: string
+}) {
+  const percent = Math.max(4, Math.min(100, nextLevelProgress))
+  const remaining = Math.max(0, 100 - nextLevelProgress)
+
+  return (
+    <View className={`overflow-hidden rounded-[24px] border border-[#243869] p-5 ${className}`}>
+      <LinearGradient
+        colors={['#131A4A', '#0B1734']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+      />
+      <View className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-[#5A46D8]/20" />
+      <View className="absolute bottom-2 right-7">
+        <Ionicons name="rocket" size={78} color="#8ACBFF" style={{ transform: [{ rotate: '36deg' }], opacity: 0.92 }} />
+      </View>
+
+      <View className="relative flex-row items-center gap-4">
+        <View className="h-16 w-16 items-center justify-center rounded-[18px] bg-[#7C5CFF]">
+          <Text className="text-[30px] font-black text-white">{level}</Text>
+        </View>
+        <View className="min-w-0 flex-1 pr-16">
+          <Text className="text-[22px] font-black text-white">Nivel {level}</Text>
+          <Text className="mt-1 text-[16px] text-[#B9C7DA]">Explorador</Text>
+        </View>
+      </View>
+
+      <View className="relative mt-5 h-3 overflow-hidden rounded-full bg-[#1D2B4E]">
+        <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${percent}%` }} />
+      </View>
+
+      <View className="relative mt-4 flex-row items-center justify-between">
+        <Text className="text-[16px] text-[#C6D4E8]">{points.toLocaleString()} XP</Text>
+        <Text className="text-[16px] text-[#C6D4E8]">{remaining} XP más</Text>
+      </View>
+    </View>
+  )
+}
+
+function MobileReviewCard({
+  action,
+  failedQuestions,
+  className = '',
+}: {
+  action: HomeHeroAction
+  failedQuestions: number
+  className?: string
+}) {
+  const showFailures = failedQuestions > 0
+  const title = showFailures
+    ? `${failedQuestions} ${failedQuestions === 1 ? 'fallo' : 'fallos'} por repasar`
+    : action.buttonLabel === 'Continuar'
+      ? 'Continúa tu reto'
+      : action.title
+  const subtitle = showFailures ? '¡Repasa y mejora!' : 'Un paso más hacia tu meta.'
+
+  return (
+    <Link href={action.href as any} asChild>
+      <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
+        <View className={`overflow-hidden rounded-[24px] border border-[#4F35A5] p-5 ${className}`}>
+          <LinearGradient
+            colors={['#24135E', '#101948']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+          />
+          <View className="absolute -left-8 top-6 h-28 w-28 rounded-full bg-[#8B5CF6]/20" />
+          <View className="absolute -right-5 top-10 h-24 w-24 rounded-full bg-[#FFFFFF]/6" />
+
+          <View className="flex-row items-center gap-5">
+            <View className="h-24 w-24 items-center justify-center rounded-full bg-[#2B1E73]">
+              <View className="h-16 w-16 items-center justify-center rounded-full bg-[#4225B5]">
+                <Ionicons name={showFailures ? 'locate' : action.icon} size={34} color="#F8FAFC" />
+              </View>
+            </View>
+
+            <View className="min-w-0 flex-1">
+              <Text className="text-[24px] font-black leading-8 text-white" numberOfLines={2}>{title}</Text>
+              <Text className="mt-1 text-[17px] text-[#D7DFF0]">{subtitle}</Text>
+              <View className="mt-4 self-start rounded-2xl bg-[#8B5CF6] px-5 py-3">
+                <Text className="text-[15px] font-black text-white">{showFailures ? 'Repasar ahora' : action.buttonLabel}</Text>
+              </View>
+            </View>
+
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-[#FFFFFF]/10">
+              <Ionicons name="chevron-forward" size={28} color="#FFFFFF" />
+            </View>
+          </View>
+        </View>
+      </Pressable>
+    </Link>
+  )
+}
+
+function MobileMetricGrid({
+  attemptCount,
+  failedQuestions,
+  accuracyPercent,
+  progressPercent,
+  className = '',
+}: {
+  attemptCount: number
+  failedQuestions: number
+  accuracyPercent: number
+  progressPercent: number
+  className?: string
+}) {
+  return (
+    <View className={`flex-row gap-3 ${className}`}>
+      <MobileMetricTile icon="book" value={attemptCount.toString()} label="Hechas" color="#34D399" />
+      <MobileMetricTile icon="locate" value={failedQuestions.toString()} label="Fallos" color="#FB7185" />
+      <MobileMetricTile icon="flame" value={`${accuracyPercent}%`} label="Precisión" color="#F97316" />
+      <MobileMetricTile icon="trending-up" value={`${progressPercent}%`} label="Visto" color="#3B82F6" />
+    </View>
+  )
+}
+
+function MobileMetricTile({
+  icon,
+  value,
+  label,
+  color,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  value: string
+  label: string
+  color: string
+}) {
+  return (
+    <View className="min-w-0 flex-1 overflow-hidden rounded-[20px] border border-[#1B2E56] bg-[#0B1930] p-3">
+      <View className="absolute -right-5 -top-5 h-16 w-16 rounded-full" style={{ backgroundColor: `${color}20` }} />
+      <View className="h-10 w-10 items-center justify-center rounded-2xl" style={{ backgroundColor: `${color}24` }}>
+        <Ionicons name={icon} size={22} color={color} />
+      </View>
+      <Text className="mt-5 text-[25px] font-black text-white" numberOfLines={1}>{value}</Text>
+      <Text className="mt-1 text-[13px] text-[#D7DFF0]" numberOfLines={1}>{label}</Text>
+    </View>
+  )
+}
+
+function MobileWeeklyGoalCard({
+  count,
+  target,
+  percent,
+  streakDays,
+  className = '',
+}: {
+  count: number
+  target: number
+  percent: number
+  streakDays: number
+  className?: string
+}) {
+  return (
+    <View className={`overflow-hidden rounded-[24px] border border-[#293D71] p-5 ${className}`}>
+      <LinearGradient
+        colors={['#141C4F', '#0B1734']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+      />
+      <View className="flex-row items-center gap-4">
+        <View className="h-20 w-20 items-center justify-center rounded-full bg-[#152954]">
+          <Ionicons name="flag" size={40} color="#8B5CF6" />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="text-[18px] text-[#D7DFF0]">Meta semanal</Text>
+          <Text className="mt-1 text-[27px] font-black text-white">{count} / {target} preguntas</Text>
+          <View className="mt-4 h-2.5 overflow-hidden rounded-full bg-[#1D2B4E]">
+            <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${Math.max(4, percent)}%` }} />
+          </View>
+        </View>
+        <View className="items-center rounded-2xl bg-[#24165D] px-3 py-3">
+          <Ionicons name="calendar" size={24} color="#9F7AEA" />
+          <Text className="mt-1 text-[13px] font-black text-[#B9A7FF]">{getTimeUntilSundayLabel()}</Text>
+        </View>
+      </View>
+      {streakDays > 0 ? (
+        <View className="mt-4 self-start rounded-full bg-[#F97316]/15 px-3 py-1.5">
+          <Text className="text-[12px] font-black text-[#FDBA74]">🔥 {streakDays} día{streakDays === 1 ? '' : 's'} de racha</Text>
+        </View>
+      ) : null}
+    </View>
+  )
+}
+
+function MobileCoursesSection({ rows, className = '' }: { rows: SubjectProgressRow[]; className?: string }) {
+  return (
+    <View className={className}>
+      <View className="mb-4 flex-row items-center justify-between">
+        <Text className="text-[22px] font-black text-white">Continúa aprendiendo</Text>
+        <Link href="/(student)/classes" asChild>
+          <Pressable className="flex-row items-center gap-2">
+            <Text className="text-[15px] font-black text-[#9F7AEA]">Ver todo</Text>
+            <Ionicons name="arrow-forward" size={18} color="#9F7AEA" />
+          </Pressable>
+        </Link>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingRight: 4 }}>
+        {rows.length > 0 ? (
+          rows.slice(0, 4).map((row, index) => (
+            <MobileCourseCard key={getCourseRowKey(row.subject)} row={row} index={index} />
+          ))
+        ) : (
+          <MobileEmptyCourseCard />
+        )}
+        <Link href="/(student)/classes" asChild>
+          <Pressable className="w-[150px] justify-center rounded-[22px] border border-[#1B2E56] bg-[#0B1930] p-4">
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-[#FFFFFF]/8">
+              <Ionicons name="add" size={30} color="#C6D4E8" />
+            </View>
+            <Text className="mt-4 text-[17px] font-bold text-[#D7DFF0]">Añadir curso</Text>
+          </Pressable>
+        </Link>
+      </ScrollView>
+    </View>
+  )
+}
+
+function MobileCourseCard({ row, index }: { row: SubjectProgressRow; index: number }) {
+  const palette = ['#8B5CF6', '#F97316', '#34D399', '#3B82F6']
+  const color = row.subject.theme_color || palette[index] || '#8B5CF6'
+  const percent = row.progress?.percent ?? 0
+
+  return (
+    <Link href={buildClassHref(row.subject) as any} asChild>
+      <Pressable className="w-[162px] overflow-hidden rounded-[22px] border border-[#1B2E56] bg-[#0B1930] p-4" style={({ pressed }) => ({ opacity: pressed ? 0.86 : 1 })}>
+        <View className="absolute -right-8 -top-8 h-24 w-24 rounded-full" style={{ backgroundColor: `${color}20` }} />
+        <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: `${color}26` }}>
+          {row.subject.icon ? (
+            <Text className="text-[28px]">{row.subject.icon}</Text>
+          ) : (
+            <Ionicons name="book" size={28} color={color} />
+          )}
+        </View>
+        <Text className="mt-4 text-[17px] font-black text-white" numberOfLines={1}>{row.subject.name}</Text>
+        <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#1D2B4E]">
+          <View className="h-full rounded-full" style={{ width: `${Math.max(5, percent)}%`, backgroundColor: color }} />
+        </View>
+        <Text className="mt-2 text-[13px] font-bold" style={{ color }}>{percent}%</Text>
+      </Pressable>
+    </Link>
+  )
+}
+
+function MobileEmptyCourseCard() {
+  return (
+    <View className="w-[190px] rounded-[22px] border border-dashed border-[#2B426E] bg-[#0B1930] p-4">
+      <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#142A51]">
+        <Ionicons name="school-outline" size={28} color="#9FD6FF" />
+      </View>
+      <Text className="mt-4 text-[17px] font-black text-white">Tu primer curso</Text>
+      <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">Introduce un código y empieza.</Text>
+    </View>
+  )
+}
+
+function MobileJoinClassCard({
+  inviteCode,
+  setInviteCode,
+  joining,
+  onJoinClass,
+  className = '',
+}: {
+  inviteCode: string
+  setInviteCode: (value: string) => void
+  joining: boolean
+  onJoinClass: () => void
+  className?: string
+}) {
+  return (
+    <View className={`rounded-[22px] border border-[#1B2E56] bg-[#07162E] p-4 ${className}`}>
+      <Text className="text-[16px] font-black text-white">¿Tienes un código?</Text>
+      <View className="mt-3 flex-row overflow-hidden rounded-2xl border border-[#20375E] bg-[#0B1930]">
+        <View className="items-center justify-center px-4">
+          <Ionicons name="keypad-outline" size={20} color="#8FA7C7" />
+        </View>
+        <TextInput
+          className="min-w-0 flex-1 py-4 pr-3 text-white"
+          placeholder="Código de clase"
+          placeholderTextColor="#60799C"
+          value={inviteCode}
+          onChangeText={(value) => setInviteCode(value.trim().toUpperCase())}
+          maxLength={6}
+          autoCapitalize="characters"
+        />
+        <Pressable
+          onPress={onJoinClass}
+          disabled={joining}
+          className="items-center justify-center px-5"
+          style={({ pressed }) => ({ backgroundColor: '#8B5CF6', opacity: joining ? 0.7 : pressed ? 0.82 : 1 })}
+        >
+          {joining ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+          )}
+        </Pressable>
+      </View>
     </View>
   )
 }
