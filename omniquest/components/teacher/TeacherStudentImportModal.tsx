@@ -429,9 +429,12 @@ function ImportResultPanel({
         ) : null}
 
         {result.emailsSkipped > 0 ? (
-          <Text className="mt-3 text-[12px] leading-5 text-[#FBBF24]">
-            {result.emailsSkipped} email{result.emailsSkipped === 1 ? '' : 's'} no se enviaron. Configura RESEND_API_KEY y MAIL_FROM en Supabase Functions.
-          </Text>
+          <View className="mt-3 rounded-xl border border-[#4A3515] bg-[#1F1A0E] p-3">
+            <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#FBBF24]">Emails no enviados</Text>
+            <Text className="mt-1 text-[12px] leading-5 text-[#F8D7A1]">
+              Importación completada: {result.emailsSkipped} email{result.emailsSkipped === 1 ? '' : 's'} no se enviaron porque el servicio de correo no está configurado o está en modo demo incompleto. Puedes exportar las credenciales y copiarlas manualmente.
+            </Text>
+          </View>
         ) : null}
 
         {result.failed.length > 0 ? (

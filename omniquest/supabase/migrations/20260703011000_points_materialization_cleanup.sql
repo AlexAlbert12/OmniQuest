@@ -1,317 +1,3 @@
-create extension if not exists pgcrypto;
-
-create or replace function public.normalize_answer_text(value text)
-returns text
-language sql
-immutable
-as $$
-  select lower(trim(regexp_replace(coalesce(value, ''), '\s+', ' ', 'g')))
-$$;
-
-alter table public.questions
-  add column if not exists classroom_id bigint references public.classrooms(id) on delete cascade,
-  add column if not exists difficulty integer default 1,
-  add column if not exists explanation text;
-
-alter table public.subject_topics
-  add column if not exists classroom_id bigint references public.classrooms(id) on delete cascade,
-  add column if not exists available_until timestamptz;
-
-alter table public.enrollments
-  add column if not exists classroom_id bigint references public.classrooms(id) on delete cascade;
-
-alter table public.game_attempts
-  add column if not exists classroom_id bigint references public.classrooms(id) on delete set null,
-  add column if not exists updated_at timestamptz not null default now(),
-  add column if not exists finished_at timestamptz;
-
-alter table public.subject_scores
-  add column if not exists classroom_id bigint references public.classrooms(id) on delete cascade,
-  add column if not exists correct_answers integer not null default 0,
-  add column if not exists played_days date[] default '{}'::date[],
-  add column if not exists played_at timestamptz,
-  add column if not exists created_at timestamptz not null default now(),
-  add column if not exists updated_at timestamptz not null default now();
-
-alter table public.topic_scores
-  add column if not exists classroom_id bigint references public.classrooms(id) on delete cascade,
-  add column if not exists played_at timestamptz,
-  add column if not exists created_at timestamptz not null default now(),
-  add column if not exists updated_at timestamptz not null default now();
-
-alter table public.attempt_history
-  add column if not exists submitted_answer_text text,
-  add column if not exists submitted_answer_payload jsonb,
-  add column if not exists earned_points integer not null default 0,
-  add column if not exists hint_used boolean not null default false,
-  add column if not exists was_skipped boolean not null default false,
-  add column if not exists attempt_id uuid references public.game_attempts(id) on delete set null,
-  add column if not exists manual_review_status text not null default 'not_required',
-  add column if not exists reviewed_by uuid references public.profiles(id) on delete set null,
-  add column if not exists reviewed_at timestamptz,
-  add column if not exists review_notes text;
-
-alter table public.attempt_history
-  drop constraint if exists attempt_history_manual_review_status_check;
-
-alter table public.attempt_history
-  add constraint attempt_history_manual_review_status_check
-  check (manual_review_status in ('not_required', 'pending', 'approved', 'rejected'));
-
-create index if not exists questions_game_lookup_idx
-  on public.questions(subject_id, classroom_id, topic_id, difficulty)
-  where coalesce(active, true);
-
-create index if not exists attempt_history_student_attempted_at_idx
-  on public.attempt_history(student_id, attempted_at desc);
-
-create index if not exists attempt_history_question_attempted_at_idx
-  on public.attempt_history(question_id, attempted_at desc);
-
-create index if not exists attempt_history_attempt_id_idx
-  on public.attempt_history(attempt_id);
-
-create index if not exists attempt_history_manual_review_idx
-  on public.attempt_history(manual_review_status, attempted_at desc);
-
-create or replace function public.assert_topic_playable(p_topic_id bigint)
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_available_until timestamptz;
-begin
-  if p_topic_id is null then
-    return;
-  end if;
-
-  select available_until
-  into v_available_until
-  from public.subject_topics
-  where id = p_topic_id;
-
-  if v_available_until is not null and v_available_until <= now() then
-    raise exception 'El tiempo límite de este tema ha terminado. Ya no se puede jugar.';
-  end if;
-end;
-$$;
-
--- Remove older overloads to avoid Supabase RPC ambiguity and stale behavior.
-drop function if exists public.start_game_attempt(bigint, bigint, boolean);
-drop function if exists public.start_game_attempt(bigint, bigint, bigint, boolean);
-drop function if exists public.start_game_attempt(bigint, bigint, bigint, boolean, integer);
-
-create or replace function public.start_game_attempt(
-  p_subject_id bigint,
-  p_classroom_id bigint default null,
-  p_topic_id bigint default null,
-  p_general_topic boolean default false,
-  p_difficulty integer default null
-)
-returns uuid
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_user_id uuid := auth.uid();
-  v_attempt_id uuid;
-  v_classroom_id bigint;
-begin
-  if v_user_id is null then
-    raise exception 'No authenticated user';
-  end if;
-
-  if p_difficulty is not null and p_difficulty not in (1, 2, 3) then
-    raise exception 'Invalid difficulty';
-  end if;
-
-  v_classroom_id := coalesce(p_classroom_id, public.ensure_default_classroom(p_subject_id));
-
-  if not exists (
-    select 1
-    from public.classrooms c
-    where c.id = v_classroom_id
-      and c.subject_id = p_subject_id
-      and coalesce(c.active, true)
-  ) then
-    raise exception 'Classroom does not belong to this subject';
-  end if;
-
-  if not exists (
-    select 1
-    from public.enrollments e
-    where e.student_id = v_user_id
-      and e.subject_id = p_subject_id
-      and (e.classroom_id = v_classroom_id or (e.classroom_id is null and v_classroom_id is not null))
-  ) then
-    raise exception 'Student is not enrolled in this classroom';
-  end if;
-
-  if p_topic_id is not null then
-    perform public.assert_topic_playable(p_topic_id);
-
-    if not exists (
-      select 1
-      from public.subject_topics st
-      where st.id = p_topic_id
-        and st.subject_id = p_subject_id
-        and st.classroom_id = v_classroom_id
-        and coalesce(st.active, true)
-    ) then
-      raise exception 'Topic does not belong to this classroom';
-    end if;
-  end if;
-
-  insert into public.game_attempts (student_id, subject_id, classroom_id, topic_id)
-  values (v_user_id, p_subject_id, v_classroom_id, case when p_general_topic then null else p_topic_id end)
-  returning id into v_attempt_id;
-
-  return v_attempt_id;
-end;
-$$;
-
--- Remove older overloads to avoid Supabase RPC ambiguity and stale behavior.
-drop function if exists public.get_game_questions(bigint, bigint, boolean);
-drop function if exists public.get_game_questions(bigint, bigint, bigint, boolean);
-drop function if exists public.get_game_questions(bigint, bigint, bigint, boolean, integer);
-
-create or replace function public.get_game_questions(
-  p_subject_id bigint,
-  p_classroom_id bigint default null,
-  p_topic_id bigint default null,
-  p_general_topic boolean default false,
-  p_difficulty integer default null
-)
-returns jsonb
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_classroom_id bigint;
-  v_user_id uuid := auth.uid();
-  v_result jsonb;
-begin
-  if v_user_id is null then
-    raise exception 'No authenticated user';
-  end if;
-
-  if p_difficulty is not null and p_difficulty not in (1, 2, 3) then
-    raise exception 'Invalid difficulty';
-  end if;
-
-  if p_topic_id is not null then
-    perform public.assert_topic_playable(p_topic_id);
-  end if;
-
-  v_classroom_id := coalesce(p_classroom_id, public.ensure_default_classroom(p_subject_id));
-
-  if not exists (
-    select 1
-    from public.classrooms c
-    join public.subjects s on s.id = c.subject_id
-    where c.id = v_classroom_id
-      and c.subject_id = p_subject_id
-      and coalesce(c.active, true)
-      and (
-        s.teacher_id = v_user_id
-        or exists (
-          select 1
-          from public.enrollments e
-          where e.classroom_id = c.id
-            and e.student_id = v_user_id
-        )
-        or exists (
-          select 1
-          from public.enrollments e
-          where e.classroom_id is null
-            and e.subject_id = p_subject_id
-            and e.student_id = v_user_id
-        )
-      )
-  ) then
-    raise exception 'No puedes acceder a esta clase.';
-  end if;
-
-  select coalesce(jsonb_agg(question_payload order by random()), '[]'::jsonb)
-  into v_result
-  from (
-    select jsonb_build_object(
-      'id', q.id,
-      'text', q.text,
-      'type', q.type,
-      'difficulty', coalesce(q.difficulty, 1),
-      'points_base', q.points_base,
-      'time_limit_seconds', q.time_limit_seconds,
-      'topic_id', q.topic_id,
-      'classroom_id', q.classroom_id,
-      'explanation', q.explanation,
-      'blank_count',
-        case
-          when q.type = 'fill_blank' then (
-            select count(*)
-            from public.answers a
-            where a.question_id = q.id
-              and coalesce(a.is_correct, true)
-              and public.normalize_answer_text(a.text) <> ''
-          )
-          else null
-        end,
-      'answers',
-        case
-          when q.type in ('open_answer', 'fill_blank') then '[]'::jsonb
-          when q.type in ('match_pairs', 'drag_drop') then (
-            select coalesce(
-              jsonb_agg(jsonb_build_object('id', a.id, 'text', split_part(a.text, '|||', 1)) order by random()),
-              '[]'::jsonb
-            )
-            from public.answers a
-            where a.question_id = q.id
-          )
-          else (
-            select coalesce(
-              jsonb_agg(jsonb_build_object('id', a.id, 'text', a.text) order by random()),
-              '[]'::jsonb
-            )
-            from public.answers a
-            where a.question_id = q.id
-          )
-        end,
-      'pair_options',
-        case
-          when q.type in ('match_pairs', 'drag_drop') then (
-            select coalesce(jsonb_agg(pair_right order by random()), '[]'::jsonb)
-            from (
-              select split_part(a.text, '|||', 2) as pair_right
-              from public.answers a
-              where a.question_id = q.id
-                and split_part(a.text, '|||', 2) <> ''
-            ) pairs
-          )
-          else '[]'::jsonb
-        end
-    ) as question_payload
-    from public.questions q
-    left join public.subject_topics st on st.id = q.topic_id
-    where q.subject_id = p_subject_id
-      and q.classroom_id = v_classroom_id
-      and coalesce(q.active, true)
-      and (q.topic_id is null or st.available_until is null or st.available_until > now())
-      and (p_difficulty is null or coalesce(q.difficulty, 1) = p_difficulty)
-      and (
-        (p_general_topic and q.topic_id is null)
-        or (not p_general_topic and p_topic_id is null)
-        or (not p_general_topic and p_topic_id is not null and q.topic_id = p_topic_id)
-      )
-  ) safe_questions;
-
-  return v_result;
-end;
-$$;
-
 create or replace function public.submit_answer(
   p_question_id bigint,
   p_answer_id bigint default null,
@@ -780,8 +466,128 @@ begin
 end;
 $$;
 
-grant execute on function public.assert_topic_playable(bigint) to authenticated;
-grant execute on function public.start_game_attempt(bigint, bigint, bigint, boolean, integer) to authenticated;
-grant execute on function public.get_game_questions(bigint, bigint, bigint, boolean, integer) to authenticated;
+create or replace function public.review_open_answer_attempt(
+  p_attempt_history_id bigint,
+  p_is_correct boolean,
+  p_notes text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_teacher_id uuid := auth.uid();
+  v_attempt public.attempt_history%rowtype;
+  v_question public.questions%rowtype;
+  v_classroom_id bigint;
+  v_delta_points integer := 0;
+  v_delta_correct integer := 0;
+  v_new_earned_points integer := 0;
+begin
+  if v_teacher_id is null then
+    raise exception 'No hay sesión activa.';
+  end if;
+
+  select *
+  into v_attempt
+  from public.attempt_history
+  where id = p_attempt_history_id
+  for update;
+
+  if not found then
+    raise exception 'Intento no encontrado.';
+  end if;
+
+  select *
+  into v_question
+  from public.questions
+  where id = v_attempt.question_id;
+
+  if not found or v_question.type <> 'open_answer' then
+    raise exception 'Solo se pueden revisar respuestas abiertas.';
+  end if;
+
+  if not exists (
+    select 1
+    from public.subjects
+    where subjects.id = v_question.subject_id
+      and subjects.teacher_id = v_teacher_id
+  ) then
+    raise exception 'No puedes revisar respuestas de este curso.';
+  end if;
+
+  if v_attempt.manual_review_status <> 'pending' then
+    raise exception 'Esta respuesta ya ha sido revisada.';
+  end if;
+
+  v_classroom_id := coalesce(v_question.classroom_id, public.ensure_default_classroom(v_question.subject_id));
+  v_new_earned_points := case when p_is_correct then coalesce(v_question.points_base, 10) else 0 end;
+  v_delta_points := v_new_earned_points - coalesce(v_attempt.earned_points, 0);
+  v_delta_correct := case when p_is_correct then 1 else 0 end - case when v_attempt.is_correct then 1 else 0 end;
+
+  update public.attempt_history
+  set is_correct = p_is_correct,
+      earned_points = v_new_earned_points,
+      manual_review_status = case when p_is_correct then 'approved' else 'rejected' end,
+      reviewed_by = v_teacher_id,
+      reviewed_at = now(),
+      review_notes = nullif(trim(coalesce(p_notes, '')), '')
+  where id = p_attempt_history_id;
+
+  if v_attempt.attempt_id is not null then
+    update public.game_attempts
+    set total_score = greatest(0, coalesce(total_score, 0) + v_delta_points),
+        correct_answers = greatest(0, coalesce(correct_answers, 0) + v_delta_correct),
+        updated_at = now()
+    where id = v_attempt.attempt_id;
+  end if;
+
+  update public.subject_scores
+  set max_score = greatest(coalesce(max_score, 0), coalesce(max_score, 0) + greatest(v_delta_points, 0)),
+      correct_answers = greatest(0, coalesce(correct_answers, 0) + v_delta_correct),
+      updated_at = now()
+  where student_id = v_attempt.student_id
+    and classroom_id = v_classroom_id;
+
+  if v_question.topic_id is not null then
+    update public.topic_scores
+    set max_score = greatest(coalesce(max_score, 0), coalesce(max_score, 0) + greatest(v_delta_points, 0)),
+        updated_at = now()
+    where student_id = v_attempt.student_id
+      and topic_id = v_question.topic_id;
+  end if;
+
+  -- profiles.points is recalculated from attempt_history.earned_points
+  -- and student_badges.reward_xp by sync_student_points triggers.
+
+  return jsonb_build_object(
+    'id', p_attempt_history_id,
+    'is_correct', p_is_correct,
+    'earned_points', v_new_earned_points,
+    'manual_review_status', case when p_is_correct then 'approved' else 'rejected' end
+  );
+end;
+$$;
+
 grant execute on function public.submit_answer(bigint, bigint, text, jsonb, integer, boolean, boolean, uuid) to authenticated;
 grant execute on function public.sync_student_badges() to authenticated;
+grant execute on function public.review_open_answer_attempt(bigint, boolean, text) to authenticated;
+
+do $$
+declare
+  v_profile_id uuid;
+begin
+  if to_regclass('public.profiles') is null then
+    return;
+  end if;
+
+  for v_profile_id in
+    select id
+    from public.profiles
+    where coalesce(role_id, 'student') in ('student', 'guest')
+  loop
+    perform public.recalculate_student_points(v_profile_id);
+  end loop;
+end;
+$$;

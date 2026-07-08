@@ -24,6 +24,7 @@ export type AppNotification = {
 
 type PersistentNotificationRow = Tables<'notifications'>
 type PersistentNotificationUpdate = Database['public']['Tables']['notifications']['Update']
+type NotificationPreferenceRow = Tables<'user_notification_preferences'>
 
 type SubjectRow = {
   id: number
@@ -66,6 +67,16 @@ type AudienceState = {
   notifications: AppNotification[]
   loading: boolean
   error: string | null
+}
+
+type NotificationPreferenceState = {
+  activityEnabled: boolean
+  newsEnabled: boolean
+}
+
+const defaultNotificationPreferences: NotificationPreferenceState = {
+  activityEnabled: true,
+  newsEnabled: false,
 }
 
 type NotificationContextValue = {
@@ -196,14 +207,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setReadIds(latestRead)
       setDeletedIds(latestDeleted)
 
-      const persistentNotifications = await fetchPersistentNotifications({ userId, audience })
+      const preferences = await loadNotificationPreferences(userId)
+      const persistentNotifications = filterNotificationsByPreferences(
+        await fetchPersistentNotifications({ userId, audience }),
+        preferences
+      )
 
       if (audience === 'student') {
-        const derivedNotifications = await fetchStudentNotifications({
-          userId,
-          readIds: latestRead,
-          deletedIds: latestDeleted,
-        })
+        const derivedNotifications = filterNotificationsByPreferences(
+          await fetchStudentNotifications({
+            userId,
+            readIds: latestRead,
+            deletedIds: latestDeleted,
+          }),
+          preferences
+        )
         setAudienceNotifications(audience, mergeNotificationSources(persistentNotifications, derivedNotifications))
         return
       }
@@ -261,15 +279,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       )
       const profilesById = studentIds.length > 0 ? await fetchProfilesById(studentIds) : {}
 
-      const derivedNotifications = buildTeacherNotifications({
-        subjects,
-        enrollments,
-        scores,
-        questions,
-        profilesById,
-        readIds: latestRead,
-        deletedIds: latestDeleted,
-      })
+      const derivedNotifications = filterNotificationsByPreferences(
+        buildTeacherNotifications({
+          subjects,
+          enrollments,
+          scores,
+          questions,
+          profilesById,
+          readIds: latestRead,
+          deletedIds: latestDeleted,
+        }),
+        preferences
+      )
 
       setAudienceNotifications(audience, mergeNotificationSources(persistentNotifications, derivedNotifications))
     } catch (error: any) {
@@ -610,6 +631,54 @@ function getNotificationTypeColor(type: NotificationType) {
   if (type === 'achievement') return '#F6A64A'
   if (type === 'new_class') return '#58B5FF'
   return '#F97316'
+}
+
+
+async function loadNotificationPreferences(userId: string): Promise<NotificationPreferenceState> {
+  try {
+    const { data, error } = await supabase
+      .from('user_notification_preferences')
+      .select('activity_enabled, news_enabled')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (error) throw error
+
+    const preferences = data as Pick<NotificationPreferenceRow, 'activity_enabled' | 'news_enabled'> | null
+
+    return {
+      activityEnabled: preferences?.activity_enabled ?? defaultNotificationPreferences.activityEnabled,
+      newsEnabled: preferences?.news_enabled ?? defaultNotificationPreferences.newsEnabled,
+    }
+  } catch (error) {
+    console.error('Error cargando preferencias de notificaciones:', error)
+    return defaultNotificationPreferences
+  }
+}
+
+function filterNotificationsByPreferences(
+  notifications: AppNotification[],
+  preferences: NotificationPreferenceState
+) {
+  return notifications.filter((notification) => shouldShowNotificationForPreferences(notification, preferences))
+}
+
+function shouldShowNotificationForPreferences(
+  notification: AppNotification,
+  preferences: NotificationPreferenceState
+) {
+  const category = getNotificationPreferenceCategory(notification)
+
+  if (category === 'activity') return preferences.activityEnabled
+  if (category === 'news') return preferences.newsEnabled
+
+  return true
+}
+
+function getNotificationPreferenceCategory(notification: AppNotification): 'activity' | 'news' | 'system' {
+  if (notification.type === 'announcement') return 'news'
+  if (['enrollment', 'student_activity', 'achievement', 'new_class'].includes(notification.type)) return 'activity'
+  return 'system'
 }
 
 async function fetchStudentNotifications({

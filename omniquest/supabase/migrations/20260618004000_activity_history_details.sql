@@ -314,11 +314,8 @@ begin
     end if;
   end if;
 
-  if v_points_to_add > 0 then
-    update public.profiles
-    set points = coalesce(points, 0) + v_points_to_add
-    where id = v_user_id;
-  end if;
+  -- profiles.points is recalculated from attempt_history.earned_points
+  -- and student_badges.reward_xp by sync_student_points triggers.
 
   if not v_is_correct and v_question.type in ('multiple_choice', 'true_false') then
     select id

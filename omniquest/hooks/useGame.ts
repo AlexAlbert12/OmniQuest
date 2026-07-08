@@ -65,6 +65,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   const [score, setScore] = useState(0);
   const scoreRef = useRef(0);
   const attemptIdRef = useRef<string | null>(null);
+  const finalizedAttemptIdsRef = useRef(new Set<string>());
   const hintUsedRef = useRef(false);
   const isSubmittingRef = useRef(false);
   const [lives, setLives] = useState(3);
@@ -152,6 +153,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       if (attemptError) throw attemptError;
 
       attemptIdRef.current = attemptId ?? null;
+      finalizedAttemptIdsRef.current.clear();
       scoreRef.current = 0;
       hintUsedRef.current = false;
       setScore(0);
@@ -181,9 +183,29 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     loadGame();
   }, [loadGame]);
 
+  const finalizeGameAttempt = useCallback(async (nextStatus: 'gameOver' | 'finished') => {
+    const attemptId = attemptIdRef.current;
+    if (!attemptId || finalizedAttemptIdsRef.current.has(attemptId)) return;
+
+    finalizedAttemptIdsRef.current.add(attemptId);
+
+    try {
+      const { error } = await supabase.rpc('finish_game_attempt', {
+        p_attempt_id: attemptId,
+        p_status: nextStatus === 'gameOver' ? 'abandoned' : 'finished',
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      finalizedAttemptIdsRef.current.delete(attemptId);
+      console.error('Error finalizing game attempt:', error);
+    }
+  }, []);
+
   const finishGame = useCallback((nextStatus: 'gameOver' | 'finished') => {
     setStatus(nextStatus);
-  }, []);
+    void finalizeGameAttempt(nextStatus);
+  }, [finalizeGameAttempt]);
 
   const nextQuestion = useCallback(() => {
     setSelectedAnswerId(null);

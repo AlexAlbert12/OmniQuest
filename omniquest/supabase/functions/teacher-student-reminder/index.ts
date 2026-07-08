@@ -49,11 +49,6 @@ Deno.serve(async (req) => {
       return json({ error: 'Missing Supabase environment variables.' }, 500)
     }
 
-    const emailConfig = getEmailConfigStatus()
-    if (!emailConfig.ready) {
-      return json({ error: emailConfig.error }, 500)
-    }
-
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return json({ error: 'Missing authorization header.' }, 401)
@@ -250,16 +245,26 @@ async function sendStudentReminderEmail({
 }): Promise<EmailDeliveryResult> {
   const resendApiKey = Deno.env.get('RESEND_API_KEY')
   const from = Deno.env.get('MAIL_FROM') || Deno.env.get('RESEND_FROM_EMAIL')
-  const delivery = resolveEmailDelivery(email)
+  const deliveryMode = getEmailDeliveryMode()
+  const testTo = Deno.env.get('RESEND_TEST_TO')?.trim()
 
   if (!resendApiKey || !from) {
     return {
       sent: false,
-      mode: delivery.mode,
-      error: 'Faltan RESEND_API_KEY o MAIL_FROM en Supabase Functions.',
+      mode: deliveryMode,
+      error: 'Email no enviado: faltan RESEND_API_KEY o MAIL_FROM en Supabase Functions.',
     }
   }
 
+  if (deliveryMode === 'redirect' && !testTo) {
+    return {
+      sent: false,
+      mode: 'redirect',
+      error: 'Email no enviado: EMAIL_DELIVERY_MODE=redirect requiere RESEND_TEST_TO.',
+    }
+  }
+
+  const delivery = resolveEmailDelivery(email)
   const hasPassword = Boolean(password)
   const subject = hasPassword
     ? `Nuevas credenciales de OmniQuest para ${subjectName}`
@@ -307,28 +312,6 @@ async function sendStudentReminderEmail({
   return { sent: true, to: delivery.to, mode: delivery.mode }
 }
 
-function getEmailConfigStatus() {
-  const resendApiKey = Deno.env.get('RESEND_API_KEY')
-  const from = Deno.env.get('MAIL_FROM') || Deno.env.get('RESEND_FROM_EMAIL')
-  const mode = getEmailDeliveryMode()
-  const testTo = Deno.env.get('RESEND_TEST_TO')?.trim()
-
-  if (!resendApiKey || !from) {
-    return {
-      ready: false,
-      error: 'El envio de email no esta configurado. Define RESEND_API_KEY y MAIL_FROM en Supabase Functions.',
-    }
-  }
-
-  if (mode === 'redirect' && !testTo) {
-    return {
-      ready: false,
-      error: 'El modo demo de email esta activo. Define RESEND_TEST_TO con el correo real donde quieres recibir las pruebas.',
-    }
-  }
-
-  return { ready: true }
-}
 
 function getEmailDeliveryMode(): 'real' | 'redirect' {
   const mode = (Deno.env.get('EMAIL_DELIVERY_MODE') || 'real').trim().toLowerCase()

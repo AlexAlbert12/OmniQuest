@@ -14,7 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      admin_audit_log: {
+      admin_audit_logs: {
         Row: {
           action: string
           admin_id: string
@@ -44,7 +44,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "admin_audit_log_admin_id_fkey"
+            foreignKeyName: "admin_audit_logs_admin_id_fkey"
             columns: ["admin_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1128,6 +1128,13 @@ export type Database = {
           p_difficulty?: number | null
         }
         Returns: string
+      }
+      finish_game_attempt: {
+        Args: {
+          p_attempt_id: string
+          p_status?: string
+        }
+        Returns: Json
       }
       submit_answer: {
         Args: {
