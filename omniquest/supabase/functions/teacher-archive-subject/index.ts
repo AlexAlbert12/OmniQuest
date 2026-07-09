@@ -1,4 +1,4 @@
-import { corsHeaders, ensureTeacherSubject, getTeacherContext, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
+import { errorResponse, methodNotAllowedResponse, corsHeaders, ensureTeacherSubject, getTeacherContext, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
 
 type RequestBody = {
   archive?: boolean
@@ -7,7 +7,7 @@ type RequestBody = {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
     const context = await getTeacherContext(req)
@@ -48,7 +48,6 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, subjectId, isArchived: archive })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo archivar el curso.'
-    return json({ error: message }, 500)
+    return errorResponse(error, 'No se pudo archivar el curso.', { functionName: 'teacher-archive-subject' })
   }
 })

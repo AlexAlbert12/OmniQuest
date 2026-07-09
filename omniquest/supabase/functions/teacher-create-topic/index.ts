@@ -1,4 +1,4 @@
-import { corsHeaders, ensureTeacherSubject, getTeacherContext, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
+import { publicError, errorResponse, methodNotAllowedResponse, corsHeaders, ensureTeacherSubject, getTeacherContext, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
 
 type RequestBody = {
   availableUntil?: string | null
@@ -12,7 +12,7 @@ type RequestBody = {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
     const context = await getTeacherContext(req)
@@ -75,8 +75,7 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, topic: data })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo crear el tema.'
-    return json({ error: message }, 500)
+    return errorResponse(error, 'No se pudo crear el tema.', { functionName: 'teacher-create-topic' })
   }
 })
 
@@ -84,7 +83,7 @@ async function ensureDefaultClassroom(adminClient: any, subjectId: number) {
   const { data, error } = await adminClient.rpc('ensure_default_classroom', { p_subject_id: subjectId })
   if (error) throw error
   const classroomId = Number(data)
-  if (!Number.isFinite(classroomId)) throw new Error('No se pudo resolver la clase principal del curso.')
+  if (!Number.isFinite(classroomId)) throw publicError('No se pudo resolver la clase principal del curso.', 400, 'bad_request')
   return classroomId
 }
 
@@ -97,7 +96,7 @@ async function ensureClassroom(adminClient: any, subjectId: number, classroomId:
     .neq('active', false)
     .single()
 
-  if (error || !data) throw new Error('La clase seleccionada no pertenece a este curso.')
+  if (error || !data) throw publicError('La clase seleccionada no pertenece a este curso.', 404, 'not_found')
 }
 
 async function getNextSortOrder(adminClient: any, subjectId: number, classroomId: number) {
@@ -123,6 +122,6 @@ function normalizeIsoDate(value: unknown) {
   const text = String(value ?? '').trim()
   if (!text) return null
   const date = new Date(text)
-  if (Number.isNaN(date.getTime())) throw new Error('La fecha de disponibilidad no es válida.')
+  if (Number.isNaN(date.getTime())) throw publicError('La fecha de disponibilidad no es válida.', 400, 'bad_request')
   return date.toISOString()
 }

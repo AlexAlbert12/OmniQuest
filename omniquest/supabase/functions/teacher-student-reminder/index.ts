@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { errorResponse, getPublicErrorMessage, logInternalError, methodNotAllowedResponse, publicError, publicErrorResponse } from '../_shared/errors.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,7 +37,7 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, 405)
+    return methodNotAllowedResponse()
   }
 
   try {
@@ -46,12 +47,12 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_ROLE_KEY')
 
     if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
-      return json({ error: 'Missing Supabase environment variables.' }, 500)
+      return publicErrorResponse('El servicio no está configurado correctamente.', 500, 'service_unavailable')
     }
 
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return json({ error: 'Missing authorization header.' }, 401)
+      return publicErrorResponse('Necesitas iniciar sesión para continuar.', 401, 'unauthorized')
     }
 
     const body = await req.json() as ReminderRequest
@@ -60,7 +61,7 @@ Deno.serve(async (req) => {
     const reminderMode: ReminderMode = body.mode === 'credentials' ? 'credentials' : 'reminder'
 
     if (studentIds.length === 0) {
-      return json({ error: 'No student ids received.' }, 400)
+      return publicErrorResponse('Selecciona al menos un alumno.', 400, 'bad_request')
     }
 
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -69,7 +70,7 @@ Deno.serve(async (req) => {
 
     const { data: userData, error: userError } = await userClient.auth.getUser()
     if (userError || !userData.user) {
-      return json({ error: 'Invalid or expired session.' }, 401)
+      return publicErrorResponse('Tu sesión no es válida o ha caducado. Vuelve a iniciar sesión.', 401, 'unauthorized')
     }
 
     const teacherId = userData.user.id
@@ -103,7 +104,7 @@ Deno.serve(async (req) => {
       .filter((id: number | null): id is number => typeof id === 'number')
 
     if (subjectIds.length === 0) {
-      return json({ error: 'No teacher subjects found for this request.' }, 403)
+      return publicErrorResponse('No tienes cursos activos para esta acción.', 403, 'forbidden')
     }
 
     const subjectMap = new Map((teacherSubjects || []).map((subject: { id: number; name: string }) => [subject.id, subject.name]))
@@ -122,14 +123,14 @@ Deno.serve(async (req) => {
 
         if (enrollmentError) throw enrollmentError
         if (!enrollment) {
-          throw new Error('El alumno no pertenece a ningún curso de este profesor.')
+          throw publicError('El alumno no pertenece a ningún curso de este profesor.', 403, 'forbidden')
         }
 
         const subjectName = subjectMap.get(enrollment.subject_id) || 'tu curso'
         const classroomName = await getClassroomName(adminClient, enrollment.classroom_id)
         const { data: authUser, error: authUserError } = await adminClient.auth.admin.getUserById(studentId)
         if (authUserError || !authUser?.user?.email) {
-          throw new Error('No se pudo recuperar el correo del alumno.')
+          throw publicError('No se pudo recuperar el correo del alumno.', 404, 'not_found')
         }
 
         const email = authUser.user.email
@@ -160,7 +161,10 @@ Deno.serve(async (req) => {
           error: delivery.sent ? undefined : delivery.error,
         })
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unexpected reminder error.'
+        const message = getPublicErrorMessage(error, 'No se pudo procesar este alumno.')
+        if (!(error instanceof Error && error.name === 'PublicFunctionError')) {
+          logInternalError(error, { functionName: 'teacher-student-reminder', metadata: { studentId } })
+        }
         results.push({ studentId, sent: false, mode: reminderMode, error: message })
       }
     }
@@ -170,8 +174,7 @@ Deno.serve(async (req) => {
 
     return json({ total: results.length, sent, failed, results })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected reminder error.'
-    return json({ error: message }, 500)
+    return errorResponse(error, 'No se pudo enviar el recordatorio.', { functionName: 'teacher-student-reminder' })
   }
 })
 

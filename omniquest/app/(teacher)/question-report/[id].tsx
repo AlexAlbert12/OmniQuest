@@ -18,6 +18,7 @@ import TeacherSidebar from '../../../components/teacher/TeacherSidebar'
 import BrandLogo from '../../../components/BrandLogo'
 import NotificationBadge from '../../../components/NotificationBadge'
 import TeacherHeaderAvatar from '../../../components/teacher/TeacherHeaderAvatar'
+import { exportCsvFile, formatExportDateTime, slugifyFilename } from '../../../lib/reportExports'
 
 type QuestionDetail = {
   id: number
@@ -406,6 +407,79 @@ export default function TeacherQuestionReportScreen() {
     }
   }
 
+
+  const handleExportQuestionReportCsv = () => {
+    if (!question) return
+
+    const statusLabel = attemptStatusFilters.find((filter) => filter.value === selectedStatusFilter)?.label || 'Todos'
+    const dateLabel = attemptDateFilters.find((filter) => filter.value === selectedDateFilter)?.label || 'Todas las fechas'
+    const classroomLabel = selectedClassroomId === 'all'
+      ? 'Todas las clases'
+      : classroomOptions.find((option) => option.id === selectedClassroomId)?.name || `Clase ${selectedClassroomId}`
+    const exportedAt = new Date().toISOString().slice(0, 10)
+    const filename = `omniquest_informe_pregunta_${question.id}_${slugifyFilename(subjectName)}_${exportedAt}.csv`
+
+    const rows = filteredAttempts.map((attempt) => [
+      question.id,
+      subjectName,
+      classroom?.name || '',
+      topic?.title || '',
+      questionTypeLabel,
+      classroomLabel,
+      dateLabel,
+      statusLabel,
+      stats.totalAttempts,
+      stats.correctAttempts,
+      stats.failedAttempts,
+      Math.max(0, 100 - stats.failureRate),
+      attempt.id,
+      attempt.studentAlias,
+      attempt.classroomName,
+      attempt.is_correct ? 'Correcta' : 'Incorrecta',
+      attempt.answerLabel,
+      attempt.earned_points ?? 0,
+      attempt.time_taken_seconds ?? '',
+      attempt.hint_used ? 'Sí' : 'No',
+      attempt.was_skipped ? 'Sí' : 'No',
+      attempt.manual_review_status || '',
+      formatExportDateTime(attempt.attempted_at),
+    ])
+
+    const exported = exportCsvFile(
+      filename,
+      [
+        'Pregunta_ID',
+        'Curso',
+        'Clase_de_la_pregunta',
+        'Tema',
+        'Tipo',
+        'Filtro_clase',
+        'Filtro_fecha',
+        'Filtro_resultado',
+        'Intentos_filtrados',
+        'Correctas_filtradas',
+        'Incorrectas_filtradas',
+        'Precision_filtrada_pct',
+        'Intento_ID',
+        'Alumno',
+        'Clase_alumno',
+        'Resultado',
+        'Respuesta',
+        'XP',
+        'Tiempo_segundos',
+        'Pista_usada',
+        'Omitida',
+        'Revision_manual',
+        'Intentado_el',
+      ],
+      rows.length > 0 ? rows : [[question.id, subjectName, classroom?.name || '', topic?.title || '', questionTypeLabel, classroomLabel, dateLabel, statusLabel, 0, 0, 0, 0, '', '', '', '', '', '', '', '', '', '', '']]
+    )
+
+    if (!exported) {
+      showAlert('Exportación disponible en web', 'La descarga CSV está disponible desde la versión web.')
+    }
+  }
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
@@ -499,6 +573,14 @@ export default function TeacherQuestionReportScreen() {
                     >
                       <Ionicons name="copy-outline" size={16} color="#C4B5FD" />
                       <Text className="text-[12px] font-black text-[#C4B5FD]">{duplicating ? 'Duplicando...' : 'Duplicar'}</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={handleExportQuestionReportCsv}
+                      className={`${isPhone ? 'justify-center py-4' : 'px-4 py-3'} flex-row items-center gap-2 rounded-xl border border-[#2563EB] bg-[#0B244B]`}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+                    >
+                      <Ionicons name="download-outline" size={16} color="#BFDBFE" />
+                      <Text className="text-[12px] font-black text-[#BFDBFE]">Exportar CSV</Text>
                     </Pressable>
                     <Pressable
                       onPress={() => router.push(`/(teacher)/subject/edit-question?subjectId=${question.subject_id}&questionId=${question.id}` as any)}

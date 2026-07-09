@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { difficultyOptions, type DifficultyLevel } from '../../../lib/difficulty';
+import { difficultyOptions } from '../../../lib/difficulty';
+import { exportCsvFile, exportMarkdownFile, formatExportDateTime, slugifyFilename } from '../../../lib/reportExports';
 import {
   type EvolutionReport,
   type StudentReport,
@@ -112,6 +113,124 @@ export default function SubjectDetailScreen() {
     topics,
   } = useTeacherSubjectDetail({ subjectId, tab });
 
+
+  const handleExportClassRankingCsv = (currentSubject: Subject) => {
+    const classroomName = selectedClassroom?.name || 'Todas las clases'
+    const exportedAt = new Date().toISOString().slice(0, 10)
+    const filename = `omniquest_ranking_${slugifyFilename(currentSubject.name)}_${slugifyFilename(classroomName)}_${exportedAt}.csv`
+
+    const rows = studentReportRows
+      .slice()
+      .sort((a, b) => b.score - a.score || b.grade - a.grade || a.name.localeCompare(b.name))
+      .map((student, index) => [
+        index + 1,
+        currentSubject.id,
+        currentSubject.name,
+        classroomName,
+        student.id,
+        student.name,
+        student.score,
+        student.grade.toFixed(1),
+        student.accuracyPercent,
+        student.correctAnswers,
+        student.failedAnswers,
+        student.participation,
+        student.playedSessions,
+        student.hasActivity ? 'Sí' : 'No',
+        formatExportDateTime(student.lastActivity || null),
+      ])
+
+    const exported = exportCsvFile(
+      filename,
+      [
+        'Puesto',
+        'Curso_ID',
+        'Curso',
+        'Clase',
+        'Alumno_ID',
+        'Alumno',
+        'XP',
+        'Nota',
+        'Precision_pct',
+        'Correctas',
+        'Fallos',
+        'Participacion_pct',
+        'Sesiones',
+        'Tiene_actividad',
+        'Ultima_actividad',
+      ],
+      rows
+    )
+
+    if (!exported) {
+      showAlert('Exportación disponible en web', 'La descarga CSV está disponible desde la versión web.')
+    }
+  }
+
+  const handleExportWeeklyTeacherSummary = (currentSubject: Subject) => {
+    const classroomName = selectedClassroom?.name || 'Todas las clases'
+    const exportedAt = new Date()
+    const exportedDate = exportedAt.toLocaleDateString('es-ES')
+    const filename = `omniquest_resumen_docente_${slugifyFilename(currentSubject.name)}_${exportedAt.toISOString().slice(0, 10)}.md`
+    const studentsNeedingSupport = studentReportRows
+      .filter((student) => student.hasActivity && (student.grade < 5 || student.accuracyPercent < 45 || student.failedAnswers >= 3))
+      .sort((a, b) => a.grade - b.grade || b.failedAnswers - a.failedAnswers)
+      .slice(0, 8)
+    const inactiveStudents = studentReportRows
+      .filter((student) => !student.hasActivity)
+      .slice(0, 8)
+    const topFailedQuestions = failedQuestionRows.slice(0, 8)
+
+    const lines = [
+      `# Resumen docente semanal`,
+      ``,
+      `**Curso:** ${currentSubject.name}`,
+      `**Clase:** ${classroomName}`,
+      `**Generado:** ${exportedDate}`,
+      ``,
+      `## Indicadores`,
+      `- Alumnos evaluados: ${reportSummary.answered}/${reportSummary.enrolled}`,
+      `- Participación: ${reportSummary.participation}%`,
+      `- Nota media: ${reportSummary.averageGrade.toFixed(1)}/10`,
+      `- Precisión media: ${reportSummary.averageAccuracy}%`,
+      `- Respuestas correctas: ${reportSummary.correctAnswers}`,
+      `- Fallos registrados: ${reportSummary.failedAnswers}`,
+      `- XP media: ${averageXp.toLocaleString('es-ES')}`,
+      ``,
+      `## Alumnos que requieren seguimiento`,
+      ...(studentsNeedingSupport.length > 0
+        ? studentsNeedingSupport.map((student, index) => `${index + 1}. ${student.name}: nota ${student.grade.toFixed(1)}, ${student.accuracyPercent}% precisión, ${student.failedAnswers} fallos.`)
+        : ['- Sin alumnos críticos con los datos actuales.']),
+      ``,
+      `## Alumnos sin actividad`,
+      ...(inactiveStudents.length > 0
+        ? inactiveStudents.map((student, index) => `${index + 1}. ${student.name}`)
+        : ['- No hay alumnos sin actividad en este curso/clase.']),
+      ``,
+      `## Preguntas más falladas`,
+      ...(topFailedQuestions.length > 0
+        ? topFailedQuestions.map((question, index) => `${index + 1}. ${question.text} — ${question.failureRate}% fallo (${question.actualFailures}/${question.totalAttempts}).`)
+        : ['- No hay fallos suficientes para destacar preguntas.']),
+      ``,
+      `## Evolución reciente`,
+      ...(temporalEvolution.length > 0
+        ? temporalEvolution.map((item) => `- ${item.label}: ${item.activityCount} actividades, media ${item.averageScore}.`)
+        : ['- Todavía no hay datos suficientes de evolución.']),
+      ``,
+      `## Próximas acciones sugeridas`,
+      `- Revisar las preguntas con mayor tasa de fallo y crear una pregunta de repaso si procede.`,
+      `- Contactar o recordar acceso a alumnos sin actividad.`,
+      `- Priorizar temas con baja precisión antes de añadir contenido nuevo.`,
+      ``,
+    ]
+
+    const exported = exportMarkdownFile(filename, lines.join('\n'))
+
+    if (!exported) {
+      showAlert('Exportación disponible en web', 'La descarga Markdown está disponible desde la versión web.')
+    }
+  }
+
   const renderTabContent = (currentSubject: Subject) => {
     if (activeTab === 'students') {
       return (
@@ -197,6 +316,11 @@ export default function SubjectDetailScreen() {
             <ReportMetricCard icon="close-circle" label="Preguntas falladas" value={String(reportSummary.failedAnswers)} color="#F43F5E" detail={`${reportSummary.correctAnswers} correctas registradas`} />
             <ReportMetricCard icon="star" label="XP media" value={`${averageXp.toLocaleString('es-ES')}`} color="#3B82F6" detail="puntos con bonus aparte" />
           </View>
+
+          <ReportExportActions
+            onExportRanking={() => handleExportClassRankingCsv(currentSubject)}
+            onExportWeeklySummary={() => handleExportWeeklyTeacherSummary(currentSubject)}
+          />
 
           <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
             <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
@@ -818,6 +942,47 @@ function MetricCard({
   )
 }
 
+
+function ReportExportActions({
+  onExportRanking,
+  onExportWeeklySummary,
+}: {
+  onExportRanking: () => void
+  onExportWeeklySummary: () => void
+}) {
+  return (
+    <View className="rounded-xl border border-[#183052] bg-[#07162D] p-4">
+      <View className="mb-3 flex-row items-center gap-3">
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-[#2563EB26]">
+          <Ionicons name="download-outline" size={21} color="#93C5FD" />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="text-[15px] font-black text-white">Exportación docente</Text>
+          <Text className="mt-1 text-[12px] text-[#8FA7C7]">Descarga datos del curso o genera un resumen semanal listo para revisar.</Text>
+        </View>
+      </View>
+      <View className="flex-row flex-wrap gap-3">
+        <Pressable
+          onPress={onExportRanking}
+          className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
+          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+        >
+          <Ionicons name="podium-outline" size={16} color="#FFFFFF" />
+          <Text className="text-[12px] font-black text-white">Exportar ranking/clase</Text>
+        </Pressable>
+        <Pressable
+          onPress={onExportWeeklySummary}
+          className="flex-row items-center gap-2 rounded-xl border border-[#2563EB] bg-[#0B244B] px-4 py-3"
+          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+        >
+          <Ionicons name="document-text-outline" size={16} color="#BFDBFE" />
+          <Text className="text-[12px] font-black text-[#BFDBFE]">Resumen semanal</Text>
+        </Pressable>
+      </View>
+    </View>
+  )
+}
+
 function ReportMetricCard({
   icon,
   label,
@@ -1154,13 +1319,4 @@ function formatTopicDeadline(value?: string | null) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
-}
-
-function formatRelative(value: string | null | undefined, index: number) {
-  if (!value) return index === 0 ? 'Hace 2h' : index === 1 ? 'Hace 4h' : 'Ayer';
-  const date = new Date(value);
-  const diffHours = Math.max(1, Math.round((Date.now() - date.getTime()) / 3600000));
-  if (diffHours < 24) return `Hace ${diffHours}h`;
-  if (diffHours < 48) return 'Ayer';
-  return `Hace ${Math.round(diffHours / 24)} días`;
 }

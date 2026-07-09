@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -16,6 +18,7 @@ import TeacherSidebar from '../../../../components/teacher/TeacherSidebar'
 import BrandLogo from '../../../../components/BrandLogo'
 import NotificationBadge from '../../../../components/NotificationBadge'
 import TeacherHeaderAvatar from '../../../../components/teacher/TeacherHeaderAvatar'
+import { exportCsvFile, formatExportDateTime, slugifyFilename } from '../../../../lib/reportExports'
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -449,6 +452,110 @@ export default function TeacherStudentHistoryScreen() {
     router.push({ pathname: '/(teacher)/question-report/[id]', params: { id: String(questionId) } } as any)
   }
 
+
+  const handleExportStudentHistoryCsv = () => {
+    const exportedAt = new Date().toISOString().slice(0, 10)
+    const filename = `omniquest_historial_${slugifyFilename(studentName)}_${exportedAt}.csv`
+    const contextsLabel = (filteredCourseContexts.length > 0 ? filteredCourseContexts : courseContexts)
+      .map((context) => `${context.subjectName} / ${context.classroomName}`)
+      .join(' | ')
+
+    const rows = attemptsInView.length > 0
+      ? attemptsInView.map((attempt) => [
+          studentId || '',
+          studentName,
+          profile?.points ?? 0,
+          contextsLabel,
+          stats.totalAttempts,
+          stats.correctAttempts,
+          stats.failedAttempts,
+          stats.accuracyPercent ?? '',
+          stats.coveragePercent ?? '',
+          attempt.id,
+          attempt.questionId,
+          attempt.subjectName,
+          attempt.classroomName,
+          attempt.topicTitle,
+          questionTypeLabels[attempt.questionType] || attempt.questionType,
+          attempt.questionText,
+          attempt.answerText,
+          attempt.isCorrect ? 'Correcta' : 'Incorrecta',
+          attempt.earnedPoints,
+          attempt.timeTakenSeconds ?? '',
+          attempt.hintUsed ? 'Sí' : 'No',
+          attempt.wasSkipped ? 'Sí' : 'No',
+          attempt.manualReviewStatus,
+          formatExportDateTime(attempt.reviewedAt),
+          attempt.reviewNotes || '',
+          formatExportDateTime(attempt.attemptedAt),
+        ])
+      : (filteredCourseContexts.length > 0 ? filteredCourseContexts : courseContexts).map((context) => [
+          studentId || '',
+          studentName,
+          profile?.points ?? 0,
+          contextsLabel,
+          stats.totalAttempts,
+          stats.correctAttempts,
+          stats.failedAttempts,
+          stats.accuracyPercent ?? '',
+          stats.coveragePercent ?? '',
+          '',
+          '',
+          context.subjectName,
+          context.classroomName,
+          '',
+          '',
+          'Sin intentos registrados',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+        ])
+
+    const exported = exportCsvFile(
+      filename,
+      [
+        'Alumno_ID',
+        'Alumno',
+        'XP_global',
+        'Cursos_y_clases',
+        'Intentos_totales',
+        'Correctas',
+        'Fallos',
+        'Precision_pct',
+        'Cobertura_pct',
+        'Intento_ID',
+        'Pregunta_ID',
+        'Curso',
+        'Clase',
+        'Tema',
+        'Tipo',
+        'Pregunta',
+        'Respuesta',
+        'Resultado',
+        'XP',
+        'Tiempo_segundos',
+        'Pista_usada',
+        'Omitida',
+        'Revision_manual',
+        'Revisado_el',
+        'Notas_revision',
+        'Intentado_el',
+      ],
+      rows
+    )
+
+    if (!exported) {
+      showAlert('Exportación disponible en web', 'La descarga CSV está disponible desde la versión web.')
+    }
+  }
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
@@ -589,6 +696,12 @@ export default function TeacherStudentHistoryScreen() {
                     detail={failedAttempts[0] ? failedAttempts[0].questionText : 'No hay errores registrados'}
                     onPress={() => failedAttempts[0] ? handleOpenQuestionReport(failedAttempts[0].questionId) : undefined}
                     disabled={!failedAttempts[0]}
+                  />
+                  <TeacherActionCard
+                    icon="download-outline"
+                    title="Exportar historial"
+                    detail="Descargar CSV con intentos, errores, revisión y contexto del alumno"
+                    onPress={handleExportStudentHistoryCsv}
                   />
                   <TeacherActionCard
                     icon="people-outline"
@@ -1095,6 +1208,16 @@ function getTimeValue(value: string | null | undefined) {
   if (!value) return 0
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? 0 : date.getTime()
+}
+
+
+function showAlert(title: string, message: string) {
+  if (Platform.OS === 'web') {
+    window.alert(`${title}\n${message}`)
+    return
+  }
+
+  Alert.alert(title, message)
 }
 
 function formatDate(value: string | null | undefined) {

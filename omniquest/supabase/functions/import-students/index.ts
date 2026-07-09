@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { errorResponse, getPublicErrorMessage, logInternalError, methodNotAllowedResponse, publicError, publicErrorResponse } from '../_shared/errors.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,7 +36,7 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, 405)
+    return methodNotAllowedResponse()
   }
 
   try {
@@ -45,12 +46,12 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_ROLE_KEY')
 
     if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
-      return json({ error: 'Missing Supabase environment variables.' }, 500)
+      return publicErrorResponse('El servicio no está configurado correctamente.', 500, 'service_unavailable')
     }
 
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return json({ error: 'Missing authorization header.' }, 401)
+      return publicErrorResponse('Necesitas iniciar sesión para continuar.', 401, 'unauthorized')
     }
 
     const body = await req.json() as ImportRequest
@@ -60,15 +61,15 @@ Deno.serve(async (req) => {
     const emails = normalizeEmailList(inputEmails)
 
     if (!Number.isFinite(subjectId)) {
-      return json({ error: 'Invalid subject id.' }, 400)
+      return publicErrorResponse('El curso seleccionado no es válido.', 400, 'bad_request')
     }
 
     if (requestedClassroomId !== null && !Number.isFinite(requestedClassroomId)) {
-      return json({ error: 'Invalid classroom id.' }, 400)
+      return publicErrorResponse('La clase seleccionada no es válida.', 400, 'bad_request')
     }
 
     if (emails.valid.length === 0) {
-      return json({ error: 'No valid emails received.', invalid: emails.invalid }, 400)
+      return publicErrorResponse('Añade al menos un correo válido.', 400, 'bad_request', { invalid: emails.invalid })
     }
 
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -77,7 +78,7 @@ Deno.serve(async (req) => {
 
     const { data: userData, error: userError } = await userClient.auth.getUser()
     if (userError || !userData.user) {
-      return json({ error: 'Invalid or expired session.' }, 401)
+      return publicErrorResponse('Tu sesión no es válida o ha caducado. Vuelve a iniciar sesión.', 401, 'unauthorized')
     }
 
     const teacherId = userData.user.id
@@ -93,11 +94,11 @@ Deno.serve(async (req) => {
       .single()
 
     if (subjectError || !subject) {
-      return json({ error: 'Subject not found or not owned by this teacher.' }, 404)
+      return publicErrorResponse('Curso no encontrado o no pertenece a este profesor.', 404, 'not_found')
     }
 
     if (subject.is_archived || subject.active === false) {
-      return json({ error: 'Cannot import students into an archived or inactive subject.' }, 400)
+      return publicErrorResponse('No se pueden importar alumnos en un curso archivado o inactivo.', 400, 'bad_request')
     }
 
     const classroom = await resolveClassroom(adminClient, subjectId, requestedClassroomId)
@@ -159,7 +160,7 @@ Deno.serve(async (req) => {
 
         if (profileError) throw profileError
         if (profile?.role_id === 'teacher') {
-          throw new Error('Ese correo pertenece a una cuenta de profesor.')
+          throw publicError('Ese correo pertenece a una cuenta de profesor.', 409, 'conflict')
         }
 
         if (!profile) {
@@ -223,7 +224,10 @@ Deno.serve(async (req) => {
           emailError: emailDelivery.sent ? undefined : emailDelivery.error,
         })
       } catch (error) {
-        const reason = error instanceof Error ? error.message : 'Unexpected error.'
+        const reason = getPublicErrorMessage(error, 'No se pudo procesar este alumno.')
+        if (!(error instanceof Error && error.name === 'PublicFunctionError')) {
+          logInternalError(error, { functionName: 'import-students', metadata: { email } })
+        }
         failed.push({ email, reason })
       }
     }
@@ -241,8 +245,7 @@ Deno.serve(async (req) => {
       students: rows,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected import error.'
-    return json({ error: message }, 500)
+    return errorResponse(error, 'No se pudo completar la importación.', { functionName: 'import-students' })
   }
 })
 
@@ -314,11 +317,11 @@ async function resolveClassroom(adminClient: any, subjectId: number, requestedCl
       .single()
 
     if (error || !data) {
-      throw new Error('La clase seleccionada no pertenece a este curso.')
+      throw publicError('La clase seleccionada no pertenece a este curso.', 404, 'not_found')
     }
 
     if (data.active === false) {
-      throw new Error('No se pueden importar alumnos en una clase inactiva.')
+      throw publicError('No se pueden importar alumnos en una clase inactiva.', 400, 'bad_request')
     }
 
     return data as { id: number; name: string; subject_id: number; active: boolean | null }

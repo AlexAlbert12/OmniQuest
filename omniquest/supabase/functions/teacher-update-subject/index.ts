@@ -1,4 +1,4 @@
-import { corsHeaders, ensureTeacherSubject, getTeacherContext, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
+import { errorResponse, methodNotAllowedResponse, corsHeaders, ensureTeacherSubject, getTeacherContext, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
 
 type RequestBody = {
   academicYear?: string | null
@@ -13,7 +13,7 @@ type RequestBody = {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
     const context = await getTeacherContext(req)
@@ -72,8 +72,7 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, subject: data })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo actualizar el curso.'
-    return json({ error: message }, 500)
+    return errorResponse(error, 'No se pudo actualizar el curso.', { functionName: 'teacher-update-subject' })
   }
 })
 

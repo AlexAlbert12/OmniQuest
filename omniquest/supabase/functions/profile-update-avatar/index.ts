@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { errorResponse, methodNotAllowedResponse, publicErrorResponse } from '../_shared/errors.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ type RequestBody = {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
     const context = await getUserContext(req)
@@ -63,8 +64,7 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, avatar: nextAvatar })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo actualizar el avatar.'
-    return json({ error: message }, 500)
+    return errorResponse(error, 'No se pudo actualizar el avatar.', { functionName: 'profile-update-avatar' })
   }
 })
 
@@ -81,11 +81,11 @@ async function getUserContext(req: Request) {
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_ROLE_KEY')
 
   if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
-    return json({ error: 'Missing Supabase environment variables.' }, 500)
+    return publicErrorResponse('El servicio no está configurado correctamente.', 500, 'service_unavailable')
   }
 
   const authHeader = req.headers.get('Authorization')
-  if (!authHeader) return json({ error: 'Missing authorization header.' }, 401)
+  if (!authHeader) return publicErrorResponse('Necesitas iniciar sesión para continuar.', 401, 'unauthorized')
 
   const userClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
@@ -95,7 +95,7 @@ async function getUserContext(req: Request) {
   })
 
   const { data: userData, error: userError } = await userClient.auth.getUser()
-  if (userError || !userData.user) return json({ error: 'Sesión no válida o caducada.' }, 401)
+  if (userError || !userData.user) return publicErrorResponse('Tu sesión no es válida o ha caducado. Vuelve a iniciar sesión.', 401, 'unauthorized')
 
   return { adminClient, userId: userData.user.id }
 }

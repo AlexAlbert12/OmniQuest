@@ -1,4 +1,4 @@
-import { corsHeaders, ensureTeacherSubject, getTeacherContext, isMissingSchemaError, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
+import { publicError, errorResponse, methodNotAllowedResponse, corsHeaders, ensureTeacherSubject, getTeacherContext, isMissingSchemaError, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
 
 type RequestBody = {
   classroomId?: number | string | null
@@ -10,7 +10,7 @@ type RequestBody = {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
     const context = await getTeacherContext(req)
@@ -69,8 +69,7 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, studentId, subjectIds: resolvedSubjectIds, classroomIds, deletedEnrollments, deletedProgress })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo quitar al alumno.'
-    return json({ error: message }, 500)
+    return errorResponse(error, 'No se pudo quitar al alumno.', { functionName: 'teacher-remove-student-from-class' })
   }
 })
 
@@ -99,7 +98,7 @@ async function ensureClassroomsBelongToSubjects(adminClient: any, classroomIds: 
     .in('subject_id', subjectIds)
   if (error) throw error
   if ((data || []).length !== classroomIds.length) {
-    throw new Error('Alguna clase no pertenece a los cursos del profesor.')
+    throw publicError('Alguna clase no pertenece a los cursos del profesor.', 403, 'forbidden')
   }
 }
 

@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { errorResponse, methodNotAllowedResponse, publicErrorResponse, json } from '../_shared/errors.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,10 +12,7 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return methodNotAllowedResponse()
   }
 
   try {
@@ -24,18 +22,12 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_ROLE_KEY')
 
     if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
-      return new Response(JSON.stringify({ error: 'Missing Supabase environment variables.' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return publicErrorResponse('El servicio no está configurado correctamente.', 500, 'service_unavailable')
     }
 
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization header.' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return publicErrorResponse('Necesitas iniciar sesión para continuar.', 401, 'unauthorized')
     }
 
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -44,10 +36,7 @@ Deno.serve(async (req) => {
 
     const { data: userData, error: userError } = await userClient.auth.getUser()
     if (userError || !userData.user) {
-      return new Response(JSON.stringify({ error: 'Invalid or expired session.' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return publicErrorResponse('Tu sesión no es válida o ha caducado. Vuelve a iniciar sesión.', 401, 'unauthorized')
     }
 
     const userId = userData.user.id
@@ -80,16 +69,9 @@ Deno.serve(async (req) => {
       throw new Error(`[auth.users] ${deleteAuthError.message}`)
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return json({ success: true })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected error while deleting account.'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return errorResponse(error, 'No se pudo eliminar la cuenta.', { functionName: 'delete-account' })
   }
 })
 

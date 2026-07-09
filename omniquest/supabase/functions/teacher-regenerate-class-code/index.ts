@@ -1,4 +1,4 @@
-import { corsHeaders, ensureTeacherSubject, getTeacherContext, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
+import { publicError, errorResponse, methodNotAllowedResponse, corsHeaders, ensureTeacherSubject, getTeacherContext, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
 
 const INVITE_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 const INVITE_CODE_LENGTH = 6
@@ -10,7 +10,7 @@ type RequestBody = {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
     const context = await getTeacherContext(req)
@@ -71,8 +71,7 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, subjectId, classroomId, code: nextCode })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo regenerar el código.'
-    return json({ error: message }, 500)
+    return errorResponse(error, 'No se pudo regenerar el código.', { functionName: 'teacher-regenerate-class-code' })
   }
 })
 
@@ -105,5 +104,5 @@ async function generateUniqueClassCode(adminClient: any, excludeSubjectId?: numb
     if (!classroomMatch) return candidate
   }
 
-  throw new Error('No se pudo generar un código único. Inténtalo de nuevo.')
+  throw publicError('No se pudo generar un código único. Inténtalo de nuevo.', 503, 'service_unavailable')
 }

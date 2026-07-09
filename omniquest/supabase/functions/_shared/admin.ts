@@ -1,9 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders, errorResponse, isMissingSchemaError, json, methodNotAllowedResponse, publicError, publicErrorResponse } from './errors.ts'
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+export { corsHeaders, errorResponse, isMissingSchemaError, json, methodNotAllowedResponse, publicError, publicErrorResponse }
 
 export type AdminContext = {
   adminClient: any
@@ -12,12 +10,6 @@ export type AdminContext = {
   supabaseUrl: string
 }
 
-export function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}
 
 export async function getAdminContext(req: Request): Promise<AdminContext | Response> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -25,12 +17,12 @@ export async function getAdminContext(req: Request): Promise<AdminContext | Resp
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_ROLE_KEY')
 
   if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
-    return json({ error: 'Missing Supabase environment variables.' }, 500)
+    return publicErrorResponse('El servicio no está configurado correctamente.', 500, 'service_unavailable')
   }
 
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
-    return json({ error: 'Missing authorization header.' }, 401)
+    return publicErrorResponse('Necesitas iniciar sesión para continuar.', 401, 'unauthorized')
   }
 
   const userClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -42,7 +34,7 @@ export async function getAdminContext(req: Request): Promise<AdminContext | Resp
 
   const { data: userData, error: userError } = await userClient.auth.getUser()
   if (userError || !userData.user) {
-    return json({ error: 'Sesión no válida o caducada.' }, 401)
+    return publicErrorResponse('Tu sesión no es válida o ha caducado. Vuelve a iniciar sesión.', 401, 'unauthorized')
   }
 
   const { data: adminProfile, error: adminProfileError } = await adminClient
@@ -52,7 +44,7 @@ export async function getAdminContext(req: Request): Promise<AdminContext | Resp
     .single()
 
   if (adminProfileError || adminProfile?.role_id !== 'admin' || adminProfile.active === false) {
-    return json({ error: 'No tienes permisos de administrador.' }, 403)
+    return publicErrorResponse('No tienes permisos para realizar esta acción.', 403, 'forbidden')
   }
 
   return {

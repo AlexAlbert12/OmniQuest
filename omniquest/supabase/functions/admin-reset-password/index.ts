@@ -1,4 +1,4 @@
-import { corsHeaders, getAdminContext, isResponse, json, readJsonBody, writeAdminAudit } from '../_shared/admin.ts'
+import { errorResponse, methodNotAllowedResponse, corsHeaders, getAdminContext, isResponse, json, readJsonBody, writeAdminAudit } from '../_shared/admin.ts'
 
 type RequestBody = {
   profileId?: string
@@ -6,7 +6,7 @@ type RequestBody = {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
     const context = await getAdminContext(req)
@@ -47,7 +47,6 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, email: profile.email })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo restablecer la contraseña.'
-    return json({ error: message }, 500)
+    return errorResponse(error, 'No se pudo restablecer la contraseña.', { functionName: 'admin-reset-password' })
   }
 })

@@ -1,4 +1,4 @@
-import { corsHeaders, getAdminContext, isResponse, json, readJsonBody, writeAdminAudit } from '../_shared/admin.ts'
+import { errorResponse, methodNotAllowedResponse, corsHeaders, getAdminContext, isResponse, json, readJsonBody, writeAdminAudit } from '../_shared/admin.ts'
 
 type RequestBody = {
   active?: boolean
@@ -7,7 +7,7 @@ type RequestBody = {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
     const context = await getAdminContext(req)
@@ -49,7 +49,6 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, classroomId, active })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo actualizar la clase.'
-    return json({ error: message }, 500)
+    return errorResponse(error, 'No se pudo actualizar la clase.', { functionName: 'admin-deactivate-classroom' })
   }
 })

@@ -1,4 +1,4 @@
-import { corsHeaders, ensureTeacherSubject, getTeacherContext, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
+import { publicError, errorResponse, methodNotAllowedResponse, corsHeaders, ensureTeacherSubject, getTeacherContext, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
 
 type RequestBody = {
   availableUntil?: string | null
@@ -11,7 +11,7 @@ type RequestBody = {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
     const context = await getTeacherContext(req)
@@ -72,8 +72,7 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, topic: data })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo actualizar el tema.'
-    return json({ error: message }, 500)
+    return errorResponse(error, 'No se pudo actualizar el tema.', { functionName: 'teacher-update-topic' })
   }
 })
 
@@ -86,7 +85,7 @@ function normalizeIsoDate(value: unknown) {
   const text = String(value ?? '').trim()
   if (!text) return null
   const date = new Date(text)
-  if (Number.isNaN(date.getTime())) throw new Error('La fecha de disponibilidad no es válida.')
+  if (Number.isNaN(date.getTime())) throw publicError('La fecha de disponibilidad no es válida.', 400, 'bad_request')
   return date.toISOString()
 }
 
