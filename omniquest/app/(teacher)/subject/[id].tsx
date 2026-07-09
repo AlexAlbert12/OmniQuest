@@ -18,6 +18,7 @@ import {
   type StudentReport,
 } from '../../../lib/teacherSubjectAnalytics';
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
+import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav';
 import TeacherStudentImportModal from '../../../components/teacher/TeacherStudentImportModal';
 import { GradeDistributionBars, SubjectPanel as Panel, type IconName } from '../../../components/teacher/subject/SubjectShared';
 import { SubjectQuestionsPanel, SubjectQuestionsTab } from '../../../components/teacher/subject/SubjectQuestionsTab';
@@ -620,7 +621,7 @@ export default function SubjectDetailScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 14,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 36 : 56,
+            paddingBottom: isDesktop ? 36 : 112,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
@@ -872,6 +873,7 @@ export default function SubjectDetailScreen() {
           {renderTabContent(currentSubject)}
         </ScrollView>
       </View>
+      {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
       <TeacherStudentImportModal
         visible={showStudentImportModal}
         subjectId={currentSubject.id}

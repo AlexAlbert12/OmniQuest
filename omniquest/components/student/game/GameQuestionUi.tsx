@@ -14,8 +14,8 @@ export function SubmitAnswerButton({ disabled, onPress }: { disabled: boolean; o
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      className="mt-1 flex-row items-center justify-center gap-2 rounded-2xl bg-[#5A46D8] px-6 py-4"
-      style={({ pressed }) => ({ opacity: disabled ? 0.55 : pressed ? 0.84 : 1 })}
+      className="mt-2 flex-row items-center justify-center gap-2 rounded-2xl bg-[#6D5AF6] px-6 py-4"
+      style={({ pressed }) => ({ opacity: disabled ? 0.52 : pressed ? 0.84 : 1 })}
     >
       <Text className="text-[16px] font-black text-white">Comprobar</Text>
       <Ionicons name="checkmark-circle" size={19} color="#FFFFFF" />
@@ -67,18 +67,21 @@ export function QuestionFeedbackCard({
   const isCorrect = feedback.status === 'correct'
   const isPending = feedback.status === 'pending'
   const color = isPending ? '#F6A64A' : isCorrect ? '#34D399' : '#FB7185'
-  const title = isPending ? 'Enviado para revisión' : isCorrect ? 'Correcto' : 'Incorrecto'
+  const title = isPending ? 'En revisión' : isCorrect ? '¡Correcto!' : 'Incorrecto'
+  const subtitle = isPending
+    ? 'Tu profesor corregirá esta respuesta.'
+    : isCorrect
+      ? 'Has respondido correctamente.'
+      : 'Guarda esta pista para repasar después.'
   const pulse = useRef(new Animated.Value(0)).current
   const streakBonus = isCorrect && streak >= 3
 
   useEffect(() => {
-    if (!isCorrect) return
-
     pulse.setValue(0)
     Animated.sequence([
       Animated.timing(pulse, {
         toValue: 1,
-        duration: 360,
+        duration: 380,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
@@ -89,57 +92,39 @@ export function QuestionFeedbackCard({
         useNativeDriver: true,
       }),
     ]).start()
-  }, [isCorrect, pulse])
+  }, [feedback.status, pulse])
 
   const iconScale = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.18],
-  })
-  const glowOpacity = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.18, 0.52],
+    outputRange: [1, 1.14],
   })
 
   return (
-    <View className="mt-5 rounded-[24px] border bg-[#09162C] p-5" style={{ borderColor: color }}>
-      <View className="flex-row flex-wrap items-center justify-between gap-4">
-        <View className="min-w-0 flex-1 flex-row items-center gap-3">
-          <Animated.View
-            className="absolute left-0 h-12 w-12 rounded-full"
-            style={{ backgroundColor: color, opacity: glowOpacity, transform: [{ scale: iconScale }] }}
-          />
-          <Animated.View
-            className="h-12 w-12 items-center justify-center rounded-full"
-            style={{ backgroundColor: `${color}24`, transform: [{ scale: iconScale }] }}
-          >
-            <Ionicons name={isPending ? 'time-outline' : isCorrect ? 'checkmark-circle' : 'close-circle'} size={27} color={color} />
-          </Animated.View>
-          <View className="min-w-0 flex-1">
-            <Text className="text-[20px] font-black text-white">{title}</Text>
-            <View className="mt-1 flex-row flex-wrap items-center gap-2">
-              <Text className="text-[13px] font-bold" style={{ color }}>
-                {isPending ? 'Tu profesor corregirá esta respuesta' : `+${feedback.earnedPoints} XP`}
-              </Text>
-              {isCorrect ? (
-                <View className="flex-row items-center gap-1 rounded-full bg-[#2A210F] px-2 py-1">
-                  <Ionicons name="flame" size={12} color="#FF7B45" />
-                  <Text className="text-[11px] font-black text-[#FFB38A]">
-                    Racha {streak}{streakBonus ? ' · bonus' : ''}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </View>
-
-        <Pressable
-          onPress={onContinue}
-          className="flex-row items-center justify-center gap-2 rounded-2xl px-5 py-3"
-          style={({ pressed }) => ({ backgroundColor: color, opacity: pressed ? 0.82 : 1 })}
+    <View className="mt-5 overflow-hidden rounded-[28px] border bg-[#09162C] p-5" style={{ borderColor: `${color}88` }}>
+      <View className="absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ backgroundColor: `${color}18` }} />
+      <View className="items-center">
+        <Animated.View
+          className="h-20 w-20 items-center justify-center rounded-full"
+          style={{ backgroundColor: `${color}22`, transform: [{ scale: iconScale }] }}
         >
-          <Text className="font-black text-white">Continuar</Text>
-          <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-        </Pressable>
+          <Ionicons name={isPending ? 'time-outline' : isCorrect ? 'checkmark-circle' : 'close-circle'} size={44} color={color} />
+        </Animated.View>
+        <Text className="mt-4 text-center text-[28px] font-black text-white">{title}</Text>
+        <Text className="mt-2 text-center text-[14px] leading-6 text-[#C9D7EA]">{subtitle}</Text>
+
+        <View className="mt-5 w-full rounded-2xl border border-[#173055] bg-[#071426] p-4">
+          <View className="flex-row items-center justify-center gap-2">
+            <Ionicons name={isPending ? 'hourglass-outline' : isCorrect ? 'flash' : 'refresh'} size={24} color={color} />
+            <Text className="text-[26px] font-black text-white">
+              {isPending ? 'Pendiente' : isCorrect ? `+${feedback.earnedPoints} XP` : 'A repasar'}
+            </Text>
+          </View>
+          {isCorrect ? (
+            <Text className="mt-2 text-center text-[13px] font-black" style={{ color }}>
+              Racha {streak}{streakBonus ? ' · bonus' : ''}
+            </Text>
+          ) : null}
+        </View>
       </View>
 
       {!isCorrect && !isPending && feedback.correctAnswerText ? (
@@ -151,10 +136,22 @@ export function QuestionFeedbackCard({
 
       {feedback.explanation ? (
         <View className="mt-4 rounded-2xl border border-[#243E65] bg-[#0D1D3B] p-4">
-          <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#8FA7C7]">Explicación</Text>
+          <View className="flex-row items-center gap-2">
+            <Ionicons name="bulb" size={17} color="#FBBF24" />
+            <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#FBBF24]">Explicación</Text>
+          </View>
           <Text className="mt-2 text-[14px] leading-6 text-[#DDE7F4]">{feedback.explanation}</Text>
         </View>
       ) : null}
+
+      <Pressable
+        onPress={onContinue}
+        className="mt-5 flex-row items-center justify-center gap-2 rounded-2xl px-5 py-4"
+        style={({ pressed }) => ({ backgroundColor: isCorrect ? '#6D5AF6' : color, opacity: pressed ? 0.82 : 1 })}
+      >
+        <Text className="text-[16px] font-black text-white">Siguiente pregunta</Text>
+        <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+      </Pressable>
     </View>
   )
 }
@@ -201,23 +198,26 @@ export function AnswerOption({
 }) {
   const isSelected = selectedAnswerId === answer.id
   const isCorrectAnswer = correctAnswerId === answer.id
+  const isHinted = hintedAnswerId === answer.id
 
   let borderColor = '#1E355C'
-  let backgroundColor = '#0A1A34'
-  let textColor = '#FFFFFF'
-  let badgeColor = '#3B68F0'
+  let backgroundColor = '#08172E'
+  let textColor = '#F8FAFC'
+  let badgeColor = '#18275A'
+  let badgeBorderColor = '#2A456A'
 
-  const isHinted = hintedAnswerId === answer.id
   if (isHinted) {
     borderColor = '#FBBF24'
     backgroundColor = '#2A210F'
-    badgeColor = '#FBBF24'
+    badgeColor = '#FBBF2424'
+    badgeBorderColor = '#FBBF24'
   }
 
-  if (!hasAnswered && index === 0 && !isHinted) {
+  if (isSelected && !hasAnswered) {
     borderColor = '#8B5CF6'
     backgroundColor = '#16164E'
     badgeColor = '#6D5AF6'
+    badgeBorderColor = '#A78BFA'
   }
 
   if (hasAnswered) {
@@ -226,16 +226,19 @@ export function AnswerOption({
       backgroundColor = '#0D2D27'
       textColor = '#A7F3D0'
       badgeColor = '#22C55E'
+      badgeBorderColor = '#A7F3D0'
     } else if (isSelected) {
       borderColor = '#FB7185'
       backgroundColor = '#341525'
       textColor = '#FDA4AF'
       badgeColor = '#F43F5E'
+      badgeBorderColor = '#FDA4AF'
     } else {
       borderColor = '#142541'
       backgroundColor = '#071426'
       textColor = '#697B99'
-      badgeColor = '#334155'
+      badgeColor = '#111E3C'
+      badgeBorderColor = '#273A5E'
     }
   }
 
@@ -243,7 +246,7 @@ export function AnswerOption({
     <Pressable
       onPress={onPress}
       disabled={hasAnswered || isSubmitting}
-      className="min-h-[86px] flex-row items-center rounded-2xl border-2 px-8 py-4"
+      className="min-h-[70px] flex-row items-center rounded-2xl border px-4 py-3"
       style={({ pressed }) => ({
         borderColor,
         backgroundColor,
@@ -251,16 +254,18 @@ export function AnswerOption({
       })}
     >
       <View
-        className="h-12 w-12 items-center justify-center rounded-full"
-        style={{ backgroundColor: badgeColor }}
+        className="h-10 w-10 items-center justify-center rounded-full border"
+        style={{ backgroundColor: badgeColor, borderColor: badgeBorderColor }}
       >
-        <Text className="text-[18px] font-black text-white">{answerLetters[index] || '?'}</Text>
+        <Text className="text-[15px] font-black text-white">{answerLetters[index] || '?'}</Text>
       </View>
-      <Text className="ml-6 min-w-0 flex-1 text-[21px] font-semibold" style={{ color: textColor }}>
+      <Text className="ml-4 min-w-0 flex-1 text-[17px] font-bold leading-6" style={{ color: textColor }}>
         {answer.text}
       </Text>
-      {hasAnswered && isCorrectAnswer ? <Ionicons name="checkmark-circle" size={26} color="#34D399" /> : null}
-      {hasAnswered && isSelected && !isCorrectAnswer ? <Ionicons name="close-circle" size={26} color="#FB7185" /> : null}
+      {hasAnswered && isCorrectAnswer ? <Ionicons name="checkmark-circle" size={24} color="#34D399" /> : null}
+      {hasAnswered && isSelected && !isCorrectAnswer ? <Ionicons name="close-circle" size={24} color="#FB7185" /> : null}
+      {!hasAnswered && isSelected ? <Ionicons name="radio-button-on" size={22} color="#A78BFA" /> : null}
+      {!hasAnswered && !isSelected ? <Ionicons name="radio-button-off" size={22} color="#52627E" /> : null}
     </Pressable>
   )
 }

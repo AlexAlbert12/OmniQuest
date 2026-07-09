@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { supabase } from '../../lib/supabase'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
+import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge'
 import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
@@ -280,7 +281,7 @@ export default function TeacherProfileScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: 36,
+            paddingBottom: isDesktop ? 36 : 112,
           }}
           showsVerticalScrollIndicator={false}
         >
@@ -438,6 +439,7 @@ export default function TeacherProfileScreen() {
           </View>
         </ScrollView>
       </View>
+      {!isDesktop ? <TeacherBottomNav active="profile" /> : null}
     </View>
   )
 }

@@ -13,7 +13,6 @@ import { Ionicons } from '@expo/vector-icons'
 import AppConfirmModal from '../../../components/AppConfirmModal'
 import { useGame } from '../../../hooks/useGame'
 import { getDifficultyMeta, normalizeDifficulty } from '../../../lib/difficulty'
-import StudentHeaderAvatar from '../../../components/student/StudentHeaderAvatar'
 import type { Json } from '../../../types/database.types'
 import { createShadowStyle } from '../../../lib/platformShadow'
 import GameShell from '../../../components/student/game/GameShell'
@@ -206,36 +205,37 @@ export default function PlayScreen() {
         className="flex-1"
         contentContainerStyle={{
           flexGrow: 1,
-          paddingHorizontal: isDesktop ? 46 : 18,
-          paddingTop: isDesktop ? 38 : 22,
-          paddingBottom: isDesktop ? 30 : 22,
+          paddingHorizontal: isDesktop ? 46 : 16,
+          paddingTop: isDesktop ? 38 : 18,
+          paddingBottom: isDesktop ? 30 : 24,
         }}
         showsVerticalScrollIndicator={false}
       >
         <View className="flex-1">
-          <View className="flex-row items-center gap-4">
+          <View className="flex-row items-center gap-3">
             <Pressable
               onPress={() => router.back()}
-              className="h-14 w-14 items-center justify-center rounded-full border border-[#20375E] bg-[#0D1D3B]"
+              className="h-12 w-12 items-center justify-center rounded-2xl border border-[#20375E] bg-[#08172E]"
               style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
             >
-              <Ionicons name="close" size={30} color="#F4F7FB" />
+              <Ionicons name="close" size={26} color="#F4F7FB" />
             </Pressable>
 
             <View className="min-w-0 flex-1">
-              <View className="mb-3 flex-row items-center justify-between gap-4">
-                <Text className="text-[18px] font-black text-white">
+              <View className="flex-row items-center justify-between gap-3">
+                <Text className={`${isDesktop ? 'text-[18px]' : 'text-[16px]'} font-black text-white`}>
                   Pregunta {game.currentIndex + 1} de {totalQuestions}
                 </Text>
-                <View className="flex-row items-center gap-3">
-                  <Text className="text-[18px] font-black text-[#9B6CFF]">{game.score} pts</Text>
+                <View className="flex-row items-center gap-2">
+                  <View className="rounded-xl border border-[#223A62] bg-[#08172E] px-3 py-2">
+                    <Text className="text-[13px] font-black text-[#A78BFA]">{game.score} pts</Text>
+                  </View>
                   <LivesBadge lives={game.lives} />
-                  <StudentHeaderAvatar />
                 </View>
               </View>
-              <View className="h-3 overflow-hidden rounded-full bg-[#10213E]">
+              <View className="mt-3 h-3 overflow-hidden rounded-full bg-[#10213E]">
                 <View
-                  className="h-full rounded-full bg-[#9B6CFF]"
+                  className="h-full rounded-full bg-[#6D5AF6]"
                   style={{ width: `${progressPercentage}%` }}
                 />
               </View>
@@ -245,27 +245,30 @@ export default function PlayScreen() {
           <GameStatsBar points={pointsBase} streak={game.streak} position={position} category={category} lives={game.lives} />
 
           <View className="mt-6 flex-1 items-center justify-center">
-            <View className="w-full" style={{ maxWidth: 920 }}>
-              <View className="items-center">
+            <View className="w-full" style={{ maxWidth: 760 }}>
+              <View className="items-center px-1">
                 <TimerPill timeLeft={game.timeLeft} />
-                <View className="mt-5 flex-row items-center gap-4">
-                  <Ionicons name="sparkles" size={18} color="#6D5AF6" />
-                  <Text className="text-[22px] font-black text-[#9B6CFF]">
+                <View className="mt-5 flex-row items-center gap-3">
+                  <Ionicons name="sparkles" size={16} color="#8B5CF6" />
+                  <Text className={`${isDesktop ? 'text-[22px]' : 'text-[19px]'} font-black text-[#A78BFA]`}>
                     Pregunta {game.currentIndex + 1}
                   </Text>
-                  <Ionicons name="sparkles" size={18} color="#6D5AF6" />
+                  <Ionicons name="sparkles" size={16} color="#8B5CF6" />
                 </View>
-                <Text className="mt-4 max-w-[820px] text-center text-[30px] font-black leading-10 text-white">
+                <Text className={`${isDesktop ? 'text-[30px] leading-10' : 'text-[25px] leading-8'} mt-4 max-w-[720px] text-center font-black text-white`}>
                   {currentQuestion?.text}
                 </Text>
-                <View className="mt-4 flex-row items-center gap-2">
-                  <Ionicons name="star" size={20} color="#76A7FF" />
-                  <Text className="text-[15px] text-[#C7D6ED]">{getQuestionInstruction(questionType)}</Text>
+                <View className="mt-4 flex-row items-center gap-2 rounded-full bg-[#071426]/80 px-4 py-2">
+                  <Ionicons name="star" size={18} color="#76A7FF" />
+                  <Text className="text-[13px] font-semibold text-[#C7D6ED]">{getQuestionInstruction(questionType)}</Text>
                 </View>
 
                 {game.hintedAnswerId ? (
-                  <View className="mt-3 rounded-2xl border border-[#FBBF24] bg-[#2A210F]/90 p-4">
-                    <Text className="font-black uppercase tracking-[0.04em] text-[#FBBF24]">Pista activa</Text>
+                  <View className="mt-3 w-full rounded-2xl border border-[#FBBF24] bg-[#2A210F]/90 p-4">
+                    <View className="flex-row items-center gap-2">
+                      <Ionicons name="bulb" size={18} color="#FBBF24" />
+                      <Text className="font-black uppercase tracking-[0.04em] text-[#FBBF24]">Pista activa</Text>
+                    </View>
                     <Text className="mt-2 text-[13px] text-[#F4E3B8]">
                       La respuesta se validará en el servidor y tendrá penalización si aciertas.
                     </Text>
@@ -274,15 +277,15 @@ export default function PlayScreen() {
               </View>
 
               <View
-                className="mt-6 rounded-[24px] bg-[#061426]/80 p-2"
+                className="mt-6 rounded-[26px] border border-[#183258] bg-[#061426]/88 p-2"
                 style={{
                   ...createShadowStyle({
                     color: '#020817',
-                    opacity: 0.48,
+                    opacity: 0.5,
                     radius: 28,
                     offsetY: 18,
                     elevation: 12,
-                    web: '0 18px 28px rgba(2, 8, 23, 0.32)',
+                    web: '0 18px 28px rgba(2, 8, 23, 0.34)',
                   }),
                 }}
               >
@@ -309,10 +312,7 @@ export default function PlayScreen() {
           </View>
 
           {!game.hasAnswered && !game.isSubmitting && !game.feedback ? (
-            <BottomHud
-              onHint={handleHint}
-              onSkip={handleSkip}
-            />
+            <BottomHud onHint={handleHint} onSkip={handleSkip} />
           ) : null}
         </View>
       </ScrollView>

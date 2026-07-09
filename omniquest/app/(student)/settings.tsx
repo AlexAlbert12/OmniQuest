@@ -21,6 +21,8 @@ import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import BrandLogo from '../../components/BrandLogo'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
+import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
+import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar'
 import NotificationBadge from '../../components/NotificationBadge'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
@@ -1133,6 +1135,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                   audience={isTeacher ? 'teacher' : 'student'}
                   onPress={() => router.push((isTeacher ? '/(teacher)/notifications' : '/(student)/notifications') as any)}
                 />
+                {isTeacher ? <TeacherHeaderAvatar /> : null}
                 {!isTeacher ? <StudentHeaderAvatar /> : null}
               </View>
             </View>
@@ -1168,7 +1171,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
             <ScrollView
               ref={scrollRef}
               className="flex-1"
-              contentContainerStyle={{ paddingBottom: isDesktop || isTeacher ? 96 : 124 }}
+              contentContainerStyle={{ paddingBottom: isDesktop ? 96 : 124 }}
               showsVerticalScrollIndicator={false}
             >
               <View className="gap-5">
@@ -1698,6 +1701,8 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
       />
 
       {!securityOnly && !isDesktop && !isTeacher ? <StudentBottomNav active="settings" /> : null}
+      {!securityOnly && !isDesktop && isTeacher ? <TeacherBottomNav active="settings" /> : null}
+      {securityOnly && !isDesktop && isTeacher ? <TeacherBottomNav active="settings" /> : null}
     </View>
   )
 }

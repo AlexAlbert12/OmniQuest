@@ -3,21 +3,23 @@ import { View } from 'react-native'
 
 export default function GameShell({ children }: { children: React.ReactNode }) {
   return (
-    <View className="flex-1 overflow-hidden bg-[#031026]">
-      <View className="absolute inset-0 bg-[#050B22]" />
-      <View className="absolute left-[-120px] top-[-120px] h-80 w-80 rounded-full bg-[#132E72]/35" />
-      <View className="absolute right-[-110px] top-[180px] h-96 w-96 rounded-full bg-[#2D155F]/45" />
-      <View className="absolute bottom-[-160px] left-[18%] h-96 w-96 rounded-full bg-[#071D48]/70" />
-      <View className="absolute right-24 top-28 h-2 w-2 rounded-full bg-[#7C5CFF]" />
-      <View className="absolute right-[21%] top-14 h-1.5 w-1.5 rounded-full bg-[#5364F5]" />
-      <View className="absolute left-[8%] top-40 h-1.5 w-1.5 rounded-full bg-[#7C5CFF]" />
-      <View className="absolute right-[12%] top-56 h-24 w-24 rounded-full bg-[#202B91]/70" />
-      <View className="absolute right-[9%] top-72 h-9 w-9 rounded-full bg-[#29175F]" />
-      <View className="absolute bottom-56 right-[5%] h-72 w-72 rounded-full bg-[#130D5B]/40" />
-      <View
-        className="absolute right-[9%] top-[235px] h-8 w-32 rounded-full border border-[#3F36A8]"
-        style={{ transform: [{ rotate: '-18deg' }] }}
-      />
+    <View className="flex-1 overflow-hidden bg-[#030B1D]">
+      <View className="absolute inset-0 bg-[#030B1D]" />
+      <View className="absolute left-[-160px] top-[-140px] h-96 w-96 rounded-full bg-[#10397C]/45" />
+      <View className="absolute right-[-140px] top-[160px] h-[420px] w-[420px] rounded-full bg-[#32136C]/50" />
+      <View className="absolute bottom-[-180px] left-[8%] h-[460px] w-[460px] rounded-full bg-[#051C48]/70" />
+      <View className="absolute bottom-[110px] right-[-120px] h-80 w-80 rounded-full bg-[#190B55]/55" />
+
+      <View className="absolute right-[11%] top-[210px] h-20 w-28 rounded-full border border-[#4E43C8]/70" style={{ transform: [{ rotate: '-19deg' }] }} />
+      <View className="absolute right-[7%] top-[235px] h-11 w-11 rounded-full bg-[#342196]" />
+      <View className="absolute right-[19%] top-[170px] h-24 w-24 rounded-full bg-[#1D2A8B]/65" />
+
+      <View className="absolute left-[10%] top-[132px] h-1.5 w-1.5 rounded-full bg-[#8B5CF6]" />
+      <View className="absolute right-[28%] top-[74px] h-1.5 w-1.5 rounded-full bg-[#5364F5]" />
+      <View className="absolute right-[18%] top-[304px] h-2 w-2 rounded-full bg-[#7C5CFF]" />
+      <View className="absolute left-[18%] top-[360px] h-1.5 w-1.5 rounded-full bg-[#A78BFA]" />
+      <View className="absolute left-[26%] bottom-[180px] h-1 w-1 rounded-full bg-[#60A5FA]" />
+
       {children}
     </View>
   )

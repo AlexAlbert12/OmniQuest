@@ -12,6 +12,7 @@ import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/teacher/TeacherSidebar';
+import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
 import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge';
 import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
@@ -297,7 +298,7 @@ export default function TeacherHomeScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 28 : 18,
-            paddingBottom: 32,
+            paddingBottom: isDesktop ? 32 : 112,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
@@ -422,6 +423,7 @@ export default function TeacherHomeScreen() {
           </View>
         </ScrollView>
       </View>
+      {!isDesktop ? <TeacherBottomNav active="home" /> : null}
     </View>
   );
 }

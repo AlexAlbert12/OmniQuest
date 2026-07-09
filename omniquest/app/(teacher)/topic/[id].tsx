@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty';
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
+import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav';
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -261,7 +262,7 @@ export default function TopicDetailScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 14,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: 36,
+            paddingBottom: isDesktop ? 36 : 112,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
@@ -363,6 +364,7 @@ export default function TopicDetailScreen() {
           </Panel>
         </ScrollView>
       </View>
+      {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
     </View>
   );
 }

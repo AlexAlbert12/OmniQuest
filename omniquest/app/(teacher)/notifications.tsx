@@ -15,7 +15,9 @@ import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import { getTimeAgo } from '../../lib/time'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
+import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import BrandLogo from '../../components/BrandLogo'
+import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
@@ -151,7 +153,7 @@ export default function NotificationsScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 28 : 18,
-            paddingBottom: 32,
+            paddingBottom: isDesktop ? 32 : 112,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
@@ -191,6 +193,7 @@ export default function NotificationsScreen() {
                   <Text className="text-[12px] font-bold text-white">Marcar todo leído</Text>
                 </Pressable>
               ) : null}
+              <TeacherHeaderAvatar />
             </View>
           </View>
 
@@ -237,6 +240,7 @@ export default function NotificationsScreen() {
           </View>
         </ScrollView>
       </View>
+      {!isDesktop ? <TeacherBottomNav active="notifications" /> : null}
     </View>
   )
 }

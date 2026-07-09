@@ -14,6 +14,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
 
 type TicketPriority = 'low' | 'medium' | 'high';
 type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
@@ -207,7 +208,7 @@ export default function TeacherHelpCenterScreen() {
         contentContainerStyle={{
           paddingHorizontal: isDesktop ? 28 : 16,
           paddingTop: isDesktop ? 22 : 18,
-          paddingBottom: 32,
+          paddingBottom: isDesktop ? 32 : 112,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -343,6 +344,7 @@ export default function TeacherHelpCenterScreen() {
           </Panel>
         </View>
       </ScrollView>
+      {!isDesktop ? <TeacherBottomNav active="profile" /> : null}
     </View>
   );
 }

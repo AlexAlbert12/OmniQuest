@@ -12,10 +12,12 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
+import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import {
   buildStudentBadges,
+  calculateStreakDays,
   getStudentBadgeMetrics,
   type StudentBadge,
   type StudentBadgeScore,
@@ -25,6 +27,9 @@ import { fetchStudentProgressSummary, type StudentProgressSubject, type StudentP
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentDashboardCard, { StudentCardLink } from '../../components/student/StudentDashboardCard'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
+import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
+import BrandLogo from '../../components/BrandLogo'
+import NotificationBadge from '../../components/NotificationBadge'
 import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
@@ -111,6 +116,11 @@ export default function ProfileScreen() {
   const achievedBadges = badges.filter((badge) => badge.unlocked).slice(0, 3)
   const activityItems = buildActivityItems(activityAttempts)
   const memberSince = formatLongDate(profile?.created_at, '15 de marzo de 2008')
+  const streakDays = calculateStreakDays(scores.flatMap((score) => [
+    ...(score.played_days || []),
+    ...(score.played_at ? [score.played_at] : []),
+  ]))
+  const masteredTopics = progressSubjects.filter((subject) => subject.percent >= 100).length
 
   const fetchProfile = useCallback(async () => {
     setLoading(true)
@@ -244,6 +254,30 @@ export default function ProfileScreen() {
         <ActivityIndicator size="large" color={accentColor} />
         <Text className="mt-4 text-[#8FA7C7]">Cargando perfil...</Text>
       </View>
+    )
+  }
+
+  if (!isDesktop) {
+    return (
+      <MobileStudentProfile
+        accuracyPercent={accuracyPercent}
+        activityItems={activityItems}
+        achievedBadges={achievedBadges}
+        activeCourses={subjects.length}
+        alias={alias}
+        level={level}
+        masteredTopics={masteredTopics}
+        nextLevelProgress={nextLevelProgress}
+        points={points}
+        profile={profile}
+        streakDays={streakDays}
+        uploading={uploading}
+        onPickImage={pickImage}
+        onOpenActivity={() => router.push('/(student)/activity-log' as any)}
+        onOpenBadges={() => router.push('/(student)/badges' as any)}
+        onOpenClasses={() => router.push('/(student)/classes' as any)}
+        onOpenProgress={() => router.push('/(student)/progress' as any)}
+      />
     )
   }
 
@@ -426,6 +460,443 @@ export default function ProfileScreen() {
       </View>
 
       {!isDesktop ? <StudentBottomNav active="profile" /> : null}
+    </View>
+  )
+}
+
+function MobileStudentProfile({
+  accuracyPercent,
+  activityItems,
+  achievedBadges,
+  activeCourses,
+  alias,
+  level,
+  masteredTopics,
+  nextLevelProgress,
+  points,
+  profile,
+  streakDays,
+  uploading,
+  onPickImage,
+  onOpenActivity,
+  onOpenBadges,
+  onOpenClasses,
+  onOpenProgress,
+}: {
+  accuracyPercent: number
+  activityItems: ActivityItem[]
+  achievedBadges: StudentBadge[]
+  activeCourses: number
+  alias: string
+  level: number
+  masteredTopics: number
+  nextLevelProgress: number
+  points: number
+  profile: Profile | null
+  streakDays: number
+  uploading: boolean
+  onPickImage: () => void
+  onOpenActivity: () => void
+  onOpenBadges: () => void
+  onOpenClasses: () => void
+  onOpenProgress: () => void
+}) {
+  const { accentColor } = useAppTheme()
+
+  return (
+    <View className="flex-1 bg-[#031022]">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 118 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-7 flex-row items-center justify-between">
+          <BrandLogo size={32} />
+          <View className="flex-row items-center gap-3">
+            <NotificationBadge audience="student" streakDays={streakDays} />
+            <StudentHeaderAvatar />
+          </View>
+        </View>
+
+        <View className="mb-5 flex-row items-center gap-3">
+          <View
+            className="h-[52px] w-[52px] items-center justify-center rounded-2xl"
+            style={{ backgroundColor: withAlpha(accentColor, 'D9') }}
+          >
+            <Ionicons name="person" size={30} color="#FFFFFF" />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className="text-[38px] font-black leading-[42px] text-white" numberOfLines={1}>Perfil</Text>
+            <Text className="mt-1 text-[15px] leading-5 text-[#C7D3E5]" numberOfLines={2}>
+              Gestiona tu información y revisa tu progreso.
+            </Text>
+          </View>
+        </View>
+
+        <MobileProfileHero
+          accentColor={accentColor}
+          alias={alias}
+          level={level}
+          nextLevelProgress={nextLevelProgress}
+          points={points}
+          profile={profile}
+          uploading={uploading}
+          onPickImage={onPickImage}
+        />
+
+        <View className="mt-4 flex-row flex-wrap gap-3">
+          <MobileStatTile icon="flame" label="Días de racha" value={String(streakDays)} helper={streakDays > 0 ? 'Sigue así' : 'Empieza hoy'} color="#F97316" />
+          <MobileStatTile icon="checkmark-done-circle" label="Temas dominados" value={String(masteredTopics)} helper={masteredTopics > 0 ? 'Buen ritmo' : 'En progreso'} color="#22C55E" />
+          <MobileStatTile icon="trending-up" label="Precisión general" value={`${accuracyPercent}%`} helper={accuracyPercent >= 80 ? 'Excelente' : 'A mejorar'} color="#38BDF8" />
+          <MobileStatTile icon="book" label="Cursos activos" value={String(activeCourses)} helper={activeCourses > 0 ? 'Aprendiendo' : 'Únete a uno'} color={accentColor} onPress={onOpenClasses} />
+        </View>
+
+        <MobileProgressPanel
+          accentColor={accentColor}
+          level={level}
+          nextLevelProgress={nextLevelProgress}
+          points={points}
+          onPress={onOpenProgress}
+        />
+
+        <MobileSectionPanel title="Logros" actionLabel="Ver todos" onAction={onOpenBadges}>
+          {achievedBadges.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="-mx-3"
+              contentContainerStyle={{ paddingHorizontal: 12, gap: 14 }}
+            >
+              {achievedBadges.map((badge) => (
+                <MobileBadgeCard key={badge.id} badge={badge} onPress={onOpenBadges} />
+              ))}
+            </ScrollView>
+          ) : (
+            <MobileCompactEmpty icon="ribbon-outline" title="Sin logros todavía" subtitle="Completa partidas para desbloquear insignias." />
+          )}
+        </MobileSectionPanel>
+
+        <MobileSectionPanel title="Actividad reciente" actionLabel="Ver toda" onAction={onOpenActivity}>
+          {activityItems.length > 0 ? (
+            <View>
+              {activityItems.slice(0, 5).map((item, index) => (
+                <MobileActivityRow
+                  key={item.id}
+                  item={item}
+                  isLast={index === Math.min(activityItems.length, 5) - 1}
+                />
+              ))}
+            </View>
+          ) : (
+            <MobileCompactEmpty icon="sparkles-outline" title="Sin actividad reciente" subtitle="Tu historial aparecerá cuando juegues." />
+          )}
+        </MobileSectionPanel>
+      </ScrollView>
+
+      <StudentBottomNav active="profile" />
+    </View>
+  )
+}
+
+function MobileProfileHero({
+  accentColor,
+  alias,
+  level,
+  nextLevelProgress,
+  points,
+  profile,
+  uploading,
+  onPickImage,
+}: {
+  accentColor: string
+  alias: string
+  level: number
+  nextLevelProgress: number
+  points: number
+  profile: Profile | null
+  uploading: boolean
+  onPickImage: () => void
+}) {
+  const xpToNextLevel = Math.max(0, 100 - nextLevelProgress)
+  const progressWidth = Math.min(100, Math.max(nextLevelProgress > 0 ? 8 : 0, nextLevelProgress))
+
+  return (
+    <LinearGradient
+      colors={['#25126D', '#121C4A', '#071934']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ borderRadius: 24, borderWidth: 1, borderColor: '#263B72', overflow: 'hidden' }}
+    >
+      <View className="relative min-h-[226px] p-5">
+        <View className="absolute -right-10 top-7 h-24 w-40 rounded-3xl bg-[#7C3AED]/20" style={{ transform: [{ rotate: '-28deg' }] }} />
+        <View className="absolute bottom-4 right-3 h-28 w-44 rounded-3xl bg-[#2563EB]/10" style={{ transform: [{ rotate: '-20deg' }] }} />
+
+        <View className="flex-row items-center gap-4 pr-[76px]">
+          <Pressable
+            onPress={onPickImage}
+            disabled={uploading}
+            className="h-[118px] w-[118px] items-center justify-center rounded-full bg-[#0B1533]"
+            style={{ borderWidth: 3, borderColor: accentColor }}
+          >
+            {profile?.avatar && profile.avatar.startsWith('http') ? (
+              <Image source={{ uri: profile.avatar }} className="h-full w-full rounded-full" />
+            ) : (
+              <View className="h-full w-full items-center justify-center rounded-full bg-[#1C2A58]">
+                <Ionicons name="person" size={54} color="#DDE7FF" />
+              </View>
+            )}
+            <View
+              className="absolute -bottom-1 -right-1 h-11 w-11 items-center justify-center rounded-full"
+              style={{ backgroundColor: accentColor, borderWidth: 4, borderColor: '#101A3D' }}
+            >
+              {uploading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons name="camera" size={19} color="#FFFFFF" />
+              )}
+            </View>
+          </Pressable>
+
+          <View className="min-w-0 flex-1">
+            <Text className="text-[29px] font-black leading-[34px] text-white" numberOfLines={1}>{alias}</Text>
+            <View className="mt-2 flex-row items-center gap-2">
+              <View className="h-3 w-3 rounded-full bg-[#22D3A5]" />
+              <Text className="text-[15px] text-[#DDE7F4]">En línea</Text>
+            </View>
+            <View className="mt-4 self-start flex-row items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: withAlpha(accentColor, '38') }}>
+              <Ionicons name="star" size={15} color="#C4B5FD" />
+              <Text className="text-[14px] font-black text-white">Nivel {level}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View className="absolute right-5 top-7 items-center">
+          <LinearGradient
+            colors={['#B06CFF', '#7C3AED', '#5B21B6']}
+            style={{
+              width: 70,
+              height: 70,
+              borderRadius: 22,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 2,
+              borderColor: '#C4B5FD',
+            }}
+          >
+            <Text className="text-[28px] font-black text-white">{level}</Text>
+          </LinearGradient>
+          <Text className="mt-2 text-center text-[12px] font-semibold text-[#DDE7F4]">Nivel actual</Text>
+        </View>
+
+        <View className="mt-5">
+          <View className="h-3 overflow-hidden rounded-full bg-[#172A55]">
+            <LinearGradient
+              colors={[accentColor, '#B86BFF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ width: `${progressWidth}%`, height: '100%', borderRadius: 999 }}
+            />
+          </View>
+          <Text className="mt-3 text-[14px] text-[#D4E2F6]">
+            {xpToNextLevel} XP para Nivel {level + 1}
+          </Text>
+          <Text className="mt-1 text-[12px] text-[#8FA7C7]">{points.toLocaleString()} XP acumulados</Text>
+        </View>
+      </View>
+    </LinearGradient>
+  )
+}
+
+function MobileStatTile({
+  color,
+  helper,
+  icon,
+  label,
+  value,
+  onPress,
+}: {
+  color: string
+  helper: string
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  value: string
+  onPress?: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      className="min-h-[150px] flex-1 items-center justify-center rounded-2xl border border-[#142B4F] bg-[#071832] px-3 py-4"
+      style={({ pressed }) => ({
+        flexBasis: '47%',
+        opacity: pressed ? 0.82 : 1,
+      })}
+    >
+      <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '26') }}>
+        <Ionicons name={icon} size={25} color={color} />
+      </View>
+      <Text className="mt-3 text-center text-[30px] font-black leading-[34px] text-white" numberOfLines={1}>{value}</Text>
+      <Text className="mt-1 text-center text-[13px] leading-4 text-[#D4E2F6]" numberOfLines={2}>{label}</Text>
+      <Text className="mt-2 text-center text-[13px] font-bold" style={{ color }} numberOfLines={1}>{helper}</Text>
+    </Pressable>
+  )
+}
+
+function MobileProgressPanel({
+  accentColor,
+  level,
+  nextLevelProgress,
+  points,
+  onPress,
+}: {
+  accentColor: string
+  level: number
+  nextLevelProgress: number
+  points: number
+  onPress: () => void
+}) {
+  const progressWidth = Math.min(100, Math.max(nextLevelProgress > 0 ? 8 : 0, nextLevelProgress))
+  const xpToNextLevel = Math.max(0, 100 - nextLevelProgress)
+
+  return (
+    <MobileSectionPanel title="Mi progreso" actionLabel="Ver todo" onAction={onPress}>
+      <View className="gap-4">
+        <View>
+          <View className="mb-2 flex-row items-center justify-between gap-3">
+            <View className="min-w-0 flex-row items-center gap-3">
+              <View className="h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(accentColor, '26') }}>
+                <Ionicons name="ribbon" size={18} color={accentColor} />
+              </View>
+              <Text className="text-[15px] font-bold text-[#DDE7F4]">Nivel actual</Text>
+            </View>
+            <Text className="text-[15px] font-black" style={{ color: accentColor }}>{nextLevelProgress} / 100 XP</Text>
+          </View>
+          <View className="h-3 overflow-hidden rounded-full bg-[#14294C]">
+            <LinearGradient
+              colors={[accentColor, '#B86BFF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ width: `${progressWidth}%`, height: '100%', borderRadius: 999 }}
+            />
+          </View>
+        </View>
+
+        <MobileProgressLine icon="flash" label="XP para subir" value={`${xpToNextLevel} XP`} color="#FBBF24" />
+        <MobileProgressLine icon="star" label="XP acumulada" value={`${points.toLocaleString()} XP`} color="#F59E0B" />
+        <MobileProgressLine icon="trophy" label="Nivel desbloqueado" value={`Nivel ${level}`} color="#38BDF8" />
+      </View>
+    </MobileSectionPanel>
+  )
+}
+
+function MobileProgressLine({
+  color,
+  icon,
+  label,
+  value,
+}: {
+  color: string
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  value: string
+}) {
+  return (
+    <View className="flex-row items-center justify-between gap-3 border-t border-[#11294A] pt-4">
+      <View className="min-w-0 flex-1 flex-row items-center gap-3">
+        <Ionicons name={icon} size={22} color={color} />
+        <Text className="text-[15px] font-bold text-[#D4E2F6]" numberOfLines={1}>{label}</Text>
+      </View>
+      <Text className="text-[15px] font-black text-white" numberOfLines={1}>{value}</Text>
+    </View>
+  )
+}
+
+function MobileSectionPanel({
+  actionLabel,
+  children,
+  onAction,
+  title,
+}: {
+  actionLabel?: string
+  children: React.ReactNode
+  onAction?: () => void
+  title: string
+}) {
+  return (
+    <View className="mt-5 overflow-hidden rounded-2xl border border-[#142B4F] bg-[#071832] p-4">
+      <View className="mb-4 flex-row items-center justify-between gap-3">
+        <Text className="min-w-0 flex-1 text-[24px] font-black text-white" numberOfLines={1}>{title}</Text>
+        {actionLabel && onAction ? (
+          <Pressable onPress={onAction} className="flex-row items-center gap-1">
+            <Text className="text-[15px] font-black text-[#A970FF]">{actionLabel}</Text>
+            <Ionicons name="chevron-forward" size={18} color="#A970FF" />
+          </Pressable>
+        ) : null}
+      </View>
+      {children}
+    </View>
+  )
+}
+
+function MobileBadgeCard({ badge, onPress }: { badge: StudentBadge; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="min-h-[132px] w-[252px] flex-row items-center gap-4 rounded-2xl border border-[#19345B] bg-[#091C3A] p-4"
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+    >
+      <View
+        className="h-[76px] w-[76px] items-center justify-center rounded-2xl border-2"
+        style={{ backgroundColor: withAlpha(badge.color, '18'), borderColor: badge.color }}
+      >
+        <Ionicons name={badge.icon} size={38} color={badge.color} />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[15px] font-black text-white" numberOfLines={2}>{badge.title}</Text>
+        <Text className="mt-2 text-[13px] leading-5 text-[#C7D3E5]" numberOfLines={2}>{badge.requirement}</Text>
+        <View className="mt-3 flex-row items-center gap-2">
+          <Text className="text-[13px] font-bold text-[#22D3A5]">Completado</Text>
+          <Ionicons name="checkmark-circle-outline" size={16} color="#22D3A5" />
+        </View>
+      </View>
+    </Pressable>
+  )
+}
+
+function MobileActivityRow({ item, isLast }: { item: ActivityItem; isLast: boolean }) {
+  return (
+    <View className={`flex-row items-center gap-3 py-3 ${isLast ? '' : 'border-b border-[#11294A]'}`}>
+      <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(item.color, '2B') }}>
+        <Ionicons name={item.icon} size={23} color={item.color} />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[14px] font-black text-white" numberOfLines={1}>{item.title}</Text>
+        <Text className="mt-1 text-[13px] leading-5 text-[#B7C4D7]" numberOfLines={2}>{item.detail}</Text>
+      </View>
+      <View className="items-end gap-2">
+        <Text className="text-[13px] text-[#B7C4D7]" numberOfLines={1}>{item.time}</Text>
+        <View className="rounded-xl bg-[#2D2365] px-3 py-1.5">
+          <Text className="text-[13px] font-black text-[#D8CCFF]">{item.xp}</Text>
+        </View>
+      </View>
+    </View>
+  )
+}
+
+function MobileCompactEmpty({
+  icon,
+  subtitle,
+  title,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  subtitle: string
+  title: string
+}) {
+  return (
+    <View className="items-center rounded-2xl border border-dashed border-[#1E3A63] bg-[#081B37] px-4 py-7">
+      <Ionicons name={icon} size={28} color="#8FA7C7" />
+      <Text className="mt-3 text-center text-[15px] font-black text-white">{title}</Text>
+      <Text className="mt-1 text-center text-[13px] leading-5 text-[#8FA7C7]">{subtitle}</Text>
     </View>
   )
 }

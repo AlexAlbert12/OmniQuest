@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../../../lib/supabase'
 import { getTimeAgo } from '../../../../lib/time'
 import TeacherSidebar from '../../../../components/teacher/TeacherSidebar'
+import TeacherBottomNav from '../../../../components/teacher/TeacherBottomNav'
 import BrandLogo from '../../../../components/BrandLogo'
 import NotificationBadge from '../../../../components/NotificationBadge'
 import TeacherHeaderAvatar from '../../../../components/teacher/TeacherHeaderAvatar'
@@ -581,7 +582,7 @@ export default function TeacherStudentHistoryScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 24 : 18,
-            paddingBottom: 34,
+            paddingBottom: isDesktop ? 34 : 112,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
@@ -756,6 +757,7 @@ export default function TeacherStudentHistoryScreen() {
           </View>
         </ScrollView>
       </View>
+      {!isDesktop ? <TeacherBottomNav active="students" /> : null}
     </View>
   )
 }

@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import TeacherBottomNav from './TeacherBottomNav';
 
 type TeacherTopicFormProps = {
   topicId?: string;
@@ -208,7 +209,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
   return (
     <View className="flex-1 bg-[#040E25]">
       <View className="absolute inset-0 bg-[#061126]" />
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isWide ? 20 : 112 }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pb-5 pt-4 md:px-6 lg:px-8">
           <View className="rounded-[18px] border border-[#0E4A8B] bg-[#061735] p-4 md:p-6">
             <View className="flex-row items-start gap-3">
@@ -383,6 +384,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
           </View>
         </View>
       </ScrollView>
+      {!isWide ? <TeacherBottomNav active="classes" /> : null}
     </View>
   );
 }

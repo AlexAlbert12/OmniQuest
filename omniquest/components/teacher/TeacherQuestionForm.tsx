@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { difficultyOptions, getDifficultyMeta, normalizeDifficulty, type DifficultyLevel } from '../../lib/difficulty';
 import type { Json } from '../../types/database.types';
+import TeacherBottomNav from './TeacherBottomNav';
 
 type QuestionTypeId = 'multiple' | 'boolean' | 'dragdrop' | 'match' | 'fill' | 'order' | 'open';
 type WizardStep = 1 | 2 | 3 | 4;
@@ -498,7 +499,7 @@ export default function TeacherQuestionForm({
   return (
     <View className="flex-1 bg-[#050E24]">
       <View className="absolute inset-0 bg-[#061126]" />
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isDesktop ? 24 : 112 }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pb-6 pt-5 md:px-6 lg:px-8">
           <View className="rounded-[20px] border border-[#1A3155] bg-[#061735] px-4 py-5 md:px-6">
             <View className="flex-row items-start justify-between gap-3">
@@ -886,6 +887,7 @@ export default function TeacherQuestionForm({
           </View>
         </View>
       </ScrollView>
+      {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
     </View>
   );
 }

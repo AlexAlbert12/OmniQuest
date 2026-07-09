@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { getTimeAgo } from '../../lib/time'
@@ -20,6 +21,7 @@ import BrandLogo from '../../components/BrandLogo'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
+import { withAlpha } from '../../lib/color'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
 
@@ -175,6 +177,24 @@ export default function StudentNotificationsScreen() {
     )
   }
 
+  if (!isDesktop) {
+    return (
+      <MobileStudentNotifications
+        categoryStats={categoryStats}
+        filteredNotifications={filteredNotifications}
+        notificationsCount={notifications.length}
+        profileAlias={profile?.alias || 'Alumno'}
+        refreshing={refreshing}
+        selectedFilter={selectedFilter}
+        unreadCount={unreadCount}
+        onFilterChange={setSelectedFilter}
+        onMarkAllAsRead={() => void markAllAsRead()}
+        onNotificationPress={(notification) => void handleNotificationAction(notification)}
+        onRefresh={() => void onRefresh()}
+      />
+    )
+  }
+
   return (
     <View className="flex-1 bg-[#061126]">
       <View className="flex-1 flex-row">
@@ -291,6 +311,359 @@ export default function StudentNotificationsScreen() {
       {!isDesktop ? <StudentBottomNav active="notifications" /> : null}
     </View>
   )
+}
+
+function MobileStudentNotifications({
+  categoryStats,
+  filteredNotifications,
+  notificationsCount,
+  profileAlias,
+  refreshing,
+  selectedFilter,
+  unreadCount,
+  onFilterChange,
+  onMarkAllAsRead,
+  onNotificationPress,
+  onRefresh,
+}: {
+  categoryStats: {
+    id: NotificationType
+    label: string
+    icon: keyof typeof Ionicons.glyphMap
+    count: number
+    unread: number
+  }[]
+  filteredNotifications: AppNotification[]
+  notificationsCount: number
+  profileAlias: string
+  refreshing: boolean
+  selectedFilter: NotificationFilter
+  unreadCount: number
+  onFilterChange: (filter: NotificationFilter) => void
+  onMarkAllAsRead: () => void
+  onNotificationPress: (notification: AppNotification) => void
+  onRefresh: () => void
+}) {
+  const initial = profileAlias.trim().charAt(0).toUpperCase() || 'A'
+  const primaryFilters = filterOptions.slice(0, 2)
+  const secondaryFilters = filterOptions.slice(2)
+
+  return (
+    <View className="flex-1 bg-[#031022]">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 122 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-7 flex-row items-start justify-between">
+          <BrandLogo size={32} />
+          <View className="flex-row items-center gap-3">
+            <NotificationTopButton count={unreadCount} />
+            <StudentHeaderAvatar />
+          </View>
+        </View>
+
+        <View className="mb-5 flex-row items-center gap-4">
+          <LinearGradient
+            colors={['#6D4AFF', '#4C1D95']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ width: 74, height: 74, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="notifications" size={36} color="#FFFFFF" />
+          </LinearGradient>
+          <View className="min-w-0 flex-1">
+            <Text className="text-[40px] font-black leading-[46px] text-white" numberOfLines={2}>
+              Mis Notificaciones
+            </Text>
+            <Text className="mt-2 text-[15px] leading-5 text-[#C7D3E5]">
+              {unreadCount > 0
+                ? `Tienes ${unreadCount} nueva${unreadCount === 1 ? '' : 's'} por revisar`
+                : 'Todo está al día en tus cursos'}
+            </Text>
+          </View>
+        </View>
+
+        <View className="mb-6 flex-row items-center gap-4">
+          <Pressable
+            onPress={onRefresh}
+            className="flex-row items-center gap-2 rounded-2xl px-3 py-3"
+            style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+          >
+            <Ionicons name="refresh" size={18} color="#DDE7F4" />
+            <Text className="text-[14px] font-black text-white">Actualizar</Text>
+          </Pressable>
+          <Pressable
+            onPress={onMarkAllAsRead}
+            disabled={unreadCount === 0}
+            className="h-14 w-14 items-center justify-center rounded-full"
+            style={({ pressed }) => ({
+              backgroundColor: '#6D4AFF',
+              opacity: unreadCount === 0 ? 0.55 : pressed ? 0.78 : 1,
+            })}
+          >
+            <Text className="text-[17px] font-black text-white">{initial}</Text>
+          </Pressable>
+        </View>
+
+        <View className="mb-6 flex-row gap-2">
+          {categoryStats.map((category) => (
+            <MobileCategoryCard
+              key={category.id}
+              category={category}
+              active={selectedFilter === category.id}
+              onPress={() => onFilterChange(category.id)}
+            />
+          ))}
+        </View>
+
+        <View className="mb-4 flex-row gap-3">
+          {primaryFilters.map((option) => (
+            <MobileFilterChip
+              key={option.id}
+              option={option}
+              active={selectedFilter === option.id}
+              count={option.id === 'unread' ? unreadCount : notificationsCount}
+              onPress={() => onFilterChange(option.id)}
+              prominent
+            />
+          ))}
+        </View>
+        <View className="mb-6 flex-row flex-wrap gap-3">
+          {secondaryFilters.map((option) => (
+            <MobileFilterChip
+              key={option.id}
+              option={option}
+              active={selectedFilter === option.id}
+              onPress={() => onFilterChange(option.id)}
+            />
+          ))}
+        </View>
+
+        <View className="mb-4 flex-row items-center gap-3">
+          <Text className="text-[22px] font-black text-white">{getNotificationSectionTitle(selectedFilter)}</Text>
+          <View className="rounded-full bg-[#071832] px-3 py-1">
+            <Text className="text-[12px] font-black text-[#8FA7C7]">{filteredNotifications.length}</Text>
+          </View>
+        </View>
+
+        {filteredNotifications.length > 0 ? (
+          <View className="gap-3">
+            {filteredNotifications.map((notification) => (
+              <MobileNotificationCard
+                key={notification.id}
+                notification={notification}
+                onPress={() => onNotificationPress(notification)}
+              />
+            ))}
+          </View>
+        ) : (
+          <MobileNotificationEmpty filter={selectedFilter} />
+        )}
+
+        <MobileAllCaughtUpBanner unreadCount={unreadCount} />
+      </ScrollView>
+
+      <StudentBottomNav active="notifications" />
+    </View>
+  )
+}
+
+function NotificationTopButton({ count }: { count: number }) {
+  return (
+    <View className="relative h-12 w-12 items-center justify-center rounded-full border border-[#20375E] bg-[#071832]">
+      <Ionicons name="notifications-outline" size={22} color="#DDE7F4" />
+      {count > 0 ? (
+        <View className="absolute -right-1 -top-2 h-6 min-w-6 items-center justify-center rounded-full bg-[#EF4444] px-1.5">
+          <Text className="text-[10px] font-black text-white">{count > 99 ? '99+' : count}</Text>
+        </View>
+      ) : null}
+    </View>
+  )
+}
+
+function MobileCategoryCard({
+  active,
+  category,
+  onPress,
+}: {
+  active: boolean
+  category: {
+    id: NotificationType
+    label: string
+    icon: keyof typeof Ionicons.glyphMap
+    count: number
+    unread: number
+  }
+  onPress: () => void
+}) {
+  const color = getNotificationTypeAccent(category.id)
+
+  return (
+    <Pressable
+      onPress={onPress}
+      className="min-h-[128px] flex-1 items-center justify-center rounded-xl border px-2 py-3"
+      style={({ pressed }) => ({
+        borderColor: active ? color : '#17345B',
+        backgroundColor: active ? withAlpha(color, '1F') : '#071832',
+        opacity: pressed ? 0.82 : 1,
+      })}
+    >
+      <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(color, '24') }}>
+        <Ionicons name={category.icon} size={22} color={color} />
+      </View>
+      <Text className="mt-3 text-center text-[12px] text-[#DDE7F4]" numberOfLines={1}>{category.label}</Text>
+      <Text className="mt-2 text-center text-[28px] font-black leading-[31px] text-white">{category.unread}</Text>
+      <Text className="text-center text-[12px] text-[#C7D3E5]">nuevas</Text>
+    </Pressable>
+  )
+}
+
+function MobileFilterChip({
+  active,
+  count,
+  onPress,
+  option,
+  prominent = false,
+}: {
+  active: boolean
+  count?: number
+  onPress: () => void
+  option: { id: NotificationFilter; label: string; icon: keyof typeof Ionicons.glyphMap }
+  prominent?: boolean
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className={`flex-row items-center justify-center gap-2 rounded-full ${prominent ? 'min-w-[132px] px-5 py-3' : 'px-4 py-3'}`}
+      style={({ pressed }) => ({
+        borderWidth: active ? 0 : 1,
+        borderColor: '#20375E',
+        backgroundColor: active ? '#6D4AFF' : '#071832',
+        opacity: pressed ? 0.82 : 1,
+      })}
+    >
+      <Ionicons name={option.icon} size={15} color={active ? '#FFFFFF' : '#DDE7F4'} />
+      <Text className={`text-[13px] font-black ${active ? 'text-white' : 'text-[#DDE7F4]'}`}>{option.label}</Text>
+      {typeof count === 'number' ? (
+        <View className="min-w-6 items-center rounded-full px-2 py-0.5" style={{ backgroundColor: active ? '#FFFFFF2E' : '#13284A' }}>
+          <Text className="text-[10px] font-black text-white">{count}</Text>
+        </View>
+      ) : null}
+    </Pressable>
+  )
+}
+
+function MobileNotificationCard({
+  notification,
+  onPress,
+}: {
+  notification: AppNotification
+  onPress: () => void
+}) {
+  const timeAgo = getTimeAgo(notification.timestamp)
+  const accent = getNotificationTypeAccent(notification.type, notification.color)
+
+  return (
+    <Pressable
+      onPress={onPress}
+      className="relative min-h-[118px] flex-row items-center gap-4 rounded-2xl border border-[#17345B] bg-[#071832] p-4"
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+    >
+      {!notification.isRead ? <View className="absolute left-2 top-7 h-2.5 w-2.5 rounded-full bg-[#7C5CFF]" /> : null}
+      <View className="h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(accent, '28') }}>
+        <Ionicons name={notification.icon} size={32} color={accent} />
+      </View>
+      <View className="min-w-0 flex-1">
+        <View className="flex-row items-center gap-2">
+          <Text className="min-w-0 flex-1 text-[16px] font-black text-white" numberOfLines={1}>{notification.title}</Text>
+          <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: withAlpha(accent, '26') }}>
+            <Text className="text-[11px] font-black" style={{ color: accent }}>{categoryLabels[notification.type]}</Text>
+          </View>
+        </View>
+        <Text className="mt-2 text-[14px] leading-6 text-[#C7D3E5]" numberOfLines={2}>{notification.description}</Text>
+        <View className="mt-3 flex-row flex-wrap items-center gap-3">
+          <View className="flex-row items-center gap-1.5">
+            <Ionicons name="time-outline" size={14} color="#8FA7C7" />
+            <Text className="text-[12px] text-[#8FA7C7]">{timeAgo}</Text>
+          </View>
+          {notification.subjectName ? (
+            <View className="flex-row items-center gap-1.5">
+              <Ionicons name="book-outline" size={14} color="#8FA7C7" />
+              <Text className="text-[12px] text-[#C7D3E5]" numberOfLines={1}>{notification.subjectName}</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+      <Ionicons name="chevron-forward" size={22} color="#B7C4D7" />
+    </Pressable>
+  )
+}
+
+function MobileNotificationEmpty({ filter }: { filter: NotificationFilter }) {
+  const title = filter === 'unread' ? 'Nada sin leer' : 'Sin notificaciones'
+  const detail = filter === 'unread'
+    ? 'Todo lo importante ya está marcado como leído.'
+    : 'Aquí aparecerán nuevos cursos, actividad, logros y avisos.'
+
+  return (
+    <View className="items-center rounded-2xl border border-dashed border-[#1E3A63] bg-[#081B37] px-5 py-9">
+      <Ionicons name="mail-open-outline" size={36} color="#8FA7C7" />
+      <Text className="mt-3 text-center text-[17px] font-black text-white">{title}</Text>
+      <Text className="mt-2 text-center text-[13px] leading-5 text-[#8FA7C7]">{detail}</Text>
+    </View>
+  )
+}
+
+function MobileAllCaughtUpBanner({ unreadCount }: { unreadCount: number }) {
+  return (
+    <LinearGradient
+      colors={['#2A1768', '#181B4B', '#0C1D3C']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ marginTop: 28, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#352A82' }}
+    >
+      <View className="min-h-[142px] flex-row items-center gap-4 p-5">
+        <View className="relative h-24 w-24 items-center justify-center rounded-full bg-[#5B21B6]/35">
+          <Ionicons name="notifications" size={58} color="#A78BFA" />
+          {unreadCount > 0 ? (
+            <View className="absolute right-0 top-2 h-9 min-w-9 items-center justify-center rounded-full bg-[#EF4444] px-2">
+              <Text className="text-[14px] font-black text-white">{unreadCount}</Text>
+            </View>
+          ) : null}
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="text-[21px] font-black text-white">
+            {unreadCount > 0 ? 'Tienes novedades' : '¡Estás al día!'}
+          </Text>
+          <Text className="mt-2 text-[15px] leading-6 text-[#DDE7F4]">
+            {unreadCount > 0
+              ? 'Revísalas para seguir avanzando en tus cursos.'
+              : 'Sigue así, tu constancia te acerca a tus metas.'}
+          </Text>
+        </View>
+      </View>
+    </LinearGradient>
+  )
+}
+
+function getNotificationSectionTitle(filter: NotificationFilter) {
+  if (filter === 'all') return 'Hoy'
+  if (filter === 'unread') return 'Sin leer'
+  return categoryLabels[filter]
+}
+
+function getNotificationTypeAccent(type: NotificationType, fallback?: string) {
+  const colors: Record<NotificationType, string> = {
+    enrollment: '#A855F7',
+    new_class: '#8B5CF6',
+    student_activity: '#22C55E',
+    achievement: '#F59E0B',
+    announcement: '#38BDF8',
+  }
+
+  return colors[type] || fallback || '#8B5CF6'
 }
 
 function CategoryCard({

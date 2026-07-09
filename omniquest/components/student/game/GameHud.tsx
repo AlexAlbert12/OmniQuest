@@ -4,30 +4,32 @@ import { Ionicons } from '@expo/vector-icons'
 
 export function TimerPill({ timeLeft }: { timeLeft: number }) {
   const isLow = timeLeft <= 5
+  const color = isLow ? '#FB7185' : '#8B5CF6'
 
   return (
-    <View
-      className={`flex-row items-center rounded-2xl border px-5 py-3 ${
-        isLow ? 'border-[#FB7185] bg-[#3A1129]' : 'border-[#6D5AF6] bg-[#0D1738]'
-      }`}
-    >
-      <Ionicons name="timer-outline" size={22} color={isLow ? '#FB7185' : '#8B5CF6'} />
-      <Text className={`ml-2 text-[22px] font-black ${isLow ? 'text-[#FDA4AF]' : 'text-white'}`}>
-        00:{timeLeft.toString().padStart(2, '0')}
-      </Text>
+    <View className="items-center justify-center">
+      <View
+        className="h-[92px] w-[92px] items-center justify-center rounded-full border-[8px] bg-[#070F26]"
+        style={{ borderColor: color, shadowColor: color, shadowOpacity: 0.3, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } }}
+      >
+        <Ionicons name="timer-outline" size={18} color={color} />
+        <Text className={`mt-1 text-[22px] font-black ${isLow ? 'text-[#FDA4AF]' : 'text-white'}`}>
+          00:{timeLeft.toString().padStart(2, '0')}
+        </Text>
+      </View>
     </View>
   )
 }
 
 export function LivesBadge({ lives }: { lives: number }) {
   return (
-    <View className="flex-row items-center gap-1 rounded-full border border-[#2A456A] bg-[#0D1D3B] px-3 py-2">
+    <View className="flex-row items-center gap-1 rounded-full border border-[#223A62] bg-[#08172E] px-3 py-2">
       {[...Array(3)].map((_, index) => (
         <Ionicons
           key={index}
           name={index < lives ? 'heart' : 'heart-outline'}
-          size={18}
-          color="#FF647C"
+          size={17}
+          color={index < lives ? '#FF647C' : '#52627E'}
         />
       ))}
     </View>
@@ -50,9 +52,9 @@ export function GameStatsBar({
   const hasStreakBonus = streak >= 3
 
   return (
-    <View className="mt-5 flex-row flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#172A4A] bg-[#07162E]/88 px-4 py-3">
-      <GameStatPill icon="flash" color="#FBBF24" label={`${points} XP`} />
-      <GameStatPill icon="flame" color="#FF7B45" label={hasStreakBonus ? `Racha ${streak} · bonus` : `Racha ${streak}`} />
+    <View className="mt-5 flex-row flex-wrap items-center justify-center gap-2">
+      <GameStatPill icon="flash" color="#FBBF24" label={`${points} XP`} highlighted />
+      <GameStatPill icon="flame" color="#FF7B45" label={hasStreakBonus ? `Racha ${streak}` : `Racha ${streak}`} />
       <GameStatPill icon="podium-outline" color="#9B6CFF" label={`Posición ${position}`} />
       <GameStatPill icon="heart" color="#FF647C" label={`${lives} vidas`} />
       <GameStatPill icon="albums-outline" color="#60A5FA" label={category} />
@@ -63,16 +65,24 @@ export function GameStatsBar({
 function GameStatPill({
   icon,
   color,
+  highlighted = false,
   label,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   color: string
+  highlighted?: boolean
   label: string
 }) {
   return (
-    <View className="flex-row items-center gap-2 rounded-xl border border-[#1A3155] bg-[#0D1D3B] px-3 py-2">
+    <View
+      className="flex-row items-center gap-2 rounded-xl border px-3 py-2"
+      style={{
+        backgroundColor: highlighted ? `${color}18` : '#08172E',
+        borderColor: highlighted ? `${color}66` : '#173055',
+      }}
+    >
       <Ionicons name={icon} size={17} color={color} />
-      <Text className="text-[12px] font-bold text-white">{label}</Text>
+      <Text className="text-[12px] font-black text-white" numberOfLines={1}>{label}</Text>
     </View>
   )
 }
@@ -85,16 +95,14 @@ export function BottomHud({
   onSkip: () => void
 }) {
   return (
-    <View className="mt-6 rounded-3xl border border-[#172A4A] bg-[#08172E]/95 px-5 py-4">
-      <View className="flex-row flex-wrap items-center justify-center gap-4">
+    <View className="mt-6 rounded-[24px] border border-[#173055] bg-[#08172E]/95 p-4">
+      <View className="flex-row gap-3">
         <HudAction icon="bulb" title="Pista" detail="-10 pts" color="#FBBF24" onPress={onHint} />
-
-        <View className="min-w-[220px] flex-row items-center justify-center gap-3 rounded-2xl border border-[#10213E] bg-[#071426] px-5 py-4">
-          <Ionicons name="checkmark-circle-outline" size={22} color="#43D991" />
-          <Text className="text-center font-bold text-[#DDE7F4]">Comprueba desde la tarjeta de respuesta</Text>
-        </View>
-
-        <HudAction icon="chevron-forward" title="Saltar" detail="-20 pts" color="#A78BFA" onPress={onSkip} />
+        <HudAction icon="play-skip-forward" title="Saltar" detail="-20 pts" color="#A78BFA" onPress={onSkip} />
+      </View>
+      <View className="mt-3 flex-row items-center justify-center gap-2 rounded-2xl border border-[#10213E] bg-[#061426] px-4 py-3">
+        <Ionicons name="checkmark-circle-outline" size={18} color="#43D991" />
+        <Text className="text-center text-[12px] font-bold text-[#C9D7EA]">Comprueba cuando tengas clara la respuesta</Text>
       </View>
     </View>
   )
@@ -116,17 +124,15 @@ function HudAction({
   return (
     <Pressable
       onPress={onPress}
-      className="min-w-[150px] flex-row items-center justify-center gap-3 rounded-2xl border border-[#1A3155] bg-[#0D1D3B] px-5 py-4"
+      className="flex-1 flex-row items-center justify-center gap-3 rounded-2xl border border-[#1A3155] bg-[#0D1D3B] px-4 py-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
     >
-      <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10213E]">
-        <Ionicons name={icon} size={23} color={color} />
+      <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: `${color}20` }}>
+        <Ionicons name={icon} size={21} color={color} />
       </View>
       <View>
-        <Text className="text-[16px] font-black text-white">{title}</Text>
-        <Text className="mt-1 text-[13px] font-bold" style={{ color }}>
-          {detail}
-        </Text>
+        <Text className="text-[15px] font-black text-white">{title}</Text>
+        <Text className="mt-0.5 text-[12px] font-black" style={{ color }}>{detail}</Text>
       </View>
     </Pressable>
   )
