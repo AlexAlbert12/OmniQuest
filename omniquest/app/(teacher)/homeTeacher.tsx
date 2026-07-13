@@ -10,12 +10,14 @@ import {
 } from 'react-native';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
 import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge';
 import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
+import { withAlpha } from '../../lib/color';
 
 type Subject = {
   id: number
@@ -282,6 +284,27 @@ export default function TeacherHomeScreen() {
     );
   }
 
+  if (!isDesktop) {
+    return (
+      <MobileTeacherHome
+        analyticsBySubject={analyticsBySubject}
+        pendingActions={pendingActions}
+        refreshing={refreshing}
+        subjects={subjects}
+        teacherAlias={teacherAlias}
+        totals={totals}
+        weeklyActiveStudentCount={weeklyActiveStudentCount}
+        onCreateQuestion={() => router.push(subjects[0] ? `/(teacher)/subject/add-question?subjectId=${subjects[0].id}` as any : '/(teacher)/create-subject' as any)}
+        onCreateSubject={() => router.push('/(teacher)/create-subject' as any)}
+        onImportStudents={() => router.push(subjects[0] ? `/(teacher)/subject/${subjects[0].id}?tab=students` as any : '/(teacher)/students' as any)}
+        onOpenAction={(item) => router.push(item.href as any)}
+        onOpenClasses={() => router.push('/(teacher)/classes' as any)}
+        onOpenStudents={() => router.push('/(teacher)/students' as any)}
+        onRefresh={onRefresh}
+      />
+    )
+  }
+
   return (
     <View className="flex-1 bg-[#061126]">
       <View className="flex-1 flex-row">
@@ -426,6 +449,363 @@ export default function TeacherHomeScreen() {
       {!isDesktop ? <TeacherBottomNav active="home" /> : null}
     </View>
   );
+}
+
+function MobileTeacherHome({
+  analyticsBySubject,
+  pendingActions,
+  refreshing,
+  subjects,
+  teacherAlias,
+  totals,
+  weeklyActiveStudentCount,
+  onCreateQuestion,
+  onCreateSubject,
+  onImportStudents,
+  onOpenAction,
+  onOpenClasses,
+  onOpenStudents,
+  onRefresh,
+}: {
+  analyticsBySubject: Record<number, SubjectAnalytics>
+  pendingActions: PendingActionItem[]
+  refreshing: boolean
+  subjects: Subject[]
+  teacherAlias: string
+  totals: { students: number; questions: number; attempts: number }
+  weeklyActiveStudentCount: number
+  onCreateQuestion: () => void
+  onCreateSubject: () => void
+  onImportStudents: () => void
+  onOpenAction: (item: PendingActionItem) => void
+  onOpenClasses: () => void
+  onOpenStudents: () => void
+  onRefresh: () => void
+}) {
+  return (
+    <View className="flex-1 bg-[#031022]">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 122 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-6 flex-row items-center justify-between">
+          <BrandLogo size={34} />
+          <View className="flex-row items-center gap-3">
+            <NotificationBadge audience="teacher" />
+            <TeacherHeaderAvatar />
+          </View>
+        </View>
+
+        <LinearGradient
+          colors={['#111E54', '#101946', '#211044']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ borderRadius: 22, borderWidth: 1, borderColor: '#263B72', overflow: 'hidden' }}
+        >
+          <View className="relative p-5">
+            <View className="absolute -right-8 top-4 h-28 w-44 rounded-3xl bg-[#A855F7]/15" style={{ transform: [{ rotate: '-22deg' }] }} />
+            <View className="absolute bottom-8 right-9 h-20 w-28 rounded-3xl bg-[#38BDF8]/10" style={{ transform: [{ rotate: '18deg' }] }} />
+
+            <Text className="text-[26px] font-black leading-[32px] text-white">¡Bienvenido de nuevo,</Text>
+            <Text className="mt-1 text-[42px] font-black leading-[48px] text-white" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+              {teacherAlias}!
+            </Text>
+            <Text className="mt-4 max-w-[310px] text-[17px] leading-7 text-[#D7E2F4]">
+              Aquí tienes el estado de tus cursos, clases y estudiantes.
+            </Text>
+
+            <View className="mt-6 flex-row flex-wrap gap-3">
+              <MobileQuickAction icon="add-circle-outline" label="Crear curso" color="#8B5CF6" onPress={onCreateSubject} />
+              <MobileQuickAction icon="people-outline" label="Importar alumnos" color="#3B82F6" onPress={onImportStudents} />
+              <MobileQuickAction icon="document-text-outline" label="Crear pregunta" color="#34D399" onPress={onCreateQuestion} />
+              <MobileQuickAction icon="people-circle-outline" label="Ver estudiantes" color="#F59E0B" onPress={onOpenStudents} />
+            </View>
+          </View>
+        </LinearGradient>
+
+        <View className="mt-5 flex-row flex-wrap gap-3">
+          <MobileMetricCard
+            icon="school"
+            title="Cursos activos"
+            value={String(subjects.length)}
+            detail="Cursos en marcha"
+            color="#8B5CF6"
+            onPress={onOpenClasses}
+          />
+          <MobileMetricCard
+            icon="people"
+            title="Estudiantes inscritos"
+            value={String(totals.students)}
+            detail="Total en tus clases"
+            color="#43D991"
+            onPress={onOpenStudents}
+          />
+          <MobileMetricCard
+            icon="pulse"
+            title="Alumnos activos"
+            value={String(weeklyActiveStudentCount)}
+            detail="esta semana"
+            color="#38BDF8"
+            onPress={onOpenStudents}
+          />
+          <MobileMetricCard
+            icon="clipboard"
+            title="Preguntas creadas"
+            value={String(totals.questions)}
+            detail="En tus cursos"
+            color="#F6A64A"
+            onPress={onOpenClasses}
+          />
+        </View>
+
+        <MobileRecommendedActions
+          items={pendingActions}
+          onPress={onOpenAction}
+          onViewStudents={onOpenStudents}
+        />
+
+        <MobileRecentCourses
+          analyticsBySubject={analyticsBySubject}
+          subjects={subjects}
+          onCreateSubject={onCreateSubject}
+          onViewAll={onOpenClasses}
+        />
+      </ScrollView>
+
+      <TeacherBottomNav active="home" />
+    </View>
+  )
+}
+
+function MobileQuickAction({
+  color,
+  icon,
+  label,
+  onPress,
+}: {
+  color: string
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="min-h-[116px] flex-1 items-center justify-center rounded-2xl border border-[#21395E] bg-[#071832] px-3 py-4"
+      style={({ pressed }) => ({ flexBasis: '47%', opacity: pressed ? 0.82 : 1 })}
+    >
+      <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '2B') }}>
+        <Ionicons name={icon} size={25} color={color} />
+      </View>
+      <Text className="mt-3 text-center text-[14px] font-black leading-5 text-white" numberOfLines={2}>{label}</Text>
+    </Pressable>
+  )
+}
+
+function MobileMetricCard({
+  color,
+  detail,
+  icon,
+  onPress,
+  title,
+  value,
+}: {
+  color: string
+  detail: string
+  icon: keyof typeof Ionicons.glyphMap
+  onPress: () => void
+  title: string
+  value: string
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="min-h-[154px] flex-1 rounded-2xl border p-5"
+      style={({ pressed }) => ({
+        flexBasis: '47%',
+        borderColor: withAlpha(color, '55'),
+        backgroundColor: withAlpha(color, '17'),
+        opacity: pressed ? 0.82 : 1,
+      })}
+    >
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '32') }}>
+          <Ionicons name={icon} size={27} color={color} />
+        </View>
+        <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '18') }}>
+          <Ionicons name="chevron-forward" size={22} color={color} />
+        </View>
+      </View>
+      <Text className="mt-4 text-[15px] font-bold" style={{ color }} numberOfLines={2}>{title}</Text>
+      <Text className="mt-2 text-[34px] font-black leading-[38px] text-white">{value}</Text>
+      <Text className="mt-1 text-[14px] text-[#C7D3E5]" numberOfLines={1}>{detail}</Text>
+    </Pressable>
+  )
+}
+
+function MobileRecommendedActions({
+  items,
+  onPress,
+  onViewStudents,
+}: {
+  items: PendingActionItem[]
+  onPress: (item: PendingActionItem) => void
+  onViewStudents: () => void
+}) {
+  return (
+    <View className="mt-5 rounded-2xl border border-[#17345B] bg-[#071832] p-4">
+      <View className="mb-4 flex-row items-start justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="text-[24px] font-black text-white">Acciones recomendadas</Text>
+          <Text className="mt-1 text-[14px] leading-5 text-[#C7D3E5]">Prioriza lo que más impacto puede tener en tus cursos.</Text>
+        </View>
+        <Pressable onPress={onViewStudents} className="flex-row items-center gap-1 pt-1">
+          <Text className="text-[14px] font-black text-[#A970FF]">Ver estudiantes</Text>
+          <Ionicons name="arrow-forward" size={18} color="#A970FF" />
+        </Pressable>
+      </View>
+
+      <View className="gap-3">
+        {items.length > 0 ? (
+          items.slice(0, 3).map((item) => (
+            <MobilePendingAction key={item.id} item={item} onPress={() => onPress(item)} />
+          ))
+        ) : (
+          <MobileEmptyState icon="checkmark-done-outline" text="No hay acciones pendientes ahora mismo." />
+        )}
+      </View>
+    </View>
+  )
+}
+
+function MobilePendingAction({ item, onPress }: { item: PendingActionItem; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="min-h-[78px] flex-row items-center gap-3 rounded-2xl border border-[#17345B] bg-[#0A1D3B] p-3"
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+    >
+      <View className="h-14 w-14 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(item.color, '28') }}>
+        <Ionicons name={item.icon} size={28} color={item.color} />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[16px] font-black text-white" numberOfLines={1}>{item.title}</Text>
+        <Text className="mt-1 text-[13px] leading-5 text-[#C7D3E5]" numberOfLines={2}>{item.detail}</Text>
+      </View>
+      <View className="flex-row items-center gap-2">
+        <Text className="text-[14px] font-black" style={{ color: item.color }}>{item.actionLabel}</Text>
+        <Ionicons name="arrow-forward" size={18} color={item.color} />
+      </View>
+    </Pressable>
+  )
+}
+
+function MobileRecentCourses({
+  analyticsBySubject,
+  subjects,
+  onCreateSubject,
+  onViewAll,
+}: {
+  analyticsBySubject: Record<number, SubjectAnalytics>
+  subjects: Subject[]
+  onCreateSubject: () => void
+  onViewAll: () => void
+}) {
+  return (
+    <View className="mt-5 rounded-2xl border border-[#17345B] bg-[#071832] p-4">
+      <View className="mb-4 flex-row items-center justify-between gap-3">
+        <Text className="text-[24px] font-black text-white">Cursos recientes</Text>
+        <Pressable onPress={onViewAll} className="flex-row items-center gap-1">
+          <Text className="text-[14px] font-black text-[#A970FF]">Ver todos</Text>
+          <Ionicons name="arrow-forward" size={18} color="#A970FF" />
+        </Pressable>
+      </View>
+
+      <View className="gap-3">
+        {subjects.length > 0 ? (
+          subjects.slice(0, 3).map((subject) => (
+            <MobileSubjectPreview
+              key={subject.id}
+              analytics={analyticsBySubject[subject.id] || {
+                enrolledCount: 0,
+                playedCount: 0,
+                averageScore: 0,
+                questionsCount: 0,
+                classroomCount: 0,
+              }}
+              subject={subject}
+            />
+          ))
+        ) : (
+          <Pressable
+            onPress={onCreateSubject}
+            className="items-center rounded-2xl border border-dashed border-[#5364F5] bg-[#0A1D3B] px-5 py-8"
+          >
+            <Ionicons name="add-circle-outline" size={44} color="#9B8CFF" />
+            <Text className="mt-3 text-[18px] font-black text-white">Crea tu primer curso</Text>
+            <Text className="mt-1 text-center text-[13px] leading-5 text-[#C7D3E5]">Empieza a organizar clases, alumnos y preguntas.</Text>
+          </Pressable>
+        )}
+      </View>
+    </View>
+  )
+}
+
+function MobileSubjectPreview({ subject, analytics }: { subject: Subject; analytics: SubjectAnalytics }) {
+  return (
+    <View className="rounded-2xl border border-[#17345B] bg-[#0A1D3B] p-4">
+      <View className="flex-row items-start gap-4">
+        <View className="h-[74px] w-[74px] items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(subject.theme_color || '#8B5CF6', '28') }}>
+          {subject.icon ? <Text className="text-[34px]">{subject.icon}</Text> : <Ionicons name="book-outline" size={34} color="#9B8CFF" />}
+        </View>
+        <View className="min-w-0 flex-1">
+          <View className="flex-row items-center gap-2">
+            <Text className="min-w-0 flex-1 text-[22px] font-black text-white" numberOfLines={1}>{subject.name}</Text>
+            <View className="rounded-lg bg-[#6D4AFF]/35 px-2.5 py-1">
+              <Text className="text-[12px] font-black text-[#C4B5FD]">Activo</Text>
+            </View>
+          </View>
+          <Text className="mt-2 text-[14px] leading-5 text-[#D7E2F4]" numberOfLines={2}>
+            {analytics.classroomCount} {analytics.classroomCount === 1 ? 'clase' : 'clases'} · {analytics.enrolledCount} alumnos · {analytics.questionsCount} preguntas
+          </Text>
+          <Text className="mt-1 text-[13px] text-[#8FA7C7]" numberOfLines={1}>Código del curso: {subject.code}</Text>
+        </View>
+        <Ionicons name="ellipsis-horizontal" size={23} color="#AFC2DB" />
+      </View>
+
+      <View className="mt-4 flex-row flex-wrap gap-2">
+        <Link href={`/(teacher)/subject/${subject.id}`} asChild>
+          <Pressable className="min-w-[120px] flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-[#6D4AFF] px-3 py-3">
+            <Ionicons name="settings-outline" size={16} color="#FFFFFF" />
+            <Text className="font-black text-white">Gestionar</Text>
+          </Pressable>
+        </Link>
+        <Link href={`/(teacher)/subject/add-question?subjectId=${subject.id}`} asChild>
+          <Pressable className="min-w-[130px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-[#20375E] bg-[#071832] px-3 py-3">
+            <Ionicons name="add-circle-outline" size={16} color="#DDE7F4" />
+            <Text className="font-black text-[#DDE7F4]">Crear pregunta</Text>
+          </Pressable>
+        </Link>
+        <Link href={`/(teacher)/subject/${subject.id}?tab=students`} asChild>
+          <Pressable className="min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-[#20375E] bg-[#071832] px-3 py-3">
+            <Ionicons name="person-add-outline" size={16} color="#DDE7F4" />
+            <Text className="font-black text-[#DDE7F4]">Importar alumnos</Text>
+          </Pressable>
+        </Link>
+      </View>
+    </View>
+  )
+}
+
+function MobileEmptyState({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+  return (
+    <View className="items-center rounded-2xl border border-dashed border-[#253C67] bg-[#0A1D3B] px-4 py-6">
+      <Ionicons name={icon} size={30} color="#8FA7C7" />
+      <Text className="mt-2 text-center text-[13px] leading-5 text-[#8FA7C7]">{text}</Text>
+    </View>
+  )
 }
 
 function MetricCard({

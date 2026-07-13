@@ -11,12 +11,14 @@ import {
 } from 'react-native';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
 import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge';
 import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
+import { withAlpha } from '../../lib/color';
 
 type Subject = {
   id: number
@@ -400,6 +402,28 @@ export default function TeacherClassesScreen() {
     );
   }
 
+  if (!isDesktop) {
+    return (
+      <MobileTeacherClasses
+        activityPlan={activityPlan}
+        analyticsBySubject={analyticsBySubject}
+        filteredSubjects={filteredSubjects}
+        recentActivity={recentActivity}
+        refreshing={refreshing}
+        search={search}
+        selectedFilter={selectedFilter}
+        selectedSort={selectedSort}
+        subjects={subjects}
+        totals={totals}
+        onCreateSubject={() => router.push('/(teacher)/create-subject' as any)}
+        onRefresh={onRefresh}
+        onSearchChange={setSearch}
+        onSelectFilter={setSelectedFilter}
+        onToggleSort={() => setSelectedSort((current) => getNextClassSort(current))}
+      />
+    )
+  }
+
   return (
     <View className="flex-1 bg-[#061126]">
       <View className="flex-1 flex-row">
@@ -561,6 +585,396 @@ export default function TeacherClassesScreen() {
       {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
     </View>
   );
+}
+
+function MobileTeacherClasses({
+  activityPlan,
+  analyticsBySubject,
+  filteredSubjects,
+  recentActivity,
+  refreshing,
+  search,
+  selectedFilter,
+  selectedSort,
+  subjects,
+  totals,
+  onCreateSubject,
+  onRefresh,
+  onSearchChange,
+  onSelectFilter,
+  onToggleSort,
+}: {
+  activityPlan: ActivityPlanItem[]
+  analyticsBySubject: Record<number, SubjectAnalytics>
+  filteredSubjects: Subject[]
+  recentActivity: RecentActivityItem[]
+  refreshing: boolean
+  search: string
+  selectedFilter: ClassFilter
+  selectedSort: ClassSort
+  subjects: Subject[]
+  totals: {
+    students: number
+    activeStudents: number
+    questions: number
+    participation: number
+    progress: number
+    averageScore: number
+    enrolledThisWeek: number
+    activeStudentsThisWeek: number
+    playedThisWeek: number
+    questionsThisWeek: number
+  }
+  onCreateSubject: () => void
+  onRefresh: () => void
+  onSearchChange: (value: string) => void
+  onSelectFilter: (filter: ClassFilter) => void
+  onToggleSort: () => void
+}) {
+  return (
+    <View className="flex-1 bg-[#031022]">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 122 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-7 flex-row items-center justify-between">
+          <BrandLogo size={34} />
+          <View className="flex-row items-center gap-3">
+            <NotificationBadge audience="teacher" />
+            <TeacherHeaderAvatar />
+          </View>
+        </View>
+
+        <View className="mb-6">
+          <View className="flex-row items-center gap-4">
+            <LinearGradient
+              colors={['#6D4AFF', '#32117A']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ width: 68, height: 68, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="book" size={35} color="#FFFFFF" />
+            </LinearGradient>
+            <View className="min-w-0 flex-1">
+              <Text className="text-[40px] font-black leading-[45px] text-white" numberOfLines={1}>Mis Cursos</Text>
+              <Text className="mt-2 text-[15px] leading-5 text-[#C7D3E5]" numberOfLines={2}>
+                Gestiona tus cursos, clases, estudiantes y actividades.
+              </Text>
+            </View>
+          </View>
+
+          <View className="mt-5 flex-row items-center gap-4">
+            <Pressable
+              onPress={onCreateSubject}
+              className="h-[58px] flex-row items-center justify-center gap-3 rounded-2xl bg-[#6D4AFF] px-6"
+              style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+            >
+              <Ionicons name="add" size={24} color="#FFFFFF" />
+              <Text className="text-[16px] font-black text-white">Crear curso</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View className="mb-5 flex-row flex-wrap gap-3">
+          <MobileClassMetric
+            color="#8B5CF6"
+            icon="school"
+            title="Cursos activos"
+            value={String(subjects.length)}
+            trend={formatWeeklyTrend(subjects.filter((subject) => isAfterDate(subject.created_at, getRecentThresholdDate(7))).length, 'curso nuevo', 'cursos nuevos')}
+          />
+          <MobileClassMetric
+            color="#43D991"
+            icon="people"
+            title="Estudiantes"
+            value={String(totals.students)}
+            trend={formatWeeklyTrend(totals.enrolledThisWeek, 'estudiante nuevo', 'estudiantes nuevos')}
+          />
+          <MobileClassMetric
+            color="#3B82F6"
+            icon="clipboard"
+            title="Preguntas"
+            value={String(totals.questions)}
+            trend={formatWeeklyTrend(totals.questionsThisWeek, 'pregunta nueva', 'preguntas nuevas')}
+          />
+          <MobileClassMetric
+            color="#F6A64A"
+            icon="people-circle"
+            title="Participación media"
+            value={`${totals.participation}%`}
+            trend={formatWeeklyTrend(totals.activeStudentsThisWeek, 'alumno activo', 'alumnos activos')}
+          />
+        </View>
+
+        <View className="mb-4 flex-row gap-3">
+          <View className="h-14 min-w-0 flex-1 flex-row items-center rounded-2xl border border-[#20375E] bg-[#071832] px-4">
+            <Ionicons name="search-outline" size={22} color="#AFC2DB" />
+            <TextInput
+              className="ml-3 min-w-0 flex-1 text-[16px] text-white"
+              placeholder="Buscar cursos..."
+              placeholderTextColor="#8FA7C7"
+              value={search}
+              onChangeText={onSearchChange}
+            />
+          </View>
+          <Pressable
+            onPress={onToggleSort}
+            className="h-14 flex-row items-center gap-2 rounded-2xl border border-[#20375E] bg-[#071832] px-4"
+            style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+          >
+            <Ionicons name="funnel-outline" size={20} color="#DDE7F4" />
+            <Text className="font-bold text-[#DDE7F4]">Filtros</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5 mb-3" contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}>
+          {teacherClassFilters.map((filter) => (
+            <MobileClassFilterChip
+              key={filter.id}
+              active={selectedFilter === filter.id}
+              filter={filter}
+              onPress={() => onSelectFilter(filter.id)}
+            />
+          ))}
+        </ScrollView>
+
+        <View className="mb-4 flex-row items-center gap-2">
+          <Text className="text-[15px] text-[#C7D3E5]">Ordenar por:</Text>
+          <Pressable
+            onPress={onToggleSort}
+            className="flex-row items-center gap-2 rounded-xl bg-[#071832] px-4 py-3"
+            style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+          >
+            <Text className="text-[15px] font-black text-white">{getClassSortLabel(selectedSort)}</Text>
+            <Ionicons name="chevron-down-outline" size={15} color="#AFC2DB" />
+          </Pressable>
+        </View>
+
+        <View className="gap-4">
+          {filteredSubjects.map((subject, index) => (
+            <MobileTeacherClassCard
+              key={subject.id}
+              analytics={analyticsBySubject[subject.id] || emptySubjectAnalytics}
+              index={index}
+              subject={subject}
+            />
+          ))}
+          {filteredSubjects.length === 0 ? <EmptyClasses hasAnyClasses={subjects.length > 0} /> : null}
+        </View>
+
+        <Pressable
+          onPress={onCreateSubject}
+          className="mt-5 flex-row items-center gap-4 rounded-2xl border border-dashed border-[#6D4AFF] bg-[#071832] p-5"
+          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+        >
+          <View className="h-16 w-16 items-center justify-center rounded-full border-4 border-[#6D4AFF] bg-[#251F63]">
+            <Ionicons name="add" size={36} color="#9B8CFF" />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className="text-[21px] font-black text-white">Crear nuevo curso</Text>
+            <Text className="mt-1 text-[14px] leading-5 text-[#C7D3E5]">Añade un nuevo curso y comienza a gestionar clases y alumnos.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={24} color="#B7C4D7" />
+        </Pressable>
+
+        <View className="mt-5 gap-4">
+          <MobileClassesSidePanel title="Siguientes acciones" action="Ver todas">
+            <View className="gap-3">
+              {activityPlan.length > 0 ? (
+                activityPlan.map((item) => <MobileActivityPlanRow key={`${item.title}-${item.detail}`} item={item} />)
+              ) : (
+                <EmptyPanelRow icon="checkmark-done-outline" text="Tus cursos no tienen acciones pendientes." />
+              )}
+            </View>
+          </MobileClassesSidePanel>
+
+          <MobileClassesSidePanel title="Participación por curso" action="Ver informe">
+            <View className="gap-4">
+              {subjects.slice(0, 3).map((subject) => {
+                const analytics = analyticsBySubject[subject.id] || emptySubjectAnalytics;
+                return <ProgressRow key={subject.id} label={subject.name} value={getParticipationPercent(analytics)} color={subject.theme_color || '#8B5CF6'} />;
+              })}
+              {subjects.length === 0 ? <EmptyPanelRow icon="analytics-outline" text="Crea un curso para ver participación." /> : null}
+            </View>
+          </MobileClassesSidePanel>
+
+          <MobileClassesSidePanel title="Actividad reciente" action="Ver todo">
+            <View className="gap-3">
+              {recentActivity.length > 0 ? (
+                recentActivity.slice(0, 3).map((item) => <RecentActivityRow key={`${item.title}-${item.timestamp}`} item={item} />)
+              ) : (
+                <EmptyPanelRow icon="time-outline" text="Todavía no hay actividad registrada." />
+              )}
+            </View>
+          </MobileClassesSidePanel>
+        </View>
+      </ScrollView>
+
+      <TeacherBottomNav active="classes" />
+    </View>
+  )
+}
+
+function MobileClassMetric({
+  color,
+  icon,
+  title,
+  trend,
+  value,
+}: {
+  color: string
+  icon: keyof typeof Ionicons.glyphMap
+  title: string
+  trend: string
+  value: string
+}) {
+  const hasGrowth = !trend.toLowerCase().startsWith('sin');
+
+  return (
+    <View
+      className="min-h-[160px] flex-1 rounded-2xl border p-4"
+      style={{
+        flexBasis: '47%',
+        borderColor: withAlpha(color, '45'),
+        backgroundColor: withAlpha(color, '12'),
+      }}
+    >
+      <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '2B') }}>
+        <Ionicons name={icon} size={28} color={color} />
+      </View>
+      <Text className="mt-4 text-[14px] text-[#D7E2F4]" numberOfLines={2}>{title}</Text>
+      <Text className="mt-2 text-[32px] font-black leading-[36px] text-white">{value}</Text>
+      <Text className="mt-2 text-[12px] font-semibold" style={{ color: hasGrowth ? '#58E28B' : '#8FA7C7' }} numberOfLines={1}>
+        {hasGrowth ? `+ ${trend.replace(/^\+/, '')}` : trend}
+      </Text>
+    </View>
+  )
+}
+
+function MobileClassFilterChip({
+  active,
+  filter,
+  onPress,
+}: {
+  active: boolean
+  filter: { id: ClassFilter; label: string; icon: keyof typeof Ionicons.glyphMap }
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="h-14 flex-row items-center gap-2 rounded-2xl px-5"
+      style={({ pressed }) => ({
+        borderWidth: active ? 0 : 1,
+        borderColor: '#20375E',
+        backgroundColor: active ? '#6D4AFF' : '#071832',
+        opacity: pressed ? 0.82 : 1,
+      })}
+    >
+      <Ionicons name={filter.icon} size={18} color={active ? '#FFFFFF' : '#DDE7F4'} />
+      <Text className={`text-[15px] font-black ${active ? 'text-white' : 'text-[#DDE7F4]'}`}>{filter.label}</Text>
+    </Pressable>
+  )
+}
+
+function MobileTeacherClassCard({
+  analytics,
+  index,
+  subject,
+}: {
+  analytics: SubjectAnalytics
+  index: number
+  subject: Subject
+}) {
+  const fallbackColors = ['#8B5CF6', '#3B82F6', '#34D399', '#F6A64A'];
+  const color = subject.theme_color || fallbackColors[index % fallbackColors.length];
+  const participation = getParticipationPercent(analytics);
+  const progress = getProgressPercent(analytics);
+  const status = getClassStatusMeta(getClassStatus(analytics));
+
+  return (
+    <View className="overflow-hidden rounded-2xl border bg-[#071832]" style={{ borderColor: index === 0 ? '#6D5AF6' : '#17345B' }}>
+      <View className="p-4">
+        <View className="flex-row items-start gap-4">
+          <View className="h-[86px] w-[86px] items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(color, '28') }}>
+            {subject.icon ? (
+              <Text className="text-[38px]">{subject.icon}</Text>
+            ) : (
+              <Ionicons name={index % 2 === 0 ? 'book-outline' : 'calculator-outline'} size={38} color={color} />
+            )}
+          </View>
+
+          <View className="min-w-0 flex-1">
+            <View className="flex-row items-center gap-2">
+              <Text className="min-w-0 flex-1 text-[24px] font-black text-white" numberOfLines={1}>{subject.name}</Text>
+              <View className="rounded-full bg-[#064E3B]/75 px-3 py-1">
+                <Text className="text-[12px] font-black text-[#34D399]">Activo</Text>
+              </View>
+              <Ionicons name="ellipsis-horizontal" size={23} color="#AFC2DB" />
+            </View>
+            <View className="mt-2 flex-row flex-wrap items-center gap-2">
+              <Text className="text-[14px] text-[#C7D3E5]" numberOfLines={1}>{subject.description || 'Curso'}</Text>
+              <Text className="text-[13px] text-[#60799C]">·</Text>
+              <Text className="text-[14px] text-[#C7D3E5]">Código:</Text>
+              <Text className="rounded-full bg-[#6D4AFF]/24 px-2 py-1 font-mono text-[12px] font-black text-[#B9A7FF]">{subject.code}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View className="mt-4 flex-row items-center gap-4">
+          <View className="min-w-0 flex-1 flex-row flex-wrap gap-2">
+            <SmallPill icon={status.icon} label={status.label} color={status.color} />
+            <SmallPill icon="albums-outline" label={`${analytics.topicsCount} temas`} color="#F6A64A" />
+            <SmallPill icon="people-outline" label={`${analytics.enrolledCount} alumnos`} color="#38BDF8" />
+            <SmallPill icon="trophy-outline" label={`${analytics.averageScore} media`} color="#B9A7FF" />
+            <SmallPill icon="people-circle-outline" label={`${participation}% participación`} color="#58E28B" />
+            <SmallPill icon="checkmark-circle-outline" label={`${analytics.answeredQuestionsCount} respondidas`} color="#43D991" />
+          </View>
+
+          <View className="items-center gap-2">
+            <ProgressRing progress={progress} color={color} />
+            <Text className="text-[12px] text-[#C7D3E5]">Progreso</Text>
+          </View>
+        </View>
+      </View>
+
+      <View className="flex-row flex-wrap border-t border-[#17345B] bg-[#06162E]">
+        <ClassAction href={`/(teacher)/subject/${subject.id}`} icon="book-outline" label="Ver curso" />
+        <ClassAction href={`/(teacher)/subject/${subject.id}?tab=students`} icon="people-outline" label="Estudiantes" />
+        <ClassAction href={`/(teacher)/subject/${subject.id}?tab=reports`} icon="analytics-outline" label="Informes" />
+        <ClassAction href={`/(teacher)/edit-subject?id=${subject.id}`} icon="create-outline" label="Editar" />
+      </View>
+    </View>
+  )
+}
+
+function MobileClassesSidePanel({ title, action, children }: { title: string; action: string; children: React.ReactNode }) {
+  return (
+    <View className="rounded-2xl border border-[#17345B] bg-[#071832] p-5">
+      <View className="mb-4 flex-row items-center justify-between gap-3">
+        <Text className="min-w-0 flex-1 text-[18px] font-black text-white" numberOfLines={1}>{title}</Text>
+        <Text className="text-[13px] font-black text-[#A970FF]">{action}</Text>
+      </View>
+      {children}
+    </View>
+  )
+}
+
+function MobileActivityPlanRow({ item }: { item: ActivityPlanItem }) {
+  return (
+    <View className="flex-row items-center gap-3 rounded-2xl border border-[#17345B] bg-[#0A1D3B] p-3">
+      <View className="h-[52px] w-[52px] items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(item.color, '28') }}>
+        <Ionicons name={item.icon} size={24} color={item.color} />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="font-black text-white" numberOfLines={1}>{item.title}</Text>
+        <Text className="mt-1 text-[13px] text-[#C7D3E5]" numberOfLines={1}>{item.detail}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={22} color="#C7D3E5" />
+    </View>
+  )
 }
 
 function MetricCard({

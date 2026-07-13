@@ -12,7 +12,9 @@ import {
 } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
+import { withAlpha } from '../../lib/color'
 import { getTimeAgo } from '../../lib/time'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
@@ -146,6 +148,22 @@ export default function TeacherAuditScreen() {
     )
   }
 
+  if (!isDesktop) {
+    return (
+      <MobileTeacherAudit
+        logs={logs}
+        filteredLogs={filteredLogs}
+        selectedFilter={selectedFilter}
+        stats={stats}
+        refreshing={refreshing}
+        errorMessage={errorMessage}
+        onRefresh={onRefresh}
+        onSelectFilter={setSelectedFilter}
+        onNotifications={() => router.push('/(teacher)/notifications' as any)}
+      />
+    )
+  }
+
   return (
     <View className="flex-1 bg-[#061126]">
       <View className="flex-1 flex-row">
@@ -241,6 +259,320 @@ export default function TeacherAuditScreen() {
       {!isDesktop ? <TeacherBottomNav active="audit" /> : null}
     </View>
   )
+}
+
+type AuditStats = {
+  total: number
+  lastWeek: number
+  student: number
+  destructive: number
+}
+
+function MobileTeacherAudit({
+  logs,
+  filteredLogs,
+  selectedFilter,
+  stats,
+  refreshing,
+  errorMessage,
+  onRefresh,
+  onSelectFilter,
+  onNotifications,
+}: {
+  logs: TeacherAuditLogRow[]
+  filteredLogs: TeacherAuditLogRow[]
+  selectedFilter: AuditFilter
+  stats: AuditStats
+  refreshing: boolean
+  errorMessage: string | null
+  onRefresh: () => void
+  onSelectFilter: (filter: AuditFilter) => void
+  onNotifications: () => void
+}) {
+  const metricCards = [
+    {
+      icon: 'document-text' as keyof typeof Ionicons.glyphMap,
+      label: 'Acciones registradas',
+      value: String(stats.total),
+      detail: 'Última semana',
+      color: '#8B5CF6',
+    },
+    {
+      icon: 'calendar' as keyof typeof Ionicons.glyphMap,
+      label: 'Últimos 7 días',
+      value: String(stats.lastWeek),
+      detail: 'Actividad reciente',
+      color: '#58B5FF',
+    },
+    {
+      icon: 'people' as keyof typeof Ionicons.glyphMap,
+      label: 'Acciones con alumnos',
+      value: String(stats.student),
+      detail: 'Inscripciones y progreso',
+      color: '#43D991',
+    },
+    {
+      icon: 'warning' as keyof typeof Ionicons.glyphMap,
+      label: 'Críticas',
+      value: String(stats.destructive),
+      detail: 'Eventos o activación',
+      color: '#F59E0B',
+    },
+    {
+      icon: 'lock-closed' as keyof typeof Ionicons.glyphMap,
+      label: 'Accesos y cambios',
+      value: String(logs.filter((log) => getAuditActionMeta(log.action).tone === 'danger').length),
+      detail: 'Usuarios y permisos',
+      color: '#FB7185',
+    },
+    {
+      icon: 'code-slash' as keyof typeof Ionicons.glyphMap,
+      label: 'Códigos generados',
+      value: String(logs.filter((log) => getAuditActionMeta(log.action).category === 'code').length),
+      detail: 'Clases y uniones',
+      color: '#58B5FF',
+    },
+  ]
+
+  return (
+    <View className="flex-1 bg-[#020B1B]">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: 124 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-7 flex-row items-center justify-between">
+          <BrandLogo size={32} />
+          <View className="flex-row items-center gap-3">
+            <NotificationBadge audience="teacher" onPress={onNotifications} />
+            <TeacherHeaderAvatar />
+          </View>
+        </View>
+
+        <View className="mb-7">
+          <View className="flex-row items-start gap-4">
+            <LinearGradient
+              colors={['#7DD3FC', '#8B5CF6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              className="mt-2 h-20 w-20 items-center justify-center rounded-[24px]"
+            >
+              <Ionicons name="shield-checkmark" size={48} color="#051025" />
+            </LinearGradient>
+            <Text className="min-w-0 flex-1 text-[42px] font-black leading-[52px] text-white">
+              Centro de auditoría
+            </Text>
+          </View>
+          <Text className="mt-4 max-w-[390px] text-[17px] leading-7 text-[#C2D0E5]">
+            Revisa las acciones docentes sensibles para capturar trazabilidad: alumnos, preguntas, cursos y códigos.
+          </Text>
+        </View>
+
+        <View className="mb-6 flex-row items-center gap-3">
+          <Pressable
+            onPress={onRefresh}
+            disabled={refreshing}
+            className="h-16 flex-row items-center justify-center gap-3 rounded-2xl bg-[#6D47F6] px-7"
+            style={({ pressed }) => ({ opacity: refreshing ? 0.65 : pressed ? 0.82 : 1 })}
+          >
+            {refreshing ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="refresh-outline" size={22} color="#FFFFFF" />}
+            <Text className="text-[18px] font-black text-white">{refreshing ? 'Actualizando...' : 'Actualizar'}</Text>
+          </Pressable>
+          <NotificationBadge audience="teacher" onPress={onNotifications} />
+          <TeacherHeaderAvatar />
+        </View>
+
+        {errorMessage ? (
+          <LinearGradient
+            colors={['#30111F', '#120D19']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            className="mb-5 rounded-2xl border border-[#7F1D1D] p-5"
+          >
+            <Ionicons name="warning-outline" size={30} color="#FB7185" />
+            <Text className="mt-3 text-xl font-black text-white">No se pudo cargar la auditoría</Text>
+            <Text className="mt-2 text-[13px] leading-5 text-[#FCA5A5]">{errorMessage}</Text>
+          </LinearGradient>
+        ) : null}
+
+        <View className="mb-6 flex-row flex-wrap gap-3">
+          {metricCards.map((metric) => (
+            <MobileAuditStatCard key={metric.label} {...metric} />
+          ))}
+        </View>
+
+        <View className="mb-6 flex-row flex-wrap gap-3">
+          {auditFilters.map((filter) => (
+            <MobileAuditFilterChip
+              key={filter.id}
+              filter={filter}
+              active={selectedFilter === filter.id}
+              count={getAuditFilterCount(filter.id, logs)}
+              onPress={() => onSelectFilter(filter.id)}
+            />
+          ))}
+        </View>
+
+        <LinearGradient
+          colors={['#071A33', '#061326']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          className="rounded-2xl border border-[#1D3760] p-4"
+        >
+          <View className="mb-4 flex-row items-center justify-between">
+            <View>
+              <Text className="text-[24px] font-black text-white">Actividad reciente</Text>
+              <Text className="mt-1 text-[12px] font-bold text-[#8FA7C7]">{filteredLogs.length} visibles</Text>
+            </View>
+            <View className="flex-row items-center gap-2">
+              <Text className="text-[16px] font-black text-[#B175FF]">Ver todas</Text>
+              <Ionicons name="arrow-forward" size={21} color="#B175FF" />
+            </View>
+          </View>
+
+          <View style={{ gap: 8 }}>
+            {filteredLogs.slice(0, 8).map((log) => (
+              <MobileAuditLogItem key={log.id} log={log} />
+            ))}
+
+            {filteredLogs.length === 0 ? (
+              <View className="items-center rounded-2xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-8">
+                <Ionicons name="shield-checkmark-outline" size={34} color="#8FA7C7" />
+                <Text className="mt-3 text-center text-[14px] font-bold text-[#AFC2DB]">
+                  No hay acciones registradas con este filtro.
+                </Text>
+              </View>
+            ) : null}
+
+            {filteredLogs.length > 8 ? (
+              <Pressable
+                onPress={() => onSelectFilter(selectedFilter)}
+                className="mt-1 h-16 flex-row items-center rounded-2xl border border-[#1D3760] bg-[#081A32] px-4"
+                style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+              >
+                <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#112C50]">
+                  <Ionicons name="calendar-outline" size={22} color="#C4D2E8" />
+                </View>
+                <Text className="ml-4 min-w-0 flex-1 text-[18px] font-black text-white">Ver más actividad</Text>
+                <Ionicons name="arrow-forward" size={22} color="#C4D2E8" />
+              </Pressable>
+            ) : null}
+          </View>
+        </LinearGradient>
+      </ScrollView>
+
+      <TeacherBottomNav active="audit" />
+    </View>
+  )
+}
+
+function MobileAuditStatCard({
+  icon,
+  label,
+  value,
+  detail,
+  color,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  value: string
+  detail: string
+  color: string
+}) {
+  return (
+    <LinearGradient
+      colors={[withAlpha(color, '22'), '#07162C']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      className="min-h-[154px] flex-1 basis-[47%] rounded-2xl border p-4"
+      style={{ borderColor: withAlpha(color, '66') }}
+    >
+      <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '30') }}>
+        <Ionicons name={icon} size={27} color={color} />
+      </View>
+      <Text className="mt-5 text-[14px] leading-5 text-[#DDE7F4]" numberOfLines={2}>{label}</Text>
+      <Text className="mt-2 text-[30px] font-black" style={{ color }}>{value}</Text>
+      <Text className="mt-1 text-[13px] text-[#B8C6DC]" numberOfLines={1}>{detail}</Text>
+    </LinearGradient>
+  )
+}
+
+function MobileAuditFilterChip({
+  filter,
+  active,
+  count,
+  onPress,
+}: {
+  filter: { id: AuditFilter; label: string; icon: keyof typeof Ionicons.glyphMap }
+  active: boolean
+  count: number
+  onPress: () => void
+}) {
+  const color = getAuditFilterColor(filter.id)
+
+  return (
+    <Pressable
+      onPress={onPress}
+      className="h-16 flex-row items-center gap-3 rounded-2xl border px-5"
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.82 : 1,
+        minWidth: filter.id === 'all' ? 196 : 170,
+        borderColor: active ? '#7C5CFF' : '#1D3760',
+        backgroundColor: active ? '#6D47F6' : '#07162C',
+      })}
+    >
+      <Ionicons name={filter.icon} size={23} color={active ? '#FFFFFF' : color} />
+      <Text className={`min-w-0 flex-1 text-[18px] font-black ${active ? 'text-white' : 'text-[#DDE7F4]'}`} numberOfLines={1}>
+        {filter.label}
+      </Text>
+      <View className="min-w-[34px] items-center rounded-full px-2 py-1" style={{ backgroundColor: active ? '#4C2FA6' : '#152B4E' }}>
+        <Text className="text-[14px] font-black text-white">{count}</Text>
+      </View>
+    </Pressable>
+  )
+}
+
+function MobileAuditLogItem({ log }: { log: TeacherAuditLogRow }) {
+  const meta = getAuditActionMeta(log.action)
+  const summary = formatAuditSummary(log)
+
+  return (
+    <Pressable
+      className="rounded-2xl bg-[#0A1D37] px-4 py-4"
+      style={({ pressed }) => ({ opacity: pressed ? 0.86 : 1 })}
+    >
+      <View className="flex-row items-center gap-4">
+        <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(meta.color, '30') }}>
+          <Ionicons name={meta.icon} size={27} color={meta.color} />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="text-[18px] font-black text-white" numberOfLines={1}>{meta.label}</Text>
+          <Text className="mt-1 text-[15px] leading-5 text-[#B8C6DC]" numberOfLines={2}>{summary}</Text>
+        </View>
+        <View className="items-end gap-2">
+          <View className="rounded-lg px-3 py-1.5" style={{ backgroundColor: withAlpha(meta.color, '24') }}>
+            <Text className="text-[13px] font-black" style={{ color: meta.color }}>{meta.badge}</Text>
+          </View>
+          <Text className="text-[12px] text-[#AFC2DB]">{getTimeAgo(log.created_at)}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={22} color="#C4D2E8" />
+      </View>
+    </Pressable>
+  )
+}
+
+function getAuditFilterCount(filter: AuditFilter, logs: TeacherAuditLogRow[]) {
+  if (filter === 'all') return logs.length
+  return logs.filter((log) => getAuditActionMeta(log.action).category === filter).length
+}
+
+function getAuditFilterColor(filter: AuditFilter) {
+  if (filter === 'student') return '#43D991'
+  if (filter === 'question') return '#58B5FF'
+  if (filter === 'subject') return '#9FD6FF'
+  if (filter === 'code') return '#F59E0B'
+  return '#B175FF'
 }
 
 function AuditStatCard({

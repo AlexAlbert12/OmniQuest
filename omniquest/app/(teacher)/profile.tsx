@@ -13,11 +13,14 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
+import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
+import { withAlpha } from '../../lib/color'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge'
+import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar'
 import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
 
 type TeacherProfile = {
@@ -263,6 +266,29 @@ export default function TeacherProfileScreen() {
     )
   }
 
+  if (!isDesktop) {
+    return (
+      <MobileTeacherProfile
+        alias={alias}
+        email={email}
+        avatar={profile?.avatar}
+        uploading={uploading}
+        stats={stats}
+        memberSince={memberSince}
+        recentSubjects={recentSubjects}
+        recentQuestions={recentQuestions}
+        onPickImage={pickImage}
+        onNotifications={() => router.push('/(teacher)/notifications' as any)}
+        onEditProfile={() => router.push('/(teacher)/settings?section=profile' as any)}
+        onSecurity={() => router.push('/(teacher)/security' as any)}
+        onClasses={() => router.push('/(teacher)/classes' as any)}
+        onStudents={() => router.push('/(teacher)/students' as any)}
+        onQuestions={() => router.push('/(teacher)/classes' as any)}
+        onOpenSubject={(subjectId) => router.push(`/(teacher)/subject/${subjectId}` as any)}
+      />
+    )
+  }
+
   return (
     <View className="flex-1 bg-[#061126]">
       <View className="flex-1 flex-row">
@@ -440,6 +466,433 @@ export default function TeacherProfileScreen() {
         </ScrollView>
       </View>
       {!isDesktop ? <TeacherBottomNav active="profile" /> : null}
+    </View>
+  )
+}
+
+type TeacherProfileStats = {
+  activeClasses: number
+  uniqueStudents: number
+  questionsCreated: number
+  averageParticipation: number
+}
+
+function MobileTeacherProfile({
+  alias,
+  email,
+  avatar,
+  uploading,
+  stats,
+  memberSince,
+  recentSubjects,
+  recentQuestions,
+  onPickImage,
+  onNotifications,
+  onEditProfile,
+  onSecurity,
+  onClasses,
+  onStudents,
+  onQuestions,
+  onOpenSubject,
+}: {
+  alias: string
+  email: string
+  avatar?: string | null
+  uploading: boolean
+  stats: TeacherProfileStats
+  memberSince: string
+  recentSubjects: TeacherSubject[]
+  recentQuestions: Question[]
+  onPickImage: () => void
+  onNotifications: () => void
+  onEditProfile: () => void
+  onSecurity: () => void
+  onClasses: () => void
+  onStudents: () => void
+  onQuestions: () => void
+  onOpenSubject: (subjectId: number) => void
+}) {
+  return (
+    <View className="flex-1 bg-[#020B1B]">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: 124 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-7 flex-row items-center justify-between">
+          <BrandLogo size={32} />
+          <View className="flex-row items-center gap-3">
+            <NotificationBadge audience="teacher" onPress={onNotifications} />
+            <TeacherHeaderAvatar />
+          </View>
+        </View>
+
+        <View className="mb-7">
+          <View className="flex-row items-center gap-4">
+            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#6D47F6] shadow-lg shadow-[#6D47F6]/30">
+              <Ionicons name="person" size={32} color="#F4F0FF" />
+            </View>
+            <Text className="min-w-0 flex-1 text-[42px] font-black leading-[48px] text-white" numberOfLines={1}>
+              Mi Perfil
+            </Text>
+          </View>
+          <Text className="mt-4 max-w-[390px] text-[17px] leading-7 text-[#C2D0E5]">
+            Gestiona tu información docente y revisa tu actividad en la plataforma.
+          </Text>
+        </View>
+
+        <MobileTeacherProfileHero
+          alias={alias}
+          email={email}
+          avatar={avatar}
+          uploading={uploading}
+          onPickImage={onPickImage}
+        />
+
+        <View className="mt-5 flex-row flex-wrap gap-3">
+          <MobileTeacherProfileMetric
+            title="Cursos activos"
+            value={String(stats.activeClasses)}
+            detail="Cursos en marcha"
+            icon="book"
+            color="#8B5CF6"
+            onPress={onClasses}
+          />
+          <MobileTeacherProfileMetric
+            title="Estudiantes únicos"
+            value={String(stats.uniqueStudents)}
+            detail="Total en tus clases"
+            icon="people"
+            color="#43D991"
+            onPress={onStudents}
+          />
+          <MobileTeacherProfileMetric
+            title="Preguntas creadas"
+            value={String(stats.questionsCreated)}
+            detail="En todos tus cursos"
+            icon="clipboard"
+            color="#3B82F6"
+            onPress={onQuestions}
+          />
+          <MobileTeacherProfileMetric
+            title="Participación media"
+            value={`${stats.averageParticipation}%`}
+            detail="Promedio general"
+            icon="analytics"
+            color="#F6A64A"
+            onPress={onStudents}
+          />
+        </View>
+
+        <MobileTeacherInfoCard
+          email={email || 'Sin correo'}
+          memberSince={memberSince}
+          onEditProfile={onEditProfile}
+          onSecurity={onSecurity}
+        />
+
+        <MobileRecentSubjectsCard
+          subjects={recentSubjects}
+          onOpenSubject={onOpenSubject}
+          onViewAll={onClasses}
+        />
+
+        <MobileRecentQuestionsCard
+          questions={recentQuestions}
+          onViewAll={onQuestions}
+        />
+      </ScrollView>
+
+      <TeacherBottomNav active="profile" />
+    </View>
+  )
+}
+
+function MobileTeacherProfileHero({
+  alias,
+  email,
+  avatar,
+  uploading,
+  onPickImage,
+}: {
+  alias: string
+  email: string
+  avatar?: string | null
+  uploading: boolean
+  onPickImage: () => void
+}) {
+  return (
+    <LinearGradient
+      colors={['#1F1A68', '#0B1D46']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      className="overflow-hidden rounded-2xl border border-[#2F47A0] p-6"
+    >
+      <View className="absolute right-[-30px] top-[-34px] h-40 w-44 rotate-12 rounded-[36px] bg-[#6D47F6]/35" />
+      <View className="absolute bottom-[-46px] left-[-24px] h-28 w-52 -rotate-12 rounded-[28px] bg-[#061B43]/70" />
+
+      <View className="relative flex-row items-center gap-5">
+        <Pressable
+          onPress={onPickImage}
+          disabled={uploading}
+          className="h-36 w-36 items-center justify-center rounded-full border-[6px] border-[#7C5CFF] bg-white"
+          style={({ pressed }) => ({ opacity: uploading ? 0.7 : pressed ? 0.86 : 1 })}
+        >
+          <View className="h-[118px] w-[118px] overflow-hidden rounded-full bg-[#EDF4FF]">
+            {avatar && avatar.startsWith('http') ? (
+              <Image source={{ uri: avatar }} className="h-full w-full" />
+            ) : (
+              <View className="h-full w-full items-center justify-center">
+                <Text className="text-[38px] font-black text-[#061126]">{getInitials(alias)}</Text>
+              </View>
+            )}
+          </View>
+
+          <View className="absolute bottom-2 right-0 h-12 w-12 items-center justify-center rounded-full bg-[#8B5CF6]">
+            {uploading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Ionicons name="camera" size={22} color="#FFFFFF" />
+            )}
+          </View>
+        </Pressable>
+
+        <View className="min-w-0 flex-1">
+          <Text className="text-[31px] font-black text-white" numberOfLines={1}>{alias}</Text>
+          <Text className="mt-2 text-[18px] font-black text-[#B175FF]">Profesor</Text>
+          <Text className="mt-2 text-[16px] leading-6 text-[#D7E3F7]" numberOfLines={2}>{email || 'Sin correo'}</Text>
+
+          <View className="mt-5 self-start flex-row items-center gap-2 rounded-xl bg-[#8B5CF6] px-4 py-3">
+            <Ionicons name="shield-checkmark-outline" size={19} color="#FFFFFF" />
+            <Text className="text-[16px] font-black text-white">Docente</Text>
+          </View>
+        </View>
+      </View>
+    </LinearGradient>
+  )
+}
+
+function MobileTeacherProfileMetric({
+  title,
+  value,
+  detail,
+  icon,
+  color,
+  onPress,
+}: {
+  title: string
+  value: string
+  detail: string
+  icon: keyof typeof Ionicons.glyphMap
+  color: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="min-h-[132px] flex-1 basis-[47%] rounded-2xl border p-4"
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.84 : 1,
+        borderColor: withAlpha(color, '66'),
+        backgroundColor: '#07162C',
+      })}
+    >
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(color, '30') }}>
+          <Ionicons name={icon} size={29} color={color} />
+        </View>
+        <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '26') }}>
+          <Ionicons name="arrow-forward" size={21} color={color} />
+        </View>
+      </View>
+      <Text className="mt-4 text-[16px] leading-5 text-[#DDE7F4]" numberOfLines={2}>{title}</Text>
+      <Text className="mt-2 text-[34px] font-black text-white">{value}</Text>
+      <Text className="mt-1 text-[14px] text-[#B8C6DC]" numberOfLines={1}>{detail}</Text>
+    </Pressable>
+  )
+}
+
+function MobileTeacherInfoCard({
+  email,
+  memberSince,
+  onEditProfile,
+  onSecurity,
+}: {
+  email: string
+  memberSince: string
+  onEditProfile: () => void
+  onSecurity: () => void
+}) {
+  return (
+    <View className="mt-5 rounded-2xl border border-[#1D3760] bg-[#07162C] p-5">
+      <View className="mb-4 flex-row items-center gap-3">
+        <Ionicons name="person-outline" size={28} color="#9B6CFF" />
+        <Text className="text-[22px] font-black text-white">Información del profesor</Text>
+      </View>
+
+      <View className="gap-0">
+        <MobileInfoRow icon="mail-outline" label="Correo electrónico" value={email} />
+        <MobileInfoRow icon="shield-checkmark-outline" label="Rol" value="Profesor" />
+        <MobileInfoRow icon="calendar-outline" label="Miembro desde" value={memberSince} />
+      </View>
+
+      <View className="mt-4 flex-row gap-3">
+        <MobileProfileAction icon="create-outline" label="Editar perfil" onPress={onEditProfile} />
+        <MobileProfileAction icon="lock-closed-outline" label="Gestionar seguridad" onPress={onSecurity} />
+      </View>
+    </View>
+  )
+}
+
+function MobileInfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  value: string
+}) {
+  return (
+    <View className="flex-row items-center gap-4 border-t border-[#17345C] px-2 py-4">
+      <Ionicons name={icon} size={24} color="#C4D2E8" />
+      <Text className="min-w-0 flex-1 text-[16px] text-[#DDE7F4]">{label}</Text>
+      <Text className="max-w-[52%] text-right text-[16px] text-white" numberOfLines={1}>{value}</Text>
+    </View>
+  )
+}
+
+function MobileProfileAction({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="h-16 min-w-0 flex-1 flex-row items-center rounded-2xl border border-[#25446F] bg-[#07162C] px-4"
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+    >
+      <Ionicons name={icon} size={25} color="#9B6CFF" />
+      <Text className="ml-3 min-w-0 flex-1 text-[16px] font-black text-white" numberOfLines={1}>{label}</Text>
+      <Ionicons name="chevron-forward" size={22} color="#C4D2E8" />
+    </Pressable>
+  )
+}
+
+function MobileRecentSubjectsCard({
+  subjects,
+  onOpenSubject,
+  onViewAll,
+}: {
+  subjects: TeacherSubject[]
+  onOpenSubject: (subjectId: number) => void
+  onViewAll: () => void
+}) {
+  return (
+    <MobileProfileSection
+      icon="school-outline"
+      title="Últimas clases creadas"
+      actionLabel="Ver todas"
+      onAction={onViewAll}
+    >
+      <View style={{ gap: 8 }}>
+        {subjects.length > 0 ? (
+          subjects.slice(0, 3).map((subject) => (
+            <Pressable
+              key={subject.id}
+              onPress={() => onOpenSubject(subject.id)}
+              className="h-20 flex-row items-center rounded-2xl bg-[#0A1D37] px-4"
+              style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
+            >
+              <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#102B53]">
+                <Text className="text-[27px]">{subject.icon || '📘'}</Text>
+              </View>
+              <View className="ml-4 min-w-0 flex-1">
+                <Text className="text-[17px] font-black text-white" numberOfLines={1}>{subject.name}</Text>
+                <Text className="mt-1 text-[15px] text-[#B8C6DC]" numberOfLines={1}>Código: {subject.code}</Text>
+              </View>
+              <Text className="mr-3 text-[14px] text-[#C4D2E8]">{formatRelativeDate(subject.created_at)}</Text>
+              <Ionicons name="chevron-forward" size={22} color="#C4D2E8" />
+            </Pressable>
+          ))
+        ) : (
+          <EmptyState icon="book-outline" message="Todavía no has creado ninguna clase." />
+        )}
+      </View>
+    </MobileProfileSection>
+  )
+}
+
+function MobileRecentQuestionsCard({
+  questions,
+  onViewAll,
+}: {
+  questions: Question[]
+  onViewAll: () => void
+}) {
+  return (
+    <MobileProfileSection
+      icon="help-circle-outline"
+      title="Últimas preguntas creadas"
+      actionLabel="Ver todas"
+      onAction={onViewAll}
+    >
+      <View style={{ gap: 8 }}>
+        {questions.length > 0 ? (
+          questions.slice(0, 3).map((question) => (
+            <View key={question.id} className="h-20 flex-row items-center rounded-2xl bg-[#0A1D37] px-4">
+              <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#2B1F62]">
+                <Ionicons name="help-circle-outline" size={28} color="#9B6CFF" />
+              </View>
+              <View className="ml-4 min-w-0 flex-1">
+                <Text className="text-[17px] font-black text-white" numberOfLines={1}>{question.text}</Text>
+                <Text className="mt-1 text-[15px] text-[#B8C6DC]" numberOfLines={1}>{getSubjectName(question.subjects)}</Text>
+              </View>
+              <Text className="mr-3 text-[14px] text-[#C4D2E8]">{formatRelativeDate(question.created_at)}</Text>
+              <Ionicons name="chevron-forward" size={22} color="#C4D2E8" />
+            </View>
+          ))
+        ) : (
+          <EmptyState icon="help-circle-outline" message="Todavía no has creado preguntas." />
+        )}
+      </View>
+    </MobileProfileSection>
+  )
+}
+
+function MobileProfileSection({
+  icon,
+  title,
+  actionLabel,
+  onAction,
+  children,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  title: string
+  actionLabel: string
+  onAction: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <View className="mt-5 rounded-2xl border border-[#1D3760] bg-[#07162C] p-5">
+      <View className="mb-4 flex-row items-center gap-3">
+        <Ionicons name={icon} size={29} color="#9B6CFF" />
+        <Text className="min-w-0 flex-1 text-[22px] font-black text-white">{title}</Text>
+        <Pressable
+          onPress={onAction}
+          className="flex-row items-center gap-2"
+          style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
+        >
+          <Text className="text-[16px] font-black text-[#B175FF]">{actionLabel}</Text>
+          <Ionicons name="arrow-forward" size={21} color="#B175FF" />
+        </Pressable>
+      </View>
+      {children}
     </View>
   )
 }
