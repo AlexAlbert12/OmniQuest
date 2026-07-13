@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import BrandLogo from '../BrandLogo'
+import AdminBottomNav from './AdminBottomNav'
 import { supabase } from '../../lib/supabase'
 
 type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'audit'
@@ -795,6 +796,7 @@ function AdminScaffold({
   const { width } = useWindowDimensions()
   const router = useRouter()
   const isDesktop = width >= 1040
+  const activeIcon = activeSection === 'home' ? 'shield-checkmark' : getAdminSectionIcon(activeSection)
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -818,39 +820,67 @@ function AdminScaffold({
         <ScrollView
           className="flex-1"
           contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 28 : 16,
-            paddingTop: isDesktop ? 24 : 18,
-            paddingBottom: 36,
+            paddingHorizontal: isDesktop ? 28 : 20,
+            paddingTop: isDesktop ? 24 : 20,
+            paddingBottom: isDesktop ? 36 : 116,
           }}
           refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={data.onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
-            <View className="min-w-[260px] flex-1">
-              {!isDesktop ? <BrandLogo size={30} style={{ marginBottom: 12 }} /> : null}
-              <View className="flex-row items-center gap-3">
-                <Ionicons name={activeSection === 'home' ? 'shield-checkmark' : getAdminSectionIcon(activeSection)} size={42} color="#9FD6FF" />
-                <Text className="text-[36px] font-black text-white">{title}</Text>
+          {isDesktop ? (
+            <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
+              <View className="min-w-[260px] flex-1">
+                <View className="flex-row items-center gap-3">
+                  <Ionicons name={activeIcon} size={42} color="#9FD6FF" />
+                  <Text className="text-[36px] font-black text-white">{title}</Text>
+                </View>
+                <Text className="mt-2 text-[14px] text-[#B7C4D7]">{subtitle}</Text>
               </View>
-              <Text className="mt-2 text-[14px] text-[#B7C4D7]">{subtitle}</Text>
             </View>
+          ) : (
+            <View className="mb-6">
+              <View className="mb-6 flex-row items-center justify-between">
+                <BrandLogo size={32} />
+                <Pressable
+                  onPress={handleSignOut}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cerrar sesión"
+                  className="h-12 w-12 items-center justify-center rounded-2xl border border-[#20375E] bg-[#09162C]"
+                  style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+                >
+                  <Ionicons name="log-out-outline" size={20} color="#FB7185" />
+                </Pressable>
+              </View>
 
-            {!isDesktop ? (
-              <Pressable
-                onPress={handleSignOut}
-                className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
-              >
-                <Ionicons name="log-out-outline" size={18} color="#FB7185" />
-                <Text className="font-bold text-[#FCA5A5]">Cerrar sesión</Text>
-              </Pressable>
-            ) : null}
-          </View>
-
-          {!isDesktop ? <AdminMobileNav activeSection={activeSection} /> : null}
+              <View className="rounded-[28px] border border-[#1A3155] bg-[#09162C] p-5">
+                <View className="flex-row items-start gap-4">
+                  <View className="h-16 w-16 items-center justify-center rounded-3xl bg-[#2D1D6B]">
+                    <Ionicons name={activeIcon} size={34} color="#C4B5FD" />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-[34px] font-black leading-[38px] text-white" numberOfLines={2}>{title}</Text>
+                    <Text className="mt-2 text-[14px] leading-5 text-[#B7C4D7]" numberOfLines={3}>{subtitle}</Text>
+                  </View>
+                </View>
+                <View className="mt-5 flex-row items-center justify-between rounded-2xl border border-[#20375E] bg-[#07162D] px-4 py-3">
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name="lock-closed-outline" size={15} color="#8B5CF6" />
+                    <Text className="text-[12px] font-black uppercase tracking-[0.8px] text-[#A78BFA]">Portal privado</Text>
+                  </View>
+                  <Pressable onPress={data.onRefresh} className="flex-row items-center gap-2" hitSlop={8}>
+                    <Ionicons name="refresh-outline" size={16} color="#AFC2DB" />
+                    <Text className="text-[12px] font-bold text-[#DDE7F4]">Actualizar</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          )}
 
           {children}
         </ScrollView>
       </View>
+
+      {!isDesktop ? <AdminBottomNav active={activeSection} /> : null}
     </View>
   )
 }
@@ -923,41 +953,37 @@ function AdminNavButton({ active, item }: { active: boolean; item: { label: stri
   )
 }
 
-function AdminMobileNav({ activeSection }: { activeSection: AdminSection }) {
-  const router = useRouter()
-
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5" contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
-      {adminSections.map((item) => {
-        const active = item.section === activeSection
-        return (
-          <Pressable
-            key={item.section}
-            onPress={() => router.push(item.href as any)}
-            className="flex-row items-center gap-2 rounded-full border px-4 py-2"
-            style={({ pressed }) => ({
-              borderColor: active ? '#6D5AF6' : '#20375E',
-              backgroundColor: active ? '#28357D' : '#09162C',
-              opacity: pressed ? 0.82 : 1,
-            })}
-          >
-            <Ionicons name={item.icon} size={15} color={active ? '#FFFFFF' : '#AFC2DB'} />
-            <Text className={`text-[12px] font-black ${active ? 'text-white' : 'text-[#B7C4D7]'}`}>{item.label}</Text>
-          </Pressable>
-        )
-      })}
-    </ScrollView>
-  )
-}
-
 function AdminMetrics({ data }: { data: AdminData }) {
+  const { width } = useWindowDimensions()
+  const isDesktop = width >= 1040
+  const metrics = [
+    { icon: 'school' as IconName, label: 'Profesores', value: String(data.teachers.length), color: '#8B5CF6' },
+    { icon: 'people' as IconName, label: 'Alumnos', value: String(data.students.length), color: '#34D399' },
+    { icon: 'book' as IconName, label: 'Cursos', value: String(data.subjects.length), color: '#38BDF8' },
+    { icon: 'albums' as IconName, label: 'Clases', value: String(data.classrooms.length), color: '#F59E0B' },
+    { icon: 'person-add' as IconName, label: 'Inscripciones', value: String(data.enrollments.length), color: '#FB7185' },
+  ]
+
+  if (!isDesktop) {
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="-mx-5"
+        contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+      >
+        {metrics.map((metric) => (
+          <AdminMetric key={metric.label} {...metric} compact />
+        ))}
+      </ScrollView>
+    )
+  }
+
   return (
     <View className="flex-row flex-wrap gap-4">
-      <AdminMetric icon="school" label="Profesores" value={String(data.teachers.length)} color="#8B5CF6" />
-      <AdminMetric icon="people" label="Alumnos" value={String(data.students.length)} color="#34D399" />
-      <AdminMetric icon="book" label="Cursos" value={String(data.subjects.length)} color="#38BDF8" />
-      <AdminMetric icon="albums" label="Clases" value={String(data.classrooms.length)} color="#F59E0B" />
-      <AdminMetric icon="person-add" label="Inscripciones" value={String(data.enrollments.length)} color="#FB7185" />
+      {metrics.map((metric) => (
+        <AdminMetric key={metric.label} {...metric} />
+      ))}
     </View>
   )
 }
@@ -1013,14 +1039,14 @@ function Panel({
   )
 }
 
-function AdminMetric({ color, icon, label, value }: { color: string; icon: IconName; label: string; value: string }) {
+function AdminMetric({ color, compact = false, icon, label, value }: { color: string; compact?: boolean; icon: IconName; label: string; value: string }) {
   return (
-    <View className="min-w-[160px] flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+    <View className={`${compact ? 'w-[136px]' : 'min-w-[160px] flex-1'} rounded-2xl border border-[#1A3155] bg-[#09162C] p-5`}>
       <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}26` }}>
         <Ionicons name={icon} size={24} color={color} />
       </View>
       <Text className="mt-4 text-[28px] font-black text-white">{value}</Text>
-      <Text className="mt-1 text-[12px] font-semibold text-[#AFC2DB]">{label}</Text>
+      <Text className="mt-1 text-[12px] font-semibold text-[#AFC2DB]" numberOfLines={1}>{label}</Text>
     </View>
   )
 }

@@ -6,13 +6,18 @@ import type { AppNotification, NotificationAudience, NotificationType } from './
 type PersistentNotificationRow = Tables<'notifications'>
 type PersistentNotificationUpdate = Database['public']['Tables']['notifications']['Update']
 
-export async function fetchPersistentNotifications({
+export type PersistentNotificationSource = {
+  notifications: AppNotification[]
+  available: boolean
+}
+
+export async function fetchPersistentNotificationSource({
   userId,
   audience,
 }: {
   userId: string
   audience: NotificationAudience
-}): Promise<AppNotification[]> {
+}): Promise<PersistentNotificationSource> {
   try {
     const { data, error } = await supabase
       .from('notifications')
@@ -25,7 +30,7 @@ export async function fetchPersistentNotifications({
 
     if (error) throw error
 
-    return ((data || []) as PersistentNotificationRow[])
+    const notifications = ((data || []) as PersistentNotificationRow[])
       .filter((row) => isNotificationType(row.type))
       .map((row) => {
         const type = row.type as NotificationType
@@ -47,14 +52,36 @@ export async function fetchPersistentNotifications({
           source: 'database' as const,
         }
       })
+
+    return { notifications, available: true }
   } catch (error: any) {
-    // Si la migración nueva aún no está aplicada, mantenemos las notificaciones derivadas.
-    if (String(error?.message || '').includes('notifications')) {
-      return []
+    if (isMissingNotificationTableError(error)) {
+      return { notifications: [], available: false }
     }
+
     console.error('Error cargando notificaciones persistentes:', error)
-    return []
+    return { notifications: [], available: true }
   }
+}
+
+export async function fetchPersistentNotifications({
+  userId,
+  audience,
+}: {
+  userId: string
+  audience: NotificationAudience
+}): Promise<AppNotification[]> {
+  const result = await fetchPersistentNotificationSource({ userId, audience })
+  return result.notifications
+}
+
+export function shouldLoadDerivedNotifications(persistentSourceAvailable: boolean) {
+  return !persistentSourceAvailable || isDerivedNotificationsFeatureEnabled()
+}
+
+export function isDerivedNotificationsFeatureEnabled() {
+  const value = String(process.env.EXPO_PUBLIC_ENABLE_DERIVED_NOTIFICATIONS || '').trim().toLowerCase()
+  return value === '1' || value === 'true' || value === 'yes'
 }
 
 export function mergeNotificationSources(persistent: AppNotification[], derived: AppNotification[]) {
@@ -107,7 +134,11 @@ export async function loadNotificationStateFromDB(userId: string): Promise<{ rea
     })
 
     return { read, deleted }
-  } catch (error) {
+  } catch (error: any) {
+    if (isMissingNotificationTableError(error)) {
+      return { read: new Set(), deleted: new Set() }
+    }
+
     console.error('Error loading notification state from DB:', error)
     throw error
   }
@@ -156,7 +187,9 @@ export async function persistNotificationStateToDb(
       })
 
     if (insertError) throw insertError
-  } catch (error) {
+  } catch (error: any) {
+    if (isMissingNotificationTableError(error)) return
+
     console.error('Error persisting notification state to DB:', error)
     throw error
   }
@@ -185,6 +218,21 @@ function getNotificationTypeColor(type: NotificationType) {
   if (type === 'achievement') return '#F6A64A'
   if (type === 'new_class') return '#58B5FF'
   return '#F97316'
+}
+
+function isMissingNotificationTableError(error: any) {
+  const code = String(error?.code || '')
+  const message = String(error?.message || '').toLowerCase()
+  const details = String(error?.details || '').toLowerCase()
+
+  return code === '42P01'
+    || code === 'PGRST200'
+    || code === 'PGRST204'
+    || code === 'PGRST205'
+    || message.includes('could not find')
+    || message.includes('schema cache')
+    || details.includes('could not find')
+    || details.includes('schema cache')
 }
 
 function toTimestamp(value: string) {

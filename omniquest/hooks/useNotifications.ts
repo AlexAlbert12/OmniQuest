@@ -3,10 +3,11 @@ import type { AppNotification, AudienceState, NotificationAudience, Notification
 import { fetchStudentNotifications } from '../lib/notifications/derivedStudent'
 import { fetchTeacherNotifications } from '../lib/notifications/derivedTeacher'
 import {
-  fetchPersistentNotifications,
+  fetchPersistentNotificationSource,
   getDatabaseNotificationId,
   loadNotificationStateFromDB,
   mergeNotificationSources,
+  shouldLoadDerivedNotifications,
   persistNotificationStateToDb,
   updatePersistentNotificationState,
 } from '../lib/notifications/persistent'
@@ -144,17 +145,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setDeletedIds(latestDeleted)
 
       const preferences = await loadNotificationPreferences(userId)
+      const persistentSource = await fetchPersistentNotificationSource({ userId, audience })
       const persistentNotifications = filterNotificationsByPreferences(
-        await fetchPersistentNotifications({ userId, audience }),
+        persistentSource.notifications,
         preferences
       )
 
-      const derivedNotifications = filterNotificationsByPreferences(
-        audience === 'student'
-          ? await fetchStudentNotifications({ userId, readIds: latestRead, deletedIds: latestDeleted })
-          : await fetchTeacherNotifications({ userId, readIds: latestRead, deletedIds: latestDeleted }),
-        preferences
-      )
+      const derivedNotifications = shouldLoadDerivedNotifications(persistentSource.available)
+        ? filterNotificationsByPreferences(
+            audience === 'student'
+              ? await fetchStudentNotifications({ userId, readIds: latestRead, deletedIds: latestDeleted })
+              : await fetchTeacherNotifications({ userId, readIds: latestRead, deletedIds: latestDeleted }),
+            preferences
+          )
+        : []
 
       setAudienceNotifications(audience, mergeNotificationSources(persistentNotifications, derivedNotifications))
     } catch (error: any) {

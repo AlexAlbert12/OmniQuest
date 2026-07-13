@@ -46,3 +46,6 @@ app-example
 
 *.log
 *.err
+
+# Supabase local/link state
+supabase/.temp/
