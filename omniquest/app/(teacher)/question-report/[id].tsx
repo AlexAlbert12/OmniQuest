@@ -409,7 +409,7 @@ export default function TeacherQuestionReportScreen() {
   }
 
 
-  const handleExportQuestionReportCsv = () => {
+  const handleExportQuestionReportCsv = async () => {
     if (!question) return
 
     const statusLabel = attemptStatusFilters.find((filter) => filter.value === selectedStatusFilter)?.label || 'Todos'
@@ -446,7 +446,7 @@ export default function TeacherQuestionReportScreen() {
       formatExportDateTime(attempt.attempted_at),
     ])
 
-    const exported = exportCsvFile(
+    const exported = await exportCsvFile(
       filename,
       [
         'Pregunta_ID',
@@ -477,7 +477,7 @@ export default function TeacherQuestionReportScreen() {
     )
 
     if (!exported) {
-      showAlert('Exportación disponible en web', 'La descarga CSV está disponible desde la versión web.')
+      showAlert('No se pudo compartir el archivo', 'En web se descarga como CSV. En móvil, revisa que el dispositivo tenga opciones para compartir archivos.')
     }
   }
 

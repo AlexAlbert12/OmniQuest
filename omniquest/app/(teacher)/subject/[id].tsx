@@ -115,7 +115,7 @@ export default function SubjectDetailScreen() {
   } = useTeacherSubjectDetail({ subjectId, tab });
 
 
-  const handleExportClassRankingCsv = (currentSubject: Subject) => {
+  const handleExportClassRankingCsv = async (currentSubject: Subject) => {
     const classroomName = selectedClassroom?.name || 'Todas las clases'
     const exportedAt = new Date().toISOString().slice(0, 10)
     const filename = `omniquest_ranking_${slugifyFilename(currentSubject.name)}_${slugifyFilename(classroomName)}_${exportedAt}.csv`
@@ -141,7 +141,7 @@ export default function SubjectDetailScreen() {
         formatExportDateTime(student.lastActivity || null),
       ])
 
-    const exported = exportCsvFile(
+    const exported = await exportCsvFile(
       filename,
       [
         'Puesto',
@@ -164,11 +164,11 @@ export default function SubjectDetailScreen() {
     )
 
     if (!exported) {
-      showAlert('Exportación disponible en web', 'La descarga CSV está disponible desde la versión web.')
+      showAlert('No se pudo compartir el archivo', 'En web se descarga como CSV. En móvil, revisa que el dispositivo tenga opciones para compartir archivos.')
     }
   }
 
-  const handleExportWeeklyTeacherSummary = (currentSubject: Subject) => {
+  const handleExportWeeklyTeacherSummary = async (currentSubject: Subject) => {
     const classroomName = selectedClassroom?.name || 'Todas las clases'
     const exportedAt = new Date()
     const exportedDate = exportedAt.toLocaleDateString('es-ES')
@@ -225,10 +225,10 @@ export default function SubjectDetailScreen() {
       ``,
     ]
 
-    const exported = exportMarkdownFile(filename, lines.join('\n'))
+    const exported = await exportMarkdownFile(filename, lines.join('\n'))
 
     if (!exported) {
-      showAlert('Exportación disponible en web', 'La descarga Markdown está disponible desde la versión web.')
+      showAlert('No se pudo compartir el archivo', 'En web se descarga como Markdown. En móvil, revisa que el dispositivo tenga opciones para compartir archivos.')
     }
   }
 

@@ -1005,6 +1005,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_admin_dashboard_metrics: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       create_notification: {
         Args: {
           p_user_id: string

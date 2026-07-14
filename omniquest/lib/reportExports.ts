@@ -1,4 +1,6 @@
 import { Platform } from 'react-native'
+import * as FileSystem from 'expo-file-system/legacy'
+import * as Sharing from 'expo-sharing'
 
 export type CsvValue = string | number | boolean | null | undefined
 
@@ -11,11 +13,19 @@ export function buildCsv(headers: string[], rows: CsvValue[][]) {
 }
 
 export function exportCsvFile(filename: string, headers: string[], rows: CsvValue[][]) {
-  return downloadTextFile(filename, buildCsv(headers, rows), 'text/csv;charset=utf-8;')
+  return exportTextFile(filename, buildCsv(headers, rows), 'text/csv;charset=utf-8;')
 }
 
 export function exportMarkdownFile(filename: string, content: string) {
-  return downloadTextFile(filename, content, 'text/markdown;charset=utf-8;')
+  return exportTextFile(filename, content, 'text/markdown;charset=utf-8;')
+}
+
+export async function exportTextFile(filename: string, content: string, mimeType: string) {
+  if (Platform.OS === 'web') {
+    return downloadTextFile(filename, content, mimeType)
+  }
+
+  return shareTextFile(filename, content, mimeType)
 }
 
 export function downloadTextFile(filename: string, content: string, mimeType: string) {
@@ -32,6 +42,37 @@ export function downloadTextFile(filename: string, content: string, mimeType: st
   link.click()
   document.body.removeChild(link)
   window.URL.revokeObjectURL(url)
+  return true
+}
+
+export async function shareTextFile(filename: string, content: string, mimeType: string) {
+  if (Platform.OS === 'web') {
+    return false
+  }
+
+  const sharingAvailable = await Sharing.isAvailableAsync()
+  if (!sharingAvailable) {
+    return false
+  }
+
+  const baseDirectory = FileSystem.cacheDirectory || FileSystem.documentDirectory
+  if (!baseDirectory) {
+    return false
+  }
+
+  const safeFilename = sanitizeExportFilename(filename)
+  const fileUri = `${baseDirectory}${safeFilename}`
+
+  await FileSystem.writeAsStringAsync(fileUri, content, {
+    encoding: FileSystem.EncodingType.UTF8,
+  })
+
+  await Sharing.shareAsync(fileUri, {
+    mimeType,
+    dialogTitle: safeFilename,
+    UTI: getUniformTypeIdentifier(mimeType),
+  })
+
   return true
 }
 
@@ -67,6 +108,27 @@ export function formatExportDateTime(value: string | null | undefined) {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function sanitizeExportFilename(filename: string) {
+  const sanitized = filename
+    .replace(/[\\/:*?"<>|]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  return sanitized || `omniquest-export-${Date.now()}.txt`
+}
+
+function getUniformTypeIdentifier(mimeType: string) {
+  if (mimeType.includes('csv')) {
+    return 'public.comma-separated-values-text'
+  }
+
+  if (mimeType.includes('markdown')) {
+    return 'net.daringfireball.markdown'
+  }
+
+  return 'public.plain-text'
 }
 
 function escapeCsvValue(value: CsvValue) {

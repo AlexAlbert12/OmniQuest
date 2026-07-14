@@ -454,7 +454,7 @@ export default function TeacherStudentHistoryScreen() {
   }
 
 
-  const handleExportStudentHistoryCsv = () => {
+  const handleExportStudentHistoryCsv = async () => {
     const exportedAt = new Date().toISOString().slice(0, 10)
     const filename = `omniquest_historial_${slugifyFilename(studentName)}_${exportedAt}.csv`
     const contextsLabel = (filteredCourseContexts.length > 0 ? filteredCourseContexts : courseContexts)
@@ -519,7 +519,7 @@ export default function TeacherStudentHistoryScreen() {
           '',
         ])
 
-    const exported = exportCsvFile(
+    const exported = await exportCsvFile(
       filename,
       [
         'Alumno_ID',
@@ -553,7 +553,7 @@ export default function TeacherStudentHistoryScreen() {
     )
 
     if (!exported) {
-      showAlert('Exportación disponible en web', 'La descarga CSV está disponible desde la versión web.')
+      showAlert('No se pudo compartir el archivo', 'En web se descarga como CSV. En móvil, revisa que el dispositivo tenga opciones para compartir archivos.')
     }
   }
 

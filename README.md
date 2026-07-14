@@ -31,6 +31,10 @@ La puntuación se usa como elemento motivador, pero la analítica docente priori
 - Exportación de datos del usuario.
 - Borrado de cuenta mediante Edge Function.
 
+## Documentación técnica
+
+- [Arquitectura del proyecto](docs/ARCHITECTURE.md)
+
 ## Arquitectura
 
 La aplicación está dentro de la carpeta `omniquest/`.
@@ -153,8 +157,8 @@ npm start
 1. Crea un proyecto en Supabase.
 2. Copia la URL y la anon key en `.env`.
 3. Aplica las migraciones de `omniquest/supabase/migrations/`.
-4. Despliega la Edge Function `delete-account`.
-5. Configura los secretos de la Edge Function.
+4. Configura los secrets necesarios para Edge Functions.
+5. Despliega todas las Edge Functions versionadas.
 6. Regenera `types/database.types.ts` si modificas el esquema.
 
 Ejemplo con Supabase CLI:
@@ -163,7 +167,23 @@ Ejemplo con Supabase CLI:
 cd omniquest
 supabase link --project-ref TU_PROJECT_REF
 supabase db push
-supabase functions deploy delete-account
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY="TU_SERVICE_ROLE_KEY"
+supabase secrets set RESEND_API_KEY="TU_RESEND_API_KEY"
+supabase secrets set MAIL_FROM="OmniQuest <no-reply@tu-dominio.com>"
+./scripts/deploy-functions.sh
+```
+
+En Windows PowerShell puedes usar:
+
+```powershell
+cd omniquest
+.\scripts\deploy-functions.ps1
+```
+
+Documentación completa de despliegue:
+
+```text
+omniquest/docs/DEPLOYMENT.md
 ```
 
 Para regenerar tipos:

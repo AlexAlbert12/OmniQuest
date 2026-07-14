@@ -64,14 +64,20 @@ type EnrollmentRow = {
   classroom_id: number | null
 }
 
-type SubjectScoreRow = {
-  student_id: string | null
-  subject_id?: number | null
-}
-
-type AttemptRow = {
-  student_id: string | null
-  question_id?: number | null
+type AdminDashboardMetrics = {
+  totalProfiles: number
+  teachersCount: number
+  studentsCount: number
+  subjectsCount: number
+  classroomsCount: number
+  enrollmentsCount: number
+  activeCourses: number
+  archivedCourses: number
+  activeClassrooms: number
+  inactiveUsers: number
+  coursesWithoutClassrooms: number
+  studentsWithoutActivity: number
+  classroomsWithoutCode: number
 }
 
 type CreateTeacherResult = {
@@ -91,8 +97,7 @@ type AdminData = {
   subjects: SubjectRow[]
   classrooms: ClassroomRow[]
   enrollments: EnrollmentRow[]
-  scores: SubjectScoreRow[]
-  attempts: AttemptRow[]
+  metrics: AdminDashboardMetrics
   auditLogs: AdminAuditLogRow[]
   teacherById: Map<string, ProfileRow>
   studentById: Map<string, ProfileRow>
@@ -172,20 +177,71 @@ async function invokeAdminAction<T extends AdminActionResult>(
   return result
 }
 
+
+function getFallbackAdminMetrics({
+  classrooms,
+  enrollments,
+  profiles,
+  subjects,
+}: {
+  classrooms: ClassroomRow[]
+  enrollments: EnrollmentRow[]
+  profiles: ProfileRow[]
+  subjects: SubjectRow[]
+}): AdminDashboardMetrics {
+  const subjectIdsWithClassrooms = new Set(
+    classrooms
+      .map((classroom) => classroom.subject_id)
+      .filter((id): id is number => typeof id === 'number')
+  )
+
+  return {
+    totalProfiles: profiles.length,
+    teachersCount: profiles.filter((profile) => profile.role_id === 'teacher').length,
+    studentsCount: profiles.filter((profile) => profile.role_id === 'student' || profile.role_id === 'guest').length,
+    subjectsCount: subjects.length,
+    classroomsCount: classrooms.length,
+    enrollmentsCount: enrollments.length,
+    activeCourses: subjects.filter((subject) => subject.active !== false && !subject.is_archived).length,
+    archivedCourses: subjects.filter((subject) => subject.is_archived).length,
+    activeClassrooms: classrooms.filter((classroom) => classroom.active !== false).length,
+    inactiveUsers: profiles.filter((profile) => profile.active === false).length,
+    coursesWithoutClassrooms: subjects.filter((subject) => !subjectIdsWithClassrooms.has(subject.id)).length,
+    studentsWithoutActivity: 0,
+    classroomsWithoutCode: classrooms.filter((classroom) => !classroom.code).length,
+  }
+}
+
+function normalizeAdminMetrics(value: unknown, fallback: AdminDashboardMetrics): AdminDashboardMetrics {
+  if (!value || typeof value !== 'object') return fallback
+  const raw = value as Partial<Record<keyof AdminDashboardMetrics, unknown>>
+
+  return Object.fromEntries(
+    (Object.keys(fallback) as (keyof AdminDashboardMetrics)[]).map((key) => {
+      const numberValue = typeof raw[key] === 'number' ? raw[key] as number : fallback[key]
+      return [key, Number.isFinite(numberValue) ? numberValue : fallback[key]]
+    })
+  ) as AdminDashboardMetrics
+}
+
 function useAdminData(): AdminData {
   const [profiles, setProfiles] = useState<ProfileRow[]>([])
   const [subjects, setSubjects] = useState<SubjectRow[]>([])
   const [classrooms, setClassrooms] = useState<ClassroomRow[]>([])
   const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([])
-  const [scores, setScores] = useState<SubjectScoreRow[]>([])
-  const [attempts, setAttempts] = useState<AttemptRow[]>([])
+  const [metrics, setMetrics] = useState<AdminDashboardMetrics>(() => getFallbackAdminMetrics({
+    classrooms: [],
+    enrollments: [],
+    profiles: [],
+    subjects: [],
+  }))
   const [auditLogs, setAuditLogs] = useState<AdminAuditLogRow[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
-      const [profilesResult, subjectsResult, classroomsResult, enrollmentsResult, scoresData, attemptsData, auditLogData] = await Promise.all([
+      const [profilesResult, subjectsResult, classroomsResult, enrollmentsResult, metricsResult, auditLogData] = await Promise.all([
         supabase
           .from('profiles')
           .select('id, alias, email, role_id, active, created_at')
@@ -201,8 +257,7 @@ function useAdminData(): AdminData {
         supabase
           .from('enrollments')
           .select('id, student_id, subject_id, classroom_id'),
-        fetchOptionalRows<SubjectScoreRow>('subject_scores', 'student_id, subject_id'),
-        fetchOptionalRows<AttemptRow>('attempt_history', 'student_id, question_id'),
+        (supabase.rpc('get_admin_dashboard_metrics' as any) as any),
         fetchOptionalRows<AdminAuditLogRow>('admin_audit_logs', 'id, admin_id, action, target_table, target_id, metadata, created_at', {
           orderBy: 'created_at',
           ascending: false,
@@ -215,12 +270,25 @@ function useAdminData(): AdminData {
       if (classroomsResult.error) throw classroomsResult.error
       if (enrollmentsResult.error) throw enrollmentsResult.error
 
-      setProfiles((profilesResult.data || []) as ProfileRow[])
-      setSubjects((subjectsResult.data || []) as SubjectRow[])
-      setClassrooms((classroomsResult.data || []) as ClassroomRow[])
-      setEnrollments((enrollmentsResult.data || []) as EnrollmentRow[])
-      setScores(scoresData)
-      setAttempts(attemptsData)
+      const nextProfiles = (profilesResult.data || []) as ProfileRow[]
+      const nextSubjects = (subjectsResult.data || []) as SubjectRow[]
+      const nextClassrooms = (classroomsResult.data || []) as ClassroomRow[]
+      const nextEnrollments = (enrollmentsResult.data || []) as EnrollmentRow[]
+      const fallbackMetrics = getFallbackAdminMetrics({
+        classrooms: nextClassrooms,
+        enrollments: nextEnrollments,
+        profiles: nextProfiles,
+        subjects: nextSubjects,
+      })
+
+      setProfiles(nextProfiles)
+      setSubjects(nextSubjects)
+      setClassrooms(nextClassrooms)
+      setEnrollments(nextEnrollments)
+      if (metricsResult.error && !isMissingSchemaError(metricsResult.error.code)) {
+        console.warn('[admin] No se pudieron cargar métricas agregadas:', metricsResult.error.message)
+      }
+      setMetrics(normalizeAdminMetrics(metricsResult.error ? null : metricsResult.data, fallbackMetrics))
       setAuditLogs(auditLogData)
     } catch (error: any) {
       showAlert('No se pudo cargar el portal', error.message || 'Revisa los permisos de administrador y las políticas RLS.')
@@ -256,8 +324,7 @@ function useAdminData(): AdminData {
     subjects,
     classrooms,
     enrollments,
-    scores,
-    attempts,
+    metrics,
     auditLogs,
     teacherById,
     studentById,
@@ -441,7 +508,7 @@ export function AdminHomeScreen() {
             <SideFact label="Cursos activos" value={String(dashboard.activeCourses)} />
             <SideFact label="Cursos archivados" value={String(dashboard.archivedCourses)} />
             <SideFact label="Clases activas" value={String(dashboard.activeClassrooms)} />
-            <SideFact label="Inscripciones" value={String(data.enrollments.length)} />
+            <SideFact label="Inscripciones" value={String(dashboard.enrollmentsCount)} />
           </Panel>
         </View>
       </View>
@@ -957,11 +1024,11 @@ function AdminMetrics({ data }: { data: AdminData }) {
   const { width } = useWindowDimensions()
   const isDesktop = width >= 1040
   const metrics = [
-    { icon: 'school' as IconName, label: 'Profesores', value: String(data.teachers.length), color: '#8B5CF6' },
-    { icon: 'people' as IconName, label: 'Alumnos', value: String(data.students.length), color: '#34D399' },
-    { icon: 'book' as IconName, label: 'Cursos', value: String(data.subjects.length), color: '#38BDF8' },
-    { icon: 'albums' as IconName, label: 'Clases', value: String(data.classrooms.length), color: '#F59E0B' },
-    { icon: 'person-add' as IconName, label: 'Inscripciones', value: String(data.enrollments.length), color: '#FB7185' },
+    { icon: 'school' as IconName, label: 'Profesores', value: String(data.metrics.teachersCount), color: '#8B5CF6' },
+    { icon: 'people' as IconName, label: 'Alumnos', value: String(data.metrics.studentsCount), color: '#34D399' },
+    { icon: 'book' as IconName, label: 'Cursos', value: String(data.metrics.subjectsCount), color: '#38BDF8' },
+    { icon: 'albums' as IconName, label: 'Clases', value: String(data.metrics.classroomsCount), color: '#F59E0B' },
+    { icon: 'person-add' as IconName, label: 'Inscripciones', value: String(data.metrics.enrollmentsCount), color: '#FB7185' },
   ]
 
   if (!isDesktop) {
@@ -1359,33 +1426,16 @@ function EmptyState({ label }: { label: string }) {
 }
 
 function useAdminDashboard(data: AdminData) {
-  return useMemo(() => {
-    const subjectIdsWithClassrooms = new Set(
-      data.classrooms
-        .map((classroom) => classroom.subject_id)
-        .filter((id): id is number => typeof id === 'number')
-    )
-    const studentsWithScores = new Set(data.scores.map((score) => score.student_id).filter((id): id is string => Boolean(id)))
-    const studentsWithAttempts = new Set(data.attempts.map((attempt) => attempt.student_id).filter((id): id is string => Boolean(id)))
-    const studentsWithEnrollments = new Set(data.enrollments.map((enrollment) => enrollment.student_id))
-
-    let studentsWithoutActivity = 0
-    studentsWithEnrollments.forEach((studentId) => {
-      if (!studentsWithScores.has(studentId) && !studentsWithAttempts.has(studentId)) {
-        studentsWithoutActivity += 1
-      }
-    })
-
-    return {
-      activeCourses: data.subjects.filter((subject) => subject.active !== false && !subject.is_archived).length,
-      archivedCourses: data.subjects.filter((subject) => subject.is_archived).length,
-      activeClassrooms: data.classrooms.filter((classroom) => classroom.active !== false).length,
-      inactiveUsers: data.profiles.filter((profile) => profile.active === false).length,
-      coursesWithoutClassrooms: data.subjects.filter((subject) => !subjectIdsWithClassrooms.has(subject.id)).length,
-      studentsWithoutActivity,
-      classroomsWithoutCode: data.classrooms.filter((classroom) => !classroom.code).length,
-    }
-  }, [data.attempts, data.classrooms, data.enrollments, data.profiles, data.scores, data.subjects])
+  return useMemo(() => ({
+    activeCourses: data.metrics.activeCourses,
+    archivedCourses: data.metrics.archivedCourses,
+    activeClassrooms: data.metrics.activeClassrooms,
+    inactiveUsers: data.metrics.inactiveUsers,
+    coursesWithoutClassrooms: data.metrics.coursesWithoutClassrooms,
+    studentsWithoutActivity: data.metrics.studentsWithoutActivity,
+    classroomsWithoutCode: data.metrics.classroomsWithoutCode,
+    enrollmentsCount: data.metrics.enrollmentsCount,
+  }), [data.metrics])
 }
 
 function filterProfiles(rows: ProfileRow[], search: string) {
