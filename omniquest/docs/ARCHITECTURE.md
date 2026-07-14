@@ -242,6 +242,7 @@ teacher-create-topic
 teacher-delete-question
 teacher-regenerate-class-code
 teacher-remove-student-from-class
+teacher-reset-own-data
 teacher-reset-student-progress
 teacher-student-reminder
 teacher-update-subject
@@ -367,7 +368,7 @@ Flujo recomendado:
 cd omniquest
 supabase link --project-ref TU_PROJECT_REF
 supabase db push
-supabase functions deploy admin-archive-course admin-create-teacher admin-deactivate-classroom admin-delete-student-progress admin-reset-password admin-toggle-user delete-account import-students profile-update-avatar student-reset-own-progress teacher-archive-subject teacher-create-topic teacher-delete-question teacher-regenerate-class-code teacher-remove-student-from-class teacher-reset-student-progress teacher-student-reminder teacher-update-subject teacher-update-topic
+supabase functions deploy admin-archive-course admin-create-teacher admin-deactivate-classroom admin-delete-student-progress admin-reset-password admin-toggle-user delete-account import-students profile-update-avatar student-reset-own-progress teacher-archive-subject teacher-create-topic teacher-delete-question teacher-regenerate-class-code teacher-remove-student-from-class teacher-reset-own-data teacher-reset-student-progress teacher-student-reminder teacher-update-subject teacher-update-topic
 npx supabase gen types typescript --project-id TU_PROJECT_REF > types/database.types.ts
 ```
 

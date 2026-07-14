@@ -1083,6 +1083,20 @@ export type Database = {
           visibility: string
         }[]
       }
+      get_class_weekly_ranking_profiles: {
+        Args: {
+          p_classroom_id: number
+          p_limit?: number
+        }
+        Returns: {
+          id: string
+          alias: string
+          avatar: string | null
+          points: number
+          visibility: string
+          weekly_points: number
+        }[]
+      }
       get_game_questions: {
         Args: {
           p_subject_id: number
@@ -1103,6 +1117,19 @@ export type Database = {
           avatar: string | null
           points: number
           visibility: string
+        }[]
+      }
+      get_weekly_ranking_profiles: {
+        Args: {
+          p_limit?: number
+        }
+        Returns: {
+          id: string
+          alias: string
+          avatar: string | null
+          points: number
+          visibility: string
+          weekly_points: number
         }[]
       }
       join_subject_by_code: {

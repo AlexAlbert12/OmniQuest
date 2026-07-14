@@ -32,7 +32,7 @@ type TeacherAuditLogRow = {
   created_at: string
 }
 
-type AuditFilter = 'all' | 'student' | 'question' | 'subject' | 'code'
+type AuditFilter = 'all' | 'student' | 'question' | 'subject' | 'topic' | 'code' | 'profile'
 
 type AuditActionMeta = {
   label: string
@@ -48,7 +48,9 @@ const auditFilters: { id: AuditFilter; label: string; icon: keyof typeof Ionicon
   { id: 'student', label: 'Alumnos', icon: 'people-outline' },
   { id: 'question', label: 'Preguntas', icon: 'help-circle-outline' },
   { id: 'subject', label: 'Cursos', icon: 'book-outline' },
+  { id: 'topic', label: 'Temas', icon: 'layers-outline' },
   { id: 'code', label: 'Códigos', icon: 'key-outline' },
+  { id: 'profile', label: 'Perfil', icon: 'person-circle-outline' },
 ]
 
 export default function TeacherAuditScreen() {
@@ -571,7 +573,9 @@ function getAuditFilterColor(filter: AuditFilter) {
   if (filter === 'student') return '#43D991'
   if (filter === 'question') return '#58B5FF'
   if (filter === 'subject') return '#9FD6FF'
+  if (filter === 'topic') return '#A78BFA'
   if (filter === 'code') return '#F59E0B'
+  if (filter === 'profile') return '#38BDF8'
   return '#B175FF'
 }
 
@@ -707,6 +711,46 @@ function getAuditActionMeta(action: string): AuditActionMeta {
       icon: 'archive-outline',
       color: '#43D991',
     },
+    'teacher.subject.update': {
+      label: 'Curso actualizado',
+      badge: 'Curso',
+      category: 'subject',
+      tone: 'neutral',
+      icon: 'create-outline',
+      color: '#58B5FF',
+    },
+    'teacher.topic.create': {
+      label: 'Tema creado',
+      badge: 'Tema',
+      category: 'topic',
+      tone: 'neutral',
+      icon: 'add-circle-outline',
+      color: '#A78BFA',
+    },
+    'teacher.topic.update': {
+      label: 'Tema actualizado',
+      badge: 'Tema',
+      category: 'topic',
+      tone: 'neutral',
+      icon: 'layers-outline',
+      color: '#A78BFA',
+    },
+    'teacher.profile.avatar.update': {
+      label: 'Avatar actualizado',
+      badge: 'Perfil',
+      category: 'profile',
+      tone: 'neutral',
+      icon: 'person-circle-outline',
+      color: '#38BDF8',
+    },
+    'teacher.profile.avatar.clear': {
+      label: 'Avatar eliminado',
+      badge: 'Perfil',
+      category: 'profile',
+      tone: 'neutral',
+      icon: 'person-circle-outline',
+      color: '#8FA7C7',
+    },
     'teacher.subject.regenerate_code': {
       label: 'Código de curso regenerado',
       badge: 'Código',
@@ -764,6 +808,31 @@ function formatAuditSummary(log: TeacherAuditLogRow) {
     return `El curso ${subjectName || log.target_id || 'seleccionado'} fue restaurado.`
   }
 
+  if (log.action === 'teacher.subject.update') {
+    const nextSubjectName = getNestedMetadataText(metadata, 'next', 'name')
+    const previousSubjectName = getNestedMetadataText(metadata, 'previous', 'name')
+    return `Se actualizaron los datos del curso ${nextSubjectName || previousSubjectName || subjectName || log.target_id || 'seleccionado'}.`
+  }
+
+  if (log.action === 'teacher.topic.create') {
+    const topicTitle = getMetadataText(metadata, 'title')
+    return `Se creó el tema ${topicTitle ? `"${truncate(topicTitle, 70)}"` : log.target_id || 'seleccionado'}${subjectName ? ` en ${subjectName}` : ''}.`
+  }
+
+  if (log.action === 'teacher.topic.update') {
+    const nextTitle = getNestedMetadataText(metadata, 'next', 'title')
+    const previousTitle = getNestedMetadataText(metadata, 'previous', 'title')
+    return `Se actualizaron los datos del tema ${nextTitle || previousTitle ? `"${truncate(nextTitle || previousTitle || '', 70)}"` : log.target_id || 'seleccionado'}.`
+  }
+
+  if (log.action === 'teacher.profile.avatar.update') {
+    return 'Se actualizó el avatar del perfil docente.'
+  }
+
+  if (log.action === 'teacher.profile.avatar.clear') {
+    return 'Se eliminó el avatar del perfil docente.'
+  }
+
   if (log.action.includes('regenerate_code')) {
     const scope = classroomName ? `la clase ${classroomName}` : subjectName ? `el curso ${subjectName}` : 'el recurso seleccionado'
     return `Se regeneró el código de ${scope}${nextCode ? `: ${previousCode || 'anterior'} → ${nextCode}` : '.'}`
@@ -779,6 +848,13 @@ function formatAuditTarget(log: TeacherAuditLogRow) {
 
 function getMetadataText(metadata: Record<string, unknown>, key: string) {
   const value = metadata[key]
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function getNestedMetadataText(metadata: Record<string, unknown>, parentKey: string, key: string) {
+  const parent = metadata[parentKey]
+  if (!parent || typeof parent !== 'object' || Array.isArray(parent)) return null
+  const value = (parent as Record<string, unknown>)[key]
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
 }
 

@@ -281,14 +281,6 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
     return { result: profileWithoutVisibility, hasVisibility: false }
   }
 
-  const deleteOptionalRows = async (table: string, column: string, value: string) => {
-    const { error } = await (supabase.from(table as any) as any).delete().eq(column, value)
-    if (error && !isMissingSchemaError(error.code)) {
-      throw error
-    }
-  }
-
-
   const resetOwnStudentProgress = async (resetType: Exclude<DestructiveActionType, 'account'>) => {
     const { data, error } = await supabase.functions.invoke('student-reset-own-progress', {
       body: { resetType },
@@ -296,6 +288,23 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
     if (error) throw error
     const result = (data || {}) as { avatar?: string | null; error?: string; points?: number }
+    if (result.error) throw new Error(result.error)
+    return result
+  }
+
+  const resetOwnTeacherData = async (dataType: Exclude<DestructiveActionType, 'account'>) => {
+    const resetType = dataType === 'all'
+      ? 'all'
+      : dataType === 'enrollments'
+        ? 'teaching_data'
+        : 'scores'
+
+    const { data, error } = await supabase.functions.invoke('teacher-reset-own-data', {
+      body: { resetType },
+    })
+
+    if (error) throw error
+    const result = (data || {}) as { avatar?: string | null; error?: string; resetType?: string }
     if (result.error) throw new Error(result.error)
     return result
   }
@@ -315,122 +324,6 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
       throw error
     }
     return error ? [] : data || []
-  }
-
-  const getTeacherSubjectIds = async (teacherId: string) => {
-    const { data, error } = await supabase
-      .from('subjects')
-      .select('id')
-      .eq('teacher_id', teacherId)
-
-    if (error) throw error
-    return (data || [])
-      .map((subject: { id: number | null }) => subject.id)
-      .filter((id): id is number => typeof id === 'number')
-  }
-
-  const getQuestionIdsForSubjects = async (subjectIds: number[]) => {
-    if (subjectIds.length === 0) return []
-
-    const { data, error } = await supabase
-      .from('questions')
-      .select('id')
-      .in('subject_id', subjectIds)
-
-    if (error) throw error
-    return (data || [])
-      .map((question: { id: number | null }) => question.id)
-      .filter((id): id is number => typeof id === 'number')
-  }
-
-  const deleteTeacherClassProgress = async (teacherId: string) => {
-    const subjectIds = await getTeacherSubjectIds(teacherId)
-    const questionIds = await getQuestionIdsForSubjects(subjectIds)
-
-    if (questionIds.length > 0) {
-      const { error: attemptsError } = await supabase
-        .from('attempt_history')
-        .delete()
-        .in('question_id', questionIds)
-      if (attemptsError && !isMissingSchemaError(attemptsError.code)) throw attemptsError
-    }
-
-    if (subjectIds.length > 0) {
-      const { error: topicScoresError } = await supabase
-        .from('topic_scores')
-        .delete()
-        .in('subject_id', subjectIds)
-      if (topicScoresError && !isMissingSchemaError(topicScoresError.code)) throw topicScoresError
-
-      const { error: subjectScoresError } = await supabase
-        .from('subject_scores')
-        .delete()
-        .in('subject_id', subjectIds)
-      if (subjectScoresError && !isMissingSchemaError(subjectScoresError.code)) throw subjectScoresError
-    }
-  }
-
-  const deleteTeacherTeachingData = async (teacherId: string) => {
-    const subjectIds = await getTeacherSubjectIds(teacherId)
-    const questionIds = await getQuestionIdsForSubjects(subjectIds)
-
-    if (questionIds.length > 0) {
-      const { error: attemptsError } = await supabase
-        .from('attempt_history')
-        .delete()
-        .in('question_id', questionIds)
-      if (attemptsError && !isMissingSchemaError(attemptsError.code)) throw attemptsError
-
-      const { error: answersError } = await supabase
-        .from('answers')
-        .delete()
-        .in('question_id', questionIds)
-      if (answersError && !isMissingSchemaError(answersError.code)) throw answersError
-    }
-
-    if (subjectIds.length > 0) {
-      const { error: topicScoresError } = await supabase
-        .from('topic_scores')
-        .delete()
-        .in('subject_id', subjectIds)
-      if (topicScoresError && !isMissingSchemaError(topicScoresError.code)) throw topicScoresError
-
-      const { error: subjectScoresError } = await supabase
-        .from('subject_scores')
-        .delete()
-        .in('subject_id', subjectIds)
-      if (subjectScoresError && !isMissingSchemaError(subjectScoresError.code)) throw subjectScoresError
-
-      const { error: enrollmentsError } = await supabase
-        .from('enrollments')
-        .delete()
-        .in('subject_id', subjectIds)
-      if (enrollmentsError && !isMissingSchemaError(enrollmentsError.code)) throw enrollmentsError
-
-      const { error: classroomsError } = await supabase
-        .from('classrooms')
-        .delete()
-        .in('subject_id', subjectIds)
-      if (classroomsError && !isMissingSchemaError(classroomsError.code)) throw classroomsError
-
-      const { error: questionsError } = await supabase
-        .from('questions')
-        .delete()
-        .in('subject_id', subjectIds)
-      if (questionsError && !isMissingSchemaError(questionsError.code)) throw questionsError
-
-      const { error: topicsError } = await supabase
-        .from('subject_topics')
-        .delete()
-        .in('subject_id', subjectIds)
-      if (topicsError && !isMissingSchemaError(topicsError.code)) throw topicsError
-    }
-
-    const { error: subjectsError } = await supabase
-      .from('subjects')
-      .delete()
-      .eq('teacher_id', teacherId)
-    if (subjectsError) throw subjectsError
   }
 
   const handleProfileVisibilityChange = async (visibility: ProfileVisibility) => {
@@ -604,33 +497,17 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
         return
       }
 
-      if (dataType === 'scores') {
-        await deleteTeacherClassProgress(userId)
+      const result = await resetOwnTeacherData(dataType)
+
+      if (dataType === 'enrollments' || dataType === 'all') {
+        setSubjectsCount(0)
+        setClassroomsCount(0)
       }
 
       if (dataType === 'all') {
-        await deleteTeacherTeachingData(userId)
-        await deleteOptionalRows('notification_state', 'user_id', userId)
-        await deleteOptionalRows('user_preferences', 'user_id', userId)
-        await deleteOptionalRows('user_notification_preferences', 'user_id', userId)
-
-        const avatarPaths = getAvatarStoragePaths(userId, profile?.avatar)
-        if (avatarPaths.length > 0) {
-          const { error: storageError } = await supabase.storage.from('avatars').remove(avatarPaths)
-          if (storageError && !isMissingSchemaError((storageError as any).code)) throw storageError
-        }
-
-        const { data, error: avatarError } = await supabase.functions.invoke('profile-update-avatar', {
-          body: { clear: true },
-        })
-        if (avatarError) throw avatarError
-        if ((data as { error?: string } | null)?.error) throw new Error((data as { error: string }).error)
-
         setPreferences(DEFAULT_PREFERENCES)
         setNotificationSettings(DEFAULT_NOTIFICATION_SETTINGS)
-        setProfile(prev => prev ? { ...prev, avatar: null } : null)
-        setSubjectsCount(0)
-        setClassroomsCount(0)
+        setProfile(prev => prev ? { ...prev, avatar: result.avatar ?? null } : null)
       }
 
       showAlert('Datos eliminados', 'Los datos seleccionados han sido eliminados correctamente.')
@@ -1552,25 +1429,30 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                           )}
                         </Pressable>
 
-                        {!isTeacher ? (
-                          <Pressable
-                            onPress={() => handleDeletePartialData('enrollments')}
-                            disabled={deletingData}
-                            className="flex-row items-center justify-between rounded-lg border border-[#BE123C] bg-[#7F1D1D33] p-3"
-                            style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
-                          >
-                            <View className="flex-row items-center gap-3">
-                              <Ionicons name="exit-outline" size={16} color="#FB7185" />
-                              <Text className="text-[13px] font-semibold text-white">Salir de todos los cursos</Text>
+                        <Pressable
+                          onPress={() => handleDeletePartialData('enrollments')}
+                          disabled={deletingData}
+                          className="flex-row items-center justify-between rounded-lg border border-[#BE123C] bg-[#7F1D1D33] p-3"
+                          style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+                        >
+                          <View className="flex-row items-center gap-3">
+                            <Ionicons name={isTeacher ? 'folder-open-outline' : 'exit-outline'} size={16} color="#FB7185" />
+                            <View className="min-w-0 flex-1">
+                              <Text className="text-[13px] font-semibold text-white">
+                                {isTeacher ? 'Eliminar cursos y contenido' : 'Salir de todos los cursos'}
+                              </Text>
+                              {isTeacher ? (
+                                <Text className="mt-1 text-[12px] text-[#FECACA]">Borra cursos, clases, temas, preguntas, respuestas e inscripciones.</Text>
+                              ) : null}
                             </View>
+                          </View>
 
-                            {deletingData ? (
-                              <ActivityIndicator size="small" color="#FB7185" />
-                            ) : (
-                              <Ionicons name="chevron-forward" size={16} color="#FB7185" />
-                            )}
-                          </Pressable>
-                        ) : null}
+                          {deletingData ? (
+                            <ActivityIndicator size="small" color="#FB7185" />
+                          ) : (
+                            <Ionicons name="chevron-forward" size={16} color="#FB7185" />
+                          )}
+                        </Pressable>
 
                         <Pressable
                           onPress={() => handleDeletePartialData('all')}
@@ -2295,18 +2177,4 @@ function formatSecurityDate(value: string | null) {
 function getInitials(value: string) {
   const parts = value.trim().split(/\s+/).slice(0, 2)
   return parts.map((part) => part[0]?.toUpperCase()).join('') || 'AL'
-}
-
-function getAvatarStoragePaths(userId: string, avatar: string | null | undefined) {
-  const fallbackPaths = [`${userId}.jpg`, `${userId}.jpeg`, `${userId}.png`, `${userId}.webp`]
-  if (!avatar) return fallbackPaths
-
-  const decodedAvatar = decodeURIComponent(avatar)
-  const storageMarker = '/avatars/'
-  const markerIndex = decodedAvatar.indexOf(storageMarker)
-  const avatarPath = markerIndex >= 0
-    ? decodedAvatar.slice(markerIndex + storageMarker.length).split('?')[0]
-    : decodedAvatar.split('?')[0]
-
-  return Array.from(new Set([avatarPath, ...fallbackPaths].filter(Boolean)))
 }

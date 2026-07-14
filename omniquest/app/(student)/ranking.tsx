@@ -51,12 +51,8 @@ type ClassOption = {
   theme_color: string | null
 }
 
-type RankingAttemptRow = {
-  student_id: string | null
-  earned_points?: number | null
-  is_correct?: boolean | null
-  created_at?: string | null
-  attempted_at?: string | null
+type WeeklyRankingProfile = Profile & {
+  weekly_points: number
 }
 
 const rankingLeagues: RankingLeague[] = [
@@ -410,101 +406,18 @@ async function fetchGlobalRanking() {
 }
 
 async function fetchWeeklyRanking(): Promise<Profile[]> {
-  const { data: profilesData, error: profilesError } = await supabase.rpc('get_ranking_profiles', {
-    p_limit: 500,
+  const { data, error } = await supabase.rpc('get_weekly_ranking_profiles', {
+    p_limit: 50,
   })
 
-  if (profilesError) throw profilesError
+  if (error) throw error
 
-  const profiles = (profilesData || []) as Profile[]
-  if (profiles.length === 0) return []
-
-  const studentIds = profiles.map((profile) => profile.id)
-  const weeklyPointsByStudent = await fetchAttemptPointsByStudent({
-    studentIds,
-    from: getCurrentWeekStart().toISOString(),
-    limit: 5000,
-  })
-
-  return profiles
+  return ((data || []) as WeeklyRankingProfile[])
     .map((profile) => ({
       ...profile,
-      points: weeklyPointsByStudent.get(profile.id) ?? 0,
+      points: profile.weekly_points ?? 0,
     }))
-    .filter((profile) => (profile.points ?? 0) > 0)
     .sort((left, right) => (right.points ?? 0) - (left.points ?? 0))
-    .slice(0, 50)
-}
-
-async function fetchAttemptPointsByStudent({
-  studentIds,
-  from,
-  limit,
-}: {
-  studentIds: string[]
-  from?: string
-  limit: number
-}) {
-  if (studentIds.length === 0) return new Map<string, number>()
-
-  let query = (supabase.from('attempt_history') as any)
-    .select('student_id, earned_points, is_correct, created_at, attempted_at')
-    .in('student_id', studentIds)
-    .limit(limit)
-
-  if (from) {
-    query = query.gte('created_at', from)
-  }
-
-  let attemptsResult = await query
-
-  if (attemptsResult.error && isMissingSchemaError(attemptsResult.error.code)) {
-    let fallbackQuery = (supabase.from('attempt_history') as any)
-      .select('student_id, is_correct, created_at')
-      .in('student_id', studentIds)
-      .limit(limit)
-
-    if (from) {
-      fallbackQuery = fallbackQuery.gte('created_at', from)
-    }
-
-    attemptsResult = await fallbackQuery
-  }
-
-  if (attemptsResult.error) {
-    if (isMissingSchemaError(attemptsResult.error.code)) {
-      return new Map<string, number>()
-    }
-    throw attemptsResult.error
-  }
-
-  const pointsByStudent = new Map<string, number>()
-    ; ((attemptsResult.data || []) as RankingAttemptRow[]).forEach((attempt) => {
-      if (!attempt.student_id) return
-
-      const attemptDate = attempt.attempted_at || attempt.created_at || null
-      if (from && attemptDate && getTimeValue(attemptDate) < getTimeValue(from)) return
-
-      const earnedPoints = typeof attempt.earned_points === 'number'
-        ? attempt.earned_points
-        : attempt.is_correct
-          ? 10
-          : 0
-
-      pointsByStudent.set(attempt.student_id, (pointsByStudent.get(attempt.student_id) || 0) + earnedPoints)
-    })
-
-  return pointsByStudent
-}
-
-function getCurrentWeekStart() {
-  const now = new Date()
-  const day = now.getDay()
-  const daysFromMonday = day === 0 ? 6 : day - 1
-  const start = new Date(now)
-  start.setDate(now.getDate() - daysFromMonday)
-  start.setHours(0, 0, 0, 0)
-  return start
 }
 
 async function fetchEnrolledClassOptions(userId: string): Promise<ClassOption[]> {
@@ -1079,11 +992,6 @@ function RankingSummaryCard({
 }
 
 
-
-function isMissingSchemaError(errorCode?: string) {
-  return errorCode === '42P01' || errorCode === '42703' || errorCode === 'PGRST204'
-}
-
 function normalizeRelation<T>(relation: T | T[] | null | undefined): T | null {
   if (Array.isArray(relation)) return relation[0] ?? null
   return relation ?? null
@@ -1105,12 +1013,6 @@ function getClassOptionIcon(classOption: ClassOption): keyof typeof Ionicons.gly
   }
 
   return null
-}
-
-function getTimeValue(value: string | null | undefined) {
-  if (!value) return 0
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime()
 }
 
 function getRankingLeague(points: number) {

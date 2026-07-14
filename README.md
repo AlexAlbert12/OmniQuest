@@ -33,7 +33,7 @@ La puntuación se usa como elemento motivador, pero la analítica docente priori
 
 ## Documentación técnica
 
-- [Arquitectura del proyecto](docs/ARCHITECTURE.md)
+- [Arquitectura del proyecto](omniquest/docs/ARCHITECTURE.md)
 
 ## Arquitectura
 

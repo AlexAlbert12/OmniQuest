@@ -147,11 +147,17 @@ function getDestructiveActionDetails(action: DestructiveActionType | null, isTea
           confirmLabel: 'Eliminar puntuaciones',
         }
     case 'enrollments':
-      return {
-        title: 'Salir de todas los cursos',
-        description: 'Se eliminarán tus inscripciones actuales. Tu cuenta seguirá activa.',
-        confirmLabel: 'Salir de cursos',
-      }
+      return isTeacher
+        ? {
+          title: 'Eliminar cursos y contenido',
+          description: 'Se borrarán tus cursos, clases, temas, preguntas, respuestas, inscripciones y progreso asociado. Tu cuenta seguirá activa.',
+          confirmLabel: 'Eliminar contenido',
+        }
+        : {
+          title: 'Salir de todas los cursos',
+          description: 'Se eliminarán tus inscripciones actuales. Tu cuenta seguirá activa.',
+          confirmLabel: 'Salir de cursos',
+        }
     case 'all':
       return isTeacher
         ? {

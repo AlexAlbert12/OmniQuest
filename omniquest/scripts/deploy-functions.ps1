@@ -16,6 +16,7 @@ $Functions = @(
   "teacher-delete-question",
   "teacher-regenerate-class-code",
   "teacher-remove-student-from-class",
+  "teacher-reset-own-data",
   "teacher-reset-student-progress",
   "teacher-student-reminder",
   "teacher-update-subject",
