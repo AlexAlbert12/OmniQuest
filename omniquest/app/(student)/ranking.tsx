@@ -18,6 +18,7 @@ import NotificationBadge from '../../components/NotificationBadge'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { useAppTheme } from '../../lib/appTheme'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { withAlpha } from '../../lib/color'
 
 type Profile = {
@@ -241,7 +242,7 @@ export default function RankingScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 28 : 104,
+            paddingBottom: isDesktop ? 28 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           showsVerticalScrollIndicator={false}
         >

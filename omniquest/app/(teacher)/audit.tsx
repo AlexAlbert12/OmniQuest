@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import { withAlpha } from '../../lib/color'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { getTimeAgo } from '../../lib/time'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
@@ -178,7 +179,7 @@ export default function TeacherAuditScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 28 : 18,
-            paddingBottom: isDesktop ? 48 : 112,
+            paddingBottom: isDesktop ? 48 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
@@ -340,7 +341,7 @@ function MobileTeacherAudit({
     <View className="flex-1 bg-[#020B1B]">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: 124 }}
+        contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 8 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
         showsVerticalScrollIndicator={false}
       >

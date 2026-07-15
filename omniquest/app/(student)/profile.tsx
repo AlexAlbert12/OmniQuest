@@ -32,6 +32,7 @@ import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge'
 import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { withAlpha } from '../../lib/color'
 
 type Profile = {
@@ -312,7 +313,7 @@ export default function ProfileScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 28 : 104,
+            paddingBottom: isDesktop ? 28 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           showsVerticalScrollIndicator={false}
         >
@@ -518,7 +519,7 @@ function MobileStudentProfile({
     <View className="flex-1 bg-[#031022]">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 118 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 2 }}
         showsVerticalScrollIndicator={false}
       >
         <View className="mb-7 flex-row items-center justify-between">

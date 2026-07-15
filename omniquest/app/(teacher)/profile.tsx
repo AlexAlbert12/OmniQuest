@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import { withAlpha } from '../../lib/color'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import BrandLogo from '../../components/BrandLogo'
@@ -320,7 +321,7 @@ export default function TeacherProfileScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 36 : 112,
+            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           showsVerticalScrollIndicator={false}
         >
@@ -529,7 +530,7 @@ function MobileTeacherProfile({
     <View className="flex-1 bg-[#020B1B]">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: 124 }}
+        contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 8 }}
         showsVerticalScrollIndicator={false}
       >
         <View className="mb-7 flex-row items-center justify-between">

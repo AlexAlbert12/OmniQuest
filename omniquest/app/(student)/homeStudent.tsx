@@ -20,6 +20,7 @@ import { useAppTheme } from '../../lib/appTheme'
 import { joinClassByInviteCode } from '../../lib/studentClassJoin'
 import { calculateStreakDays } from '../../lib/studentBadges'
 import { getStartOfWeekMonday, getTimeUntilSundayLabel } from '../../lib/weeklyGoal'
+import { MobileEmptyState, MobileHeader, MobileMetricCard, MobileScreen, MobileSectionHeader } from '../../components/ui/mobile'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 
 type Subject = {
@@ -440,7 +441,7 @@ export default function StudentHome() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 34 : 18,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 28 : 104,
+            paddingBottom: isDesktop ? 28 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           showsVerticalScrollIndicator={false}
         >
@@ -634,22 +635,21 @@ function MobileStudentHome({
   onJoinClass,
 }: MobileStudentHomeProps) {
   return (
-    <View className="flex-1 bg-[#061126]">
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: MOBILE_BOTTOM_NAV_SPACER }}
-        showsVerticalScrollIndicator={false}
-      >
-        <MobileTopBar />
-
-        <View className="mt-8">
-          <Text className="text-[34px] font-black leading-[40px] text-white" numberOfLines={2}>
-            ¡Hola, {alias}!
-          </Text>
-          <Text className="mt-2 text-[16px] leading-6 text-[#B9C7DA]">
-            Tu siguiente paso está listo.
-          </Text>
-        </View>
+    <MobileScreen
+      backgroundColor="#061126"
+      horizontalPadding={20}
+      bottomNav={<StudentBottomNav active="home" />}
+    >
+        <MobileHeader
+          title={`¡Hola, ${alias}!`}
+          subtitle="Tu siguiente paso está listo."
+          right={(
+            <>
+              <NotificationBadge />
+              <StudentHeaderAvatar />
+            </>
+          )}
+        />
 
         <MobileLevelCard
           level={level}
@@ -684,10 +684,7 @@ function MobileStudentHome({
           onJoinClass={onJoinClass}
           className="mt-5"
         />
-      </ScrollView>
-
-      <StudentBottomNav active="home" />
-    </View>
+    </MobileScreen>
   )
 }
 
@@ -839,13 +836,8 @@ function MobileMetricTile({
   color: string
 }) {
   return (
-    <View className="min-w-0 flex-1 overflow-hidden rounded-[20px] border border-[#1B2E56] bg-[#0B1930] p-3">
-      <View className="absolute -right-5 -top-5 h-16 w-16 rounded-full" style={{ backgroundColor: `${color}20` }} />
-      <View className="h-10 w-10 items-center justify-center rounded-2xl" style={{ backgroundColor: `${color}24` }}>
-        <Ionicons name={icon} size={22} color={color} />
-      </View>
-      <Text className="mt-5 text-[25px] font-black text-white" numberOfLines={1}>{value}</Text>
-      <Text className="mt-1 text-[13px] text-[#D7DFF0]" numberOfLines={1}>{label}</Text>
+    <View className="min-w-0 flex-1">
+      <MobileMetricCard icon={icon} value={value} label={label} color={color} compact />
     </View>
   )
 }
@@ -900,17 +892,16 @@ function MobileWeeklyGoalCard({
 }
 
 function MobileCoursesSection({ rows, className = '' }: { rows: SubjectProgressRow[]; className?: string }) {
+  const router = useRouter()
+
   return (
     <View className={className}>
-      <View className="mb-4 flex-row items-center justify-between">
-        <Text className="text-[22px] font-black text-white">Continúa aprendiendo</Text>
-        <Link href="/(student)/classes" asChild>
-          <Pressable className="flex-row items-center gap-2">
-            <Text className="text-[15px] font-black text-[#9F7AEA]">Ver todo</Text>
-            <Ionicons name="arrow-forward" size={18} color="#9F7AEA" />
-          </Pressable>
-        </Link>
-      </View>
+      <MobileSectionHeader
+        title="Continúa aprendiendo"
+        actionLabel="Ver todo"
+        onAction={() => router.push('/(student)/classes' as any)}
+        className="mb-4"
+      />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingRight: 4 }}>
         {rows.length > 0 ? (
@@ -961,12 +952,14 @@ function MobileCourseCard({ row, index }: { row: SubjectProgressRow; index: numb
 
 function MobileEmptyCourseCard() {
   return (
-    <View className="w-[190px] rounded-[22px] border border-dashed border-[#2B426E] bg-[#0B1930] p-4">
-      <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#142A51]">
-        <Ionicons name="school-outline" size={28} color="#9FD6FF" />
-      </View>
-      <Text className="mt-4 text-[17px] font-black text-white">Tu primer curso</Text>
-      <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">Introduce un código y empieza.</Text>
+    <View className="w-[190px]">
+      <MobileEmptyState
+        icon="school-outline"
+        title="Tu primer curso"
+        description="Introduce un código y empieza."
+        color="#9FD6FF"
+        className="h-full px-4 py-5"
+      />
     </View>
   )
 }

@@ -30,6 +30,7 @@ import type {
 } from '../../components/settings/SettingsTypes'
 import { useSettingsData } from '../../hooks/useSettingsData'
 import { useAppTheme } from '../../lib/appTheme'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 
 type AppHref = Href
 
@@ -205,7 +206,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
             <ScrollView
               ref={scrollRef}
               className="flex-1"
-              contentContainerStyle={{ paddingBottom: isDesktop ? 96 : 124 }}
+              contentContainerStyle={{ paddingBottom: isDesktop ? 96 : MOBILE_BOTTOM_NAV_SPACER + 8 }}
               showsVerticalScrollIndicator={false}
             >
               <View className="gap-5">

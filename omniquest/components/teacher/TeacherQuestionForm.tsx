@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import { difficultyOptions, getDifficultyMeta, normalizeDifficulty, type DifficultyLevel } from '../../lib/difficulty';
 import type { Json } from '../../types/database.types';
 import TeacherBottomNav from './TeacherBottomNav';
@@ -499,7 +500,7 @@ export default function TeacherQuestionForm({
   return (
     <View className="flex-1 bg-[#050E24]">
       <View className="absolute inset-0 bg-[#061126]" />
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isDesktop ? 24 : 112 }} showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isDesktop ? 24 : MOBILE_BOTTOM_NAV_SPACER }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pb-6 pt-5 md:px-6 lg:px-8">
           <View className="rounded-[20px] border border-[#1A3155] bg-[#061735] px-4 py-5 md:px-6">
             <View className="flex-row items-start justify-between gap-3">

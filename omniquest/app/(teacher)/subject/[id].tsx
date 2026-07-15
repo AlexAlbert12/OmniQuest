@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout';
 import { difficultyOptions } from '../../../lib/difficulty';
 import { exportCsvFile, exportMarkdownFile, formatExportDateTime, slugifyFilename } from '../../../lib/reportExports';
 import {
@@ -621,7 +622,7 @@ export default function SubjectDetailScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 14,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 36 : 112,
+            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}

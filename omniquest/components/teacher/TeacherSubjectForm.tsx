@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import TeacherBottomNav from './TeacherBottomNav';
 import {
   generateUniqueClassCode,
@@ -252,7 +253,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
   return (
     <View className="flex-1 bg-[#040E25]">
       <View className="absolute inset-0 bg-[#061126]" />
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isWide ? 20 : 112 }} showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isWide ? 20 : MOBILE_BOTTOM_NAV_SPACER }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pb-5 pt-4 md:px-6 lg:px-8">
           <View className="rounded-[18px] border border-[#0E4A8B] bg-[#061735] p-4 md:p-6">
             <View className="flex-row items-start gap-3">

@@ -13,6 +13,7 @@ import {
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../../../lib/supabase'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../../../lib/mobileLayout'
 import { getTimeAgo } from '../../../../lib/time'
 import TeacherSidebar from '../../../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../../../components/teacher/TeacherBottomNav'
@@ -582,7 +583,7 @@ export default function TeacherStudentHistoryScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 24 : 18,
-            paddingBottom: isDesktop ? 34 : 112,
+            paddingBottom: isDesktop ? 34 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}

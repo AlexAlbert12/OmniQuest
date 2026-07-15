@@ -13,6 +13,7 @@ import {
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout';
 import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty';
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav';
@@ -262,7 +263,7 @@ export default function TopicDetailScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 14,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 36 : 112,
+            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}

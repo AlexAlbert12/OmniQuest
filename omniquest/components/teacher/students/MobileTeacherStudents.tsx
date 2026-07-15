@@ -2,7 +2,6 @@ import React from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import BrandLogo from '../../BrandLogo';
 import NotificationBadge from '../../NotificationBadge';
 import TeacherHeaderAvatar from '../TeacherHeaderAvatar';
 import { withAlpha } from '../../../lib/color';
@@ -19,7 +18,7 @@ import {
 } from './types';
 import { NoActivityQuickActions } from './TeacherStudentList';
 import { formatNullablePercent, formatRelativeDate, getInitials, getStatusMeta } from './studentUtils';
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout';
+import { MobileEmptyState, MobileHeader, MobileMetricCard, MobileScreen, MobileSectionHeader } from '../../ui/mobile';
 import TeacherBottomNav from '../TeacherBottomNav';
 
 export default function MobileTeacherStudents({
@@ -102,34 +101,26 @@ export default function MobileTeacherStudents({
   ];
 
   return (
-    <View className="flex-1 bg-[#020B1B]">
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: MOBILE_BOTTOM_NAV_SPACER }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="mb-6 flex-row items-center justify-between">
-          <BrandLogo size={32} />
-          <View className="flex-row items-center gap-3">
-            <NotificationBadge audience="teacher" onPress={onNotifications} />
-            <TeacherHeaderAvatar />
-          </View>
-        </View>
-
-        <View className="mb-5">
-          <View className="flex-row items-center gap-3">
-            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#6D47F6] shadow-lg shadow-[#6D47F6]/30">
-              <Ionicons name="people" size={26} color="#F4F0FF" />
-            </View>
-            <Text className="min-w-0 flex-1 text-[35px] font-black leading-[39px] text-white" numberOfLines={1}>
-              Mis alumnos
-            </Text>
-          </View>
-          <Text className="mt-3 max-w-[340px] text-[15px] leading-6 text-[#B8C6DC]">
-            Prioriza quién necesita atención hoy.
-          </Text>
-        </View>
+    <MobileScreen
+      backgroundColor="#020B1B"
+      bottomNav={<TeacherBottomNav active="students" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
+    >
+        <MobileHeader
+          title="Mis alumnos"
+          subtitle="Prioriza quién necesita atención hoy."
+          icon="people"
+          iconColor="#F4F0FF"
+          iconBackgroundColor="#6D47F6"
+          right={(
+            <>
+              <NotificationBadge audience="teacher" onPress={onNotifications} />
+              <TeacherHeaderAvatar />
+            </>
+          )}
+          className="mb-5"
+          titleNumberOfLines={1}
+        />
 
         <View className="mb-5 flex-row gap-3">
           <MobileSelectBox
@@ -220,6 +211,13 @@ export default function MobileTeacherStudents({
           </View>
         </View>
 
+        <MobileSectionHeader
+          title="Listado de alumnos"
+          actionLabel="Exportar"
+          onAction={onExportStudents}
+          className="mb-3 mt-1"
+        />
+
         <View style={{ gap: 12 }}>
           {visibleStudents.map((student) => (
             <MobileTeacherStudentCard
@@ -240,10 +238,7 @@ export default function MobileTeacherStudents({
         {visibleStudents.length === 0 ? (
           <MobileStudentsEmptyState />
         ) : null}
-      </ScrollView>
-
-      <TeacherBottomNav active="students" />
-    </View>
+    </MobileScreen>
   );
 }
 
@@ -295,22 +290,14 @@ function MobileStudentMetricCard({
   color: string
 }) {
   return (
-    <LinearGradient
-      colors={[withAlpha(color, '38'), '#07162C']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      className="w-[148px] rounded-2xl border border-[#1D3760] p-4"
-    >
-      <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '3D') }}>
-        <Ionicons name={icon} size={29} color={color} />
-      </View>
-      <Text className="mt-5 text-[13px] text-[#D4DDF0]" numberOfLines={2}>{label}</Text>
-      <Text className="mt-2 text-[30px] font-black text-white" numberOfLines={1}>{value}</Text>
-      <View className="mt-2 flex-row items-center gap-1">
-        <Ionicons name="information-circle-outline" size={13} color="#9FB2CE" />
-        <Text className="min-w-0 flex-1 text-[12px] text-[#9FB2CE]" numberOfLines={1}>{detail}</Text>
-      </View>
-    </LinearGradient>
+    <MobileMetricCard
+      icon={icon}
+      label={label}
+      value={value}
+      detail={detail}
+      color={color}
+      width={148}
+    />
   );
 }
 
@@ -523,13 +510,13 @@ function MobileStudentMiniMetric({ label, value, color }: { label: string; value
 
 function MobileStudentsEmptyState() {
   return (
-    <View className="mt-4 items-center justify-center rounded-2xl border border-[#17345C] bg-[#07162C] p-8">
-      <Ionicons name="people-outline" size={48} color="#60799C" />
-      <Text className="mt-3 text-[17px] font-black text-white">No hay alumnos para mostrar</Text>
-      <Text className="mt-2 text-center text-[13px] leading-5 text-[#9FB2CE]">
-        Cambia los filtros o busca otro nombre para revisar la lista.
-      </Text>
-    </View>
+    <MobileEmptyState
+      icon="people-outline"
+      title="No hay alumnos para mostrar"
+      description="Cambia los filtros o busca otro nombre para revisar la lista."
+      color="#8B5CF6"
+      className="mt-4"
+    />
   );
 }
 

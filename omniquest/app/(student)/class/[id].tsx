@@ -18,6 +18,7 @@ import NotificationBadge from '../../../components/NotificationBadge'
 import StudentHeaderAvatar from '../../../components/student/StudentHeaderAvatar'
 import StudentBottomNav from '../../../components/student/StudentBottomNav'
 import { withAlpha } from '../../../lib/color'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 
 type Subject = {
   id: number
@@ -570,7 +571,7 @@ function MobileStudentClassDetail({
   return (
     <ScrollView
       className="flex-1"
-      contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 122 }}
+      contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 6 }}
       showsVerticalScrollIndicator={false}
     >
       <View className="mb-7 flex-row items-center justify-between">

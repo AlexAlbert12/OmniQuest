@@ -14,6 +14,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
 
 type TicketPriority = 'low' | 'medium' | 'high';
@@ -208,7 +209,7 @@ export default function TeacherHelpCenterScreen() {
         contentContainerStyle={{
           paddingHorizontal: isDesktop ? 28 : 16,
           paddingTop: isDesktop ? 22 : 18,
-          paddingBottom: isDesktop ? 32 : 112,
+          paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER,
         }}
         showsVerticalScrollIndicator={false}
       >

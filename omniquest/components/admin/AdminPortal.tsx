@@ -16,6 +16,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import BrandLogo from '../BrandLogo'
 import AdminBottomNav from './AdminBottomNav'
 import { supabase } from '../../lib/supabase'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 
 type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'audit'
 type IconName = keyof typeof Ionicons.glyphMap
@@ -937,7 +938,7 @@ function AdminScaffold({
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 20,
             paddingTop: isDesktop ? 24 : 20,
-            paddingBottom: isDesktop ? 36 : 116,
+            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={data.onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}

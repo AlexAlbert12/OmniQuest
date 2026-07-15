@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
 import StudentSidebar, { StudentSection } from './StudentSidebar'
 import StudentBottomNav, { StudentBottomNavKey } from './StudentBottomNav'
 import { useAppTheme } from '../../lib/appTheme'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 
 type StudentLayoutProps = {
   activeSection: StudentSection
@@ -64,7 +65,7 @@ export default function StudentLayout({
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 28 : 104,
+            paddingBottom: isDesktop ? 28 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           showsVerticalScrollIndicator={false}
         >

@@ -19,6 +19,7 @@ import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge';
 import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
 import { withAlpha } from '../../lib/color';
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 
 type Subject = {
   id: number
@@ -414,7 +415,7 @@ export default function TeacherClassesScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 28 : 18,
-            paddingBottom: isDesktop ? 32 : 112,
+            paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
@@ -609,7 +610,7 @@ function MobileTeacherClasses({
     <View className="flex-1 bg-[#031022]">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 122 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 6 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
         showsVerticalScrollIndicator={false}
       >

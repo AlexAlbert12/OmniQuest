@@ -30,6 +30,7 @@ import StudentKpiCard from '../../components/student/StudentKpiCard'
 import StudentListRow from '../../components/student/StudentListRow'
 import { formatShortDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 
 type Profile = {
   id: string
@@ -268,7 +269,7 @@ export default function ProgressScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 28 : 104,
+            paddingBottom: isDesktop ? 28 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           showsVerticalScrollIndicator={false}
         >
@@ -471,7 +472,7 @@ function MobileStudentProgress({
     <View className="flex-1 bg-[#061126]">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 116 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER }}
         showsVerticalScrollIndicator={false}
       >
         <View className="mb-8 flex-row items-center justify-between">

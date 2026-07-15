@@ -14,6 +14,7 @@ import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { getTimeAgo } from '../../lib/time'
 import StudentSidebar from '../../components/student/StudentSidebar'
@@ -215,7 +216,7 @@ export default function StudentNotificationsScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 28 : 18,
-            paddingBottom: isDesktop ? 32 : 104,
+            paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
@@ -352,7 +353,7 @@ function MobileStudentNotifications({
     <View className="flex-1 bg-[#031022]">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 122 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 6 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
         showsVerticalScrollIndicator={false}
       >
