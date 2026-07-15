@@ -27,6 +27,9 @@ type ProfileRow = {
   role_id: string | null
   active: boolean | null
   created_at: string
+  subject_count?: number | null
+  enrollment_count?: number | null
+  total_count?: number | null
 }
 
 type SubjectRow = {
@@ -36,6 +39,11 @@ type SubjectRow = {
   active: boolean | null
   is_archived: boolean | null
   created_at: string | null
+  teacher_alias?: string | null
+  teacher_email?: string | null
+  classes_count?: number | null
+  enrollments_count?: number | null
+  total_count?: number | null
 }
 
 type ClassroomRow = {
@@ -45,6 +53,9 @@ type ClassroomRow = {
   code: string | null
   active: boolean | null
   created_at: string
+  subject_name?: string | null
+  enrollments_count?: number | null
+  total_count?: number | null
 }
 
 type AdminAuditLogRow = {
@@ -107,12 +118,15 @@ type AdminData = {
   refreshing: boolean
   onRefresh: () => void
   refresh: () => Promise<void>
+  version: number
 }
 
 type AdminActionResult = {
   error?: string
   ok?: boolean
 }
+
+const ADMIN_PAGE_SIZE = 50
 
 const adminSections: { section: AdminSection; label: string; icon: IconName; href: string }[] = [
   { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(admin)/homeAdmin' },
@@ -226,9 +240,6 @@ function normalizeAdminMetrics(value: unknown, fallback: AdminDashboardMetrics):
 
 function useAdminData(): AdminData {
   const [profiles, setProfiles] = useState<ProfileRow[]>([])
-  const [subjects, setSubjects] = useState<SubjectRow[]>([])
-  const [classrooms, setClassrooms] = useState<ClassroomRow[]>([])
-  const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([])
   const [metrics, setMetrics] = useState<AdminDashboardMetrics>(() => getFallbackAdminMetrics({
     classrooms: [],
     enrollments: [],
@@ -238,26 +249,21 @@ function useAdminData(): AdminData {
   const [auditLogs, setAuditLogs] = useState<AdminAuditLogRow[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [version, setVersion] = useState(0)
 
   const fetchData = useCallback(async () => {
     try {
-      const [profilesResult, subjectsResult, classroomsResult, enrollmentsResult, metricsResult, auditLogData] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('id, alias, email, role_id, active, created_at')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('subjects')
-          .select('id, name, teacher_id, active, is_archived, created_at')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('classrooms')
-          .select('id, subject_id, name, code, active, created_at')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('enrollments')
-          .select('id, student_id, subject_id, classroom_id'),
+      const [metricsResult, adminsResult, auditLogData] = await Promise.all([
         (supabase.rpc('get_admin_dashboard_metrics' as any) as any),
+        (supabase.rpc('get_admin_profiles_page' as any, {
+          p_role: 'admin',
+          p_search: '',
+          p_subject_id: null,
+          p_classroom_id: null,
+          p_profile_id: null,
+          p_limit: 50,
+          p_offset: 0,
+        }) as any),
         fetchOptionalRows<AdminAuditLogRow>('admin_audit_logs', 'id, admin_id, action, target_table, target_id, metadata, created_at', {
           orderBy: 'created_at',
           ascending: false,
@@ -265,31 +271,24 @@ function useAdminData(): AdminData {
         }),
       ])
 
-      if (profilesResult.error) throw profilesResult.error
-      if (subjectsResult.error) throw subjectsResult.error
-      if (classroomsResult.error) throw classroomsResult.error
-      if (enrollmentsResult.error) throw enrollmentsResult.error
-
-      const nextProfiles = (profilesResult.data || []) as ProfileRow[]
-      const nextSubjects = (subjectsResult.data || []) as SubjectRow[]
-      const nextClassrooms = (classroomsResult.data || []) as ClassroomRow[]
-      const nextEnrollments = (enrollmentsResult.data || []) as EnrollmentRow[]
       const fallbackMetrics = getFallbackAdminMetrics({
-        classrooms: nextClassrooms,
-        enrollments: nextEnrollments,
-        profiles: nextProfiles,
-        subjects: nextSubjects,
+        classrooms: [],
+        enrollments: [],
+        profiles: [],
+        subjects: [],
       })
 
-      setProfiles(nextProfiles)
-      setSubjects(nextSubjects)
-      setClassrooms(nextClassrooms)
-      setEnrollments(nextEnrollments)
       if (metricsResult.error && !isMissingSchemaError(metricsResult.error.code)) {
         console.warn('[admin] No se pudieron cargar métricas agregadas:', metricsResult.error.message)
       }
+      if (adminsResult.error && !isMissingSchemaError(adminsResult.error.code)) {
+        console.warn('[admin] No se pudieron cargar administradores:', adminsResult.error.message)
+      }
+
+      setProfiles(adminsResult.error ? [] : ((adminsResult.data || []) as ProfileRow[]))
       setMetrics(normalizeAdminMetrics(metricsResult.error ? null : metricsResult.data, fallbackMetrics))
       setAuditLogs(auditLogData)
+      setVersion((value) => value + 1)
     } catch (error: any) {
       showAlert('No se pudo cargar el portal', error.message || 'Revisa los permisos de administrador y las políticas RLS.')
     } finally {
@@ -309,8 +308,8 @@ function useAdminData(): AdminData {
   )
   const teacherById = useMemo(() => new Map(teachers.map((teacher) => [teacher.id, teacher])), [teachers])
   const studentById = useMemo(() => new Map(students.map((student) => [student.id, student])), [students])
-  const subjectById = useMemo(() => new Map(subjects.map((subject) => [subject.id, subject])), [subjects])
-  const classroomById = useMemo(() => new Map(classrooms.map((classroom) => [classroom.id, classroom])), [classrooms])
+  const subjectById = useMemo(() => new Map<number, SubjectRow>(), [])
+  const classroomById = useMemo(() => new Map<number, ClassroomRow>(), [])
 
   const onRefresh = () => {
     setRefreshing(true)
@@ -321,9 +320,9 @@ function useAdminData(): AdminData {
     profiles,
     teachers,
     students,
-    subjects,
-    classrooms,
-    enrollments,
+    subjects: [],
+    classrooms: [],
+    enrollments: [],
     metrics,
     auditLogs,
     teacherById,
@@ -334,6 +333,72 @@ function useAdminData(): AdminData {
     refreshing,
     onRefresh,
     refresh: fetchData,
+    version,
+  }
+}
+
+function useAdminRpcPage<T extends { total_count?: number | null }>(
+  functionName: string,
+  args: Record<string, unknown>,
+  refreshVersion: number,
+  pageSize = ADMIN_PAGE_SIZE
+) {
+  const [rows, setRows] = useState<T[]>([])
+  const [page, setPage] = useState(0)
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const argsKey = JSON.stringify(args)
+
+  useEffect(() => {
+    setPage(0)
+  }, [argsKey])
+
+  const fetchPage = useCallback(async () => {
+    setLoading(true)
+    try {
+      const { data, error } = await (supabase.rpc(functionName as any, {
+        ...args,
+        p_limit: pageSize,
+        p_offset: page * pageSize,
+      }) as any)
+
+      if (error) throw error
+
+      const nextRows = (data || []) as T[]
+      setRows(nextRows)
+      setTotal(Number(nextRows[0]?.total_count || 0))
+    } catch (error: any) {
+      setRows([])
+      setTotal(0)
+      showAlert('No se pudo cargar el listado', error.message || 'Revisa la conexión y las funciones RPC de administración.')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [argsKey, functionName, page, pageSize, refreshVersion])
+
+  useEffect(() => {
+    void fetchPage()
+  }, [fetchPage])
+
+  const refresh = () => {
+    setRefreshing(true)
+    void fetchPage()
+  }
+
+  return {
+    rows,
+    page,
+    pageSize,
+    total,
+    loading,
+    refreshing,
+    hasPrevious: page > 0,
+    hasNext: (page + 1) * pageSize < total,
+    nextPage: () => setPage((value) => value + 1),
+    previousPage: () => setPage((value) => Math.max(0, value - 1)),
+    refresh,
   }
 }
 
@@ -542,12 +607,14 @@ export function AdminTeachersScreen() {
   const [creatingTeacher, setCreatingTeacher] = useState(false)
   const [createdTeacher, setCreatedTeacher] = useState<CreateTeacherResult | null>(null)
 
-  const normalizedSearch = search.trim().toLowerCase()
-  const visibleTeachers = useMemo(() => {
-    let rows = filterProfiles(data.teachers, normalizedSearch)
-    if (params.teacherId) rows = rows.filter((teacher) => teacher.id === params.teacherId)
-    return rows
-  }, [data.teachers, normalizedSearch, params.teacherId])
+  const teacherPage = useAdminRpcPage<ProfileRow>('get_admin_profiles_page', {
+    p_role: 'teacher',
+    p_search: search.trim(),
+    p_subject_id: null,
+    p_classroom_id: null,
+    p_profile_id: params.teacherId || null,
+  }, data.version)
+  const visibleTeachers = teacherPage.rows
 
   const handleCreateTeacher = async () => {
     const email = teacherEmail.trim().toLowerCase()
@@ -578,6 +645,7 @@ export function AdminTeachersScreen() {
       setTeacherEmail('')
       setTeacherPassword('')
       await data.refresh()
+      teacherPage.refresh()
     } catch (error: any) {
       showAlert('No se pudo crear el profesor', error.message || 'Revisa la Edge Function y los permisos del usuario administrador.')
     } finally {
@@ -630,11 +698,12 @@ export function AdminTeachersScreen() {
       <Panel title="Listado de profesores" icon="school-outline" className="mt-5">
         <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar profesor por nombre o correo..." />
         <View className="mt-4" style={{ gap: 12 }}>
+          {teacherPage.loading && !teacherPage.refreshing ? <ListLoadingState /> : null}
           {visibleTeachers.map((profile) => (
             <ProfileRowCard
               key={profile.id}
               profile={profile}
-              meta={`${data.subjects.filter((subject) => subject.teacher_id === profile.id).length} curso(s)`}
+              meta={`${profile.subject_count ?? 0} curso(s)`}
               actions={[
                 { label: 'Ver cursos', icon: 'book-outline', onPress: () => actions.router.push(`/(admin)/courses?teacherId=${profile.id}` as any) },
                 { label: profile.active === false ? 'Activar' : 'Desactivar', icon: profile.active === false ? 'checkmark-circle-outline' : 'ban-outline', destructive: profile.active !== false, onPress: () => actions.toggleProfileActive(profile) },
@@ -642,8 +711,9 @@ export function AdminTeachersScreen() {
               ]}
             />
           ))}
-          {visibleTeachers.length === 0 ? <EmptyState label="No hay profesores que coincidan." /> : null}
+          {!teacherPage.loading && visibleTeachers.length === 0 ? <EmptyState label="No hay profesores que coincidan." /> : null}
         </View>
+        <AdminPaginationControls page={teacherPage.page} pageSize={teacherPage.pageSize} total={teacherPage.total} hasPrevious={teacherPage.hasPrevious} hasNext={teacherPage.hasNext} onPrevious={teacherPage.previousPage} onNext={teacherPage.nextPage} />
       </Panel>
     </AdminScaffold>
   )
@@ -655,24 +725,14 @@ export function AdminStudentsScreen() {
   const params = useLocalSearchParams<{ classroomId?: string; subjectId?: string }>()
   const [search, setSearch] = useState('')
 
-  const normalizedSearch = search.trim().toLowerCase()
-  const visibleStudents = useMemo(() => {
-    let rows = filterProfiles(data.students, normalizedSearch)
-
-    if (params.subjectId) {
-      const targetSubjectId = Number(params.subjectId)
-      const studentIds = new Set(data.enrollments.filter((enrollment) => enrollment.subject_id === targetSubjectId).map((enrollment) => enrollment.student_id))
-      rows = rows.filter((student) => studentIds.has(student.id))
-    }
-
-    if (params.classroomId) {
-      const targetClassroomId = Number(params.classroomId)
-      const studentIds = new Set(data.enrollments.filter((enrollment) => enrollment.classroom_id === targetClassroomId).map((enrollment) => enrollment.student_id))
-      rows = rows.filter((student) => studentIds.has(student.id))
-    }
-
-    return rows
-  }, [data.enrollments, data.students, normalizedSearch, params.classroomId, params.subjectId])
+  const studentPage = useAdminRpcPage<ProfileRow>('get_admin_profiles_page', {
+    p_role: 'student',
+    p_search: search.trim(),
+    p_subject_id: params.subjectId ? Number(params.subjectId) : null,
+    p_classroom_id: params.classroomId ? Number(params.classroomId) : null,
+    p_profile_id: null,
+  }, data.version)
+  const visibleStudents = studentPage.rows
 
   return (
     <AdminScaffold activeSection="students" title="Alumnos" subtitle="Consulta cuentas, inscripciones y progreso acumulado." data={data}>
@@ -685,23 +745,22 @@ export function AdminStudentsScreen() {
       <Panel title="Listado de alumnos" icon="people-outline" className="mt-5">
         <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar alumno por nombre o correo..." />
         <View className="mt-4" style={{ gap: 12 }}>
-          {visibleStudents.map((profile) => {
-            const studentEnrollments = data.enrollments.filter((enrollment) => enrollment.student_id === profile.id)
-            return (
-              <ProfileRowCard
-                key={profile.id}
-                profile={profile}
-                meta={`${studentEnrollments.length} inscripción(es)`}
-                actions={[
-                  { label: 'Ver inscripciones', icon: 'albums-outline', onPress: () => actions.router.push(`/(admin)/classrooms?studentId=${profile.id}` as any) },
-                  { label: profile.active === false ? 'Activar' : 'Desactivar', icon: profile.active === false ? 'checkmark-circle-outline' : 'ban-outline', destructive: profile.active !== false, onPress: () => actions.toggleProfileActive(profile) },
-                  { label: 'Eliminar progreso', icon: 'trash-outline', destructive: true, onPress: () => actions.deleteStudentProgress(profile) },
-                ]}
-              />
-            )
-          })}
-          {visibleStudents.length === 0 ? <EmptyState label="No hay alumnos que coincidan." /> : null}
+          {studentPage.loading && !studentPage.refreshing ? <ListLoadingState /> : null}
+          {visibleStudents.map((profile) => (
+            <ProfileRowCard
+              key={profile.id}
+              profile={profile}
+              meta={`${profile.enrollment_count ?? 0} inscripción(es)`}
+              actions={[
+                { label: 'Ver inscripciones', icon: 'albums-outline', onPress: () => actions.router.push(`/(admin)/classrooms?studentId=${profile.id}` as any) },
+                { label: profile.active === false ? 'Activar' : 'Desactivar', icon: profile.active === false ? 'checkmark-circle-outline' : 'ban-outline', destructive: profile.active !== false, onPress: () => actions.toggleProfileActive(profile) },
+                { label: 'Eliminar progreso', icon: 'trash-outline', destructive: true, onPress: () => actions.deleteStudentProgress(profile) },
+              ]}
+            />
+          ))}
+          {!studentPage.loading && visibleStudents.length === 0 ? <EmptyState label="No hay alumnos que coincidan." /> : null}
         </View>
+        <AdminPaginationControls page={studentPage.page} pageSize={studentPage.pageSize} total={studentPage.total} hasPrevious={studentPage.hasPrevious} hasNext={studentPage.hasNext} onPrevious={studentPage.previousPage} onNext={studentPage.nextPage} />
       </Panel>
     </AdminScaffold>
   )
@@ -713,16 +772,12 @@ export function AdminCoursesScreen() {
   const params = useLocalSearchParams<{ teacherId?: string; archived?: string }>()
   const [search, setSearch] = useState('')
 
-  const normalizedSearch = search.trim().toLowerCase()
-  const visibleSubjects = useMemo(() => {
-    return data.subjects.filter((subject) => {
-      if (params.teacherId && subject.teacher_id !== params.teacherId) return false
-      if (params.archived === '1' && !subject.is_archived) return false
-      if (!normalizedSearch) return true
-      const teacher = subject.teacher_id ? data.teacherById.get(subject.teacher_id) : null
-      return `${subject.name} ${teacher?.alias || ''} ${teacher?.email || ''}`.toLowerCase().includes(normalizedSearch)
-    })
-  }, [data.subjects, data.teacherById, normalizedSearch, params.archived, params.teacherId])
+  const subjectPage = useAdminRpcPage<SubjectRow>('get_admin_subjects_page', {
+    p_search: search.trim(),
+    p_teacher_id: params.teacherId || null,
+    p_archived: params.archived === '1' ? true : null,
+  }, data.version)
+  const visibleSubjects = subjectPage.rows
 
   return (
     <AdminScaffold activeSection="courses" title="Cursos" subtitle="Administra cursos activos, archivados y docentes responsables." data={data}>
@@ -735,13 +790,14 @@ export function AdminCoursesScreen() {
       <Panel title="Listado de cursos" icon="book-outline" className="mt-5">
         <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar curso o profesor..." />
         <View className="mt-4" style={{ gap: 12 }}>
+          {subjectPage.loading && !subjectPage.refreshing ? <ListLoadingState /> : null}
           {visibleSubjects.map((subject) => (
             <CourseRowCard
               key={subject.id}
               subject={subject}
-              teacher={subject.teacher_id ? data.teacherById.get(subject.teacher_id) : undefined}
-              classesCount={data.classrooms.filter((classroom) => classroom.subject_id === subject.id).length}
-              enrollmentsCount={data.enrollments.filter((enrollment) => enrollment.subject_id === subject.id).length}
+              teacher={buildTeacherProfileFromSubject(subject)}
+              classesCount={subject.classes_count ?? 0}
+              enrollmentsCount={subject.enrollments_count ?? 0}
               actions={[
                 { label: 'Ver clases', icon: 'albums-outline', onPress: () => actions.router.push(`/(admin)/classrooms?subjectId=${subject.id}` as any) },
                 { label: subject.is_archived ? 'Restaurar' : 'Archivar', icon: subject.is_archived ? 'refresh-outline' : 'archive-outline', destructive: !subject.is_archived, onPress: () => actions.toggleCourseArchive(subject) },
@@ -749,8 +805,9 @@ export function AdminCoursesScreen() {
               ]}
             />
           ))}
-          {visibleSubjects.length === 0 ? <EmptyState label="No hay cursos que coincidan." /> : null}
+          {!subjectPage.loading && visibleSubjects.length === 0 ? <EmptyState label="No hay cursos que coincidan." /> : null}
         </View>
+        <AdminPaginationControls page={subjectPage.page} pageSize={subjectPage.pageSize} total={subjectPage.total} hasPrevious={subjectPage.hasPrevious} hasNext={subjectPage.hasNext} onPrevious={subjectPage.previousPage} onNext={subjectPage.nextPage} />
       </Panel>
     </AdminScaffold>
   )
@@ -762,24 +819,12 @@ export function AdminClassroomsScreen() {
   const params = useLocalSearchParams<{ subjectId?: string; studentId?: string }>()
   const [search, setSearch] = useState('')
 
-  const normalizedSearch = search.trim().toLowerCase()
-  const visibleClassrooms = useMemo(() => {
-    return data.classrooms.filter((classroom) => {
-      if (params.subjectId && classroom.subject_id !== Number(params.subjectId)) return false
-      if (params.studentId) {
-        const studentClassroomIds = new Set(
-          data.enrollments
-            .filter((enrollment) => enrollment.student_id === params.studentId)
-            .map((enrollment) => enrollment.classroom_id)
-            .filter((id): id is number => typeof id === 'number')
-        )
-        if (!studentClassroomIds.has(classroom.id)) return false
-      }
-      if (!normalizedSearch) return true
-      const subject = classroom.subject_id ? data.subjectById.get(classroom.subject_id) : null
-      return `${classroom.name} ${classroom.code || ''} ${subject?.name || ''}`.toLowerCase().includes(normalizedSearch)
-    })
-  }, [data.classrooms, data.enrollments, data.subjectById, normalizedSearch, params.studentId, params.subjectId])
+  const classroomPage = useAdminRpcPage<ClassroomRow>('get_admin_classrooms_page', {
+    p_search: search.trim(),
+    p_subject_id: params.subjectId ? Number(params.subjectId) : null,
+    p_student_id: params.studentId || null,
+  }, data.version)
+  const visibleClassrooms = classroomPage.rows
 
   return (
     <AdminScaffold activeSection="classrooms" title="Clases" subtitle="Gestiona códigos, estado e inscripciones por clase." data={data}>
@@ -792,12 +837,13 @@ export function AdminClassroomsScreen() {
       <Panel title="Listado de clases" icon="albums-outline" className="mt-5">
         <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar clase, código o curso..." />
         <View className="mt-4" style={{ gap: 12 }}>
+          {classroomPage.loading && !classroomPage.refreshing ? <ListLoadingState /> : null}
           {visibleClassrooms.map((classroom) => (
             <ClassroomRowCard
               key={classroom.id}
               classroom={classroom}
-              subject={classroom.subject_id ? data.subjectById.get(classroom.subject_id) : undefined}
-              enrollmentsCount={data.enrollments.filter((enrollment) => enrollment.classroom_id === classroom.id).length}
+              subject={buildSubjectFromClassroom(classroom)}
+              enrollmentsCount={classroom.enrollments_count ?? 0}
               actions={[
                 { label: 'Copiar código', icon: 'copy-outline', onPress: () => actions.copyClassroomCode(classroom) },
                 { label: 'Ver alumnos', icon: 'people-outline', onPress: () => actions.router.push(`/(admin)/students?classroomId=${classroom.id}` as any) },
@@ -805,8 +851,9 @@ export function AdminClassroomsScreen() {
               ]}
             />
           ))}
-          {visibleClassrooms.length === 0 ? <EmptyState label="No hay clases que coincidan." /> : null}
+          {!classroomPage.loading && visibleClassrooms.length === 0 ? <EmptyState label="No hay clases que coincidan." /> : null}
         </View>
+        <AdminPaginationControls page={classroomPage.page} pageSize={classroomPage.pageSize} total={classroomPage.total} hasPrevious={classroomPage.hasPrevious} hasNext={classroomPage.hasNext} onPrevious={classroomPage.previousPage} onNext={classroomPage.nextPage} />
       </Panel>
     </AdminScaffold>
   )
@@ -1425,6 +1472,90 @@ function EmptyState({ label }: { label: string }) {
   )
 }
 
+function ListLoadingState() {
+  return (
+    <View className="items-center rounded-xl border border-[#20375E] bg-[#09162C] p-5">
+      <ActivityIndicator color="#8B5CF6" />
+      <Text className="mt-3 text-[13px] font-semibold text-[#8FA7C7]">Cargando página...</Text>
+    </View>
+  )
+}
+
+function AdminPaginationControls({
+  hasNext,
+  hasPrevious,
+  onNext,
+  onPrevious,
+  page,
+  pageSize,
+  total,
+}: {
+  hasNext: boolean
+  hasPrevious: boolean
+  onNext: () => void
+  onPrevious: () => void
+  page: number
+  pageSize: number
+  total: number
+}) {
+  const firstItem = total === 0 ? 0 : page * pageSize + 1
+  const lastItem = Math.min(total, (page + 1) * pageSize)
+
+  return (
+    <View className="mt-4 flex-row flex-wrap items-center justify-between gap-3 rounded-xl border border-[#1A3155] bg-[#07162E] px-4 py-3">
+      <Text className="text-[12px] font-semibold text-[#AFC2DB]">
+        {total === 0 ? 'Sin resultados' : `${firstItem}-${lastItem} de ${total}`}
+      </Text>
+      <View className="flex-row items-center gap-2">
+        <Pressable
+          onPress={onPrevious}
+          disabled={!hasPrevious}
+          className="h-10 flex-row items-center gap-1 rounded-xl border border-[#20375E] bg-[#09162C] px-3"
+          style={({ pressed }) => ({ opacity: !hasPrevious ? 0.45 : pressed ? 0.78 : 1 })}
+        >
+          <Ionicons name="chevron-back" size={15} color="#DDE7F4" />
+          <Text className="text-[12px] font-black text-[#DDE7F4]">Anterior</Text>
+        </Pressable>
+        <Pressable
+          onPress={onNext}
+          disabled={!hasNext}
+          className="h-10 flex-row items-center gap-1 rounded-xl bg-[#5A46D8] px-3"
+          style={({ pressed }) => ({ opacity: !hasNext ? 0.45 : pressed ? 0.78 : 1 })}
+        >
+          <Text className="text-[12px] font-black text-white">Siguiente</Text>
+          <Ionicons name="chevron-forward" size={15} color="#FFFFFF" />
+        </Pressable>
+      </View>
+    </View>
+  )
+}
+
+function buildTeacherProfileFromSubject(subject: SubjectRow): ProfileRow | undefined {
+  if (!subject.teacher_id) return undefined
+
+  return {
+    id: subject.teacher_id,
+    alias: subject.teacher_alias || 'Profesor sin perfil',
+    email: subject.teacher_email || null,
+    role_id: 'teacher',
+    active: null,
+    created_at: subject.created_at || '',
+  }
+}
+
+function buildSubjectFromClassroom(classroom: ClassroomRow): SubjectRow | undefined {
+  if (typeof classroom.subject_id !== 'number') return undefined
+
+  return {
+    id: classroom.subject_id,
+    name: classroom.subject_name || 'Curso no disponible',
+    teacher_id: null,
+    active: null,
+    is_archived: null,
+    created_at: null,
+  }
+}
+
 function useAdminDashboard(data: AdminData) {
   return useMemo(() => ({
     activeCourses: data.metrics.activeCourses,
@@ -1436,11 +1567,6 @@ function useAdminDashboard(data: AdminData) {
     classroomsWithoutCode: data.metrics.classroomsWithoutCode,
     enrollmentsCount: data.metrics.enrollmentsCount,
   }), [data.metrics])
-}
-
-function filterProfiles(rows: ProfileRow[], search: string) {
-  if (!search) return rows
-  return rows.filter((profile) => `${profile.alias} ${profile.email || ''}`.toLowerCase().includes(search))
 }
 
 function getInitials(value: string) {

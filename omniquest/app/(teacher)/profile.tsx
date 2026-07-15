@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { useFocusEffect, useRouter } from 'expo-router'
+import { useFocusEffect, useRouter, type Href } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -56,6 +56,19 @@ type Question = {
   subject_id: number | null
   created_at: string
   subjects?: { name: string } | { name: string }[] | null
+}
+
+const TEACHER_ROUTES = {
+  classes: '/(teacher)/classes',
+  login: '/(auth)/login',
+  notifications: '/(teacher)/notifications',
+  security: '/(teacher)/security',
+  settingsProfile: '/(teacher)/settings?section=profile',
+  students: '/(teacher)/students',
+} satisfies Record<string, Href>
+
+function teacherSubjectRoute(subjectId: number) {
+  return `/(teacher)/subject/${subjectId}` as Href
 }
 
 export default function TeacherProfileScreen() {
@@ -254,7 +267,7 @@ export default function TeacherProfileScreen() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.replace('/(auth)/login' as any)
+    router.replace(TEACHER_ROUTES.login)
   }
 
   if (loading) {
@@ -278,13 +291,13 @@ export default function TeacherProfileScreen() {
         recentSubjects={recentSubjects}
         recentQuestions={recentQuestions}
         onPickImage={pickImage}
-        onNotifications={() => router.push('/(teacher)/notifications' as any)}
-        onEditProfile={() => router.push('/(teacher)/settings?section=profile' as any)}
-        onSecurity={() => router.push('/(teacher)/security' as any)}
-        onClasses={() => router.push('/(teacher)/classes' as any)}
-        onStudents={() => router.push('/(teacher)/students' as any)}
-        onQuestions={() => router.push('/(teacher)/classes' as any)}
-        onOpenSubject={(subjectId) => router.push(`/(teacher)/subject/${subjectId}` as any)}
+        onNotifications={() => router.push(TEACHER_ROUTES.notifications)}
+        onEditProfile={() => router.push(TEACHER_ROUTES.settingsProfile)}
+        onSecurity={() => router.push(TEACHER_ROUTES.security)}
+        onClasses={() => router.push(TEACHER_ROUTES.classes)}
+        onStudents={() => router.push(TEACHER_ROUTES.students)}
+        onQuestions={() => router.push(TEACHER_ROUTES.classes)}
+        onOpenSubject={(subjectId) => router.push(teacherSubjectRoute(subjectId))}
       />
     )
   }
@@ -347,7 +360,7 @@ export default function TeacherProfileScreen() {
                 value={String(stats.activeClasses)}
                 icon="book"
                 color="#8B5CF6"
-                onPress={() => router.push('/(teacher)/classes' as any)}
+                onPress={() => router.push(TEACHER_ROUTES.classes)}
               />
 
               <MetricTile
@@ -355,7 +368,7 @@ export default function TeacherProfileScreen() {
                 value={String(stats.uniqueStudents)}
                 icon="people"
                 color="#43D991"
-                onPress={() => router.push('/(teacher)/students' as any)}
+                onPress={() => router.push(TEACHER_ROUTES.students)}
               />
 
               <MetricTile
@@ -363,7 +376,7 @@ export default function TeacherProfileScreen() {
                 value={String(stats.questionsCreated)}
                 icon="clipboard"
                 color="#3B82F6"
-                onPress={() => router.push('/(teacher)/classes' as any)}
+                onPress={() => router.push(TEACHER_ROUTES.classes)}
               />
 
               <MetricTile
@@ -371,7 +384,7 @@ export default function TeacherProfileScreen() {
                 value={`${stats.averageParticipation}%`}
                 icon="analytics"
                 color="#F6A64A"
-                onPress={() => router.push('/(teacher)/students' as any)}
+                onPress={() => router.push(TEACHER_ROUTES.students)}
               />
             </View>
           </View>
@@ -383,7 +396,7 @@ export default function TeacherProfileScreen() {
               <InfoRow icon="calendar-outline" label="Miembro desde" value={memberSince} />
 
               <Pressable
-                onPress={() => router.push('/(teacher)/settings?section=profile' as any)}
+                onPress={() => router.push(TEACHER_ROUTES.settingsProfile)}
                 className="mt-4 flex-row items-center gap-2 border-t border-[#172A4A] pt-4"
               >
                 <Ionicons name="create-outline" size={18} color="#9B6CFF" />
@@ -392,7 +405,7 @@ export default function TeacherProfileScreen() {
               </Pressable>
 
               <Pressable
-                onPress={() => router.push('/(teacher)/security' as any)}
+                onPress={() => router.push(TEACHER_ROUTES.security)}
                 className="mt-3 flex-row items-center gap-2"
               >
                 <Ionicons name="lock-closed-outline" size={18} color="#9B6CFF" />
@@ -407,7 +420,7 @@ export default function TeacherProfileScreen() {
                   recentSubjects.map((subject) => (
                     <Pressable
                       key={subject.id}
-                      onPress={() => router.push(`/(teacher)/subject/${subject.id}` as any)}
+                      onPress={() => router.push(teacherSubjectRoute(subject.id))}
                       className="flex-row items-center gap-3 rounded-xl bg-[#0D1D3B] p-3"
                     >
                       <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#1B2460]">

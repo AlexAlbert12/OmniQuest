@@ -1009,6 +1009,74 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_admin_profiles_page: {
+        Args: {
+          p_role?: string | null
+          p_search?: string | null
+          p_subject_id?: number | null
+          p_classroom_id?: number | null
+          p_profile_id?: string | null
+          p_limit?: number | null
+          p_offset?: number | null
+        }
+        Returns: {
+          id: string
+          alias: string
+          email: string | null
+          role_id: string | null
+          active: boolean | null
+          created_at: string
+          subject_count: number
+          enrollment_count: number
+          total_count: number
+        }[]
+      }
+      get_admin_subjects_page: {
+        Args: {
+          p_search?: string | null
+          p_teacher_id?: string | null
+          p_archived?: boolean | null
+          p_limit?: number | null
+          p_offset?: number | null
+        }
+        Returns: {
+          id: number
+          name: string
+          teacher_id: string | null
+          active: boolean | null
+          is_archived: boolean | null
+          created_at: string | null
+          teacher_alias: string | null
+          teacher_email: string | null
+          classes_count: number
+          enrollments_count: number
+          total_count: number
+        }[]
+      }
+      get_admin_classrooms_page: {
+        Args: {
+          p_search?: string | null
+          p_subject_id?: number | null
+          p_student_id?: string | null
+          p_limit?: number | null
+          p_offset?: number | null
+        }
+        Returns: {
+          id: number
+          subject_id: number | null
+          name: string
+          code: string | null
+          active: boolean | null
+          created_at: string
+          subject_name: string | null
+          enrollments_count: number
+          total_count: number
+        }[]
+      }
+      get_admin_enrollments_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       create_notification: {
         Args: {
           p_user_id: string

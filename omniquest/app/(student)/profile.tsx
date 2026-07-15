@@ -9,7 +9,7 @@ import {
   View,
   Image,
 } from 'react-native'
-import { useFocusEffect, useRouter } from 'expo-router'
+import { useFocusEffect, useRouter, type Href } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -82,6 +82,17 @@ type ActivityItem = {
   time: string
   xp: string
 }
+
+const STUDENT_ROUTES = {
+  activityLog: '/(student)/activity-log',
+  badges: '/(student)/badges',
+  classes: '/(student)/classes',
+  login: '/(auth)/login',
+  notifications: '/(student)/notifications',
+  progress: '/(student)/progress',
+  settings: '/(student)/settings',
+  settingsProfile: '/(student)/settings?section=profile',
+} satisfies Record<string, Href>
 
 export default function ProfileScreen() {
   const { width } = useWindowDimensions()
@@ -245,7 +256,7 @@ export default function ProfileScreen() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.replace('/(auth)/login' as any)
+    router.replace(STUDENT_ROUTES.login)
   }
 
   if (loading) {
@@ -273,10 +284,10 @@ export default function ProfileScreen() {
         streakDays={streakDays}
         uploading={uploading}
         onPickImage={pickImage}
-        onOpenActivity={() => router.push('/(student)/activity-log' as any)}
-        onOpenBadges={() => router.push('/(student)/badges' as any)}
-        onOpenClasses={() => router.push('/(student)/classes' as any)}
-        onOpenProgress={() => router.push('/(student)/progress' as any)}
+        onOpenActivity={() => router.push(STUDENT_ROUTES.activityLog)}
+        onOpenBadges={() => router.push(STUDENT_ROUTES.badges)}
+        onOpenClasses={() => router.push(STUDENT_ROUTES.classes)}
+        onOpenProgress={() => router.push(STUDENT_ROUTES.progress)}
       />
     )
   }
@@ -329,28 +340,28 @@ export default function ProfileScreen() {
                 value={String(answeredAttempts)}
                 icon="chatbubbles"
                 color="#F6A64A"
-                onPress={() => router.push('/(student)/progress' as any)}
+                onPress={() => router.push(STUDENT_ROUTES.progress)}
               />
               <SummaryTile
                 title="Preguntas correctas"
                 value={String(correctAttempts)}
                 icon="checkmark-circle"
                 color={accentColor}
-                onPress={() => router.push('/(student)/progress' as any)}
+                onPress={() => router.push(STUDENT_ROUTES.progress)}
               />
               <SummaryTile
                 title="Precisión"
                 value={`${accuracyPercent}%`}
                 icon="speedometer-outline"
                 color="#43D991"
-                onPress={() => router.push('/(student)/progress' as any)}
+                onPress={() => router.push(STUDENT_ROUTES.progress)}
               />
               <SummaryTile
                 title="Cursos completados"
                 value={String(completedProgressClasses)}
                 icon="book"
                 color="#3B82F6"
-                onPress={() => router.push('/(student)/classes' as any)}
+                onPress={() => router.push(STUDENT_ROUTES.classes)}
               />
             </View>
           </View>
@@ -360,7 +371,7 @@ export default function ProfileScreen() {
               <InfoRow icon="mail-outline" label="Correo electrónico" value={email} />
               <InfoRow icon="calendar-outline" label="Miembro desde" value={memberSince} />
               <Pressable
-                onPress={() => router.push('/(student)/settings?section=profile' as any)}
+                onPress={() => router.push(STUDENT_ROUTES.settingsProfile)}
                 className="mt-4 flex-row items-center gap-2 border-t border-[#172A4A] pt-4"
               >
                 <Ionicons name="create-outline" size={18} color={accentColor} />
@@ -376,28 +387,28 @@ export default function ProfileScreen() {
                   label="Progreso"
                   description="Estadísticas, evolución y cursos"
                   color={accentColor}
-                  onPress={() => router.push('/(student)/progress' as any)}
+                  onPress={() => router.push(STUDENT_ROUTES.progress)}
                 />
                 <ProfileShortcut
                   icon="ribbon-outline"
                   label="Logros"
                   description="Insignias conseguidas y pendientes"
                   color="#A855F7"
-                  onPress={() => router.push('/(student)/badges' as any)}
+                  onPress={() => router.push(STUDENT_ROUTES.badges)}
                 />
                 <ProfileShortcut
                   icon="notifications-outline"
                   label="Notificaciones"
                   description="Avisos y novedades de tus cursos"
                   color="#38BDF8"
-                  onPress={() => router.push('/(student)/notifications' as any)}
+                  onPress={() => router.push(STUDENT_ROUTES.notifications)}
                 />
                 <ProfileShortcut
                   icon="settings-outline"
                   label="Configuración"
                   description="Preferencias, privacidad y seguridad"
                   color="#F6A64A"
-                  onPress={() => router.push('/(student)/settings' as any)}
+                  onPress={() => router.push(STUDENT_ROUTES.settings)}
                 />
               </View>
             </StudentDashboardCard>
@@ -412,13 +423,13 @@ export default function ProfileScreen() {
                   <EmptyState icon="analytics-outline" message="Juega una curso para ver tus estadísticas." />
                 )}
               </View>
-              <StudentCardLink label="Ver estadísticas detalladas" onPress={() => router.push('/(student)/progress' as any)} />
+              <StudentCardLink label="Ver estadísticas detalladas" onPress={() => router.push(STUDENT_ROUTES.progress)} />
             </StudentDashboardCard>
 
             <StudentDashboardCard
               title="Logros"
               actionLabel="Ver todas"
-              onAction={() => router.push('/(student)/badges' as any)}
+              onAction={() => router.push(STUDENT_ROUTES.badges)}
               className={isDesktop ? 'flex-[1.36]' : ''}
             >
               <View style={{ gap: 12 }}>
@@ -427,7 +438,7 @@ export default function ProfileScreen() {
                     <BadgeRow
                       key={badge.title}
                       badge={badge}
-                      onPress={() => router.push('/(student)/badges' as any)}
+                      onPress={() => router.push(STUDENT_ROUTES.badges)}
                     />
                   ))
                 ) : (
@@ -441,7 +452,7 @@ export default function ProfileScreen() {
             <StudentDashboardCard
               title="Historial de actividad"
               actionLabel="Ver historial"
-              onAction={() => router.push('/(student)/activity-log' as any)}
+              onAction={() => router.push(STUDENT_ROUTES.activityLog)}
               className={isDesktop ? 'flex-[1.55]' : ''}
             >
               <View style={{ gap: 14 }}>
@@ -453,7 +464,7 @@ export default function ProfileScreen() {
                   <EmptyState icon="sparkles-outline" message="Completa una partida para llenar tu historial." />
                 )}
               </View>
-              <StudentCardLink label="Ver toda la actividad" onPress={() => router.push('/(student)/activity-log' as any)} />
+              <StudentCardLink label="Ver toda la actividad" onPress={() => router.push(STUDENT_ROUTES.activityLog)} />
             </StudentDashboardCard>
           </View>
         </ScrollView>

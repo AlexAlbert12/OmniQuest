@@ -1,15 +1,20 @@
 import React from 'react'
-import { ActivityIndicator, Modal, Pressable, Switch, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
+import type {
+  IconName,
+  SettingsAnchorKey,
+  SettingsMenuSectionKey,
+  SettingsMenuVariant,
+} from './SettingsTypes'
 
-type IconName = keyof typeof Ionicons.glyphMap
 export type SettingsMenuItem = {
-  key: string
+  key: SettingsMenuSectionKey
   label: string
   icon: IconName
-  anchor: string
+  anchor: SettingsAnchorKey
 }
 
 type DestructiveActionType = 'scores' | 'enrollments' | 'all' | 'account'
@@ -145,49 +150,84 @@ function getDestructiveActionDetails(action: DestructiveActionType | null, isTea
 }
 
 export function SettingsMenu({
+  variant,
   onSignOut,
-  isDesktop,
   activeSection,
   onSectionPress,
   sections,
 }: {
+  variant: SettingsMenuVariant
   onSignOut: () => void
-  isDesktop: boolean
-  activeSection: string
+  activeSection: SettingsMenuSectionKey
   onSectionPress: (section: SettingsMenuItem) => void
   sections: SettingsMenuItem[]
 }) {
   const { accentColor } = useAppTheme()
 
-  return (
-    <View
-      className={`rounded-xl border border-[#183052] bg-[#07162D] p-3 ${isDesktop ? 'w-[205px] self-start' : ''}`}
-    >
-      <View className={isDesktop ? 'gap-1' : 'flex-row flex-wrap gap-2'}>
-        {sections.map((section) => (
-          <Pressable
-            key={section.label}
-            onPress={() => onSectionPress(section)}
-            className="flex-row items-center gap-3 rounded-lg border px-3 py-3"
-            style={{
-              borderColor: section.key === activeSection ? accentColor : 'transparent',
-              backgroundColor: section.key === activeSection ? withAlpha(accentColor, '24') : 'transparent',
-            }}
-          >
-            <Ionicons name={section.icon} size={16} color={section.key === activeSection ? accentColor : '#AFC2DB'} />
-            <Text className={`text-[12px] font-semibold ${section.key === activeSection ? 'text-white' : 'text-[#B7C4D7]'}`}>
-              {section.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+  const renderMenuItem = (section: SettingsMenuItem) => {
+    const active = section.key === activeSection
+    const isChip = variant === 'chips'
+
+    return (
       <Pressable
-        onPress={onSignOut}
-        className="mt-4 flex-row items-center gap-2 rounded-lg border border-[#20375E] bg-[#071326] px-3 py-3"
+        key={section.key}
+        onPress={() => onSectionPress(section)}
+        className={`flex-row items-center gap-2 border ${isChip ? 'min-h-[44px] rounded-full px-4 py-3' : 'rounded-xl px-4 py-3'}`}
+        style={({ pressed }) => ({
+          opacity: pressed ? 0.82 : 1,
+          borderColor: active ? accentColor : '#183052',
+          backgroundColor: active ? withAlpha(accentColor, '24') : '#071A32',
+        })}
       >
-        <Ionicons name="log-out-outline" size={15} color="#F87171" />
-        <Text className="text-[12px] font-bold text-[#F87171]">Cerrar sesión</Text>
+        {isChip ? null : (
+          <Ionicons
+            name={section.icon}
+            size={16}
+            color={active ? accentColor : '#AFC2DB'}
+          />
+        )}
+
+        <Text
+          className={`text-[12px] font-black ${active ? 'text-white' : 'text-[#B7C4D7]'}`}
+          numberOfLines={1}
+        >
+          {section.label}
+        </Text>
       </Pressable>
+    )
+  }
+
+  if (variant === 'side') {
+    return (
+      <View className="w-[220px] self-start rounded-xl border border-[#183052] bg-[#07162D] p-3">
+        <View className="gap-1">
+          {sections.map(renderMenuItem)}
+        </View>
+
+        <Pressable
+          onPress={onSignOut}
+          className="mt-4 flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#071326] px-3 py-3"
+          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+        >
+          <Ionicons name="log-out-outline" size={15} color="#F87171" />
+          <Text className="text-[12px] font-bold text-[#F87171]">Cerrar sesión</Text>
+        </Pressable>
+      </View>
+    )
+  }
+
+  return (
+    <View className="rounded-xl border border-[#183052] bg-[#07162D] p-2">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          gap: 8,
+          paddingRight: 8,
+        }}
+      >
+        {sections.map(renderMenuItem)}
+      </ScrollView>
     </View>
   )
 }
