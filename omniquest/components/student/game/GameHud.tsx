@@ -95,15 +95,9 @@ export function BottomHud({
   onSkip: () => void
 }) {
   return (
-    <View className="mt-6 rounded-[24px] border border-[#173055] bg-[#08172E]/95 p-4">
-      <View className="flex-row gap-3">
-        <HudAction icon="bulb" title="Pista" detail="-10 pts" color="#FBBF24" onPress={onHint} />
-        <HudAction icon="play-skip-forward" title="Saltar" detail="-20 pts" color="#A78BFA" onPress={onSkip} />
-      </View>
-      <View className="mt-3 flex-row items-center justify-center gap-2 rounded-2xl border border-[#10213E] bg-[#061426] px-4 py-3">
-        <Ionicons name="checkmark-circle-outline" size={18} color="#43D991" />
-        <Text className="text-center text-[12px] font-bold text-[#C9D7EA]">Comprueba cuando tengas clara la respuesta</Text>
-      </View>
+    <View className="mt-5 flex-row gap-3 rounded-[22px] border border-[#173055] bg-[#08172E]/92 p-3">
+      <HudAction icon="bulb" title="Pista" detail="-10 pts" color="#FBBF24" onPress={onHint} />
+      <HudAction icon="play-skip-forward" title="Saltar" detail="-20 pts" color="#A78BFA" onPress={onSkip} />
     </View>
   )
 }
@@ -124,14 +118,14 @@ function HudAction({
   return (
     <Pressable
       onPress={onPress}
-      className="flex-1 flex-row items-center justify-center gap-3 rounded-2xl border border-[#1A3155] bg-[#0D1D3B] px-4 py-4"
+      className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-[#1A3155] bg-[#0D1D3B] px-3 py-3"
       style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
     >
-      <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: `${color}20` }}>
-        <Ionicons name={icon} size={21} color={color} />
+      <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: `${color}20` }}>
+        <Ionicons name={icon} size={19} color={color} />
       </View>
       <View>
-        <Text className="text-[15px] font-black text-white">{title}</Text>
+        <Text className="text-[14px] font-black text-white">{title}</Text>
         <Text className="mt-0.5 text-[12px] font-black" style={{ color }}>{detail}</Text>
       </View>
     </Pressable>

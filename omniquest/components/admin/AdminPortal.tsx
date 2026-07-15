@@ -349,6 +349,7 @@ function useAdminRpcPage<T extends { total_count?: number | null }>(
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const argsKey = JSON.stringify(args)
+  const stableArgs = useMemo(() => JSON.parse(argsKey) as Record<string, unknown>, [argsKey])
 
   useEffect(() => {
     setPage(0)
@@ -358,7 +359,7 @@ function useAdminRpcPage<T extends { total_count?: number | null }>(
     setLoading(true)
     try {
       const { data, error } = await (supabase.rpc(functionName as any, {
-        ...args,
+        ...stableArgs,
         p_limit: pageSize,
         p_offset: page * pageSize,
       }) as any)
@@ -376,7 +377,7 @@ function useAdminRpcPage<T extends { total_count?: number | null }>(
       setLoading(false)
       setRefreshing(false)
     }
-  }, [argsKey, functionName, page, pageSize, refreshVersion])
+  }, [functionName, page, pageSize, refreshVersion, stableArgs])
 
   useEffect(() => {
     void fetchPage()

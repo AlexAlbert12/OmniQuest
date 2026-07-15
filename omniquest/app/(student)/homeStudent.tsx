@@ -20,6 +20,7 @@ import { useAppTheme } from '../../lib/appTheme'
 import { joinClassByInviteCode } from '../../lib/studentClassJoin'
 import { calculateStreakDays } from '../../lib/studentBadges'
 import { getStartOfWeekMonday, getTimeUntilSundayLabel } from '../../lib/weeklyGoal'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 
 type Subject = {
   id: number
@@ -403,7 +404,6 @@ export default function StudentHome() {
         points={points}
         nextLevelProgress={nextLevelProgress}
         heroAction={heroAction}
-        progressPercent={progressPercent}
         attemptCount={attemptCount}
         failedQuestions={failedQuestions}
         accuracyPercent={progressSummary?.accuracyPercent ?? 0}
@@ -600,7 +600,6 @@ type MobileStudentHomeProps = {
   points: number
   nextLevelProgress: number
   heroAction: HomeHeroAction
-  progressPercent: number
   attemptCount: number
   failedQuestions: number
   accuracyPercent: number
@@ -621,7 +620,6 @@ function MobileStudentHome({
   points,
   nextLevelProgress,
   heroAction,
-  progressPercent,
   attemptCount,
   failedQuestions,
   accuracyPercent,
@@ -639,7 +637,7 @@ function MobileStudentHome({
     <View className="flex-1 bg-[#061126]">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 112 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: MOBILE_BOTTOM_NAV_SPACER }}
         showsVerticalScrollIndicator={false}
       >
         <MobileTopBar />
@@ -648,8 +646,8 @@ function MobileStudentHome({
           <Text className="text-[34px] font-black leading-[40px] text-white" numberOfLines={2}>
             ¡Hola, {alias}!
           </Text>
-          <Text className="mt-2 text-[17px] leading-6 text-[#B9C7DA]">
-            Sigue aprendiendo y alcanza tus metas.
+          <Text className="mt-2 text-[16px] leading-6 text-[#B9C7DA]">
+            Tu siguiente paso está listo.
           </Text>
         </View>
 
@@ -666,7 +664,6 @@ function MobileStudentHome({
           attemptCount={attemptCount}
           failedQuestions={failedQuestions}
           accuracyPercent={accuracyPercent}
-          progressPercent={progressPercent}
           className="mt-5"
         />
 
@@ -814,21 +811,18 @@ function MobileMetricGrid({
   attemptCount,
   failedQuestions,
   accuracyPercent,
-  progressPercent,
   className = '',
 }: {
   attemptCount: number
   failedQuestions: number
   accuracyPercent: number
-  progressPercent: number
   className?: string
 }) {
   return (
     <View className={`flex-row gap-3 ${className}`}>
       <MobileMetricTile icon="book" value={attemptCount.toString()} label="Hechas" color="#34D399" />
-      <MobileMetricTile icon="locate" value={failedQuestions.toString()} label="Fallos" color="#FB7185" />
+      <MobileMetricTile icon="locate" value={failedQuestions.toString()} label="Repasar" color="#FB7185" />
       <MobileMetricTile icon="flame" value={`${accuracyPercent}%`} label="Precisión" color="#F97316" />
-      <MobileMetricTile icon="trending-up" value={`${progressPercent}%`} label="Visto" color="#3B82F6" />
     </View>
   )
 }
@@ -882,15 +876,18 @@ function MobileWeeklyGoalCard({
           <Ionicons name="flag" size={40} color="#8B5CF6" />
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="text-[18px] text-[#D7DFF0]">Meta semanal</Text>
-          <Text className="mt-1 text-[27px] font-black text-white">{count} / {target} preguntas</Text>
+          <Text className="text-[15px] font-bold text-[#D7DFF0]">Meta semanal</Text>
+          <View className="mt-1 flex-row items-end gap-2">
+            <Text className="text-[30px] font-black text-white">{count}</Text>
+            <Text className="pb-1 text-[16px] font-bold text-[#B9C7DA]">/ {target} preguntas</Text>
+          </View>
           <View className="mt-4 h-2.5 overflow-hidden rounded-full bg-[#1D2B4E]">
             <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${Math.max(4, percent)}%` }} />
           </View>
         </View>
-        <View className="items-center rounded-2xl bg-[#24165D] px-3 py-3">
-          <Ionicons name="calendar" size={24} color="#9F7AEA" />
-          <Text className="mt-1 text-[13px] font-black text-[#B9A7FF]">{getTimeUntilSundayLabel()}</Text>
+        <View className="min-w-[82px] items-center rounded-2xl bg-[#24165D] px-3 py-3">
+          <Ionicons name="calendar" size={22} color="#9F7AEA" />
+          <Text className="mt-1 text-center text-[12px] font-black text-[#B9A7FF]" numberOfLines={2}>{getTimeUntilSundayLabel()}</Text>
         </View>
       </View>
       {streakDays > 0 ? (

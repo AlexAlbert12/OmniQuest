@@ -124,11 +124,9 @@ function GameSummaryPanel({
         </View>
 
         <View className="mt-5 gap-2">
-          <SummaryRow icon="bar-chart" label="Preguntas totales" value={String(totalQuestions)} color="#60A5FA" />
-          <SummaryRow icon="checkmark-circle" label="Correctas" value={String(summary.correct)} color="#34D399" />
-          <SummaryRow icon="close-circle" label="Incorrectas" value={String(summary.incorrect)} color="#FB7185" />
           <SummaryRow icon="analytics" label="Precisión" value={`${precision}%`} color="#FBBF24" />
-          <SummaryRow icon="timer-outline" label="Tiempo total" value={formatDuration(summary.timeSeconds)} color="#A78BFA" />
+          <SummaryRow icon="timer-outline" label="Tiempo" value={formatDuration(summary.timeSeconds)} color="#A78BFA" />
+          <SummaryRow icon="refresh" label="A repasar" value={String(reviewCount)} color="#F97316" />
         </View>
       </View>
 

@@ -81,7 +81,7 @@ export default function TeacherSidebar({
             setLocalAvatar(data.avatar ?? null)
           }
         }
-      } catch (e) {
+      } catch {
       }
     })()
 

@@ -204,7 +204,7 @@ export default function RankingScreen() {
     }
 
     return `Aún no hay alumnos con puntuación en ${selectedClass ? `${selectedClass.name} · ${selectedClass.classroomName}` : 'esta clase'}.`
-  }, [classOptions.length, selectedClass?.classroomName, selectedClass?.name, selectedClassId, selectedScope])
+  }, [classOptions.length, selectedClass, selectedClassId, selectedScope])
 
   useFocusEffect(
     useCallback(() => {

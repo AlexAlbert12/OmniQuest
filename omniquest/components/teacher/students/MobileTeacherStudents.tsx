@@ -19,6 +19,8 @@ import {
 } from './types';
 import { NoActivityQuickActions } from './TeacherStudentList';
 import { formatNullablePercent, formatRelativeDate, getInitials, getStatusMeta } from './studentUtils';
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout';
+import TeacherBottomNav from '../TeacherBottomNav';
 
 export default function MobileTeacherStudents({
   subjects,
@@ -93,22 +95,21 @@ export default function MobileTeacherStudents({
     || option.value === 'needs_help'
   ));
   const metricCards = [
-    { icon: 'people' as IconName, label: 'Total alumnos', value: String(stats.total), detail: 'Según filtros', color: '#8B5CF6' },
-    { icon: 'checkmark-circle-outline' as IconName, label: 'Con actividad', value: String(stats.withActivity), detail: 'Esta semana', color: '#22D3A6' },
-    { icon: 'time-outline' as IconName, label: 'Sin actividad', value: String(stats.noActivity), detail: 'Importantes', color: '#38A7FF' },
-    { icon: 'medkit-outline' as IconName, label: 'Necesitan apoyo', value: String(stats.needsHelp), detail: 'Con baja nota', color: '#F59E0B' },
-    { icon: 'analytics-outline' as IconName, label: 'Precisión media', value: formatNullablePercent(stats.averageAccuracy), detail: 'Con intentos', color: '#3B82F6' },
+    { icon: 'people' as IconName, label: 'Alumnos', value: String(stats.total), detail: 'Total filtrado', color: '#8B5CF6' },
+    { icon: 'time-outline' as IconName, label: 'Sin actividad', value: String(stats.noActivity), detail: 'Primer acceso', color: '#38A7FF' },
+    { icon: 'medkit-outline' as IconName, label: 'Apoyo', value: String(stats.needsHelp), detail: 'Prioridad', color: '#F59E0B' },
+    { icon: 'analytics-outline' as IconName, label: 'Precisión', value: formatNullablePercent(stats.averageAccuracy), detail: 'Media', color: '#3B82F6' },
   ];
 
   return (
     <View className="flex-1 bg-[#020B1B]">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: 124 }}
+        contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: MOBILE_BOTTOM_NAV_SPACER }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-7 flex-row items-center justify-between">
+        <View className="mb-6 flex-row items-center justify-between">
           <BrandLogo size={32} />
           <View className="flex-row items-center gap-3">
             <NotificationBadge audience="teacher" onPress={onNotifications} />
@@ -116,17 +117,17 @@ export default function MobileTeacherStudents({
           </View>
         </View>
 
-        <View className="mb-6">
-          <View className="flex-row items-center gap-4">
-            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#6D47F6] shadow-lg shadow-[#6D47F6]/30">
-              <Ionicons name="people" size={30} color="#F4F0FF" />
+        <View className="mb-5">
+          <View className="flex-row items-center gap-3">
+            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#6D47F6] shadow-lg shadow-[#6D47F6]/30">
+              <Ionicons name="people" size={26} color="#F4F0FF" />
             </View>
-            <Text className="min-w-0 flex-1 text-[42px] font-black leading-[46px] text-white" numberOfLines={1}>
-              Mis Alumnos
+            <Text className="min-w-0 flex-1 text-[35px] font-black leading-[39px] text-white" numberOfLines={1}>
+              Mis alumnos
             </Text>
           </View>
-          <Text className="mt-4 max-w-[370px] text-[17px] leading-7 text-[#B8C6DC]">
-            Gestiona el progreso, actividad y necesidades de tus estudiantes.
+          <Text className="mt-3 max-w-[340px] text-[15px] leading-6 text-[#B8C6DC]">
+            Prioriza quién necesita atención hoy.
           </Text>
         </View>
 
@@ -450,11 +451,10 @@ function MobileTeacherStudentCard({
             </Pressable>
           </View>
 
-          <View className="mt-4 flex-row flex-wrap gap-2">
-            <MobileStudentMiniMetric label="Precisión" value={student.hasActivity ? `${student.accuracyPercent}%` : '0%'} color="#A879FF" />
+          <View className="mt-4 flex-row gap-2">
+            <MobileStudentMiniMetric label="Precisión" value={student.hasActivity ? `${student.accuracyPercent}%` : '—'} color="#A879FF" />
             <MobileStudentMiniMetric label="Preguntas" value={student.challenges.toLocaleString()} color="#38A7FF" />
-            <MobileStudentMiniMetric label="Nota media" value={student.hasActivity ? student.averageScore.toFixed(1) : '0.0'} color="#F59E0B" />
-            <MobileStudentMiniMetric label="XP" value={student.subjectScore.toLocaleString()} color="#22D3A6" />
+            <MobileStudentMiniMetric label="Participación" value={`${student.progress}%`} color={ringColor} />
           </View>
         </View>
       </View>
@@ -470,40 +470,43 @@ function MobileTeacherStudentCard({
         />
       ) : null}
 
-      <View className="mt-4 flex-row items-end gap-4">
-        <View className="min-w-0 flex-1">
-          <View className="flex-row items-center gap-2">
+      <View className="mt-4 rounded-2xl border border-[#17345C] bg-[#06162C] p-3">
+        <View className="mb-3 flex-row items-center justify-between gap-3">
+          <View className="min-w-0 flex-1 flex-row items-center gap-2">
             <Ionicons name="calendar-outline" size={15} color="#9FB2CE" />
-            <Text className="text-[13px] text-[#9FB2CE]">Última actividad: {formatRelativeDate(student.lastActivityAt)}</Text>
+            <Text className="text-[13px] text-[#9FB2CE]" numberOfLines={1}>Última actividad: {formatRelativeDate(student.lastActivityAt)}</Text>
           </View>
-          <View className="mt-4 flex-row gap-2">
-            <Pressable
-              onPress={() => onViewDetails(student)}
-              className="h-11 flex-row items-center justify-center gap-2 rounded-xl bg-[#6D47F6] px-4"
-              style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-            >
-              <Ionicons name="eye-outline" size={17} color="#FFFFFF" />
-              <Text className="font-black text-white">Ver detalle</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => onAssignActivity(student)}
-              className="h-11 flex-row items-center justify-center gap-2 rounded-xl border border-[#29476F] bg-[#07162C] px-4"
-              style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-            >
-              <Ionicons name="locate-outline" size={17} color="#DDE7F4" />
-              <Text className="font-black text-[#DDE7F4]">Asignar repaso</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => onOpenActions(student)}
-              className="h-11 w-12 items-center justify-center rounded-xl border border-[#29476F] bg-[#07162C]"
-              style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-            >
-              <Ionicons name="ellipsis-horizontal" size={20} color="#DDE7F4" />
-            </Pressable>
-          </View>
+          <Text className="text-[13px] font-black" style={{ color: ringColor }}>{student.progress}%</Text>
         </View>
+        <View className="h-2 overflow-hidden rounded-full bg-[#10213E]">
+          <View className="h-full rounded-full" style={{ width: `${Math.max(4, student.progress)}%`, backgroundColor: ringColor }} />
+        </View>
+      </View>
 
-        <MobileParticipationRing progress={student.progress} color={ringColor} />
+      <View className="mt-4 flex-row gap-2">
+        <Pressable
+          onPress={() => onViewDetails(student)}
+          className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-[#6D47F6] px-4"
+          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+        >
+          <Ionicons name="eye-outline" size={17} color="#FFFFFF" />
+          <Text className="font-black text-white">Ver detalle</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => onAssignActivity(student)}
+          className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-[#29476F] bg-[#07162C] px-4"
+          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+        >
+          <Ionicons name="locate-outline" size={17} color="#DDE7F4" />
+          <Text className="font-black text-[#DDE7F4]">Repaso</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => onOpenActions(student)}
+          className="h-12 w-12 items-center justify-center rounded-xl border border-[#29476F] bg-[#07162C]"
+          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+        >
+          <Ionicons name="ellipsis-horizontal" size={20} color="#DDE7F4" />
+        </Pressable>
       </View>
     </LinearGradient>
   );
@@ -511,25 +514,9 @@ function MobileTeacherStudentCard({
 
 function MobileStudentMiniMetric({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <View className="min-w-[86px] rounded-xl border border-[#17345C] bg-[#06162C] px-3 py-2">
+    <View className="min-w-0 flex-1 rounded-xl border border-[#17345C] bg-[#06162C] px-3 py-2">
       <Text className="text-center text-[17px] font-black" style={{ color }}>{value}</Text>
       <Text className="mt-1 text-center text-[11px] text-[#AFC2DB]" numberOfLines={1}>{label}</Text>
-    </View>
-  );
-}
-
-function MobileParticipationRing({ progress, color }: { progress: number; color: string }) {
-  return (
-    <View className="items-center">
-      <View
-        className="h-24 w-24 items-center justify-center rounded-full bg-[#07162C]"
-        style={{ borderWidth: 8, borderColor: color }}
-      >
-        <View className="h-[62px] w-[62px] items-center justify-center rounded-full bg-[#0B1E38]">
-          <Text className="text-[22px] font-black text-white">{progress}%</Text>
-        </View>
-      </View>
-      <Text className="mt-2 text-[13px] text-[#AFC2DB]">Participación</Text>
     </View>
   );
 }

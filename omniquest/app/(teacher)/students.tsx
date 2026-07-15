@@ -593,7 +593,7 @@ export default function TeacherStudentsScreen() {
       }
 
       showAlert('Contraseña temporal', temporaryPassword);
-    } catch (_error) {
+    } catch {
       showAlert('Contraseña temporal', temporaryPassword);
     }
   };
@@ -1031,4 +1031,3 @@ export default function TeacherStudentsScreen() {
     </View>
   );
 }
-

@@ -144,11 +144,6 @@ export default function TeacherClassesScreen() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [studentStats, setStudentStats] = useState({
-    uniqueStudents: 0,
-    uniqueStudentsThisWeek: 0,
-    uniqueActiveStudents: 0,
-  });
 
   const isDesktop = width >= 1080;
   const isWide = width >= 860;
@@ -243,11 +238,6 @@ export default function TeacherClassesScreen() {
         setAnalyticsBySubject({});
         setActivityPlan([]);
         setRecentActivity([]);
-        setStudentStats({
-          uniqueStudents: 0,
-          uniqueStudentsThisWeek: 0,
-          uniqueActiveStudents: 0,
-        });
         return;
       }
 
@@ -284,22 +274,6 @@ export default function TeacherClassesScreen() {
 
         attempts = (attemptsData || []) as AttemptSummary[];
       }
-      const uniqueStudentIds = getUniqueStudentIds(enrollments);
-
-      const uniqueStudentIdsThisWeek = getUniqueStudentIds(
-        enrollments.filter((item) => isAfterDate(item.joined_at, weekStart))
-      );
-
-      const uniqueActiveStudentIds = getUniqueStudentIds(
-        scores.filter((item) => typeof item.max_score === 'number' && (item.max_score ?? 0) > 0)
-      );
-
-      setStudentStats({
-        uniqueStudents: uniqueStudentIds.length,
-        uniqueStudentsThisWeek: uniqueStudentIdsThisWeek.length,
-        uniqueActiveStudents: uniqueActiveStudentIds.length,
-      });
-
       const studentIds = Array.from(
         new Set(
           [...enrollments.map((item) => item.student_id), ...scores.map((item) => item.student_id)]
@@ -1479,14 +1453,4 @@ function truncateText(value: string, maxLength: number) {
   const cleanValue = value.trim();
   if (cleanValue.length <= maxLength) return cleanValue;
   return `${cleanValue.slice(0, maxLength - 3)}...`;
-}
-
-function getUniqueStudentIds(rows: { student_id: string | null | undefined }[]) {
-  return Array.from(
-    new Set(
-      rows
-        .map((row) => row.student_id)
-        .filter((value): value is string => Boolean(value))
-    )
-  );
 }

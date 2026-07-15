@@ -86,6 +86,15 @@ export default function NotificationBadge({
 
   return (
     <View className="flex-row items-center gap-3">
+      {shouldShowStreak ? (
+        <View className="min-h-[48px] flex-row items-center gap-2 rounded-2xl border border-[#3A2D5E] bg-[#140F2B] px-3">
+          <Ionicons name="flame" size={18} color="#FDBA74" />
+          <View>
+            <Text className="text-[11px] font-bold text-[#FDBA74]">{displayStreakDays}</Text>
+            <Text className="text-[10px] font-semibold text-[#B7C4D7]">racha</Text>
+          </View>
+        </View>
+      ) : null}
       <Pressable
         onPress={handlePress}
         className="relative rounded-2xl p-3"

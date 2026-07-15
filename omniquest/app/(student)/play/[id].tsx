@@ -207,7 +207,7 @@ export default function PlayScreen() {
           flexGrow: 1,
           paddingHorizontal: isDesktop ? 46 : 16,
           paddingTop: isDesktop ? 38 : 18,
-          paddingBottom: isDesktop ? 30 : 24,
+          paddingBottom: isDesktop ? 30 : 36,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -242,10 +242,10 @@ export default function PlayScreen() {
             </View>
           </View>
 
-          <GameStatsBar points={pointsBase} streak={game.streak} position={position} category={category} lives={game.lives} />
+          {isDesktop ? <GameStatsBar points={pointsBase} streak={game.streak} position={position} category={category} lives={game.lives} /> : null}
 
-          <View className="mt-6 flex-1 items-center justify-center">
-            <View className="w-full" style={{ maxWidth: 760 }}>
+          <View className={isDesktop ? 'mt-6 flex-1 items-center justify-center' : 'mt-5 flex-1 items-center justify-start'}>
+            <View className="w-full" style={{ maxWidth: isDesktop ? 760 : 640 }}>
               <View className="items-center px-1">
                 <TimerPill timeLeft={game.timeLeft} />
                 <View className="mt-5 flex-row items-center gap-3">
@@ -255,7 +255,7 @@ export default function PlayScreen() {
                   </Text>
                   <Ionicons name="sparkles" size={16} color="#8B5CF6" />
                 </View>
-                <Text className={`${isDesktop ? 'text-[30px] leading-10' : 'text-[25px] leading-8'} mt-4 max-w-[720px] text-center font-black text-white`}>
+                <Text className={`${isDesktop ? 'text-[30px] leading-10' : 'text-[24px] leading-8'} mt-4 max-w-[720px] text-center font-black text-white`}>
                   {currentQuestion?.text}
                 </Text>
                 <View className="mt-4 flex-row items-center gap-2 rounded-full bg-[#071426]/80 px-4 py-2">
