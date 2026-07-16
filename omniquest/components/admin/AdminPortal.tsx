@@ -378,11 +378,11 @@ function useAdminRpcPage<T extends { total_count?: number | null }>(
       setLoading(false)
       setRefreshing(false)
     }
-  }, [functionName, page, pageSize, refreshVersion, stableArgs])
+  }, [functionName, page, pageSize, stableArgs])
 
   useEffect(() => {
     void fetchPage()
-  }, [fetchPage])
+  }, [fetchPage, refreshVersion])
 
   const refresh = () => {
     setRefreshing(true)

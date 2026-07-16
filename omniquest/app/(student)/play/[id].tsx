@@ -131,7 +131,6 @@ export default function PlayScreen() {
           detail="Te has quedado sin vidas, pero ya tienes pistas claras para mejorar."
           score={game.score}
           summary={game.summary}
-          topicLabel={selectedTopicName || 'Tema actual'}
           action="Volver al curso"
           onPress={() => router.back()}
           secondaryAction={game.summary.reviewQuestions.length > 0 ? 'Repasar fallos' : undefined}
@@ -147,11 +146,10 @@ export default function PlayScreen() {
         <ResultState
           icon="trophy"
           iconColor="#FBBF24"
-          title="Partida completada"
-          detail="Buen cierre. Revisa tu XP, precisión y los fallos que conviene reforzar."
+          title="¡Partida completada!"
+          detail="Buen cierre. Ya tienes claro qué reforzar."
           score={game.score}
           summary={game.summary}
-          topicLabel={selectedTopicName || 'Tema actual'}
           action="Volver al curso"
           onPress={() => router.back()}
           secondaryAction={game.summary.reviewQuestions.length > 0 ? 'Repasar fallos' : undefined}
@@ -227,9 +225,11 @@ export default function PlayScreen() {
                   Pregunta {game.currentIndex + 1} de {totalQuestions}
                 </Text>
                 <View className="flex-row items-center gap-2">
-                  <View className="rounded-xl border border-[#223A62] bg-[#08172E] px-3 py-2">
+                  {isDesktop ? (
+                    <View className="rounded-xl border border-[#223A62] bg-[#08172E] px-3 py-2">
                     <Text className="text-[13px] font-black text-[#A78BFA]">{game.score} pts</Text>
-                  </View>
+                    </View>
+                  ) : null}
                   <LivesBadge lives={game.lives} />
                 </View>
               </View>
@@ -277,15 +277,15 @@ export default function PlayScreen() {
               </View>
 
               <View
-                className="mt-6 rounded-[26px] border border-[#183258] bg-[#061426]/88 p-2"
+                className={isDesktop ? 'mt-6 rounded-[26px] border border-[#183258] bg-[#061426]/88 p-2' : 'mt-6 rounded-[24px] border border-[#244A7C] bg-[#0A1B36]/78 p-2'}
                 style={{
                   ...createShadowStyle({
-                    color: '#020817',
-                    opacity: 0.5,
-                    radius: 28,
-                    offsetY: 18,
-                    elevation: 12,
-                    web: '0 18px 28px rgba(2, 8, 23, 0.34)',
+                    color: '#2563EB',
+                    opacity: isDesktop ? 0.18 : 0.12,
+                    radius: isDesktop ? 28 : 18,
+                    offsetY: isDesktop ? 18 : 10,
+                    elevation: isDesktop ? 12 : 6,
+                    web: isDesktop ? '0 18px 28px rgba(37, 99, 235, 0.16)' : '0 10px 22px rgba(37, 99, 235, 0.12)',
                   }),
                 }}
               >

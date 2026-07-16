@@ -383,6 +383,7 @@ export default function StudentClassDetailScreen() {
       <View className="flex-1 bg-[#031022]">
         <MobileStudentClassDetail
           classroom={classroom}
+          classRanking={classRanking}
           color={color}
           failedQuestions={failedQuestions}
           rankingLabel={rankingLabel}
@@ -541,6 +542,7 @@ export default function StudentClassDetailScreen() {
 
 function MobileStudentClassDetail({
   classroom,
+  classRanking,
   color,
   failedQuestions,
   rankingLabel,
@@ -555,6 +557,7 @@ function MobileStudentClassDetail({
   onOpenTopic,
 }: {
   classroom: Classroom | null
+  classRanking: ClassRankingItem[]
   color: string
   failedQuestions: FailedQuestion[]
   rankingLabel: string
@@ -588,16 +591,14 @@ function MobileStudentClassDetail({
       <MobileClassHero
         classroom={classroom}
         color={color}
-        progress={totals.progress}
         subject={subject}
       />
 
       <View className="mt-5 flex-row rounded-2xl border border-[#17345B] bg-[#071832]">
         <MobileSummaryMetric icon="book" label="Temas" value={String(topics.length)} color={color} />
         <MobileSummaryMetric icon="help-circle" label="Preguntas" value={String(totals.questions)} color="#38BDF8" />
-        <MobileSummaryMetric icon="checkmark-circle" label="Completadas" value={`${totals.answered} / ${totals.questions}`} color="#22C55E" />
-        <MobileSummaryMetric icon="star" label="XP obtenido" value={`${totals.earnedXp} XP`} color="#F59E0B" />
-        <MobileSummaryMetric icon="analytics" label="Ranking" value={rankingLabel} color="#F6A64A" isLast />
+        <MobileSummaryMetric icon="flame" label="Fallos" value={String(totals.failed)} color="#FB7185" />
+        <MobileSummaryMetric icon="star" label="XP" value={`${totals.earnedXp}`} color="#F59E0B" isLast />
       </View>
 
       <MobileClassProgressPanel
@@ -611,7 +612,7 @@ function MobileStudentClassDetail({
       <MobileRecommendedPanel
         color={color}
         topic={recommendedTopic}
-        onPress={(topic) => onOpenTopic(topic, false)}
+        onPress={onOpenTopic}
       />
 
       <View className="mt-7">
@@ -633,21 +634,6 @@ function MobileStudentClassDetail({
         )}
       </View>
 
-      <MobileSectionHeading title="Últimos intentos" actionLabel="Ver todo" onAction={onOpenActivity} />
-      <View className="overflow-hidden rounded-2xl border border-[#17345B] bg-[#071832]">
-        {recentAttempts.length > 0 ? (
-          recentAttempts.slice(0, 3).map((attempt, index) => (
-            <MobileRecentAttemptRow
-              key={attempt.id}
-              attempt={attempt}
-              isLast={index === Math.min(recentAttempts.length, 3) - 1}
-            />
-          ))
-        ) : (
-          <MobileEmptyBlock icon="play-circle-outline" title="Sin intentos recientes" subtitle="Empieza un tema para ver tu actividad." />
-        )}
-      </View>
-
       <MobileSectionHeading title="Preguntas falladas" actionLabel="Ver todas" onAction={onOpenActivity} />
       {failedQuestions.length > 0 ? (
         <View className="gap-3">
@@ -662,6 +648,35 @@ function MobileStudentClassDetail({
       ) : (
         <MobileEmptyBlock icon="checkmark-circle-outline" title="Sin fallos pendientes" subtitle="Buen trabajo, no tienes preguntas para repasar." />
       )}
+
+      <MobileSectionHeading title="Ranking compacto" />
+      <View className="gap-2 rounded-2xl border border-[#17345B] bg-[#071832] p-3">
+        {classRanking.length > 0 ? (
+          classRanking.slice(0, 3).map((row, index) => (
+            <MobileRankingRow key={row.studentId} row={row} index={index} />
+          ))
+        ) : (
+          <MobileEmptyBlock icon="trophy-outline" title="Sin ranking todavía" subtitle="Responde preguntas para aparecer en la clasificación." />
+        )}
+        <View className="mt-1 rounded-xl bg-[#0D1D3B] px-3 py-2">
+          <Text className="text-center text-[12px] font-black text-[#B9A7FF]">{rankingLabel}</Text>
+        </View>
+      </View>
+
+      <MobileSectionHeading title="Últimos intentos" actionLabel="Ver todo" onAction={onOpenActivity} />
+      <View className="overflow-hidden rounded-2xl border border-[#17345B] bg-[#071832]">
+        {recentAttempts.length > 0 ? (
+          recentAttempts.slice(0, 2).map((attempt, index) => (
+            <MobileRecentAttemptRow
+              key={attempt.id}
+              attempt={attempt}
+              isLast={index === Math.min(recentAttempts.length, 2) - 1}
+            />
+          ))
+        ) : (
+          <MobileEmptyBlock icon="play-circle-outline" title="Sin intentos recientes" subtitle="Empieza un tema para ver tu actividad." />
+        )}
+      </View>
     </ScrollView>
   )
 }
@@ -669,58 +684,37 @@ function MobileStudentClassDetail({
 function MobileClassHero({
   classroom,
   color,
-  progress,
   subject,
 }: {
   classroom: Classroom | null
   color: string
-  progress: number
   subject: Subject
 }) {
   return (
-    <View className="min-h-[190px] flex-row items-center gap-5">
-      <SubjectIconPanel color={color} icon={subject.icon} size="large" />
+    <View className="rounded-[28px] border border-[#17345B] bg-[#071832] p-4">
+      <View className="flex-row items-start gap-4">
+        <SubjectIconPanel color={color} icon={subject.icon} size="medium" />
 
-      <View className="min-w-0 flex-1">
-        <View className="self-start flex-row items-center gap-2 rounded-full px-3 py-1.5" style={{ backgroundColor: withAlpha(color, '22') }}>
-          <View className="h-2.5 w-2.5 rounded-full bg-[#22D3A5]" />
-          <Text className="text-[13px] font-black" style={{ color }}>En progreso</Text>
+        <View className="min-w-0 flex-1">
+          <View className="self-start flex-row items-center gap-2 rounded-full px-3 py-1.5" style={{ backgroundColor: withAlpha(color, '22') }}>
+            <View className="h-2.5 w-2.5 rounded-full bg-[#22D3A5]" />
+            <Text className="text-[13px] font-black" style={{ color }}>En progreso</Text>
+          </View>
+          <Text className="mt-3 text-[27px] font-black leading-[32px] text-white" numberOfLines={2}>{subject.name}</Text>
+          <Text className="mt-2 text-[14px] leading-5 text-[#C7D3E5]" numberOfLines={2}>
+            {subject.description || 'Elige un tema para empezar a responder preguntas.'}
+          </Text>
         </View>
-        <Text className="mt-2 text-[34px] font-black leading-[39px] text-white" numberOfLines={2}>{subject.name}</Text>
-        <Text className="mt-2 text-[15px] leading-6 text-[#C7D3E5]" numberOfLines={3}>
-          {subject.description || 'Elige un tema para empezar a responder preguntas.'}
-        </Text>
-        {classroom ? (
-          <Text className="mt-3 text-[13px] font-semibold text-[#B7C4D7]" numberOfLines={1}>
+      </View>
+
+      {classroom ? (
+        <View className="mt-4 rounded-2xl bg-[#0B1D3B] px-4 py-3">
+          <Text className="text-[13px] font-semibold text-[#B7C4D7]" numberOfLines={1}>
             Clase: {classroom.name}{classroom.code ? ` · Código: ${classroom.code}` : ''}
           </Text>
-        ) : null}
-      </View>
-
-      <MobileProgressRing color={color} progress={progress} />
+        </View>
+      ) : null}
     </View>
-  )
-}
-
-function MobileProgressRing({ color, progress }: { color: string; progress: number }) {
-  return (
-    <LinearGradient
-      colors={[color, '#B86BFF']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{
-        width: 102,
-        height: 102,
-        borderRadius: 999,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <View className="h-[76px] w-[76px] items-center justify-center rounded-full bg-[#071225]">
-        <Text className="text-[27px] font-black text-white">{progress}%</Text>
-        <Text className="text-[10px] font-bold text-[#C7D3E5]">Completado</Text>
-      </View>
-    </LinearGradient>
   )
 }
 
@@ -798,13 +792,22 @@ function MobileRecommendedPanel({
 }: {
   color: string
   topic: Topic | null
-  onPress: (topic: Topic) => void
+  onPress: (topic: Topic, reviewFailed?: boolean) => void
 }) {
+  const failed = topic?.failedQuestions ?? 0
   const title = topic
-    ? topic.answeredQuestions > 0
+    ? failed > 0
+      ? `Repasa ${failed} ${failed === 1 ? 'fallo' : 'fallos'} en ${topic.title}.`
+      : topic.answeredQuestions > 0
       ? `Repite ${topic.title} para mejorar tu precisión.`
       : `Empieza ${topic.title} para avanzar.`
     : 'Espera nuevos temas'
+  const actionLabel = topic
+    ? failed > 0
+      ? 'Repasar fallos'
+      : `${getTopicActionLabel(topic)} ${topic.title}`
+    : ''
+  const actionIcon = failed > 0 ? 'refresh' : topic ? getTopicActionIcon(topic) : 'play'
 
   return (
     <LinearGradient
@@ -824,12 +827,12 @@ function MobileRecommendedPanel({
         </Text>
         {topic ? (
           <Pressable
-            onPress={() => onPress(topic)}
+            onPress={() => onPress(topic, failed > 0)}
             className="mt-5 flex-row items-center justify-center gap-2 rounded-xl px-4 py-4"
             style={{ backgroundColor: color }}
           >
-            <Ionicons name={getTopicActionIcon(topic)} size={18} color="#FFFFFF" />
-            <Text className="text-[15px] font-black text-white">{getTopicActionLabel(topic)} {topic.title}</Text>
+            <Ionicons name={actionIcon} size={18} color="#FFFFFF" />
+            <Text className="text-[15px] font-black text-white">{actionLabel}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -859,7 +862,7 @@ function MobileTopicCard({
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      className="min-h-[84px] flex-row items-center gap-3 rounded-2xl border border-[#17345B] bg-[#071832] p-3"
+      className="min-h-[86px] flex-row items-center gap-3 rounded-2xl border border-[#17345B] bg-[#071832] p-3"
       style={({ pressed }) => ({ opacity: disabled ? 0.62 : pressed ? 0.82 : 1 })}
     >
       <SubjectIconPanel color={topicColor} icon={topic.icon} size="small" fallback="folder" />
@@ -875,16 +878,17 @@ function MobileTopicCard({
         <View className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#14294C]">
           <View className="h-full rounded-full" style={{ width: `${width}%`, backgroundColor: topicColor }} />
         </View>
-        <View className="mt-2 flex-row items-center justify-between gap-3">
-          <Text className="min-w-0 flex-1 text-[12px] text-[#C7D3E5]" numberOfLines={1}>
-            {topic.questionsCount} pregunta{topic.questionsCount === 1 ? '' : 's'}
-          </Text>
+        <View className="mt-2 flex-row items-center gap-3">
           <Text className="text-[12px] font-bold" style={{ color: status.color }} numberOfLines={1}>
             {status.label}
           </Text>
           {typeof topic.bestScore === 'number' ? (
             <Text className="text-[12px] font-bold text-[#B9A7FF]">+{topic.bestScore} XP</Text>
-          ) : null}
+          ) : (
+            <Text className="text-[12px] text-[#C7D3E5]">
+              {topic.questionsCount} pregunta{topic.questionsCount === 1 ? '' : 's'}
+            </Text>
+          )}
         </View>
       </View>
       <Ionicons name="chevron-forward" size={22} color="#A9A1FF" />
@@ -901,11 +905,15 @@ function SubjectIconPanel({
   color: string
   fallback?: keyof typeof Ionicons.glyphMap
   icon: string | null
-  size: 'large' | 'small'
+  size: 'large' | 'medium' | 'small'
 }) {
   const ioniconName = getValidIoniconName(icon)
-  const dimension = size === 'large' ? 'h-[128px] w-[128px] rounded-[28px]' : 'h-[60px] w-[60px] rounded-2xl'
-  const iconSize = size === 'large' ? 62 : 28
+  const dimension = size === 'large'
+    ? 'h-[128px] w-[128px] rounded-[28px]'
+    : size === 'medium'
+      ? 'h-[88px] w-[88px] rounded-[24px]'
+      : 'h-[60px] w-[60px] rounded-2xl'
+  const iconSize = size === 'large' ? 62 : size === 'medium' ? 40 : 28
 
   return (
     <LinearGradient
@@ -917,11 +925,29 @@ function SubjectIconPanel({
       {ioniconName ? (
         <Ionicons name={ioniconName} size={iconSize} color="#FFFFFF" />
       ) : icon ? (
-        <Text style={{ fontSize: size === 'large' ? 52 : 28 }}>{icon}</Text>
+        <Text style={{ fontSize: size === 'large' ? 52 : size === 'medium' ? 38 : 28 }}>{icon}</Text>
       ) : (
         <Ionicons name={fallback} size={iconSize} color="#FFFFFF" />
       )}
     </LinearGradient>
+  )
+}
+
+function MobileRankingRow({ row, index }: { row: ClassRankingItem; index: number }) {
+  const medalColors = ['#FBBF24', '#CBD5E1', '#F97316']
+
+  return (
+    <View className="flex-row items-center gap-3 rounded-xl bg-[#0D1D3B] px-3 py-3">
+      <View className="h-9 w-9 items-center justify-center rounded-full bg-[#142B52]">
+        {index < 3 ? (
+          <Ionicons name="medal" size={18} color={medalColors[index]} />
+        ) : (
+          <Text className="text-[13px] font-black text-[#AFC2DB]">{index + 1}</Text>
+        )}
+      </View>
+      <Text className="min-w-0 flex-1 text-[14px] font-black text-white" numberOfLines={1}>{row.alias}</Text>
+      <Text className="text-[13px] font-black text-[#B9A7FF]">{row.points.toLocaleString()} XP</Text>
+    </View>
   )
 }
 

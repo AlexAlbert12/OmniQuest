@@ -405,7 +405,6 @@ export default function StudentHome() {
         points={points}
         nextLevelProgress={nextLevelProgress}
         heroAction={heroAction}
-        attemptCount={attemptCount}
         failedQuestions={failedQuestions}
         accuracyPercent={progressSummary?.accuracyPercent ?? 0}
         weeklyAttemptCount={weeklyAttemptCount}
@@ -601,7 +600,6 @@ type MobileStudentHomeProps = {
   points: number
   nextLevelProgress: number
   heroAction: HomeHeroAction
-  attemptCount: number
   failedQuestions: number
   accuracyPercent: number
   weeklyAttemptCount: number
@@ -621,7 +619,6 @@ function MobileStudentHome({
   points,
   nextLevelProgress,
   heroAction,
-  attemptCount,
   failedQuestions,
   accuracyPercent,
   weeklyAttemptCount,
@@ -638,6 +635,7 @@ function MobileStudentHome({
     <MobileScreen
       backgroundColor="#061126"
       horizontalPadding={20}
+      bottomPadding={152}
       bottomNav={<StudentBottomNav active="home" />}
     >
         <MobileHeader
@@ -661,21 +659,21 @@ function MobileStudentHome({
         <MobileReviewCard action={heroAction} failedQuestions={failedQuestions} className="mt-5" />
 
         <MobileMetricGrid
-          attemptCount={attemptCount}
           failedQuestions={failedQuestions}
           accuracyPercent={accuracyPercent}
+          streakDays={streakDays}
           className="mt-5"
         />
+
+        <MobileCoursesSection rows={subjectProgressRows} className="mt-7" />
 
         <MobileWeeklyGoalCard
           count={weeklyAttemptCount}
           target={weeklyGoalTarget}
           percent={weeklyGoalPercent}
           streakDays={streakDays}
-          className="mt-5"
+          className="mt-6"
         />
-
-        <MobileCoursesSection rows={subjectProgressRows} className="mt-7" />
 
         <MobileJoinClassCard
           inviteCode={inviteCode}
@@ -685,18 +683,6 @@ function MobileStudentHome({
           className="mt-5"
         />
     </MobileScreen>
-  )
-}
-
-function MobileTopBar() {
-  return (
-    <View className="flex-row items-center justify-between">
-      <BrandLogo size={34} />
-      <View className="flex-row items-center gap-3">
-        <NotificationBadge />
-        <StudentHeaderAvatar />
-      </View>
-    </View>
   )
 }
 
@@ -760,42 +746,50 @@ function MobileReviewCard({
 }) {
   const showFailures = failedQuestions > 0
   const title = showFailures
-    ? `${failedQuestions} ${failedQuestions === 1 ? 'fallo' : 'fallos'} por repasar`
+    ? 'Repasar fallos'
     : action.buttonLabel === 'Continuar'
       ? 'Continúa tu reto'
       : action.title
-  const subtitle = showFailures ? '¡Repasa y mejora!' : 'Un paso más hacia tu meta.'
+  const subtitle = showFailures
+    ? `${failedQuestions} ${failedQuestions === 1 ? 'pregunta necesita' : 'preguntas necesitan'} atención. Empieza por lo que más te cuesta.`
+    : 'Un paso más hacia tu meta.'
 
   return (
     <Link href={action.href as any} asChild>
       <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
-        <View className={`overflow-hidden rounded-[24px] border border-[#4F35A5] p-5 ${className}`}>
+        <View className={`overflow-hidden rounded-[26px] border border-[#5B3FDA] p-5 ${className}`}>
           <LinearGradient
-            colors={['#24135E', '#101948']}
+            colors={['#35168D', '#141D55']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
           />
-          <View className="absolute -left-8 top-6 h-28 w-28 rounded-full bg-[#8B5CF6]/20" />
-          <View className="absolute -right-5 top-10 h-24 w-24 rounded-full bg-[#FFFFFF]/6" />
+          <View className="absolute -left-10 top-5 h-32 w-32 rounded-full bg-[#8B5CF6]/18" />
+          <View className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#FFFFFF]/8" />
 
-          <View className="flex-row items-center gap-5">
-            <View className="h-24 w-24 items-center justify-center rounded-full bg-[#2B1E73]">
-              <View className="h-16 w-16 items-center justify-center rounded-full bg-[#4225B5]">
-                <Ionicons name={showFailures ? 'locate' : action.icon} size={34} color="#F8FAFC" />
+          <View className="relative">
+            <View className="flex-row items-start gap-4">
+              <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#5B33D6]">
+                <Ionicons name={showFailures ? 'locate' : action.icon} size={32} color="#F8FAFC" />
+              </View>
+
+              <View className="min-w-0 flex-1">
+                <Text className="text-[26px] font-black leading-8 text-white" numberOfLines={2}>{title}</Text>
+                <Text className="mt-2 text-[14px] leading-5 text-[#D7DFF0]">{subtitle}</Text>
               </View>
             </View>
 
-            <View className="min-w-0 flex-1">
-              <Text className="text-[24px] font-black leading-8 text-white" numberOfLines={2}>{title}</Text>
-              <Text className="mt-1 text-[17px] text-[#D7DFF0]">{subtitle}</Text>
-              <View className="mt-4 self-start rounded-2xl bg-[#8B5CF6] px-5 py-3">
+            <View className="mt-5 flex-row items-center justify-between gap-3">
+              <View className="min-w-0 flex-1 rounded-2xl bg-[#FFFFFF]/10 px-4 py-3">
+                <Text className="text-[12px] font-bold text-[#CABDFF]">Siguiente paso</Text>
+                <Text className="mt-1 text-[13px] font-semibold text-white" numberOfLines={1}>
+                  {showFailures ? 'Reforzar preguntas falladas' : action.buttonLabel}
+                </Text>
+              </View>
+              <View className="min-w-[132px] flex-row items-center justify-center gap-2 rounded-2xl bg-[#8B5CF6] px-4 py-4">
                 <Text className="text-[15px] font-black text-white">{showFailures ? 'Repasar ahora' : action.buttonLabel}</Text>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
               </View>
-            </View>
-
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-[#FFFFFF]/10">
-              <Ionicons name="chevron-forward" size={28} color="#FFFFFF" />
             </View>
           </View>
         </View>
@@ -805,21 +799,21 @@ function MobileReviewCard({
 }
 
 function MobileMetricGrid({
-  attemptCount,
   failedQuestions,
   accuracyPercent,
+  streakDays,
   className = '',
 }: {
-  attemptCount: number
   failedQuestions: number
   accuracyPercent: number
+  streakDays: number
   className?: string
 }) {
   return (
     <View className={`flex-row gap-3 ${className}`}>
-      <MobileMetricTile icon="book" value={attemptCount.toString()} label="Hechas" color="#34D399" />
-      <MobileMetricTile icon="locate" value={failedQuestions.toString()} label="Repasar" color="#FB7185" />
-      <MobileMetricTile icon="flame" value={`${accuracyPercent}%`} label="Precisión" color="#F97316" />
+      <MobileMetricTile icon="locate" value={failedQuestions.toString()} label="Fallos" color="#FB7185" />
+      <MobileMetricTile icon="speedometer-outline" value={`${accuracyPercent}%`} label="Precisión" color="#F97316" />
+      <MobileMetricTile icon="flame" value={streakDays.toString()} label="Racha" color="#FDBA74" />
     </View>
   )
 }
@@ -863,25 +857,32 @@ function MobileWeeklyGoalCard({
         end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
-      <View className="flex-row items-center gap-4">
-        <View className="h-20 w-20 items-center justify-center rounded-full bg-[#152954]">
-          <Ionicons name="flag" size={40} color="#8B5CF6" />
-        </View>
+      <View className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#8B5CF6]/14" />
+      <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
-          <Text className="text-[15px] font-bold text-[#D7DFF0]">Meta semanal</Text>
-          <View className="mt-1 flex-row items-end gap-2">
-            <Text className="text-[30px] font-black text-white">{count}</Text>
-            <Text className="pb-1 text-[16px] font-bold text-[#B9C7DA]">/ {target} preguntas</Text>
-          </View>
-          <View className="mt-4 h-2.5 overflow-hidden rounded-full bg-[#1D2B4E]">
-            <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${Math.max(4, percent)}%` }} />
-          </View>
+          <Text className="text-[12px] font-black uppercase tracking-[0.08em] text-[#B9A7FF]">Meta semanal</Text>
+          <Text className="mt-2 text-[16px] font-semibold leading-5 text-[#D7DFF0]">
+            Completa preguntas esta semana y mantén el ritmo.
+          </Text>
         </View>
-        <View className="min-w-[82px] items-center rounded-2xl bg-[#24165D] px-3 py-3">
-          <Ionicons name="calendar" size={22} color="#9F7AEA" />
-          <Text className="mt-1 text-center text-[12px] font-black text-[#B9A7FF]" numberOfLines={2}>{getTimeUntilSundayLabel()}</Text>
+        <View className="flex-row items-center gap-2 rounded-2xl bg-[#24165D] px-3 py-2">
+          <Ionicons name="calendar" size={16} color="#B9A7FF" />
+          <Text className="text-[12px] font-black text-[#B9A7FF]" numberOfLines={1}>{getTimeUntilSundayLabel()}</Text>
         </View>
       </View>
+
+      <View className="mt-5 flex-row items-end justify-between gap-4">
+        <View className="flex-row items-end gap-2">
+          <Text className="text-[34px] font-black leading-[38px] text-white">{count}</Text>
+          <Text className="pb-1 text-[18px] font-black text-[#B9C7DA]">/ {target}</Text>
+        </View>
+        <Text className="pb-1 text-[14px] font-bold text-[#AFC2DB]">preguntas</Text>
+      </View>
+
+      <View className="mt-4 h-3 overflow-hidden rounded-full bg-[#1D2B4E]">
+        <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${Math.max(4, percent)}%` }} />
+      </View>
+
       {streakDays > 0 ? (
         <View className="mt-4 self-start rounded-full bg-[#F97316]/15 px-3 py-1.5">
           <Text className="text-[12px] font-black text-[#FDBA74]">🔥 {streakDays} día{streakDays === 1 ? '' : 's'} de racha</Text>
@@ -897,7 +898,7 @@ function MobileCoursesSection({ rows, className = '' }: { rows: SubjectProgressR
   return (
     <View className={className}>
       <MobileSectionHeader
-        title="Continúa aprendiendo"
+        title="Cursos recientes"
         actionLabel="Ver todo"
         onAction={() => router.push('/(student)/classes' as any)}
         className="mb-4"

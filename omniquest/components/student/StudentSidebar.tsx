@@ -142,30 +142,6 @@ export default function StudentSidebar({
             )}
           </Pressable>
         </Link>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Cerrar sesión"
-          onPress={onSignOut}
-          className="items-center justify-center rounded-2xl"
-          style={({ pressed }) => ({
-            minHeight: isCompact ? 50 : 52,
-            paddingHorizontal: isCompact ? 0 : 14,
-            borderWidth: 1,
-            borderColor: pressed ? '#FB7185' : '#3B1D2A',
-            backgroundColor: pressed ? 'rgba(251,113,133,0.18)' : 'rgba(251,113,133,0.1)',
-            transform: [{ scale: pressed ? 0.985 : 1 }],
-          })}
-        >
-          {isCompact ? (
-            <Ionicons name="log-out-outline" size={24} color="#FB7185" />
-          ) : (
-            <View className="flex-row items-center justify-center gap-1 mt-2">
-              <Ionicons name="log-out-outline" size={16} color="#FB7185" />
-              <Text className='text-xs' style={{ color: '#FCA5B5' }}>Cerrar sesión</Text>
-            </View>
-          )}
-        </Pressable>
       </View>
     </View>
   )

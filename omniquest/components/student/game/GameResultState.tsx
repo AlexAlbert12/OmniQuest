@@ -19,7 +19,6 @@ export default function ResultState({
   detail,
   score,
   summary,
-  topicLabel,
   action,
   onPress,
   secondaryAction,
@@ -31,7 +30,6 @@ export default function ResultState({
   detail: string
   score?: number
   summary?: GameSummary
-  topicLabel?: string
   action: string
   onPress: () => void
   secondaryAction?: string
@@ -49,20 +47,20 @@ export default function ResultState({
       }}
       showsVerticalScrollIndicator={false}
     >
-      <View className="w-full max-w-[540px] overflow-hidden rounded-[32px] border border-[#1A3155] bg-[#09162C]/95 p-5">
+      <View className="w-full max-w-[540px] overflow-hidden rounded-[32px] border border-[#244A7C] bg-[#09162C]/95 p-5">
         <View className="absolute -right-14 -top-14 h-40 w-40 rounded-full bg-[#7C3AED]/20" />
         <View className="absolute left-[-60px] top-20 h-40 w-40 rounded-full bg-[#0EA5E9]/10" />
 
         <View className="items-center">
-          <View className="h-24 w-24 items-center justify-center rounded-full" style={{ backgroundColor: `${iconColor}20` }}>
-            <Ionicons name={icon} size={58} color={iconColor} />
+          <View className="h-32 w-32 items-center justify-center rounded-full" style={{ backgroundColor: `${iconColor}20` }}>
+            <Ionicons name={icon} size={78} color={iconColor} />
           </View>
-          <Text className="mt-5 text-center text-[30px] font-black text-white">{title}</Text>
-          <Text className="mt-2 max-w-[420px] text-center text-[15px] leading-6 text-[#C9D7EA]">{detail}</Text>
+          <Text className="mt-5 text-center text-[34px] font-black leading-[40px] text-white">{title}</Text>
+          <Text className="mt-2 max-w-[360px] text-center text-[15px] leading-6 text-[#C9D7EA]">{detail}</Text>
         </View>
 
         {summary ? (
-          <GameSummaryPanel summary={summary} fallbackScore={score} topicLabel={topicLabel} />
+          <GameSummaryPanel summary={summary} fallbackScore={score} />
         ) : typeof score === 'number' ? (
           <View className="my-6 rounded-[26px] border border-[#172A4A] bg-[#0D1D3B] p-5">
             <Text className="text-center text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Puntuación final</Text>
@@ -98,11 +96,9 @@ export default function ResultState({
 function GameSummaryPanel({
   fallbackScore,
   summary,
-  topicLabel,
 }: {
   fallbackScore?: number
   summary: GameSummary
-  topicLabel?: string
 }) {
   const answered = Math.max(summary.answered, summary.correct + summary.incorrect)
   const precision = answered > 0 ? Math.round((summary.correct / answered) * 100) : 0
@@ -113,8 +109,8 @@ function GameSummaryPanel({
 
   return (
     <View className="my-6">
-      <View className="rounded-[28px] border border-[#172A4A] bg-[#0D1D3B] p-5">
-        <Text className="text-center text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Resultados de la partida</Text>
+      <View className="rounded-[28px] border border-[#244A7C] bg-[#0D1D3B] p-5">
+        <Text className="text-center text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Resultado principal</Text>
         <View className="mt-5 items-center">
           <View className="h-36 w-36 items-center justify-center rounded-full border-[10px] bg-[#070F26]" style={{ borderColor: circleColor }}>
             <Text className="text-[38px] font-black text-white">{summary.correct}/{totalQuestions}</Text>
@@ -128,40 +124,6 @@ function GameSummaryPanel({
           <SummaryRow icon="timer-outline" label="Tiempo" value={formatDuration(summary.timeSeconds)} color="#A78BFA" />
           <SummaryRow icon="refresh" label="A repasar" value={String(reviewCount)} color="#F97316" />
         </View>
-      </View>
-
-      <View className="mt-4 rounded-[24px] border border-[#243E65] bg-[#061426] p-4">
-        <View className="mb-3 flex-row items-center justify-between gap-3">
-          <View className="min-w-0 flex-1 flex-row items-center gap-2">
-            <Ionicons name="refresh" size={17} color="#F97316" />
-            <Text className="font-black text-white">Preguntas a repasar</Text>
-          </View>
-          <View className="rounded-full bg-[#10213E] px-3 py-1">
-            <Text className="text-[12px] font-black text-[#DDE7F4]">{reviewCount}</Text>
-          </View>
-        </View>
-
-        {summary.reviewQuestions.length > 0 ? (
-          <View className="gap-2">
-            {summary.reviewQuestions.slice(0, 3).map((question, index) => (
-              <View key={question.id} className="flex-row items-start gap-3 rounded-xl border border-[#5B1830] bg-[#2A0B1B] px-3 py-3">
-                <View className="h-7 w-7 items-center justify-center rounded-full bg-[#FB7185]/20">
-                  <Text className="text-[12px] font-black text-[#FB7185]">{index + 1}</Text>
-                </View>
-                <Text className="min-w-0 flex-1 text-[13px] font-semibold leading-5 text-[#FDE2E8]" numberOfLines={2}>
-                  {question.text}
-                </Text>
-              </View>
-            ))}
-            {summary.reviewQuestions.length > 3 ? (
-              <Text className="text-[12px] font-bold text-[#8FA7C7]">
-                +{summary.reviewQuestions.length - 3} más para repasar · {topicLabel || 'Tema actual'}
-              </Text>
-            ) : null}
-          </View>
-        ) : (
-          <Text className="text-[13px] leading-5 text-[#8FA7C7]">No tienes preguntas pendientes de repaso en esta partida.</Text>
-        )}
       </View>
     </View>
   )
@@ -179,7 +141,7 @@ function SummaryRow({
   value: string
 }) {
   return (
-    <View className="flex-row items-center gap-3 rounded-2xl border border-[#243E65] bg-[#081A37] px-4 py-3">
+    <View className="flex-row items-center gap-3 rounded-2xl border border-[#2B4B7B] bg-[#081A37] px-4 py-3">
       <Ionicons name={icon} size={17} color={color} />
       <Text className="min-w-0 flex-1 text-[12px] font-black uppercase tracking-[0.04em] text-[#AFC2DB]">{label}</Text>
       <Text className="text-[16px] font-black text-white">{value}</Text>

@@ -200,11 +200,11 @@ export function AnswerOption({
   const isCorrectAnswer = correctAnswerId === answer.id
   const isHinted = hintedAnswerId === answer.id
 
-  let borderColor = '#1E355C'
-  let backgroundColor = '#08172E'
+  let borderColor = '#2B4B7B'
+  let backgroundColor = '#0D1F3D'
   let textColor = '#F8FAFC'
-  let badgeColor = '#18275A'
-  let badgeBorderColor = '#2A456A'
+  let badgeColor = '#1A3260'
+  let badgeBorderColor = '#3A5E8F'
 
   if (isHinted) {
     borderColor = '#FBBF24'
@@ -234,8 +234,8 @@ export function AnswerOption({
       badgeColor = '#F43F5E'
       badgeBorderColor = '#FDA4AF'
     } else {
-      borderColor = '#142541'
-      backgroundColor = '#071426'
+      borderColor = '#1B3155'
+      backgroundColor = '#0A1830'
       textColor = '#697B99'
       badgeColor = '#111E3C'
       badgeBorderColor = '#273A5E'
@@ -250,6 +250,7 @@ export function AnswerOption({
       style={({ pressed }) => ({
         borderColor,
         backgroundColor,
+        borderWidth: isSelected || isHinted || (hasAnswered && (isCorrectAnswer || isSelected)) ? 2 : 1,
         opacity: pressed ? 0.84 : 1,
       })}
     >

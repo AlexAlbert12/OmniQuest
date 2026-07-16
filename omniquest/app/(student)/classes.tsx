@@ -159,6 +159,7 @@ export default function ClassesScreen() {
     (total, subject) => total + (progressBySubject[getCourseRowKey(subject)]?.pendingQuestions ?? 0),
     0
   )
+  const hasActiveMobileFilters = selectedFilter !== 'all' || selectedSort !== 'recent' || search.trim().length > 0
 
   const fetchClasses = useCallback(async () => {
     setLoading(true)
@@ -450,14 +451,21 @@ export default function ClassesScreen() {
               {!isDesktop ? (
                 <View className="mb-4 flex-row items-center justify-between">
                   <Text className="text-[24px] font-black text-white">Mis cursos</Text>
-                  <Pressable
-                    onPress={() => setShowMobileFilters((value) => !value)}
-                    className="flex-row items-center gap-2 rounded-2xl border border-[#20375E] bg-[#0A1A34] px-5 py-3"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-                  >
-                    <Ionicons name="filter" size={20} color={accentColor} />
-                    <Text className="text-[15px] font-black" style={{ color: accentColor }}>Filtrar</Text>
-                  </Pressable>
+                  <View className="flex-row items-center gap-2">
+                    {hasActiveMobileFilters && !showMobileFilters ? (
+                      <Text className="max-w-[150px] text-right text-[12px] font-bold text-[#8FA7C7]" numberOfLines={1}>
+                        {getFilterLabel(selectedFilter)}
+                      </Text>
+                    ) : null}
+                    <Pressable
+                      accessibilityLabel={showMobileFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+                      onPress={() => setShowMobileFilters((value) => !value)}
+                      className="h-11 w-11 items-center justify-center rounded-full border border-[#20375E] bg-[#0A1A34]"
+                      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+                    >
+                      <Ionicons name={showMobileFilters ? 'close' : 'options'} size={20} color={accentColor} />
+                    </Pressable>
+                  </View>
                 </View>
               ) : null}
 
@@ -729,7 +737,32 @@ function getMobileCourseStatusBadge(progress?: StudentProgressSubject) {
     return { label: 'En progreso', color: '#8B5CF6', backgroundColor: '#4C1D9599' }
   }
 
-  return { label: 'No iniciado', color: '#F97316', backgroundColor: '#7C2D1299' }
+  return { label: 'En progreso', color: '#8B5CF6', backgroundColor: '#4C1D9599' }
+}
+
+function getMobileCourseActionLabel(progress: StudentProgressSubject | undefined, progressPercent: number) {
+  if ((progress?.failedQuestions ?? 0) > 0) return 'Repasar'
+  if (progress?.isCompleted || progressPercent >= 100) return 'Ver curso'
+  if ((progress?.pendingQuestions ?? 0) > 0 || progressPercent > 0) return 'Continuar'
+  return 'Empezar'
+}
+
+function getMobileCourseSummary(progress: StudentProgressSubject | undefined, progressPercent: number) {
+  const failed = progress?.failedQuestions ?? 0
+
+  if (failed > 0) {
+    return `${failed} ${failed === 1 ? 'fallo pendiente' : 'fallos pendientes'}`
+  }
+
+  if (progress?.isCompleted || progressPercent >= 100) {
+    return 'Curso completado'
+  }
+
+  if (progressPercent > 0) {
+    return `${progressPercent}% completado`
+  }
+
+  return 'Listo para empezar'
 }
 
 function getClassProgressStatus(progress?: StudentProgressSubject) {
@@ -856,7 +889,6 @@ function ClassRow({
   const status = getClassProgressStatus(progress)
   const activityLabel = formatLastActivity(lastActivityAt)
   const { accentColor } = useAppTheme()
-  const { width: screenWidth } = useWindowDimensions()
   const [optionsOpen, setOptionsOpen] = React.useState(false)
   const totalQuestions = progress?.totalQuestions ?? 0
   const primaryActionLabel = getPrimaryCourseActionLabel(progress, progressPercent)
@@ -870,101 +902,64 @@ function ClassRow({
 
   if (!isDesktop) {
     const statusBadge = getMobileCourseStatusBadge(progress)
-    const imageSize = screenWidth < 380 ? 78 : 104
+    const mobileActionLabel = getMobileCourseActionLabel(progress, progressPercent)
+    const mobileSummary = getMobileCourseSummary(progress, progressPercent)
     return (
-      <View className="rounded-[26px] border border-[#182D4F] bg-[#091A34] p-4">
-        <View className="flex-row gap-4">
-          <View className="overflow-hidden rounded-[22px]" style={{ backgroundColor: `${color}30`, height: imageSize, width: imageSize }}>
-            <View className="absolute inset-0 opacity-40" style={{ backgroundColor: color }} />
-            <View className="absolute left-2 top-2 flex-row items-center gap-1 rounded-full px-2 py-1" style={{ backgroundColor: statusBadge.backgroundColor }}>
-              <View className="h-2 w-2 rounded-full" style={{ backgroundColor: statusBadge.color }} />
-              <Text className="text-[10px] font-black text-white" numberOfLines={1}>{statusBadge.label}</Text>
-            </View>
-            <View className="flex-1 items-center justify-center pt-4">
-              {subject.icon && !isFallback ? (
-                <Text className="text-[42px]">{subject.icon}</Text>
-              ) : (
-                <Ionicons name={iconNames[index] || 'book'} size={44} color="#FFFFFF" />
-              )}
-            </View>
+      <View className="rounded-[24px] border border-[#1B3154] bg-[#091A34] p-4">
+        <View className="flex-row items-start gap-3">
+          <View className="h-16 w-16 items-center justify-center rounded-[20px]" style={{ backgroundColor: `${color}2E` }}>
+            {subject.icon && !isFallback ? (
+              <Text className="text-[34px]">{subject.icon}</Text>
+            ) : (
+              <Ionicons name={iconNames[index] || 'book'} size={30} color={color} />
+            )}
           </View>
 
-          <View className="min-w-0 flex-1 py-1">
-            <View className="flex-row items-start gap-2">
-              <View className="min-w-0 flex-1">
-                <Text className="text-[18px] font-black text-white" numberOfLines={2}>{subject.name}</Text>
-                <Text className="mt-1 text-[12px] text-[#9BAEC9]" numberOfLines={1}>{subject.classroom_name || 'Clase principal'}</Text>
+          <View className="min-w-0 flex-1">
+            <View className="flex-row items-start justify-between gap-2">
+              <Text className="min-w-0 flex-1 text-[20px] font-black leading-6 text-white" numberOfLines={2}>
+                {subject.name}
+              </Text>
+              <View className="shrink-0 flex-row items-center gap-1 rounded-full px-2.5 py-1" style={{ backgroundColor: statusBadge.backgroundColor }}>
+                <View className="h-2 w-2 rounded-full" style={{ backgroundColor: statusBadge.color }} />
+                <Text className="text-[11px] font-black text-white" numberOfLines={1}>{statusBadge.label}</Text>
               </View>
-              {!isFallback ? (
-                <View className="relative">
-                  <Pressable
-                    onPress={() => setOptionsOpen((current) => !current)}
-                    disabled={leaving}
-                    className="h-9 w-9 items-center justify-center rounded-full bg-[#102543]"
-                  >
-                    {leaving ? <ActivityIndicator color="#AFC2DB" /> : <Ionicons name="ellipsis-horizontal" size={18} color="#DDE7F4" />}
-                  </Pressable>
-                  {optionsOpen ? (
-                    <View className="absolute right-0 top-11 z-30 w-44 overflow-hidden rounded-xl border border-[#263E61] bg-[#08172E]">
-                      <Link href={buildClassHref(subject) as any} asChild>
-                        <Pressable className="flex-row items-center gap-2 px-4 py-3" onPress={() => setOptionsOpen(false)}>
-                          <Ionicons name="albums-outline" size={16} color="#AFC2DB" />
-                          <Text className="font-bold text-[#DDE7F4]">Ver detalles</Text>
-                        </Pressable>
-                      </Link>
-                      <Pressable
-                        onPress={() => {
-                          setOptionsOpen(false)
-                          onLeave(subject)
-                        }}
-                        className="flex-row items-center gap-2 border-t border-[#172A4A] px-4 py-3"
-                      >
-                        <Ionicons name="exit-outline" size={16} color="#FF6B6B" />
-                        <Text className="font-bold text-[#FF6B6B]">Salir</Text>
-                      </Pressable>
-                    </View>
-                  ) : null}
-                </View>
-              ) : null}
             </View>
-
-            <View className="mt-3 flex-row items-center justify-between gap-3">
-              <Text className="text-[13px] font-black" style={{ color: status.color }}>{progressPercent}% completado</Text>
-              <Text className="text-[12px] text-[#AFC2DB]">{progress?.completedTopics ?? 0} / {Math.max(progress?.totalTopics ?? topicsCount, topicsCount)} temas</Text>
-            </View>
-            <View className="mt-2 h-2.5 overflow-hidden rounded-full bg-[#162B4E]">
-              <View className="h-full rounded-full" style={{ width: `${Math.max(4, progressPercent)}%`, backgroundColor: status.color }} />
-            </View>
-
-            <View className="mt-4 flex-row items-center justify-between gap-3">
-              <View className="min-w-0 flex-row items-center gap-2">
-                <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#13284A]">
-                  <Ionicons name="calendar-outline" size={16} color="#8FA7C7" />
-                </View>
-                <View className="min-w-0">
-                  <Text className="text-[11px] text-[#8FA7C7]">Última actividad</Text>
-                  <Text className="text-[12px] font-bold text-white" numberOfLines={1}>{activityLabel}</Text>
-                </View>
-              </View>
-
-              {isFallback ? (
-                <Pressable className="flex-row items-center gap-2 rounded-2xl px-4 py-3" style={{ backgroundColor: accentColor }}>
-                  <Text className="font-black text-white">Continuar</Text>
-                  <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
-                </Pressable>
-              ) : (
-                <Link href={buildClassHref(subject) as any} asChild>
-                  <Pressable
-                    className="flex-row items-center gap-1 rounded-2xl px-3 py-3"
-                    style={({ pressed }) => ({ backgroundColor: status.color, opacity: pressed ? 0.86 : 1 })}
-                  >
-                    <Text className="font-black text-white">{primaryActionLabel}</Text>
-                    <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
-                  </Pressable>
-                </Link>
-              )}
-            </View>
+            <Text className="mt-1 text-[13px] text-[#9BAEC9]" numberOfLines={1}>{subject.classroom_name || 'Clase principal'}</Text>
           </View>
+        </View>
+
+        <View className="mt-4 flex-row items-end justify-between gap-4">
+          <View>
+            <Text className="text-[28px] font-black text-white">{progressPercent}%</Text>
+            <Text className="text-[13px] font-bold" style={{ color: status.color }}>{mobileSummary}</Text>
+          </View>
+          <Text className="text-right text-[12px] font-semibold text-[#8FA7C7]">
+            Progreso
+          </Text>
+        </View>
+
+        <View className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#162B4E]">
+          <View className="h-full rounded-full" style={{ width: `${Math.max(4, progressPercent)}%`, backgroundColor: status.color }} />
+        </View>
+
+        <View className="mt-4">
+          {isFallback ? (
+            <Pressable className="h-12 flex-row items-center justify-center gap-2 rounded-2xl" style={{ backgroundColor: accentColor }}>
+              <Text className="font-black text-white">{mobileActionLabel}</Text>
+              <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+            </Pressable>
+          ) : (
+            <Link href={buildClassHref(subject) as any} asChild>
+              <Pressable
+                className="h-12 flex-row items-center justify-center gap-2 rounded-2xl"
+                style={({ pressed }) => ({ backgroundColor: status.color, opacity: pressed ? 0.86 : 1 })}
+              >
+                <Text className="font-black text-white">{mobileActionLabel}</Text>
+                <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+              </Pressable>
+            </Link>
+          )}
         </View>
       </View>
     )
