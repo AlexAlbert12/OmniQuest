@@ -184,7 +184,6 @@ export default function StudentNotificationsScreen() {
         categoryStats={categoryStats}
         filteredNotifications={filteredNotifications}
         notificationsCount={notifications.length}
-        profileAlias={profile?.alias || 'Alumno'}
         refreshing={refreshing}
         selectedFilter={selectedFilter}
         unreadCount={unreadCount}
@@ -228,7 +227,7 @@ export default function StudentNotificationsScreen() {
               ) : null}
               <View className="flex-row items-center gap-3">
                 <Ionicons name="notifications" size={38} color="#9FD6FF" />
-                <Text className="text-[38px] font-black text-white">Mis Notificaciones</Text>
+                <Text className="text-[38px] font-black text-white">Notificaciones</Text>
               </View>
               <Text className="mt-2 text-[14px] text-[#B7C4D7]">
                 {unreadCount > 0
@@ -258,7 +257,7 @@ export default function StudentNotificationsScreen() {
                   style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
                 >
                   <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
-                  <Text className="text-[12px] font-bold text-white">Marcar todo leído</Text>
+                  <Text className="text-[12px] font-bold text-white">Marcar leídas</Text>
                 </Pressable>
               ) : null}
               <StudentHeaderAvatar />
@@ -318,7 +317,6 @@ function MobileStudentNotifications({
   categoryStats,
   filteredNotifications,
   notificationsCount,
-  profileAlias,
   refreshing,
   selectedFilter,
   unreadCount,
@@ -336,7 +334,6 @@ function MobileStudentNotifications({
   }[]
   filteredNotifications: AppNotification[]
   notificationsCount: number
-  profileAlias: string
   refreshing: boolean
   selectedFilter: NotificationFilter
   unreadCount: number
@@ -345,10 +342,6 @@ function MobileStudentNotifications({
   onNotificationPress: (notification: AppNotification) => void
   onRefresh: () => void
 }) {
-  const initial = profileAlias.trim().charAt(0).toUpperCase() || 'A'
-  const primaryFilters = filterOptions.slice(0, 2)
-  const secondaryFilters = filterOptions.slice(2)
-
   return (
     <View className="flex-1 bg-[#031022]">
       <ScrollView
@@ -365,31 +358,31 @@ function MobileStudentNotifications({
           </View>
         </View>
 
-        <View className="mb-5 flex-row items-center gap-4">
+        <View className="mb-5 flex-row items-center gap-3">
           <LinearGradient
             colors={['#6D4AFF', '#4C1D95']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={{ width: 74, height: 74, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: 58, height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Ionicons name="notifications" size={36} color="#FFFFFF" />
+            <Ionicons name="notifications" size={30} color="#FFFFFF" />
           </LinearGradient>
           <View className="min-w-0 flex-1">
-            <Text className="text-[40px] font-black leading-[46px] text-white" numberOfLines={2}>
-              Mis Notificaciones
+            <Text className="text-[34px] font-black leading-[38px] text-white" numberOfLines={1}>
+              Notificaciones
             </Text>
-            <Text className="mt-2 text-[15px] leading-5 text-[#C7D3E5]">
+            <Text className="mt-1 text-[14px] leading-5 text-[#C7D3E5]" numberOfLines={2}>
               {unreadCount > 0
-                ? `Tienes ${unreadCount} nueva${unreadCount === 1 ? '' : 's'} por revisar`
+                ? `${unreadCount} novedad${unreadCount === 1 ? '' : 'es'} por revisar`
                 : 'Todo está al día en tus cursos'}
             </Text>
           </View>
         </View>
 
-        <View className="mb-6 flex-row items-center gap-4">
+        <View className="mb-5 flex-row gap-3">
           <Pressable
             onPress={onRefresh}
-            className="flex-row items-center gap-2 rounded-2xl px-3 py-3"
+            className="min-h-[48px] flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-[#20375E] bg-[#071832] px-4"
             style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
           >
             <Ionicons name="refresh" size={18} color="#DDE7F4" />
@@ -398,49 +391,33 @@ function MobileStudentNotifications({
           <Pressable
             onPress={onMarkAllAsRead}
             disabled={unreadCount === 0}
-            className="h-14 w-14 items-center justify-center rounded-full"
+            className="min-h-[48px] flex-1 flex-row items-center justify-center gap-2 rounded-2xl px-4"
             style={({ pressed }) => ({
               backgroundColor: '#6D4AFF',
               opacity: unreadCount === 0 ? 0.55 : pressed ? 0.78 : 1,
             })}
           >
-            <Text className="text-[17px] font-black text-white">{initial}</Text>
+            <Ionicons name="checkmark-done" size={18} color="#FFFFFF" />
+            <Text className="text-[14px] font-black text-white">Marcar leídas</Text>
           </Pressable>
         </View>
 
-        <View className="mb-6 flex-row gap-2">
-          {categoryStats.map((category) => (
-            <MobileCategoryCard
-              key={category.id}
-              category={category}
-              active={selectedFilter === category.id}
-              onPress={() => onFilterChange(category.id)}
-            />
-          ))}
-        </View>
-
-        <View className="mb-4 flex-row gap-3">
-          {primaryFilters.map((option) => (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="-mx-5 mb-6"
+          contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+        >
+          {filterOptions.map((option) => (
             <MobileFilterChip
               key={option.id}
               option={option}
               active={selectedFilter === option.id}
-              count={option.id === 'unread' ? unreadCount : notificationsCount}
-              onPress={() => onFilterChange(option.id)}
-              prominent
-            />
-          ))}
-        </View>
-        <View className="mb-6 flex-row flex-wrap gap-3">
-          {secondaryFilters.map((option) => (
-            <MobileFilterChip
-              key={option.id}
-              option={option}
-              active={selectedFilter === option.id}
+              count={option.id === 'unread' ? unreadCount : option.id === 'all' ? notificationsCount : categoryStats.find((category) => category.id === option.id)?.unread}
               onPress={() => onFilterChange(option.id)}
             />
           ))}
-        </View>
+        </ScrollView>
 
         <View className="mb-4 flex-row items-center gap-3">
           <Text className="text-[22px] font-black text-white">{getNotificationSectionTitle(selectedFilter)}</Text>
@@ -484,60 +461,21 @@ function NotificationTopButton({ count }: { count: number }) {
   )
 }
 
-function MobileCategoryCard({
-  active,
-  category,
-  onPress,
-}: {
-  active: boolean
-  category: {
-    id: NotificationType
-    label: string
-    icon: keyof typeof Ionicons.glyphMap
-    count: number
-    unread: number
-  }
-  onPress: () => void
-}) {
-  const color = getNotificationTypeAccent(category.id)
-
-  return (
-    <Pressable
-      onPress={onPress}
-      className="min-h-[128px] flex-1 items-center justify-center rounded-xl border px-2 py-3"
-      style={({ pressed }) => ({
-        borderColor: active ? color : '#17345B',
-        backgroundColor: active ? withAlpha(color, '1F') : '#071832',
-        opacity: pressed ? 0.82 : 1,
-      })}
-    >
-      <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(color, '24') }}>
-        <Ionicons name={category.icon} size={22} color={color} />
-      </View>
-      <Text className="mt-3 text-center text-[12px] text-[#DDE7F4]" numberOfLines={1}>{category.label}</Text>
-      <Text className="mt-2 text-center text-[28px] font-black leading-[31px] text-white">{category.unread}</Text>
-      <Text className="text-center text-[12px] text-[#C7D3E5]">nuevas</Text>
-    </Pressable>
-  )
-}
-
 function MobileFilterChip({
   active,
   count,
   onPress,
   option,
-  prominent = false,
 }: {
   active: boolean
   count?: number
   onPress: () => void
   option: { id: NotificationFilter; label: string; icon: keyof typeof Ionicons.glyphMap }
-  prominent?: boolean
 }) {
   return (
     <Pressable
       onPress={onPress}
-      className={`flex-row items-center justify-center gap-2 rounded-full ${prominent ? 'min-w-[132px] px-5 py-3' : 'px-4 py-3'}`}
+      className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-full px-4"
       style={({ pressed }) => ({
         borderWidth: active ? 0 : 1,
         borderColor: '#20375E',
@@ -569,21 +507,21 @@ function MobileNotificationCard({
   return (
     <Pressable
       onPress={onPress}
-      className="relative min-h-[118px] flex-row items-center gap-4 rounded-2xl border border-[#17345B] bg-[#071832] p-4"
+      className="relative min-h-[116px] flex-row items-center gap-3 rounded-2xl border border-[#17345B] bg-[#071832] p-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       {!notification.isRead ? <View className="absolute left-2 top-7 h-2.5 w-2.5 rounded-full bg-[#7C5CFF]" /> : null}
-      <View className="h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(accent, '28') }}>
-        <Ionicons name={notification.icon} size={32} color={accent} />
+      <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(accent, '28') }}>
+        <Ionicons name={notification.icon} size={27} color={accent} />
       </View>
       <View className="min-w-0 flex-1">
         <View className="flex-row items-center gap-2">
-          <Text className="min-w-0 flex-1 text-[16px] font-black text-white" numberOfLines={1}>{notification.title}</Text>
+          <Text className="min-w-0 flex-1 text-[16px] font-black text-white" numberOfLines={2}>{notification.title}</Text>
           <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: withAlpha(accent, '26') }}>
             <Text className="text-[11px] font-black" style={{ color: accent }}>{categoryLabels[notification.type]}</Text>
           </View>
         </View>
-        <Text className="mt-2 text-[14px] leading-6 text-[#C7D3E5]" numberOfLines={2}>{notification.description}</Text>
+        <Text className="mt-2 text-[14px] leading-5 text-[#C7D3E5]" numberOfLines={3}>{notification.description}</Text>
         <View className="mt-3 flex-row flex-wrap items-center gap-3">
           <View className="flex-row items-center gap-1.5">
             <Ionicons name="time-outline" size={14} color="#8FA7C7" />
@@ -623,11 +561,11 @@ function MobileAllCaughtUpBanner({ unreadCount }: { unreadCount: number }) {
       colors={['#2A1768', '#181B4B', '#0C1D3C']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={{ marginTop: 28, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#352A82' }}
+      style={{ marginTop: 24, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#352A82' }}
     >
-      <View className="min-h-[142px] flex-row items-center gap-4 p-5">
-        <View className="relative h-24 w-24 items-center justify-center rounded-full bg-[#5B21B6]/35">
-          <Ionicons name="notifications" size={58} color="#A78BFA" />
+      <View className="min-h-[124px] flex-row items-center gap-4 p-5">
+        <View className="relative h-20 w-20 items-center justify-center rounded-full bg-[#5B21B6]/35">
+          <Ionicons name="notifications" size={44} color="#A78BFA" />
           {unreadCount > 0 ? (
             <View className="absolute right-0 top-2 h-9 min-w-9 items-center justify-center rounded-full bg-[#EF4444] px-2">
               <Text className="text-[14px] font-black text-white">{unreadCount}</Text>
@@ -635,7 +573,7 @@ function MobileAllCaughtUpBanner({ unreadCount }: { unreadCount: number }) {
           ) : null}
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="text-[21px] font-black text-white">
+          <Text className="text-[19px] font-black text-white">
             {unreadCount > 0 ? 'Tienes novedades' : '¡Estás al día!'}
           </Text>
           <Text className="mt-2 text-[15px] leading-6 text-[#DDE7F4]">
@@ -650,7 +588,7 @@ function MobileAllCaughtUpBanner({ unreadCount }: { unreadCount: number }) {
 }
 
 function getNotificationSectionTitle(filter: NotificationFilter) {
-  if (filter === 'all') return 'Hoy'
+  if (filter === 'all') return 'Novedades'
   if (filter === 'unread') return 'Sin leer'
   return categoryLabels[filter]
 }

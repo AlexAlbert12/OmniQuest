@@ -77,7 +77,6 @@ export default function RankingScreen() {
   const { accentColor } = useAppTheme()
 
   const isDesktop = width >= 1024
-  const isPhone = width < 640
   const rankingRows = useMemo(() => profiles, [profiles])
   const selectedClass = classOptions.find((classOption) => classOption.id === selectedClassId) || null
 
@@ -104,6 +103,19 @@ export default function RankingScreen() {
     : null
   const xpToPreviousRival = previousRival
     ? Math.max(0, (previousRival.points ?? 0) - rankingPoints + 1)
+    : 0
+  const currentLeagueRows = useMemo(
+    () => rankingRows.filter((item) => getRankingLeague(item.points ?? 0).name === league.name),
+    [rankingRows, league.name]
+  )
+  const currentRankIndex = currentLeagueRows.findIndex((item) => item.id === currentUserId)
+  const currentRank = !isGuest && currentRankIndex >= 0 ? currentRankIndex + 1 : null
+  const currentPreviousRival = currentRankIndex > 0 ? currentLeagueRows[currentRankIndex - 1] : null
+  const currentNextRival = currentRankIndex >= 0 && currentRankIndex < currentLeagueRows.length - 1
+    ? currentLeagueRows[currentRankIndex + 1]
+    : null
+  const currentXpToPreviousRival = currentPreviousRival
+    ? Math.max(0, (currentPreviousRival.points ?? 0) - rankingPoints + 1)
     : 0
   const podiumRows = useMemo(
     () => selectedLeagueRows.filter((item) => (item.points ?? 0) > 0).slice(0, 3),
@@ -252,8 +264,8 @@ export default function RankingScreen() {
                 <BrandLogo size={30} style={{ marginBottom: 12 }} />
               ) : null}
               <View className="flex-row items-center gap-3">
-                <Ionicons name="trophy" size={isDesktop ? 40 : 34} color="#9FD6FF" />
-                <Text className={`${isDesktop ? 'text-[40px]' : 'text-[32px]'} flex-shrink font-black text-white`} numberOfLines={1}>Ranking</Text>
+                <Ionicons name="trophy" size={isDesktop ? 40 : 30} color="#9FD6FF" />
+                <Text className={`${isDesktop ? 'text-[40px]' : 'text-[30px] leading-[36px]'} min-w-0 flex-1 font-black text-white`} numberOfLines={1}>Ranking</Text>
               </View>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">
                 Compite, aprende y sube posiciones 🚀
@@ -265,16 +277,21 @@ export default function RankingScreen() {
             </View>
           </View>
 
-          <LeagueCarousel
-            leagues={rankingLeagues}
-            currentLeague={league}
-            selectedLeague={selectedLeague}
-            points={rankingPoints}
-            onSelect={(nextLeague) => setSelectedLeagueName(nextLeague.name)}
-          />
+          {!isDesktop ? (
+            <View className="gap-4">
+              <PositionCard
+                rank={currentRank}
+                points={rankingPoints}
+                isGuest={isGuest}
+                totalRanked={currentLeagueRows.length}
+                league={league}
+                previousRival={currentPreviousRival}
+                nextRival={currentNextRival}
+                xpToPreviousRival={currentXpToPreviousRival}
+              />
 
-          <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
-            <View className={isDesktop ? 'flex-[1.45]' : ''}>
+              <CurrentLeagueCard league={league} points={rankingPoints} />
+
               <RankingTabs
                 activeScope={selectedScope}
                 onSelect={(nextScope) => {
@@ -291,99 +308,98 @@ export default function RankingScreen() {
                   onSelect={setSelectedClassId}
                 />
               ) : null}
-              <View className="mt-4 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-                <View className="mb-4 flex-row flex-wrap items-center justify-between gap-3">
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-[16px] font-black text-white">Ranking de Liga {selectedLeague.name}</Text>
-                    <Text className="mt-1 text-[12px] text-[#8FA7C7]">
-                      {selectedScope === 'class'
-                        ? `Dentro de ${selectedClass ? `${selectedClass.name} · ${selectedClass.classroomName}` : 'la clase seleccionada'}`
-                        : selectedScope === 'weekly'
-                          ? 'XP ganado durante los últimos 7 días.'
-                          : 'Compites con estudiantes de tu misma liga.'}
-                    </Text>
-                  </View>
-                  <View className="rounded-full border border-[#243D66] bg-[#0A1A34] px-3 py-2">
-                    <Text className="text-[12px] font-black text-[#AFC2DB]">
-                      {selectedLeagueRows.length} {selectedLeagueRows.length === 1 ? 'estudiante' : 'estudiantes'}
-                    </Text>
-                  </View>
+
+              <RankingListCard
+                rows={selectedLeagueRows}
+                selectedLeague={selectedLeague}
+                selectedScope={selectedScope}
+                selectedClass={selectedClass}
+                currentUserId={currentUserId}
+                maxPoints={selectedLeagueMaxPoints}
+                rankingRows={rankingRows}
+                rankingPoints={rankingPoints}
+                emptyRankingMessage={emptyRankingMessage}
+                orderedPodiumRows={orderedPodiumRows}
+                compact
+              />
+
+              <LeagueProgressCard league={league} points={rankingPoints} />
+
+              <LeagueCarousel
+                leagues={rankingLeagues}
+                currentLeague={league}
+                selectedLeague={selectedLeague}
+                points={rankingPoints}
+                onSelect={(nextLeague) => setSelectedLeagueName(nextLeague.name)}
+                compact
+              />
+            </View>
+          ) : (
+            <>
+              <LeagueCarousel
+                leagues={rankingLeagues}
+                currentLeague={league}
+                selectedLeague={selectedLeague}
+                points={rankingPoints}
+                onSelect={(nextLeague) => setSelectedLeagueName(nextLeague.name)}
+              />
+
+              <View className="flex-row gap-5">
+                <View className="flex-[1.45]">
+                  <RankingTabs
+                    activeScope={selectedScope}
+                    onSelect={(nextScope) => {
+                      if (nextScope === 'class' && !selectedClassId && classOptions.length > 0) {
+                        setSelectedClassId(classOptions[0].id)
+                      }
+                      setSelectedScope(nextScope)
+                    }}
+                  />
+                  {selectedScope === 'class' ? (
+                    <ClassRankingSelector
+                      classOptions={classOptions}
+                      selectedClassId={selectedClassId}
+                      onSelect={setSelectedClassId}
+                    />
+                  ) : null}
+
+                  <RankingListCard
+                    rows={selectedLeagueRows}
+                    selectedLeague={selectedLeague}
+                    selectedScope={selectedScope}
+                    selectedClass={selectedClass}
+                    currentUserId={currentUserId}
+                    maxPoints={selectedLeagueMaxPoints}
+                    rankingRows={rankingRows}
+                    rankingPoints={rankingPoints}
+                    emptyRankingMessage={emptyRankingMessage}
+                    orderedPodiumRows={orderedPodiumRows}
+                  />
                 </View>
 
-                {orderedPodiumRows.length === 3 ? (
-                  <View className="mb-4 rounded-2xl border border-[#1A3155] bg-[#0A1A34] p-4">
-                    <Text className="mb-3 text-[15px] font-black text-white">Podio de la liga</Text>
-                    <View className="flex-row items-end justify-center gap-3">
-                      {orderedPodiumRows.map(({ item, position }) => (
-                        <PodiumCard
-                          key={item.id}
-                          item={item}
-                          position={position}
-                          isMe={item.id === currentUserId}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                ) : null}
-
-                {!isPhone ? (
-                  <View className="mb-4 flex-row items-center border-b border-[#172A4A] pb-3">
-                    <Text className="w-24 text-[12px] font-bold uppercase text-[#8FA7C7]">Posición</Text>
-                    <Text className="min-w-0 flex-1 text-[12px] font-bold uppercase text-[#8FA7C7]">
-                      Estudiante
-                    </Text>
-                    <Text className="w-24 text-right text-[12px] font-bold uppercase text-[#8FA7C7]">
-                      {selectedScope === 'class' ? 'XP Clase' : 'XP'}
-                    </Text>
-                  </View>
-                ) : null}
-
-                <View style={{ gap: 6 }}>
-                  {selectedLeagueRows.length > 0 ? (
-                    selectedLeagueRows.slice(0, 8).map((item, index) => (
-                      <RankingRow
-                        key={item.id}
-                        item={item}
-                        index={index}
-                        isMe={item.id === currentUserId}
-                        maxPoints={selectedLeagueMaxPoints}
-                      />
-                    ))
-                  ) : (
-                    <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-8">
-                      <Ionicons name={selectedLeague.minPoints > rankingPoints ? 'lock-closed-outline' : 'trophy-outline'} size={34} color="#8FA7C7" />
-                      <Text className="mt-2 text-center text-[13px] text-[#AFC2DB]">
-                        {rankingRows.length === 0
-                          ? emptyRankingMessage
-                          : `No hay estudiantes en Liga ${selectedLeague.name} para este ranking.`}
-                      </Text>
-                    </View>
-                  )}
+                <View className="flex-1 gap-5">
+                  <PositionCard
+                    rank={selectedRank}
+                    points={rankingPoints}
+                    isGuest={isGuest}
+                    totalRanked={selectedLeagueRows.length}
+                    league={selectedLeague}
+                    previousRival={previousRival}
+                    nextRival={nextRival}
+                    xpToPreviousRival={xpToPreviousRival}
+                  />
+                  <RankingSummaryCard
+                    points={rankingPoints}
+                    rankingRows={selectedLeagueRows}
+                    league={selectedLeague}
+                    pointsLabel={rankingPointsLabel}
+                    bestPointsLabel={bestPointsLabel}
+                    selectedScope={selectedScope}
+                  />
                 </View>
               </View>
-            </View>
-
-            <View className={isDesktop ? 'flex-1 gap-5' : 'gap-5'}>
-              <PositionCard
-                rank={selectedRank}
-                points={rankingPoints}
-                isGuest={isGuest}
-                totalRanked={selectedLeagueRows.length}
-                league={selectedLeague}
-                previousRival={previousRival}
-                nextRival={nextRival}
-                xpToPreviousRival={xpToPreviousRival}
-              />
-              <RankingSummaryCard
-                points={rankingPoints}
-                rankingRows={selectedLeagueRows}
-                league={selectedLeague}
-                pointsLabel={rankingPointsLabel}
-                bestPointsLabel={bestPointsLabel}
-                selectedScope={selectedScope}
-              />
-            </View>
-          </View>
+            </>
+          )}
         </ScrollView>
       </View>
 
@@ -474,37 +490,215 @@ async function fetchClassRanking(classroomId: number): Promise<Profile[]> {
 }
 
 
+function RankingListCard({
+  rows,
+  selectedLeague,
+  selectedScope,
+  selectedClass,
+  currentUserId,
+  maxPoints,
+  rankingRows,
+  rankingPoints,
+  emptyRankingMessage,
+  orderedPodiumRows,
+  compact = false,
+}: {
+  rows: Profile[]
+  selectedLeague: RankingLeague
+  selectedScope: RankingScope
+  selectedClass: ClassOption | null
+  currentUserId: string | null
+  maxPoints: number
+  rankingRows: Profile[]
+  rankingPoints: number
+  emptyRankingMessage: string
+  orderedPodiumRows: { item: Profile; position: number }[]
+  compact?: boolean
+}) {
+  const visibleRows = rows.slice(0, compact ? 5 : 8)
+
+  return (
+    <View className={`${compact ? '' : 'mt-4'} rounded-2xl border border-[#1A3155] bg-[#09162C] ${compact ? 'p-4' : 'p-5'}`}>
+      <View className="mb-4 flex-row flex-wrap items-center justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className={`${compact ? 'text-[18px]' : 'text-[16px]'} font-black text-white`} numberOfLines={compact ? 2 : 1}>
+            {compact ? `Top 5 · Liga ${selectedLeague.name}` : `Ranking de Liga ${selectedLeague.name}`}
+          </Text>
+          <Text className="mt-1 text-[12px] leading-5 text-[#8FA7C7]">
+            {selectedScope === 'class'
+              ? `Dentro de ${selectedClass ? `${selectedClass.name} · ${selectedClass.classroomName}` : 'la clase seleccionada'}`
+              : selectedScope === 'weekly'
+                ? 'XP ganado durante los últimos 7 días.'
+                : 'Compites con estudiantes de tu misma liga.'}
+          </Text>
+        </View>
+        <View className="rounded-full border border-[#243D66] bg-[#0A1A34] px-3 py-2">
+          <Text className="text-[12px] font-black text-[#AFC2DB]">
+            {rows.length} {rows.length === 1 ? 'estudiante' : 'estudiantes'}
+          </Text>
+        </View>
+      </View>
+
+      {!compact && orderedPodiumRows.length === 3 ? (
+        <View className="mb-4 rounded-2xl border border-[#1A3155] bg-[#0A1A34] p-4">
+          <Text className="mb-3 text-[15px] font-black text-white">Podio de la liga</Text>
+          <View className="flex-row items-end justify-center gap-3">
+            {orderedPodiumRows.map(({ item, position }) => (
+              <PodiumCard
+                key={item.id}
+                item={item}
+                position={position}
+                isMe={item.id === currentUserId}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {!compact ? (
+        <View className="mb-4 flex-row items-center border-b border-[#172A4A] pb-3">
+          <Text className="w-24 text-[12px] font-bold uppercase text-[#8FA7C7]">Posición</Text>
+          <Text className="min-w-0 flex-1 text-[12px] font-bold uppercase text-[#8FA7C7]">
+            Estudiante
+          </Text>
+          <Text className="w-24 text-right text-[12px] font-bold uppercase text-[#8FA7C7]">
+            {selectedScope === 'class' ? 'XP Clase' : 'XP'}
+          </Text>
+        </View>
+      ) : null}
+
+      <View style={{ gap: compact ? 8 : 6 }}>
+        {visibleRows.length > 0 ? (
+          visibleRows.map((item, index) => (
+            <RankingRow
+              key={item.id}
+              item={item}
+              index={index}
+              isMe={item.id === currentUserId}
+              maxPoints={maxPoints}
+              compact={compact}
+            />
+          ))
+        ) : (
+          <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-8">
+            <Ionicons name={selectedLeague.minPoints > rankingPoints ? 'lock-closed-outline' : 'trophy-outline'} size={34} color="#8FA7C7" />
+            <Text className="mt-2 text-center text-[13px] text-[#AFC2DB]">
+              {rankingRows.length === 0
+                ? emptyRankingMessage
+                : `No hay estudiantes en Liga ${selectedLeague.name} para este ranking.`}
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  )
+}
+
+function CurrentLeagueCard({
+  league,
+  points,
+}: {
+  league: RankingLeague
+  points: number
+}) {
+  const nextLeague = getNextRankingLeague(league)
+  const xpInsideLeague = Math.max(0, points - league.minPoints)
+  const xpToNext = league.nextMinPoints === null ? 0 : Math.max(0, league.nextMinPoints - points)
+
+  return (
+    <View className="overflow-hidden rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+      <View className="absolute right-[-22px] top-[-22px] h-24 w-24 rounded-full opacity-20" style={{ backgroundColor: league.color }} />
+      <View className="flex-row items-center gap-3">
+        <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(league.color, '24') }}>
+          <Ionicons name={league.icon} size={24} color={league.color} />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="text-[12px] font-black uppercase tracking-[1px] text-[#8FA7C7]">Liga actual</Text>
+          <Text className="mt-1 text-[22px] font-black text-white">Liga {league.name}</Text>
+          <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>
+            {league.nextMinPoints === null
+              ? `${xpInsideLeague.toLocaleString()} XP acumulados en la élite`
+              : `${xpToNext.toLocaleString()} XP para Liga ${nextLeague?.name || 'siguiente'}`}
+          </Text>
+        </View>
+        <View className="rounded-full border px-3 py-2" style={{ borderColor: league.color, backgroundColor: withAlpha(league.color, '22') }}>
+          <Text className="text-[12px] font-black" style={{ color: league.color }}>{points.toLocaleString()} XP</Text>
+        </View>
+      </View>
+    </View>
+  )
+}
+
+function LeagueProgressCard({
+  league,
+  points,
+}: {
+  league: RankingLeague
+  points: number
+}) {
+  const nextLeague = getNextRankingLeague(league)
+  const leagueProgress = getLeagueProgress(points, league)
+  const progressLabel = league.nextMinPoints === null
+    ? `${Math.max(0, points - league.minPoints).toLocaleString()} XP en la liga máxima`
+    : `${Math.max(0, points - league.minPoints).toLocaleString()} / ${(league.nextMinPoints - league.minPoints).toLocaleString()} XP`
+
+  return (
+    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+      <View className="mb-3 flex-row items-center justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="text-[18px] font-black text-white">Progreso a la siguiente liga</Text>
+          <Text className="mt-1 text-[12px] text-[#8FA7C7]">
+            {league.nextMinPoints === null ? 'Ya estás en la última liga.' : `Siguiente objetivo: Liga ${nextLeague?.name || 'siguiente'}`}
+          </Text>
+        </View>
+        <Text className="text-[12px] font-black" style={{ color: league.color }}>{Math.round(leagueProgress)}%</Text>
+      </View>
+      <View className="h-3 overflow-hidden rounded-full bg-[#13294C]">
+        <View className="h-full rounded-full" style={{ width: `${leagueProgress}%`, backgroundColor: league.color }} />
+      </View>
+      <Text className="mt-2 text-right text-[12px] text-[#AFC2DB]">{progressLabel}</Text>
+    </View>
+  )
+}
+
+
 function LeagueCarousel({
   leagues,
   currentLeague,
   selectedLeague,
   points,
   onSelect,
+  compact = false,
 }: {
   leagues: RankingLeague[]
   currentLeague: RankingLeague
   selectedLeague: RankingLeague
   points: number
   onSelect: (league: RankingLeague) => void
+  compact?: boolean
 }) {
   return (
-    <View className="mb-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+    <View className={`${compact ? '' : 'mb-5'} rounded-2xl border border-[#1A3155] bg-[#09162C] p-4`}>
       <View className="mb-3 flex-row flex-wrap items-center justify-between gap-3">
         <View className="min-w-0 flex-1">
-          <Text className="text-[16px] font-black text-white">Ligas</Text>
-          <Text className="mt-1 text-[12px] text-[#8FA7C7]">
-            Selecciona una liga para ver sus estudiantes y cuánto XP te falta para alcanzarla.
+          <Text className={`${compact ? 'text-[18px]' : 'text-[16px]'} font-black text-white`}>Ligas</Text>
+          <Text className="mt-1 text-[12px] leading-5 text-[#8FA7C7]">
+            {compact
+              ? 'Consulta ligas bloqueadas y alcanzadas.'
+              : 'Selecciona una liga para ver sus estudiantes y cuánto XP te falta para alcanzarla.'}
           </Text>
         </View>
-        <View className="flex-row items-center gap-2 rounded-full border px-3 py-2" style={{ borderColor: currentLeague.color, backgroundColor: withAlpha(currentLeague.color, '24') }}>
-          <Ionicons name={currentLeague.icon} size={15} color={currentLeague.color} />
-          <Text className="text-[12px] font-black" style={{ color: currentLeague.color }}>
-            Tu liga: {currentLeague.name}
-          </Text>
-        </View>
+        {!compact ? (
+          <View className="flex-row items-center gap-2 rounded-full border px-3 py-2" style={{ borderColor: currentLeague.color, backgroundColor: withAlpha(currentLeague.color, '24') }}>
+            <Ionicons name={currentLeague.icon} size={15} color={currentLeague.color} />
+            <Text className="text-[12px] font-black" style={{ color: currentLeague.color }}>
+              Tu liga: {currentLeague.name}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 4 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: compact ? 10 : 12, paddingRight: 4 }}>
         {leagues.map((rankingLeague) => {
           const isSelected = selectedLeague.name === rankingLeague.name
           const isCurrent = currentLeague.name === rankingLeague.name
@@ -532,47 +726,49 @@ function LeagueCarousel({
             <Pressable
               key={rankingLeague.name}
               onPress={() => onSelect(rankingLeague)}
-              className="rounded-2xl border p-4"
-              style={{ width: 232, borderColor, backgroundColor, opacity: isLocked ? 0.68 : 1 }}
+              className={`${compact ? 'rounded-xl p-3' : 'rounded-2xl p-4'} border`}
+              style={{ width: compact ? 156 : 232, borderColor, backgroundColor, opacity: isLocked ? 0.68 : 1 }}
             >
-              <View className="mb-3 flex-row items-center justify-between gap-3">
+              <View className={`${compact ? 'mb-2' : 'mb-3'} flex-row items-center justify-between gap-2`}>
                 <View
-                  className="h-11 w-11 items-center justify-center rounded-xl"
+                  className={`${compact ? 'h-9 w-9' : 'h-11 w-11'} items-center justify-center rounded-xl`}
                   style={{ backgroundColor: isLocked ? '#13223B' : withAlpha(rankingLeague.color, '24') }}
                 >
                   <Ionicons
                     name={isLocked ? 'lock-closed' : rankingLeague.icon}
-                    size={21}
+                    size={compact ? 18 : 21}
                     color={isLocked ? '#64748B' : rankingLeague.color}
                   />
                 </View>
                 <View
-                  className="rounded-full px-3 py-1"
+                  className={`${compact ? 'px-2 py-1' : 'px-3 py-1'} rounded-full`}
                   style={{ backgroundColor: isLocked ? '#111C31' : withAlpha(rankingLeague.color, '22') }}
                 >
-                  <Text className="text-[12px] font-black" style={{ color: isLocked ? '#AFC2DB' : rankingLeague.color }}>
+                  <Text className={`${compact ? 'text-[10px]' : 'text-[12px]'} font-black`} style={{ color: isLocked ? '#AFC2DB' : rankingLeague.color }}>
                     {statusLabel}
                   </Text>
                 </View>
               </View>
 
-              <Text className="text-[18px] font-black" style={{ color: isLocked ? '#94A3B8' : '#FFFFFF' }}>
+              <Text className={`${compact ? 'text-[15px]' : 'text-[18px]'} font-black`} style={{ color: isLocked ? '#94A3B8' : '#FFFFFF' }} numberOfLines={1}>
                 Liga {rankingLeague.name}
               </Text>
               <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>
                 {detailLabel}
               </Text>
 
-              <View className="mt-4">
-                <View className="mb-2 flex-row items-center justify-between">
-                  <Text className="text-[12px] text-[#AFC2DB]">
-                    Desde {rankingLeague.minPoints.toLocaleString()} XP
-                  </Text>
-                  <Text className="text-[12px] text-[#AFC2DB]">
-                    {rankingLeague.nextMinPoints === null ? 'Sin límite' : `${rankingLeague.nextMinPoints.toLocaleString()} XP`}
-                  </Text>
-                </View>
-                <View className="h-2 overflow-hidden rounded-full bg-[#142A4A]">
+              <View className={compact ? 'mt-3' : 'mt-4'}>
+                {!compact ? (
+                  <View className="mb-2 flex-row items-center justify-between">
+                    <Text className="text-[12px] text-[#AFC2DB]">
+                      Desde {rankingLeague.minPoints.toLocaleString()} XP
+                    </Text>
+                    <Text className="text-[12px] text-[#AFC2DB]">
+                      {rankingLeague.nextMinPoints === null ? 'Sin límite' : `${rankingLeague.nextMinPoints.toLocaleString()} XP`}
+                    </Text>
+                  </View>
+                ) : null}
+                <View className={`${compact ? 'h-1.5' : 'h-2'} overflow-hidden rounded-full bg-[#142A4A]`}>
                   <View
                     className="h-full rounded-full"
                     style={{ width: `${progress}%`, backgroundColor: isLocked ? '#475569' : rankingLeague.color }}
@@ -668,6 +864,7 @@ function RankingTabs({
 
   const renderTab = (tab: (typeof tabs)[number]) => {
     const active = activeScope === tab.scope
+    const compactLabel = tab.scope === 'weekly' ? 'Semana' : tab.scope === 'global' ? 'Global' : 'Clase'
 
     return (
       <Pressable
@@ -675,13 +872,15 @@ function RankingTabs({
         onPress={() => onSelect(tab.scope)}
         className="flex-row items-center justify-center gap-2 rounded-xl border px-4 py-3"
         style={{
-          minWidth: isPhone ? 154 : 168,
+          minWidth: isPhone ? 112 : 168,
           borderColor: active ? accentColor : '#172A4A',
           backgroundColor: active ? accentColor : '#09162C',
         }}
       >
         <Ionicons name={tab.icon} size={18} color={active ? '#FFFFFF' : '#AFC2DB'} />
-        <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{tab.label}</Text>
+        <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`} numberOfLines={1}>
+          {isPhone ? compactLabel : tab.label}
+        </Text>
       </Pressable>
     )
   }
@@ -710,11 +909,13 @@ function RankingRow({
   index,
   isMe,
   maxPoints,
+  compact = false,
 }: {
   item: Profile
   index: number
   isMe: boolean
   maxPoints: number
+  compact?: boolean
 }) {
   const points = item.points ?? 0
   const level = getStudentLevel(points)
@@ -730,14 +931,14 @@ function RankingRow({
   if (isPhone) {
     return (
       <View
-        className={`rounded-2xl px-4 py-4 ${isMe ? 'border' : 'border border-[#172A4A] bg-[#0A1A34]'}`}
+        className={`${compact ? 'rounded-xl px-3 py-3' : 'rounded-2xl px-4 py-4'} ${isMe ? 'border' : 'border border-[#172A4A] bg-[#0A1A34]'}`}
         style={isMe ? { borderColor: accentColor, backgroundColor: withAlpha(accentColor, '24') } : undefined}
       >
         <View className="flex-row items-center gap-3">
-          <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? medalColors[index] : '#1E3356' }}>
+          <View className={`${compact ? 'h-8 w-8' : 'h-9 w-9'} items-center justify-center rounded-full`} style={{ backgroundColor: index < 3 ? medalColors[index] : '#1E3356' }}>
             <Text className="font-black text-white">{index + 1}</Text>
           </View>
-          <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#17315E]">
+          <View className={`${compact ? 'h-10 w-10' : 'h-12 w-12'} items-center justify-center overflow-hidden rounded-full bg-[#17315E]`}>
             {item.avatar && item.avatar.startsWith('http') ? (
               <Image source={{ uri: item.avatar }} className="h-full w-full" />
             ) : (
@@ -750,7 +951,7 @@ function RankingRow({
             </Text>
             <Text className="mt-1 text-[12px] text-[#AFC2DB]">Nivel {level}</Text>
           </View>
-          <Text className="text-right text-[14px] font-black text-white">{points.toLocaleString()} XP</Text>
+          <Text className={`${compact ? 'text-[13px]' : 'text-[14px]'} text-right font-black text-white`}>{points.toLocaleString()} XP</Text>
         </View>
         <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
           {progress > 0 ? <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: progressColor }} /> : null}
@@ -873,6 +1074,8 @@ function PositionCard({
   nextRival: Profile | null
   xpToPreviousRival: number
 }) {
+  const { width } = useWindowDimensions()
+  const isPhone = width < 640
   const hasRank = typeof rank === 'number'
   const percentile = hasRank && totalRanked > 0 ? Math.max(1, Math.ceil((rank / totalRanked) * 100)) : null
   const nextLeagueName = league.nextMinPoints === null
@@ -888,6 +1091,56 @@ function PositionCard({
   const nextRivalDistance = nextRival
     ? Math.max(0, points - (nextRival.points ?? 0))
     : 0
+  const encouragement = isGuest
+    ? 'Regístrate para competir con tu clase.'
+    : previousRival
+      ? `${xpToPreviousRival.toLocaleString()} XP para superar a ${previousRival.alias}`
+      : hasRank
+        ? nextRival
+          ? `Vas primero. ${nextRival.alias} te sigue a ${nextRivalDistance.toLocaleString()} XP.`
+          : 'Vas primero. ¡Defiende tu puesto!'
+        : 'Completa actividades para entrar en el ranking.'
+
+  if (isPhone) {
+    return (
+      <View className="overflow-hidden rounded-2xl border bg-[#09162C] p-5" style={{ borderColor: league.color }}>
+        <View className="absolute right-[-24px] top-[-24px] h-24 w-24 rounded-full opacity-25" style={{ backgroundColor: league.color }} />
+        <View className="flex-row items-center justify-between gap-3">
+          <View className="min-w-0 flex-1">
+            <Text className="text-[12px] font-black uppercase tracking-[1px] text-[#8FA7C7]">Tu posición</Text>
+            <Text className="mt-1 text-[22px] font-black text-white">
+              {isGuest ? 'Modo invitado' : hasRank ? `${rank}º puesto` : 'Sin posición'}
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-2 rounded-full border px-3 py-2" style={{ borderColor: league.color, backgroundColor: withAlpha(league.color, '24') }}>
+            <Ionicons name={league.icon} size={15} color={league.color} />
+            <Text className="text-[11px] font-black uppercase" style={{ color: league.color }}>{league.name}</Text>
+          </View>
+        </View>
+
+        <View className="mt-5 flex-row items-center gap-4">
+          <View className="h-24 w-24 items-center justify-center rounded-[28px] border-[6px] bg-[#15235A]" style={{ borderColor: league.color }}>
+            <Text className="text-[40px] font-black text-white">{isGuest || !hasRank ? '-' : rank}</Text>
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className="text-[17px] font-black text-white">
+              {isGuest ? 'Crea tu cuenta' : hasRank ? '¡Sigue así!' : 'Empieza a competir'}
+            </Text>
+            <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">
+              {isGuest
+                ? 'Aparecerás en el ranking al registrarte.'
+                : hasRank
+                  ? `Top ${percentile}% de estudiantes`
+                  : 'Gana XP para aparecer en la clasificación.'}
+            </Text>
+            <Text className="mt-2 text-[12px] leading-5 text-[#8FA7C7]" numberOfLines={2}>
+              {encouragement}
+            </Text>
+          </View>
+        </View>
+      </View>
+    )
+  }
 
   return (
     <View className="overflow-hidden rounded-2xl border bg-[#09162C] p-6" style={{ borderColor: league.color }}>

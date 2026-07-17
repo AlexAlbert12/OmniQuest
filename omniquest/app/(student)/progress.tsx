@@ -28,6 +28,7 @@ import StudentDashboardCard from '../../components/student/StudentDashboardCard'
 import StudentEmptyState from '../../components/student/StudentEmptyState'
 import StudentKpiCard from '../../components/student/StudentKpiCard'
 import StudentListRow from '../../components/student/StudentListRow'
+import StudentPrimaryLearningCTA from '../../components/student/StudentPrimaryLearningCTA'
 import { formatShortDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
@@ -140,6 +141,7 @@ export default function ProgressScreen() {
     subjectsCount: totalClasses,
   })
   const badges = buildStudentBadges(badgeMetrics)
+  const recommendedArea = reinforcementAreas[0] ?? null
 
   const fetchProgress = useCallback(async () => {
     setLoading(true)
@@ -219,6 +221,23 @@ export default function ProgressScreen() {
       fetchProgress()
     }, [fetchProgress])
   )
+
+  const handleReviewArea = useCallback((area: ReinforcementArea) => {
+    if (area.subjectId) {
+      router.push({
+        pathname: '/(student)/play/[id]',
+        params: {
+          id: String(area.subjectId),
+          topicId: area.topicId === null || area.topicId === undefined ? 'general' : String(area.topicId),
+          topicName: area.topicName || area.title,
+          review: 'failed',
+        },
+      } as any)
+      return
+    }
+
+    router.push('/(student)/activity-log' as any)
+  }, [router])
 
   if (loading) {
     return (
@@ -318,11 +337,11 @@ export default function ProgressScreen() {
             />
             <ProgressMetricCard
               icon="refresh-circle"
-              title="Fallos para repasar"
+              title="Preguntas para practicar"
               value={String(failedQuestions)}
-              detail={failedQuestions > 0 ? 'Prioridad alta' : 'Sin pendientes'}
-              detailColor={failedQuestions > 0 ? '#FB7185' : '#22C55E'}
-              color="#FB7185"
+              detail={failedQuestions > 0 ? 'Plan recomendado' : 'Sin pendientes'}
+              detailColor={failedQuestions > 0 ? '#FBBF24' : '#22C55E'}
+              color="#FBBF24"
               className={isDesktop ? 'flex-1 min-w-[200px] max-w-[220px]' : ''}
             />
             <ProgressMetricCard
@@ -335,26 +354,23 @@ export default function ProgressScreen() {
             />
           </View>
 
+          <StudentPrimaryLearningCTA
+            className="mt-5"
+            icon={recommendedArea ? 'sparkles' : 'book'}
+            title={recommendedArea ? `Repasa ${recommendedArea.title}` : 'Continúa tu ruta de aprendizaje'}
+            subtitle={recommendedArea ? `${recommendedArea.failedCount} preguntas para practicar y subir tu precisión.` : 'Entra en tus cursos y completa la siguiente actividad disponible.'}
+            meta={recommendedArea ? '+20 XP posibles' : `${subjectProgress.length} cursos activos`}
+            ctaLabel={recommendedArea ? 'Repasar ahora' : 'Ver cursos'}
+            color={recommendedArea?.color ?? accentColor}
+            onPress={() => recommendedArea ? handleReviewArea(recommendedArea) : router.push('/(student)/classes' as any)}
+          />
+
           <View className={isDesktop ? 'mt-5 flex-row flex-wrap items-stretch gap-5' : 'mt-5 gap-5'}>
             <ReinforcementCard
               className={isDesktop ? 'flex-[1.55] min-w-[360px]' : ''}
               areas={reinforcementAreas}
               onSeeAll={() => router.push('/(student)/activity-log' as any)}
-              onReview={(area) => {
-                if (area.subjectId) {
-                  router.push({
-                    pathname: '/(student)/play/[id]',
-                    params: {
-                      id: String(area.subjectId),
-                      topicId: area.topicId === null || area.topicId === undefined ? 'general' : String(area.topicId),
-                      topicName: area.topicName || area.title,
-                      review: 'failed',
-                    },
-                  } as any)
-                } else {
-                  router.push('/(student)/activity-log' as any)
-                }
-              }}
+              onReview={handleReviewArea}
             />
 
             <XpEvolution
@@ -450,6 +466,7 @@ function MobileStudentProgress({
 }) {
   const router = useRouter()
   const xpToNextLevel = Math.max(0, 100 - nextLevelProgress)
+  const recommendedArea = reinforcementAreas[0] ?? null
 
   const handleReviewArea = (area: ReinforcementArea) => {
     if (area.subjectId) {
@@ -488,7 +505,7 @@ function MobileStudentProgress({
             <Ionicons name="stats-chart" size={27} color="#FFFFFF" />
           </View>
           <View className="min-w-0 flex-1">
-            <Text className="text-[34px] font-black leading-[38px] text-white" numberOfLines={1}>Mi progreso</Text>
+            <Text className="text-[32px] font-black leading-[36px] text-white" numberOfLines={1}>Progreso</Text>
             <Text className="mt-1 text-[15px] leading-5 text-[#B7C4D7]" numberOfLines={2}>
               Sigue aprendiendo cada día.
             </Text>
@@ -504,23 +521,28 @@ function MobileStudentProgress({
           accentColor={accentColor}
         />
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="-mx-5 mt-5"
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-        >
+        <StudentPrimaryLearningCTA
+          className="mt-5"
+          icon={recommendedArea ? 'sparkles' : 'book'}
+          title={recommendedArea ? `Repasa ${recommendedArea.title}` : 'Continúa tu aprendizaje'}
+          subtitle={recommendedArea ? `${recommendedArea.failedCount} preguntas para practicar y ganar XP.` : 'Entra en tus cursos y completa la siguiente actividad.'}
+          meta={recommendedArea ? '+20 XP posibles' : `${subjectProgress.length} cursos activos`}
+          ctaLabel={recommendedArea ? 'Repasar' : 'Ver cursos'}
+          color={recommendedArea?.color ?? accentColor}
+          onPress={() => recommendedArea ? handleReviewArea(recommendedArea) : router.push('/(student)/classes' as any)}
+        />
+
+        <View className="mt-5 flex-row flex-wrap gap-3">
           <MobileProgressStat icon="help-circle" label="Respondidas" value={String(answeredQuestions)} helper={weeklyAttemptsCount > 0 ? `+${weeklyAttemptsCount} semana` : 'Empieza'} color="#38BDF8" />
           <MobileProgressStat icon="speedometer" label="Precisión" value={`${accuracyPercent}%`} helper={accuracyPercent >= 80 ? '¡Excelente!' : 'A mejorar'} color="#22C55E" />
-          <MobileProgressStat icon="close-circle" label="Fallos" value={String(failedQuestions)} helper={failedQuestions > 0 ? 'Repasar' : 'Limpio'} color="#FB7185" />
-          <MobileProgressStat icon="flash" label="XP total" value={points.toLocaleString()} helper="Acumulada" color="#F59E0B" />
-          <MobileProgressStat icon="flame" label="Racha" value={String(streakDays)} helper="días" color="#A855F7" />
-        </ScrollView>
+          <MobileProgressStat icon="refresh-circle" label="Para practicar" value={String(failedQuestions)} helper={failedQuestions > 0 ? 'Recomendado' : 'Limpio'} color="#FBBF24" />
+          <MobileProgressStat icon="flame" label="Racha" value={String(streakDays)} helper="días" color="#FF7B45" />
+        </View>
 
         <MobileSectionHeader
-          icon="alert-circle"
-          title="Áreas a reforzar"
-          actionLabel="Ver todas"
+          icon="sparkles"
+          title="Retos recomendados"
+          actionLabel="Historial"
           onAction={() => router.push('/(student)/activity-log' as any)}
         />
         <View className="overflow-hidden rounded-[24px] border border-[#1C3156] bg-[#09162C]">
@@ -534,7 +556,7 @@ function MobileStudentProgress({
               />
             ))
           ) : (
-            <MobileCompactEmpty icon="sparkles-outline" title="Sin puntos críticos" subtitle="Cuando practiques más, aparecerán aquí." />
+            <MobileCompactEmpty icon="sparkles-outline" title="Sin retos pendientes" subtitle="Cuando practiques más, verás recomendaciones aquí." />
           )}
         </View>
 
@@ -575,9 +597,6 @@ function MobileProgressHero({
     >
       <View className="relative min-h-[180px] flex-row items-center gap-5 p-5">
         <View className="absolute -right-8 -top-8 h-32 w-32 rounded-full" style={{ backgroundColor: '#7C3AED33' }} />
-        <View className="absolute bottom-0 right-4 h-24 w-28 items-center justify-center rounded-full" style={{ backgroundColor: '#0EA5E933' }}>
-          <Ionicons name="rocket" size={56} color="#9FD6FF" />
-        </View>
 
         <View
           className="h-[118px] w-[118px] items-center justify-center rounded-full bg-[#070F26]"
@@ -616,12 +635,12 @@ function MobileProgressStat({
   color: string
 }) {
   return (
-    <View className="h-[128px] w-[118px] items-center justify-center rounded-[24px] border border-[#1A3155] bg-[#0A1830] px-3">
+    <View className="min-h-[122px] flex-1 basis-[47%] items-center justify-center rounded-[24px] border border-[#1A3155] bg-[#0A1830] px-3 py-4">
       <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
         <Ionicons name={icon} size={22} color={color} />
       </View>
       <Text className="mt-3 text-[28px] font-black text-white" numberOfLines={1}>{value}</Text>
-      <Text className="text-center text-[13px] font-bold text-[#DDE7F4]" numberOfLines={1}>{label}</Text>
+      <Text className="text-center text-[13px] font-bold leading-4 text-[#DDE7F4]" numberOfLines={2}>{label}</Text>
       <Text className="mt-1 text-center text-[11px] font-bold" style={{ color }} numberOfLines={1}>{helper}</Text>
     </View>
   )
@@ -641,7 +660,7 @@ function MobileSectionHeader({
   return (
     <View className="mb-3 mt-7 flex-row items-center justify-between gap-3">
       <View className="min-w-0 flex-1 flex-row items-center gap-2">
-        <Ionicons name={icon} size={22} color="#FB7185" />
+        <Ionicons name={icon} size={22} color="#A78BFA" />
         <Text className="text-[22px] font-black text-white" numberOfLines={1}>{title}</Text>
       </View>
       {actionLabel && onAction ? (
@@ -665,7 +684,8 @@ function MobileReinforcementRow({
 }) {
   const detail = splitReinforcementDetail(area.detail)
   const safeAccuracy = Math.min(100, Math.max(0, area.accuracyPercent))
-  const title = detail.context ? `${detail.context} · ${area.title}` : area.title
+  const title = area.title
+  const context = detail.context || area.badge
 
   return (
     <Pressable
@@ -677,15 +697,18 @@ function MobileReinforcementRow({
         <Ionicons name={area.icon} size={25} color={area.color} />
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="text-[15px] font-black text-white" numberOfLines={1}>{title}</Text>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>{detail.main || `${area.failedCount} fallos recientes`}</Text>
+        <Text className="text-[15px] font-black text-white" numberOfLines={2}>{title}</Text>
+        <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>{context} · {area.failedCount} para practicar</Text>
         <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#17284B]">
           <View className="h-full rounded-full" style={{ width: `${safeAccuracy}%`, backgroundColor: area.color }} />
         </View>
       </View>
       <View className="items-end gap-2">
-        <Text className="text-[18px] font-black" style={{ color: area.color }}>{safeAccuracy}%</Text>
-        <Ionicons name="chevron-forward" size={18} color="#8FA7C7" />
+        <Text className="text-[12px] text-[#8FA7C7]">Precisión</Text>
+        <Text className="text-[16px] font-black" style={{ color: area.color }}>{safeAccuracy}%</Text>
+        <View className="rounded-full px-3 py-1.5" style={{ backgroundColor: `${area.color}26` }}>
+          <Text className="text-[11px] font-black" style={{ color: area.color }}>Repasar</Text>
+        </View>
       </View>
     </Pressable>
   )
@@ -699,7 +722,7 @@ function MobileRecentScoresCard({ scores, onSeeAll }: { scores: RecentScore[]; o
       <View className="mb-4 flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
           <Ionicons name="trophy" size={20} color="#8B5CF6" />
-          <Text className="text-[18px] font-black text-white">Actividad reciente</Text>
+          <Text className="text-[18px] font-black text-white">Últimos XP</Text>
         </View>
         <Pressable onPress={onSeeAll} className="flex-row items-center gap-1">
           <Text className="text-[12px] font-black text-[#A78BFA]">Ver todo</Text>
@@ -968,8 +991,8 @@ function ReinforcementCard({
 }) {
   return (
     <StudentDashboardCard
-      title="Áreas a reforzar"
-      actionLabel={onSeeAll ? 'Ver todas' : undefined}
+      title="Retos recomendados"
+      actionLabel={onSeeAll ? 'Ver historial' : undefined}
       onAction={onSeeAll}
       className={className}
     >
@@ -987,14 +1010,14 @@ function ReinforcementCard({
                 color={area.color}
                 title={area.title}
                 subtitle={detail.context}
-                actionLabel="Repasar"
+                actionLabel="Repasar ahora"
                 meta={[
                   { label: 'Precisión', value: `${safeAccuracy}%`, color: area.color },
                 ]}
               >
                 {detail.main ? (
                   <Text className="mt-1 text-[12px] font-bold text-[#AFC2DB]" numberOfLines={1}>
-                    {detail.main}
+                    {detail.main || `${area.failedCount} preguntas para practicar`}
                   </Text>
                 ) : null}
                 <View className="mt-2 flex-row items-center gap-3">
@@ -1015,8 +1038,8 @@ function ReinforcementCard({
       ) : (
         <StudentEmptyState
           icon="sparkles-outline"
-          title="Sin áreas críticas ahora mismo"
-          message="Cuando acumules varios intentos, OmniQuest detectará automáticamente los temas y tipos de pregunta que más necesitas repasar."
+          title="Sin retos pendientes"
+          message="Cuando acumules más práctica, OmniQuest te recomendará repasos concretos para subir precisión y ganar XP."
         />
       )}
     </StudentDashboardCard>
@@ -1233,10 +1256,10 @@ function buildReinforcementAreas(rows: ReinforcementAttemptRow[]): Reinforcement
       return {
         id: `topic-${item.subjectId}-${item.topicId ?? 'general'}`,
         title: item.topicName,
-        detail: `${item.failedCount} ${item.failedCount === 1 ? 'error reciente' : 'errores recientes'} · ${item.subjectName}`,
+        detail: `${item.failedCount} ${item.failedCount === 1 ? 'pregunta para practicar' : 'preguntas para practicar'} · ${item.subjectName}`,
         badge: 'Tema',
         icon: 'alert-circle',
-        color: '#FB7185',
+        color: '#FBBF24',
         failedCount: item.failedCount,
         accuracyPercent,
         totalAttempts: item.totalAttempts,
@@ -1260,10 +1283,10 @@ function buildReinforcementAreas(rows: ReinforcementAttemptRow[]): Reinforcement
       return {
         id: `type-${item.type}`,
         title: getQuestionTypeLabel(item.type),
-        detail: `${item.failedCount} fallos en ${item.totalAttempts} intentos`,
+        detail: `${item.failedCount} preguntas para practicar`,
         badge: 'Tipo de pregunta',
         icon: getQuestionTypeIcon(item.type),
-        color: '#F6A64A',
+        color: '#A78BFA',
         failedCount: item.failedCount,
         accuracyPercent,
         totalAttempts: item.totalAttempts,

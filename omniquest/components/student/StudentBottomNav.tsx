@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../lib/appTheme'
 
 export type StudentBottomNavKey = 'home' | 'classes' | 'progress' | 'profile' | 'settings' | 'ranking' | 'badges' | 'notifications'
-type VisibleStudentBottomNavKey = 'home' | 'classes' | 'progress' | 'ranking' | 'profile'
+type VisibleStudentBottomNavKey = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'profile'
 
 const navItems: {
   key: VisibleStudentBottomNavKey
@@ -33,7 +33,7 @@ export default function StudentBottomNav({ active }: { active: StudentBottomNavK
         contentContainerStyle={{
           flexGrow: 1,
           justifyContent: 'space-around',
-          gap: 6,
+          gap: 4,
         }}
       >
         {navItems.map((item) => {
@@ -41,7 +41,7 @@ export default function StudentBottomNav({ active }: { active: StudentBottomNavK
           const content = (
             <Pressable
               hitSlop={8}
-              className="min-h-[58px] min-w-[68px] items-center justify-center rounded-2xl px-3"
+              className="min-h-[56px] min-w-[54px] items-center justify-center rounded-2xl px-2"
               style={({ pressed }) => ({
                 opacity: pressed ? 0.82 : isActive ? 1 : 0.72,
                 backgroundColor: isActive ? `${accentColor}24` : 'transparent',
@@ -49,10 +49,10 @@ export default function StudentBottomNav({ active }: { active: StudentBottomNavK
             >
               <Ionicons
                 name={isActive ? item.activeIcon : item.icon}
-                size={22}
+                size={21}
                 color={isActive ? accentColor : '#AFC2DB'}
               />
-              <Text className="mt-1 text-[11px] font-bold" style={{ color: isActive ? accentColor : '#AFC2DB' }} numberOfLines={1}>
+              <Text className="mt-1 text-[10px] font-bold" style={{ color: isActive ? accentColor : '#AFC2DB' }} numberOfLines={1}>
                 {item.label}
               </Text>
             </Pressable>
