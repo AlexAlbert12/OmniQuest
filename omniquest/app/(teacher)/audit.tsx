@@ -19,9 +19,9 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { getTimeAgo } from '../../lib/time'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
-import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge'
 import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar'
+import { MobileHeader } from '../../components/ui/mobile'
 
 type TeacherAuditLogRow = {
   id: number
@@ -186,7 +186,6 @@ export default function TeacherAuditScreen() {
         >
           <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
             <View className="min-w-[280px] flex-1">
-              {!isDesktop ? <BrandLogo size={28} style={{ marginBottom: 12 }} /> : null}
               <View className="flex-row items-center gap-3">
                 <Ionicons name="shield-checkmark" size={40} color="#9FD6FF" />
                 <Text className="text-[38px] font-black text-white">Centro de auditoría</Text>
@@ -345,46 +344,21 @@ function MobileTeacherAudit({
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-7 flex-row items-center justify-between">
-          <BrandLogo size={32} />
-          <View className="flex-row items-center gap-3">
-            <NotificationBadge audience="teacher" onPress={onNotifications} />
-            <TeacherHeaderAvatar />
-          </View>
-        </View>
-
-        <View className="mb-7">
-          <View className="flex-row items-start gap-4">
-            <LinearGradient
-              colors={['#7DD3FC', '#8B5CF6']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              className="mt-2 h-20 w-20 items-center justify-center rounded-[24px]"
-            >
-              <Ionicons name="shield-checkmark" size={48} color="#051025" />
-            </LinearGradient>
-            <Text className="min-w-0 flex-1 text-[42px] font-black leading-[52px] text-white">
-              Centro de auditoría
-            </Text>
-          </View>
-          <Text className="mt-4 max-w-[390px] text-[17px] leading-7 text-[#C2D0E5]">
-            Revisa las acciones docentes sensibles para capturar trazabilidad: alumnos, preguntas, cursos y códigos.
-          </Text>
-        </View>
-
-        <View className="mb-6 flex-row items-center gap-3">
-          <Pressable
-            onPress={onRefresh}
-            disabled={refreshing}
-            className="h-16 flex-row items-center justify-center gap-3 rounded-2xl bg-[#6D47F6] px-7"
-            style={({ pressed }) => ({ opacity: refreshing ? 0.65 : pressed ? 0.82 : 1 })}
-          >
-            {refreshing ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="refresh-outline" size={22} color="#FFFFFF" />}
-            <Text className="text-[18px] font-black text-white">{refreshing ? 'Actualizando...' : 'Actualizar'}</Text>
-          </Pressable>
-          <NotificationBadge audience="teacher" onPress={onNotifications} />
-          <TeacherHeaderAvatar />
-        </View>
+        <MobileHeader
+          title="Auditoría"
+          subtitle="Revisa acciones sensibles y trazabilidad docente."
+          icon="shield-checkmark"
+          iconColor="#F4F0FF"
+          iconBackgroundColor="#6D47F6"
+          right={(
+            <>
+              <NotificationBadge audience="teacher" onPress={onNotifications} />
+              <TeacherHeaderAvatar />
+            </>
+          )}
+          className="mb-7"
+          titleNumberOfLines={1}
+        />
 
         {errorMessage ? (
           <LinearGradient

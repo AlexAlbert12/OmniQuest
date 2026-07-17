@@ -17,7 +17,6 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { getTimeAgo } from '../../lib/time'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
-import BrandLogo from '../../components/BrandLogo'
 import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 
@@ -161,9 +160,6 @@ export default function NotificationsScreen() {
         >
           <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
             <View className="min-w-[280px] flex-1">
-              {!isDesktop ? (
-                <BrandLogo size={24} style={{ marginBottom: 8 }} />
-              ) : null}
               <View className="flex-row items-center gap-3">
                 <Ionicons name="notifications" size={38} color="#9FD6FF" />
                 <Text className="text-[38px] font-black text-white">Centro de Notificaciones</Text>

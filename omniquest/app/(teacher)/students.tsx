@@ -18,7 +18,6 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import { accuracyToGrade, answersToAccuracyPercent } from '../../lib/grades';
 import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
-import BrandLogo from '../../components/BrandLogo';
 import NotificationBadge from '../../components/NotificationBadge';
 import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
 import {
@@ -809,9 +808,6 @@ export default function TeacherStudentsScreen() {
         >
           <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
             <View className="min-w-[260px] flex-1">
-              {!isDesktop ? (
-                <BrandLogo size={30} style={{ marginBottom: 12 }} />
-              ) : null}
               <View className="flex-row items-center gap-3">
                 <Ionicons name="people" size={isDesktop ? 40 : 34} color="#9FD6FF" />
                 <Text className={`${isDesktop ? 'text-[40px]' : 'text-[32px]'} flex-shrink font-black text-white`} numberOfLines={1}>Estudiantes</Text>

@@ -10,7 +10,6 @@ type MobileMetricCardProps = {
   icon: IconName
   label: string
   value: string | number
-  detail?: string
   color?: string
   width?: number
   compact?: boolean
@@ -21,7 +20,6 @@ export default function MobileMetricCard({
   icon,
   label,
   value,
-  detail,
   color = '#8B5CF6',
   width,
   compact = false,
@@ -48,12 +46,6 @@ export default function MobileMetricCard({
       <Text className="mt-1 text-[13px] text-[#D4DDF0]" numberOfLines={compact ? 1 : 2}>
         {label}
       </Text>
-      {detail ? (
-        <View className="mt-2 flex-row items-center gap-1">
-          <Ionicons name="information-circle-outline" size={13} color="#9FB2CE" />
-          <Text className="min-w-0 flex-1 text-[12px] text-[#9FB2CE]" numberOfLines={1}>{detail}</Text>
-        </View>
-      ) : null}
     </LinearGradient>
   )
 }

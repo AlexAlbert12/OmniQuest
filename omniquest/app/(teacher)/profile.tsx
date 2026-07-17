@@ -19,10 +19,10 @@ import { withAlpha } from '../../lib/color'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
-import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge'
 import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar'
 import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
+import { MobileHeader } from '../../components/ui/mobile'
 
 type TeacherProfile = {
   id: string
@@ -327,10 +327,6 @@ export default function TeacherProfileScreen() {
         >
           <View className="mb-6 flex-row items-start justify-between gap-4">
             <View className="min-w-0 flex-1">
-              {!isDesktop ? (
-                <BrandLogo size={30} style={{ marginBottom: 12 }} />
-              ) : null}
-
               <View className="flex-row items-center gap-3">
                 <Ionicons name="person" size={40} color="#9FD6FF" />
                 <Text className="text-[40px] font-black text-white">Perfil</Text>
@@ -533,27 +529,21 @@ function MobileTeacherProfile({
         contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 8 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-7 flex-row items-center justify-between">
-          <BrandLogo size={32} />
-          <View className="flex-row items-center gap-3">
-            <NotificationBadge audience="teacher" onPress={onNotifications} />
-            <TeacherHeaderAvatar />
-          </View>
-        </View>
-
-        <View className="mb-7">
-          <View className="flex-row items-center gap-4">
-            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#6D47F6] shadow-lg shadow-[#6D47F6]/30">
-              <Ionicons name="person" size={32} color="#F4F0FF" />
-            </View>
-            <Text className="min-w-0 flex-1 text-[42px] font-black leading-[48px] text-white" numberOfLines={1}>
-              Mi Perfil
-            </Text>
-          </View>
-          <Text className="mt-4 max-w-[390px] text-[17px] leading-7 text-[#C2D0E5]">
-            Gestiona tu información docente y revisa tu actividad en la plataforma.
-          </Text>
-        </View>
+        <MobileHeader
+          title="Mi perfil"
+          subtitle="Gestiona tu información docente y tu actividad."
+          icon="person"
+          iconColor="#F4F0FF"
+          iconBackgroundColor="#6D47F6"
+          right={(
+            <>
+              <NotificationBadge audience="teacher" onPress={onNotifications} />
+              <TeacherHeaderAvatar />
+            </>
+          )}
+          className="mb-7"
+          titleNumberOfLines={1}
+        />
 
         <MobileTeacherProfileHero
           alias={alias}

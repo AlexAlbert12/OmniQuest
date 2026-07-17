@@ -17,7 +17,6 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { getTimeAgo } from '../../../lib/time'
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav'
-import BrandLogo from '../../../components/BrandLogo'
 import NotificationBadge from '../../../components/NotificationBadge'
 import TeacherHeaderAvatar from '../../../components/teacher/TeacherHeaderAvatar'
 import { exportCsvFile, formatExportDateTime, slugifyFilename } from '../../../lib/reportExports'
@@ -510,7 +509,6 @@ export default function TeacherQuestionReportScreen() {
         >
           <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
             <View className="min-w-[280px] flex-1">
-              {!isDesktop ? <BrandLogo size={28} style={{ marginBottom: 12 }} /> : null}
               <Pressable onPress={() => router.back()} className="mb-4 flex-row items-center gap-2">
                 <Ionicons name="arrow-back" size={18} color="#AFC2DB" />
                 <Text className="text-[13px] font-bold text-[#AFC2DB]">Volver</Text>

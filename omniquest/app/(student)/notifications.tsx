@@ -18,7 +18,6 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { getTimeAgo } from '../../lib/time'
 import StudentSidebar from '../../components/student/StudentSidebar'
-import BrandLogo from '../../components/BrandLogo'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
@@ -222,9 +221,6 @@ export default function StudentNotificationsScreen() {
         >
           <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
             <View className="min-w-[280px] flex-1">
-              {!isDesktop ? (
-                <BrandLogo size={24} style={{ marginBottom: 8 }} />
-              ) : null}
               <View className="flex-row items-center gap-3">
                 <Ionicons name="notifications" size={38} color="#9FD6FF" />
                 <Text className="text-[38px] font-black text-white">Notificaciones</Text>
@@ -351,7 +347,6 @@ function MobileStudentNotifications({
         showsVerticalScrollIndicator={false}
       >
         <View className="mb-7 flex-row items-start justify-between">
-          <BrandLogo size={32} />
           <View className="flex-row items-center gap-3">
             <NotificationTopButton count={unreadCount} />
             <StudentHeaderAvatar />

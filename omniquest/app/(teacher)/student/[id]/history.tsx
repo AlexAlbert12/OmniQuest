@@ -17,7 +17,6 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../../../lib/mobileLayout'
 import { getTimeAgo } from '../../../../lib/time'
 import TeacherSidebar from '../../../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../../../components/teacher/TeacherBottomNav'
-import BrandLogo from '../../../../components/BrandLogo'
 import NotificationBadge from '../../../../components/NotificationBadge'
 import TeacherHeaderAvatar from '../../../../components/teacher/TeacherHeaderAvatar'
 import { exportCsvFile, formatExportDateTime, slugifyFilename } from '../../../../lib/reportExports'
@@ -590,7 +589,6 @@ export default function TeacherStudentHistoryScreen() {
         >
           <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
             <View className="min-w-[260px] flex-1">
-              {!isDesktop ? <BrandLogo size={30} style={{ marginBottom: 12 }} /> : null}
               <Pressable onPress={goBackToStudents} className="mb-4 flex-row items-center gap-2 self-start rounded-xl border border-[#20375E] bg-[#07162E] px-3 py-2">
                 <Ionicons name="arrow-back" size={16} color="#DDE7F4" />
                 <Text className="text-[12px] font-bold text-[#DDE7F4]">Volver a estudiantes</Text>

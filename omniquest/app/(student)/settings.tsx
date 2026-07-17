@@ -10,7 +10,6 @@ import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import AppConfirmModal from '../../components/AppConfirmModal'
 import StudentSidebar from '../../components/student/StudentSidebar'
-import BrandLogo from '../../components/BrandLogo'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar'
@@ -149,7 +148,6 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
           >
             <View className="mb-4 flex-row flex-wrap items-start justify-between gap-4">
               <View className="min-w-[260px] flex-1">
-                {!isDesktop ? <BrandLogo size={30} style={{ marginBottom: 12 }} /> : null}
 
                 <View className="flex-row items-center gap-3">
                   <Ionicons name={securityOnly ? 'lock-closed' : 'settings'} size={40} color="#9FD6FF" />

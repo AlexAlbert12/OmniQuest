@@ -14,11 +14,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
-import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge';
 import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
 import { withAlpha } from '../../lib/color';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
+import { MobileHeader } from '../../components/ui/mobile';
 
 type Subject = {
   id: number
@@ -329,9 +329,6 @@ export default function TeacherHomeScreen() {
         >
           <View className="mb-7 flex-row flex-wrap items-start justify-between gap-4">
             <View className="min-w-[280px] flex-1">
-              {!isDesktop ? (
-                <BrandLogo size={30} style={{ marginBottom: 12 }} />
-              ) : null}
               <Text className="text-[40px] font-black text-white">¡Bienvenido de nuevo, {teacherAlias}! 👋</Text>
               <Text className="mt-2 text-[14px] text-[#B7C4D7]">
                 Aquí tienes el estado de tus cursos, clases y estudiantes.
@@ -460,9 +457,7 @@ function MobileTeacherHome({
   teacherAlias,
   totals,
   weeklyActiveStudentCount,
-  onCreateQuestion,
   onCreateSubject,
-  onImportStudents,
   onOpenAction,
   onOpenClasses,
   onOpenStudents,
@@ -491,13 +486,21 @@ function MobileTeacherHome({
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-6 flex-row items-center justify-between">
-          <BrandLogo size={34} />
-          <View className="flex-row items-center gap-3">
-            <NotificationBadge audience="teacher" />
-            <TeacherHeaderAvatar />
-          </View>
-        </View>
+        <MobileHeader
+          title="Inicio"
+          subtitle="Decide qué necesita atención ahora."
+          icon="home"
+          iconColor="#F4F0FF"
+          iconBackgroundColor="#6D47F6"
+          right={(
+            <>
+              <NotificationBadge audience="teacher" />
+              <TeacherHeaderAvatar />
+            </>
+          )}
+          className="mb-6"
+          titleNumberOfLines={1}
+        />
 
         <LinearGradient
           colors={['#111E54', '#101946', '#211044']}
@@ -514,17 +517,16 @@ function MobileTeacherHome({
               {teacherAlias}!
             </Text>
             <Text className="mt-4 max-w-[310px] text-[17px] leading-7 text-[#D7E2F4]">
-              Aquí tienes el estado de tus cursos, clases y estudiantes.
+              Estas son las acciones que más pueden mover tus clases hoy.
             </Text>
-
-            <View className="mt-6 flex-row flex-wrap gap-3">
-              <MobileQuickAction icon="add-circle-outline" label="Crear curso" color="#8B5CF6" onPress={onCreateSubject} />
-              <MobileQuickAction icon="people-outline" label="Importar alumnos" color="#3B82F6" onPress={onImportStudents} />
-              <MobileQuickAction icon="document-text-outline" label="Crear pregunta" color="#34D399" onPress={onCreateQuestion} />
-              <MobileQuickAction icon="people-circle-outline" label="Ver estudiantes" color="#F59E0B" onPress={onOpenStudents} />
-            </View>
           </View>
         </LinearGradient>
+
+        <MobileRecommendedActions
+          items={pendingActions}
+          onPress={onOpenAction}
+          onViewStudents={onOpenStudents}
+        />
 
         <View className="mt-5 flex-row flex-wrap gap-3">
           <MobileMetricCard
@@ -561,12 +563,6 @@ function MobileTeacherHome({
           />
         </View>
 
-        <MobileRecommendedActions
-          items={pendingActions}
-          onPress={onOpenAction}
-          onViewStudents={onOpenStudents}
-        />
-
         <MobileRecentCourses
           analyticsBySubject={analyticsBySubject}
           subjects={subjects}
@@ -580,34 +576,8 @@ function MobileTeacherHome({
   )
 }
 
-function MobileQuickAction({
-  color,
-  icon,
-  label,
-  onPress,
-}: {
-  color: string
-  icon: keyof typeof Ionicons.glyphMap
-  label: string
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="min-h-[116px] flex-1 items-center justify-center rounded-2xl border border-[#21395E] bg-[#071832] px-3 py-4"
-      style={({ pressed }) => ({ flexBasis: '47%', opacity: pressed ? 0.82 : 1 })}
-    >
-      <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '2B') }}>
-        <Ionicons name={icon} size={25} color={color} />
-      </View>
-      <Text className="mt-3 text-center text-[14px] font-black leading-5 text-white" numberOfLines={2}>{label}</Text>
-    </Pressable>
-  )
-}
-
 function MobileMetricCard({
   color,
-  detail,
   icon,
   onPress,
   title,
@@ -623,25 +593,24 @@ function MobileMetricCard({
   return (
     <Pressable
       onPress={onPress}
-      className="min-h-[154px] flex-1 rounded-2xl border p-5"
+      className="min-h-[106px] flex-1 rounded-2xl border p-4"
       style={({ pressed }) => ({
-        flexBasis: '47%',
-        borderColor: withAlpha(color, '55'),
-        backgroundColor: withAlpha(color, '17'),
+        borderColor: withAlpha(color, '45'),
+        backgroundColor: withAlpha(color, '12'),
         opacity: pressed ? 0.82 : 1,
       })}
     >
-      <View className="flex-row items-start justify-between gap-3">
-        <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '32') }}>
-          <Ionicons name={icon} size={27} color={color} />
-        </View>
-        <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '18') }}>
-          <Ionicons name="chevron-forward" size={22} color={color} />
+      <View className="flex-row items-center gap-3">
+        <View className="flex-1 items-center gap-2">
+          <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '2B') }}>
+            <Ionicons name={icon} size={22} color={color} />
+          </View>
+          <View className="flex-1 items-center">
+            <Text className="mt-1 text-[24px] font-black leading-[30px] text-white">{value}</Text>
+            <Text className="text-[12px] text-[#D7E2F4]">{title}</Text>
+          </View>
         </View>
       </View>
-      <Text className="mt-4 text-[15px] font-bold" style={{ color }} numberOfLines={2}>{title}</Text>
-      <Text className="mt-2 text-[34px] font-black leading-[38px] text-white">{value}</Text>
-      <Text className="mt-1 text-[14px] text-[#C7D3E5]" numberOfLines={1}>{detail}</Text>
     </Pressable>
   )
 }

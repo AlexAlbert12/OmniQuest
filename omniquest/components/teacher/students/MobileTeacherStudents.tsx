@@ -280,7 +280,6 @@ function MobileStudentMetricCard({
   icon,
   label,
   value,
-  detail,
   color,
 }: {
   icon: IconName
@@ -294,7 +293,6 @@ function MobileStudentMetricCard({
       icon={icon}
       label={label}
       value={value}
-      detail={detail}
       color={color}
       width={148}
     />

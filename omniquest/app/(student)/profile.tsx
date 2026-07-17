@@ -26,8 +26,6 @@ import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentDashboardCard from '../../components/student/StudentDashboardCard'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
-import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
-import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge'
 import { formatLongDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
@@ -432,7 +430,6 @@ function MobileStudentProfile({
         showsVerticalScrollIndicator={false}
       >
         <View className="mb-7 flex-row items-center justify-between">
-          <BrandLogo size={32} />
           <View className="flex-row items-center gap-3">
             <NotificationBadge />
             <Pressable

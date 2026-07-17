@@ -15,7 +15,6 @@ import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
-import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge'
 import {
   buildStudentBadges,
@@ -216,9 +215,6 @@ export default function BadgesScreen() {
         >
           <View className="mb-6 flex-row items-start justify-between gap-4">
             <View className="min-w-0 flex-1">
-              {!isDesktop ? (
-                <BrandLogo size={30} style={{ marginBottom: 12 }} />
-              ) : null}
               <View className="flex-row items-center gap-3">
                 <Ionicons name="ribbon" size={isDesktop ? 40 : 34} color="#9FD6FF" />
                 <Text className={`${isDesktop ? 'text-[40px]' : 'text-[34px]'} font-black text-white`}>Logros</Text>

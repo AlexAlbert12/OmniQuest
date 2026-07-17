@@ -956,7 +956,12 @@ function AdminScaffold({
           ) : (
             <View className="mb-6">
               <View className="mb-6 flex-row items-center justify-between">
-                <BrandLogo size={32} />
+                <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                  <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#2D1D6B]">
+                    <Ionicons name={activeIcon} size={25} color="#C4B5FD" />
+                  </View>
+                  <Text className="min-w-0 text-[28px] font-black text-white" numberOfLines={1}>{title}</Text>
+                </View>
                 <Pressable
                   onPress={handleSignOut}
                   accessibilityRole="button"

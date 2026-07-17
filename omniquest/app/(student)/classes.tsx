@@ -16,7 +16,6 @@ import AppConfirmModal from '../../components/AppConfirmModal'
 import { supabase } from '../../lib/supabase'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentSidebar from '../../components/student/StudentSidebar'
-import BrandLogo from '../../components/BrandLogo'
 import NotificationBadge from '../../components/NotificationBadge'
 import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
@@ -394,9 +393,6 @@ export default function ClassesScreen() {
         >
           <View className={isDesktop ? 'mb-6 flex-row items-start justify-between gap-4' : 'mb-7 flex-row items-start justify-between gap-4'}>
             <View className="min-w-0 flex-1">
-              {!isDesktop ? (
-                <BrandLogo size={34} style={{ marginBottom: 18 }} />
-              ) : null}
               <View className="flex-row items-center gap-3">
                 {!isDesktop ? (
                   <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#5646D8]">
