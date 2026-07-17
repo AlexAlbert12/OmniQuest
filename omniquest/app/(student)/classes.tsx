@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import AppConfirmModal from '../../components/AppConfirmModal'
 import { supabase } from '../../lib/supabase'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
@@ -619,18 +620,16 @@ function MobileCourseKpiCard({
   value: string
 }) {
   return (
-    <View className="h-[118px] w-[122px] justify-between rounded-3xl border border-[#162A49] bg-[#0A1830] p-4">
-      <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <View>
-        <Text className="text-[24px] font-black text-white" numberOfLines={1}>{value}</Text>
-        <Text className="mt-1 text-[13px] font-semibold text-[#DDE7F4]" numberOfLines={1}>{label}</Text>
-      </View>
-      <View className="h-2 overflow-hidden rounded-full bg-[#20375E]">
-        <View className="h-full rounded-full" style={{ width: `${Math.max(8, Math.min(100, progress))}%`, backgroundColor: color }} />
-      </View>
-    </View>
+    <MobileMetricCard
+      className="min-h-[116px]"
+      color={color}
+      compact
+      detail={`${Math.round(progress)}% avance`}
+      icon={icon}
+      label={label}
+      value={value}
+      width={132}
+    />
   )
 }
 

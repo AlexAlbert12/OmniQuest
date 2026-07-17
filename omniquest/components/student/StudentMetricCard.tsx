@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
-import StudentKpiCard from './StudentKpiCard'
+import MobileMetricCard from '../ui/mobile/MobileMetricCard'
 
 export default function StudentMetricCard({
   title,
@@ -17,14 +17,13 @@ export default function StudentMetricCard({
   className?: string
 }) {
   return (
-    <StudentKpiCard
+    <MobileMetricCard
+      className={`min-w-[170px] flex-1 ${className}`}
       color={color || '#8B5CF6'}
       icon={icon}
       label={title}
       onPress={onPress}
       value={value}
-      variant="circle"
-      className={className}
     />
   )
 }

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import MobileMetricCard from '../ui/mobile/MobileMetricCard'
 import { supabase } from '../../lib/supabase'
 import { isValidEmail, normalizeEmail } from '../../lib/auth'
 
@@ -454,10 +455,14 @@ function ImportResultPanel({
 
 function ResultMetric({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <View className="min-w-[125px] flex-1 rounded-xl border border-[#20375E] bg-[#07162D] p-3">
-      <Text className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#8FA7C7]">{label}</Text>
-      <Text className="mt-1 text-[24px] font-black" style={{ color }}>{value}</Text>
-    </View>
+    <MobileMetricCard
+      className="min-w-[130px] flex-1"
+      color={color}
+      compact
+      icon="stats-chart"
+      label={label}
+      value={value}
+    />
   )
 }
 

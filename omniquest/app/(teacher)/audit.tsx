@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import { withAlpha } from '../../lib/color'
@@ -458,20 +459,14 @@ function MobileAuditStatCard({
   color: string
 }) {
   return (
-    <LinearGradient
-      colors={[withAlpha(color, '22'), '#07162C']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      className="min-h-[154px] flex-1 basis-[47%] rounded-2xl border p-4"
-      style={{ borderColor: withAlpha(color, '66') }}
-    >
-      <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '30') }}>
-        <Ionicons name={icon} size={27} color={color} />
-      </View>
-      <Text className="mt-5 text-[14px] leading-5 text-[#DDE7F4]" numberOfLines={2}>{label}</Text>
-      <Text className="mt-2 text-[30px] font-black" style={{ color }}>{value}</Text>
-      <Text className="mt-1 text-[13px] text-[#B8C6DC]" numberOfLines={1}>{detail}</Text>
-    </LinearGradient>
+    <MobileMetricCard
+      className="min-h-[154px] flex-1 basis-[47%]"
+      color={color}
+      detail={detail}
+      icon={icon}
+      label={label}
+      value={value}
+    />
   )
 }
 
@@ -568,14 +563,14 @@ function AuditStatCard({
   color: string
 }) {
   return (
-    <View className="min-w-[190px] flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <View className="mb-4 h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `${color}29` }}>
-        <Ionicons name={icon} size={23} color={color} />
-      </View>
-      <Text className="text-[12px] font-bold text-[#AFC2DB]">{label}</Text>
-      <Text className="mt-2 text-[28px] font-black text-white">{value}</Text>
-      <Text className="mt-1 text-[12px] text-[#AFC2DB]">{detail}</Text>
-    </View>
+    <MobileMetricCard
+      className="min-w-[190px] flex-1"
+      color={color}
+      detail={detail}
+      icon={icon}
+      label={label}
+      value={value}
+    />
   )
 }
 

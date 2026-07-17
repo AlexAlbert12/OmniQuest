@@ -9,6 +9,7 @@ import {
 } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
@@ -859,17 +860,14 @@ function ProgressOverviewCard({
   className?: string
 }) {
   return (
-    <View className={`min-w-[210px] rounded-2xl border border-[#1A3155] bg-[#09162C] p-4 ${className}`}>
-      <View className="flex-row items-center gap-4">
-        <View className="relative h-24 w-24 items-center justify-center rounded-full bg-[#101B43]">
-          <View className="absolute inset-0 rounded-full border border-white/20" style={{ borderColor: accentColor }} />
-          <Text className="text-[24px] font-black text-white">{progressPercent}%</Text>
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className="text-[13px] font-black text-[#DDE7F4]">Avance de cursos</Text>
-        </View>
-      </View>
-    </View>
+    <MobileMetricCard
+      className={`min-w-[210px] ${className}`}
+      color={accentColor}
+      detail="Avance de cursos"
+      icon="bar-chart"
+      label="Progreso general"
+      value={`${progressPercent}%`}
+    />
   )
 }
 
@@ -891,8 +889,8 @@ function ProgressMetricCard({
   className?: string
 }) {
   return (
-    <StudentKpiCard
-      className={className}
+    <MobileMetricCard
+      className={`min-w-[200px] flex-1 ${className}`}
       color={color}
       detail={detail}
       detailColor={detailColor}

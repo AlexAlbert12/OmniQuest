@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
@@ -566,13 +567,14 @@ function MiniMetric({
   value: string
 }) {
   return (
-    <View className="min-w-[150px] flex-1 rounded-xl border border-[#1A3155] bg-[#071A33] p-3">
-      <View className="mb-2 flex-row items-center gap-2">
-        <Ionicons name={icon} size={14} color="#8B5CF6" />
-        <Text className="text-[11px] font-black uppercase tracking-wide text-[#8FA7C7]">{label}</Text>
-      </View>
-      <Text className="text-[13px] font-black text-white" numberOfLines={2}>{value}</Text>
-    </View>
+    <MobileMetricCard
+      className="min-w-[150px] flex-1 rounded-xl"
+      color="#8B5CF6"
+      compact
+      icon={icon}
+      label={label}
+      value={value || 'Sin información'}
+    />
   )
 }
 

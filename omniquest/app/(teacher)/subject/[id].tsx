@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import MobileMetricCard from '../../../components/ui/mobile/MobileMetricCard'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout';
 import { difficultyOptions } from '../../../lib/difficulty';
 import { exportCsvFile, exportMarkdownFile, formatExportDateTime, slugifyFilename } from '../../../lib/reportExports';
@@ -894,15 +895,8 @@ export default function SubjectDetailScreen() {
   );
 }
 
-function MetricCard({
-  icon,
-  label,
-  value,
-  suffix,
-  color,
-  detail,
-}: {
-  icon: IconName
+function MetricCard({ icon, label, value, suffix, color, detail }: {
+  icon: keyof typeof Ionicons.glyphMap
   label: string
   value: string
   suffix?: string
@@ -910,38 +904,15 @@ function MetricCard({
   detail?: string
 }) {
   return (
-    <View className="min-w-[155px] flex-1 rounded-xl border border-[#183052] bg-[#07162D] p-4">
-      <View className="mb-3 flex-row items-center gap-3">
-        <View
-          className="h-11 w-11 items-center justify-center rounded-full"
-          style={{ backgroundColor: `${color}26` }}
-        >
-          <Ionicons name={icon} size={21} color={color} />
-        </View>
-
-        <Text className="flex-1 text-[12px] font-semibold text-[#B7C4D7]">
-          {label}
-        </Text>
-      </View>
-
-      <Text className="text-[24px] font-black text-white">
-        {value}{' '}
-        {suffix ? (
-          <Text className="text-[12px] text-[#B7C4D7]">
-            {suffix}
-          </Text>
-        ) : null}
-      </Text>
-
-      {detail ? (
-        <View className="mt-3 flex-row items-center gap-1">
-          <Ionicons name="information-circle-outline" size={13} color="#8FA7C7" />
-          <Text className="flex-1 text-[11px] font-semibold text-[#8FA7C7]">
-            {detail}
-          </Text>
-        </View>
-      ) : null}
-    </View>
+    <MobileMetricCard
+      className="min-w-[190px] flex-1"
+      color={color}
+      detail={detail}
+      icon={icon}
+      label={label}
+      suffix={suffix}
+      value={value}
+    />
   )
 }
 
@@ -986,35 +957,25 @@ function ReportExportActions({
   )
 }
 
-function ReportMetricCard({
-  icon,
-  label,
-  value,
-  suffix,
-  color,
-  detail,
-}: {
-  icon: IconName
+function ReportMetricCard({ icon, label, value, suffix, color, detail }: {
+  icon: keyof typeof Ionicons.glyphMap
   label: string
   value: string
   suffix?: string
   color: string
-  detail: string
+  detail?: string
 }) {
   return (
-    <View className="min-w-[180px] flex-1 rounded-xl border border-[#183052] bg-[#07162D] p-4">
-      <View className="mb-3 flex-row items-center gap-3">
-        <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: `${color}26` }}>
-          <Ionicons name={icon} size={21} color={color} />
-        </View>
-        <Text className="min-w-0 flex-1 text-[12px] font-semibold text-[#B7C4D7]">{label}</Text>
-      </View>
-      <Text className="text-[25px] font-black text-white">
-        {value} {suffix ? <Text className="text-[12px] text-[#B7C4D7]">{suffix}</Text> : null}
-      </Text>
-      <Text className="mt-2 text-[11px] font-semibold text-[#8FA7C7]">{detail}</Text>
-    </View>
-  );
+    <MobileMetricCard
+      className="min-w-[190px] flex-1"
+      color={color}
+      detail={detail}
+      icon={icon}
+      label={label}
+      suffix={suffix}
+      value={value}
+    />
+  )
 }
 
 function TopicFilterChip({

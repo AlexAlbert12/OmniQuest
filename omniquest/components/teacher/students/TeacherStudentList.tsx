@@ -1,44 +1,27 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import type { IconName, StudentRow } from './types';
 import { formatRelativeDate, getInitials, getStatusMeta } from './studentUtils';
 
-export function MetricCard({
-  icon,
-  title,
-  value,
-  detail,
-  color,
-}: {
-  icon: IconName
+export function MetricCard({ icon, title, value, detail, color }: {
+  icon: keyof typeof Ionicons.glyphMap
   title: string
   value: string
   detail?: string
   color: string
 }) {
   return (
-    <View className="min-w-[175px] flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <View className="flex-row items-center gap-4">
-        <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${color}30` }}>
-          <Ionicons name={icon} size={27} color={color} />
-        </View>
-
-        <View className="min-w-0 flex-1">
-          <Text className="text-[12px] text-[#B7C4D7]">{title}</Text>
-          <Text className="mt-1 text-[24px] font-black text-white" numberOfLines={1}>{value}</Text>
-          {detail ? (
-            <View className="mt-2 flex-row items-center gap-1">
-              <Ionicons name="information-circle-outline" size={13} color="#8FA7C7" />
-              <Text className="flex-1 text-[12px] font-semibold text-[#8FA7C7]">
-                {detail}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      </View>
-    </View>
-  );
+    <MobileMetricCard
+      className="min-w-[190px] flex-1"
+      color={color}
+      detail={detail}
+      icon={icon}
+      label={title}
+      value={value}
+    />
+  )
 }
 
 export function PendingFirstAccessCard({

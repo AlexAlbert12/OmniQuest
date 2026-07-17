@@ -12,15 +12,14 @@ import {
 } from 'react-native'
 import { useFocusEffect, useRouter, type Href } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import * as ImagePicker from 'expo-image-picker'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
-import { withAlpha } from '../../lib/color'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import NotificationBadge from '../../components/NotificationBadge'
-import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar'
 import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
 import { MobileHeader } from '../../components/ui/mobile'
 
@@ -66,6 +65,7 @@ const TEACHER_ROUTES = {
   security: '/(teacher)/security',
   settingsProfile: '/(teacher)/settings?section=profile',
   students: '/(teacher)/students',
+  settings: '/(teacher)/settings',
 } satisfies Record<string, Href>
 
 function teacherSubjectRoute(subjectId: number) {
@@ -299,6 +299,8 @@ export default function TeacherProfileScreen() {
         onStudents={() => router.push(TEACHER_ROUTES.students)}
         onQuestions={() => router.push(TEACHER_ROUTES.classes)}
         onOpenSubject={(subjectId) => router.push(teacherSubjectRoute(subjectId))}
+        onOpenSettings={() => router.push(TEACHER_ROUTES.settings)}
+
       />
     )
   }
@@ -504,6 +506,7 @@ function MobileTeacherProfile({
   onStudents,
   onQuestions,
   onOpenSubject,
+  onOpenSettings
 }: {
   alias: string
   email: string
@@ -521,6 +524,7 @@ function MobileTeacherProfile({
   onStudents: () => void
   onQuestions: () => void
   onOpenSubject: (subjectId: number) => void
+  onOpenSettings: () => void
 }) {
   return (
     <View className="flex-1 bg-[#020B1B]">
@@ -538,7 +542,15 @@ function MobileTeacherProfile({
           right={(
             <>
               <NotificationBadge audience="teacher" onPress={onNotifications} />
-              <TeacherHeaderAvatar />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Abrir configuración"
+                onPress={onOpenSettings}
+                className="h-11 w-11 items-center justify-center rounded-2xl border border-[#1A3155] bg-[#091A35]"
+                style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+              >
+                <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
+              </Pressable>
             </>
           )}
           className="mb-7"
@@ -639,24 +651,16 @@ function MobileTeacherProfileHero({
         <Pressable
           onPress={onPickImage}
           disabled={uploading}
-          className="h-36 w-36 items-center justify-center rounded-full border-[6px] border-[#7C5CFF] bg-white"
+          className="h-28 w-28 items-center justify-center rounded-full border-[6px] border-[#7C5CFF] bg-white"
           style={({ pressed }) => ({ opacity: uploading ? 0.7 : pressed ? 0.86 : 1 })}
         >
-          <View className="h-[118px] w-[118px] overflow-hidden rounded-full bg-[#EDF4FF]">
+          <View className="h-[90px] w-[90px] overflow-hidden rounded-full bg-[#EDF4FF]">
             {avatar && avatar.startsWith('http') ? (
               <Image source={{ uri: avatar }} className="h-full w-full" />
             ) : (
               <View className="h-full w-full items-center justify-center">
                 <Text className="text-[38px] font-black text-[#061126]">{getInitials(alias)}</Text>
               </View>
-            )}
-          </View>
-
-          <View className="absolute bottom-2 right-0 h-12 w-12 items-center justify-center rounded-full bg-[#8B5CF6]">
-            {uploading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Ionicons name="camera" size={22} color="#FFFFFF" />
             )}
           </View>
         </Pressable>
@@ -678,41 +682,33 @@ function MobileTeacherProfileHero({
 
 function MobileTeacherProfileMetric({
   title,
-  value,
   detail,
-  icon,
   color,
-  onPress,
+  icon,
+  label,
+  value,
+  onPress
 }: {
   title: string
-  value: string
   detail: string
-  icon: keyof typeof Ionicons.glyphMap
   color: string
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  value: string
   onPress: () => void
 }) {
   return (
-    <Pressable
+    <MobileMetricCard
+      className="min-h-[120px] flex-1"
+      title={title}
+      detail={detail}
+      color={color}
+      compact
+      icon={icon}
+      label={label}
+      value={value}
       onPress={onPress}
-      className="min-h-[132px] flex-1 basis-[47%] rounded-2xl border p-4"
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.84 : 1,
-        borderColor: withAlpha(color, '66'),
-        backgroundColor: '#07162C',
-      })}
-    >
-      <View className="flex-row items-start justify-between gap-3">
-        <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(color, '30') }}>
-          <Ionicons name={icon} size={29} color={color} />
-        </View>
-        <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '26') }}>
-          <Ionicons name="arrow-forward" size={21} color={color} />
-        </View>
-      </View>
-      <Text className="mt-4 text-[16px] leading-5 text-[#DDE7F4]" numberOfLines={2}>{title}</Text>
-      <Text className="mt-2 text-[34px] font-black text-white">{value}</Text>
-      <Text className="mt-1 text-[14px] text-[#B8C6DC]" numberOfLines={1}>{detail}</Text>
-    </Pressable>
+    />
   )
 }
 
@@ -969,37 +965,24 @@ function TeacherHero({
 }
 
 function MetricTile({
-  title,
-  value,
   icon,
+  label,
+  value,
   color,
-  onPress,
 }: {
-  title: string
-  value: string
   icon: keyof typeof Ionicons.glyphMap
+  label: string
+  value: string
   color: string
-  onPress?: () => void
 }) {
-  const Container = onPress ? Pressable : View
-
   return (
-    <Container
-      onPress={onPress}
-      className="min-w-[135px] flex-1 items-center border-r border-[#172A4A] bg-[#09162C] px-3 py-5 first:rounded-l-2xl last:rounded-r-2xl"
-    >
-      <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
-        <Ionicons name={icon} size={28} color={color} />
-      </View>
-
-      <Text className="mt-3 text-center text-[13px] text-[#AFC2DB]">
-        {title}
-      </Text>
-
-      <Text className="mt-2 text-[28px] font-black text-white">
-        {value}
-      </Text>
-    </Container>
+    <MobileMetricCard
+      className="min-w-[180px] flex-1"
+      color={color}
+      icon={icon}
+      label={label}
+      value={value}
+    />
   )
 }
 

@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import MobileMetricCard from '../../../components/ui/mobile/MobileMetricCard'
 import { supabase } from '../../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { getTimeAgo } from '../../../lib/time'
@@ -735,13 +736,7 @@ export default function TeacherQuestionReportScreen() {
   )
 }
 
-function ReportMetricCard({
-  icon,
-  title,
-  value,
-  detail,
-  color,
-}: {
+function ReportMetricCard({ icon, title, value, detail, color }: {
   icon: keyof typeof Ionicons.glyphMap
   title: string
   value: string
@@ -749,14 +744,14 @@ function ReportMetricCard({
   color: string
 }) {
   return (
-    <View className="min-w-[180px] flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <View className="mb-4 h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `${color}29` }}>
-        <Ionicons name={icon} size={23} color={color} />
-      </View>
-      <Text className="text-[12px] font-bold text-[#AFC2DB]">{title}</Text>
-      <Text className="mt-2 text-[28px] font-black text-white">{value}</Text>
-      <Text className="mt-1 text-[12px] text-[#8FA7C7]">{detail}</Text>
-    </View>
+    <MobileMetricCard
+      className="min-w-[190px] flex-1"
+      color={color}
+      detail={detail}
+      icon={icon}
+      label={title}
+      value={value}
+    />
   )
 }
 

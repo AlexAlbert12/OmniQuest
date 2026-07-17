@@ -13,6 +13,7 @@ import {
 } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
@@ -510,13 +511,14 @@ function MetricTile({
   value: string
 }) {
   return (
-    <View className="min-w-0 flex-1 items-center justify-center rounded-2xl border border-[#1A3155] bg-[#09162C] px-2 py-4">
-      <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <Text className="mt-3 text-center text-[12px] leading-4 text-[#AFC2DB]" numberOfLines={2}>{label}</Text>
-      <Text className="mt-1 text-[24px] font-black text-white">{value}</Text>
-    </View>
+    <MobileMetricCard
+      className="min-w-0 flex-1"
+      color={color}
+      compact
+      icon={icon}
+      label={label}
+      value={value}
+    />
   )
 }
 

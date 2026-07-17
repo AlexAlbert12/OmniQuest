@@ -499,11 +499,15 @@ function MobileTeacherStudentCard({
 
 function MobileStudentMiniMetric({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <View className="min-w-0 flex-1 rounded-xl border border-[#17345C] bg-[#06162C] px-3 py-2">
-      <Text className="text-center text-[17px] font-black" style={{ color }}>{value}</Text>
-      <Text className="mt-1 text-center text-[11px] text-[#AFC2DB]" numberOfLines={1}>{label}</Text>
-    </View>
-  );
+    <MobileMetricCard
+      className="flex-1 rounded-xl"
+      color={color}
+      compact
+      icon="analytics"
+      label={label}
+      value={value}
+    />
+  )
 }
 
 function MobileStudentsEmptyState() {

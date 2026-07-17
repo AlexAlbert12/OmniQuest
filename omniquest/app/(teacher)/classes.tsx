@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
@@ -770,6 +771,7 @@ function MobileClassMetric({
   color,
   icon,
   title,
+  trend,
   value,
 }: {
   color: string
@@ -778,27 +780,16 @@ function MobileClassMetric({
   trend: string
   value: string
 }) {
-
   return (
-    <View
-      className="min-h-[106px] flex-1 rounded-2xl border p-4"
-      style={{
-        borderColor: withAlpha(color, '45'),
-        backgroundColor: withAlpha(color, '12'),
-      }}
-    >
-      <View className="flex-row items-center gap-3">
-        <View className="flex-1 items-center gap-2">
-          <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '2B') }}>
-            <Ionicons name={icon} size={22} color={color} />
-          </View>
-          <View className="flex-1 items-center">
-            <Text className="mt-1 text-[24px] font-black leading-[30px] text-white">{value}</Text>
-            <Text className="text-[12px] text-[#D7E2F4]">{title}</Text>
-          </View>
-        </View>
-      </View>
-    </View>
+    <MobileMetricCard
+      className="min-h-[106px] flex-1"
+      color={color}
+      compact
+      detail={trend}
+      icon={icon}
+      label={title}
+      value={value}
+    />
   )
 }
 
@@ -950,26 +941,19 @@ function MetricCard({
   trend: string
   color: string
 }) {
-  const hasGrowth = !trend.toLowerCase().startsWith('sin');
-  const trendColor = hasGrowth ? '#58E28B' : '#8FA7C7';
+  const hasGrowth = !trend.toLowerCase().startsWith('sin')
 
   return (
-    <View className="min-w-[190px] flex-1 overflow-hidden rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <View className="flex-row items-center gap-4">
-        <View className="h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: `${color}30` }}>
-          <Ionicons name={icon} size={30} color={color} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className="text-[12px] text-[#B7C4D7]">{title}</Text>
-          <Text className="mt-1 text-[26px] font-black text-white">{value}</Text>
-        </View>
-      </View>
-      <View className="mt-4 flex-row items-center gap-2">
-        <Ionicons name={hasGrowth ? 'arrow-up' : 'remove'} size={13} color={trendColor} />
-        <Text className="text-[12px] font-semibold" style={{ color: trendColor }}>{trend}</Text>
-      </View>
-    </View>
-  );
+    <MobileMetricCard
+      className="min-w-[190px] flex-1"
+      color={color}
+      detail={trend}
+      detailColor={hasGrowth ? '#58E28B' : '#8FA7C7'}
+      icon={icon}
+      label={title}
+      value={value}
+    />
+  )
 }
 
 function ClassCard({

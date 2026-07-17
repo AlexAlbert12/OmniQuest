@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import type { ConfirmDialog, IconName, StudentRow } from './types';
 import { formatDate, formatRelativeDate, getStatusMeta } from './studentUtils';
 
@@ -363,11 +364,15 @@ export function ModalActionButton({
 
 export function DetailMetric({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <View className="min-w-[125px] flex-1 rounded-xl border border-[#20375E] bg-[#07162E] p-3">
-      <Text className="text-[11px] text-[#8FA7C7]">{label}</Text>
-      <Text className="mt-1 text-[17px] font-black" style={{ color }}>{value}</Text>
-    </View>
-  );
+    <MobileMetricCard
+      className="min-w-[140px] flex-1 rounded-xl"
+      color={color}
+      compact
+      icon="analytics"
+      label={label}
+      value={value}
+    />
+  )
 }
 
 export function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {

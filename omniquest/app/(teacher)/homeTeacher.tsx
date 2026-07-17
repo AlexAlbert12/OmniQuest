@@ -18,7 +18,7 @@ import NotificationBadge from '../../components/NotificationBadge';
 import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
 import { withAlpha } from '../../lib/color';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
-import { MobileHeader } from '../../components/ui/mobile';
+import { MobileHeader, MobileMetricCard } from '../../components/ui/mobile';
 
 type Subject = {
   id: number
@@ -576,44 +576,7 @@ function MobileTeacherHome({
   )
 }
 
-function MobileMetricCard({
-  color,
-  icon,
-  onPress,
-  title,
-  value,
-}: {
-  color: string
-  detail: string
-  icon: keyof typeof Ionicons.glyphMap
-  onPress: () => void
-  title: string
-  value: string
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="min-h-[106px] flex-1 rounded-2xl border p-4"
-      style={({ pressed }) => ({
-        borderColor: withAlpha(color, '45'),
-        backgroundColor: withAlpha(color, '12'),
-        opacity: pressed ? 0.82 : 1,
-      })}
-    >
-      <View className="flex-row items-center gap-3">
-        <View className="flex-1 items-center gap-2">
-          <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '2B') }}>
-            <Ionicons name={icon} size={22} color={color} />
-          </View>
-          <View className="flex-1 items-center">
-            <Text className="mt-1 text-[24px] font-black leading-[30px] text-white">{value}</Text>
-            <Text className="text-[12px] text-[#D7E2F4]">{title}</Text>
-          </View>
-        </View>
-      </View>
-    </Pressable>
-  )
-}
+
 
 function MobileRecommendedActions({
   items,
@@ -792,15 +755,15 @@ function MetricCard({
   color: string
 }) {
   return (
-    <View className="min-w-[190px] flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <View className="mb-4 h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${color}30` }}>
-        <Ionicons name={icon} size={27} color={color} />
-      </View>
-      <Text className="text-[13px] text-[#B7C4D7]">{title}</Text>
-      <Text className="mt-2 text-[28px] font-black text-white">{value}</Text>
-      {detail ? <Text className="mt-1 text-[12px] font-semibold text-[#8FA7C7]">{detail}</Text> : null}
-    </View>
-  );
+    <MobileMetricCard
+      className="min-w-[190px] flex-1"
+      color={color}
+      detail={detail}
+      icon={icon}
+      label={title}
+      value={value}
+    />
+  )
 }
 
 function QuickActionButton({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {

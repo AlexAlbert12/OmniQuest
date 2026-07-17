@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import MobileMetricCard from '../../../../components/ui/mobile/MobileMetricCard'
 import { supabase } from '../../../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../../lib/mobileLayout'
 import { getTimeAgo } from '../../../../lib/time'
@@ -761,32 +762,22 @@ export default function TeacherStudentHistoryScreen() {
   )
 }
 
-function MetricCard({
-  icon,
-  title,
-  value,
-  detail,
-  color,
-}: {
-  icon: IconName
+function MetricCard({ icon, title, value, detail, color }: {
+  icon: keyof typeof Ionicons.glyphMap
   title: string
   value: string
-  detail?: string
+  detail?: string | null
   color: string
 }) {
   return (
-    <View className="min-w-[176px] flex-1 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <View className="flex-row items-center gap-4">
-        <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${color}30` }}>
-          <Ionicons name={icon} size={26} color={color} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className="text-[12px] text-[#B7C4D7]">{title}</Text>
-          <Text className="mt-1 text-[24px] font-black text-white" numberOfLines={1}>{value}</Text>
-          {detail ? <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={2}>{detail}</Text> : null}
-        </View>
-      </View>
-    </View>
+    <MobileMetricCard
+      className="min-w-[190px] flex-1"
+      color={color}
+      detail={detail}
+      icon={icon}
+      label={title}
+      value={value}
+    />
   )
 }
 

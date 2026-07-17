@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import {
   getGradeColor,
   getInitials,
@@ -178,33 +179,23 @@ export function SubjectStudentsTab({
   );
 }
 
-function StudentMetricCard({
-  icon,
-  label,
-  value,
-  detail,
-  color,
-}: {
-  icon: IconName
+function StudentMetricCard({ icon, label, value, detail, color }: {
+  icon: keyof typeof Ionicons.glyphMap
   label: string
   value: string
-  detail: string
+  detail?: string
   color: string
 }) {
   return (
-    <View className="min-w-[175px] flex-1 rounded-xl border border-[#183052] bg-[#07162D] p-4">
-      <View className="flex-row items-center gap-3">
-        <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: `${color}2A` }}>
-          <Ionicons name={icon} size={21} color={color} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className="text-[22px] font-black text-white" numberOfLines={1}>{value}</Text>
-          <Text className="mt-1 text-[11px] font-semibold text-[#B7C4D7]" numberOfLines={1}>{label}</Text>
-        </View>
-      </View>
-      <Text className="mt-3 text-[11px] font-semibold" style={{ color }}>{detail}</Text>
-    </View>
-  );
+    <MobileMetricCard
+      className="min-w-[190px] flex-1"
+      color={color}
+      detail={detail}
+      icon={icon}
+      label={label}
+      value={value}
+    />
+  )
 }
 
 function InlineSelect({ label, icon, onPress }: { label: string; icon: IconName; onPress: () => void }) {

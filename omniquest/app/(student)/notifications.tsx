@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
@@ -616,24 +617,17 @@ function CategoryCard({
   onPress: () => void
 }) {
   return (
-    <Pressable
+    <MobileMetricCard
+      className={`min-w-[160px] flex-1 ${active ? 'border-[#6D5AF6]' : ''}`}
+      color={active ? '#A78BFA' : '#8FA7C7'}
+      compact
+      detail={unread > 0 ? `${unread} sin leer` : 'Todo revisado'}
+      detailColor={unread > 0 ? '#FFB4B4' : '#8FA7C7'}
+      icon={icon}
+      label={label}
       onPress={onPress}
-      className={`min-w-[160px] flex-1 rounded-xl border p-4 ${active ? 'border-[#6D5AF6] bg-[#1A1E55]' : 'border-[#183052] bg-[#07162D]'}`}
-      style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
-    >
-      <View className="mb-3 flex-row items-center justify-between">
-        <View className="h-10 w-10 items-center justify-center rounded-lg bg-[#13284A]">
-          <Ionicons name={icon} size={20} color={active ? '#C4B5FD' : '#AFC2DB'} />
-        </View>
-        {unread > 0 ? (
-          <View className="rounded-full bg-[#EF4444] px-2 py-1">
-            <Text className="text-[10px] font-black text-white">{unread}</Text>
-          </View>
-        ) : null}
-      </View>
-      <Text className="text-[12px] font-semibold text-[#B7C4D7]">{label}</Text>
-      <Text className="mt-1 text-[24px] font-black text-white">{count}</Text>
-    </Pressable>
+      value={count}
+    />
   )
 }
 

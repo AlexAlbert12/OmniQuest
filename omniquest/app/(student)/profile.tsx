@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import { useFocusEffect, useRouter, type Href } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import * as ImagePicker from 'expo-image-picker'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
@@ -580,16 +581,6 @@ function MobileProfileHero({
                 <Ionicons name="person" size={54} color="#DDE7FF" />
               </View>
             )}
-            <View
-              className="absolute -bottom-1 -right-1 h-11 w-11 items-center justify-center rounded-full"
-              style={{ backgroundColor: accentColor, borderWidth: 4, borderColor: '#101A3D' }}
-            >
-              {uploading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Ionicons name="camera" size={19} color="#FFFFFF" />
-              )}
-            </View>
           </Pressable>
 
           <View className="min-w-0">
@@ -636,22 +627,17 @@ function MobileStatTile({
   onPress?: () => void
 }) {
   return (
-    <Pressable
+    <MobileMetricCard
+      className="min-h-[126px]"
+      color={color}
+      compact
+      detail={helper}
+      icon={icon}
+      label={label}
       onPress={onPress}
-      disabled={!onPress}
-      className="min-h-[126px] items-center justify-center rounded-2xl border border-[#142B4F] bg-[#071832] px-3 py-4"
-      style={({ pressed }) => ({
-        width: '47.8%',
-        opacity: pressed ? 0.82 : 1,
-      })}
-    >
-      <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '26') }}>
-        <Ionicons name={icon} size={23} color={color} />
-      </View>
-      <Text className="mt-3 text-center text-[25px] font-black leading-[30px] text-white" numberOfLines={1}>{value}</Text>
-      <Text className="mt-1 text-center text-[13px] font-bold leading-4 text-[#D4E2F6]" numberOfLines={1}>{label}</Text>
-      <Text className="mt-1 text-center text-[12px] font-bold" style={{ color }} numberOfLines={1}>{helper}</Text>
-    </Pressable>
+      value={value}
+      style={{ width: '47.8%' }}
+    />
   )
 }
 
@@ -831,19 +817,15 @@ function SummaryTile({
   color: string
   onPress?: () => void
 }) {
-  const Container = onPress ? Pressable : View
-
   return (
-    <Container
+    <MobileMetricCard
+      className="min-w-[135px] flex-1 rounded-none border-0 border-r border-[#172A4A]"
+      color={color}
+      icon={icon}
+      label={title}
       onPress={onPress}
-      className="min-w-[135px] flex-1 items-center border-r border-[#172A4A] bg-[#09162C] px-3 py-5 first:rounded-l-2xl last:rounded-r-2xl"
-    >
-      <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
-        <Ionicons name={icon} size={28} color={color} />
-      </View>
-      <Text className="mt-3 text-center text-[13px] text-[#AFC2DB]">{title}</Text>
-      <Text className="mt-2 text-[28px] font-black text-white">{value}</Text>
-    </Container>
+      value={value}
+    />
   )
 }
 

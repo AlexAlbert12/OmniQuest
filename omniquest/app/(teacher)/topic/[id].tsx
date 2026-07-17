@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import MobileMetricCard from '../../../components/ui/mobile/MobileMetricCard'
 import { supabase } from '../../../lib/supabase';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout';
 import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty';
@@ -371,7 +372,7 @@ export default function TopicDetailScreen() {
 }
 
 function MetricCard({ icon, label, value, suffix, color, detail }: {
-  icon: IconName
+  icon: keyof typeof Ionicons.glyphMap
   label: string
   value: string
   suffix?: string
@@ -379,20 +380,16 @@ function MetricCard({ icon, label, value, suffix, color, detail }: {
   detail?: string
 }) {
   return (
-    <View className="min-w-[140px] flex-1 rounded-xl border border-[#183052] bg-[#07162D] p-4">
-      <View className="flex-row items-center gap-2">
-        <View className="h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}20` }}>
-          <Ionicons name={icon} size={16} color={color} />
-        </View>
-        <Text className="text-[12px] font-semibold text-[#B7C4D7]">{label}</Text>
-      </View>
-      <Text className="mt-2 text-[20px] font-black text-white">
-        {value}
-        {suffix && <Text className="text-[14px] font-normal text-[#8FA7C7]">{suffix}</Text>}
-      </Text>
-      {detail && <Text className="mt-1 text-[11px] text-[#8FA7C7]">{detail}</Text>}
-    </View>
-  );
+    <MobileMetricCard
+      className="min-w-[190px] flex-1"
+      color={color}
+      detail={detail}
+      icon={icon}
+      label={label}
+      suffix={suffix}
+      value={value}
+    />
+  )
 }
 
 function Panel({ title, children, actionLabel, onAction }: {
