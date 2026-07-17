@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import BrandLogo from '../BrandLogo'
 import AdminBottomNav from './AdminBottomNav'
+import MobileMetricCard from '../ui/mobile/MobileMetricCard'
 import { supabase } from '../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 
@@ -543,7 +544,7 @@ export function AdminHomeScreen() {
 
   return (
     <AdminScaffold activeSection="home" title="Inicio Admin" subtitle="Vista general del sistema, alertas y accesos rápidos." data={data}>
-      <AdminMetrics data={data} />
+      <AdminMetrics data={data} activeSection="home" />
 
       <View className="mt-5">
         <AdminSectionIntro
@@ -599,6 +600,9 @@ export function AdminHomeScreen() {
 }
 
 export function AdminTeachersScreen() {
+  const { width } = useWindowDimensions()
+  const isDesktop = width >= 1040
+  const adminPageSize = isDesktop ? ADMIN_PAGE_SIZE : 8
   const data = useAdminData()
   const actions = useAdminActions(data)
   const params = useLocalSearchParams<{ teacherId?: string }>()
@@ -615,7 +619,7 @@ export function AdminTeachersScreen() {
     p_subject_id: null,
     p_classroom_id: null,
     p_profile_id: params.teacherId || null,
-  }, data.version)
+  }, data.version, adminPageSize)
   const visibleTeachers = teacherPage.rows
 
   const handleCreateTeacher = async () => {
@@ -657,7 +661,7 @@ export function AdminTeachersScreen() {
 
   return (
     <AdminScaffold activeSection="teachers" title="Profesores" subtitle="Crea y gestiona las cuentas docentes." data={data}>
-      <AdminMetrics data={data} />
+      <AdminMetrics data={data} activeSection="teachers" />
 
       <View className="mt-5">
         <AdminSectionIntro title="Gestión de profesores" description="Administra cuentas docentes, sus cursos y el acceso a la plataforma." />
@@ -722,6 +726,9 @@ export function AdminTeachersScreen() {
 }
 
 export function AdminStudentsScreen() {
+  const { width } = useWindowDimensions()
+  const isDesktop = width >= 1040
+  const adminPageSize = isDesktop ? ADMIN_PAGE_SIZE : 8
   const data = useAdminData()
   const actions = useAdminActions(data)
   const params = useLocalSearchParams<{ classroomId?: string; subjectId?: string }>()
@@ -733,12 +740,12 @@ export function AdminStudentsScreen() {
     p_subject_id: params.subjectId ? Number(params.subjectId) : null,
     p_classroom_id: params.classroomId ? Number(params.classroomId) : null,
     p_profile_id: null,
-  }, data.version)
+  }, data.version, adminPageSize)
   const visibleStudents = studentPage.rows
 
   return (
     <AdminScaffold activeSection="students" title="Alumnos" subtitle="Consulta cuentas, inscripciones y progreso acumulado." data={data}>
-      <AdminMetrics data={data} />
+      <AdminMetrics data={data} activeSection="students" />
 
       <View className="mt-5">
         <AdminSectionIntro title="Gestión de alumnos" description="Revisa alumnos registrados, inscripciones activas y acciones de mantenimiento." />
@@ -769,6 +776,9 @@ export function AdminStudentsScreen() {
 }
 
 export function AdminCoursesScreen() {
+  const { width } = useWindowDimensions()
+  const isDesktop = width >= 1040
+  const adminPageSize = isDesktop ? ADMIN_PAGE_SIZE : 8
   const data = useAdminData()
   const actions = useAdminActions(data)
   const params = useLocalSearchParams<{ teacherId?: string; archived?: string }>()
@@ -778,12 +788,12 @@ export function AdminCoursesScreen() {
     p_search: search.trim(),
     p_teacher_id: params.teacherId || null,
     p_archived: params.archived === '1' ? true : null,
-  }, data.version)
+  }, data.version, adminPageSize)
   const visibleSubjects = subjectPage.rows
 
   return (
     <AdminScaffold activeSection="courses" title="Cursos" subtitle="Administra cursos activos, archivados y docentes responsables." data={data}>
-      <AdminMetrics data={data} />
+      <AdminMetrics data={data} activeSection="courses" />
 
       <View className="mt-5">
         <AdminSectionIntro title="Gestión de cursos" description="Consulta cursos, clases asociadas, inscripciones y estado de archivo." />
@@ -816,6 +826,9 @@ export function AdminCoursesScreen() {
 }
 
 export function AdminClassroomsScreen() {
+  const { width } = useWindowDimensions()
+  const isDesktop = width >= 1040
+  const adminPageSize = isDesktop ? ADMIN_PAGE_SIZE : 8
   const data = useAdminData()
   const actions = useAdminActions(data)
   const params = useLocalSearchParams<{ subjectId?: string; studentId?: string }>()
@@ -825,12 +838,12 @@ export function AdminClassroomsScreen() {
     p_search: search.trim(),
     p_subject_id: params.subjectId ? Number(params.subjectId) : null,
     p_student_id: params.studentId || null,
-  }, data.version)
+  }, data.version, adminPageSize)
   const visibleClassrooms = classroomPage.rows
 
   return (
     <AdminScaffold activeSection="classrooms" title="Clases" subtitle="Gestiona códigos, estado e inscripciones por clase." data={data}>
-      <AdminMetrics data={data} />
+      <AdminMetrics data={data} activeSection="classrooms" />
 
       <View className="mt-5">
         <AdminSectionIntro title="Gestión de clases" description="Revisa clases de cada curso, códigos de acceso y alumnos inscritos." />
@@ -863,8 +876,12 @@ export function AdminClassroomsScreen() {
 
 
 export function AdminAuditScreen() {
+  const { width } = useWindowDimensions()
+  const isDesktop = width >= 1040
+  const auditPageSize = isDesktop ? 50 : 8
   const data = useAdminData()
   const [search, setSearch] = useState('')
+  const [auditPage, setAuditPage] = useState(0)
   const normalizedSearch = search.trim().toLowerCase()
 
   const visibleLogs = useMemo(() => {
@@ -872,9 +889,18 @@ export function AdminAuditScreen() {
     return data.auditLogs.filter((log) => auditSearchText(log, data).includes(normalizedSearch))
   }, [data, normalizedSearch])
 
+  useEffect(() => {
+    setAuditPage(0)
+  }, [normalizedSearch, auditPageSize])
+
+  const pagedLogs = useMemo(
+    () => visibleLogs.slice(auditPage * auditPageSize, (auditPage + 1) * auditPageSize),
+    [auditPage, auditPageSize, visibleLogs]
+  )
+
   return (
     <AdminScaffold activeSection="audit" title="Auditoría" subtitle="Registro de acciones sensibles realizadas desde el portal admin." data={data}>
-      <AdminMetrics data={data} />
+      <AdminMetrics data={data} activeSection="audit" />
 
       <View className="mt-5">
         <AdminSectionIntro
@@ -886,11 +912,20 @@ export function AdminAuditScreen() {
       <Panel title="Últimas acciones registradas" icon="receipt-outline" className="mt-5">
         <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar por acción, admin, objetivo o metadata..." />
         <View className="mt-4" style={{ gap: 12 }}>
-          {visibleLogs.map((log) => (
+          {pagedLogs.map((log) => (
             <AuditLogCard key={log.id} log={log} data={data} />
           ))}
           {visibleLogs.length === 0 ? <EmptyState label="No hay acciones de auditoría que coincidan." /> : null}
         </View>
+        <AdminPaginationControls
+          page={auditPage}
+          pageSize={auditPageSize}
+          total={visibleLogs.length}
+          hasPrevious={auditPage > 0}
+          hasNext={(auditPage + 1) * auditPageSize < visibleLogs.length}
+          onPrevious={() => setAuditPage((value) => Math.max(0, value - 1))}
+          onNext={() => setAuditPage((value) => value + 1)}
+        />
       </Panel>
     </AdminScaffold>
   )
@@ -1074,9 +1109,10 @@ function AdminNavButton({ active, item }: { active: boolean; item: { label: stri
   )
 }
 
-function AdminMetrics({ data }: { data: AdminData }) {
+function AdminMetrics({ activeSection, data }: { activeSection: AdminSection; data: AdminData }) {
   const { width } = useWindowDimensions()
   const isDesktop = width >= 1040
+  const metricWidth = Math.max(136, Math.floor((width - 52) / 2))
   const metrics = [
     { icon: 'school' as IconName, label: 'Profesores', value: String(data.metrics.teachersCount), color: '#8B5CF6' },
     { icon: 'people' as IconName, label: 'Alumnos', value: String(data.metrics.studentsCount), color: '#34D399' },
@@ -1087,16 +1123,28 @@ function AdminMetrics({ data }: { data: AdminData }) {
 
   if (!isDesktop) {
     return (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="-mx-5"
-        contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-      >
-        {metrics.map((metric) => (
-          <AdminMetric key={metric.label} {...metric} compact />
-        ))}
-      </ScrollView>
+      <View style={{ gap: 14 }}>
+        <View className="rounded-[26px] border border-[#1A3155] bg-[#07162D] p-4">
+          <View className="flex-row items-center justify-between">
+            <View className="min-w-0 flex-1">
+              <Text className="text-[19px] font-black text-white">Resumen</Text>
+              <Text className="mt-1 text-[12px] font-semibold text-[#8FA7C7]">Estado general de la plataforma.</Text>
+            </View>
+            <View className="rounded-full bg-[#2D1D6B] px-3 py-1">
+              <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-[#C4B5FD]">Admin</Text>
+            </View>
+          </View>
+
+          <View className="mt-4 flex-row flex-wrap" style={{ gap: 12 }}>
+            {metrics.slice(0, 4).map((metric) => (
+              <AdminMetric key={metric.label} {...metric} compact width={metricWidth} />
+            ))}
+          </View>
+        </View>
+
+        <AdminMobileCriticalAlerts data={data} />
+        <AdminMobileSectionTabs activeSection={activeSection} />
+      </View>
     )
   }
 
@@ -1109,7 +1157,90 @@ function AdminMetrics({ data }: { data: AdminData }) {
   )
 }
 
+function AdminMobileCriticalAlerts({ data }: { data: AdminData }) {
+  const alerts = [
+    { icon: 'person-remove-outline' as IconName, label: 'Usuarios inactivos', value: data.metrics.inactiveUsers, color: '#FB7185' },
+    { icon: 'book-outline' as IconName, label: 'Cursos sin clases', value: data.metrics.coursesWithoutClassrooms, color: '#F59E0B' },
+    { icon: 'time-outline' as IconName, label: 'Alumnos sin actividad', value: data.metrics.studentsWithoutActivity, color: '#8FA7C7' },
+    { icon: 'key-outline' as IconName, label: 'Clases sin código', value: data.metrics.classroomsWithoutCode, color: '#38BDF8' },
+  ]
+  const visibleAlerts = alerts.filter((alert) => alert.value > 0)
+
+  return (
+    <View className="rounded-[24px] border border-[#1A3155] bg-[#07162D] p-4">
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center gap-2">
+          <Ionicons name="alert-circle-outline" size={19} color="#FB7185" />
+          <Text className="text-[17px] font-black text-white">Alertas críticas</Text>
+        </View>
+        <Text className="rounded-full bg-[#102A54] px-3 py-1 text-[12px] font-black text-[#9FD6FF]">
+          {visibleAlerts.length}
+        </Text>
+      </View>
+
+      <View className="mt-3" style={{ gap: 10 }}>
+        {visibleAlerts.length > 0 ? (
+          visibleAlerts.slice(0, 3).map((alert) => (
+            <View key={alert.label} className="flex-row items-center rounded-2xl border border-[#20375E] bg-[#09162C] px-3 py-3">
+              <View className="h-10 w-10 items-center justify-center rounded-2xl" style={{ backgroundColor: `${alert.color}24` }}>
+                <Ionicons name={alert.icon} size={18} color={alert.color} />
+              </View>
+              <Text className="ml-3 min-w-0 flex-1 text-[13px] font-bold text-[#DDE7F4]" numberOfLines={1}>{alert.label}</Text>
+              <Text className="text-[18px] font-black text-white">{alert.value}</Text>
+            </View>
+          ))
+        ) : (
+          <View className="items-center rounded-2xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-5">
+            <Ionicons name="checkmark-circle-outline" size={26} color="#34D399" />
+            <Text className="mt-2 text-center text-[13px] font-bold text-[#AFC2DB]">No hay alertas críticas ahora mismo.</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  )
+}
+
+function AdminMobileSectionTabs({ activeSection }: { activeSection: AdminSection }) {
+  const router = useRouter()
+
+  return (
+    <View className="rounded-[24px] border border-[#1A3155] bg-[#07162D] p-4">
+      <Text className="text-[17px] font-black text-white">Secciones</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="-mx-4 mt-3"
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+      >
+        {adminSections.map((item) => {
+          const active = item.section === activeSection
+          return (
+            <Pressable
+              key={item.section}
+              onPress={() => router.push(item.href as any)}
+              className="h-11 flex-row items-center gap-2 rounded-2xl border px-4"
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.82 : 1,
+                borderColor: active ? '#6D5AF6' : '#20375E',
+                backgroundColor: active ? '#2D1D6B' : '#09162C',
+              })}
+            >
+              <Ionicons name={active ? filledIconFor(item.icon) : item.icon} size={17} color={active ? '#FFFFFF' : '#AFC2DB'} />
+              <Text className="text-[13px] font-black" style={{ color: active ? '#FFFFFF' : '#DDE7F4' }} numberOfLines={1}>
+                {item.label}
+              </Text>
+            </Pressable>
+          )
+        })}
+      </ScrollView>
+    </View>
+  )
+}
+
 function AdminSectionIntro({ title, description }: { title: string; description: string }) {
+  const { width } = useWindowDimensions()
+  if (width < 1040) return null
+
   return (
     <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
       <Text className="text-[18px] font-black text-white">{title}</Text>
@@ -1160,15 +1291,17 @@ function Panel({
   )
 }
 
-function AdminMetric({ color, compact = false, icon, label, value }: { color: string; compact?: boolean; icon: IconName; label: string; value: string }) {
+function AdminMetric({ color, compact = false, icon, label, value, width }: { color: string; compact?: boolean; icon: IconName; label: string; value: string; width?: number }) {
   return (
-    <View className={`${compact ? 'w-[136px]' : 'min-w-[160px] flex-1'} rounded-2xl border border-[#1A3155] bg-[#09162C] p-5`}>
-      <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}26` }}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <Text className="mt-4 text-[28px] font-black text-white">{value}</Text>
-      <Text className="mt-1 text-[12px] font-semibold text-[#AFC2DB]" numberOfLines={1}>{label}</Text>
-    </View>
+    <MobileMetricCard
+      className={compact ? '' : 'min-w-[160px] flex-1'}
+      color={color}
+      compact={compact}
+      icon={icon}
+      title={label}
+      value={value}
+      width={width}
+    />
   )
 }
 

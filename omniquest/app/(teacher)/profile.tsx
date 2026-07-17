@@ -353,39 +353,12 @@ export default function TeacherProfileScreen() {
               onPickImage={pickImage}
             />
 
-            <View className={isDesktop ? 'flex-[1.5] flex-row gap-4' : 'flex-row flex-wrap gap-4'}>
-              <MetricTile
-                title="Cursos activos"
-                value={String(stats.activeClasses)}
-                icon="book"
-                color="#8B5CF6"
-                onPress={() => router.push(TEACHER_ROUTES.classes)}
-              />
-
-              <MetricTile
-                title="Estudiantes únicos"
-                value={String(stats.uniqueStudents)}
-                icon="people"
-                color="#43D991"
-                onPress={() => router.push(TEACHER_ROUTES.students)}
-              />
-
-              <MetricTile
-                title="Preguntas creadas"
-                value={String(stats.questionsCreated)}
-                icon="clipboard"
-                color="#3B82F6"
-                onPress={() => router.push(TEACHER_ROUTES.classes)}
-              />
-
-              <MetricTile
-                title="Participación media"
-                value={`${stats.averageParticipation}%`}
-                icon="analytics"
-                color="#F6A64A"
-                onPress={() => router.push(TEACHER_ROUTES.students)}
-              />
-            </View>
+            <TeacherImpactPanel
+              stats={stats}
+              onClasses={() => router.push(TEACHER_ROUTES.classes)}
+              onStudents={() => router.push(TEACHER_ROUTES.students)}
+              onQuestions={() => router.push(TEACHER_ROUTES.classes)}
+            />
           </View>
 
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
@@ -413,7 +386,7 @@ export default function TeacherProfileScreen() {
               </Pressable>
             </ProfileCard>
 
-            <ProfileCard title="Últimas clases creadas" className={isDesktop ? 'flex-1' : ''}>
+            <ProfileCard title="Clases recientes" className={isDesktop ? 'flex-1' : ''}>
               <View style={{ gap: 12 }}>
                 {recentSubjects.length > 0 ? (
                   recentSubjects.map((subject) => (
@@ -446,7 +419,7 @@ export default function TeacherProfileScreen() {
               </View>
             </ProfileCard>
 
-            <ProfileCard title="Últimas preguntas creadas" className={isDesktop ? 'flex-1' : ''}>
+            <ProfileCard title="Preguntas recientes" className={isDesktop ? 'flex-1' : ''}>
               <View style={{ gap: 12 }}>
                 {recentQuestions.length > 0 ? (
                   recentQuestions.map((question) => (
@@ -565,40 +538,12 @@ function MobileTeacherProfile({
           onPickImage={onPickImage}
         />
 
-        <View className="mt-5 flex-row flex-wrap gap-3">
-          <MobileTeacherProfileMetric
-            title="Cursos activos"
-            value={String(stats.activeClasses)}
-            detail="Cursos en marcha"
-            icon="book"
-            color="#8B5CF6"
-            onPress={onClasses}
-          />
-          <MobileTeacherProfileMetric
-            title="Estudiantes únicos"
-            value={String(stats.uniqueStudents)}
-            detail="Total en tus clases"
-            icon="people"
-            color="#43D991"
-            onPress={onStudents}
-          />
-          <MobileTeacherProfileMetric
-            title="Preguntas creadas"
-            value={String(stats.questionsCreated)}
-            detail="En todos tus cursos"
-            icon="clipboard"
-            color="#3B82F6"
-            onPress={onQuestions}
-          />
-          <MobileTeacherProfileMetric
-            title="Participación media"
-            value={`${stats.averageParticipation}%`}
-            detail="Promedio general"
-            icon="analytics"
-            color="#F6A64A"
-            onPress={onStudents}
-          />
-        </View>
+        <MobileTeacherImpactCard
+          stats={stats}
+          onClasses={onClasses}
+          onStudents={onStudents}
+          onQuestions={onQuestions}
+        />
 
         <MobileTeacherInfoCard
           email={email || 'Sin correo'}
@@ -680,12 +625,149 @@ function MobileTeacherProfileHero({
   )
 }
 
+function TeacherImpactPanel({
+  stats,
+  onClasses,
+  onStudents,
+  onQuestions,
+}: {
+  stats: TeacherProfileStats
+  onClasses: () => void
+  onStudents: () => void
+  onQuestions: () => void
+}) {
+  return (
+    <View className="flex-[1.5] rounded-2xl border border-[#1C3762] bg-[#08182F] p-5">
+      <View className="mb-4 flex-row items-start justify-between gap-4">
+        <View className="min-w-0 flex-1">
+          <Text className="text-[22px] font-black text-white">Impacto docente</Text>
+          <Text className="mt-1 text-[13px] leading-5 text-[#8FA7C7]">
+            Indicadores clave sobre alcance, contenido y participación de tus clases.
+          </Text>
+        </View>
+        <Pressable
+          onPress={onStudents}
+          className="h-11 flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4"
+          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+        >
+          <Ionicons name="people-outline" size={17} color="#FFFFFF" />
+          <Text className="text-[13px] font-black text-white">Ver alumnos</Text>
+        </Pressable>
+      </View>
+
+      <View className="flex-row flex-wrap gap-4">
+        <MetricTile
+          label="Alumnos activos"
+          value={String(stats.uniqueStudents)}
+          detail="Con inscripción"
+          icon="people"
+          color="#43D991"
+          onPress={onStudents}
+        />
+        <MetricTile
+          label="Cursos activos"
+          value={String(stats.activeClasses)}
+          detail="En marcha"
+          icon="book"
+          color="#8B5CF6"
+          onPress={onClasses}
+        />
+        <MetricTile
+          label="Preguntas creadas"
+          value={String(stats.questionsCreated)}
+          detail="Banco docente"
+          icon="clipboard"
+          color="#3B82F6"
+          onPress={onQuestions}
+        />
+        <MetricTile
+          label="Participación media"
+          value={`${stats.averageParticipation}%`}
+          detail="Alumnos con progreso"
+          icon="analytics"
+          color="#F6A64A"
+          onPress={onStudents}
+        />
+      </View>
+    </View>
+  )
+}
+
+function MobileTeacherImpactCard({
+  stats,
+  onClasses,
+  onStudents,
+  onQuestions,
+}: {
+  stats: TeacherProfileStats
+  onClasses: () => void
+  onStudents: () => void
+  onQuestions: () => void
+}) {
+  return (
+    <View className="mt-5 rounded-2xl border border-[#1D3760] bg-[#07162C] p-5">
+      <View className="mb-4 flex-row items-start justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <View className="flex-row items-center gap-3">
+            <Ionicons name="analytics-outline" size={27} color="#9B6CFF" />
+            <Text className="min-w-0 flex-1 text-[23px] font-black text-white" numberOfLines={1}>Impacto docente</Text>
+          </View>
+          <Text className="mt-2 text-[14px] leading-5 text-[#B8C6DC]">
+            Tus métricas principales como profesor.
+          </Text>
+        </View>
+        <Pressable
+          onPress={onStudents}
+          className="h-11 flex-row items-center rounded-2xl bg-[#5A46D8] px-4"
+          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+        >
+          <Text className="text-[13px] font-black text-white">Alumnos</Text>
+        </Pressable>
+      </View>
+
+      <View className="flex-row flex-wrap gap-3">
+        <MobileTeacherProfileMetric
+          title="Alumnos activos"
+          value={String(stats.uniqueStudents)}
+          detail="Con inscripción"
+          icon="people"
+          color="#43D991"
+          onPress={onStudents}
+        />
+        <MobileTeacherProfileMetric
+          title="Cursos activos"
+          value={String(stats.activeClasses)}
+          detail="En marcha"
+          icon="book"
+          color="#8B5CF6"
+          onPress={onClasses}
+        />
+        <MobileTeacherProfileMetric
+          title="Preguntas"
+          value={String(stats.questionsCreated)}
+          detail="Creadas"
+          icon="clipboard"
+          color="#3B82F6"
+          onPress={onQuestions}
+        />
+        <MobileTeacherProfileMetric
+          title="Participación"
+          value={`${stats.averageParticipation}%`}
+          detail="Media"
+          icon="analytics"
+          color="#F6A64A"
+          onPress={onStudents}
+        />
+      </View>
+    </View>
+  )
+}
+
 function MobileTeacherProfileMetric({
   title,
   detail,
   color,
   icon,
-  label,
   value,
   onPress
 }: {
@@ -693,21 +775,20 @@ function MobileTeacherProfileMetric({
   detail: string
   color: string
   icon: keyof typeof Ionicons.glyphMap
-  label: string
   value: string
   onPress: () => void
 }) {
   return (
     <MobileMetricCard
-      className="min-h-[120px] flex-1"
+      className="min-h-[116px] flex-1"
       title={title}
       detail={detail}
       color={color}
       compact
       icon={icon}
-      label={label}
       value={value}
       onPress={onPress}
+      style={{ minWidth: 138 }}
     />
   )
 }
@@ -726,7 +807,7 @@ function MobileTeacherInfoCard({
   return (
     <View className="mt-5 rounded-2xl border border-[#1D3760] bg-[#07162C] p-5">
       <View className="mb-4 flex-row items-center gap-3">
-        <Ionicons name="person-outline" size={28} color="#9B6CFF" />
+        <Ionicons name="person-outline" size={24} color="#9B6CFF" />
         <Text className="text-[22px] font-black text-white">Información del profesor</Text>
       </View>
 
@@ -796,7 +877,7 @@ function MobileRecentSubjectsCard({
   return (
     <MobileProfileSection
       icon="school-outline"
-      title="Últimas clases creadas"
+      title="Clases recientes"
       actionLabel="Ver todas"
       onAction={onViewAll}
     >
@@ -806,17 +887,17 @@ function MobileRecentSubjectsCard({
             <Pressable
               key={subject.id}
               onPress={() => onOpenSubject(subject.id)}
-              className="h-20 flex-row items-center rounded-2xl bg-[#0A1D37] px-4"
+              className="min-h-[68px] flex-row items-center rounded-2xl bg-[#0A1D37] px-3 py-3"
               style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
             >
-              <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#102B53]">
-                <Text className="text-[27px]">{subject.icon || '📘'}</Text>
+              <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#102B53]">
+                <Text className="text-[22px]">{subject.icon || '📘'}</Text>
               </View>
-              <View className="ml-4 min-w-0 flex-1">
-                <Text className="text-[17px] font-black text-white" numberOfLines={1}>{subject.name}</Text>
-                <Text className="mt-1 text-[15px] text-[#B8C6DC]" numberOfLines={1}>Código: {subject.code}</Text>
+              <View className="ml-3 min-w-0 flex-1">
+                <Text className="text-[15px] font-black text-white" numberOfLines={1}>{subject.name}</Text>
+                <Text className="mt-1 text-[13px] text-[#B8C6DC]" numberOfLines={1}>Código: {subject.code}</Text>
               </View>
-              <Text className="mr-3 text-[14px] text-[#C4D2E8]">{formatRelativeDate(subject.created_at)}</Text>
+              <Text className="mr-2 text-[12px] text-[#C4D2E8]">{formatRelativeDate(subject.created_at)}</Text>
               <Ionicons name="chevron-forward" size={22} color="#C4D2E8" />
             </Pressable>
           ))
@@ -838,22 +919,22 @@ function MobileRecentQuestionsCard({
   return (
     <MobileProfileSection
       icon="help-circle-outline"
-      title="Últimas preguntas creadas"
+      title="Preguntas recientes"
       actionLabel="Ver todas"
       onAction={onViewAll}
     >
       <View style={{ gap: 8 }}>
         {questions.length > 0 ? (
           questions.slice(0, 3).map((question) => (
-            <View key={question.id} className="h-20 flex-row items-center rounded-2xl bg-[#0A1D37] px-4">
-              <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#2B1F62]">
-                <Ionicons name="help-circle-outline" size={28} color="#9B6CFF" />
+            <View key={question.id} className="min-h-[68px] flex-row items-center rounded-2xl bg-[#0A1D37] px-3 py-3">
+              <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#2B1F62]">
+                <Ionicons name="help-circle-outline" size={24} color="#9B6CFF" />
               </View>
-              <View className="ml-4 min-w-0 flex-1">
-                <Text className="text-[17px] font-black text-white" numberOfLines={1}>{question.text}</Text>
-                <Text className="mt-1 text-[15px] text-[#B8C6DC]" numberOfLines={1}>{getSubjectName(question.subjects)}</Text>
+              <View className="ml-3 min-w-0 flex-1">
+                <Text className="text-[15px] font-black text-white" numberOfLines={1}>{question.text}</Text>
+                <Text className="mt-1 text-[13px] text-[#B8C6DC]" numberOfLines={1}>{getSubjectName(question.subjects)}</Text>
               </View>
-              <Text className="mr-3 text-[14px] text-[#C4D2E8]">{formatRelativeDate(question.created_at)}</Text>
+              <Text className="mr-2 text-[12px] text-[#C4D2E8]">{formatRelativeDate(question.created_at)}</Text>
               <Ionicons name="chevron-forward" size={22} color="#C4D2E8" />
             </View>
           ))
@@ -969,11 +1050,15 @@ function MetricTile({
   label,
   value,
   color,
+  detail,
+  onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   label: string
   value: string
   color: string
+  detail?: string
+  onPress?: () => void
 }) {
   return (
     <MobileMetricCard
@@ -982,6 +1067,8 @@ function MetricTile({
       icon={icon}
       label={label}
       value={value}
+      detail={detail}
+      onPress={onPress}
     />
   )
 }

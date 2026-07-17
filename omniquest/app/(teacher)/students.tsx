@@ -48,6 +48,7 @@ import {
   PendingFirstAccessCard,
   ProgressStat,
   StudentCard,
+  StudentPaginationControls,
 } from '../../components/teacher/students/TeacherStudentList';
 import {
   buildCourseContexts,
@@ -69,6 +70,8 @@ import {
   isMissingSchemaError,
 } from '../../components/teacher/students/studentUtils';
 
+const STUDENTS_PAGE_SIZE = 5;
+
 export default function TeacherStudentsScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
@@ -79,6 +82,7 @@ export default function TeacherStudentsScreen() {
   const [selectedClassroomId, setSelectedClassroomId] = useState<number | 'all'>('all');
   const [selectedStatus, setSelectedStatus] = useState<StudentStatusFilter>('all');
   const [selectedSort, setSelectedSort] = useState<StudentSortKey>('attention');
+  const [studentPage, setStudentPage] = useState(0);
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -151,6 +155,17 @@ export default function TeacherStudentsScreen() {
 
     return rows.sort((a, b) => compareStudents(a, b, selectedSort));
   }, [search, selectedClassroomId, selectedSort, selectedStatus, selectedSubjectId, students]);
+
+  useEffect(() => {
+    setStudentPage(0);
+  }, [search, selectedClassroomId, selectedSort, selectedStatus, selectedSubjectId, students.length]);
+
+  const studentPageCount = Math.max(1, Math.ceil(visibleStudents.length / STUDENTS_PAGE_SIZE));
+  const safeStudentPage = Math.min(studentPage, studentPageCount - 1);
+  const paginatedStudents = useMemo(() => {
+    const start = safeStudentPage * STUDENTS_PAGE_SIZE;
+    return visibleStudents.slice(start, start + STUDENTS_PAGE_SIZE);
+  }, [safeStudentPage, visibleStudents]);
 
   const stats = useMemo(() => {
     const total = visibleStudents.length;
@@ -914,13 +929,13 @@ export default function TeacherStudentsScreen() {
                 <View>
                   <Text className="text-[18px] font-black text-white">Listado de estudiantes</Text>
                   <Text className="mt-1 text-[12px] text-[#8FA7C7]">
-                    Mostrando {visibleStudents.length} de {students.length} estudiantes.
+                    Mostrando {paginatedStudents.length} de {visibleStudents.length} estudiantes visibles.
                   </Text>
                 </View>
               </View>
 
               <View className={isWide ? 'flex-row flex-wrap gap-4' : 'gap-4'}>
-                {visibleStudents.map((student) => (
+                {paginatedStudents.map((student) => (
                   <StudentCard
                     key={student.id}
                     student={student}
@@ -935,6 +950,19 @@ export default function TeacherStudentsScreen() {
                     onCopyTemporaryPassword={handleCopyTemporaryPassword}
                   />
                 ))}
+
+                {visibleStudents.length > 0 ? (
+                  <View className="w-full">
+                    <StudentPaginationControls
+                      page={safeStudentPage}
+                      pageCount={studentPageCount}
+                      total={visibleStudents.length}
+                      pageSize={STUDENTS_PAGE_SIZE}
+                      onPrevious={() => setStudentPage((page) => Math.max(0, page - 1))}
+                      onNext={() => setStudentPage((page) => Math.min(studentPageCount - 1, page + 1))}
+                    />
+                  </View>
+                ) : null}
 
                 {visibleStudents.length === 0 ? (
                   <View className="w-full items-center justify-center rounded-2xl border border-[#1A3155] bg-[#09162C] p-8">

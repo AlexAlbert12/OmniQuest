@@ -165,24 +165,22 @@ export function StudentCard({
           <View className="flex-row items-center gap-2">
             <Text className="min-w-0 flex-1 text-[17px] font-black text-white" numberOfLines={1}>{student.alias}</Text>
             <View className="rounded-full px-3 py-1" style={{ backgroundColor: `${status.color}24` }}>
-              <Text className="text-[11px] font-black" style={{ color: status.color }}>{status.label}</Text>
+              <Text className="text-[11px] font-black" style={{ color: status.color }} numberOfLines={1}>{status.label}</Text>
             </View>
           </View>
-          <Text className="mt-1 text-[12px] text-[#8FA7C7]" numberOfLines={1}>{student.handle}</Text>
-          <Text className="mt-2 text-[12px] text-[#AFC2DB]" numberOfLines={2}>
+          <Text className="mt-2 text-[12px] leading-5 text-[#AFC2DB]" numberOfLines={2}>
             {mainContext ? `${mainContext.subjectName} · ${mainContext.classroomName}` : 'Sin curso asignado'}
           </Text>
+          <Text className="mt-1 text-[11px] text-[#8FA7C7]">Última actividad: {formatRelativeDate(student.lastActivityAt)}</Text>
           {!student.hasActivity ? (
-            <Text className="mt-1 text-[11px] font-semibold text-[#9FD6FF]">Importado recientemente · pendiente de empezar</Text>
+            <Text className="mt-1 text-[11px] font-semibold text-[#9FD6FF]">Pendiente de iniciar actividad</Text>
           ) : null}
         </View>
       </View>
 
       <View className="mt-4 flex-row flex-wrap gap-3">
         <StudentMiniStat label="Precisión" value={student.hasActivity ? `${student.accuracyPercent}%` : '—'} color="#38BDF8" />
-        <StudentMiniStat label="Preguntas" value={student.challenges.toLocaleString()} color="#8B5CF6" />
-        <StudentMiniStat label="Nota" value={student.hasActivity ? student.averageScore.toFixed(1) : '—'} color="#F6A64A" />
-        <StudentMiniStat label="XP" value={student.subjectScore.toLocaleString()} color="#FBBF24" />
+        <StudentMiniStat label="Participación" value={`${student.progress}%`} color={status.color} />
       </View>
 
       {student.status === 'no_activity' ? (
@@ -196,25 +194,18 @@ export function StudentCard({
         />
       ) : null}
 
-      <View className="mt-4 rounded-xl border border-[#20375E] bg-[#07162E] p-3">
-        <View className="mb-2 flex-row items-center justify-between">
-          <Text className="text-[12px] font-bold text-white">Participación</Text>
-          <Text className="text-[12px] font-black text-[#DDE7F4]">{student.progress}%</Text>
-        </View>
-        <View className="h-2 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full" style={{ width: `${student.progress}%`, backgroundColor: status.color }} />
-        </View>
-        <Text className="mt-2 text-[11px] text-[#8FA7C7]">Última actividad: {formatRelativeDate(student.lastActivityAt)}</Text>
+      <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#13294C]">
+        <View className="h-full rounded-full" style={{ width: `${Math.max(4, student.progress)}%`, backgroundColor: status.color }} />
       </View>
 
       <View className="mt-4 flex-row flex-wrap gap-2">
-        <Pressable onPress={() => onViewDetails(student)} className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3">
+        <Pressable onPress={() => onViewDetails(student)} className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3">
           <Ionicons name="document-text-outline" size={15} color="#FFFFFF" />
           <Text className="text-[12px] font-black text-white">Ver detalle</Text>
         </Pressable>
-        <Pressable onPress={() => onAssignActivity(student)} className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3">
-          <Ionicons name="add-circle-outline" size={15} color="#DDE7F4" />
-          <Text className="text-[12px] font-black text-[#DDE7F4]">Asignar repaso</Text>
+        <Pressable onPress={() => onAssignActivity(student)} className="flex-row items-center justify-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3">
+          <Ionicons name="locate-outline" size={15} color="#DDE7F4" />
+          <Text className="text-[12px] font-black text-[#DDE7F4]">Repaso</Text>
         </Pressable>
         <Pressable onPress={() => onOpenActions(student)} className="h-11 w-11 items-center justify-center rounded-xl border border-[#20375E] bg-[#07162E]">
           <Ionicons name="ellipsis-horizontal" size={17} color="#AFC2DB" />
@@ -300,6 +291,54 @@ export function StudentMiniStat({ label, value, color }: { label: string; value:
     <View className="min-w-[86px] flex-1 rounded-xl border border-[#20375E] bg-[#07162E] p-3">
       <Text className="text-[11px] text-[#8FA7C7]">{label}</Text>
       <Text className="mt-1 text-[15px] font-black" style={{ color }}>{value}</Text>
+    </View>
+  );
+}
+
+export function StudentPaginationControls({
+  page,
+  pageCount,
+  total,
+  pageSize,
+  onPrevious,
+  onNext,
+}: {
+  page: number
+  pageCount: number
+  total: number
+  pageSize: number
+  onPrevious: () => void
+  onNext: () => void
+}) {
+  if (total <= pageSize) return null
+
+  const start = page * pageSize + 1
+  const end = Math.min(total, (page + 1) * pageSize)
+
+  return (
+    <View className="mt-4 flex-row items-center justify-between gap-3 rounded-2xl border border-[#1A3155] bg-[#07162E] p-3">
+      <Pressable
+        onPress={onPrevious}
+        disabled={page === 0}
+        className="h-11 w-11 items-center justify-center rounded-xl border border-[#20375E] bg-[#09162C]"
+        style={({ pressed }) => ({ opacity: page === 0 ? 0.45 : pressed ? 0.82 : 1 })}
+      >
+        <Ionicons name="chevron-back" size={20} color="#DDE7F4" />
+      </Pressable>
+
+      <View className="min-w-0 flex-1 items-center">
+        <Text className="text-[13px] font-black text-white">{start}-{end} de {total}</Text>
+        <Text className="mt-0.5 text-[11px] text-[#8FA7C7]">Página {page + 1} de {pageCount}</Text>
+      </View>
+
+      <Pressable
+        onPress={onNext}
+        disabled={page >= pageCount - 1}
+        className="h-11 w-11 items-center justify-center rounded-xl border border-[#20375E] bg-[#09162C]"
+        style={({ pressed }) => ({ opacity: page >= pageCount - 1 ? 0.45 : pressed ? 0.82 : 1 })}
+      >
+        <Ionicons name="chevron-forward" size={20} color="#DDE7F4" />
+      </Pressable>
     </View>
   );
 }
