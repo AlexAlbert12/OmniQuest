@@ -9,11 +9,12 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Link, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import AuthInput from '../../components/auth/AuthInput'
 import BrandLogo from '../../components/BrandLogo'
-import SpaceBackground from '../../components/SpaceBackground'
+import HomeVisualBackground from '../../components/HomeVisualBackground'
 import { getAuthErrorMessage, getEmailRedirectTo, isValidEmail, normalizeEmail } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
 import { createShadowStyle } from '../../lib/platformShadow'
@@ -116,75 +117,96 @@ export default function RegisterScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-[#04112A]" contentContainerStyle={{ flexGrow: 1 }}>
+    <ScrollView
+      className="flex-1 bg-[#010611]"
+      contentContainerStyle={{ flexGrow: 1 }}
+      showsVerticalScrollIndicator={false}
+    >
       <View
-        className="overflow-hidden rounded-[34px] border border-[#27436F] bg-[#071630]"
+        className="overflow-hidden bg-[#010611]"
         style={{
-          minHeight: isDesktop ? Math.max(height, 760) : Math.max(height - 28, 760),
-          ...createShadowStyle({
-            color: '#132C59',
-            opacity: 0.35,
-            radius: 28,
-            offsetY: 18,
-            elevation: 12,
-            web: '0 18px 28px rgba(19, 44, 89, 0.25)',
-          }),
+          minHeight: isDesktop ? Math.max(height, 860) : Math.max(height, 860),
           borderRadius: isWeb ? 0 : 34,
         }}
       >
-        <SpaceBackground isDesktop={isDesktop} />
+        <HomeVisualBackground isDesktop={isDesktop} />
 
         <View
           className="z-10 flex-1 items-center justify-center"
           style={{
-            paddingHorizontal: isDesktop ? 32 : 18,
-            paddingVertical: isDesktop ? 28 : 20,
+            paddingHorizontal: isDesktop ? 32 : 22,
+            paddingVertical: isDesktop ? 34 : 28,
           }}
         >
-          <View className="absolute left-5 top-5">
+          <View className="absolute left-5 top-5 z-20">
             <Link href="/" asChild>
               <Pressable
-                className="flex-row items-center gap-2 rounded-full border border-[#35557C] bg-[#081D3D]/88 px-4 py-3"
-                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                className="flex-row items-center gap-2 px-4 py-3"
+                style={({ pressed }) => ({
+                  backgroundColor: 'rgba(16, 42, 82, 0.72)',
+                  borderColor: 'rgba(99, 177, 235, 0.28)',
+                  borderWidth: 1,
+                  borderRadius: 999,
+                  opacity: pressed ? 0.8 : 1,
+                })}
               >
                 <Ionicons name="home-outline" size={18} color="#8CD5FF" />
-                <Text className="font-bold text-[#D9EEFF]">Inicio</Text>
+                <Text className="font-extrabold text-[#DDE8FF]">Inicio</Text>
               </Pressable>
             </Link>
           </View>
 
           <View className="items-center px-2">
-            <BrandLogo center size={isDesktop ? 56 : 34} />
-
+            <BrandLogo center size={isDesktop ? 68 : 44} />
             <Text
-              style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 20 : 15 }}
-              className="text-center text-[#4FB8FF]"
+              style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }}
+              className="mt-1 text-center text-[#4FB8FF]"
             >
               Crea tu cuenta para empezar.
             </Text>
 
-            <View className="mt-3 mb-4 flex-row items-center gap-3">
+            <View className="mt-4 mb-5 flex-row items-center gap-3">
               <View className="h-px w-16 bg-[#3B6FA5]" />
               <Ionicons name="rocket" size={18} color="#8CD5FF" />
               <View className="h-px w-16 bg-[#3B6FA5]" />
             </View>
           </View>
 
-          <View
-            className="w-full overflow-hidden rounded-[20px] border border-[#3B6FA5] bg-[#081D3D]/92"
+          <LinearGradient
+            colors={['rgba(145, 73, 246, 0.26)', 'rgba(34, 28, 78, 0.92)']}
+            start={{ x: 1, y: 0 }}
+            end={{ x: 0, y: 1 }}
             style={{
+              borderColor: 'rgba(148, 163, 184, 0.18)',
+              borderRadius: 32,
+              borderWidth: 1,
               maxWidth: isTablet ? 620 : 440,
+              overflow: 'hidden',
+              width: '100%',
               ...createShadowStyle({
-                color: '#1B75D8',
-                opacity: 0.28,
+                color: '#A855F7',
+                opacity: 0.14,
                 radius: 24,
                 offsetY: 12,
                 elevation: 10,
-                web: '0 12px 24px rgba(27, 117, 216, 0.22)',
+                web: '0 18px 34px rgba(168, 85, 247, 0.18)',
               }),
             }}
           >
-            <View style={{ padding: isDesktop ? 30 : 20, gap: 18 }}>
+            <View style={{ padding: isDesktop ? 30 : 22, gap: 18 }}>
+              <View className="flex-row items-center gap-4">
+                <View
+                  className="items-center justify-center"
+                  style={{ backgroundColor: '#A56BFF', borderRadius: 22, height: 64, width: 64 }}
+                >
+                  <Ionicons name="game-controller-outline" size={31} color="#FFFFFF" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-[27px] font-extrabold text-white">Crear cuenta</Text>
+                  <Text className="mt-1 text-[15px] font-semibold text-[#B8C5E0]">Empieza como alumno</Text>
+                </View>
+              </View>
+
               <AuthInput
                 label="Alias"
                 icon="person-outline"
@@ -256,58 +278,94 @@ export default function RegisterScreen() {
                 onToggleSecureText={() => setShowConfirmPassword((current) => !current)}
               />
 
-              <Pressable
+              <AuthGradientButton
+                loading={loading}
+                loadingLabel="Creando cuenta..."
+                label="Registrarse"
                 onPress={signUpWithEmail}
-                disabled={loading}
-                className="w-full flex-row items-center justify-center rounded-xl bg-[#1C4D8D] px-5 py-4"
-                style={({ pressed }) => ({
-                  opacity: loading ? 0.7 : pressed ? 0.86 : 1,
-                  ...createShadowStyle({
-                    color: '#4FB8FF',
-                    opacity: 0.22,
-                    radius: 14,
-                    offsetY: 8,
-                    elevation: 6,
-                    web: '0 8px 14px rgba(79, 184, 255, 0.18)',
-                  }),
-                })}
-              >
-                <View className="flex-row items-center gap-3">
-                  {loading ? <ActivityIndicator color="#F5FBFF" /> : null}
-                  <Text className="text-[16px] font-bold text-[#F5FBFF]">
-                    {loading ? 'Creando cuenta...' : 'Registrarse'}
-                  </Text>
-                </View>
-                {!loading && (
-                  <Ionicons
-                    name="arrow-forward"
-                    size={20}
-                    color="#F5FBFF"
-                    style={{ position: 'absolute', right: 22 }}
-                  />
-                )}
-              </Pressable>
+              />
 
               {statusMessage ? (
-                <Text className="text-center text-[13px] text-[#8CD5FF]">{statusMessage}</Text>
+                <Text className="text-center text-[13px] font-semibold text-[#8CD5FF]">{statusMessage}</Text>
               ) : null}
             </View>
 
-            <View className="border-t border-[#17365F] bg-[#06162F] px-5 py-5">
+            <View
+              className="border-t px-5 py-5"
+              style={{
+                backgroundColor: 'rgba(16, 42, 82, 0.42)',
+                borderColor: 'rgba(99, 177, 235, 0.14)',
+              }}
+            >
               <View className="flex-row flex-wrap items-center justify-center gap-1">
-                <Text className="text-[13px] text-[#AFCBE3]">¿Ya tienes cuenta?</Text>
+                <Text className="text-[13px] font-semibold text-[#AEBBDD]">¿Ya tienes cuenta?</Text>
                 <Link href="/(auth)/login" asChild>
                   <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.76 : 1 })}>
-                    <Text className="text-[13px] font-bold text-[#4FB8FF]">
-                      Inicia sesión.
-                    </Text>
+                    <Text className="text-[13px] font-extrabold text-[#42B9FF]">Inicia sesión.</Text>
                   </Pressable>
                 </Link>
               </View>
             </View>
-          </View>
+          </LinearGradient>
         </View>
       </View>
     </ScrollView>
+  )
+}
+
+function AuthGradientButton({
+  label,
+  loading,
+  loadingLabel,
+  onPress,
+}: {
+  label: string
+  loading: boolean
+  loadingLabel: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={loading}
+      style={({ pressed }) => ({ opacity: loading ? 0.7 : pressed ? 0.9 : 1 })}
+    >
+      <LinearGradient
+        colors={['#3479F4', '#8D63F7']}
+        start={{ x: 0, y: 0.15 }}
+        end={{ x: 1, y: 0.9 }}
+        style={{
+          alignItems: 'center',
+          borderRadius: 26,
+          flexDirection: 'row',
+          justifyContent: 'center',
+          minHeight: 62,
+          paddingHorizontal: 22,
+          ...createShadowStyle({
+            color: '#7C66FF',
+            opacity: 0.32,
+            radius: 20,
+            offsetY: 10,
+            elevation: 8,
+            web: '0 16px 30px rgba(124, 102, 255, 0.26)',
+          }),
+        }}
+      >
+        <View className="flex-row items-center gap-3">
+          {loading ? <ActivityIndicator color="#F5FBFF" /> : null}
+          <Text className="text-[17px] font-extrabold text-[#F5FBFF]">
+            {loading ? loadingLabel : label}
+          </Text>
+        </View>
+        {!loading ? (
+          <View
+            className="absolute right-3 items-center justify-center rounded-full"
+            style={{ backgroundColor: 'rgba(255,255,255,0.18)', height: 44, width: 44 }}
+          >
+            <Ionicons name="arrow-forward" size={24} color="#F5FBFF" />
+          </View>
+        ) : null}
+      </LinearGradient>
+    </Pressable>
   )
 }

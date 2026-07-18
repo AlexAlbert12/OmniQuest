@@ -24,15 +24,30 @@ export default function AuthInput({
 }: AuthInputProps) {
   return (
     <View style={{ gap: 8 }}>
-      <Text className="ml-1 text-[13px] font-bold text-[#D9EEFF]">{label}</Text>
+      <Text className="ml-1 text-[13px] font-extrabold text-[#DDE8FF]">{label}</Text>
       <View
-        className="flex-row items-center rounded-lg border bg-[#0B2145]"
-        style={{ borderColor: error ? '#F87171' : '#35557C' }}
+        className="flex-row items-center border"
+        style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.045)',
+          borderColor: error ? '#F87171' : 'rgba(148, 163, 184, 0.14)',
+          borderRadius: 22,
+          minHeight: 62,
+        }}
       >
-        <Ionicons className="ml-4 mr-4" name={icon} size={18} color={error ? '#FCA5A5' : '#8AAED0'} />
+        <View
+          className="ml-3 items-center justify-center"
+          style={{
+            backgroundColor: error ? 'rgba(248, 113, 113, 0.12)' : 'rgba(66, 185, 255, 0.10)',
+            borderRadius: 15,
+            height: 42,
+            width: 42,
+          }}
+        >
+          <Ionicons name={icon} size={20} color={error ? '#FCA5A5' : '#8CD5FF'} />
+        </View>
         <TextInput
-          className="flex-1 px-3 py-4 text-[15px] text-[#F5FBFF]"
-          placeholderTextColor="#8AAED0"
+          className="flex-1 px-3 py-4 text-[15px] font-semibold text-[#F5FBFF]"
+          placeholderTextColor="#93A8C8"
           style={style}
           {...inputProps}
         />
@@ -44,8 +59,8 @@ export default function AuthInput({
           >
             <Ionicons
               name={secureVisible ? 'eye-outline' : 'eye-off-outline'}
-              size={18}
-              color="#9FC7E2"
+              size={20}
+              color="#AEBBDD"
             />
           </Pressable>
         ) : null}
@@ -53,7 +68,7 @@ export default function AuthInput({
       {error ? (
         <Text className="ml-1 text-[12px] font-semibold text-[#FCA5A5]">{error}</Text>
       ) : helper ? (
-        <Text className="ml-1 text-[12px] text-[#9FC7E2]">{helper}</Text>
+        <Text className="ml-1 text-[12px] font-semibold text-[#AEBBDD]">{helper}</Text>
       ) : null}
     </View>
   )
