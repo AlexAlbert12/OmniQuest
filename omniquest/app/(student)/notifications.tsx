@@ -20,7 +20,7 @@ import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { getTimeAgo } from '../../lib/time'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
-import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
+import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 import { withAlpha } from '../../lib/color'
 import OmniGuide from '../../components/OmniGuide'
@@ -221,46 +221,41 @@ export default function StudentNotificationsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
-            <View className="min-w-[280px] flex-1">
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="notifications" size={38} color="#9FD6FF" />
-                <Text className="text-[38px] font-black text-white">Notificaciones</Text>
-              </View>
-              <Text className="mt-2 text-[14px] text-[#B7C4D7]">
-                {unreadCount > 0
-                  ? `Tienes ${unreadCount} notificación${unreadCount === 1 ? '' : 'es'} sin leer`
-                  : 'Todo está al día en tus cursos'}
-              </Text>
-            </View>
-
-            <View className="flex-row flex-wrap items-center gap-3">
-              <Pressable
-                onPress={() => void onRefresh()}
-                className="flex-row items-center gap-2 rounded-xl px-4 py-3"
-                style={({ pressed }) => ({
-                  borderWidth: 1,
-                  borderColor: '#20375E',
-                  backgroundColor: '#09162C',
-                  opacity: pressed ? 0.82 : 1,
-                })}
-              >
-                <Ionicons name="refresh-outline" size={16} color="#AFC2DB" />
-                <Text className="text-[12px] font-bold text-[#DDE7F4]">Actualizar</Text>
-              </Pressable>
-              {unreadCount > 0 ? (
+          <StudentPageHeader
+            icon="notifications"
+            isDesktop={isDesktop}
+            title="Notificaciones"
+            subtitle={unreadCount > 0
+              ? `Tienes ${unreadCount} notificación${unreadCount === 1 ? '' : 'es'} sin leer`
+              : 'Todo está al día en tus cursos'}
+            showNotifications={false}
+            actions={(
+              <>
                 <Pressable
-                onPress={() => void markAllAsRead()}
-                  className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
+                  accessibilityLabel="Actualizar notificaciones"
+                  accessibilityRole="button"
+                  onPress={() => void onRefresh()}
+                  className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
                   style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
                 >
-                  <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
-                  <Text className="text-[12px] font-bold text-white">Marcar leídas</Text>
+                  <Ionicons name="refresh-outline" size={16} color="#AFC2DB" />
+                  <Text className="text-[12px] font-bold text-[#DDE7F4]">Actualizar</Text>
                 </Pressable>
-              ) : null}
-              <StudentHeaderAvatar />
-            </View>
-          </View>
+                {unreadCount > 0 ? (
+                  <Pressable
+                    accessibilityLabel="Marcar todas las notificaciones como leídas"
+                    accessibilityRole="button"
+                    onPress={() => void markAllAsRead()}
+                    className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+                  >
+                    <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
+                    <Text className="text-[12px] font-bold text-white">Marcar leídas</Text>
+                  </Pressable>
+                ) : null}
+              </>
+            )}
+          />
 
           <View className={isWide ? 'mb-5 flex-row gap-4' : 'mb-5 gap-4'}>
             {categoryStats.map((category) => (
@@ -348,33 +343,15 @@ function MobileStudentNotifications({
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-7 flex-row items-start justify-between">
-          <View className="flex-row items-center gap-3">
-            <NotificationTopButton count={unreadCount} />
-            <StudentHeaderAvatar />
-          </View>
-        </View>
-
-        <View className="mb-5 flex-row items-center gap-3">
-          <LinearGradient
-            colors={['#6D4AFF', '#4C1D95']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ width: 58, height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Ionicons name="notifications" size={30} color="#FFFFFF" />
-          </LinearGradient>
-          <View className="min-w-0 flex-1">
-            <Text className="text-[34px] font-black leading-[38px] text-white" numberOfLines={1}>
-              Notificaciones
-            </Text>
-            <Text className="mt-1 text-[14px] leading-5 text-[#C7D3E5]" numberOfLines={2}>
-              {unreadCount > 0
-                ? `${unreadCount} novedad${unreadCount === 1 ? '' : 'es'} por revisar`
-                : 'Todo está al día en tus cursos'}
-            </Text>
-          </View>
-        </View>
+        <StudentPageHeader
+          icon="notifications"
+          isDesktop={false}
+          title="Notificaciones"
+          subtitle={unreadCount > 0
+            ? `${unreadCount} novedad${unreadCount === 1 ? '' : 'es'} por revisar`
+            : 'Todo está al día en tus cursos'}
+          showNotifications={false}
+        />
 
         <View className="mb-5 flex-row gap-3">
           <Pressable

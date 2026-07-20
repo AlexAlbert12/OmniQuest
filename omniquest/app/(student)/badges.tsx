@@ -17,7 +17,6 @@ import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import OmniGuide from '../../components/OmniGuide'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
-import NotificationBadge from '../../components/NotificationBadge'
 import {
   buildStudentBadges,
   getStudentBadgeMetrics,
@@ -27,7 +26,7 @@ import {
 } from '../../lib/studentBadges'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
-import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
+import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { withAlpha } from '../../lib/color'
@@ -215,24 +214,14 @@ export default function BadgesScreen() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row items-start justify-between gap-4">
-            <View className="min-w-0 flex-1">
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="ribbon" size={isDesktop ? 40 : 34} color="#9FD6FF" />
-                <Text className={`${isDesktop ? 'text-[40px]' : 'text-[34px]'} font-black text-white`}>Logros</Text>
-              </View>
-              <Text className="mt-1 text-[13px] leading-5 text-[#9BAEC9]" numberOfLines={isDesktop ? 2 : 2}>
-                {isDesktop
-                  ? 'Consulta tus logros globales: se desbloquean con actividad, constancia, precisión y exploración.'
-                  : 'Desbloquea insignias y sigue tu próxima recompensa.'}
-              </Text>
-            </View>
-
-            <View className="flex-row items-center gap-3">
-              <NotificationBadge />
-              <StudentHeaderAvatar />
-            </View>
-          </View>
+          <StudentPageHeader
+            icon="ribbon"
+            isDesktop={isDesktop}
+            title="Logros"
+            subtitle={isDesktop
+              ? 'Consulta tus logros globales: se desbloquean con actividad, constancia, precisión y exploración.'
+              : 'Desbloquea insignias y sigue tu próxima recompensa.'}
+          />
 
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
             <View className="flex-[1.25] overflow-hidden rounded-2xl border border-[#2D3F78] bg-[#101D4A] p-6">

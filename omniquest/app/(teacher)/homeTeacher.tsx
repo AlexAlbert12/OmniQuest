@@ -14,11 +14,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
-import NotificationBadge from '../../components/NotificationBadge';
-import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
+import TeacherPageHeader from '../../components/teacher/TeacherPageHeader';
 import { withAlpha } from '../../lib/color';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
-import { MobileHeader, MobileMetricCard } from '../../components/ui/mobile';
+import { MobileMetricCard } from '../../components/ui/mobile';
 import OmniGuide, { type OmniState } from '../../components/OmniGuide';
 
 type Subject = {
@@ -328,27 +327,19 @@ export default function TeacherHomeScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-7 flex-row flex-wrap items-start justify-between gap-4">
-            <View className="min-w-[280px] flex-1">
-              <Text className="text-[40px] font-black text-white">¡Bienvenido de nuevo, {teacherAlias}! 👋</Text>
-              <Text className="mt-2 text-[14px] text-[#B7C4D7]">
-                Aquí tienes el estado de tus cursos, clases y estudiantes.
-              </Text>
-              <View className="mt-5 flex-row flex-wrap gap-3">
-                <QuickActionButton icon="add-circle-outline" label="Crear curso" onPress={() => router.push('/(teacher)/create-subject' as any)} />
-                <QuickActionButton icon="person-add-outline" label="Importar alumnos" onPress={() => router.push(subjects[0] ? `/(teacher)/subject/${subjects[0].id}?tab=students` as any : '/(teacher)/students' as any)} />
-                <QuickActionButton icon="help-circle-outline" label="Crear pregunta" onPress={() => router.push(subjects[0] ? `/(teacher)/subject/add-question?subjectId=${subjects[0].id}` as any : '/(teacher)/create-subject' as any)} />
-                <QuickActionButton icon="people-outline" label="Ver estudiantes" onPress={() => router.push('/(teacher)/students' as any)} />
-              </View>
-            </View>
-
-            <View className="flex-row items-center gap-3">
-              <NotificationBadge
-                audience="teacher"
-                onPress={() => router.push('/(teacher)/notifications' as any)}
-              />
-              <TeacherHeaderAvatar />
-            </View>
+          <TeacherPageHeader
+            icon="home"
+            isDesktop={isDesktop}
+            title={`¡Bienvenido de nuevo, ${teacherAlias}!`}
+            mobileTitle="Inicio"
+            subtitle="Aquí tienes el estado de tus cursos, clases y estudiantes."
+            notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
+          />
+          <View className="mb-7 flex-row flex-wrap gap-3">
+            <QuickActionButton icon="add-circle-outline" label="Crear curso" onPress={() => router.push('/(teacher)/create-subject' as any)} />
+            <QuickActionButton icon="person-add-outline" label="Importar alumnos" onPress={() => router.push(subjects[0] ? `/(teacher)/subject/${subjects[0].id}?tab=students` as any : '/(teacher)/students' as any)} />
+            <QuickActionButton icon="help-circle-outline" label="Crear pregunta" onPress={() => router.push(subjects[0] ? `/(teacher)/subject/add-question?subjectId=${subjects[0].id}` as any : '/(teacher)/create-subject' as any)} />
+            <QuickActionButton icon="people-outline" label="Ver estudiantes" onPress={() => router.push('/(teacher)/students' as any)} />
           </View>
 
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
@@ -485,20 +476,12 @@ function MobileTeacherHome({
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
         showsVerticalScrollIndicator={false}
       >
-        <MobileHeader
+        <TeacherPageHeader
+          icon="home"
+          isDesktop={false}
           title="Inicio"
           subtitle="Decide qué necesita atención ahora."
-          icon="home"
-          iconColor="#F4F0FF"
-          iconBackgroundColor="#6D47F6"
-          right={(
-            <>
-              <NotificationBadge audience="teacher" />
-              <TeacherHeaderAvatar />
-            </>
-          )}
           className="mb-6"
-          titleNumberOfLines={1}
         />
 
         <LinearGradient

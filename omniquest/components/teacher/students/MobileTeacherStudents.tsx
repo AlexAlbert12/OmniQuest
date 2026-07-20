@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import NotificationBadge from '../../NotificationBadge';
-import TeacherHeaderAvatar from '../TeacherHeaderAvatar';
+import TeacherPageHeader from '../TeacherPageHeader';
 import { withAlpha } from '../../../lib/color';
 import {
   statusFilterOptions,
@@ -18,7 +17,7 @@ import {
 } from './types';
 import { NoActivityQuickActions } from './TeacherStudentList';
 import { formatRelativeDate, getInitials, getStatusMeta } from './studentUtils';
-import { MobileEmptyState, MobileHeader, MobileMetricCard, MobileScreen, MobileSectionHeader } from '../../ui/mobile';
+import { MobileEmptyState, MobileMetricCard, MobileScreen, MobileSectionHeader } from '../../ui/mobile';
 import TeacherBottomNav from '../TeacherBottomNav';
 
 const MOBILE_STUDENTS_PAGE_SIZE = 5;
@@ -116,20 +115,13 @@ export default function MobileTeacherStudents({
       bottomNav={<TeacherBottomNav active="students" />}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
     >
-      <MobileHeader
+      <TeacherPageHeader
+        icon="people"
+        isDesktop={false}
         title="Mis alumnos"
         subtitle="Prioriza quién necesita atención hoy."
-        icon="people"
-        iconColor="#F4F0FF"
-        iconBackgroundColor="#6D47F6"
-        right={(
-          <>
-            <NotificationBadge audience="teacher" onPress={onNotifications} />
-            <TeacherHeaderAvatar />
-          </>
-        )}
+        notificationOnPress={onNotifications}
         className="mb-5"
-        titleNumberOfLines={1}
       />
 
       <View className="mb-5 flex-row gap-3">

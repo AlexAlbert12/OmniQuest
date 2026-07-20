@@ -18,8 +18,7 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { getTimeAgo } from '../../../lib/time'
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav'
-import NotificationBadge from '../../../components/NotificationBadge'
-import TeacherHeaderAvatar from '../../../components/teacher/TeacherHeaderAvatar'
+import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader'
 import { exportCsvFile, formatExportDateTime, slugifyFilename } from '../../../lib/reportExports'
 
 type QuestionDetail = {
@@ -508,26 +507,14 @@ export default function TeacherQuestionReportScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
-            <View className="min-w-[280px] flex-1">
-              <Pressable onPress={() => router.back()} className="mb-4 flex-row items-center gap-2">
-                <Ionicons name="arrow-back" size={18} color="#AFC2DB" />
-                <Text className="text-[13px] font-bold text-[#AFC2DB]">Volver</Text>
-              </Pressable>
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="analytics" size={40} color="#9FD6FF" />
-                <Text className="text-[38px] font-black text-white">Informe de pregunta</Text>
-              </View>
-              <Text className="mt-2 max-w-[780px] text-[13px] leading-5 text-[#B7C4D7]">
-                Revisa intentos, alumnos afectados, tasa de fallo y edita rápidamente la pregunta si detectas problemas.
-              </Text>
-            </View>
-
-            <View className="flex-row items-center gap-3">
-              <NotificationBadge audience="teacher" onPress={() => router.push('/(teacher)/notifications' as any)} />
-              <TeacherHeaderAvatar />
-            </View>
-          </View>
+          <TeacherPageHeader
+            backAction={{ label: 'Volver', onPress: () => router.back() }}
+            icon="analytics"
+            isDesktop={isDesktop}
+            title="Informe de pregunta"
+            subtitle="Revisa intentos, alumnos afectados, tasa de fallo y edita rápidamente la pregunta si detectas problemas."
+            notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
+          />
 
           {errorMessage ? (
             <View className="rounded-2xl border border-[#3F2430] bg-[#160D19] p-5">

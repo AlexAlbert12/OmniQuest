@@ -18,6 +18,7 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout';
 import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty';
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav';
+import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader';
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -269,61 +270,49 @@ export default function TopicDetailScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-5 flex-row flex-wrap items-center justify-between gap-4">
-            <Pressable onPress={() => router.push(`/(teacher)/subject/${subject.id}` as any)} className="flex-row items-center gap-2">
-              <Ionicons name="arrow-back" size={18} color="#8FA7C7" />
-              <Text className="font-semibold text-[#8FA7C7]">{subject.name}</Text>
-            </Pressable>
-
-            <View className="flex-row flex-wrap items-center gap-3">
-              <Pressable
-                onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}` as any)}
-                className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
-              >
-                <Ionicons name="create-outline" size={16} color="#AFC2DB" />
-                <Text className="text-[12px] font-bold text-[#DCE7F8]">Editar tema</Text>
-              </Pressable>
-              <Link
-                href={`/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroom_id ?? ''}&topicId=${topic.id}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`}
-                asChild
-              >
-                <Pressable className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-5 py-3">
-                  <Ionicons name="add" size={16} color="#FFFFFF" />
-                  <Text className="text-[12px] font-bold text-white">Nueva pregunta</Text>
-                </Pressable>
-              </Link>
-            </View>
-          </View>
-
-          <View className="mb-6 flex-row flex-wrap items-center gap-4">
-            <View className="h-20 w-20 items-center justify-center rounded-2xl border border-[#6D5AF6] bg-[#2A1C61]">
-              {topic.icon && !topic.icon.includes('-outline') ? (
-                <Text className="text-[42px]">{topic.icon}</Text>
-              ) : (
-                <Ionicons name="book-outline" size={42} color="#D8B4FE" />
-              )}
-            </View>
-            <View className="min-w-[230px] flex-1">
-              <View className="flex-row items-center gap-2">
-                <Text className="text-[26px] font-black text-white">{topic.title}</Text>
-                <Pressable
-                  onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}` as any)}
-                  className="h-8 w-8 items-center justify-center rounded-lg border border-[#20375E] bg-[#09162C]"
-                >
-                  <Ionicons name="pencil-outline" size={16} color="#8FA7C7" />
-                </Pressable>
+          <TeacherPageHeader
+            backAction={{ label: subject.name, onPress: () => router.push(`/(teacher)/subject/${subject.id}` as any) }}
+            isDesktop={isDesktop}
+            title={topic.title}
+            subtitle={`${topic.description || 'Tema de la clase'} · ${topicQuestions.length} pregunta${topicQuestions.length === 1 ? '' : 's'} · ${scoreValues.length} intento${scoreValues.length === 1 ? '' : 's'} · ${formatTopicDeadline(topic.available_until)}`}
+            titleNumberOfLines={2}
+            subtitleNumberOfLines={3}
+            leading={(
+              <View className="h-20 w-20 items-center justify-center rounded-2xl border border-[#6D5AF6] bg-[#2A1C61]">
+                {topic.icon && !topic.icon.includes('-outline') ? (
+                  <Text className="text-[42px]">{topic.icon}</Text>
+                ) : (
+                  <Ionicons name="book-outline" size={42} color="#D8B4FE" />
+                )}
               </View>
-              <Text className="mt-1 text-[13px] font-semibold text-[#B7C4D7]">
-                {topic.description || 'Tema de la clase'}
-              </Text>
-              <Text className="mt-1 text-[12px] text-[#8FA7C7]">
-                {topicQuestions.length} pregunta{topicQuestions.length === 1 ? '' : 's'} · {scoreValues.length} intento{scoreValues.length === 1 ? '' : 's'}
-              </Text>
-              <Text className="mt-1 text-[12px] font-bold text-[#F6A64A]">
-                {formatTopicDeadline(topic.available_until)}
-              </Text>
-            </View>
-          </View>
+            )}
+            actions={(
+              <>
+                <Pressable
+                  accessibilityLabel="Editar tema"
+                  accessibilityRole="button"
+                  onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}` as any)}
+                  className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
+                >
+                  <Ionicons name="create-outline" size={16} color="#AFC2DB" />
+                  {isDesktop ? <Text className="text-[12px] font-bold text-[#DCE7F8]">Editar tema</Text> : null}
+                </Pressable>
+                <Link
+                  href={`/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroom_id ?? ''}&topicId=${topic.id}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`}
+                  asChild
+                >
+                  <Pressable
+                    accessibilityLabel="Crear nueva pregunta"
+                    accessibilityRole="button"
+                    className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
+                  >
+                    <Ionicons name="add" size={16} color="#FFFFFF" />
+                    {isDesktop ? <Text className="text-[12px] font-bold text-white">Nueva pregunta</Text> : null}
+                  </Pressable>
+                </Link>
+              </>
+            )}
+          />
 
           <View className="mb-5 flex-row flex-wrap gap-4">
             <MetricCard icon="help-circle" label="Preguntas" value={String(topicQuestions.length)} color="#8B5CF6" />

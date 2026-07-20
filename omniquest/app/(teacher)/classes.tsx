@@ -15,11 +15,9 @@ import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
-import NotificationBadge from '../../components/NotificationBadge';
-import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
+import TeacherPageHeader from '../../components/teacher/TeacherPageHeader';
 import { withAlpha } from '../../lib/color';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
-import { MobileHeader } from '../../components/ui/mobile';
 
 type Subject = {
   id: number
@@ -420,32 +418,24 @@ export default function TeacherClassesScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
-            <View className="min-w-[260px] flex-1">
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="book" size={40} color="#9FD6FF" />
-                <Text className="text-[40px] font-black text-white">Mis Cursos</Text>
-              </View>
-              <Text className="mt-2 text-[14px] text-[#B7C4D7]">
-                Gestiona tus cursos, clases, estudiantes y actividades.
-              </Text>
-            </View>
-
-            <View className="flex-row items-center gap-3">
+          <TeacherPageHeader
+            icon="book"
+            isDesktop={isDesktop}
+            title="Mis cursos"
+            subtitle="Gestiona tus cursos, clases, estudiantes y actividades."
+            notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
+            actions={(
               <Pressable
+                accessibilityLabel="Crear curso"
+                accessibilityRole="button"
                 onPress={() => router.push('/(teacher)/create-subject' as any)}
                 className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-5 py-3"
               >
                 <Ionicons name="add" size={18} color="#FFFFFF" />
                 <Text className="font-bold text-white">Crear curso</Text>
               </Pressable>
-              <NotificationBadge
-                audience="teacher"
-                onPress={() => router.push('/(teacher)/notifications' as any)}
-              />
-              <TeacherHeaderAvatar />
-            </View>
-          </View>
+            )}
+          />
 
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
             <MetricCard icon="school" title="Cursos activos" value={String(subjects.length)} trend={formatWeeklyTrend(subjects.filter((subject) => isAfterDate(subject.created_at, getRecentThresholdDate(7))).length, 'curso nuevo', 'cursos nuevos')} color="#8B5CF6" />
@@ -611,20 +601,12 @@ function MobileTeacherClasses({
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
         showsVerticalScrollIndicator={false}
       >
-        <MobileHeader
+        <TeacherPageHeader
+          icon="book"
+          isDesktop={false}
           title="Mis cursos"
           subtitle="Gestiona cursos, clases y próximas acciones."
-          icon="book"
-          iconColor="#F4F0FF"
-          iconBackgroundColor="#6D47F6"
-          right={(
-            <>
-              <NotificationBadge audience="teacher" />
-              <TeacherHeaderAvatar />
-            </>
-          )}
           className="mb-7"
-          titleNumberOfLines={1}
         />
 
         <View className="mb-5 flex-row flex-wrap gap-3">

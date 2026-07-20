@@ -18,8 +18,7 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import { accuracyToGrade, answersToAccuracyPercent } from '../../lib/grades';
 import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
-import NotificationBadge from '../../components/NotificationBadge';
-import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
+import TeacherPageHeader from '../../components/teacher/TeacherPageHeader';
 import {
   statusFilterOptions,
   sortOptions,
@@ -821,25 +820,14 @@ export default function TeacherStudentsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
-            <View className="min-w-[260px] flex-1">
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="people" size={isDesktop ? 40 : 34} color="#9FD6FF" />
-                <Text className={`${isDesktop ? 'text-[40px]' : 'text-[32px]'} flex-shrink font-black text-white`} numberOfLines={1}>Estudiantes</Text>
-              </View>
-              <Text className="mt-2 text-[13px] text-[#B7C4D7]">
-                Gestiona tus alumnos por curso, clase, actividad y necesidades de refuerzo.
-              </Text>
-            </View>
-
-            <View className="flex-row items-center gap-3">
-              <NotificationBadge
-                audience="teacher"
-                onPress={() => router.push('/(teacher)/notifications' as any)}
-              />
-              <TeacherHeaderAvatar />
-            </View>
-          </View>
+          <TeacherPageHeader
+            icon="people"
+            isDesktop={isDesktop}
+            title="Estudiantes"
+            mobileTitle="Mis alumnos"
+            subtitle="Gestiona tus alumnos por curso, clase, actividad y necesidades de refuerzo."
+            notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
+          />
 
           <View className="mb-4 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
             <ScrollView

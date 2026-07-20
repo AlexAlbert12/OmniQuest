@@ -1,0 +1,152 @@
+import type { ReactNode } from 'react'
+import { Pressable, Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import NotificationBadge from '../NotificationBadge'
+import StudentHeaderAvatar from '../student/StudentHeaderAvatar'
+import TeacherHeaderAvatar from '../teacher/TeacherHeaderAvatar'
+
+export type PageHeaderRole = 'student' | 'teacher'
+export type PageHeaderIcon = keyof typeof Ionicons.glyphMap
+export type PageHeaderActionsPosition = 'auto' | 'top' | 'below'
+
+export type RolePageHeaderProps = {
+  /** Controls the notification destination and avatar rendered by default. */
+  role: PageHeaderRole
+  /** Extra controls rendered before notifications and avatar. */
+  actions?: ReactNode
+  /** `auto` keeps actions on top on desktop and below the title on mobile. */
+  actionsPosition?: PageHeaderActionsPosition
+  /** Optional back navigation rendered above the title on detail/form screens. */
+  backAction?: {
+    label?: string
+    onPress: () => void
+  }
+  className?: string
+  /** Ionicons icon displayed beside the title. Omit it when `leading` is provided. */
+  icon?: PageHeaderIcon
+  iconColor?: string
+  /** Pass the screen breakpoint so the shared component keeps deterministic typography. */
+  isDesktop: boolean
+  /** Replaces the default icon with any custom leading visual. */
+  leading?: ReactNode
+  /** Optional shorter title used on mobile. */
+  mobileTitle?: string
+  notificationCount?: number
+  notificationOnPress?: () => void
+  showAvatar?: boolean
+  showNotifications?: boolean
+  showStreak?: boolean
+  subtitle?: string
+  subtitleNumberOfLines?: number
+  title: string
+  titleNumberOfLines?: number
+}
+
+/**
+ * Shared page header for authenticated student and teacher screens.
+ *
+ * The visual language is based on the student Ranking screen: a lightweight
+ * icon, strong title, supporting copy, and a consistent actions area. Role
+ * wrappers provide defaults without duplicating the layout.
+ */
+export default function RolePageHeader({
+  role,
+  actions,
+  actionsPosition = 'auto',
+  backAction,
+  className = '',
+  icon,
+  iconColor = '#9FD6FF',
+  isDesktop,
+  leading,
+  mobileTitle,
+  notificationCount,
+  notificationOnPress,
+  showAvatar = true,
+  showNotifications = true,
+  showStreak = false,
+  subtitle,
+  subtitleNumberOfLines = 2,
+  title,
+  titleNumberOfLines = 1,
+}: RolePageHeaderProps) {
+  const displayTitle = !isDesktop && mobileTitle ? mobileTitle : title
+  const Avatar = role === 'teacher' ? TeacherHeaderAvatar : StudentHeaderAvatar
+  const actionsOnTop = Boolean(actions) && (actionsPosition === 'top' || (actionsPosition === 'auto' && isDesktop))
+  const actionsBelow = Boolean(actions) && (actionsPosition === 'below' || (actionsPosition === 'auto' && !isDesktop))
+  const showTopControls = actionsOnTop || showNotifications || showAvatar
+
+  return (
+    <View className={`mb-6 ${className}`}>
+      <View className="flex-row items-start justify-between gap-4">
+        <View className="min-w-0 flex-1">
+          {backAction ? (
+            <Pressable
+              accessibilityLabel={backAction.label || 'Volver'}
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={backAction.onPress}
+              className="mb-3 flex-row items-center gap-2 self-start rounded-xl border border-[#20375E] bg-[#09162C] px-3 py-2"
+              style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+            >
+              <Ionicons name="arrow-back" size={16} color="#DDE7F4" />
+              {backAction.label ? (
+                <Text className="text-[12px] font-bold text-[#DDE7F4]">{backAction.label}</Text>
+              ) : null}
+            </Pressable>
+          ) : null}
+
+          <View className="flex-row items-center gap-3">
+            {leading ?? (icon ? (
+              <Ionicons
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                name={icon}
+                size={isDesktop ? 40 : 30}
+                color={iconColor}
+              />
+            ) : null)}
+
+            <Text
+              accessibilityRole="header"
+              className={`${isDesktop ? 'text-[40px] leading-[46px]' : 'text-[30px] leading-[36px]'} min-w-0 flex-1 font-black text-white`}
+              numberOfLines={titleNumberOfLines}
+            >
+              {displayTitle}
+            </Text>
+          </View>
+
+          {subtitle ? (
+            <Text
+              className="mt-1 max-w-[780px] text-[13px] leading-5 text-[#9BAEC9]"
+              numberOfLines={subtitleNumberOfLines}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+
+        {showTopControls ? (
+          <View className="flex-row items-center gap-3">
+            {actionsOnTop ? actions : null}
+            {showNotifications ? (
+              <NotificationBadge
+                audience={role}
+                count={notificationCount}
+                onPress={notificationOnPress}
+                showStreak={showStreak}
+              />
+            ) : null}
+            {showAvatar ? <Avatar /> : null}
+          </View>
+        ) : null}
+      </View>
+
+      {actionsBelow ? (
+        <View className="mt-4 flex-row flex-wrap items-center justify-end gap-3">
+          {actions}
+        </View>
+      ) : null}
+    </View>
+  )
+}

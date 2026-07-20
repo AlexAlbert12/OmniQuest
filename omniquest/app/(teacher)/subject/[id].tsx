@@ -21,6 +21,7 @@ import {
 } from '../../../lib/teacherSubjectAnalytics';
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav';
+import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader';
 import TeacherStudentImportModal from '../../../components/teacher/TeacherStudentImportModal';
 import { GradeDistributionBars, SubjectPanel as Panel, type IconName } from '../../../components/teacher/subject/SubjectShared';
 import { SubjectQuestionsPanel, SubjectQuestionsTab } from '../../../components/teacher/subject/SubjectQuestionsTab';
@@ -628,51 +629,49 @@ export default function SubjectDetailScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-5 flex-row flex-wrap items-center justify-between gap-4">
-            <Pressable onPress={() => router.push('/(teacher)/classes' as any)} className="flex-row items-center gap-2">
-              <Ionicons name="arrow-back" size={18} color="#8FA7C7" />
-              <Text className="font-semibold text-[#8FA7C7]">Cursos</Text>
-            </Pressable>
-
-            <View className="flex-row flex-wrap items-center gap-3">
-              <Pressable onPress={handleClassMenu} className="rounded-xl border border-[#20375E] bg-[#09162C] p-3">
-                <Ionicons name="ellipsis-horizontal" size={19} color="#C4D0E3" />
-              </Pressable>
-              <Pressable
-                onPress={() => showAlert('Código del curso', `Comparte este código con tus alumnos: ${currentSubject.code}`)}
-                className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
-              >
-                <Ionicons name="share-social-outline" size={16} color="#AFC2DB" />
-                <Text className="text-[12px] font-bold text-[#DCE7F8]">Compartir código</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => router.push(`/(teacher)/edit-subject?id=${currentSubject.id}` as any)}
-                className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-5 py-3"
-              >
-                <Ionicons name="create-outline" size={16} color="#FFFFFF" />
-                <Text className="text-[12px] font-bold text-white">Editar curso</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View className="mb-6 flex-row flex-wrap items-center gap-4">
-            <View className={`${isDesktop ? 'h-20 w-20' : 'h-16 w-16'} items-center justify-center rounded-2xl border border-[#6D5AF6] bg-[#2A1C61]`}>
-              <Ionicons name={iconForSubject(currentSubject.icon)} size={isDesktop ? 42 : 34} color="#D8B4FE" />
-            </View>
-            <View className="min-w-[230px] flex-1">
-              <View className="flex-row items-center gap-2">
-                <Text className={`${isDesktop ? 'text-[26px]' : 'text-[24px]'} min-w-0 flex-1 font-black text-white`} numberOfLines={2}>{currentSubject.name}</Text>
-                <Ionicons name="pencil-outline" size={16} color="#8FA7C7" />
+          <TeacherPageHeader
+            backAction={{ label: 'Cursos', onPress: () => router.push('/(teacher)/classes' as any) }}
+            isDesktop={isDesktop}
+            title={currentSubject.name}
+            subtitle={`${currentSubject.description || 'Curso sin descripción'} · Código: ${currentSubject.code} · ${classrooms.length} clase${classrooms.length === 1 ? '' : 's'} · Clase activa: ${selectedClassroom?.name || 'Sin clase'} · Creado ${formatDate(currentSubject.created_at)}`}
+            titleNumberOfLines={2}
+            subtitleNumberOfLines={3}
+            leading={(
+              <View className={`${isDesktop ? 'h-20 w-20' : 'h-16 w-16'} items-center justify-center rounded-2xl border border-[#6D5AF6] bg-[#2A1C61]`}>
+                <Ionicons name={iconForSubject(currentSubject.icon)} size={isDesktop ? 42 : 34} color="#D8B4FE" />
               </View>
-              <Text className="mt-1 text-[13px] font-semibold text-[#B7C4D7]">
-                {currentSubject.description || 'Curso sin descripción'} · Código del curso:{' '}
-                <Text className="font-mono text-[#A78BFA]">{currentSubject.code}</Text>
-              </Text>
-              <Text className="mt-1 text-[12px] text-[#8FA7C7]">
-                {classrooms.length} clase{classrooms.length === 1 ? '' : 's'} · Clase activa: {selectedClassroom?.name || 'Sin clase'} · Creado {formatDate(currentSubject.created_at)}
-              </Text>
-            </View>
-          </View>
+            )}
+            actions={(
+              <>
+                <Pressable
+                  accessibilityLabel="Abrir acciones del curso"
+                  accessibilityRole="button"
+                  onPress={handleClassMenu}
+                  className="rounded-xl border border-[#20375E] bg-[#09162C] p-3"
+                >
+                  <Ionicons name="ellipsis-horizontal" size={19} color="#C4D0E3" />
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Compartir código del curso"
+                  accessibilityRole="button"
+                  onPress={() => showAlert('Código del curso', `Comparte este código con tus alumnos: ${currentSubject.code}`)}
+                  className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
+                >
+                  <Ionicons name="share-social-outline" size={16} color="#AFC2DB" />
+                  {isDesktop ? <Text className="text-[12px] font-bold text-[#DCE7F8]">Compartir código</Text> : null}
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Editar curso"
+                  accessibilityRole="button"
+                  onPress={() => router.push(`/(teacher)/edit-subject?id=${currentSubject.id}` as any)}
+                  className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
+                >
+                  <Ionicons name="create-outline" size={16} color="#FFFFFF" />
+                  {isDesktop ? <Text className="text-[12px] font-bold text-white">Editar curso</Text> : null}
+                </Pressable>
+              </>
+            )}
+          />
 
           <Panel title="Clases del curso">
             <ScrollView

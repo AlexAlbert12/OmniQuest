@@ -17,7 +17,7 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { getTimeAgo } from '../../lib/time'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
-import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar'
+import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 import OmniGuide from '../../components/OmniGuide'
 
@@ -159,41 +159,42 @@ export default function NotificationsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
-            <View className="min-w-[280px] flex-1">
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="notifications" size={38} color="#9FD6FF" />
-                <Text className="text-[38px] font-black text-white">Centro de Notificaciones</Text>
-              </View>
-              <Text className="mt-2 text-[14px] text-[#B7C4D7]">
-                {unreadCount > 0
-                  ? `Tienes ${unreadCount} notificación${unreadCount === 1 ? '' : 'es'} sin leer`
-                  : 'Todas las notificaciones están al día'}
-              </Text>
-            </View>
-
-            <View className="flex-row flex-wrap items-center gap-3">
-              <Pressable
-                onPress={() => void onRefresh()}
-                className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
-                style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-              >
-                <Ionicons name="refresh-outline" size={16} color="#AFC2DB" />
-                <Text className="text-[12px] font-bold text-[#DDE7F4]">Actualizar</Text>
-              </Pressable>
-              {unreadCount > 0 ? (
+          <TeacherPageHeader
+            icon="notifications"
+            isDesktop={isDesktop}
+            title="Centro de notificaciones"
+            mobileTitle="Notificaciones"
+            subtitle={unreadCount > 0
+              ? `Tienes ${unreadCount} notificación${unreadCount === 1 ? '' : 'es'} sin leer`
+              : 'Todas las notificaciones están al día'}
+            showNotifications={false}
+            actions={(
+              <>
                 <Pressable
-                  onPress={() => void markAllAsRead()}
-                  className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
+                  accessibilityLabel="Actualizar notificaciones"
+                  accessibilityRole="button"
+                  onPress={() => void onRefresh()}
+                  className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
                   style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
                 >
-                  <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
-                  <Text className="text-[12px] font-bold text-white">Marcar todo leído</Text>
+                  <Ionicons name="refresh-outline" size={16} color="#AFC2DB" />
+                  <Text className="text-[12px] font-bold text-[#DDE7F4]">Actualizar</Text>
                 </Pressable>
-              ) : null}
-              <TeacherHeaderAvatar />
-            </View>
-          </View>
+                {unreadCount > 0 ? (
+                  <Pressable
+                    accessibilityLabel="Marcar todas las notificaciones como leídas"
+                    accessibilityRole="button"
+                    onPress={() => void markAllAsRead()}
+                    className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+                  >
+                    <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
+                    <Text className="text-[12px] font-bold text-white">Marcar todo leído</Text>
+                  </Pressable>
+                ) : null}
+              </>
+            )}
+          />
 
           <View className={isWide ? 'mb-5 flex-row gap-4' : 'mb-5 gap-4'}>
             {categoryStats.map((category) => (

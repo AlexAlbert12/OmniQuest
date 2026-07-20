@@ -1,6 +1,6 @@
 import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
-import { Link } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -22,6 +22,7 @@ type MobileBottomNavigationProps<Key extends string> = {
 const NAV_BACKGROUND = '#050E1F'
 const NAV_BORDER = '#20395F'
 const INACTIVE_COLOR = '#9FB2CC'
+const ICON_SIZE = 26
 
 export default function MobileBottomNavigation<Key extends string>({
   activeKey,
@@ -29,33 +30,35 @@ export default function MobileBottomNavigation<Key extends string>({
   items,
   scrollable = false,
 }: MobileBottomNavigationProps<Key>) {
+  const router = useRouter()
+
   const navigationItems = items.map((item) => {
     const isActive = item.key === activeKey
-    const content = (
+
+    return (
       <Pressable
+        key={item.key}
         accessibilityLabel={item.label}
         accessibilityRole="tab"
         accessibilityState={{ selected: isActive }}
         disabled={isActive}
-        hitSlop={6}
+        hitSlop={4}
+        onPress={() => router.push(item.href as never)}
         style={({ pressed }) => [
           styles.item,
           scrollable ? styles.scrollableItem : styles.flexItem,
-          isActive && { backgroundColor: `${accentColor}1F` },
           pressed && !isActive && styles.pressedItem,
         ]}
       >
-        <View
-          style={[
-            styles.activeIndicator,
-            { backgroundColor: isActive ? accentColor : 'transparent' },
-          ]}
-        />
-        <Ionicons
-          name={isActive ? item.activeIcon : item.icon}
-          size={22}
-          color={isActive ? accentColor : INACTIVE_COLOR}
-        />
+        <View style={styles.iconShell}>
+          <Ionicons
+            name={isActive ? item.activeIcon : item.icon}
+            size={ICON_SIZE}
+            color={isActive ? accentColor : INACTIVE_COLOR}
+            style={styles.icon}
+          />
+        </View>
+
         <Text
           numberOfLines={1}
           style={[
@@ -66,16 +69,6 @@ export default function MobileBottomNavigation<Key extends string>({
           {item.label}
         </Text>
       </Pressable>
-    )
-
-    if (isActive) {
-      return <React.Fragment key={item.key}>{content}</React.Fragment>
-    }
-
-    return (
-      <Link key={item.key} href={item.href as any} asChild>
-        {content}
-      </Link>
     )
   })
 
@@ -111,68 +104,69 @@ const styles = StyleSheet.create({
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -6 },
-        shadowOpacity: 0.28,
-        shadowRadius: 14,
+        shadowOffset: { width: 0, height: -5 },
+        shadowOpacity: 0.24,
+        shadowRadius: 13,
       },
       android: {
-        elevation: 24,
+        elevation: 22,
       },
       default: {
-        boxShadow: '0 -8px 24px rgba(0, 0, 0, 0.34)',
+        boxShadow: '0 -7px 22px rgba(0, 0, 0, 0.32)',
       },
     }),
   },
   navigationSurface: {
-    minHeight: 72,
+    height: 82,
+    width: '100%',
     backgroundColor: NAV_BACKGROUND,
     paddingHorizontal: 8,
-    paddingTop: 7,
-    paddingBottom: 5,
   },
   row: {
-    flex: 1,
+    width: '100%',
+    height: '100%',
     flexDirection: 'row',
-    alignItems: 'stretch',
-    justifyContent: 'space-around',
+    alignItems: 'center',
   },
   scrollContent: {
-    flexGrow: 1,
-    alignItems: 'stretch',
-    justifyContent: 'space-around',
+    minWidth: '100%',
+    height: 82,
+    alignItems: 'center',
+    paddingHorizontal: 2,
     gap: 4,
   },
   item: {
-    minHeight: 58,
+    height: 70,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 16,
-    paddingHorizontal: 5,
-    position: 'relative',
+    paddingHorizontal: 3,
   },
   flexItem: {
     flex: 1,
-    minWidth: 56,
-    maxWidth: 94,
+    minWidth: 0,
   },
   scrollableItem: {
-    minWidth: 72,
+    width: 82,
+    flexShrink: 0,
   },
-  activeIndicator: {
-    position: 'absolute',
-    top: 1,
-    width: 22,
-    height: 3,
-    borderRadius: 999,
+  iconShell: {
+    width: 40,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  icon: {
+    width: 30,
+    textAlign: 'center',
   },
   pressedItem: {
-    opacity: 0.68,
-    transform: [{ scale: 0.97 }],
+    opacity: 0.65,
   },
   label: {
-    marginTop: 4,
-    fontSize: 10.5,
-    lineHeight: 13,
+    width: '100%',
+    marginTop: 2,
+    fontSize: 11.5,
+    lineHeight: 14,
     fontWeight: '800',
     textAlign: 'center',
   },

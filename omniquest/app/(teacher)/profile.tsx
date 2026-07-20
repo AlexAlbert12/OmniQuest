@@ -19,9 +19,8 @@ import { supabase } from '../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
-import NotificationBadge from '../../components/NotificationBadge'
+import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
 import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
-import { MobileHeader } from '../../components/ui/mobile'
 
 type TeacherProfile = {
   id: string
@@ -327,22 +326,13 @@ export default function TeacherProfileScreen() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row items-start justify-between gap-4">
-            <View className="min-w-0 flex-1">
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="person" size={40} color="#9FD6FF" />
-                <Text className="text-[40px] font-black text-white">Perfil</Text>
-              </View>
-
-              <Text className="mt-1 text-[13px] text-[#9BAEC9]">
-                Gestiona tu información docente y revisa tu actividad de clases.
-              </Text>
-            </View>
-
-            <View className="flex-row items-center gap-3">
-              <NotificationBadge audience="teacher" />
-            </View>
-          </View>
+          <TeacherPageHeader
+            icon="person"
+            isDesktop={isDesktop}
+            title="Perfil"
+            subtitle="Gestiona tu información docente y revisa tu actividad de clases."
+            showAvatar={false}
+          />
 
           <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
             <TeacherHero
@@ -506,28 +496,26 @@ function MobileTeacherProfile({
         contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 8 }}
         showsVerticalScrollIndicator={false}
       >
-        <MobileHeader
+        <TeacherPageHeader
+          icon="person"
+          isDesktop={false}
           title="Mi perfil"
           subtitle="Gestiona tu información docente y tu actividad."
-          icon="person"
-          iconColor="#F4F0FF"
-          iconBackgroundColor="#6D47F6"
-          right={(
-            <>
-              <NotificationBadge audience="teacher" onPress={onNotifications} />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Abrir configuración"
-                onPress={onOpenSettings}
-                className="h-11 w-11 items-center justify-center rounded-2xl border border-[#1A3155] bg-[#091A35]"
-                style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-              >
-                <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
-              </Pressable>
-            </>
+          notificationOnPress={onNotifications}
+          showAvatar={false}
+          actionsPosition="top"
+          actions={(
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Abrir configuración"
+              onPress={onOpenSettings}
+              className="h-11 w-11 items-center justify-center rounded-2xl border border-[#1A3155] bg-[#091A35]"
+              style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+            >
+              <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
+            </Pressable>
           )}
           className="mb-7"
-          titleNumberOfLines={1}
         />
 
         <MobileTeacherProfileHero

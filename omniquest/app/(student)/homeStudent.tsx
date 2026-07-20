@@ -7,10 +7,9 @@ import { supabase } from '../../lib/supabase'
 import { getStudentLevel, getNextLevelProgress } from '../../lib/studentLevel'
 import { getTimeAgo } from '../../lib/time'
 import StudentSidebar from '../../components/student/StudentSidebar'
-import NotificationBadge from '../../components/NotificationBadge'
 import { fetchStudentProgressSummary, type StudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
-import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
+import StudentPageHeader from '../../components/student/StudentPageHeader'
 import StudentDashboardCard, { StudentCardLink as CardLink } from '../../components/student/StudentDashboardCard'
 import StudentMetricCard from '../../components/student/StudentMetricCard'
 import StudentActionBanner from '../../components/student/StudentActionBanner'
@@ -20,7 +19,7 @@ import { useAppTheme } from '../../lib/appTheme'
 import { joinClassByInviteCode } from '../../lib/studentClassJoin'
 import { calculateStreakDays } from '../../lib/studentBadges'
 import { getStartOfWeekMonday, getTimeUntilSundayLabel } from '../../lib/weeklyGoal'
-import { MobileEmptyState, MobileHeader, MobileMetricCard, MobileScreen, MobileSectionHeader } from '../../components/ui/mobile'
+import { MobileEmptyState, MobileMetricCard, MobileScreen, MobileSectionHeader } from '../../components/ui/mobile'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 
 type Subject = {
@@ -444,18 +443,12 @@ export default function StudentHome() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row items-start justify-between gap-4">
-            <View className="flex-1">
-              <Text className="text-[40px] font-black text-white">¡Hola, {alias}! 👋</Text>
-              <Text className="mt-1 text-[13px] text-[#9BAEC9]">
-                ¿Listo para seguir aprendiendo y alcanzar tus metas?
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-3">
-              <NotificationBadge />
-              <StudentHeaderAvatar />
-            </View>
-          </View>
+          <StudentPageHeader
+            icon="home"
+            isDesktop={isDesktop}
+            title={`¡Hola, ${alias}!`}
+            subtitle="¿Listo para seguir aprendiendo y alcanzar tus metas?"
+          />
 
           {showGuidedOnboarding ? (
             <StudentMobileOnboardingCard steps={onboardingSteps} className="mb-5" />
@@ -635,22 +628,17 @@ function MobileStudentHome({
       bottomPadding={152}
       bottomNav={<StudentBottomNav active="home" />}
     >
-      <MobileHeader
+      <StudentPageHeader
+        icon="home"
+        isDesktop={false}
         title={`¡Hola, ${alias}!`}
         subtitle="Tu siguiente paso está listo."
-        right={(
-          <>
-            <NotificationBadge />
-            <StudentHeaderAvatar />
-          </>
-        )}
       />
 
       <MobileLevelCard
         level={level}
         points={points}
         nextLevelProgress={nextLevelProgress}
-        className="mt-8"
       />
 
       <MobileReviewCard action={heroAction} failedQuestions={failedQuestions} className="mt-5" />
@@ -706,7 +694,7 @@ function MobileLevelCard({
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
       <View className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-[#5A46D8]/20" />
-      <View className="absolute bottom-2 right-7">
+      <View className="absolute top-2 right-7">
         <OmniGuide state="normal" autoBlink size={88} />
       </View>
 
@@ -716,7 +704,7 @@ function MobileLevelCard({
         </View>
         <View className="min-w-0 flex-1 pr-16">
           <Text className="text-[22px] font-black text-white">Nivel {level}</Text>
-          <Text className="mt-1 text-[16px] text-[#B9C7DA]">Explorador</Text>
+          <Text className="mt-1 text-[16px] text-[#B9C7DA]">Estudiante</Text>
         </View>
       </View>
 

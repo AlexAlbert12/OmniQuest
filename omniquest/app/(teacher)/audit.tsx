@@ -20,9 +20,7 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { getTimeAgo } from '../../lib/time'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
-import NotificationBadge from '../../components/NotificationBadge'
-import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar'
-import { MobileHeader } from '../../components/ui/mobile'
+import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
 
 type TeacherAuditLogRow = {
   id: number
@@ -185,19 +183,17 @@ export default function TeacherAuditScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
-            <View className="min-w-[280px] flex-1">
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="shield-checkmark" size={40} color="#9FD6FF" />
-                <Text className="text-[38px] font-black text-white">Centro de auditoría</Text>
-              </View>
-              <Text className="mt-2 max-w-[760px] text-[14px] leading-5 text-[#B7C4D7]">
-                Revisa las acciones docentes sensibles para explicar trazabilidad: alumnos, preguntas, cursos y códigos.
-              </Text>
-            </View>
-
-            <View className="flex-row items-center gap-3">
+          <TeacherPageHeader
+            icon="shield-checkmark"
+            isDesktop={isDesktop}
+            title="Centro de auditoría"
+            mobileTitle="Auditoría"
+            subtitle="Revisa las acciones docentes sensibles para explicar trazabilidad: alumnos, preguntas, cursos y códigos."
+            notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
+            actions={(
               <Pressable
+                accessibilityLabel="Actualizar auditoría"
+                accessibilityRole="button"
                 onPress={onRefresh}
                 className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
                 style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
@@ -205,10 +201,8 @@ export default function TeacherAuditScreen() {
                 <Ionicons name="refresh-outline" size={16} color="#AFC2DB" />
                 <Text className="text-[12px] font-bold text-[#DDE7F4]">Actualizar</Text>
               </Pressable>
-              <NotificationBadge audience="teacher" onPress={() => router.push('/(teacher)/notifications' as any)} />
-              <TeacherHeaderAvatar />
-            </View>
-          </View>
+            )}
+          />
 
           {errorMessage ? (
             <View className="mb-5 rounded-2xl border border-[#3F2430] bg-[#160D19] p-5">
@@ -346,20 +340,13 @@ function MobileTeacherAudit({
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
         showsVerticalScrollIndicator={false}
       >
-        <MobileHeader
+        <TeacherPageHeader
+          icon="shield-checkmark"
+          isDesktop={false}
           title="Auditoría"
           subtitle="Revisa acciones sensibles y trazabilidad docente."
-          icon="shield-checkmark"
-          iconColor="#F4F0FF"
-          iconBackgroundColor="#6D47F6"
-          right={(
-            <>
-              <NotificationBadge audience="teacher" onPress={onNotifications} />
-              <TeacherHeaderAvatar />
-            </>
-          )}
+          notificationOnPress={onNotifications}
           className="mb-7"
-          titleNumberOfLines={1}
         />
 
         {errorMessage ? (

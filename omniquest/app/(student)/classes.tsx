@@ -17,10 +17,9 @@ import AppConfirmModal from '../../components/AppConfirmModal'
 import { supabase } from '../../lib/supabase'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentSidebar from '../../components/student/StudentSidebar'
-import NotificationBadge from '../../components/NotificationBadge'
 import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
-import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
+import StudentPageHeader from '../../components/student/StudentPageHeader'
 import HomeVisualBackground from '../../components/HomeVisualBackground'
 import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
@@ -300,39 +299,26 @@ export default function ClassesScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View className="mx-auto w-full max-w-[1120px]">
-            <View className="mb-6 flex-row items-start justify-between gap-4">
-              <View className="min-w-0 flex-1">
-                <View className="flex-row items-center gap-3">
-                  <Ionicons name="book" size={isDesktop ? 42 : 36} color="#9FD6FF" />
-                  <Text
-                    className={isDesktop ? 'text-[48px] font-black text-white' : 'text-[38px] font-black leading-[44px] text-white'}
-                    numberOfLines={1}
-                  >
-                    Mis cursos
-                  </Text>
-                </View>
-                <Text
-                  className={isDesktop ? 'mt-2 text-[18px]' : 'mt-3 text-[18px] leading-7'}
-                  style={{ color: '#B8C4E0' }}
-                >
-                  Elige una galaxia para continuar tu viaje.
-                </Text>
-              </View>
-
-              <View className="flex-row items-center gap-3">
-                {isDesktop ? <NotificationBadge /> : null}
-                {isDesktop ? <StudentHeaderAvatar /> : null}
+            <StudentPageHeader
+              icon="book"
+              isDesktop={isDesktop}
+              title="Mis cursos"
+              subtitle="Elige una galaxia para continuar tu viaje."
+              showNotifications={isDesktop}
+              showAvatar={isDesktop}
+              actionsPosition="top"
+              actions={(
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={showMobileFilters ? 'Ocultar filtros de cursos' : 'Mostrar filtros de cursos'}
                   onPress={() => setShowMobileFilters((value) => !value)}
-                  className="h-16 w-16 items-center justify-center rounded-[22px] border border-[#33405A] bg-[#1A2335]/90"
+                  className="h-12 w-12 items-center justify-center rounded-2xl border border-[#33405A] bg-[#1A2335]"
                   style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
                 >
-                  <Ionicons name={showMobileFilters ? 'close' : 'options'} size={28} color="#C7D5F2" />
+                  <Ionicons name={showMobileFilters ? 'close' : 'options'} size={24} color="#C7D5F2" />
                 </Pressable>
-              </View>
-            </View>
+              )}
+            />
 
             <View className={isDesktop ? 'mb-8 flex-row gap-4' : 'mb-7 flex-row gap-3'}>
               <MobileMetricCard

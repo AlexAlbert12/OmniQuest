@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import TeacherBottomNav from './TeacherBottomNav';
+import TeacherPageHeader from './TeacherPageHeader';
 import {
   generateUniqueClassCode,
   isClassCodeAvailable,
@@ -256,20 +257,16 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isWide ? 20 : MOBILE_BOTTOM_NAV_SPACER }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pb-5 pt-4 md:px-6 lg:px-8">
           <View className="rounded-[18px] border border-[#0E4A8B] bg-[#061735] p-4 md:p-6">
-            <View className="flex-row items-start gap-3">
-              <Pressable
-                onPress={() => router.back()}
-                className="h-12 w-12 items-center justify-center rounded-full border border-[#28456B] bg-[#0A2042]"
-              >
-                <Ionicons name="arrow-back" size={22} color="#DDE7F4" />
-              </Pressable>
-              <View className="min-w-0 flex-1">
-                <Text className="text-[36px] font-black text-white">{isEdit ? 'Editar Curso' : 'Nuevo Curso'}</Text>
-                <Text className="mt-1 text-[14px] text-[#AFC2DB]">
-                  Crea un nuevo curso y comienza a añadir clases, contenido y alumnos.
-                </Text>
-              </View>
-            </View>
+            <TeacherPageHeader
+              backAction={{ label: 'Volver', onPress: () => router.back() }}
+              icon={isEdit ? 'create-outline' : 'add-circle-outline'}
+              isDesktop={isWide}
+              title={isEdit ? 'Editar curso' : 'Nuevo curso'}
+              subtitle="Crea un curso y comienza a añadir clases, contenido y alumnos."
+              showNotifications={false}
+              showAvatar={false}
+              className="mb-0"
+            />
 
             <View className={`mt-5 gap-4 ${isWide ? 'flex-row' : ''}`}>
               <View className={`${isWide ? 'flex-[1.65]' : ''}`}>

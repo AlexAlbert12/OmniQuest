@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import TeacherPageHeader from './TeacherPageHeader';
 import { supabase } from '../../lib/supabase';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import TeacherBottomNav from './TeacherBottomNav';
@@ -213,20 +214,16 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isWide ? 20 : MOBILE_BOTTOM_NAV_SPACER }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pb-5 pt-4 md:px-6 lg:px-8">
           <View className="rounded-[18px] border border-[#0E4A8B] bg-[#061735] p-4 md:p-6">
-            <View className="flex-row items-start gap-3">
-              <Pressable
-                onPress={() => router.back()}
-                className="h-12 w-12 items-center justify-center rounded-full border border-[#28456B] bg-[#0A2042]"
-              >
-                <Ionicons name="arrow-back" size={22} color="#DDE7F4" />
-              </Pressable>
-              <View className="min-w-0 flex-1">
-                <Text className="text-[36px] font-black text-white">Editar Tema</Text>
-                <Text className="mt-1 text-[14px] text-[#AFC2DB]">
-                  Ajusta la información del tema y cómo aparece dentro de la clase.
-                </Text>
-              </View>
-            </View>
+            <TeacherPageHeader
+              backAction={{ label: 'Volver', onPress: () => router.back() }}
+              icon="create-outline"
+              isDesktop={isWide}
+              title="Editar tema"
+              subtitle="Ajusta la información del tema y cómo aparece dentro de la clase."
+              showNotifications={false}
+              showAvatar={false}
+              className="mb-0"
+            />
 
             <View className={`mt-5 gap-4 ${isWide ? 'flex-row' : ''}`}>
               <View className={`${isWide ? 'flex-[1.65]' : ''}`}>

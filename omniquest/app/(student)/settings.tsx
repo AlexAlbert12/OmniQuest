@@ -7,15 +7,12 @@ import {
   View,
 } from 'react-native'
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 import AppConfirmModal from '../../components/AppConfirmModal'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
-import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar'
-import NotificationBadge from '../../components/NotificationBadge'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
-import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
+import RolePageHeader from '../../components/ui/RolePageHeader'
 import { DestructiveConfirmModal } from '../../components/settings/SettingsDangerZone'
 import { SettingsMenu } from '../../components/settings/SettingsUi'
 import StudentSettingsSections from '../../components/settings/StudentSettingsSections'
@@ -146,32 +143,17 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
               paddingTop: isDesktop ? 24 : 18,
             }}
           >
-            <View className="mb-4 flex-row flex-wrap items-start justify-between gap-4">
-              <View className="min-w-[260px] flex-1">
-
-                <View className="flex-row items-center gap-3">
-                  <Ionicons name={securityOnly ? 'lock-closed' : 'settings'} size={40} color="#9FD6FF" />
-                  <Text className={`${isDesktop ? 'text-[40px]' : 'text-[32px]'} flex-shrink font-black text-white`} numberOfLines={1}>
-                    {securityOnly ? 'Seguridad' : 'Configuración'}
-                  </Text>
-                </View>
-
-                <Text className="mt-2 text-[13px] text-[#B7C4D7]">
-                  {securityOnly
-                    ? 'Gestiona acceso, contraseña y acciones críticas de tu cuenta.'
-                    : `Personaliza tu experiencia y controla tu cuenta de ${data.isTeacher ? 'profesor' : 'alumno'}.`}
-                </Text>
-              </View>
-
-              <View className="flex-row items-center gap-3">
-                <NotificationBadge
-                  audience={data.isTeacher ? 'teacher' : 'student'}
-                  onPress={() => router.push(roleRoute(data.isTeacher, ROUTES.teacherNotifications, ROUTES.studentNotifications))}
-                />
-                {data.isTeacher ? <TeacherHeaderAvatar /> : null}
-                {!data.isTeacher ? <StudentHeaderAvatar /> : null}
-              </View>
-            </View>
+            <RolePageHeader
+              role={data.isTeacher ? 'teacher' : 'student'}
+              icon={securityOnly ? 'lock-closed' : 'settings'}
+              isDesktop={isDesktop}
+              title={securityOnly ? 'Seguridad' : 'Configuración'}
+              subtitle={securityOnly
+                ? 'Gestiona acceso, contraseña y acciones críticas de tu cuenta.'
+                : `Personaliza tu experiencia y controla tu cuenta de ${data.isTeacher ? 'profesor' : 'alumno'}.`}
+              notificationOnPress={() => router.push(roleRoute(data.isTeacher, ROUTES.teacherNotifications, ROUTES.studentNotifications))}
+              className="mb-4"
+            />
 
             {!securityOnly && settingsMenuVariant !== 'side' ? (
               <SettingsMenu

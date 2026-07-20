@@ -18,8 +18,7 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../../../lib/mobileLayout'
 import { getTimeAgo } from '../../../../lib/time'
 import TeacherSidebar from '../../../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../../../components/teacher/TeacherBottomNav'
-import NotificationBadge from '../../../../components/NotificationBadge'
-import TeacherHeaderAvatar from '../../../../components/teacher/TeacherHeaderAvatar'
+import TeacherPageHeader from '../../../../components/teacher/TeacherPageHeader'
 import { exportCsvFile, formatExportDateTime, slugifyFilename } from '../../../../lib/reportExports'
 
 type IconName = keyof typeof Ionicons.glyphMap
@@ -588,31 +587,19 @@ export default function TeacherStudentHistoryScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
-            <View className="min-w-[260px] flex-1">
-              <Pressable onPress={goBackToStudents} className="mb-4 flex-row items-center gap-2 self-start rounded-xl border border-[#20375E] bg-[#07162E] px-3 py-2">
-                <Ionicons name="arrow-back" size={16} color="#DDE7F4" />
-                <Text className="text-[12px] font-bold text-[#DDE7F4]">Volver a estudiantes</Text>
-              </Pressable>
-              <View className="flex-row items-center gap-3">
-                <View className="h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-[#17315E]">
-                  <Text className="text-[18px] font-black text-white">{getInitials(studentName)}</Text>
-                </View>
-                <View className="min-w-0 flex-1">
-                  <Text className="text-[36px] font-black text-white" numberOfLines={2}>{studentName}</Text>
-                  <Text className="mt-1 text-[13px] text-[#B7C4D7]" numberOfLines={2}>{headerSubtitle}</Text>
-                </View>
+          <TeacherPageHeader
+            backAction={{ label: 'Volver a estudiantes', onPress: goBackToStudents }}
+            isDesktop={isDesktop}
+            title={studentName}
+            subtitle={headerSubtitle}
+            titleNumberOfLines={2}
+            notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
+            leading={(
+              <View className="h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-[#17315E]">
+                <Text className="text-[18px] font-black text-white">{getInitials(studentName)}</Text>
               </View>
-            </View>
-
-            <View className="flex-row items-center gap-3">
-              <NotificationBadge
-                audience="teacher"
-                onPress={() => router.push('/(teacher)/notifications' as any)}
-              />
-              <TeacherHeaderAvatar />
-            </View>
-          </View>
+            )}
+          />
 
           {errorMessage ? (
             <View className="rounded-2xl border border-[#4A2B1A] bg-[#21140A] p-5">

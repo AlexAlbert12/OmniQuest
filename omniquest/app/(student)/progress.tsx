@@ -13,7 +13,6 @@ import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
-import NotificationBadge from '../../components/NotificationBadge'
 import {
   buildStudentBadges,
   getStudentBadgeMetrics,
@@ -23,7 +22,7 @@ import {
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
-import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
+import StudentPageHeader from '../../components/student/StudentPageHeader'
 import StudentDashboardCard from '../../components/student/StudentDashboardCard'
 import StudentEmptyState from '../../components/student/StudentEmptyState'
 import OmniGuide, { type OmniState } from '../../components/OmniGuide'
@@ -293,22 +292,12 @@ export default function ProgressScreen() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row items-start justify-between gap-4">
-            <View className="min-w-0 flex-1">
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="stats-chart" size={isDesktop ? 40 : 34} color="#9FD6FF" />
-                <Text className={`${isDesktop ? 'text-[40px]' : 'text-[32px]'} flex-shrink font-black text-white`} numberOfLines={1}>Progreso</Text>
-              </View>
-              <Text className="mt-1 text-[13px] text-[#9BAEC9]">
-                Analiza tu aprendizaje y sigue mejorando cada día.
-              </Text>
-            </View>
-
-            <View className="flex-row items-center gap-3">
-              <NotificationBadge />
-              <StudentHeaderAvatar />
-            </View>
-          </View>
+          <StudentPageHeader
+            icon="stats-chart"
+            isDesktop={isDesktop}
+            title="Progreso"
+            subtitle="Analiza tu aprendizaje y sigue mejorando cada día."
+          />
 
           <View className={isDesktop ? 'flex-row flex-wrap items-stretch justify-between gap-4' : 'gap-4'}>
             <ProgressOverviewCard
@@ -490,24 +479,12 @@ function MobileStudentProgress({
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-8 flex-row items-center justify-between">
-          <View className="flex-row items-center gap-3">
-            <NotificationBadge />
-            <StudentHeaderAvatar />
-          </View>
-        </View>
-
-        <View className="mb-5 flex-row items-center gap-3">
-          <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#7C3AED]">
-            <Ionicons name="stats-chart" size={27} color="#FFFFFF" />
-          </View>
-          <View className="min-w-0 flex-1">
-            <Text className="text-[32px] font-black leading-[36px] text-white" numberOfLines={1}>Progreso</Text>
-            <Text className="mt-1 text-[15px] leading-5 text-[#B7C4D7]" numberOfLines={2}>
-              Sigue aprendiendo cada día.
-            </Text>
-          </View>
-        </View>
+        <StudentPageHeader
+          icon="stats-chart"
+          isDesktop={false}
+          title="Progreso"
+          subtitle="Sigue aprendiendo cada día."
+        />
 
         <MobileProgressHero
           level={level}

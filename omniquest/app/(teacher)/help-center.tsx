@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
+import TeacherPageHeader from '../../components/teacher/TeacherPageHeader';
 import OmniGuide from '../../components/OmniGuide';
 
 type TicketPriority = 'low' | 'medium' | 'high';
@@ -214,20 +215,13 @@ export default function TeacherHelpCenterScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-5 flex-row items-center justify-between gap-3">
-          <View className="flex-row items-center gap-3">
-            <Pressable
-              onPress={() => router.back()}
-              className="h-11 w-11 items-center justify-center rounded-xl border border-[#20375E] bg-[#09162C]"
-            >
-              <Ionicons name="arrow-back" size={20} color="#DDE7F4" />
-            </Pressable>
-            <View>
-              <Text className="text-[34px] font-black text-white">Centro de ayuda</Text>
-              <Text className="mt-1 text-[12px] text-[#AFC2DB]">FAQ, contacto y tickets de soporte.</Text>
-            </View>
-          </View>
-        </View>
+        <TeacherPageHeader
+          backAction={{ label: 'Volver', onPress: () => router.back() }}
+          icon="help-circle-outline"
+          isDesktop={isDesktop}
+          title="Centro de ayuda"
+          subtitle="FAQ, contacto y tickets de soporte."
+        />
 
         <View className="mb-5 flex-row items-center gap-3 rounded-2xl border border-[#173056] bg-[#07162D] px-4 py-3">
           <OmniGuide state="normal" autoBlink size={56} />

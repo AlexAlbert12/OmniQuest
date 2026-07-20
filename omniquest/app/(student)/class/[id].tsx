@@ -16,8 +16,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../../lib/supabase'
 import { difficultyOptions, getDifficultyMeta, normalizeDifficulty, type DifficultyLevel } from '../../../lib/difficulty'
-import NotificationBadge from '../../../components/NotificationBadge'
-import StudentHeaderAvatar from '../../../components/student/StudentHeaderAvatar'
+import StudentPageHeader from '../../../components/student/StudentPageHeader'
 import StudentBottomNav from '../../../components/student/StudentBottomNav'
 import OmniGuide, { type OmniState } from '../../../components/OmniGuide'
 import { withAlpha } from '../../../lib/color'
@@ -431,67 +430,49 @@ export default function StudentClassDetailScreen() {
       >
         <GalaxyScreenBackground height={Math.max(2500, topics.length * 320 + 1280)} />
         <View className="mx-auto w-full max-w-[1080px]">
-          <View className="mb-8 flex-row items-center justify-between gap-4">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Volver a mis cursos"
-              onPress={() => router.back()}
-              className="h-16 w-16 items-center justify-center rounded-[22px] bg-[#494151]/90"
-              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-            >
-              <Ionicons name="chevron-back" size={32} color="#FFFFFF" />
-            </Pressable>
-
-            <View className="flex-row items-center gap-5">
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="flame" size={25} color="#FF7A3D" />
-                <Text className="text-[22px] font-black text-white">{totals.failed}</Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="diamond" size={25} color="#59C7FF" />
-                <Text className="text-[22px] font-black text-white">{totals.earnedXp.toLocaleString()}</Text>
-              </View>
-              {isDesktop ? <NotificationBadge audience="student" /> : null}
-              {isDesktop ? <StudentHeaderAvatar /> : null}
-            </View>
-          </View>
-
-          <View className="mb-8 flex-row items-center gap-5">
-            <View className={isDesktop ? 'h-[116px] w-[116px]' : 'h-[88px] w-[88px]'}>
-              <View className="absolute -inset-2 rounded-full bg-[#17132E]/70" />
-              <LinearGradient
-                colors={[withAlpha(color, 'FF'), '#F59E0B', '#8A3518']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className="h-full w-full items-center justify-center rounded-full border-4"
-                style={{ borderColor: withAlpha(color, 'CC') }}
-              >
-                {subject.icon ? (
-                  getValidIoniconName(subject.icon) ? (
-                    <Ionicons name={getValidIoniconName(subject.icon) || 'book'} size={isDesktop ? 48 : 36} color="#FFFFFF" />
+          <StudentPageHeader
+            backAction={{ label: 'Mis cursos', onPress: () => router.back() }}
+            isDesktop={isDesktop}
+            title={subject.name}
+            subtitle={`${totals.progress}% avance · ${totals.failed} ${totals.failed === 1 ? 'fallo pendiente' : 'fallos pendientes'}${classroom ? ` · ${classroom.name}` : ''}`}
+            titleNumberOfLines={2}
+            showNotifications={isDesktop}
+            showAvatar={isDesktop}
+            leading={(
+              <View className={isDesktop ? 'h-20 w-20' : 'h-16 w-16'}>
+                <View className="absolute -inset-1 rounded-full bg-[#17132E]/70" />
+                <LinearGradient
+                  colors={[withAlpha(color, 'FF'), '#F59E0B', '#8A3518']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  className="h-full w-full items-center justify-center rounded-full border-4"
+                  style={{ borderColor: withAlpha(color, 'CC') }}
+                >
+                  {subject.icon ? (
+                    getValidIoniconName(subject.icon) ? (
+                      <Ionicons name={getValidIoniconName(subject.icon) || 'book'} size={isDesktop ? 34 : 28} color="#FFFFFF" />
+                    ) : (
+                      <Text className={isDesktop ? 'text-[32px]' : 'text-[26px]'}>{subject.icon}</Text>
+                    )
                   ) : (
-                    <Text className={isDesktop ? 'text-[46px]' : 'text-[34px]'}>{subject.icon}</Text>
-                  )
-                ) : (
-                  <Ionicons name="book" size={isDesktop ? 48 : 36} color="#FFFFFF" />
-                )}
-              </LinearGradient>
-            </View>
-
-            <View className="min-w-0 flex-1">
-              <Text className={isDesktop ? 'text-[44px] font-black text-white' : 'text-[34px] font-black leading-[40px] text-white'} numberOfLines={2}>
-                {subject.name}
-              </Text>
-              <Text className={isDesktop ? 'mt-2 text-[18px] text-[#C0CAE2]' : 'mt-2 text-[17px] leading-6 text-[#C0CAE2]'}>
-                {totals.progress}% avance · {totals.failed} {totals.failed === 1 ? 'fallo pendiente' : 'fallos pendientes'}
-              </Text>
-              {classroom ? (
-                <Text className="mt-1 text-[13px] font-bold text-[#9F8BDA]" numberOfLines={1}>
-                  {classroom.name}{classroom.academic_year ? ` · ${classroom.academic_year}` : ''}
-                </Text>
-              ) : null}
-            </View>
-          </View>
+                    <Ionicons name="book" size={isDesktop ? 34 : 28} color="#FFFFFF" />
+                  )}
+                </LinearGradient>
+              </View>
+            )}
+            actions={(
+              <View className="flex-row items-center gap-4">
+                <View className="flex-row items-center gap-2">
+                  <Ionicons name="flame" size={22} color="#FF7A3D" />
+                  <Text className="text-[18px] font-black text-white">{totals.failed}</Text>
+                </View>
+                <View className="flex-row items-center gap-2">
+                  <Ionicons name="diamond" size={22} color="#59C7FF" />
+                  <Text className="text-[18px] font-black text-white">{totals.earnedXp.toLocaleString()}</Text>
+                </View>
+              </View>
+            )}
+          />
 
           <View className="mb-9 flex-row items-center gap-4 rounded-[28px] border border-[#34384E] bg-[#171A2A]/90 px-5 py-5">
             <View className="min-w-0 flex-1">

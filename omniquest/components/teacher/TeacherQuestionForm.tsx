@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import TeacherPageHeader from './TeacherPageHeader';
 import { supabase } from '../../lib/supabase';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import { difficultyOptions, getDifficultyMeta, normalizeDifficulty, type DifficultyLevel } from '../../lib/difficulty';
@@ -503,17 +504,16 @@ export default function TeacherQuestionForm({
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isDesktop ? 24 : MOBILE_BOTTOM_NAV_SPACER }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pb-6 pt-5 md:px-6 lg:px-8">
           <View className="rounded-[20px] border border-[#1A3155] bg-[#061735] px-4 py-5 md:px-6">
-            <View className="flex-row items-start justify-between gap-3">
-              <View className="flex-row items-start gap-3">
-                <Pressable onPress={() => router.back()} className="h-12 w-12 items-center justify-center rounded-xl border border-[#2A4369] bg-[#0A1D3F]">
-                  <Ionicons name="close" size={22} color="#DDE7F4" />
-                </Pressable>
-                <View className="min-w-0">
-                  <Text className="text-[30px] font-black text-white">{isEdit ? 'Editar Pregunta' : 'Nueva Pregunta'}</Text>
-                  <Text className="mt-1 text-[14px] text-[#9FB3D1]">Crea preguntas atractivas para tus alumnos</Text>
-                </View>
-              </View>
-            </View>
+            <TeacherPageHeader
+              backAction={{ label: 'Cerrar', onPress: () => router.back() }}
+              icon={isEdit ? 'create-outline' : 'help-circle-outline'}
+              isDesktop={isDesktop}
+              title={isEdit ? 'Editar pregunta' : 'Nueva pregunta'}
+              subtitle="Crea preguntas atractivas para tus alumnos."
+              showNotifications={false}
+              showAvatar={false}
+              className="mb-0"
+            />
 
             <View className="mt-7 flex-row items-center">
               {wizardSteps.map((step, index) => (

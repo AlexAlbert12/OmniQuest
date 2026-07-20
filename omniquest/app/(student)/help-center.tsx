@@ -14,8 +14,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
-import NotificationBadge from '../../components/NotificationBadge'
-import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
+import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { formatRelativeDate } from '../../lib/dateFormat'
 import OmniGuide from '../../components/OmniGuide'
 
@@ -215,24 +214,13 @@ export default function StudentHelpCenterScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-5 flex-row items-center justify-between gap-3">
-          <View className="flex-row items-center gap-3">
-            <Pressable
-              onPress={() => router.back()}
-              className="h-11 w-11 items-center justify-center rounded-xl border border-[#20375E] bg-[#09162C]"
-            >
-              <Ionicons name="arrow-back" size={20} color="#DDE7F4" />
-            </Pressable>
-            <View>
-              <Text className="text-[34px] font-black text-white">Centro de ayuda</Text>
-              <Text className="mt-1 text-[12px] text-[#AFC2DB]">FAQ, contacto y tickets de soporte.</Text>
-            </View>
-          </View>
-          <View className="flex-row items-center gap-3">
-            <NotificationBadge />
-            <StudentHeaderAvatar />
-          </View>
-        </View>
+        <StudentPageHeader
+          backAction={{ label: 'Volver', onPress: () => router.back() }}
+          icon="help-circle-outline"
+          isDesktop={isDesktop}
+          title="Centro de ayuda"
+          subtitle="FAQ, contacto y tickets de soporte."
+        />
 
         <View className="mb-5 flex-row items-center gap-3 rounded-2xl border border-[#173056] bg-[#07162D] px-4 py-3">
           <OmniGuide state="normal" autoBlink size={62} />
