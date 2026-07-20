@@ -1,54 +1,78 @@
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import NotificationBadge from '../NotificationBadge'
 import StudentHeaderAvatar from './StudentHeaderAvatar'
 
 type StudentPageHeaderProps = {
+  /** Additional controls rendered before notifications and avatar. */
   actions?: ReactNode
+  /** Ionicons icon displayed beside the title. */
   icon: keyof typeof Ionicons.glyphMap
   iconColor?: string
+  /** Controls the desktop typography without reading window size internally. */
   isDesktop: boolean
+  /** Optional shorter title used on mobile. */
   mobileTitle?: string
+  /** Hides the avatar for screens where it would be redundant. */
+  showAvatar?: boolean
+  /** Hides the notifications shortcut when the screen provides its own one. */
+  showNotifications?: boolean
   subtitle: string
   title: string
-  variant?: 'default' | 'compact'
 }
 
+/**
+ * Shared student page heading based on the Ranking screen layout.
+ *
+ * It keeps icon, title, subtitle, notifications and avatar aligned in the same
+ * way across mobile and desktop student screens. Screen-specific controls can
+ * be injected through `actions` without duplicating the header structure.
+ */
 export default function StudentPageHeader({
   actions,
   icon,
   iconColor = '#9FD6FF',
   isDesktop,
   mobileTitle,
+  showAvatar = true,
+  showNotifications = true,
   subtitle,
   title,
-  variant = 'default',
 }: StudentPageHeaderProps) {
   const displayTitle = !isDesktop && mobileTitle ? mobileTitle : title
-  const titleClassName = isDesktop
-    ? 'text-[40px] leading-[46px]'
-    : variant === 'compact'
-      ? 'text-[30px] leading-[35px]'
-      : 'text-[34px] leading-[38px]'
 
   return (
     <View className="mb-6 flex-row items-start justify-between gap-4">
       <View className="min-w-0 flex-1">
         <View className="flex-row items-center gap-3">
-          <View className={!isDesktop ? 'h-12 w-12 items-center justify-center rounded-2xl bg-[#0D1D3B]' : ''}>
-            <Ionicons name={icon} size={isDesktop ? 40 : 30} color={iconColor} />
-          </View>
-          <Text className={`min-w-0 flex-1 font-black text-white ${titleClassName}`} numberOfLines={2}>{displayTitle}</Text>
+          <Ionicons
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name={icon}
+            size={isDesktop ? 40 : 30}
+            color={iconColor}
+          />
+          <Text
+            accessibilityRole="header"
+            className={`${isDesktop ? 'text-[40px] leading-[46px]' : 'text-[30px] leading-[36px]'} min-w-0 flex-1 font-black text-white`}
+            numberOfLines={1}
+          >
+            {displayTitle}
+          </Text>
         </View>
-        <Text className="mt-1 text-[13px] leading-5 text-[#9BAEC9]" numberOfLines={2}>{subtitle}</Text>
+        <Text className="mt-1 text-[13px] leading-5 text-[#9BAEC9]" numberOfLines={2}>
+          {subtitle}
+        </Text>
       </View>
 
-      <View className="flex-row items-center gap-3">
-        {actions}
-        <NotificationBadge />
-        <StudentHeaderAvatar />
-      </View>
+      {actions || showNotifications || showAvatar ? (
+        <View className="flex-row items-center gap-3">
+          {actions}
+          {showNotifications ? <NotificationBadge /> : null}
+          {showAvatar ? <StudentHeaderAvatar /> : null}
+        </View>
+      ) : null}
     </View>
   )
 }

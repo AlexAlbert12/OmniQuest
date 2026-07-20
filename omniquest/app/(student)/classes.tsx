@@ -21,10 +21,11 @@ import NotificationBadge from '../../components/NotificationBadge'
 import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
+import HomeVisualBackground from '../../components/HomeVisualBackground'
 import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { joinClassByInviteCode } from '../../lib/studentClassJoin'
-import { CourseGalaxyMap, GalaxyScreenBackground } from '../../components/student/galaxy/StudentGalaxyMap'
+import { CourseGalaxyMap } from '../../components/student/galaxy/StudentGalaxyMap'
 
 type Profile = {
   id: string
@@ -64,6 +65,7 @@ const studentClassSorts: { id: ClassSort; label: string }[] = [
 
 export default function ClassesScreen() {
   const { width } = useWindowDimensions()
+  const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [progressBySubject, setProgressBySubject] = useState<Record<string, StudentProgressSubject>>({})
@@ -262,16 +264,20 @@ export default function ClassesScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color={accentColor} />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando tus cursos...</Text>
+      <View className="flex-1 bg-[#010611]">
+        <HomeVisualBackground isDesktop={isDesktop} />
+        <View className="z-10 flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={accentColor} />
+          <Text className="mt-4" style={{ color: '#B8C4E0' }}>Cargando tus cursos...</Text>
+        </View>
       </View>
     )
   }
 
   return (
-    <View className="flex-1 bg-[#030713]">
-      <View className="flex-1 flex-row">
+    <View className="flex-1 bg-[#010611]">
+      <HomeVisualBackground isDesktop={isDesktop} />
+      <View className="z-10 flex-1 flex-row">
         {isDesktop ? (
           <StudentSidebar
             activeSection="classes"
@@ -293,14 +299,22 @@ export default function ClassesScreen() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <GalaxyScreenBackground height={Math.max(2400, classRows.length * 390 + 980)} />
           <View className="mx-auto w-full max-w-[1120px]">
             <View className="mb-6 flex-row items-start justify-between gap-4">
               <View className="min-w-0 flex-1">
-                <Text className={isDesktop ? 'text-[48px] font-black text-white' : 'text-[40px] font-black leading-[46px] text-white'}>
-                  Mis cursos
-                </Text>
-                <Text className={isDesktop ? 'mt-2 text-[18px] text-[#B8C4E0]' : 'mt-3 text-[18px] leading-7 text-[#B8C4E0]'}>
+                <View className="flex-row items-center gap-3">
+                  <Ionicons name="book" size={isDesktop ? 42 : 36} color="#9FD6FF" />
+                  <Text
+                    className={isDesktop ? 'text-[48px] font-black text-white' : 'text-[38px] font-black leading-[44px] text-white'}
+                    numberOfLines={1}
+                  >
+                    Mis cursos
+                  </Text>
+                </View>
+                <Text
+                  className={isDesktop ? 'mt-2 text-[18px]' : 'mt-3 text-[18px] leading-7'}
+                  style={{ color: '#B8C4E0' }}
+                >
                   Elige una galaxia para continuar tu viaje.
                 </Text>
               </View>

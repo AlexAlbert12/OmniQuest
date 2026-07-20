@@ -12,7 +12,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.alexalbert.omniquest"
     },
-    
     "android": {
       "package": "com.alexalbert.omniquest",
       "adaptiveIcon": {
@@ -21,7 +20,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -54,6 +53,10 @@
       "eas": {
         "projectId": "a101ffdd-7979-4835-a6cc-de59b847591b"
       }
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#050E1F",
+      "barStyle": "light-content"
     }
   }
 }

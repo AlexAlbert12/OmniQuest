@@ -33,7 +33,11 @@ const sparseHomeStars = [
 
 export default function HomeVisualBackground({ isDesktop }: { isDesktop: boolean }) {
   return (
-    <View className="absolute inset-0 overflow-hidden" style={{ backgroundColor: finalHomeBackground.base }}>
+    <View
+      pointerEvents="none"
+      className="absolute inset-0 overflow-hidden"
+      style={{ backgroundColor: finalHomeBackground.base }}
+    >
       <LinearGradient
         colors={[
           finalHomeBackground.gradientStart,

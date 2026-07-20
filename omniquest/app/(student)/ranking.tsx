@@ -13,9 +13,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentSidebar from '../../components/student/StudentSidebar'
-import NotificationBadge from '../../components/NotificationBadge'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
-import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
+import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { withAlpha } from '../../lib/color'
@@ -258,21 +257,12 @@ export default function RankingScreen() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mb-6 flex-row items-start justify-between gap-4">
-            <View className="min-w-0 flex-1">
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="trophy" size={isDesktop ? 40 : 30} color="#9FD6FF" />
-                <Text className={`${isDesktop ? 'text-[40px]' : 'text-[30px] leading-[36px]'} min-w-0 flex-1 font-black text-white`} numberOfLines={1}>Ranking</Text>
-              </View>
-              <Text className="mt-1 text-[13px] text-[#9BAEC9]">
-                Compite, aprende y sube posiciones.
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-3">
-              <NotificationBadge />
-              <StudentHeaderAvatar />
-            </View>
-          </View>
+          <StudentPageHeader
+            icon="trophy"
+            isDesktop={isDesktop}
+            subtitle="Compite, aprende y sube posiciones."
+            title="Ranking"
+          />
 
           {!isDesktop ? (
             <View className="gap-4">

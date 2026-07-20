@@ -27,7 +27,6 @@ import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentDashboardCard from '../../components/student/StudentDashboardCard'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
-import NotificationBadge from '../../components/NotificationBadge'
 import { formatLongDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
@@ -430,35 +429,12 @@ function MobileStudentProfile({
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 2 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mb-7 flex-row items-center justify-between">
-          <View className="flex-row items-center gap-3">
-            <NotificationBadge />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Abrir configuración"
-              onPress={onOpenSettings}
-              className="h-11 w-11 items-center justify-center rounded-2xl border border-[#1A3155] bg-[#091A35]"
-              style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-            >
-              <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
-            </Pressable>
-          </View>
-        </View>
-
-        <View className="mb-5 flex-row items-center gap-3">
-          <View
-            className="h-[52px] w-[52px] items-center justify-center rounded-2xl"
-            style={{ backgroundColor: withAlpha(accentColor, 'D9') }}
-          >
-            <Ionicons name="person" size={30} color="#FFFFFF" />
-          </View>
-          <View className="min-w-0 flex-1">
-            <Text className="text-[38px] font-black leading-[42px] text-white" numberOfLines={1}>Perfil</Text>
-            <Text className="mt-1 text-[15px] leading-5 text-[#C7D3E5]" numberOfLines={2}>
-              Tu identidad, nivel y logros en OmniQuest.
-            </Text>
-          </View>
-        </View>
+        <StudentPageHeader
+          icon="person"
+          isDesktop={false}
+          subtitle="Tu identidad, nivel y logros en OmniQuest."
+          title="Perfil"
+        />
 
         <MobileProfileHero
           accentColor={accentColor}

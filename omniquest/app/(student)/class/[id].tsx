@@ -2,9 +2,11 @@ import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   useWindowDimensions,
   View,
@@ -739,70 +741,149 @@ function DifficultyChooser({
   onClose: () => void
   topic: Topic | null
 }) {
-  if (!topic) return null
-
   return (
-    <View className="absolute inset-0 items-center justify-center bg-black/70 px-5">
-      <Pressable className="absolute inset-0" onPress={onClose} />
-      <View className="w-full max-w-[560px] rounded-2xl border border-[#244166] bg-[#081832] p-5">
-        <View className="flex-row items-start justify-between gap-4">
-          <View className="min-w-0 flex-1">
-            <Text className="text-[12px] font-black uppercase tracking-[0.08em]" style={{ color }}>Elige dificultad</Text>
-            <Text className="mt-2 text-[24px] font-black text-white">{topic.title}</Text>
-            <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">
-              Este tema tiene varias versiones. Jugarás solo las preguntas de la dificultad seleccionada.
-            </Text>
-          </View>
-          <Pressable onPress={onClose} className="h-10 w-10 items-center justify-center rounded-xl border border-[#20375E] bg-[#0D1D3B]">
-            <Ionicons name="close" size={18} color="#AFC2DB" />
-          </Pressable>
-        </View>
+    <Modal
+      visible={Boolean(topic)}
+      transparent
+      animationType="fade"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View
+        accessibilityViewIsModal
+        style={difficultyModalStyles.root}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar selector de dificultad"
+          onPress={onClose}
+          style={StyleSheet.absoluteFill}
+        />
 
-        <View className="mt-5 gap-3">
-          {topic.difficulties.map((stats) => {
-            const meta = getDifficultyMeta(stats.difficulty)
-            const pending = Math.max(0, stats.questionsCount - stats.answeredQuestions)
-            const action = stats.answeredQuestions === 0 ? 'Empezar' : pending > 0 ? 'Continuar' : 'Repetir'
-            return (
-              <Pressable
-                key={stats.difficulty}
-                onPress={() => onChoose(stats.difficulty, false)}
-                className="flex-row flex-wrap items-center gap-4 rounded-xl border p-4"
-                style={{ borderColor: `${meta.color}88`, backgroundColor: `${meta.color}18` }}
-              >
-                <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${meta.color}24` }}>
-                  <Ionicons name="layers-outline" size={22} color={meta.color} />
-                </View>
-                <View className="min-w-[180px] flex-1">
-                  <Text className="text-[16px] font-black text-white">{meta.label}</Text>
-                  <Text className="mt-1 text-[12px] text-[#AFC2DB]">
-                    {stats.questionsCount} preguntas · {stats.answeredQuestions} respondidas · {stats.failedQuestions} falladas
-                  </Text>
-                </View>
-                <View className="flex-row flex-wrap items-center gap-2">
-                  {stats.failedQuestions > 0 ? (
-                    <Pressable
-                      onPress={(event) => {
-                        event.stopPropagation?.()
-                        onChoose(stats.difficulty, true)
-                      }}
-                      className="rounded-lg border border-[#FB718566] bg-[#FB718514] px-4 py-2"
-                    >
-                      <Text className="font-black text-[#FDB4C0]">Repasar fallos</Text>
-                    </Pressable>
-                  ) : null}
-                  <View className="rounded-lg px-4 py-2" style={{ backgroundColor: meta.color }}>
-                    <Text className="font-black text-white">{action}</Text>
+        <View pointerEvents="box-none" style={difficultyModalStyles.contentFrame}>
+          <ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            style={difficultyModalStyles.panel}
+            contentContainerStyle={difficultyModalStyles.panelContent}
+          >
+            {topic ? (
+              <>
+                <View className="flex-row items-start justify-between gap-4">
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-[12px] font-black uppercase tracking-[0.08em]" style={{ color }}>Elige dificultad</Text>
+                    <Text className="mt-2 text-[24px] font-black text-white">{topic.title}</Text>
+                    <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">
+                      Este tema tiene varias versiones. Jugarás solo las preguntas de la dificultad seleccionada.
+                    </Text>
                   </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Cerrar selector de dificultad"
+                    onPress={onClose}
+                    hitSlop={8}
+                    className="h-10 w-10 items-center justify-center rounded-xl border border-[#20375E] bg-[#0D1D3B]"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
+                  >
+                    <Ionicons name="close" size={18} color="#AFC2DB" />
+                  </Pressable>
                 </View>
-              </Pressable>
-            )
-          })}
+
+                <View className="mt-5 gap-3">
+                  {topic.difficulties.map((stats) => {
+                    const meta = getDifficultyMeta(stats.difficulty)
+                    const pending = Math.max(0, stats.questionsCount - stats.answeredQuestions)
+                    const action = stats.answeredQuestions === 0 ? 'Empezar' : pending > 0 ? 'Continuar' : 'Repetir'
+                    return (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${meta.label}. ${stats.questionsCount} preguntas. ${action}`}
+                        key={stats.difficulty}
+                        onPress={() => onChoose(stats.difficulty, false)}
+                        className="flex-row flex-wrap items-center gap-4 rounded-xl border p-4"
+                        style={({ pressed }) => ({
+                          borderColor: `${meta.color}88`,
+                          backgroundColor: `${meta.color}18`,
+                          opacity: pressed ? 0.82 : 1,
+                        })}
+                      >
+                        <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${meta.color}24` }}>
+                          <Ionicons name="layers-outline" size={22} color={meta.color} />
+                        </View>
+                        <View className="min-w-[180px] flex-1">
+                          <Text className="text-[16px] font-black text-white">{meta.label}</Text>
+                          <Text className="mt-1 text-[12px] text-[#AFC2DB]">
+                            {stats.questionsCount} preguntas · {stats.answeredQuestions} respondidas · {stats.failedQuestions} falladas
+                          </Text>
+                        </View>
+                        <View className="flex-row flex-wrap items-center gap-2">
+                          {stats.failedQuestions > 0 ? (
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={`Repasar fallos de dificultad ${meta.label}`}
+                              onPress={(event) => {
+                                event.stopPropagation?.()
+                                onChoose(stats.difficulty, true)
+                              }}
+                              className="rounded-lg border border-[#FB718566] bg-[#FB718514] px-4 py-2"
+                              style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
+                            >
+                              <Text className="font-black text-[#FDB4C0]">Repasar fallos</Text>
+                            </Pressable>
+                          ) : null}
+                          <View className="rounded-lg px-4 py-2" style={{ backgroundColor: meta.color }}>
+                            <Text className="font-black text-white">{action}</Text>
+                          </View>
+                        </View>
+                      </Pressable>
+                    )
+                  })}
+                </View>
+              </>
+            ) : null}
+          </ScrollView>
         </View>
       </View>
-    </View>
+    </Modal>
   )
 }
+
+const difficultyModalStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: 'rgba(1, 5, 15, 0.88)',
+    zIndex: 9999,
+    elevation: 9999,
+  },
+  contentFrame: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 32,
+  },
+  panel: {
+    flexGrow: 0,
+    width: '100%',
+    maxWidth: 560,
+    maxHeight: '100%',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#244166',
+    backgroundColor: '#081832',
+    shadowColor: '#000000',
+    shadowOpacity: 0.55,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 18 },
+    elevation: 30,
+  },
+  panelContent: {
+    padding: 20,
+  },
+})
 
 function getTopicActionLabel(topic: Topic) {
   if (topic.questionsCount === 0) return 'Sin preguntas'
