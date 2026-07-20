@@ -305,3 +305,5 @@ grant execute on function public.get_admin_profiles_page(text, text, bigint, big
 grant execute on function public.get_admin_subjects_page(text, uuid, boolean, integer, integer) to authenticated;
 grant execute on function public.get_admin_classrooms_page(text, bigint, uuid, integer, integer) to authenticated;
 grant execute on function public.get_admin_enrollments_summary() to authenticated;
+
+notify pgrst, 'reload schema';
