@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   Text,
@@ -16,6 +15,7 @@ import { useGame } from '../../../hooks/useGame'
 import { getDifficultyMeta, normalizeDifficulty } from '../../../lib/difficulty'
 import type { Json } from '../../../types/database.types'
 import { createShadowStyle } from '../../../lib/platformShadow'
+import { useI18n } from '../../../lib/i18n'
 import GameShell from '../../../components/student/game/GameShell'
 import ResultState from '../../../components/student/game/GameResultState'
 import { BottomHud, GameStatsBar, LivesBadge, TimerPill } from '../../../components/student/game/GameHud'
@@ -63,6 +63,7 @@ export default function PlayScreen() {
   const { id, topicId, topicName, review, classroomId, difficulty } = useLocalSearchParams<{ id: string; topicId?: string; topicName?: string; review?: string; classroomId?: string; difficulty?: string }>()
   const { width } = useWindowDimensions()
   const router = useRouter()
+  const { t } = useI18n()
   const reviewMode = Array.isArray(review) ? review[0] : review
   const selectedClassroomId = Array.isArray(classroomId) ? classroomId[0] : classroomId
   const selectedDifficulty = Array.isArray(difficulty) ? difficulty[0] : difficulty
@@ -101,6 +102,26 @@ export default function PlayScreen() {
           <OmniGuide state="blink" size={116} />
           <Text className="mt-4 text-[#B8C7E0]">Omni está preparando la pregunta...</Text>
         </View>
+      </GameShell>
+    )
+  }
+
+  if (game.status === 'error') {
+    return (
+      <GameShell>
+        <ResultState
+          icon={game.isOffline ? 'cloud-offline-outline' : 'warning-outline'}
+          iconColor={game.isOffline ? '#FBBF24' : '#FB7185'}
+          omniState="error"
+          title={game.isOffline ? 'No hay conexión' : 'No se pudo cargar la partida'}
+          detail={game.isOffline
+            ? 'Conéctate a Internet para iniciar una partida nueva. Las partidas ya iniciadas se recuperan automáticamente.'
+            : game.loadError || 'Vuelve a intentarlo en unos segundos.'}
+          action={t('common.retry')}
+          onPress={game.retryLoadGame}
+          secondaryAction={t('common.back')}
+          onSecondaryPress={() => router.back()}
+        />
       </GameShell>
     )
   }
@@ -216,6 +237,9 @@ export default function PlayScreen() {
         <View className="flex-1">
           <View className="flex-row items-center gap-3">
             <Pressable
+              accessibilityLabel={t('common.close')}
+              accessibilityRole="button"
+              hitSlop={8}
               onPress={() => router.back()}
               className="h-12 w-12 items-center justify-center rounded-2xl border border-[#20375E] bg-[#08172E]"
               style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
@@ -245,6 +269,15 @@ export default function PlayScreen() {
               </View>
             </View>
           </View>
+
+          {game.isOffline || game.pendingAnswer || game.resumedFromSnapshot ? (
+            <GameConnectionBanner
+              isOffline={game.isOffline}
+              pending={Boolean(game.pendingAnswer)}
+              resumed={game.resumedFromSnapshot}
+              onRetry={game.retryPendingAnswer}
+            />
+          ) : null}
 
           {isDesktop ? <GameStatsBar points={pointsBase} streak={game.streak} position={position} category={category} lives={game.lives} /> : null}
 
@@ -301,7 +334,7 @@ export default function PlayScreen() {
                     correctAnswerId={game.correctAnswerId}
                     hintedAnswerId={game.hintedAnswerId}
                     hasAnswered={game.hasAnswered}
-                    isSubmitting={game.isSubmitting}
+                    isSubmitting={game.isSubmitting || Boolean(game.pendingAnswer)}
                     answerStatus={game.answerStatus}
                     onChoiceAnswer={game.submitAnswer}
                     onStructuredAnswer={game.submitStructuredAnswer}
@@ -315,7 +348,7 @@ export default function PlayScreen() {
             </View>
           </View>
 
-          {!game.hasAnswered && !game.isSubmitting && !game.feedback ? (
+          {!game.hasAnswered && !game.isSubmitting && !game.pendingAnswer && !game.feedback ? (
             <BottomHud onHint={handleHint} onSkip={handleSkip} />
           ) : null}
         </View>
@@ -969,6 +1002,51 @@ function PairingQuestion({
 
       {!hasAnswered ? (
         <SubmitAnswerButton disabled={isSubmitting || !isReady} onPress={handleSubmit} />
+      ) : null}
+    </View>
+  )
+}
+
+function GameConnectionBanner({
+  isOffline,
+  pending,
+  resumed,
+  onRetry,
+}: {
+  isOffline: boolean
+  pending: boolean
+  resumed: boolean
+  onRetry: () => void
+}) {
+  const { t } = useI18n()
+  const color = isOffline ? '#F59E0B' : pending ? '#60A5FA' : '#34D399'
+  const icon = isOffline ? 'cloud-offline-outline' : pending ? 'sync-outline' : 'refresh-circle-outline'
+  const title = isOffline ? t('offline.banner') : pending ? t('offline.pending') : t('offline.resumed')
+  const detail = resumed && !pending && !isOffline ? t('offline.resumed.detail') : null
+
+  return (
+    <View
+      accessibilityRole="alert"
+      className="mt-4 flex-row items-center gap-3 rounded-2xl border px-4 py-3"
+      style={{ borderColor: color, backgroundColor: `${color}18` }}
+    >
+      <Ionicons name={icon} size={22} color={color} />
+      <View className="min-w-0 flex-1">
+        <Text className="text-[12px] font-black" style={{ color }}>{title}</Text>
+        {detail ? <Text className="mt-1 text-[11px] text-[#B8C7E0]">{detail}</Text> : null}
+      </View>
+      {pending ? (
+        <Pressable
+          accessibilityLabel={t('common.retry')}
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={onRetry}
+          className="min-h-[42px] flex-row items-center gap-2 rounded-xl px-3"
+          style={({ pressed }) => ({ backgroundColor: `${color}25`, opacity: pressed ? 0.72 : 1 })}
+        >
+          <Ionicons name="refresh" size={17} color={color} />
+          <Text className="text-[11px] font-black" style={{ color }}>{t('common.retry')}</Text>
+        </Pressable>
       ) : null}
     </View>
   )

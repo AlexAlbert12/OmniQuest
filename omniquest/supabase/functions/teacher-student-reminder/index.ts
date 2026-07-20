@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { errorResponse, getPublicErrorMessage, logInternalError, methodNotAllowedResponse, publicError, publicErrorResponse } from '../_shared/errors.ts'
+import { sendExpoPushToUser } from '../_shared/push.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,6 +27,8 @@ type ReminderResult = {
   studentId: string
   email?: string
   sent: boolean
+  emailSent?: boolean
+  pushSent?: boolean
   mode: ReminderMode
   temporaryPassword?: string
   error?: string
@@ -152,13 +155,59 @@ Deno.serve(async (req) => {
           teacherName,
         })
 
+        const notificationTitle = reminderMode === 'credentials'
+          ? 'Tus credenciales se han actualizado'
+          : `Tienes una actividad pendiente en ${subjectName}`
+        const notificationBody = reminderMode === 'credentials'
+          ? `${teacherName} ha generado nuevas credenciales de acceso. Revisa tu correo.`
+          : `${teacherName} te recuerda continuar tu progreso en ${classroomName}.`
+        const actionUrl = enrollment.subject_id
+          ? `/(student)/class/${enrollment.subject_id}${enrollment.classroom_id ? `?classroomId=${enrollment.classroom_id}` : ''}`
+          : '/(student)/classes'
+
+        await adminClient.rpc('create_notification', {
+          p_user_id: studentId,
+          p_audience: 'student',
+          p_type: 'announcement',
+          p_title: notificationTitle,
+          p_description: notificationBody,
+          p_icon: reminderMode === 'credentials' ? 'key-outline' : 'notifications-outline',
+          p_color: '#7C5CFF',
+          p_action_url: actionUrl,
+          p_related_table: 'enrollments',
+          p_related_id: `${studentId}:${enrollment.subject_id}:${enrollment.classroom_id ?? 'general'}`,
+          p_metadata: {
+            teacher_id: teacherId,
+            subject_id: enrollment.subject_id,
+            classroom_id: enrollment.classroom_id,
+            reminder_mode: reminderMode,
+          },
+          p_fingerprint: `teacher-reminder:${teacherId}:${studentId}:${enrollment.subject_id}:${reminderMode}`,
+        })
+
+        const pushDelivery = await sendExpoPushToUser(adminClient, studentId, {
+          title: notificationTitle,
+          body: notificationBody,
+          data: {
+            url: actionUrl,
+            type: 'teacher_reminder',
+            subjectId: enrollment.subject_id,
+            classroomId: enrollment.classroom_id,
+          },
+        })
+
+        const pushSent = pushDelivery.sent > 0
+        const sent = delivery.sent || pushSent
+
         results.push({
           studentId,
           email,
-          sent: delivery.sent,
+          sent,
+          emailSent: delivery.sent,
+          pushSent,
           mode: reminderMode,
           temporaryPassword,
-          error: delivery.sent ? undefined : delivery.error,
+          error: sent ? undefined : delivery.error || pushDelivery.reason || 'No se pudo entregar el recordatorio.',
         })
       } catch (error) {
         const message = getPublicErrorMessage(error, 'No se pudo procesar este alumno.')

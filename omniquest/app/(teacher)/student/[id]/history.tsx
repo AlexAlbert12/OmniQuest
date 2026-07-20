@@ -13,9 +13,11 @@ import {
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../../../components/ui/mobile/MobileMetricCard'
+import PaginationControls from '../../../../components/ui/PaginationControls'
 import { supabase } from '../../../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../../lib/mobileLayout'
 import { getTimeAgo } from '../../../../lib/time'
+import { useAppTheme } from '../../../../lib/appTheme'
 import TeacherSidebar from '../../../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../../../components/teacher/TeacherPageHeader'
@@ -202,11 +204,14 @@ export default function TeacherStudentHistoryScreen() {
   const { id, subjectId, classroomId } = useLocalSearchParams<{ id?: string; subjectId?: string; classroomId?: string }>()
   const router = useRouter()
   const { width } = useWindowDimensions()
+  const { colors } = useAppTheme()
   const [profile, setProfile] = useState<StudentProfile | null>(null)
   const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([])
   const [subjectScores, setSubjectScores] = useState<SubjectScoreRow[]>([])
   const [topicScores, setTopicScores] = useState<TopicScoreRow[]>([])
   const [attempts, setAttempts] = useState<NormalizedAttempt[]>([])
+  const [attemptPage, setAttemptPage] = useState(0)
+  const [attemptTotal, setAttemptTotal] = useState(0)
   const [questions, setQuestions] = useState<QuestionRow[]>([])
   const [subjectsCount, setSubjectsCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -215,6 +220,7 @@ export default function TeacherStudentHistoryScreen() {
 
   const isDesktop = width >= 1080
   const isWide = width >= 900
+  const attemptPageSize = isDesktop ? 50 : 16
   const studentId = Array.isArray(id) ? id[0] : id
   const selectedSubjectId = Number(Array.isArray(subjectId) ? subjectId[0] : subjectId)
   const selectedClassroomId = Number(Array.isArray(classroomId) ? classroomId[0] : classroomId)
@@ -292,43 +298,13 @@ export default function TeacherStudentHistoryScreen() {
       }
 
       const [attemptsResult, subjectScoresResult, topicScoresResult, questionsResult] = await Promise.all([
-        (supabase.from('attempt_history') as any)
-          .select(`
-            id,
-            student_id,
-            question_id,
-            answer_id,
-            is_correct,
-            time_taken_seconds,
-            attempted_at,
-            created_at,
-            earned_points,
-            hint_used,
-            was_skipped,
-            submitted_answer_text,
-            submitted_answer_payload,
-            manual_review_status,
-            reviewed_at,
-            review_notes,
-            answers(id, text),
-            questions!inner(
-              id,
-              text,
-              type,
-              subject_id,
-              classroom_id,
-              topic_id,
-              difficulty,
-              explanation,
-              subjects!inner(id, name, teacher_id),
-              classrooms(id, name, code),
-              subject_topics(id, title)
-            )
-          `)
-          .eq('student_id', studentId)
-          .in('questions.subject_id', subjectIds)
-          .order('attempted_at', { ascending: false })
-          .limit(300),
+        (supabase.rpc as any)('get_teacher_student_attempts_page', {
+          p_student_id: studentId,
+          p_subject_id: Number.isFinite(selectedSubjectId) ? selectedSubjectId : null,
+          p_classroom_id: Number.isFinite(selectedClassroomId) ? selectedClassroomId : null,
+          p_limit: attemptPageSize,
+          p_offset: attemptPage * attemptPageSize,
+        }),
         (supabase.from('subject_scores') as any)
           .select('id, student_id, subject_id, classroom_id, max_score, correct_answers, played_days, played_at')
           .eq('student_id', studentId)
@@ -350,11 +326,15 @@ export default function TeacherStudentHistoryScreen() {
       if (topicScoresResult.error && !isMissingSchemaError(topicScoresResult.error.code)) throw topicScoresResult.error
       if (questionsResult.error && !isMissingSchemaError(questionsResult.error.code)) throw questionsResult.error
 
-      const normalizedAttempts = ((attemptsResult.error ? [] : attemptsResult.data || []) as AttemptRow[])
+      const attemptsPayload = !attemptsResult.error && attemptsResult.data && typeof attemptsResult.data === 'object' && !Array.isArray(attemptsResult.data)
+        ? attemptsResult.data as { rows?: AttemptRow[]; total?: number }
+        : {}
+      const normalizedAttempts = (Array.isArray(attemptsPayload.rows) ? attemptsPayload.rows : [])
         .map(normalizeAttempt)
         .sort((a, b) => getTimeValue(b.attemptedAt) - getTimeValue(a.attemptedAt))
 
       setAttempts(normalizedAttempts)
+      setAttemptTotal(Math.max(0, Number(attemptsPayload.total || 0)))
       setSubjectScores((subjectScoresResult.error ? [] : subjectScoresResult.data || []) as SubjectScoreRow[])
       setTopicScores((topicScoresResult.error ? [] : topicScoresResult.data || []) as TopicScoreRow[])
       setQuestions((questionsResult.error ? [] : questionsResult.data || []) as QuestionRow[])
@@ -365,7 +345,7 @@ export default function TeacherStudentHistoryScreen() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [studentId])
+  }, [attemptPage, attemptPageSize, selectedClassroomId, selectedSubjectId, studentId])
 
   useFocusEffect(
     useCallback(() => {
@@ -559,15 +539,15 @@ export default function TeacherStudentHistoryScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando historial del alumno...</Text>
+        <Text className="mt-4" style={{ color: colors.textMuted }}>Cargando historial del alumno...</Text>
       </View>
     )
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1" style={{ backgroundColor: colors.background }}>
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <TeacherSidebar
@@ -615,9 +595,9 @@ export default function TeacherStudentHistoryScreen() {
 
           <View className={isWide ? 'flex-row flex-wrap gap-4' : 'gap-4'}>
             <MetricCard icon="flash-outline" title="XP global" value={(profile?.points ?? 0).toLocaleString()} detail="profiles.points sincronizado" color="#FBBF24" />
-            <MetricCard icon="checkmark-circle-outline" title="Precisión" value={stats.accuracyPercent === null ? 'Sin datos' : `${stats.accuracyPercent}%`} detail={`${stats.correctAttempts}/${stats.totalAttempts} respuestas correctas`} color="#38BDF8" />
-            <MetricCard icon="close-circle-outline" title="Preguntas falladas" value={String(stats.failedAttempts)} detail="Base para refuerzo" color="#FB7185" />
-            <MetricCard icon="trophy-outline" title="XP en intentos" value={stats.earnedPoints.toLocaleString()} detail="attempt_history.earned_points" color="#8B5CF6" />
+            <MetricCard icon="checkmark-circle-outline" title="Precisión" value={stats.accuracyPercent === null ? 'Sin datos' : `${stats.accuracyPercent}%`} detail={`${stats.correctAttempts}/${stats.totalAttempts} respuestas correctas en esta página`} color="#38BDF8" />
+            <MetricCard icon="close-circle-outline" title="Preguntas falladas" value={String(stats.failedAttempts)} detail="En la página actual" color="#FB7185" />
+            <MetricCard icon="trophy-outline" title="XP en intentos" value={stats.earnedPoints.toLocaleString()} detail="XP de la página actual" color="#8B5CF6" />
             <MetricCard icon="time-outline" title="Última actividad" value={stats.lastActivityAt ? getTimeAgo(stats.lastActivityAt) : 'Sin actividad'} detail={formatDateTime(stats.lastActivityAt)} color="#9FD6FF" />
             <MetricCard icon="analytics-outline" title="Cobertura" value={stats.coveragePercent === null ? 'Sin datos' : `${stats.coveragePercent}%`} detail={`${stats.answeredQuestions}/${stats.totalQuestions} preguntas vistas`} color="#34D399" />
           </View>
@@ -642,7 +622,7 @@ export default function TeacherStudentHistoryScreen() {
                 </View>
               </Panel>
 
-              <Panel title="Evolución reciente" action="Últimos 10 días con actividad">
+              <Panel title="Evolución de esta página" action="Intentos cargados actualmente">
                 <View style={{ gap: 10 }}>
                   {evolution.map((bucket) => (
                     <EvolutionRow key={bucket.dateKey} bucket={bucket} />
@@ -651,12 +631,20 @@ export default function TeacherStudentHistoryScreen() {
                 </View>
               </Panel>
 
-              <Panel title="Intentos recientes" action={`${attemptsInView.length} registros`}>
+              <Panel title="Intentos recientes" action={`${attemptTotal} registros`}>
                 <View style={{ gap: 10 }}>
-                  {attemptsInView.slice(0, 16).map((attempt) => (
+                  {attemptsInView.map((attempt) => (
                     <AttemptHistoryRow key={attempt.id} attempt={attempt} onOpenQuestion={handleOpenQuestionReport} />
                   ))}
                   {attemptsInView.length === 0 ? <EmptyText text="Todavía no hay intentos en tus cursos para este alumno." /> : null}
+                  <PaginationControls
+                    compact={!isDesktop}
+                    page={attemptPage}
+                    pageSize={attemptPageSize}
+                    total={attemptTotal}
+                    onPrevious={() => setAttemptPage((value) => Math.max(0, value - 1))}
+                    onNext={() => setAttemptPage((value) => value + 1)}
+                  />
                 </View>
               </Panel>
             </View>
@@ -687,8 +675,8 @@ export default function TeacherStudentHistoryScreen() {
                   />
                   <TeacherActionCard
                     icon="download-outline"
-                    title="Exportar historial"
-                    detail="Descargar CSV con intentos, errores, revisión y contexto del alumno"
+                    title="Exportar página"
+                    detail="Descargar en CSV los intentos visibles y su contexto"
                     onPress={handleExportStudentHistoryCsv}
                   />
                   <TeacherActionCard

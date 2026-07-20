@@ -98,7 +98,8 @@ export function RoleSettingsSections({
           onSelectFrequency={(value) => void data.selectNotificationFrequency(value)}
           onToggleNotification={(key) => void data.updateNotificationToggle(key)}
           formatNotificationFrequencyLabel={data.formatNotificationFrequencyLabel}
-          onShowServerPreferences={() => data.showAlert('Notificaciones', 'OmniQuest respeta Actividades y Novedades al crear nuevas notificaciones. Push, email y resúmenes quedan guardados para canales futuros.')}
+          pushRegistrationStatus={data.pushRegistrationStatus}
+          onShowServerPreferences={() => data.showAlert('Notificaciones', 'OmniQuest aplica las preferencias en servidor y usa los dispositivos registrados para enviar avisos push.')}
         />
       ) : null}
 

@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons'
 import NotificationBadge from '../NotificationBadge'
 import StudentHeaderAvatar from '../student/StudentHeaderAvatar'
 import TeacherHeaderAvatar from '../teacher/TeacherHeaderAvatar'
+import { useAppTheme } from '../../lib/appTheme'
+import { useI18n } from '../../lib/i18n'
 
 export type PageHeaderRole = 'student' | 'teacher'
 export type PageHeaderIcon = keyof typeof Ionicons.glyphMap
@@ -70,6 +72,8 @@ export default function RolePageHeader({
   title,
   titleNumberOfLines = 1,
 }: RolePageHeaderProps) {
+  const { colors } = useAppTheme()
+  const { t } = useI18n()
   const displayTitle = !isDesktop && mobileTitle ? mobileTitle : title
   const Avatar = role === 'teacher' ? TeacherHeaderAvatar : StudentHeaderAvatar
   const actionsOnTop = Boolean(actions) && (actionsPosition === 'top' || (actionsPosition === 'auto' && isDesktop))
@@ -82,17 +86,17 @@ export default function RolePageHeader({
         <View className="min-w-0 flex-1">
           {backAction ? (
             <Pressable
-              accessibilityLabel={backAction.label || 'Volver'}
+              accessibilityLabel={backAction.label || t('common.back')}
               accessibilityRole="button"
               hitSlop={8}
               onPress={backAction.onPress}
-              className="mb-3 flex-row items-center gap-2 self-start rounded-xl border border-[#20375E] bg-[#09162C] px-3 py-2"
-              style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+              className="mb-3 flex-row items-center gap-2 self-start rounded-xl border px-3 py-2"
+              style={({ pressed }) => ({ borderColor: colors.border, backgroundColor: colors.surface, opacity: pressed ? 0.78 : 1 })}
             >
-              <Ionicons name="arrow-back" size={16} color="#DDE7F4" />
-              {backAction.label ? (
-                <Text className="text-[12px] font-bold text-[#DDE7F4]">{backAction.label}</Text>
-              ) : null}
+              <Ionicons name="arrow-back" size={16} color={colors.text} />
+              <Text className="text-[12px] font-bold" style={{ color: colors.text }}>
+                {backAction.label || t('common.back')}
+              </Text>
             </Pressable>
           ) : null}
 
@@ -109,7 +113,8 @@ export default function RolePageHeader({
 
             <Text
               accessibilityRole="header"
-              className={`${isDesktop ? 'text-[40px] leading-[46px]' : 'text-[30px] leading-[36px]'} min-w-0 flex-1 font-black text-white`}
+              className={`${isDesktop ? 'text-[40px] leading-[46px]' : 'text-[30px] leading-[36px]'} min-w-0 flex-1 font-black`}
+              style={{ color: colors.text }}
               numberOfLines={titleNumberOfLines}
             >
               {displayTitle}
@@ -118,7 +123,8 @@ export default function RolePageHeader({
 
           {subtitle ? (
             <Text
-              className="mt-1 max-w-[780px] text-[13px] leading-5 text-[#9BAEC9]"
+              className="mt-1 max-w-[780px] text-[13px] leading-5"
+              style={{ color: colors.textMuted }}
               numberOfLines={subtitleNumberOfLines}
             >
               {subtitle}

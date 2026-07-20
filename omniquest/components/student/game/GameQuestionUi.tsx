@@ -13,6 +13,10 @@ type Answer = {
 export function SubmitAnswerButton({ disabled, onPress }: { disabled: boolean; onPress: () => void }) {
   return (
     <Pressable
+      accessibilityLabel="Comprobar respuesta"
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      hitSlop={6}
       onPress={onPress}
       disabled={disabled}
       className="mt-2 flex-row items-center justify-center gap-2 rounded-2xl bg-[#6D5AF6] px-6 py-4"
@@ -143,6 +147,9 @@ export function QuestionFeedbackCard({
       ) : null}
 
       <Pressable
+        accessibilityLabel="Siguiente pregunta"
+        accessibilityRole="button"
+        hitSlop={6}
         onPress={onContinue}
         className="mt-5 flex-row items-center justify-center gap-2 rounded-2xl px-5 py-4"
         style={({ pressed }) => ({ backgroundColor: isCorrect ? '#6D5AF6' : color, opacity: pressed ? 0.82 : 1 })}
@@ -165,6 +172,10 @@ export function MoveButton({
 }) {
   return (
     <Pressable
+      accessibilityLabel={icon === 'chevron-up' ? 'Mover hacia arriba' : 'Mover hacia abajo'}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      hitSlop={8}
       onPress={onPress}
       disabled={disabled}
       className="h-10 w-10 items-center justify-center rounded-xl border border-[#28456B] bg-[#0D1D3B]"
@@ -242,6 +253,14 @@ export function AnswerOption({
 
   return (
     <Pressable
+      accessibilityLabel={`Opción ${answerLetters[index] || index + 1}: ${answer.text}`}
+      accessibilityRole="radio"
+      accessibilityState={{
+        selected: isSelected,
+        disabled: hasAnswered || isSubmitting,
+        checked: hasAnswered ? isCorrectAnswer : undefined,
+      }}
+      hitSlop={4}
       onPress={onPress}
       disabled={hasAnswered || isSubmitting}
       className="min-h-[70px] flex-row items-center rounded-2xl border px-4 py-3"

@@ -42,7 +42,30 @@
           }
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#7C5CFF",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": [
+              "es",
+              "en"
+            ],
+            "android": [
+              "es",
+              "en"
+            ]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

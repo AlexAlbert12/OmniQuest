@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } fro
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { withAlpha } from '../../../lib/color'
+import { useAppTheme } from '../../../lib/appTheme'
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -30,7 +31,7 @@ export default function MobileMetricCard({
   value,
   suffix,
   detail,
-  detailColor = '#8FA7C7',
+  detailColor,
   color = '#8B5CF6',
   width,
   compact = false,
@@ -39,16 +40,17 @@ export default function MobileMetricCard({
   style,
   accessibilityLabel,
 }: MobileMetricCardProps) {
+  const { colors } = useAppTheme()
   const metricLabel = label ?? title ?? ''
   const valueText = `${String(value)}${suffix ?? ''}`
-  const baseClassName = `overflow-hidden rounded-2xl border border-[#1D3760] ${compact ? 'p-3' : 'p-4'} ${className}`
+  const baseClassName = `overflow-hidden rounded-2xl border ${compact ? 'p-3' : 'p-4'} ${className}`
   const fixedWidthStyle = width ? { width } : undefined
 
   const content = (
     <>
       <LinearGradient
         pointerEvents="none"
-        colors={[withAlpha(color, compact ? '2B' : '38'), '#07162C']}
+        colors={[withAlpha(color, compact ? '2B' : '38'), colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -61,7 +63,8 @@ export default function MobileMetricCard({
         <Ionicons name={icon} size={compact ? 22 : 29} color={color} />
       </View>
       <Text
-        className={`${compact ? 'mt-4 text-[24px]' : 'mt-5 text-[30px]'} font-black text-white`}
+        className={`${compact ? 'mt-4 text-[24px]' : 'mt-5 text-[30px]'} font-black`}
+        style={{ color: colors.text }}
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.72}
@@ -69,12 +72,12 @@ export default function MobileMetricCard({
         {valueText}
       </Text>
       {metricLabel ? (
-        <Text className="mt-1 text-[13px] font-bold text-[#D4DDF0]" numberOfLines={compact ? 1 : 2}>
+        <Text className="mt-1 text-[13px] font-bold" style={{ color: colors.textSecondary }} numberOfLines={compact ? 1 : 2}>
           {metricLabel}
         </Text>
       ) : null}
       {detail !== undefined && detail !== null && String(detail).length > 0 ? (
-        <Text className="mt-1 text-[12px] font-semibold" style={{ color: detailColor }} numberOfLines={2}>
+        <Text className="mt-1 text-[12px] font-semibold" style={{ color: detailColor ?? colors.textMuted }} numberOfLines={2}>
           {String(detail)}
         </Text>
       ) : null}
@@ -87,8 +90,9 @@ export default function MobileMetricCard({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? metricLabel}
         onPress={onPress}
+        hitSlop={6}
         className={baseClassName}
-        style={({ pressed }) => [fixedWidthStyle, style, { opacity: pressed ? 0.84 : 1 }]}
+        style={({ pressed }) => [fixedWidthStyle, { borderColor: colors.border }, style, { opacity: pressed ? 0.84 : 1 }]}
       >
         {content}
       </Pressable>
@@ -96,7 +100,7 @@ export default function MobileMetricCard({
   }
 
   return (
-    <View className={baseClassName} style={[fixedWidthStyle, style]}>
+    <View className={baseClassName} style={[fixedWidthStyle, { borderColor: colors.border }, style]}>
       {content}
     </View>
   )

@@ -5,6 +5,16 @@ import { supabase } from '../lib/supabase';
 import { normalizeDifficulty } from '../lib/difficulty';
 import type { Json } from '../types/database.types';
 import { fetchAttemptFeedback, type AttemptFeedback } from '../lib/studentSecureData';
+import {
+  buildGameSnapshotKey,
+  clearGameSnapshot,
+  createSubmissionId,
+  getNetworkAvailability,
+  loadGameSnapshot,
+  saveGameSnapshot,
+  subscribeToNetworkAvailability,
+  type PendingGameAnswer,
+} from '../lib/gameOffline';
 
 type StructuredAnswerPayload = {
   answerText?: string;
@@ -59,6 +69,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   const numericDifficulty = normalizeDifficulty(difficulty);
   const isGeneralTopic = topicId === 'general';
   const isFailedReview = reviewMode === 'failed';
+  const gameSnapshotKey = buildGameSnapshotKey([numericSubjectId, numericClassroomId, numericTopicId, isGeneralTopic, numericDifficulty, isFailedReview]);
 
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -71,7 +82,8 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   const [lives, setLives] = useState(3);
   const [streak, setStreak] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [status, setStatus] = useState<'loading' | 'playing' | 'gameOver' | 'finished' | 'empty'>('loading');
+  const [status, setStatus] = useState<'loading' | 'playing' | 'gameOver' | 'finished' | 'empty' | 'error'>('loading');
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedAnswerId, setSelectedAnswerId] = useState<number | null>(null);
   const [correctAnswerId, setCorrectAnswerId] = useState<number | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
@@ -81,9 +93,42 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   const [feedback, setFeedback] = useState<QuestionFeedback | null>(null);
   const [feedbackNextStatus, setFeedbackNextStatus] = useState<'gameOver' | 'finished' | null>(null);
   const [summary, setSummary] = useState<GameSummary>(emptySummary);
+  const [isOffline, setIsOffline] = useState(false);
+  const [resumedFromSnapshot, setResumedFromSnapshot] = useState(false);
+  const [pendingAnswer, setPendingAnswer] = useState<PendingGameAnswer | null>(null);
 
   const loadGame = useCallback(async () => {
+    setStatus('loading');
+    setLoadError(null);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+      const snapshot = userId ? await loadGameSnapshot(gameSnapshotKey) : null;
+
+      if (snapshot && snapshot.userId === userId && snapshot.questions.length > 0) {
+        const restoredQuestions = snapshot.questions as any[];
+        attemptIdRef.current = snapshot.attemptId;
+        scoreRef.current = snapshot.score;
+        hintUsedRef.current = snapshot.hintUsed;
+        setQuestions(restoredQuestions);
+        setCurrentIndex(Math.min(snapshot.currentIndex, restoredQuestions.length - 1));
+        setScore(snapshot.score);
+        setLives(snapshot.lives);
+        setStreak(snapshot.streak);
+        setTimeLeft(Math.max(0, snapshot.timeLeft));
+        setSummary(snapshot.summary as GameSummary);
+        setPendingAnswer(snapshot.pendingAnswer);
+        setHasAnswered(snapshot.hasAnswered);
+        setSelectedAnswerId(snapshot.selectedAnswerId);
+        setCorrectAnswerId(snapshot.correctAnswerId);
+        setAnswerStatus(snapshot.answerStatus);
+        setFeedback(snapshot.feedback as QuestionFeedback | null);
+        setFeedbackNextStatus(snapshot.feedbackNextStatus);
+        setResumedFromSnapshot(true);
+        setStatus('playing');
+        return;
+      }
+
       const { data: questionsData, error: questionsError } = await supabase.rpc('get_safe_game_questions', {
         p_subject_id: numericSubjectId,
         p_classroom_id: numericClassroomId,
@@ -98,6 +143,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       const safeQuestions = Array.isArray(questionsData) ? (questionsData as any[]) : [];
 
       if (safeQuestions.length === 0) {
+        await clearGameSnapshot(gameSnapshotKey);
         setStatus('empty');
         return;
       }
@@ -130,14 +176,18 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       setFeedback(null);
       setFeedbackNextStatus(null);
       setSummary({ ...emptySummary, questionsTotal: safeQuestions.length });
+      setPendingAnswer(null);
+      setResumedFromSnapshot(false);
       setQuestions(safeQuestions);
       setTimeLeft(safeQuestions[0].time_limit_seconds ?? 30);
       setStatus('playing');
     } catch (error: any) {
       console.error(error);
-      Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
+      const message = error?.message || 'No se pudo preparar la partida.';
+      setLoadError(message);
+      setStatus('error');
     }
-  }, [isFailedReview, isGeneralTopic, numericClassroomId, numericDifficulty, numericSubjectId, numericTopicId]);
+  }, [gameSnapshotKey, isFailedReview, isGeneralTopic, numericClassroomId, numericDifficulty, numericSubjectId, numericTopicId]);
 
   useEffect(() => {
     loadGame();
@@ -164,8 +214,10 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
 
   const finishGame = useCallback((nextStatus: 'gameOver' | 'finished') => {
     setStatus(nextStatus);
+    setPendingAnswer(null);
+    void clearGameSnapshot(gameSnapshotKey);
     void finalizeGameAttempt(nextStatus);
-  }, [finalizeGameAttempt]);
+  }, [finalizeGameAttempt, gameSnapshotKey]);
 
   const nextQuestion = useCallback(() => {
     setSelectedAnswerId(null);
@@ -194,17 +246,32 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     payload,
     skipped = false,
     timedOut = false,
+    submissionId,
+    retry = false,
   }: {
     answerId?: number;
     answerText?: string;
     payload?: Json;
     skipped?: boolean;
     timedOut?: boolean;
+    submissionId?: string;
+    retry?: boolean;
   }) => {
-    if (hasAnswered || isSubmittingRef.current || status !== 'playing') return;
+    if ((!retry && hasAnswered) || isSubmittingRef.current || status !== 'playing') return;
 
     const currentQ = questions[currentIndex];
     if (!currentQ) return;
+
+    const pendingSubmission: PendingGameAnswer = {
+      submissionId: submissionId ?? createSubmissionId(),
+      questionIndex: currentIndex,
+      answerId,
+      answerText,
+      payload,
+      skipped,
+      timedOut,
+    };
+    setPendingAnswer(pendingSubmission);
 
     isSubmittingRef.current = true;
     setIsSubmitting(true);
@@ -214,7 +281,8 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     try {
       const timeLimit = currentQ.time_limit_seconds ?? 30;
       const timeTaken = timedOut ? timeLimit : Math.max(0, timeLimit - timeLeft);
-      const { data, error } = await supabase.rpc('submit_answer', {
+      const { data, error } = await (supabase.rpc as any)('submit_answer_resumable', {
+        p_submission_id: pendingSubmission.submissionId,
         p_question_id: currentQ.id,
         p_answer_id: answerId ?? null,
         p_answer_text: answerText ?? null,
@@ -226,6 +294,8 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       });
 
       if (error) throw error;
+      setPendingAnswer(null);
+      setIsOffline(false);
 
       const result = asSubmitAnswerResult(data);
       let secureFeedback: AttemptFeedback = {};
@@ -299,12 +369,17 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       });
     } catch (error: any) {
       console.error('Error submitting answer:', error);
+      const online = await getNetworkAvailability().catch(() => false);
+      setIsOffline(!online);
       setHasAnswered(false);
       isSubmittingRef.current = false;
       setIsSubmitting(false);
       setFeedback(null);
       setFeedbackNextStatus(null);
-      Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
+      if (online) {
+        setPendingAnswer(null);
+        Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
+      }
     }
   }, [currentIndex, hasAnswered, questions, status, timeLeft]);
 
@@ -313,7 +388,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   }, [completeAnswer]);
 
   useEffect(() => {
-    if (status !== 'playing' || hasAnswered || isSubmitting) return;
+    if (status !== 'playing' || hasAnswered || isSubmitting || pendingAnswer || isOffline) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -327,7 +402,88 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [status, hasAnswered, isSubmitting, currentIndex, handleTimeOut]);
+  }, [status, hasAnswered, isSubmitting, currentIndex, handleTimeOut, isOffline, pendingAnswer]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const updateAvailability = async () => {
+      const online = await getNetworkAvailability().catch(() => false);
+      if (!cancelled) setIsOffline(!online);
+    };
+    void updateAvailability();
+    const unsubscribe = subscribeToNetworkAvailability((online) => {
+      if (!cancelled) setIsOffline(!online);
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!resumedFromSnapshot) return;
+    const timer = setTimeout(() => setResumedFromSnapshot(false), 5000);
+    return () => clearTimeout(timer);
+  }, [resumedFromSnapshot]);
+
+  useEffect(() => {
+    if (status !== 'playing' || questions.length === 0) return;
+    let cancelled = false;
+    const persist = async () => {
+      const { data } = await supabase.auth.getSession();
+      const userId = data.session?.user.id;
+      if (!userId || cancelled) return;
+      await saveGameSnapshot(gameSnapshotKey, {
+        userId,
+        questions,
+        currentIndex,
+        score,
+        lives,
+        streak,
+        timeLeft,
+        attemptId: attemptIdRef.current,
+        hintUsed: hintUsedRef.current,
+        summary,
+        pendingAnswer,
+        hasAnswered,
+        selectedAnswerId,
+        correctAnswerId,
+        answerStatus,
+        feedback,
+        feedbackNextStatus,
+      });
+    };
+    const timer = setTimeout(() => { void persist(); }, 120);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [answerStatus, correctAnswerId, currentIndex, feedback, feedbackNextStatus, gameSnapshotKey, hasAnswered, lives, pendingAnswer, questions, score, selectedAnswerId, status, streak, summary, timeLeft]);
+
+  const retryPendingAnswer = useCallback(() => {
+    if (!pendingAnswer || isSubmittingRef.current) return;
+    if (pendingAnswer.questionIndex !== currentIndex) {
+      setCurrentIndex(pendingAnswer.questionIndex);
+      return;
+    }
+    setIsOffline(false);
+    void completeAnswer({
+      answerId: pendingAnswer.answerId,
+      answerText: pendingAnswer.answerText,
+      payload: pendingAnswer.payload,
+      skipped: pendingAnswer.skipped,
+      timedOut: pendingAnswer.timedOut,
+      submissionId: pendingAnswer.submissionId,
+      retry: true,
+    });
+  }, [completeAnswer, currentIndex, pendingAnswer]);
+
+  useEffect(() => {
+    if (!isOffline && pendingAnswer && !isSubmitting) {
+      const timer = setTimeout(retryPendingAnswer, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isOffline, isSubmitting, pendingAnswer, retryPendingAnswer]);
 
   const submitAnswer = (answerId: number) => {
     void completeAnswer({ answerId });
@@ -372,6 +528,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     streak,
     timeLeft,
     status,
+    loadError,
     selectedAnswerId,
     correctAnswerId,
     hasAnswered,
@@ -380,6 +537,11 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     hintedAnswerId,
     feedback,
     summary,
+    isOffline,
+    resumedFromSnapshot,
+    pendingAnswer,
+    retryPendingAnswer,
+    retryLoadGame: loadGame,
     submitAnswer,
     submitStructuredAnswer,
     useHint,

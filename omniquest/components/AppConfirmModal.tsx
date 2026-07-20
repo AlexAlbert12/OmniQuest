@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons'
 import { ActivityIndicator, Modal, Pressable, Text, useWindowDimensions, View } from 'react-native'
 import OmniGuide, { type OmniState } from './OmniGuide'
+import { useAppTheme } from '../lib/appTheme'
+import { useI18n } from '../lib/i18n'
 
 type AppConfirmModalVariant = 'danger' | 'info' | 'warning'
 
@@ -26,7 +28,7 @@ const variantStyles: Record<AppConfirmModalVariant, { color: string; icon: keyof
 
 export default function AppConfirmModal({
   busy = false,
-  cancelLabel = 'Cancelar',
+  cancelLabel,
   confirmLabel,
   message,
   omniState = 'thinking',
@@ -38,6 +40,9 @@ export default function AppConfirmModal({
   visible,
 }: AppConfirmModalProps) {
   const style = variantStyles[variant]
+  const { colors } = useAppTheme()
+  const { t } = useI18n()
+  const resolvedCancelLabel = cancelLabel || t('common.cancel')
   const { width } = useWindowDimensions()
   const isPhone = width < 640
 
@@ -45,8 +50,8 @@ export default function AppConfirmModal({
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onCancel}>
       <View className={`flex-1 bg-black/70 ${isPhone ? 'justify-end' : 'items-center justify-center px-5'}`}>
         <View
-          className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[440px] rounded-3xl p-6'} border bg-[#08172E]`}
-          style={{ borderColor: `${style.color}80` }}
+          className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[440px] rounded-3xl p-6'} border`}
+          style={{ borderColor: `${style.color}80`, backgroundColor: colors.surface }}
         >
           <View className="flex-row items-start gap-4">
             {showOmni ? (
@@ -57,21 +62,28 @@ export default function AppConfirmModal({
               </View>
             )}
             <View className="min-w-0 flex-1">
-              <Text className="text-[21px] font-black text-white">{title}</Text>
-              <Text className="mt-2 text-[14px] leading-6 text-[#BFD0E8]">{message}</Text>
+              <Text className="text-[21px] font-black" style={{ color: colors.text }}>{title}</Text>
+              <Text className="mt-2 text-[14px] leading-6" style={{ color: colors.textSecondary }}>{message}</Text>
             </View>
           </View>
 
           <View className={`mt-6 gap-3 ${isPhone ? '' : 'flex-row justify-end'}`}>
             <Pressable
+              accessibilityLabel={resolvedCancelLabel}
+              accessibilityRole="button"
+              hitSlop={6}
               onPress={onCancel}
               disabled={busy}
               className={`${isPhone ? 'items-center py-4' : 'px-4 py-3'} rounded-xl border border-[#263E61]`}
               style={({ pressed }) => ({ opacity: busy ? 0.55 : pressed ? 0.8 : 1 })}
             >
-              <Text className="text-[13px] font-bold text-[#DDE7F4]">{cancelLabel}</Text>
+              <Text className="text-[13px] font-bold text-[#DDE7F4]">{resolvedCancelLabel}</Text>
             </Pressable>
             <Pressable
+              accessibilityLabel={confirmLabel}
+              accessibilityRole="button"
+              accessibilityState={{ busy, disabled: busy }}
+              hitSlop={6}
               onPress={onConfirm}
               disabled={busy}
               className={`${isPhone ? 'py-4' : 'min-w-[132px] px-4 py-3'} items-center rounded-xl`}

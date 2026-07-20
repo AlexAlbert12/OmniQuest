@@ -19,6 +19,7 @@ import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { withAlpha } from '../../lib/color'
 import OmniGuide from '../../components/OmniGuide'
+import PaginationControls from '../../components/ui/PaginationControls'
 
 type Profile = {
   id: string
@@ -27,6 +28,8 @@ type Profile = {
   points: number | null
   role_id?: string | null
   visibility?: string | null
+  rank?: number | null
+  total_count?: number | null
 }
 
 type RankingLeague = {
@@ -55,6 +58,13 @@ type WeeklyRankingProfile = Profile & {
   weekly_points: number
 }
 
+type RankingPagePayload = {
+  rows: Profile[]
+  total: number
+  current: Profile | null
+}
+
+
 const rankingLeagues: RankingLeague[] = [
   { name: 'Bronce', minPoints: 0, nextMinPoints: 500, color: '#CD7F32', icon: 'shield-outline' },
   { name: 'Plata', minPoints: 500, nextMinPoints: 1500, color: '#CBD5E1', icon: 'shield-half-outline' },
@@ -67,15 +77,19 @@ export default function RankingScreen() {
   const { width } = useWindowDimensions()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null)
+  const [rankingCurrent, setRankingCurrent] = useState<Profile | null>(null)
+  const [page, setPage] = useState(0)
+  const [rankingTotal, setRankingTotal] = useState(0)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [selectedScope, setSelectedScope] = useState<RankingScope>('weekly')
   const [selectedLeagueName, setSelectedLeagueName] = useState<string | null>(null)
   const [classOptions, setClassOptions] = useState<ClassOption[]>([])
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
-  const { accentColor } = useAppTheme()
+  const { accentColor, colors } = useAppTheme()
 
   const isDesktop = width >= 1024
+  const rankingPageSize = isDesktop ? 8 : 5
   const rankingRows = useMemo(() => profiles, [profiles])
   const selectedClass = classOptions.find((classOption) => classOption.id === selectedClassId) || null
 
@@ -86,7 +100,7 @@ export default function RankingScreen() {
   const isGuest = currentProfile?.role_id === 'guest'
   const rankingPoints = selectedScope === 'global'
     ? points
-    : rankingRows.find((item) => item.id === currentUserId)?.points ?? 0
+    : rankingCurrent?.points ?? rankingRows.find((item) => item.id === currentUserId)?.points ?? 0
   const league = getRankingLeague(rankingPoints)
   const selectedLeague = rankingLeagues.find((item) => item.name === selectedLeagueName) || league
   const selectedLeagueRows = useMemo(
@@ -95,7 +109,9 @@ export default function RankingScreen() {
   )
   const selectedLeagueMaxPoints = Math.max(...selectedLeagueRows.map((item) => item.points ?? 0), 1)
   const selectedRankIndex = selectedLeagueRows.findIndex((item) => item.id === currentUserId)
-  const selectedRank = !isGuest && selectedRankIndex >= 0 ? selectedRankIndex + 1 : null
+  const selectedRank = !isGuest
+    ? Number(rankingCurrent?.rank || (selectedRankIndex >= 0 ? selectedRankIndex + 1 : 0)) || null
+    : null
   const previousRival = selectedRankIndex > 0 ? selectedLeagueRows[selectedRankIndex - 1] : null
   const nextRival = selectedRankIndex >= 0 && selectedRankIndex < selectedLeagueRows.length - 1
     ? selectedLeagueRows[selectedRankIndex + 1]
@@ -108,7 +124,9 @@ export default function RankingScreen() {
     [rankingRows, league.name]
   )
   const currentRankIndex = currentLeagueRows.findIndex((item) => item.id === currentUserId)
-  const currentRank = !isGuest && currentRankIndex >= 0 ? currentRankIndex + 1 : null
+  const currentRank = !isGuest
+    ? Number(rankingCurrent?.rank || (currentRankIndex >= 0 ? currentRankIndex + 1 : 0)) || null
+    : null
   const currentPreviousRival = currentRankIndex > 0 ? currentLeagueRows[currentRankIndex - 1] : null
   const currentNextRival = currentRankIndex >= 0 && currentRankIndex < currentLeagueRows.length - 1
     ? currentLeagueRows[currentRankIndex + 1]
@@ -182,21 +200,33 @@ export default function RankingScreen() {
         setSelectedClassId(null)
       }
 
-      const nextProfiles = selectedScope === 'global'
-        ? await fetchGlobalRanking()
-        : selectedScope === 'weekly'
-          ? await fetchWeeklyRanking()
-          : effectiveSelectedClassId
-            ? await fetchClassRanking(effectiveSelectedClassId)
-            : []
+      const leagueFilter = selectedLeagueName ? selectedLeague : null
+      const rankingPage = selectedScope === 'class' && !effectiveSelectedClassId
+        ? { rows: [], total: 0, current: null }
+        : await fetchRankingPage({
+            scope: selectedScope,
+            classroomId: effectiveSelectedClassId,
+            page,
+            pageSize: rankingPageSize,
+            minPoints: leagueFilter?.minPoints ?? null,
+            maxPoints: leagueFilter?.nextMinPoints ?? null,
+          })
 
-      setProfiles(nextProfiles)
+      setProfiles(rankingPage.rows)
+      setRankingTotal(rankingPage.total)
+      setRankingCurrent(rankingPage.current)
+
+      if (!selectedLeagueName && rankingPage.current) {
+        const detectedLeague = getRankingLeague(Number(rankingPage.current.points || 0))
+        setSelectedLeagueName(detectedLeague.name)
+        setPage(0)
+      }
     } catch (error) {
       console.error('Error fetching ranking:', error)
     } finally {
       setLoading(false)
     }
-  }, [selectedClassId, selectedScope])
+  }, [page, rankingPageSize, selectedClassId, selectedLeague.minPoints, selectedLeague.nextMinPoints, selectedLeagueName, selectedScope])
 
   const emptyRankingMessage = useMemo(() => {
     if (selectedScope === 'weekly') {
@@ -226,15 +256,15 @@ export default function RankingScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={accentColor} />
-        <Text className="mt-4 text-[#8FA7C7]">Actualizando ranking...</Text>
+        <Text className="mt-4" style={{ color: colors.textMuted }}>Actualizando ranking...</Text>
       </View>
     )
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1" style={{ backgroundColor: colors.background }}>
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <StudentSidebar
@@ -270,7 +300,7 @@ export default function RankingScreen() {
                 rank={currentRank}
                 points={rankingPoints}
                 isGuest={isGuest}
-                totalRanked={currentLeagueRows.length}
+                totalRanked={rankingTotal}
                 league={league}
                 previousRival={currentPreviousRival}
                 nextRival={currentNextRival}
@@ -285,6 +315,8 @@ export default function RankingScreen() {
                   if (nextScope === 'class' && !selectedClassId && classOptions.length > 0) {
                     setSelectedClassId(classOptions[0].id)
                   }
+                  setPage(0)
+                  setSelectedLeagueName(null)
                   setSelectedScope(nextScope)
                 }}
               />
@@ -292,7 +324,7 @@ export default function RankingScreen() {
                 <ClassRankingSelector
                   classOptions={classOptions}
                   selectedClassId={selectedClassId}
-                  onSelect={setSelectedClassId}
+                  onSelect={(classId) => { setPage(0); setSelectedLeagueName(null); setSelectedClassId(classId) }}
                 />
               ) : null}
 
@@ -306,8 +338,18 @@ export default function RankingScreen() {
                 rankingRows={rankingRows}
                 rankingPoints={rankingPoints}
                 emptyRankingMessage={emptyRankingMessage}
-                orderedPodiumRows={orderedPodiumRows}
+                orderedPodiumRows={page === 0 ? orderedPodiumRows : []}
+                totalRows={rankingTotal}
                 compact
+              />
+
+              <PaginationControls
+                compact
+                page={page}
+                pageSize={rankingPageSize}
+                total={rankingTotal}
+                onPrevious={() => setPage((value) => Math.max(0, value - 1))}
+                onNext={() => setPage((value) => value + 1)}
               />
 
               <LeagueProgressCard league={league} points={rankingPoints} />
@@ -317,7 +359,7 @@ export default function RankingScreen() {
                 currentLeague={league}
                 selectedLeague={selectedLeague}
                 points={rankingPoints}
-                onSelect={(nextLeague) => setSelectedLeagueName(nextLeague.name)}
+                onSelect={(nextLeague) => { setPage(0); setSelectedLeagueName(nextLeague.name) }}
                 compact
               />
             </View>
@@ -328,7 +370,7 @@ export default function RankingScreen() {
                 currentLeague={league}
                 selectedLeague={selectedLeague}
                 points={rankingPoints}
-                onSelect={(nextLeague) => setSelectedLeagueName(nextLeague.name)}
+                onSelect={(nextLeague) => { setPage(0); setSelectedLeagueName(nextLeague.name) }}
               />
 
               <View className="flex-row gap-5">
@@ -339,6 +381,8 @@ export default function RankingScreen() {
                       if (nextScope === 'class' && !selectedClassId && classOptions.length > 0) {
                         setSelectedClassId(classOptions[0].id)
                       }
+                      setPage(0)
+                      setSelectedLeagueName(null)
                       setSelectedScope(nextScope)
                     }}
                   />
@@ -346,7 +390,7 @@ export default function RankingScreen() {
                     <ClassRankingSelector
                       classOptions={classOptions}
                       selectedClassId={selectedClassId}
-                      onSelect={setSelectedClassId}
+                      onSelect={(classId) => { setPage(0); setSelectedLeagueName(null); setSelectedClassId(classId) }}
                     />
                   ) : null}
 
@@ -360,7 +404,15 @@ export default function RankingScreen() {
                     rankingRows={rankingRows}
                     rankingPoints={rankingPoints}
                     emptyRankingMessage={emptyRankingMessage}
-                    orderedPodiumRows={orderedPodiumRows}
+                    orderedPodiumRows={page === 0 ? orderedPodiumRows : []}
+                    totalRows={rankingTotal}
+                  />
+                  <PaginationControls
+                    page={page}
+                    pageSize={rankingPageSize}
+                    total={rankingTotal}
+                    onPrevious={() => setPage((value) => Math.max(0, value - 1))}
+                    onNext={() => setPage((value) => value + 1)}
                   />
                 </View>
 
@@ -369,7 +421,7 @@ export default function RankingScreen() {
                     rank={selectedRank}
                     points={rankingPoints}
                     isGuest={isGuest}
-                    totalRanked={selectedLeagueRows.length}
+                    totalRanked={rankingTotal}
                     league={selectedLeague}
                     previousRival={previousRival}
                     nextRival={nextRival}
@@ -395,33 +447,44 @@ export default function RankingScreen() {
   )
 }
 
-async function fetchGlobalRanking() {
-  const { data: profilesData, error: profilesError } = await supabase.rpc('get_ranking_profiles', {
-    p_limit: 50,
-  })
-
-  if (profilesError) throw profilesError
-
-  const profiles = (profilesData || []) as Profile[]
-
-  return profiles
-    .sort((left, right) => (right.points ?? 0) - (left.points ?? 0))
-    .slice(0, 50)
-}
-
-async function fetchWeeklyRanking(): Promise<Profile[]> {
-  const { data, error } = await supabase.rpc('get_weekly_ranking_profiles', {
-    p_limit: 50,
+async function fetchRankingPage({
+  scope,
+  classroomId,
+  page,
+  pageSize,
+  minPoints,
+  maxPoints,
+}: {
+  scope: RankingScope
+  classroomId: number | null
+  page: number
+  pageSize: number
+  minPoints: number | null
+  maxPoints: number | null
+}): Promise<RankingPagePayload> {
+  const { data, error } = await (supabase.rpc as any)('get_ranking_profiles_page', {
+    p_scope: scope,
+    p_classroom_id: scope === 'class' ? classroomId : null,
+    p_min_points: minPoints,
+    p_max_points: maxPoints,
+    p_limit: pageSize,
+    p_offset: Math.max(0, page) * pageSize,
   })
 
   if (error) throw error
+  const payload = data && typeof data === 'object' && !Array.isArray(data)
+    ? data as { rows?: unknown; total?: unknown; current?: unknown }
+    : {}
+  const rows = Array.isArray(payload.rows) ? payload.rows as Profile[] : []
+  const current = payload.current && typeof payload.current === 'object' && !Array.isArray(payload.current)
+    ? payload.current as Profile
+    : null
 
-  return ((data || []) as WeeklyRankingProfile[])
-    .map((profile) => ({
-      ...profile,
-      points: profile.weekly_points ?? 0,
-    }))
-    .sort((left, right) => (right.points ?? 0) - (left.points ?? 0))
+  return {
+    rows,
+    total: Math.max(0, Number(payload.total || 0)),
+    current,
+  }
 }
 
 async function fetchEnrolledClassOptions(userId: string): Promise<ClassOption[]> {
@@ -465,18 +528,6 @@ async function fetchEnrolledClassOptions(userId: string): Promise<ClassOption[]>
   )
 }
 
-async function fetchClassRanking(classroomId: number): Promise<Profile[]> {
-  const { data, error } = await supabase.rpc('get_class_ranking_profiles', {
-    p_classroom_id: classroomId,
-    p_limit: 50,
-  })
-
-  if (error) throw error
-
-  return ((data || []) as Profile[]).sort((left, right) => (right.points ?? 0) - (left.points ?? 0))
-}
-
-
 function RankingListCard({
   rows,
   selectedLeague,
@@ -488,6 +539,7 @@ function RankingListCard({
   rankingPoints,
   emptyRankingMessage,
   orderedPodiumRows,
+  totalRows,
   compact = false,
 }: {
   rows: Profile[]
@@ -500,16 +552,17 @@ function RankingListCard({
   rankingPoints: number
   emptyRankingMessage: string
   orderedPodiumRows: { item: Profile; position: number }[]
+  totalRows: number
   compact?: boolean
 }) {
-  const visibleRows = rows.slice(0, compact ? 5 : 8)
+  const visibleRows = rows
 
   return (
     <View className={`${compact ? '' : 'mt-4'} rounded-2xl border border-[#1A3155] bg-[#09162C] ${compact ? 'p-4' : 'p-5'}`}>
       <View className="mb-4 flex-row flex-wrap items-center justify-between gap-3">
         <View className="min-w-0 flex-1">
           <Text className={`${compact ? 'text-[18px]' : 'text-[16px]'} font-black text-white`} numberOfLines={compact ? 2 : 1}>
-            {compact ? `Top 5 · Liga ${selectedLeague.name}` : `Ranking de Liga ${selectedLeague.name}`}
+            {`Clasificación · Liga ${selectedLeague.name}`}
           </Text>
           <Text className="mt-1 text-[12px] leading-5 text-[#8FA7C7]">
             {selectedScope === 'class'
@@ -521,7 +574,7 @@ function RankingListCard({
         </View>
         <View className="rounded-full border border-[#243D66] bg-[#0A1A34] px-3 py-2">
           <Text className="text-[12px] font-black text-[#AFC2DB]">
-            {rows.length} {rows.length === 1 ? 'estudiante' : 'estudiantes'}
+            {totalRows} {totalRows === 1 ? 'estudiante' : 'estudiantes'}
           </Text>
         </View>
       </View>
@@ -905,12 +958,13 @@ function RankingRow({
   compact?: boolean
 }) {
   const points = item.points ?? 0
+  const position = Math.max(1, Number(item.rank || index + 1))
   const level = getStudentLevel(points)
   const medalColors = ['#FBBF24', '#CBD5E1', '#F97316']
   const { accentColor } = useAppTheme()
   const { width } = useWindowDimensions()
   const isPhone = width < 640
-  const progressColor = index === 0 ? '#FBBF24' : isMe ? accentColor : '#3B82F6'
+  const progressColor = position === 1 ? '#FBBF24' : isMe ? accentColor : '#3B82F6'
   const progress = points <= 0
     ? 0
     : Math.max(6, Math.round((points / maxPoints) * 100))
@@ -922,8 +976,8 @@ function RankingRow({
         style={isMe ? { borderColor: accentColor, backgroundColor: withAlpha(accentColor, '24') } : undefined}
       >
         <View className="flex-row items-center gap-3">
-          <View className={`${compact ? 'h-8 w-8' : 'h-9 w-9'} items-center justify-center rounded-full`} style={{ backgroundColor: index < 3 ? medalColors[index] : '#1E3356' }}>
-            <Text className="font-black text-white">{index + 1}</Text>
+          <View className={`${compact ? 'h-8 w-8' : 'h-9 w-9'} items-center justify-center rounded-full`} style={{ backgroundColor: position <= 3 ? medalColors[position - 1] : '#1E3356' }}>
+            <Text className="font-black text-white">{position}</Text>
           </View>
           <View className={`${compact ? 'h-10 w-10' : 'h-12 w-12'} items-center justify-center overflow-hidden rounded-full bg-[#17315E]`}>
             {item.avatar && item.avatar.startsWith('http') ? (
@@ -953,12 +1007,12 @@ function RankingRow({
       style={isMe ? { borderColor: accentColor, backgroundColor: withAlpha(accentColor, '24') } : undefined}
     >
       <View className="w-20 flex-row items-center justify-center">
-        {index < 3 ? (
-          <View className="h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: medalColors[index] }}>
-            <Text className="font-black text-white">{index + 1}</Text>
+        {position <= 3 ? (
+          <View className="h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: medalColors[position - 1] }}>
+            <Text className="font-black text-white">{position}</Text>
           </View>
         ) : (
-          <Text className="text-[18px] font-bold text-[#B9C7DE]">{index + 1}</Text>
+          <Text className="text-[18px] font-bold text-[#B9C7DE]">{position}</Text>
         )}
       </View>
 

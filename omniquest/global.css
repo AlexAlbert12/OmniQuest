@@ -2,15 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --omni-background: #061126;
+  --omni-surface: #07162c;
+  --omni-text: #ffffff;
+  --omni-focus: #8b5cf6;
+  color-scheme: dark;
+}
+
+html[data-theme='light'] {
+  --omni-background: #f4f7ff;
+  --omni-surface: #ffffff;
+  --omni-text: #13233d;
+  color-scheme: light;
+}
+
 html,
-body {
+body,
+#root {
   min-height: 100%;
-  background: #061126;
+  background: var(--omni-background);
+  color: var(--omni-text);
 }
 
 button,
 a[href],
 [role='button'],
+[role='tab'],
+[role='radio'],
 [tabindex='0']:not(input):not(textarea):not(select) {
   cursor: pointer;
   transition:
@@ -27,6 +46,8 @@ a[href],
   button:not(:disabled):hover,
   a[href]:hover,
   [role='button']:not([aria-disabled='true']):hover,
+  [role='tab']:not([aria-disabled='true']):hover,
+  [role='radio']:not([aria-disabled='true']):hover,
   [tabindex='0']:not(input):not(textarea):not(select):not([aria-disabled='true']):hover {
     transform: translateY(-1px) scale(1.012);
     filter: brightness(1.08);
@@ -36,15 +57,35 @@ a[href],
 button:not(:disabled):active,
 a[href]:active,
 [role='button']:not([aria-disabled='true']):active,
+[role='tab']:not([aria-disabled='true']):active,
+[role='radio']:not([aria-disabled='true']):active,
 [tabindex='0']:not(input):not(textarea):not(select):not([aria-disabled='true']):active {
   transform: translateY(0) scale(0.985);
   filter: brightness(0.96);
 }
 
+/* React Native Web maps accessibility roles to ARIA roles. */
 button:focus-visible,
 a[href]:focus-visible,
 [role='button']:focus-visible,
-[tabindex='0']:not(input):not(textarea):not(select):focus-visible {
-  outline: 2px solid rgba(130, 144, 255, 0.85);
+[role='tab']:focus-visible,
+[role='radio']:focus-visible,
+[role='link']:focus-visible,
+[tabindex='0']:not(input):not(textarea):not(select):focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--omni-focus) !important;
   outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

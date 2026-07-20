@@ -1,6 +1,8 @@
 import React from 'react'
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useAppTheme, type AppThemePreference } from '../../lib/appTheme'
+import { useI18n } from '../../lib/i18n'
 import { withAlpha } from '../../lib/color'
 import {
   ActionRow,
@@ -214,30 +216,95 @@ export function SettingsPreferencesPanel({
   onSelectPreference: (key: PreferenceKey, value: string) => void
   formatPreferenceLabel: FormatPreferenceLabel
 }) {
+  const { themePreference, setTheme, colors } = useAppTheme()
+  const { t } = useI18n()
+  const themeOptions: Array<{ value: AppThemePreference; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+    { value: 'system', label: t('settings.appearance.system'), icon: 'phone-portrait-outline' },
+    { value: 'dark', label: t('settings.appearance.dark'), icon: 'moon-outline' },
+    { value: 'light', label: t('settings.appearance.light'), icon: 'sunny-outline' },
+  ]
+
   return (
-    <Panel title="Idioma y región">
-      <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
-        <Text className="text-[12px] font-bold text-white">Color de acento</Text>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]">
-          El modo visual está optimizado en oscuro para mantener consistencia en toda la app.
+    <Panel title={t('settings.section.preferences')}>
+      <View
+        className="mb-4 rounded-lg border p-3"
+        style={{ backgroundColor: colors.surfaceRaised, borderColor: colors.border }}
+      >
+        <Text className="text-[12px] font-bold" style={{ color: colors.text }}>{t('settings.appearance.title')}</Text>
+        <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>
+          {t('settings.appearance.description')}
+        </Text>
+        <View className="mt-3 flex-row gap-2">
+          {themeOptions.map((option) => {
+            const selected = themePreference === option.value
+            return (
+              <Pressable
+                key={option.value}
+                accessibilityLabel={`${t('settings.appearance.title')}: ${option.label}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                hitSlop={4}
+                onPress={() => setTheme(option.value)}
+                className="min-h-[48px] flex-1 items-center justify-center rounded-xl border px-2 py-2"
+                style={({ pressed }) => ({
+                  opacity: pressed ? 0.82 : 1,
+                  borderColor: selected ? accentColor : colors.border,
+                  backgroundColor: selected ? withAlpha(accentColor, '20') : colors.surface,
+                })}
+              >
+                <Ionicons name={option.icon} size={20} color={selected ? accentColor : colors.textMuted} />
+                <Text className="mt-1 text-[11px] font-black" style={{ color: selected ? accentColor : colors.textSecondary }}>
+                  {option.label}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </View>
+      </View>
+
+      <View
+        className="mb-4 rounded-lg border p-3"
+        style={{ backgroundColor: colors.surfaceRaised, borderColor: colors.border }}
+      >
+        <Text className="text-[12px] font-bold" style={{ color: colors.text }}>Color de acento</Text>
+        <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>
+          Se aplica a navegación, botones principales y estados seleccionados.
         </Text>
         <View className="mt-2 flex-row flex-wrap gap-3">
           {accentColors.map((color) => (
             <Pressable
               key={color}
+              accessibilityLabel={`Usar color de acento ${color}`}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: accentColor === color }}
+              hitSlop={5}
               onPress={() => onAccentColorChange(color)}
-              className="h-8 w-8 items-center justify-center rounded-full"
+              className="h-10 w-10 items-center justify-center rounded-full"
               style={{
                 backgroundColor: color,
-                borderWidth: accentColor === color ? 2 : 0,
-                borderColor: '#DDE7F4',
+                borderWidth: accentColor === color ? 3 : 1,
+                borderColor: accentColor === color ? colors.text : colors.border,
               }}
             >
-              {accentColor === color ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
+              {accentColor === color ? <Ionicons name="checkmark" size={16} color="#FFFFFF" /> : null}
             </Pressable>
           ))}
         </View>
       </View>
+
+      <PreferenceRow
+        label="Idioma"
+        value={formatPreferenceLabel('language', preferences.language)}
+        selectedValue={preferences.language}
+        open={openPreferenceKey === 'language'}
+        onToggle={() => onTogglePreferenceMenu('language')}
+        options={preferenceOptions.language}
+        onSelect={(value) => onSelectPreference('language', value)}
+        optionLabel={(value) => formatPreferenceLabel('language', value)}
+        disabled={Boolean(savingPreference)}
+        loading={savingPreference === 'language'}
+      />
+
       {(['timezone', 'dateFormat', 'timeFormat', 'weekStart'] as PreferenceKey[]).map((key) => (
         <PreferenceRow
           key={key}
@@ -273,6 +340,7 @@ export function SettingsNotificationsPanel({
   onToggleNotification,
   formatNotificationFrequencyLabel,
   onShowServerPreferences,
+  pushRegistrationStatus = 'idle',
 }: {
   notificationSettings: NotificationSettingsState
   openNotificationFrequency: boolean
@@ -283,13 +351,16 @@ export function SettingsNotificationsPanel({
   onToggleNotification: (key: NotificationSettingKey) => void
   formatNotificationFrequencyLabel: (value: NotificationFrequency) => string
   onShowServerPreferences: () => void
+  pushRegistrationStatus?: 'idle' | 'registered' | 'denied' | 'unsupported' | 'error'
 }) {
+  const { t } = useI18n()
+  const { colors } = useAppTheme()
   return (
-    <Panel title="Notificaciones">
-      <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-3">
-        <Text className="text-[12px] font-bold text-white">Preferencias guardadas</Text>
-        <Text className="mt-1 text-[13px] text-[#AFC2DB]">
-          Estos ajustes preparan tus canales preferidos. El envío automático por push/email todavía no está conectado.
+    <Panel title={t('settings.section.notifications')}>
+      <View className="mb-4 rounded-lg border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
+        <Text className="text-[12px] font-bold" style={{ color: colors.text }}>{t('settings.notifications.saved')}</Text>
+        <Text className="mt-1 text-[13px]" style={{ color: colors.textSecondary }}>
+          {t('settings.notifications.description')}
         </Text>
         <View className="mt-3">
           <PreferenceRow
@@ -308,8 +379,12 @@ export function SettingsNotificationsPanel({
       </View>
       <NotificationRow
         icon="notifications-outline"
-        title="Preferencia push"
-        description="Se guardará para activar avisos push cuando el servicio esté disponible."
+        title={t('settings.notifications.push.title')}
+        description={pushRegistrationStatus === 'unsupported'
+          ? t('settings.notifications.push.unsupported')
+          : notificationSettings.push
+            ? t('settings.notifications.push.enabled')
+            : t('settings.notifications.push.disabled')}
         enabled={notificationSettings.push}
         onPress={() => onToggleNotification('push')}
         disabled={Boolean(savingNotificationKey)}

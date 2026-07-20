@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useAppTheme } from '../../../lib/appTheme'
 
 export type MobileBottomNavigationItem<Key extends string> = {
   key: Key
@@ -19,9 +20,6 @@ type MobileBottomNavigationProps<Key extends string> = {
   scrollable?: boolean
 }
 
-const NAV_BACKGROUND = '#050E1F'
-const NAV_BORDER = '#20395F'
-const INACTIVE_COLOR = '#9FB2CC'
 const ICON_SIZE = 26
 
 export default function MobileBottomNavigation<Key extends string>({
@@ -31,6 +29,8 @@ export default function MobileBottomNavigation<Key extends string>({
   scrollable = false,
 }: MobileBottomNavigationProps<Key>) {
   const router = useRouter()
+  const { colors } = useAppTheme()
+  const inactiveColor = colors.textMuted
 
   const navigationItems = items.map((item) => {
     const isActive = item.key === activeKey
@@ -54,7 +54,7 @@ export default function MobileBottomNavigation<Key extends string>({
           <Ionicons
             name={isActive ? item.activeIcon : item.icon}
             size={ICON_SIZE}
-            color={isActive ? accentColor : INACTIVE_COLOR}
+            color={isActive ? accentColor : inactiveColor}
             style={styles.icon}
           />
         </View>
@@ -63,7 +63,7 @@ export default function MobileBottomNavigation<Key extends string>({
           numberOfLines={1}
           style={[
             styles.label,
-            { color: isActive ? accentColor : INACTIVE_COLOR },
+            { color: isActive ? accentColor : inactiveColor },
           ]}
         >
           {item.label}
@@ -73,8 +73,11 @@ export default function MobileBottomNavigation<Key extends string>({
   })
 
   return (
-    <SafeAreaView edges={['bottom']} style={styles.safeArea}>
-      <View style={styles.navigationSurface}>
+    <SafeAreaView
+      edges={['bottom']}
+      style={[styles.safeArea, { backgroundColor: colors.navigation, borderTopColor: colors.border }]}
+    >
+      <View style={[styles.navigationSurface, { backgroundColor: colors.navigation }]}>
         {scrollable ? (
           <ScrollView
             horizontal
@@ -98,9 +101,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 1000,
-    backgroundColor: NAV_BACKGROUND,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: NAV_BORDER,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -119,7 +120,6 @@ const styles = StyleSheet.create({
   navigationSurface: {
     height: 82,
     width: '100%',
-    backgroundColor: NAV_BACKGROUND,
     paddingHorizontal: 8,
   },
   row: {

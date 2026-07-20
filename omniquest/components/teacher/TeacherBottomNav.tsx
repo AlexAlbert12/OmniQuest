@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import { useAppTheme } from '../../lib/appTheme'
+import { useI18n } from '../../lib/i18n'
 import MobileBottomNavigation, {
   MobileBottomNavigationItem,
 } from '../ui/mobile/MobileBottomNavigation'
@@ -6,16 +8,16 @@ import type { TeacherSection } from './TeacherSidebar'
 
 type VisibleTeacherBottomNavKey = 'home' | 'classes' | 'students' | 'audit' | 'profile'
 
-const navItems: MobileBottomNavigationItem<VisibleTeacherBottomNavKey>[] = [
-  { key: 'home', label: 'Inicio', href: '/(teacher)/homeTeacher', icon: 'home-outline', activeIcon: 'home' },
-  { key: 'classes', label: 'Cursos', href: '/(teacher)/classes', icon: 'book-outline', activeIcon: 'book' },
-  { key: 'students', label: 'Alumnos', href: '/(teacher)/students', icon: 'people-outline', activeIcon: 'people' },
-  { key: 'audit', label: 'Auditoría', href: '/(teacher)/audit', icon: 'shield-checkmark-outline', activeIcon: 'shield-checkmark' },
-  { key: 'profile', label: 'Perfil', href: '/(teacher)/profile', icon: 'person-outline', activeIcon: 'person' },
-]
-
 export default function TeacherBottomNav({ active }: { active: TeacherSection }) {
   const { accentColor } = useAppTheme()
+  const { t } = useI18n()
+  const navItems = useMemo<MobileBottomNavigationItem<VisibleTeacherBottomNavKey>[]>(() => [
+    { key: 'home', label: t('nav.teacher.home'), href: '/(teacher)/homeTeacher', icon: 'home-outline', activeIcon: 'home' },
+    { key: 'classes', label: t('nav.teacher.courses'), href: '/(teacher)/classes', icon: 'book-outline', activeIcon: 'book' },
+    { key: 'students', label: t('nav.teacher.students'), href: '/(teacher)/students', icon: 'people-outline', activeIcon: 'people' },
+    { key: 'audit', label: t('nav.teacher.audit'), href: '/(teacher)/audit', icon: 'shield-checkmark-outline', activeIcon: 'shield-checkmark' },
+    { key: 'profile', label: t('nav.teacher.profile'), href: '/(teacher)/profile', icon: 'person-outline', activeIcon: 'person' },
+  ], [t])
 
   return (
     <MobileBottomNavigation
@@ -27,9 +29,6 @@ export default function TeacherBottomNav({ active }: { active: TeacherSection })
 }
 
 function getVisibleActiveKey(active: TeacherSection): VisibleTeacherBottomNavKey {
-  if (active === 'notifications' || active === 'settings') {
-    return 'profile'
-  }
-
+  if (active === 'notifications' || active === 'settings') return 'profile'
   return active
 }

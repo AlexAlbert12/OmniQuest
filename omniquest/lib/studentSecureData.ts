@@ -65,6 +65,23 @@ export type AttemptFeedback = {
   review_notes?: string | null
 }
 
+
+export type StudentAttemptHistoryPageFilters = {
+  page?: number
+  pageSize?: number
+  status?: 'all' | 'correct' | 'incorrect'
+  search?: string
+  subjectId?: number | null
+  classroomId?: number | null
+  topicId?: number | null
+  difficulty?: number | null
+}
+
+export type StudentAttemptHistoryPage = {
+  rows: SafeStudentAttempt[]
+  total: number
+}
+
 export type StudentAttemptHistoryFilters = {
   limit?: number
   since?: string | null
@@ -113,6 +130,40 @@ export async function fetchStudentAttemptHistory({
 
   if (error) throw error
   return parseRpcArray<SafeStudentAttempt>(data)
+}
+
+export async function fetchStudentAttemptHistoryPage({
+  page = 0,
+  pageSize = 20,
+  status = 'all',
+  search = '',
+  subjectId = null,
+  classroomId = null,
+  topicId = null,
+  difficulty = null,
+}: StudentAttemptHistoryPageFilters = {}): Promise<StudentAttemptHistoryPage> {
+  const safePageSize = Math.min(Math.max(pageSize, 1), 100)
+  const safePage = Math.max(page, 0)
+  const { data, error } = await (supabase.rpc as any)('get_student_attempt_history_page', {
+    p_status: status,
+    p_search: search.trim() || null,
+    p_subject_id: subjectId,
+    p_classroom_id: classroomId,
+    p_topic_id: topicId,
+    p_difficulty: difficulty,
+    p_limit: safePageSize,
+    p_offset: safePage * safePageSize,
+  })
+
+  if (error) throw error
+  const payload = data && typeof data === 'object' && !Array.isArray(data)
+    ? data as { rows?: unknown; total?: unknown }
+    : {}
+
+  return {
+    rows: parseRpcArray<SafeStudentAttempt>(payload.rows),
+    total: Math.max(0, Number(payload.total || 0)),
+  }
 }
 
 export async function fetchAttemptFeedback(attemptHistoryId: number): Promise<AttemptFeedback> {

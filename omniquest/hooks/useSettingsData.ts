@@ -4,6 +4,8 @@ import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
 import { useFocusEffect, useRouter, type Href } from 'expo-router'
 import { supabase } from '../lib/supabase'
+import { useI18n, type AppLocale } from '../lib/i18n'
+import { deactivateCurrentDevicePushToken, registerCurrentDeviceForPush } from '../lib/pushNotifications'
 import { getNextLevelProgress, getStudentLevel } from '../lib/studentLevel'
 import type { Database } from '../types/database.types'
 import {
@@ -188,6 +190,7 @@ async function fetchProfileWithOptionalVisibility(targetUserId: string) {
 
 export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   const router = useRouter()
+  const { locale, setLocale, t } = useI18n()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [role, setRole] = useState<AppRole>(forcedRole || 'student')
   const [subjectsCount, setSubjectsCount] = useState(0)
@@ -210,6 +213,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   const [savingPreference, setSavingPreference] = useState<PreferenceKey | null>(null)
   const [openPreferenceKey, setOpenPreferenceKey] = useState<PreferenceKey | null>(null)
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettingsState>(DEFAULT_NOTIFICATION_SETTINGS)
+  const [pushRegistrationStatus, setPushRegistrationStatus] = useState<'idle' | 'registered' | 'denied' | 'unsupported' | 'error'>('idle')
   const [savingNotificationKey, setSavingNotificationKey] = useState<NotificationSettingKey | 'frequency' | null>(null)
   const [openNotificationFrequency, setOpenNotificationFrequency] = useState(false)
   const [profileVisibility, setProfileVisibility] = useState<ProfileVisibility | null>(null)
@@ -518,6 +522,9 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   }
 
   const formatPreferenceLabel = (key: PreferenceKey, value: string) => {
+    if (key === 'language') {
+      return value === 'en-US' ? t('settings.language.english') : t('settings.language.spanish')
+    }
     const labelsByKey = preferenceLabels[key] as Record<string, string>
     return labelsByKey[value] || value
   }
@@ -613,7 +620,11 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
 
       setSubjectsCount(teacherSubjectIds.length)
 
-      setPreferences(toPreferenceState((preferencesResult.data as UserPreferencesRow | null) || null))
+      const nextPreferences = toPreferenceState((preferencesResult.data as UserPreferencesRow | null) || null)
+      setPreferences(nextPreferences)
+      if (nextPreferences.language === 'es-ES' || nextPreferences.language === 'en-US') {
+        void setLocale(nextPreferences.language as AppLocale)
+      }
       setNotificationSettings(
         toNotificationSettingsState((notificationSettingsResult.data as NotificationSettingsRow | null) || null)
       )
@@ -623,7 +634,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     } finally {
       setLoading(false)
     }
-  }, [forcedRole, router])
+  }, [forcedRole, router, setLocale])
 
   useFocusEffect(
     useCallback(() => {
@@ -762,6 +773,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   }
 
   const executeSignOut = async () => {
+    await deactivateCurrentDevicePushToken().catch(() => undefined)
     await supabase.auth.signOut()
     router.replace(LOGIN_ROUTE)
   }
@@ -783,7 +795,20 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     setSavingNotificationKey(key)
 
     try {
+      if (key === 'push' && next.push) {
+        const registration = await registerCurrentDeviceForPush()
+        setPushRegistrationStatus(registration.status)
+        if (registration.status !== 'registered') {
+          throw new Error(registration.message || 'No se pudo registrar este dispositivo para notificaciones push.')
+        }
+      }
+
       await saveNotificationSettings(userId, next)
+
+      if (key === 'push' && !next.push) {
+        await deactivateCurrentDevicePushToken()
+        setPushRegistrationStatus('idle')
+      }
     } catch (error: unknown) {
       setNotificationSettings(previous)
       if (isMissingNotificationPreferencesTableError(getErrorCode(error))) {
@@ -859,8 +884,12 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
 
     try {
       await savePreferences(userId, nextPreferences)
+      if (key === 'language' && (value === 'es-ES' || value === 'en-US')) {
+        await setLocale(value as AppLocale)
+      }
     } catch (error: unknown) {
       setPreferences(previousPreferences)
+      if (key === 'language') await setLocale(locale)
       if (isMissingPreferencesTableError(getErrorCode(error))) {
         showAlert(
           'Configuración pendiente',
@@ -907,6 +936,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     nextLevelProgress,
     notificationFrequencyOptions,
     notificationSettings,
+    pushRegistrationStatus,
     openNotificationFrequency,
     openPreferenceKey,
     passwordChecks,

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   ScrollView,
@@ -26,6 +26,7 @@ import type {
 } from '../../components/settings/SettingsTypes'
 import { useSettingsData } from '../../hooks/useSettingsData'
 import { useAppTheme } from '../../lib/appTheme'
+import { useI18n } from '../../lib/i18n'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 
 type AppHref = Href
@@ -39,18 +40,16 @@ const ROUTES = {
   teacherSecurity: '/(teacher)/security' as AppHref,
 }
 
-const studentSettingsSections: { key: SettingsMenuSectionKey; label: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
-  { key: 'general', label: 'General', icon: 'settings-outline', anchor: 'general' },
-  { key: 'profile', label: 'Perfil', icon: 'person-outline', anchor: 'profile' },
-  { key: 'preferences', label: 'Idioma y región', icon: 'globe-outline', anchor: 'preferences' },
-  { key: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', anchor: 'notifications' },
-  { key: 'privacy', label: 'Privacidad', icon: 'shield-checkmark-outline', anchor: 'privacy' },
-  { key: 'data', label: 'Datos', icon: 'server-outline', anchor: 'data' },
-  { key: 'security', label: 'Seguridad', icon: 'lock-closed-outline', anchor: 'security' },
-  { key: 'about', label: 'Acerca de', icon: 'information-circle-outline', anchor: 'about' },
+const settingsSectionDefinitions: { key: SettingsMenuSectionKey; labelKey: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
+  { key: 'general', labelKey: 'settings.section.general', icon: 'settings-outline', anchor: 'general' },
+  { key: 'profile', labelKey: 'settings.section.profile', icon: 'person-outline', anchor: 'profile' },
+  { key: 'preferences', labelKey: 'settings.section.preferences', icon: 'globe-outline', anchor: 'preferences' },
+  { key: 'notifications', labelKey: 'settings.section.notifications', icon: 'notifications-outline', anchor: 'notifications' },
+  { key: 'privacy', labelKey: 'settings.section.privacy', icon: 'shield-checkmark-outline', anchor: 'privacy' },
+  { key: 'data', labelKey: 'settings.section.data', icon: 'server-outline', anchor: 'data' },
+  { key: 'security', labelKey: 'settings.section.security', icon: 'lock-closed-outline', anchor: 'security' },
+  { key: 'about', labelKey: 'settings.section.about', icon: 'information-circle-outline', anchor: 'about' },
 ]
-
-const teacherSettingsSections = [...studentSettingsSections]
 
 function roleRoute(isTeacher: boolean, teacherRoute: AppHref, studentRoute: AppHref) {
   return isTeacher ? teacherRoute : studentRoute
@@ -60,14 +59,18 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const { width } = useWindowDimensions()
   const router = useRouter()
   const { section } = useLocalSearchParams<{ section?: string }>()
-  const { theme, accentColor, setAccentColor } = useAppTheme()
+  const { theme, colors, accentColor, setAccentColor } = useAppTheme()
+  const { t } = useI18n()
   const scrollRef = useRef<ScrollView | null>(null)
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsMenuSectionKey>('general')
   const data = useSettingsData({ forcedRole })
 
   const isDesktop = width >= 1080
   const isDark = theme === 'dark'
-  const settingsSections = data.isTeacher ? teacherSettingsSections : studentSettingsSections
+  const settingsSections = useMemo(
+    () => settingsSectionDefinitions.map((item) => ({ ...item, label: t(item.labelKey) })),
+    [t]
+  )
   const isLargeDesktop = width >= 1280
   const isMediumSettings = width >= 760
   const settingsMenuVariant: SettingsMenuVariant = isLargeDesktop ? 'side' : isMediumSettings ? 'tabs' : 'chips'
@@ -104,15 +107,15 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
   if (data.loading) {
     return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: isDark ? '#061126' : '#0F2442' }}>
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando configuración...</Text>
+        <Text className="mt-4" style={{ color: colors.textMuted }}>{t('settings.loading')}</Text>
       </View>
     )
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: isDark ? '#061126' : '#0F2442' }}>
+    <View className="flex-1" style={{ backgroundColor: colors.background }}>
       <View className="flex-1 flex-row">
         {isDesktop ? (
           data.isTeacher ? (
@@ -147,10 +150,10 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
               role={data.isTeacher ? 'teacher' : 'student'}
               icon={securityOnly ? 'lock-closed' : 'settings'}
               isDesktop={isDesktop}
-              title={securityOnly ? 'Seguridad' : 'Configuración'}
+              title={securityOnly ? t('settings.section.security') : t('settings.title')}
               subtitle={securityOnly
                 ? 'Gestiona acceso, contraseña y acciones críticas de tu cuenta.'
-                : `Personaliza tu experiencia y controla tu cuenta de ${data.isTeacher ? 'profesor' : 'alumno'}.`}
+                : t(data.isTeacher ? 'settings.subtitle.teacher' : 'settings.subtitle.student')}
               notificationOnPress={() => router.push(roleRoute(data.isTeacher, ROUTES.teacherNotifications, ROUTES.studentNotifications))}
               className="mb-4"
             />

@@ -40,23 +40,24 @@ export function DestructiveConfirmModal({
   onConfirm: () => void
 }) {
   const details = getDestructiveActionDetails(action, isTeacher)
+  const { colors } = useAppTheme()
   const canConfirm = value.trim() === REQUIRED_DESTRUCTIVE_CONFIRMATION && !busy
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View className="flex-1 items-center justify-center bg-black/70 px-5">
-        <View className="w-full max-w-[430px] rounded-2xl border border-[#4A1E2B] bg-[#07162D] p-5">
+        <View className="w-full max-w-[430px] rounded-2xl border p-5" style={{ borderColor: colors.danger, backgroundColor: colors.surface }}>
           <View className="flex-row items-center gap-3">
             <View className="h-10 w-10 items-center justify-center rounded-full bg-[#2A0B18]">
               <Ionicons name="warning-outline" size={20} color="#FB7185" />
             </View>
             <View className="min-w-0 flex-1">
-              <Text className="text-[16px] font-black text-white">{details.title}</Text>
+              <Text className="text-[16px] font-black" style={{ color: colors.text }}>{details.title}</Text>
               <Text className="mt-1 text-[12px] leading-5 text-[#FCA5A5]">{details.description}</Text>
             </View>
           </View>
 
-          <Text className="mt-5 text-[12px] font-semibold text-[#B7C4D7]">
+          <Text className="mt-5 text-[12px] font-semibold" style={{ color: colors.textSecondary }}>
             Escribe {REQUIRED_DESTRUCTIVE_CONFIRMATION} para continuar.
           </Text>
           <TextInput
@@ -65,19 +66,27 @@ export function DestructiveConfirmModal({
             autoCapitalize="characters"
             placeholder={REQUIRED_DESTRUCTIVE_CONFIRMATION}
             placeholderTextColor="#64748B"
-            className="mt-2 rounded-lg border border-[#4A1E2B] bg-[#0D1D3B] px-4 py-3 text-[13px] font-bold text-white"
+            className="mt-2 rounded-lg border px-4 py-3 text-[13px] font-bold"
+            style={{ borderColor: colors.danger, backgroundColor: colors.surfaceRaised, color: colors.text }}
           />
 
           <View className="mt-5 flex-row justify-end gap-3">
             <Pressable
+              accessibilityLabel="Cancelar acción destructiva"
+              accessibilityRole="button"
+              hitSlop={6}
               onPress={onCancel}
               disabled={busy}
-              className="rounded-lg border border-[#263E61] px-4 py-3"
-              style={({ pressed }) => ({ opacity: busy ? 0.55 : pressed ? 0.8 : 1 })}
+              className="rounded-lg border px-4 py-3"
+              style={({ pressed }) => ({ borderColor: colors.border, backgroundColor: colors.surfaceRaised, opacity: busy ? 0.55 : pressed ? 0.8 : 1 })}
             >
-              <Text className="text-[12px] font-bold text-[#DDE7F4]">Cancelar</Text>
+              <Text className="text-[12px] font-bold" style={{ color: colors.textSecondary }}>Cancelar</Text>
             </Pressable>
             <Pressable
+              accessibilityLabel={details.confirmLabel}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !canConfirm, busy }}
+              hitSlop={6}
               onPress={onConfirm}
               disabled={!canConfirm}
               className="rounded-lg bg-[#BE123C] px-4 py-3"
@@ -162,7 +171,7 @@ export function SettingsMenu({
   onSectionPress: (section: SettingsMenuItem) => void
   sections: SettingsMenuItem[]
 }) {
-  const { accentColor } = useAppTheme()
+  const { accentColor, colors } = useAppTheme()
 
   const renderMenuItem = (section: SettingsMenuItem) => {
     const active = section.key === activeSection
@@ -171,24 +180,29 @@ export function SettingsMenu({
     return (
       <Pressable
         key={section.key}
+        accessibilityRole="tab"
+        accessibilityLabel={section.label}
+        accessibilityState={{ selected: active }}
+        hitSlop={6}
         onPress={() => onSectionPress(section)}
         className={`flex-row items-center gap-2 border ${isChip ? 'min-h-[44px] rounded-full px-4 py-3' : 'rounded-xl px-4 py-3'}`}
         style={({ pressed }) => ({
           opacity: pressed ? 0.82 : 1,
-          borderColor: active ? accentColor : '#183052',
-          backgroundColor: active ? withAlpha(accentColor, '24') : '#071A32',
+          borderColor: active ? accentColor : colors.border,
+          backgroundColor: active ? withAlpha(accentColor, '24') : colors.surfaceRaised,
         })}
       >
         {isChip ? null : (
           <Ionicons
             name={section.icon}
             size={16}
-            color={active ? accentColor : '#AFC2DB'}
+            color={active ? accentColor : colors.textSecondary}
           />
         )}
 
         <Text
-          className={`text-[12px] font-black ${active ? 'text-white' : 'text-[#B7C4D7]'}`}
+          className="text-[12px] font-black"
+          style={{ color: active ? accentColor : colors.textSecondary }}
           numberOfLines={1}
         >
           {section.label}
@@ -199,15 +213,18 @@ export function SettingsMenu({
 
   if (variant === 'side') {
     return (
-      <View className="w-[220px] self-start rounded-xl border border-[#183052] bg-[#07162D] p-3">
+      <View className="w-[220px] self-start rounded-xl border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surface }}>
         <View className="gap-1">
           {sections.map(renderMenuItem)}
         </View>
 
         <Pressable
           onPress={onSignOut}
-          className="mt-4 flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#071326] px-3 py-3"
-          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar sesión"
+          hitSlop={6}
+          className="mt-4 flex-row items-center gap-2 rounded-xl border px-3 py-3"
+          style={({ pressed }) => ({ borderColor: colors.border, backgroundColor: colors.surfaceRaised, opacity: pressed ? 0.82 : 1 })}
         >
           <Ionicons name="log-out-outline" size={15} color="#F87171" />
           <Text className="text-[12px] font-bold text-[#F87171]">Cerrar sesión</Text>
@@ -217,7 +234,7 @@ export function SettingsMenu({
   }
 
   return (
-    <View className="rounded-xl border border-[#183052] bg-[#07162D] p-2">
+    <View className="rounded-xl border p-2" style={{ borderColor: colors.border, backgroundColor: colors.surface }}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -241,18 +258,20 @@ export function Panel({
   children: React.ReactNode
   className?: string
 }) {
+  const { colors } = useAppTheme()
   return (
-    <View className={`rounded-xl border border-[#183052] bg-[#07162D] p-5 ${className}`}>
-      <Text className="mb-4 text-[16px] font-black text-white">{title}</Text>
+    <View className={`rounded-xl border p-5 ${className}`} style={{ borderColor: colors.border, backgroundColor: colors.surface }}>
+      <Text className="mb-4 text-[16px] font-black" style={{ color: colors.text }}>{title}</Text>
       {children}
     </View>
   )
 }
 
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const { colors } = useAppTheme()
   return (
     <View>
-      <Text className="mb-2 text-[13px] font-semibold text-[#B7C4D7]">{label}</Text>
+      <Text className="mb-2 text-[13px] font-semibold" style={{ color: colors.textSecondary }}>{label}</Text>
       {children}
     </View>
   )
@@ -279,35 +298,45 @@ export function SelectPill({
   disabled?: boolean
   loading?: boolean
 }) {
-  const { accentColor } = useAppTheme()
+  const { accentColor, colors } = useAppTheme()
 
   return (
     <View>
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={value}
+        accessibilityState={{ expanded: open, disabled }}
+        hitSlop={6}
         onPress={onToggle}
         disabled={disabled}
-        className="flex-row items-center justify-between rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3"
+        className="flex-row items-center justify-between rounded-lg border px-4 py-3"
         style={({ pressed }) => ({
+          borderColor: colors.border,
+          backgroundColor: colors.surfaceRaised,
           opacity: disabled ? 0.7 : pressed ? 0.86 : 1,
         })}
       >
-        <Text className="min-w-0 flex-1 text-[13px] font-semibold text-white">{value}</Text>
+        <Text className="min-w-0 flex-1 text-[13px] font-semibold" style={{ color: colors.text }}>{value}</Text>
         {loading ? (
-          <ActivityIndicator size="small" color="#AFC2DB" />
+          <ActivityIndicator size="small" color={colors.textSecondary} />
         ) : (
-          <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color="#AFC2DB" />
+          <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textSecondary} />
         )}
       </Pressable>
 
       {open ? (
-        <View className="mt-2 overflow-hidden rounded-lg border border-[#243E63] bg-[#0A2042]">
+        <View className="mt-2 overflow-hidden rounded-lg border" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
           {options.map((option, index) => (
             <Pressable
               key={option}
               onPress={() => onSelect(option)}
-              className={`flex-row items-center justify-between px-4 py-3 ${index < options.length - 1 ? 'border-b border-[#1B3357]' : ''}`}
+              accessibilityRole="button"
+              accessibilityLabel={optionLabel(option)}
+              accessibilityState={{ selected: option === selectedValue }}
+              className="flex-row items-center justify-between px-4 py-3"
+              style={{ borderBottomWidth: index < options.length - 1 ? 1 : 0, borderBottomColor: colors.border }}
             >
-              <Text className="min-w-0 flex-1 text-[13px] text-[#DDE7F4]">{optionLabel(option)}</Text>
+              <Text className="min-w-0 flex-1 text-[13px]" style={{ color: colors.textSecondary }}>{optionLabel(option)}</Text>
               {option === selectedValue ? (
                 <Ionicons name="checkmark" size={16} color={accentColor} />
               ) : null}
@@ -342,9 +371,10 @@ export function PreferenceRow({
   disabled?: boolean
   loading?: boolean
 }) {
+  const { colors } = useAppTheme()
   return (
     <View className="mb-4 flex-row items-start gap-4">
-      <Text className="w-[125px] text-[12px] font-semibold text-[#B7C4D7]">{label}</Text>
+      <Text className="w-[125px] text-[12px] font-semibold" style={{ color: colors.textSecondary }}>{label}</Text>
       <View className="min-w-0 flex-1">
         <SelectPill
           value={value}
@@ -379,24 +409,27 @@ export function NotificationRow({
   disabled?: boolean
   loading?: boolean
 }) {
-  const { accentColor } = useAppTheme()
+  const { accentColor, colors } = useAppTheme()
 
   return (
-    <View className="flex-row items-center gap-3 border-b border-[#13284A] py-3">
-      <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10233F]">
-        <Ionicons name={icon} size={18} color="#AFC2DB" />
+    <View className="flex-row items-center gap-3 border-b py-3" style={{ borderBottomColor: colors.border }}>
+      <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: colors.surfaceMuted }}>
+        <Ionicons name={icon} size={18} color={colors.textSecondary} />
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="font-bold text-white">{title}</Text>
-        <Text className="mt-1 text-[12px] text-[#B7C4D7]">{description}</Text>
+        <Text className="font-bold" style={{ color: colors.text }}>{title}</Text>
+        <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>{description}</Text>
       </View>
       <View className="items-end">
-        {loading ? <ActivityIndicator size="small" color="#AFC2DB" /> : null}
+        {loading ? <ActivityIndicator size="small" color={colors.textSecondary} /> : null}
         <Switch
+          accessibilityLabel={title}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: enabled, disabled: disabled || loading }}
           value={enabled}
           onValueChange={onPress}
           disabled={disabled || loading}
-          trackColor={{ false: '#223554', true: accentColor }}
+          trackColor={{ false: colors.borderStrong, true: accentColor }}
           thumbColor="#FFFFFF"
         />
       </View>
@@ -419,23 +452,30 @@ export function ActionRow({
   disabled?: boolean
   loading?: boolean
 }) {
+  const { colors } = useAppTheme()
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={description}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
+      hitSlop={6}
       onPress={disabled || loading ? undefined : onPress}
-      className={`flex-row items-center gap-3 border-b border-[#13284A] py-3 ${disabled || loading ? 'opacity-50' : ''}`}
+      className={`flex-row items-center gap-3 border-b py-3 ${disabled || loading ? 'opacity-50' : ''}`}
+      style={{ borderBottomColor: colors.border }}
     >
-      <View className="h-10 w-10 items-center justify-center rounded-full bg-[#10233F]">
+      <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: colors.surfaceMuted }}>
         {loading ? (
-          <ActivityIndicator size="small" color="#AFC2DB" />
+          <ActivityIndicator size="small" color={colors.textSecondary} />
         ) : (
-          <Ionicons name={icon} size={18} color="#AFC2DB" />
+          <Ionicons name={icon} size={18} color={colors.textSecondary} />
         )}
       </View>
       <View className="min-w-0 flex-1">
-        <Text className={`font-bold ${disabled || loading ? 'text-[#AFC2DB]' : 'text-white'}`}>{title}</Text>
-        <Text className="mt-1 text-[12px] text-[#B7C4D7]">{description}</Text>
+        <Text className="font-bold" style={{ color: disabled || loading ? colors.textMuted : colors.text }}>{title}</Text>
+        <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>{description}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={19} color="#AFC2DB" />
+      <Ionicons name="chevron-forward" size={19} color={colors.textSecondary} />
     </Pressable>
   )
 }
@@ -444,7 +484,7 @@ export function FooterLink({ label, onPress }: { label: string; onPress: () => v
   const { accentColor } = useAppTheme()
 
   return (
-    <Pressable onPress={onPress} className="mt-2 flex-row items-center justify-between py-2">
+    <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={6} onPress={onPress} className="mt-2 flex-row items-center justify-between py-2">
       <Text className="text-[12px] font-semibold" style={{ color: accentColor }}>{label}</Text>
       <Ionicons name="chevron-forward" size={15} color={accentColor} />
     </Pressable>

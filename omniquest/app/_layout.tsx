@@ -5,6 +5,9 @@ import { Stack, usePathname, useRouter, useSegments } from 'expo-router'
 import { supabase } from '../lib/supabase'
 import { Text, View } from 'react-native'
 import { AppThemeProvider, useAppTheme } from '../lib/appTheme'
+import { I18nProvider, useI18n } from '../lib/i18n'
+import { usePushNotificationObserver } from '../hooks/usePushNotificationObserver'
+import { StatusBar } from 'expo-status-bar'
 import { NotificationProvider } from '../hooks/useNotifications'
 import { AppModalProvider } from '../components/AppModalProvider'
 import OmniGuide from '../components/OmniGuide'
@@ -39,13 +42,15 @@ function getHomeRouteForRole(roleId: string | null | undefined) {
 
 export default function RootLayout() {
   return (
-    <AppThemeProvider>
-      <AppModalProvider>
-        <NotificationProvider>
-          <RootNavigator />
-        </NotificationProvider>
-      </AppModalProvider>
-    </AppThemeProvider>
+    <I18nProvider>
+      <AppThemeProvider>
+        <AppModalProvider>
+          <NotificationProvider>
+            <RootNavigator />
+          </NotificationProvider>
+        </AppModalProvider>
+      </AppThemeProvider>
+    </I18nProvider>
   )
 }
 
@@ -58,7 +63,9 @@ function RootNavigator() {
   const pathname = usePathname()
   const segments = useSegments()
   const rootSegment = segments[0]
-  const { theme, ready } = useAppTheme()
+  const { theme, colors, ready } = useAppTheme()
+  const { ready: localeReady, t } = useI18n()
+  usePushNotificationObserver()
 
   useEffect(() => {
     let isMounted = true
@@ -194,26 +201,29 @@ function RootNavigator() {
     }
   }, [pathname, rootSegment, router])
 
-  if (!isInitialized || (!fontsLoaded && !fontError) || !ready) {
+  if (!isInitialized || (!fontsLoaded && !fontError) || !ready || !localeReady) {
     return (
       <View
         className="flex-1 justify-center items-center"
-        style={{ backgroundColor: theme === 'dark' ? '#0F2854' : '#F4F7FF' }}
+        style={{ backgroundColor: colors.background }}
       >
         <OmniGuide state="blink" size={118} />
-        <Text className="mt-4 text-center font-bold" style={{ color: theme === 'dark' ? '#DDEBFA' : '#263E61' }}>
-          Omni está preparando tu aventura...
+        <Text className="mt-4 text-center font-bold" style={{ color: colors.textSecondary }}>
+          {t('root.preparing')}
         </Text>
       </View>
     )
   }
 
   return (
-    <Stack
+    <>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+      <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: theme === 'dark' ? '#061126' : '#F4F7FF' },
+        contentStyle: { backgroundColor: colors.background },
       }}
-    />
+      />
+    </>
   )
 }

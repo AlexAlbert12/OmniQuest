@@ -18,6 +18,7 @@ import AdminBottomNav from './AdminBottomNav'
 import MobileMetricCard from '../ui/mobile/MobileMetricCard'
 import { supabase } from '../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import { useAppTheme } from '../../lib/appTheme'
 
 type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'audit'
 type IconName = keyof typeof Ionicons.glyphMap
@@ -878,24 +879,15 @@ export function AdminClassroomsScreen() {
 export function AdminAuditScreen() {
   const { width } = useWindowDimensions()
   const isDesktop = width >= 1040
-  const auditPageSize = isDesktop ? 50 : 8
+  const auditPageSize = isDesktop ? 25 : 8
   const data = useAdminData()
   const [search, setSearch] = useState('')
-  const [auditPage, setAuditPage] = useState(0)
-  const normalizedSearch = search.trim().toLowerCase()
 
-  const visibleLogs = useMemo(() => {
-    if (!normalizedSearch) return data.auditLogs
-    return data.auditLogs.filter((log) => auditSearchText(log, data).includes(normalizedSearch))
-  }, [data, normalizedSearch])
-
-  useEffect(() => {
-    setAuditPage(0)
-  }, [normalizedSearch, auditPageSize])
-
-  const pagedLogs = useMemo(
-    () => visibleLogs.slice(auditPage * auditPageSize, (auditPage + 1) * auditPageSize),
-    [auditPage, auditPageSize, visibleLogs]
+  const auditPage = useAdminRpcPage<AdminAuditLogRow & { total_count?: number | null }>(
+    'get_admin_audit_logs_page',
+    { p_search: search.trim() || null },
+    data.version,
+    auditPageSize,
   )
 
   return (
@@ -905,26 +897,33 @@ export function AdminAuditScreen() {
       <View className="mt-5">
         <AdminSectionIntro
           title="Registro de auditoría"
-          description="Consulta quién ejecutó cada acción crítica, sobre qué entidad y cuándo se realizó."
+          description="Consulta quién ejecutó cada acción crítica, sobre qué entidad y cuándo se realizó. El listado se pagina directamente en servidor."
         />
       </View>
 
       <Panel title="Últimas acciones registradas" icon="receipt-outline" className="mt-5">
-        <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar por acción, admin, objetivo o metadata..." />
+        <AdminSearch
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Buscar por acción, admin, objetivo o metadata..."
+        />
         <View className="mt-4" style={{ gap: 12 }}>
-          {pagedLogs.map((log) => (
+          {auditPage.loading && !auditPage.refreshing ? <ListLoadingState /> : null}
+          {auditPage.rows.map((log) => (
             <AuditLogCard key={log.id} log={log} data={data} />
           ))}
-          {visibleLogs.length === 0 ? <EmptyState label="No hay acciones de auditoría que coincidan." /> : null}
+          {!auditPage.loading && auditPage.rows.length === 0 ? (
+            <EmptyState label="No hay acciones de auditoría que coincidan." />
+          ) : null}
         </View>
         <AdminPaginationControls
-          page={auditPage}
-          pageSize={auditPageSize}
-          total={visibleLogs.length}
-          hasPrevious={auditPage > 0}
-          hasNext={(auditPage + 1) * auditPageSize < visibleLogs.length}
-          onPrevious={() => setAuditPage((value) => Math.max(0, value - 1))}
-          onNext={() => setAuditPage((value) => value + 1)}
+          page={auditPage.page}
+          pageSize={auditPage.pageSize}
+          total={auditPage.total}
+          hasPrevious={auditPage.hasPrevious}
+          hasNext={auditPage.hasNext}
+          onPrevious={auditPage.previousPage}
+          onNext={auditPage.nextPage}
         />
       </Panel>
     </AdminScaffold>
@@ -946,6 +945,7 @@ function AdminScaffold({
 }) {
   const { width } = useWindowDimensions()
   const router = useRouter()
+  const { colors } = useAppTheme()
   const isDesktop = width >= 1040
   const activeIcon = activeSection === 'home' ? 'shield-checkmark' : getAdminSectionIcon(activeSection)
 
@@ -956,15 +956,15 @@ function AdminScaffold({
 
   if (data.loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando portal de administrador...</Text>
+        <Text className="mt-4" style={{ color: colors.textMuted }}>Cargando portal de administrador...</Text>
       </View>
     )
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1" style={{ backgroundColor: colors.background }}>
       <View className="flex-1 flex-row">
         {isDesktop ? <AdminSidebar activeSection={activeSection} onSignOut={handleSignOut} /> : null}
 

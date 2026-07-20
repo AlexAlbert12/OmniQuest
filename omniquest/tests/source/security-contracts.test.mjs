@@ -51,8 +51,9 @@ test('game uses the safe question and post-attempt feedback RPCs', () => {
 test('student activity loads safe summaries and fetches details lazily', () => {
   const source = read('app/(student)/activity-log.tsx')
 
-  assert.match(source, /fetchStudentAttemptHistory\(\{\s*limit:\s*100/)
+  assert.match(source, /fetchStudentAttemptHistoryPage\(/)
   assert.match(source, /fetchActivityAttemptDetail\(attemptId\)/)
+  assert.match(source, /PaginationControls/)
   assert.doesNotMatch(source, /\.from\(['"]attempt_history['"]\)[\s\S]{0,500}questions\s*\(/)
 })
 

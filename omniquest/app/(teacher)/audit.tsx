@@ -13,9 +13,11 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
+import PaginationControls from '../../components/ui/PaginationControls'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import { withAlpha } from '../../lib/color'
+import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { getTimeAgo } from '../../lib/time'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
@@ -56,8 +58,11 @@ const auditFilters: { id: AuditFilter; label: string; icon: keyof typeof Ionicon
 export default function TeacherAuditScreen() {
   const router = useRouter()
   const { width } = useWindowDimensions()
+  const { colors } = useAppTheme()
   const [logs, setLogs] = useState<TeacherAuditLogRow[]>([])
   const [subjectsCount, setSubjectsCount] = useState(0)
+  const [page, setPage] = useState(0)
+  const [totalLogs, setTotalLogs] = useState(0)
   const [selectedFilter, setSelectedFilter] = useState<AuditFilter>('all')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -65,6 +70,7 @@ export default function TeacherAuditScreen() {
 
   const isDesktop = width >= 1080
   const isWide = width >= 900
+  const pageSize = isDesktop ? 25 : 8
 
   const fetchAuditLogs = useCallback(async () => {
     try {
@@ -78,12 +84,12 @@ export default function TeacherAuditScreen() {
       }
 
       const [logsResult, subjectsResult] = await Promise.all([
-        supabase
-          .from('teacher_audit_logs')
-          .select('id, teacher_id, action, target_table, target_id, metadata, created_at')
-          .eq('teacher_id', teacherId)
-          .order('created_at', { ascending: false })
-          .limit(150),
+        (supabase.rpc as any)('get_teacher_audit_logs_page', {
+          p_category: selectedFilter,
+          p_search: null,
+          p_limit: pageSize,
+          p_offset: page * pageSize,
+        }),
         supabase
           .from('subjects')
           .select('id', { count: 'exact', head: true })
@@ -94,7 +100,9 @@ export default function TeacherAuditScreen() {
       if (logsResult.error) throw logsResult.error
       if (subjectsResult.error) throw subjectsResult.error
 
-      setLogs(((logsResult.data || []) as TeacherAuditLogRow[]))
+      const nextLogs = ((logsResult.data || []) as Array<TeacherAuditLogRow & { total_count?: number | null }>)
+      setLogs(nextLogs)
+      setTotalLogs(Number(nextLogs[0]?.total_count || 0))
       setSubjectsCount(subjectsResult.count || 0)
     } catch (error: any) {
       console.error('Error cargando auditoría docente:', error)
@@ -103,7 +111,7 @@ export default function TeacherAuditScreen() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [page, pageSize, selectedFilter])
 
   useFocusEffect(
     useCallback(() => {
@@ -111,20 +119,17 @@ export default function TeacherAuditScreen() {
     }, [fetchAuditLogs])
   )
 
-  const filteredLogs = useMemo(() => {
-    if (selectedFilter === 'all') return logs
-    return logs.filter((log) => getAuditActionMeta(log.action).category === selectedFilter)
-  }, [logs, selectedFilter])
+  const filteredLogs = logs
 
   const stats = useMemo(() => {
     const lastWeekThreshold = Date.now() - 7 * 24 * 60 * 60 * 1000
     return {
-      total: logs.length,
+      total: totalLogs,
       lastWeek: logs.filter((log) => new Date(log.created_at).getTime() >= lastWeekThreshold).length,
       student: logs.filter((log) => getAuditActionMeta(log.action).category === 'student').length,
       destructive: logs.filter((log) => getAuditActionMeta(log.action).tone === 'danger').length,
     }
-  }, [logs])
+  }, [logs, totalLogs])
 
   const onRefresh = () => {
     setRefreshing(true)
@@ -143,9 +148,9 @@ export default function TeacherAuditScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-[#AFC2DB]">Cargando auditoría docente...</Text>
+        <Text className="mt-4" style={{ color: colors.textSecondary }}>Cargando auditoría docente...</Text>
       </View>
     )
   }
@@ -160,14 +165,19 @@ export default function TeacherAuditScreen() {
         refreshing={refreshing}
         errorMessage={errorMessage}
         onRefresh={onRefresh}
-        onSelectFilter={setSelectedFilter}
+        page={page}
+        pageSize={pageSize}
+        totalLogs={totalLogs}
+        onPreviousPage={() => setPage((value) => Math.max(0, value - 1))}
+        onNextPage={() => setPage((value) => value + 1)}
+        onSelectFilter={(filter) => { setPage(0); setSelectedFilter(filter) }}
         onNotifications={() => router.push('/(teacher)/notifications' as any)}
       />
     )
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1" style={{ backgroundColor: colors.background }}>
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <TeacherSidebar activeSection="audit" subjectsCount={subjectsCount} onSignOut={handleSignOut} />
@@ -231,7 +241,7 @@ export default function TeacherAuditScreen() {
                 filter={filter}
                 active={selectedFilter === filter.id}
                 count={filter.id === 'all' ? logs.length : logs.filter((log) => getAuditActionMeta(log.action).category === filter.id).length}
-                onPress={() => setSelectedFilter(filter.id)}
+                onPress={() => { setPage(0); setSelectedFilter(filter.id) }}
               />
               ))}
             </View>
@@ -240,7 +250,7 @@ export default function TeacherAuditScreen() {
           <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
             <View className="mb-4 flex-row items-center justify-between gap-3">
               <Text className="text-[18px] font-black text-white">Timeline de auditoría</Text>
-              <Text className="text-[12px] font-bold text-[#B9A7FF]">{filteredLogs.length} visibles</Text>
+              <Text className="text-[12px] font-bold text-[#B9A7FF]">{totalLogs} registros</Text>
             </View>
 
             <View className="gap-3">
@@ -250,6 +260,13 @@ export default function TeacherAuditScreen() {
               {filteredLogs.length === 0 ? (
                 <AuditEmptyState selectedFilter={selectedFilter} />
               ) : null}
+              <PaginationControls
+                page={page}
+                pageSize={pageSize}
+                total={totalLogs}
+                onPrevious={() => setPage((value) => Math.max(0, value - 1))}
+                onNext={() => setPage((value) => value + 1)}
+              />
             </View>
           </View>
         </ScrollView>
@@ -275,6 +292,11 @@ function MobileTeacherAudit({
   errorMessage,
   onRefresh,
   onSelectFilter,
+  page,
+  pageSize,
+  totalLogs,
+  onPreviousPage,
+  onNextPage,
   onNotifications,
 }: {
   logs: TeacherAuditLogRow[]
@@ -285,6 +307,11 @@ function MobileTeacherAudit({
   errorMessage: string | null
   onRefresh: () => void
   onSelectFilter: (filter: AuditFilter) => void
+  page: number
+  pageSize: number
+  totalLogs: number
+  onPreviousPage: () => void
+  onNextPage: () => void
   onNotifications: () => void
 }) {
   const metricCards = [
@@ -333,7 +360,7 @@ function MobileTeacherAudit({
   ]
 
   return (
-    <View className="flex-1 bg-[#020B1B]">
+    <View className="flex-1" style={{ backgroundColor: colors.backgroundAlt }}>
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 8 }}
@@ -395,7 +422,7 @@ function MobileTeacherAudit({
           <View className="mb-4 flex-row items-center justify-between">
             <View>
               <Text className="text-[24px] font-black text-white">Timeline</Text>
-              <Text className="mt-1 text-[12px] font-bold text-[#8FA7C7]">{filteredLogs.length} visibles</Text>
+              <Text className="mt-1 text-[12px] font-bold text-[#8FA7C7]">{totalLogs} registros</Text>
             </View>
             {filteredLogs.length > 0 ? (
               <View className="flex-row items-center gap-2">
@@ -406,7 +433,7 @@ function MobileTeacherAudit({
           </View>
 
           <View style={{ gap: 8 }}>
-            {filteredLogs.slice(0, 8).map((log) => (
+            {filteredLogs.map((log) => (
               <MobileAuditLogItem key={log.id} log={log} />
             ))}
 
@@ -414,19 +441,14 @@ function MobileTeacherAudit({
               <AuditEmptyState selectedFilter={selectedFilter} mobile />
             ) : null}
 
-            {filteredLogs.length > 8 ? (
-              <Pressable
-                onPress={() => onSelectFilter(selectedFilter)}
-                className="mt-1 h-16 flex-row items-center rounded-2xl border border-[#1D3760] bg-[#081A32] px-4"
-                style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-              >
-                <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#112C50]">
-                  <Ionicons name="calendar-outline" size={22} color="#C4D2E8" />
-                </View>
-                <Text className="ml-4 min-w-0 flex-1 text-[18px] font-black text-white">Ver más actividad</Text>
-                <Ionicons name="arrow-forward" size={22} color="#C4D2E8" />
-              </Pressable>
-            ) : null}
+            <PaginationControls
+              compact
+              page={page}
+              pageSize={pageSize}
+              total={totalLogs}
+              onPrevious={onPreviousPage}
+              onNext={onNextPage}
+            />
           </View>
         </LinearGradient>
       </ScrollView>

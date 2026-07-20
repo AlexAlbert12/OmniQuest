@@ -18,7 +18,7 @@ test('login validates fields before calling Supabase auth', () => {
 test('game submission is server-scored and does not calculate correctness in the component', () => {
   const source = read('hooks/useGame.ts')
 
-  assert.match(source, /rpc\(['"]submit_answer['"]/)
+  assert.match(source, /rpc[\s\S]*['"]submit_answer_resumable['"]/)
   assert.match(source, /p_attempt_id:\s*attemptIdRef\.current/)
   assert.match(source, /get_safe_game_questions/)
   assert.doesNotMatch(source, /\.is_correct\s*===\s*true\s*\?\s*.*points_base/)

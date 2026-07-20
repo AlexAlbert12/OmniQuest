@@ -12,14 +12,18 @@ import {
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
+import PaginationControls from '../../components/ui/PaginationControls'
 import OmniGuide from '../../components/OmniGuide'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
-import { fetchActivityAttemptDetail, fetchStudentAttemptHistory } from '../../lib/studentSecureData'
+import { fetchActivityAttemptDetail, fetchStudentAttemptHistoryPage } from '../../lib/studentSecureData'
+import { useAppTheme } from '../../lib/appTheme'
 
 type ActivityFilter = 'all' | 'correct' | 'incorrect'
+
+const ACTIVITY_PAGE_SIZE = 20
 
 type AttemptAnswer = {
   id: number
@@ -72,10 +76,13 @@ type FilterOption = {
 
 export default function ActivityLogScreen() {
   const { width } = useWindowDimensions()
+  const { colors } = useAppTheme()
   const router = useRouter()
   const isDesktop = width >= 1024
 
   const [attempts, setAttempts] = useState<AttemptRow[]>([])
+  const [page, setPage] = useState(0)
+  const [totalAttempts, setTotalAttempts] = useState(0)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [profile, setProfile] = useState<any>(null)
@@ -95,22 +102,33 @@ export default function ActivityLogScreen() {
 
       const [profileResult, historyResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, points').eq('id', userId).single(),
-        fetchStudentAttemptHistory({ limit: 100 }),
+        fetchStudentAttemptHistoryPage({
+          page,
+          pageSize: ACTIVITY_PAGE_SIZE,
+          status: statusFilter,
+          search: searchQuery,
+          subjectId: selectedSubjectId === 'all' ? null : Number(selectedSubjectId),
+          topicId: selectedTopicId === 'all' ? null : Number(selectedTopicId),
+        }),
       ])
 
       if (profileResult.data) setProfile(profileResult.data)
-      setAttempts((historyResult || []) as unknown as AttemptRow[])
+      setAttempts((historyResult.rows || []) as unknown as AttemptRow[])
+      setTotalAttempts(historyResult.total)
     } catch (error) {
       console.error('Error al cargar el historial de actividad:', error)
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [page, searchQuery, selectedSubjectId, selectedTopicId, statusFilter])
 
   useEffect(() => {
-    fetchActivityData()
-  }, [fetchActivityData])
+    const timer = setTimeout(() => {
+      void fetchActivityData()
+    }, searchQuery ? 300 : 0)
+    return () => clearTimeout(timer)
+  }, [fetchActivityData, searchQuery])
 
   const handleRefresh = () => {
     setRefreshing(true)
@@ -120,48 +138,11 @@ export default function ActivityLogScreen() {
   const subjectOptions = useMemo(() => buildSubjectOptions(attempts), [attempts])
   const topicOptions = useMemo(() => buildTopicOptions(attempts, selectedSubjectId), [attempts, selectedSubjectId])
 
-  useEffect(() => {
-    if (selectedTopicId === 'all') return
-    if (!topicOptions.some((option) => option.id === selectedTopicId)) {
-      setSelectedTopicId('all')
-    }
-  }, [selectedTopicId, topicOptions])
-
-  const filteredAttempts = useMemo(() => {
-    const normalizedSearch = normalizeForSearch(searchQuery)
-
-    return attempts.filter((attempt) => {
-      const question = normalizeSingleRelation(attempt.questions)
-      const subject = normalizeSingleRelation(question?.subjects)
-      const topic = normalizeSingleRelation(question?.subject_topics)
-      const answers = getQuestionAnswers(question)
-      const questionText = question?.text || 'Pregunta eliminada'
-      const submittedAnswer = getSubmittedAnswerText(attempt, question, answers)
-      const correctAnswer = getCorrectAnswerText(question, answers)
-
-      if (statusFilter === 'correct' && !attempt.is_correct) return false
-      if (statusFilter === 'incorrect' && attempt.is_correct) return false
-      if (selectedSubjectId !== 'all' && String(subject?.id ?? question?.subject_id ?? '') !== selectedSubjectId) return false
-      if (selectedTopicId !== 'all' && String(topic?.id ?? question?.topic_id ?? 'general') !== selectedTopicId) return false
-
-      if (!normalizedSearch) return true
-
-      const searchableText = normalizeForSearch([
-        questionText,
-        subject?.name,
-        topic?.title,
-        submittedAnswer,
-        correctAnswer,
-        question?.explanation,
-      ].filter(Boolean).join(' '))
-
-      return searchableText.includes(normalizedSearch)
-    })
-  }, [attempts, searchQuery, selectedSubjectId, selectedTopicId, statusFilter])
+  const filteredAttempts = attempts
 
   const statusFilters = useMemo(
     () => [
-      { id: 'all' as ActivityFilter, label: 'Todas', count: attempts.length, icon: 'list' as keyof typeof Ionicons.glyphMap },
+      { id: 'all' as ActivityFilter, label: 'Todas', count: totalAttempts, icon: 'list' as keyof typeof Ionicons.glyphMap },
       {
         id: 'correct' as ActivityFilter,
         label: 'Correctas',
@@ -175,7 +156,7 @@ export default function ActivityLogScreen() {
         icon: 'close-circle' as keyof typeof Ionicons.glyphMap,
       },
     ],
-    [attempts]
+    [attempts, totalAttempts]
   )
 
   const points = profile?.points || 0
@@ -215,7 +196,7 @@ export default function ActivityLogScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1" style={{ backgroundColor: colors.background }}>
       <View className="flex-1 flex-row">
         {isDesktop && profile ? (
           <StudentSidebar
@@ -255,21 +236,22 @@ export default function ActivityLogScreen() {
               ListHeaderComponent={
                 <ActivityFilters
                   searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
+                  onSearchChange={(value) => { setPage(0); setSearchQuery(value) }}
                   statusFilters={statusFilters}
                   statusFilter={statusFilter}
-                  onStatusFilterChange={setStatusFilter}
+                  onStatusFilterChange={(value) => { setPage(0); setStatusFilter(value) }}
                   subjectOptions={subjectOptions}
                   selectedSubjectId={selectedSubjectId}
                   onSubjectChange={(subjectId) => {
+                    setPage(0)
                     setSelectedSubjectId(subjectId)
                     setSelectedTopicId('all')
                   }}
                   topicOptions={topicOptions}
                   selectedTopicId={selectedTopicId}
-                  onTopicChange={setSelectedTopicId}
+                  onTopicChange={(value) => { setPage(0); setSelectedTopicId(value) }}
                   visibleCount={filteredAttempts.length}
-                  totalCount={attempts.length}
+                  totalCount={totalAttempts}
                 />
               }
               ListEmptyComponent={
@@ -284,6 +266,16 @@ export default function ActivityLogScreen() {
                       : 'Prueba a cambiar la búsqueda, la clase, el tema o el estado de la respuesta.'}
                   </Text>
                 </View>
+              }
+              ListFooterComponent={
+                <PaginationControls
+                  compact={!isDesktop}
+                  page={page}
+                  pageSize={ACTIVITY_PAGE_SIZE}
+                  total={totalAttempts}
+                  onPrevious={() => setPage((value) => Math.max(0, value - 1))}
+                  onNext={() => setPage((value) => value + 1)}
+                />
               }
             />
           )}

@@ -5,6 +5,8 @@ import { useFocusEffect, useRouter, useSegments } from 'expo-router'
 import { supabase } from '../lib/supabase'
 import { calculateStreakDays } from '../lib/studentBadges'
 import { NotificationAudience, useNotifications } from '../hooks/useNotifications'
+import { useAppTheme } from '../lib/appTheme'
+import { useI18n } from '../lib/i18n'
 
 type NotificationBadgeProps = {
   audience?: NotificationAudience
@@ -22,6 +24,8 @@ export default function NotificationBadge({
   onPress,
 }: NotificationBadgeProps) {
   const router = useRouter()
+  const { colors } = useAppTheme()
+  const { t } = useI18n()
   const segments = useSegments()
   const inferredAudience: NotificationAudience =
     audience ?? (segments && segments[0] === '(teacher)' ? 'teacher' : 'student')
@@ -96,15 +100,19 @@ export default function NotificationBadge({
         </View>
       ) : null}
       <Pressable
+        accessibilityLabel={`${t('common.notifications')}: ${t('common.unreadNotifications', { count: displayCount })}`}
+        accessibilityRole="button"
+        accessibilityHint={t('common.openNotifications')}
+        hitSlop={8}
         onPress={handlePress}
         className="relative rounded-2xl p-3"
         style={{
           borderWidth: 1,
-          borderColor: '#20375E',
-          backgroundColor: '#09162C',
+          borderColor: colors.border,
+          backgroundColor: colors.surface,
         }}
       >
-        <Ionicons name="notifications-outline" size={22} color="#AFC2DB" />
+        <Ionicons name="notifications-outline" size={22} color={colors.textSecondary} />
         {displayCount > 0 ? (
           <View className="absolute -right-1 -top-1 h-6 w-6 items-center justify-center rounded-full bg-[#EF4444]">
             <Text className="text-[10px] font-black text-white">
