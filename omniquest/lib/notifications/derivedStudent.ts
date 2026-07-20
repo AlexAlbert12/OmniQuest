@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../supabase'
+import { fetchStudentQuestionCatalog } from '../studentSecureData'
 import type {
   AppNotification,
   EnrollmentRow,
   NotificationBuildState,
-  QuestionRow,
   StudentBadgeAwardRow,
   SubjectRow,
   SubjectScoreRow,
@@ -327,11 +327,11 @@ const badgeNotificationDetails: Record<string, {
 }
 
 async function fetchQuestionCountsBySubject(subjectIds: number[]) {
-  const { data, error } = await supabase.from('questions').select('subject_id').in('subject_id', subjectIds)
-  if (error) throw error
+  const questions = await fetchStudentQuestionCatalog()
+  const allowedSubjectIds = new Set(subjectIds)
 
-  return ((data || []) as QuestionRow[]).reduce<Record<number, number>>((acc, question) => {
-    if (typeof question.subject_id === 'number') {
+  return questions.reduce<Record<number, number>>((acc, question) => {
+    if (typeof question.subject_id === 'number' && allowedSubjectIds.has(question.subject_id)) {
       acc[question.subject_id] = (acc[question.subject_id] || 0) + 1
     }
     return acc

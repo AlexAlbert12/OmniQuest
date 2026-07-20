@@ -1175,6 +1175,47 @@ export type Database = {
         }
         Returns: Json
       }
+      get_safe_game_questions: {
+        Args: {
+          p_subject_id: number
+          p_classroom_id?: number | null
+          p_topic_id?: number | null
+          p_general_topic?: boolean
+          p_difficulty?: number | null
+          p_review_failed?: boolean
+        }
+        Returns: Json
+      }
+      get_student_question_catalog: {
+        Args: {
+          p_subject_id?: number | null
+          p_classroom_id?: number | null
+        }
+        Returns: Json
+      }
+      get_student_attempt_history: {
+        Args: {
+          p_limit?: number
+          p_since?: string | null
+          p_subject_id?: number | null
+          p_classroom_id?: number | null
+          p_topic_id?: number | null
+          p_difficulty?: number | null
+        }
+        Returns: Json
+      }
+      get_attempt_feedback: {
+        Args: {
+          p_attempt_history_id: number
+        }
+        Returns: Json
+      }
+      get_activity_attempt_detail: {
+        Args: {
+          p_attempt_history_id: number
+        }
+        Returns: Json
+      }
       get_ranking_profiles: {
         Args: {
           p_limit?: number

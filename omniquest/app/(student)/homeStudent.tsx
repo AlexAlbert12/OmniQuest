@@ -18,6 +18,7 @@ import OmniGuide from '../../components/OmniGuide'
 import { useAppTheme } from '../../lib/appTheme'
 import { joinClassByInviteCode } from '../../lib/studentClassJoin'
 import { calculateStreakDays } from '../../lib/studentBadges'
+import { fetchStudentAttemptHistory } from '../../lib/studentSecureData'
 import { getStartOfWeekMonday, getTimeUntilSundayLabel } from '../../lib/weeklyGoal'
 import { MobileEmptyState, MobileMetricCard, MobileScreen, MobileSectionHeader } from '../../components/ui/mobile'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
@@ -258,21 +259,7 @@ export default function StudentHome() {
           .eq('student_id', userId)
           .order('joined_at', { ascending: false }),
         supabase.rpc('get_ranking_profiles', { p_limit: 5 }),
-        supabase
-          .from('attempt_history')
-          .select(`
-            id,
-            is_correct,
-            attempted_at,
-            questions (
-              text,
-              subjects ( name ),
-              subject_topics ( title )
-            )
-          `)
-          .eq('student_id', userId)
-          .order('attempted_at', { ascending: false })
-          .limit(3),
+        fetchStudentAttemptHistory({ limit: 3 }),
         supabase
           .from('attempt_history')
           .select('id', { head: true, count: 'exact' })
@@ -294,7 +281,6 @@ export default function StudentHome() {
       if (profileResult.error) throw profileResult.error;
       if (enrollmentsResult.error) throw enrollmentsResult.error;
       if (rankingResult.error) throw rankingResult.error;
-      if (activityResult.error) throw activityResult.error;
       if (attemptHistoryResult.error) throw attemptHistoryResult.error;
       if (weeklyAttemptsResult.error) throw weeklyAttemptsResult.error;
       if (streakAttemptsResult.error) throw streakAttemptsResult.error;
@@ -322,7 +308,7 @@ export default function StudentHome() {
       setStreakDays(calculateStreakDays(((streakAttemptsResult.data || []) as { attempted_at: string | null }[]).map((attempt) => attempt.attempted_at).filter((value): value is string => Boolean(value))));
 
       setProgressSummary(progressResult);
-      const activities: ActivityItem[] = (activityResult.data || []).map((attempt: any) => {
+      const activities: ActivityItem[] = (activityResult || []).map((attempt: any) => {
         const timeAgo = getTimeAgo(attempt.attempted_at);
         const isCorrect = attempt.is_correct;
         const topicData = attempt.questions?.subject_topics;

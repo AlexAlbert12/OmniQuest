@@ -32,6 +32,7 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { withAlpha } from '../../lib/color'
 import { useNotifications } from '../../hooks/useNotifications'
 import { LinearGradient } from 'expo-linear-gradient'
+import { fetchStudentAttemptHistory } from '../../lib/studentSecureData'
 
 type Profile = {
   id: string
@@ -91,30 +92,15 @@ export default function BadgesScreen() {
       const [profileResult, enrollmentsResult, attemptsResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, points').eq('id', userId).single(),
         supabase.from('enrollments').select('subject_id').eq('student_id', userId),
-        supabase
-          .from('attempt_history')
-          .select(`
-            id,
-            is_correct,
-            attempted_at,
-            earned_points,
-            questions (
-              subject_id,
-              classroom_id,
-              type
-            )
-          `)
-          .eq('student_id', userId)
-          .order('attempted_at', { ascending: false }),
+        fetchStudentAttemptHistory({ limit: 5000 }),
       ])
 
       if (profileResult.error) throw profileResult.error
       if (enrollmentsResult.error) throw enrollmentsResult.error
-      if (attemptsResult.error) throw attemptsResult.error
 
       setProfile(profileResult.data)
       setSubjectsCount(enrollmentsResult.data?.length || 0)
-      const nextAttempts = (attemptsResult.data || []) as StudentBadgeAttempt[]
+      const nextAttempts = (attemptsResult || []) as StudentBadgeAttempt[]
       setAttempts(nextAttempts)
 
       const nextSubjectsCount = enrollmentsResult.data?.length || 0

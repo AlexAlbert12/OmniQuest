@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '../lib/supabase';
 import { normalizeDifficulty } from '../lib/difficulty';
 import type { Json } from '../types/database.types';
+import { fetchAttemptFeedback, type AttemptFeedback } from '../lib/studentSecureData';
 
 type StructuredAnswerPayload = {
   answerText?: string;
@@ -16,14 +17,13 @@ type SubmitAnswerResult = {
   manual_review_status?: string | null;
   earned_points?: number;
   attempt_score?: number;
-  correct_answer_id?: number | null;
-  correct_answer_text?: string | null;
-  explanation?: string | null;
+  attempt_history_id?: number;
 };
 
 function asSubmitAnswerResult(value: unknown): SubmitAnswerResult {
   return value && typeof value === 'object' ? (value as SubmitAnswerResult) : {};
 }
+
 
 type QuestionFeedback = {
   status: 'correct' | 'incorrect' | 'pending';
@@ -84,58 +84,18 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
 
   const loadGame = useCallback(async () => {
     try {
-      const { data: questionsData, error: questionsError } = await supabase.rpc('get_game_questions', {
+      const { data: questionsData, error: questionsError } = await supabase.rpc('get_safe_game_questions', {
         p_subject_id: numericSubjectId,
         p_classroom_id: numericClassroomId,
         p_topic_id: numericTopicId,
         p_general_topic: isGeneralTopic,
         p_difficulty: numericDifficulty,
+        p_review_failed: isFailedReview,
       });
 
       if (questionsError) throw questionsError;
 
-      let safeQuestions = Array.isArray(questionsData) ? (questionsData as any[]) : [];
-
-      if (isFailedReview && safeQuestions.length > 0) {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-
-        const studentId = sessionData.session?.user?.id;
-        if (!studentId) throw new Error('No authenticated user');
-
-        const { data: attemptsData, error: attemptsError } = await supabase
-          .from('attempt_history')
-          .select('question_id,is_correct,attempted_at,questions!inner(id,subject_id,topic_id,difficulty)')
-          .eq('student_id', studentId)
-          .eq('questions.subject_id', numericSubjectId)
-          .match(numericClassroomId ? { 'questions.classroom_id': numericClassroomId } : {})
-          .match(numericDifficulty ? { 'questions.difficulty': numericDifficulty } : {})
-          .order('attempted_at', { ascending: false });
-
-        if (attemptsError) throw attemptsError;
-
-        const latestByQuestion = new Map<number, { is_correct: boolean | null }>();
-        (attemptsData || []).forEach((attempt: any) => {
-          const questionId = Number(attempt.question_id);
-          const relation = Array.isArray(attempt.questions) ? attempt.questions[0] : attempt.questions;
-          const relationTopicId = relation?.topic_id == null ? null : Number(relation.topic_id);
-          const matchesTopic = isGeneralTopic
-            ? relationTopicId === null
-            : numericTopicId === null || relationTopicId === numericTopicId;
-
-          if (Number.isFinite(questionId) && matchesTopic && !latestByQuestion.has(questionId)) {
-            latestByQuestion.set(questionId, { is_correct: attempt.is_correct ?? null });
-          }
-        });
-
-        const failedQuestionIds = new Set(
-          Array.from(latestByQuestion.entries())
-            .filter(([, attempt]) => attempt.is_correct === false)
-            .map(([questionId]) => questionId),
-        );
-
-        safeQuestions = safeQuestions.filter((question) => failedQuestionIds.has(Number(question.id)));
-      }
+      const safeQuestions = Array.isArray(questionsData) ? (questionsData as any[]) : [];
 
       if (safeQuestions.length === 0) {
         setStatus('empty');
@@ -268,17 +228,27 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       if (error) throw error;
 
       const result = asSubmitAnswerResult(data);
-      const requiresManualReview = Boolean(result.requires_manual_review);
-      const isCorrect = Boolean(result.is_correct);
-      const earned = Math.max(0, Number(result.earned_points ?? 0));
+      let secureFeedback: AttemptFeedback = {};
+
+      if (typeof result.attempt_history_id === 'number') {
+        try {
+          secureFeedback = await fetchAttemptFeedback(result.attempt_history_id);
+        } catch (feedbackError) {
+          console.warn('La respuesta se guardó, pero no se pudo cargar el feedback seguro:', feedbackError);
+        }
+      }
+
+      const requiresManualReview = Boolean(result.requires_manual_review ?? secureFeedback.requires_manual_review);
+      const isCorrect = Boolean(result.is_correct ?? secureFeedback.is_correct);
+      const earned = Math.max(0, Number(result.earned_points ?? secureFeedback.earned_points ?? 0));
       const nextScore = Number(result.attempt_score ?? scoreRef.current + earned);
       const nextTerminalStatus = currentIndex + 1 >= questions.length ? 'finished' : null;
-      const correctAnswerText = result.correct_answer_text ?? getCorrectAnswerText(currentQ, result.correct_answer_id);
-      const explanation = result.explanation || currentQ.explanation || null;
+      const correctAnswerText = secureFeedback.correct_answer_text ?? null;
+      const explanation = secureFeedback.explanation ?? null;
 
       scoreRef.current = nextScore;
       setScore(nextScore);
-      setCorrectAnswerId(result.correct_answer_id ?? null);
+      setCorrectAnswerId(secureFeedback.correct_answer_id ?? null);
       setHasAnswered(true);
       isSubmittingRef.current = false;
       setIsSubmitting(false);
@@ -416,12 +386,6 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     skipQuestion,
     continueAfterFeedback,
   };
-}
-
-function getCorrectAnswerText(question: any, correctAnswerId?: number | null) {
-  if (!question || !correctAnswerId || !Array.isArray(question.answers)) return null;
-  const answer = question.answers.find((item: any) => Number(item.id) === Number(correctAnswerId));
-  return typeof answer?.text === 'string' ? answer.text : null;
 }
 
 function appendReviewQuestion(current: { id: number; text: string }[], question: any) {

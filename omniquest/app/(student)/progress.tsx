@@ -32,6 +32,7 @@ import StudentPrimaryLearningCTA from '../../components/student/StudentPrimaryLe
 import { formatShortDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import { fetchStudentAttemptHistory } from '../../lib/studentSecureData'
 
 type Profile = {
   id: string
@@ -175,31 +176,15 @@ export default function ProgressScreen() {
           .gte('attempted_at', weekStartIso)
           .lte('attempted_at', nowIso),
         fetchStudentProgressSummary(userId),
-        supabase
-          .from('attempt_history')
-          .select(`
-          id,
-          is_correct,
-          attempted_at,
-          questions (
-            id,
-            text,
-            type,
-            subject_id,
-            topic_id,
-            subjects ( name ),
-            subject_topics ( title )
-          )
-        `)
-          .eq('student_id', userId)
-          .gte('attempted_at', thirtyDaysAgoIso)
-          .order('attempted_at', { ascending: false }),
+        fetchStudentAttemptHistory({
+          limit: 1000,
+          since: thirtyDaysAgoIso,
+        }),
       ])
 
       if (profileResult.error) throw profileResult.error
       if (scoresResult.error) throw scoresResult.error
       if (weeklyAttemptsResult.error) throw weeklyAttemptsResult.error
-      if (reinforcementResult.error) throw reinforcementResult.error
 
       setProfile(profileResult.data)
       setWeeklyAttemptsCount(weeklyAttemptsResult.count || 0)
@@ -208,7 +193,7 @@ export default function ProgressScreen() {
       setSubjectProgress(buildSubjectRows(progressResult.subjects, scores))
       setRecentScores(buildRecentScores(scores))
       setScores(scores)
-      setReinforcementAreas(buildReinforcementAreas((reinforcementResult.data || []) as ReinforcementAttemptRow[]))
+      setReinforcementAreas(buildReinforcementAreas((reinforcementResult || []) as ReinforcementAttemptRow[]))
     } catch (error) {
       console.error('Error fetching progress:', error)
     } finally {

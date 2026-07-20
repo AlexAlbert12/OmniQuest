@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { fetchStudentAttemptHistory, fetchStudentQuestionCatalog } from './studentSecureData'
 
 export type StudentProgressSubject = {
   id: number
@@ -71,12 +72,6 @@ type QuestionRow = {
   active?: boolean | null
 }
 
-type AttemptRow = {
-  question_id: number | null
-  is_correct?: boolean | null
-  questions?: QuestionRow | QuestionRow[] | null
-}
-
 export async function fetchStudentProgressSummary(userId: string): Promise<StudentProgressSummary> {
   const { data: enrollmentsData, error: enrollmentsError } = await supabase
     .from('enrollments')
@@ -112,28 +107,19 @@ export async function fetchStudentProgressSummary(userId: string): Promise<Stude
     return emptyStudentProgressSummary()
   }
 
-  const [topicsResult, questionsResult, attemptsResult] = await Promise.all([
+  const [topicsResult, questionsData, attempts] = await Promise.all([
     supabase
       .from('subject_topics')
       .select('id, subject_id, classroom_id, active')
       .in('subject_id', subjectIds),
-    supabase
-      .from('questions')
-      .select('id, subject_id, classroom_id, topic_id, active')
-      .in('subject_id', subjectIds),
-    supabase
-      .from('attempt_history')
-      .select('question_id, is_correct, questions(id, subject_id, classroom_id, topic_id, active)')
-      .eq('student_id', userId),
+    fetchStudentQuestionCatalog(),
+    fetchStudentAttemptHistory({ limit: 5000 }),
   ])
 
   if (topicsResult.error) throw topicsResult.error
-  if (questionsResult.error) throw questionsResult.error
-  if (attemptsResult.error) throw attemptsResult.error
 
   const topics = ((topicsResult.data || []) as TopicRow[]).filter((topic) => topic.active !== false)
-  const questions = ((questionsResult.data || []) as QuestionRow[]).filter((question) => question.active !== false)
-  const attempts = (attemptsResult.data || []) as AttemptRow[]
+  const questions = (questionsData as QuestionRow[]).filter((question) => question.active !== false)
   const answeredQuestionIds = new Set(
     attempts
       .map((attempt) => attempt.question_id ?? normalizeRelation(attempt.questions)?.id ?? null)

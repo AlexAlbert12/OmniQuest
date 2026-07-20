@@ -17,6 +17,7 @@ import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
+import { fetchActivityAttemptDetail, fetchStudentAttemptHistory } from '../../lib/studentSecureData'
 
 type ActivityFilter = 'all' | 'correct' | 'incorrect'
 
@@ -83,6 +84,8 @@ export default function ActivityLogScreen() {
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all')
   const [selectedTopicId, setSelectedTopicId] = useState<string>('all')
   const [expandedAttemptId, setExpandedAttemptId] = useState<number | null>(null)
+  const [attemptDetails, setAttemptDetails] = useState<Record<number, AttemptRow>>({})
+  const [loadingAttemptId, setLoadingAttemptId] = useState<number | null>(null)
 
   const fetchActivityData = useCallback(async () => {
     try {
@@ -92,38 +95,11 @@ export default function ActivityLogScreen() {
 
       const [profileResult, historyResult] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, points').eq('id', userId).single(),
-        supabase
-          .from('attempt_history')
-          .select(`
-            id,
-            answer_id,
-            is_correct,
-            time_taken_seconds,
-            attempted_at,
-            submitted_answer_text,
-            submitted_answer_payload,
-            earned_points,
-            hint_used,
-            was_skipped,
-            questions (
-              id,
-              text,
-              type,
-              explanation,
-              subject_id,
-              topic_id,
-              subjects ( id, name ),
-              subject_topics ( id, title ),
-              answers ( id, text, is_correct, sort_order )
-            )
-          `)
-          .eq('student_id', userId)
-          .order('attempted_at', { ascending: false })
-          .limit(100),
+        fetchStudentAttemptHistory({ limit: 100 }),
       ])
 
       if (profileResult.data) setProfile(profileResult.data)
-      if (historyResult.data) setAttempts(historyResult.data as unknown as AttemptRow[])
+      setAttempts((historyResult || []) as unknown as AttemptRow[])
     } catch (error) {
       console.error('Error al cargar el historial de actividad:', error)
     } finally {
@@ -206,13 +182,37 @@ export default function ActivityLogScreen() {
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)
 
-  const renderAttemptItem = ({ item }: { item: AttemptRow }) => (
-    <AttemptCard
-      item={item}
-      isExpanded={expandedAttemptId === item.id}
-      onToggle={() => setExpandedAttemptId((current) => (current === item.id ? null : item.id))}
-    />
-  )
+  const handleToggleAttempt = useCallback(async (attemptId: number) => {
+    if (expandedAttemptId === attemptId) {
+      setExpandedAttemptId(null)
+      return
+    }
+
+    setExpandedAttemptId(attemptId)
+    if (attemptDetails[attemptId]) return
+
+    setLoadingAttemptId(attemptId)
+    try {
+      const detail = await fetchActivityAttemptDetail(attemptId)
+      setAttemptDetails((current) => ({ ...current, [attemptId]: detail as unknown as AttemptRow }))
+    } catch (error) {
+      console.error('No se pudo cargar el detalle seguro del intento:', error)
+    } finally {
+      setLoadingAttemptId((current) => (current === attemptId ? null : current))
+    }
+  }, [attemptDetails, expandedAttemptId])
+
+  const renderAttemptItem = ({ item }: { item: AttemptRow }) => {
+    const isExpanded = expandedAttemptId === item.id
+    return (
+      <AttemptCard
+        item={isExpanded ? attemptDetails[item.id] ?? item : item}
+        isExpanded={isExpanded}
+        isDetailLoading={loadingAttemptId === item.id}
+        onToggle={() => void handleToggleAttempt(item.id)}
+      />
+    )
+  }
 
   return (
     <View className="flex-1 bg-[#061126]">
@@ -439,10 +439,12 @@ function FilterChip({
 function AttemptCard({
   item,
   isExpanded,
+  isDetailLoading,
   onToggle,
 }: {
   item: AttemptRow
   isExpanded: boolean
+  isDetailLoading: boolean
   onToggle: () => void
 }) {
   const question = normalizeSingleRelation(item.questions)
@@ -504,21 +506,28 @@ function AttemptCard({
 
       {isExpanded ? (
         <View className="mt-4 border-t border-[#1A3155] pt-4">
-          <View className="gap-3">
-            <DetailBlock icon="help-circle" label="Pregunta" value={questionText} />
-            <DetailBlock icon="person-circle" label="Tu respuesta" value={submittedAnswer} highlightColor={isCorrect ? '#70E0A5' : '#FB7185'} />
-            <DetailBlock icon="checkmark-done-circle" label="Respuesta correcta" value={correctAnswer} highlightColor="#70E0A5" />
-            <DetailBlock icon="bulb" label="Explicación" value={explanation} />
-
-            <View className="flex-row flex-wrap gap-3">
-              <MiniMetric icon="timer" label="Tiempo empleado" value={formatTimeTaken(item.time_taken_seconds)} />
-              <MiniMetric icon="flash" label="XP ganado" value={`${earnedPoints} XP`} />
-              <MiniMetric icon="school" label="Clase" value={subjectName} />
-              <MiniMetric icon="pricetag" label="Tema" value={topicTitle} />
-              {item.hint_used ? <MiniMetric icon="bulb" label="Pista" value="Usada" /> : null}
-              {item.was_skipped ? <MiniMetric icon="play-skip-forward" label="Estado" value="Saltada" /> : null}
+          {isDetailLoading ? (
+            <View className="items-center py-5">
+              <ActivityIndicator color="#8B5CF6" />
+              <Text className="mt-2 text-[12px] font-semibold text-[#8FA7C7]">Cargando feedback seguro...</Text>
             </View>
-          </View>
+          ) : (
+            <View className="gap-3">
+              <DetailBlock icon="help-circle" label="Pregunta" value={questionText} />
+              <DetailBlock icon="person-circle" label="Tu respuesta" value={submittedAnswer} highlightColor={isCorrect ? '#70E0A5' : '#FB7185'} />
+              <DetailBlock icon="checkmark-done-circle" label="Respuesta correcta" value={correctAnswer} highlightColor="#70E0A5" />
+              <DetailBlock icon="bulb" label="Explicación" value={explanation} />
+
+              <View className="flex-row flex-wrap gap-3">
+                <MiniMetric icon="timer" label="Tiempo empleado" value={formatTimeTaken(item.time_taken_seconds)} />
+                <MiniMetric icon="flash" label="XP ganado" value={`${earnedPoints} XP`} />
+                <MiniMetric icon="school" label="Clase" value={subjectName} />
+                <MiniMetric icon="pricetag" label="Tema" value={topicTitle} />
+                {item.hint_used ? <MiniMetric icon="bulb" label="Pista" value="Usada" /> : null}
+                {item.was_skipped ? <MiniMetric icon="play-skip-forward" label="Estado" value="Saltada" /> : null}
+              </View>
+            </View>
+          )}
         </View>
       ) : null}
     </Pressable>

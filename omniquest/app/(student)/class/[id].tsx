@@ -23,6 +23,7 @@ import { withAlpha } from '../../../lib/color'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import MobileMetricCard from '../../../components/ui/mobile/MobileMetricCard'
 import { GalaxyScreenBackground, TopicGalaxyMap } from '../../../components/student/galaxy/StudentGalaxyMap'
+import { fetchStudentAttemptHistory, fetchStudentQuestionCatalog } from '../../../lib/studentSecureData'
 
 type Subject = {
   id: number
@@ -165,12 +166,10 @@ export default function StudentClassDetailScreen() {
           .eq('active', true)
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: true }),
-        supabase
-          .from('questions')
-          .select('id, topic_id, text, difficulty')
-          .eq('subject_id', subjectId)
-          .eq('classroom_id', selectedEnrollmentClassroomId)
-          .eq('active', true),
+        fetchStudentQuestionCatalog({
+          subjectId: Number(subjectId),
+          classroomId: selectedEnrollmentClassroomId,
+        }),
         supabase
           .from('topic_scores')
           .select('topic_id, max_score')
@@ -184,14 +183,11 @@ export default function StudentClassDetailScreen() {
           .eq('subject_id', subjectId)
           .eq('classroom_id', selectedEnrollmentClassroomId)
           .maybeSingle(),
-        supabase
-          .from('attempt_history')
-          .select('id, question_id, is_correct, attempted_at, questions!inner(id, text, topic_id, subject_id, classroom_id, difficulty)')
-          .eq('student_id', userId)
-          .eq('questions.subject_id', subjectId)
-          .eq('questions.classroom_id', selectedEnrollmentClassroomId)
-          .order('attempted_at', { ascending: false })
-          .limit(30),
+        fetchStudentAttemptHistory({
+          limit: 100,
+          subjectId: Number(subjectId),
+          classroomId: selectedEnrollmentClassroomId,
+        }),
         supabase.rpc('get_class_ranking_profiles', {
           p_classroom_id: selectedEnrollmentClassroomId,
           p_limit: 5,
@@ -199,14 +195,12 @@ export default function StudentClassDetailScreen() {
       ])
 
       if (topicsResult.error) throw topicsResult.error
-      if (questionsResult.error) throw questionsResult.error
       if (topicScoresResult.error) throw topicScoresResult.error
       if (subjectScoreResult.error) throw subjectScoreResult.error
-      if (attemptsResult.error) throw attemptsResult.error
       if (rankingResult.error) throw rankingResult.error
 
-      const questions = questionsResult.data || []
-      const attempts = (attemptsResult.data || []) as any[]
+      const questions = questionsResult || []
+      const attempts = (attemptsResult || []) as any[]
       const latestAttemptByQuestion = new Map<number, any>()
       attempts.forEach((attempt) => {
         const questionId = Number(attempt.question_id ?? normalizeRelation(attempt.questions)?.id)

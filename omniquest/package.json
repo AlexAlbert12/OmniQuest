@@ -8,7 +8,12 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run test:source",
+    "test:source": "node --test tests/source/*.test.mjs",
+    "test:db": "supabase test db",
+    "test:security": "npm run test:source && npm run test:db"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",
