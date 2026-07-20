@@ -26,6 +26,7 @@ import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import StudentDashboardCard from '../../components/student/StudentDashboardCard'
 import StudentEmptyState from '../../components/student/StudentEmptyState'
+import OmniGuide, { type OmniState } from '../../components/OmniGuide'
 import StudentKpiCard from '../../components/student/StudentKpiCard'
 import StudentListRow from '../../components/student/StudentListRow'
 import StudentPrimaryLearningCTA from '../../components/student/StudentPrimaryLearningCTA'
@@ -552,7 +553,7 @@ function MobileStudentProgress({
               />
             ))
           ) : (
-            <MobileCompactEmpty icon="sparkles-outline" title="Sin retos pendientes" subtitle="Cuando practiques más, verás recomendaciones aquí." />
+            <MobileCompactEmpty icon="sparkles-outline" omniState="happy" title="Sin retos pendientes" subtitle="Cuando practiques más, verás recomendaciones aquí." />
           )}
         </View>
 
@@ -750,7 +751,7 @@ function MobileRecentScoresCard({ scores, onSeeAll }: { scores: RecentScore[]; o
           })}
         </View>
       ) : (
-        <MobileCompactEmpty icon="analytics-outline" title="Sin actividad todavía" subtitle="Completa una práctica para verla aquí." />
+        <MobileCompactEmpty icon="analytics-outline" omniState="normal" title="Sin actividad todavía" subtitle="Completa una práctica para verla aquí." />
       )}
     </View>
   )
@@ -808,7 +809,7 @@ function MobileCourseProgressCard({ subjects, onSeeAll }: { subjects: SubjectPro
           })}
         </View>
       ) : (
-        <MobileCompactEmpty icon="book-outline" title="Sin cursos activos" subtitle="Únete a una clase para empezar." />
+        <MobileCompactEmpty icon="book-outline" omniState="thinking" title="Sin cursos activos" subtitle="Únete a una clase para empezar." />
       )}
     </View>
   )
@@ -839,10 +840,10 @@ function MobileStreakCard({ streakDays }: { streakDays: number }) {
   )
 }
 
-function MobileCompactEmpty({ icon, title, subtitle }: { icon: keyof typeof Ionicons.glyphMap; title: string; subtitle: string }) {
+function MobileCompactEmpty({ icon, omniState, title, subtitle }: { icon: keyof typeof Ionicons.glyphMap; omniState?: OmniState; title: string; subtitle: string }) {
   return (
     <View className="items-center justify-center rounded-2xl bg-[#0D1D3B] p-6">
-      <Ionicons name={icon} size={28} color="#8FA7C7" />
+      {omniState ? <OmniGuide state={omniState} size={78} autoBlink={omniState === 'normal'} /> : <Ionicons name={icon} size={28} color="#8FA7C7" />}
       <Text className="mt-3 text-center text-[15px] font-black text-white">{title}</Text>
       <Text className="mt-1 text-center text-[12px] leading-5 text-[#8FA7C7]">{subtitle}</Text>
     </View>
@@ -1031,6 +1032,7 @@ function ReinforcementCard({
       ) : (
         <StudentEmptyState
           icon="sparkles-outline"
+          omniState="happy"
           title="Sin retos pendientes"
           message="Cuando acumules más práctica, OmniQuest te recomendará repasos concretos para subir precisión y ganar XP."
         />
@@ -1075,6 +1077,7 @@ function EmptyProgress() {
   return (
     <StudentEmptyState
       icon="stats-chart-outline"
+      omniState="normal"
       title="Sin progreso real todavía"
       message="Cuando completes una partida, se guardará tu puntuación y se actualizará tu avance."
     />

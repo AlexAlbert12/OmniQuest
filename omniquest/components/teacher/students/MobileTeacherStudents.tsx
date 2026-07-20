@@ -640,6 +640,8 @@ function MobileStudentsEmptyState() {
   return (
     <MobileEmptyState
       icon="people-outline"
+      omniState="normal"
+      omniSize={72}
       title="No hay alumnos para mostrar"
       description="Cambia los filtros o busca otro nombre para revisar la lista."
       color="#8B5CF6"

@@ -405,7 +405,7 @@ export default function ClassesScreen() {
                 <Text className={isDesktop ? 'text-[40px] font-black text-white' : 'text-[38px] font-black text-white'}>Mis cursos</Text>
               </View>
               <Text className={isDesktop ? 'mt-1 text-[13px] text-[#9BAEC9]' : 'mt-3 text-[18px] leading-7 text-[#AFC2DB]'}>
-                Sigue aprendiendo a tu ritmo 🚀
+                Sigue aprendiendo a tu ritmo.
               </Text>
             </View>
 
@@ -1183,6 +1183,8 @@ function EmptyClasses({ hasAnyClasses }: { hasAnyClasses: boolean }) {
   return (
     <StudentEmptyState
       icon="school-outline"
+      omniState="thinking"
+      omniSize={92}
       title={hasAnyClasses ? 'No hay cursos que coincidan' : 'Aún no tienes cursos'}
       message={hasAnyClasses
         ? 'Cambia el filtro o la búsqueda para ver más cursos.'

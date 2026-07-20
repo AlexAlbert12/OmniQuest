@@ -4,6 +4,7 @@ import { Link, useRouter } from 'expo-router'
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import { useState } from 'react'
 import BrandLogo from '../components/BrandLogo'
+import OmniGuide from '../components/OmniGuide'
 import HomeVisualBackground from '../components/HomeVisualBackground'
 import { supabase } from '../lib/supabase'
 import { createShadowStyle } from '../lib/platformShadow'
@@ -201,16 +202,15 @@ function LandingPanel({
       }}
     >
       <BrandLogo center size={isDesktop ? 92 : isTablet ? 76 : 66} />
-
       <Text
         style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 28 : isTablet ? 24 : 20 }}
         className="text-center mt-4 text-[#4FB8FF]">
         Tu viaje de aprendizaje comienza aquí.
       </Text>
 
-      <View className="mt-4 mb-2 flex-row items-center gap-3">
+      <View className="mt-2 flex-row items-center gap-3">
         <View className="h-px w-10 bg-[#3B6FA5]" />
-        <Ionicons name="rocket" size={18} color="#8CD5FF" />
+        <OmniGuide state="normal" autoBlink size={isDesktop ? 80 : isTablet ? 80 : 40} />
         <View className="h-px w-10 bg-[#3B6FA5]" />
       </View>
 
@@ -567,68 +567,68 @@ function FeatureCard({
   const cardWidth = isMobile ? '100%' : featureCardWidth ?? (isDesktop ? 350 : 220)
 
   const card = (
+    <View
+      className="items-center rounded-[22px] border bg-[#071B3A]/72"
+      style={{
+        borderColor: 'rgba(74, 129, 198, 0.42)',
+        maxWidth: isMobile ? 340 : undefined,
+        minHeight: isMobile ? undefined : isDesktop ? 320 : 300,
+        paddingHorizontal: isMobile ? 24 : 18,
+        paddingVertical: isMobile ? 22 : 20,
+        ...createShadowStyle({
+          color: feature.accent,
+          opacity: 0.12,
+          radius: 24,
+          offsetY: 12,
+          web: `0 12px 24px ${feature.accent}24`,
+        }),
+        width: cardWidth,
+      }}
+    >
       <View
-        className="items-center rounded-[22px] border bg-[#071B3A]/72"
+        className="items-center justify-center rounded-full border"
         style={{
-          borderColor: 'rgba(74, 129, 198, 0.42)',
-          maxWidth: isMobile ? 340 : undefined,
-          minHeight: isMobile ? undefined : isDesktop ? 320 : 300,
-          paddingHorizontal: isMobile ? 24 : 18,
-          paddingVertical: isMobile ? 22 : 20,
-          ...createShadowStyle({
-            color: feature.accent,
-            opacity: 0.12,
-            radius: 24,
-            offsetY: 12,
-            web: `0 12px 24px ${feature.accent}24`,
-          }),
-          width: cardWidth,
+          backgroundColor: `${feature.accent}18`,
+          borderColor: `${feature.accent}72`,
+          height: 72,
+          width: 72,
         }}
       >
-        <View
-          className="items-center justify-center rounded-full border"
-          style={{
-            backgroundColor: `${feature.accent}18`,
-            borderColor: `${feature.accent}72`,
-            height: 72,
-            width: 72,
-          }}
-        >
-          <Ionicons name={feature.icon} size={34} color={feature.accent} />
-        </View>
-
-        <Text className="mt-5 text-center text-[22px] font-extrabold text-white">
-          {feature.title} <Text style={{ color: feature.accent }}>{feature.titleAccent}</Text>
-        </Text>
-
-        <Text className="mt-3 text-center text-[14px] leading-6 text-[#DCE9F7]">
-          {isCompact && !expanded ? previewText : feature.description}
-        </Text>
-
-        {showDetails && (
-          <View className="mt-6 w-full gap-3">
-            {feature.bullets.map((bullet) => (
-              <View key={bullet.label} className="flex-row items-center gap-4">
-                <Ionicons name={bullet.icon} size={18} color={feature.accent} />
-                <Text className="flex-1 text-[15px] text-[#EDF6FF]">{bullet.label}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {isCompact && (
-          <View className="mt-5 flex-row items-center gap-2">
-            <Ionicons
-              name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'}
-              size={18}
-              color={feature.accent}
-            />
-            <Text className="text-[14px] font-medium text-[#B8C9E9]">
-              {expanded ? 'Ocultar detalles' : 'Toca para ver más'}
-            </Text>
-          </View>
-        )}
+        <Ionicons name={feature.icon} size={34} color={feature.accent} />
       </View>
+
+      <Text className="mt-5 text-center text-[22px] font-extrabold text-white">
+        {feature.title} <Text style={{ color: feature.accent }}>{feature.titleAccent}</Text>
+      </Text>
+
+      <Text className="mt-3 text-center text-[14px] leading-6 text-[#DCE9F7]">
+        {isCompact && !expanded ? previewText : feature.description}
+      </Text>
+
+      {showDetails && (
+        <View className="mt-6 w-full gap-3">
+          {feature.bullets.map((bullet) => (
+            <View key={bullet.label} className="flex-row items-center gap-4">
+              <Ionicons name={bullet.icon} size={18} color={feature.accent} />
+              <Text className="flex-1 text-[15px] text-[#EDF6FF]">{bullet.label}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {isCompact && (
+        <View className="mt-5 flex-row items-center gap-2">
+          <Ionicons
+            name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+            size={18}
+            color={feature.accent}
+          />
+          <Text className="text-[14px] font-medium text-[#B8C9E9]">
+            {expanded ? 'Ocultar detalles' : 'Toca para ver más'}
+          </Text>
+        </View>
+      )}
+    </View>
   )
 
   if (!isCompact) {

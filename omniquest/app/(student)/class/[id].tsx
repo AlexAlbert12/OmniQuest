@@ -17,6 +17,7 @@ import { difficultyOptions, getDifficultyMeta, normalizeDifficulty, type Difficu
 import NotificationBadge from '../../../components/NotificationBadge'
 import StudentHeaderAvatar from '../../../components/student/StudentHeaderAvatar'
 import StudentBottomNav from '../../../components/student/StudentBottomNav'
+import OmniGuide, { type OmniState } from '../../../components/OmniGuide'
 import { withAlpha } from '../../../lib/color'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 
@@ -501,7 +502,7 @@ export default function StudentClassDetailScreen() {
                 ))}
               </View>
             ) : (
-              <EmptyPanel icon="play-circle-outline" message="Empieza un tema para ver tus intentos recientes." />
+              <EmptyPanel icon="play-circle-outline" omniState="normal" message="Empieza un tema para ver tus intentos recientes." />
             )}
           </InfoPanel>
 
@@ -513,7 +514,7 @@ export default function StudentClassDetailScreen() {
                 ))}
               </View>
             ) : (
-              <EmptyPanel icon="checkmark-circle-outline" message="No tienes fallos pendientes en esta clase." />
+              <EmptyPanel icon="checkmark-circle-outline" omniState="happy" message="No tienes fallos pendientes en esta clase." />
             )}
           </InfoPanel>
 
@@ -525,7 +526,7 @@ export default function StudentClassDetailScreen() {
                 ))}
               </View>
             ) : (
-              <EmptyPanel icon="podium-outline" message="Aún no hay puntuaciones en esta clase." />
+              <EmptyPanel icon="podium-outline" omniState="normal" message="Aún no hay puntuaciones en esta clase." />
             )}
           </InfoPanel>
         </View>
@@ -630,7 +631,7 @@ function MobileStudentClassDetail({
             ))}
           </View>
         ) : (
-          <MobileEmptyBlock icon="albums-outline" title="Sin temas disponibles" subtitle="Tu profesor añadirá temas con preguntas para esta clase." />
+          <MobileEmptyBlock icon="albums-outline" omniState="thinking" title="Sin temas disponibles" subtitle="Tu profesor añadirá temas con preguntas para esta clase." />
         )}
       </View>
 
@@ -646,7 +647,7 @@ function MobileStudentClassDetail({
           ))}
         </View>
       ) : (
-        <MobileEmptyBlock icon="checkmark-circle-outline" title="Sin fallos pendientes" subtitle="Buen trabajo, no tienes preguntas para repasar." />
+        <MobileEmptyBlock icon="checkmark-circle-outline" omniState="happy" title="Sin fallos pendientes" subtitle="Buen trabajo, no tienes preguntas para repasar." />
       )}
 
       <MobileSectionHeading title="Ranking compacto" />
@@ -656,7 +657,7 @@ function MobileStudentClassDetail({
             <MobileRankingRow key={row.studentId} row={row} index={index} />
           ))
         ) : (
-          <MobileEmptyBlock icon="trophy-outline" title="Sin ranking todavía" subtitle="Responde preguntas para aparecer en la clasificación." />
+          <MobileEmptyBlock icon="trophy-outline" omniState="normal" title="Sin ranking todavía" subtitle="Responde preguntas para aparecer en la clasificación." />
         )}
         <View className="mt-1 rounded-xl bg-[#0D1D3B] px-3 py-2">
           <Text className="text-center text-[12px] font-black text-[#B9A7FF]">{rankingLabel}</Text>
@@ -674,7 +675,7 @@ function MobileStudentClassDetail({
             />
           ))
         ) : (
-          <MobileEmptyBlock icon="play-circle-outline" title="Sin intentos recientes" subtitle="Empieza un tema para ver tu actividad." />
+          <MobileEmptyBlock icon="play-circle-outline" omniState="normal" title="Sin intentos recientes" subtitle="Empieza un tema para ver tu actividad." />
         )}
       </View>
     </ScrollView>
@@ -1026,16 +1027,18 @@ function MobileFailedQuestionCard({ question, onPress }: { question: FailedQuest
 
 function MobileEmptyBlock({
   icon,
+  omniState,
   subtitle,
   title,
 }: {
   icon: keyof typeof Ionicons.glyphMap
+  omniState?: OmniState
   subtitle: string
   title: string
 }) {
   return (
     <View className="items-center rounded-2xl border border-dashed border-[#1E3A63] bg-[#081B37] px-4 py-7">
-      <Ionicons name={icon} size={30} color="#8FA7C7" />
+      {omniState ? <OmniGuide state={omniState} size={78} autoBlink={omniState === 'normal'} /> : <Ionicons name={icon} size={30} color="#8FA7C7" />}
       <Text className="mt-3 text-center text-[15px] font-black text-white">{title}</Text>
       <Text className="mt-1 text-center text-[13px] leading-5 text-[#8FA7C7]">{subtitle}</Text>
     </View>
@@ -1182,10 +1185,10 @@ function ClassRankingRow({ row, index }: { row: ClassRankingItem; index: number 
   )
 }
 
-function EmptyPanel({ icon, message }: { icon: keyof typeof Ionicons.glyphMap; message: string }) {
+function EmptyPanel({ icon, message, omniState }: { icon: keyof typeof Ionicons.glyphMap; message: string; omniState?: OmniState }) {
   return (
     <View className="items-center rounded-xl border border-dashed border-[#20375E] bg-[#0A1A34] px-4 py-6">
-      <Ionicons name={icon} size={30} color="#60799C" />
+      {omniState ? <OmniGuide state={omniState} size={76} autoBlink={omniState === 'normal'} /> : <Ionicons name={icon} size={30} color="#60799C" />}
       <Text className="mt-2 text-center text-[13px] leading-5 text-[#8FA7C7]">{message}</Text>
     </View>
   )

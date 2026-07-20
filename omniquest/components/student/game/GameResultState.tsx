@@ -1,6 +1,7 @@
 import React from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import OmniGuide, { type OmniSize, type OmniState } from '../../OmniGuide'
 
 type GameSummary = {
   questionsTotal: number
@@ -15,6 +16,8 @@ type GameSummary = {
 export default function ResultState({
   icon,
   iconColor,
+  omniSize = 132,
+  omniState,
   title,
   detail,
   score,
@@ -26,6 +29,8 @@ export default function ResultState({
 }: {
   icon: keyof typeof Ionicons.glyphMap
   iconColor: string
+  omniSize?: OmniSize | number
+  omniState?: OmniState
   title: string
   detail: string
   score?: number
@@ -52,9 +57,13 @@ export default function ResultState({
         <View className="absolute left-[-60px] top-20 h-40 w-40 rounded-full bg-[#0EA5E9]/10" />
 
         <View className="items-center">
-          <View className="h-32 w-32 items-center justify-center rounded-full" style={{ backgroundColor: `${iconColor}20` }}>
-            <Ionicons name={icon} size={78} color={iconColor} />
-          </View>
+          {omniState ? (
+            <OmniGuide state={omniState} size={omniSize} autoBlink={omniState === 'normal'} />
+          ) : (
+            <View className="h-32 w-32 items-center justify-center rounded-full" style={{ backgroundColor: `${iconColor}20` }}>
+              <Ionicons name={icon} size={78} color={iconColor} />
+            </View>
+          )}
           <Text className="mt-5 text-center text-[34px] font-black leading-[40px] text-white">{title}</Text>
           <Text className="mt-2 max-w-[360px] text-center text-[15px] leading-6 text-[#C9D7EA]">{detail}</Text>
         </View>

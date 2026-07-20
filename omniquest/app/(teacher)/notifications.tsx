@@ -19,6 +19,7 @@ import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
+import OmniGuide from '../../components/OmniGuide'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
 
@@ -398,7 +399,7 @@ function EmptyState({ filter }: { filter: NotificationFilter }) {
 
   return (
     <View className="items-center rounded-2xl border border-dashed border-[#29466F] bg-[#09162C] px-6 py-12">
-      <Ionicons name="mail-outline" size={48} color="#64748B" />
+      <OmniGuide state="happy" size={78} />
       <Text className="mt-4 text-center text-lg font-bold text-white">{title}</Text>
       <Text className="mt-2 max-w-[420px] text-center text-[13px] leading-5 text-[#8FA7C7]">{detail}</Text>
     </View>

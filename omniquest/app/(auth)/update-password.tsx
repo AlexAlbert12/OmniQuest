@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import SpaceBackground from '../../components/SpaceBackground'
 import BrandLogo from '../../components/BrandLogo'
+import OmniGuide from '../../components/OmniGuide'
 import { getAuthErrorMessage } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
 import { createShadowStyle } from '../../lib/platformShadow'
@@ -96,6 +97,8 @@ export default function UpdatePasswordScreen() {
           }}
         >
           <BrandLogo center size={isDesktop ? 64 : 38} />
+          <OmniGuide state="happy" size={isDesktop ? 86 : 74} style={{ marginTop: 12 }} />
+          <Text className="mt-1 text-center text-[12px] text-[#AFC2DB]">Omni te acompaña para volver a tu aventura.</Text>
 
           <View
             className="mt-8 w-full overflow-hidden rounded-[20px] border border-[#3B6FA5] bg-[#081D3D]/92"

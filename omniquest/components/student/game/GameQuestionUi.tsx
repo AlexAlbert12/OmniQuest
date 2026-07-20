@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { Animated, Easing, Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import OmniGuide from '../../OmniGuide'
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
@@ -71,8 +72,8 @@ export function QuestionFeedbackCard({
   const subtitle = isPending
     ? 'Tu profesor corregirá esta respuesta.'
     : isCorrect
-      ? 'Has respondido correctamente.'
-      : 'Guarda esta pista para repasar después.'
+      ? `¡Muy bien! Has ganado ${feedback.earnedPoints} XP.`
+      : 'Casi. Guarda esta pregunta para repasarla después.'
   const pulse = useRef(new Animated.Value(0)).current
   const streakBonus = isCorrect && streak >= 3
 
@@ -103,11 +104,8 @@ export function QuestionFeedbackCard({
     <View className="mt-5 overflow-hidden rounded-[28px] border bg-[#09162C] p-5" style={{ borderColor: `${color}88` }}>
       <View className="absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ backgroundColor: `${color}18` }} />
       <View className="items-center">
-        <Animated.View
-          className="h-20 w-20 items-center justify-center rounded-full"
-          style={{ backgroundColor: `${color}22`, transform: [{ scale: iconScale }] }}
-        >
-          <Ionicons name={isPending ? 'time-outline' : isCorrect ? 'checkmark-circle' : 'close-circle'} size={44} color={color} />
+        <Animated.View style={{ transform: [{ scale: iconScale }] }}>
+          <OmniGuide state={isPending ? 'thinking' : isCorrect ? 'happy' : 'error'} size={96} />
         </Animated.View>
         <Text className="mt-4 text-center text-[28px] font-black text-white">{title}</Text>
         <Text className="mt-2 text-center text-[14px] leading-6 text-[#C9D7EA]">{subtitle}</Text>

@@ -15,6 +15,7 @@ import StudentDashboardCard, { StudentCardLink as CardLink } from '../../compone
 import StudentMetricCard from '../../components/student/StudentMetricCard'
 import StudentActionBanner from '../../components/student/StudentActionBanner'
 import StudentEmptyState from '../../components/student/StudentEmptyState'
+import OmniGuide from '../../components/OmniGuide'
 import { useAppTheme } from '../../lib/appTheme'
 import { joinClassByInviteCode } from '../../lib/studentClassJoin'
 import { calculateStreakDays } from '../../lib/studentBadges'
@@ -86,7 +87,7 @@ function buildHomeHeroAction(
   if (failedRow && failedQuestions > 0) {
     return {
       title: `Resumen del día`,
-      description: `Tienes ${failedQuestions} ${failedQuestions === 1 ? 'pregunta fallada' : 'fallos'} por repasar. Empieza por ${failedRow.subject.name} y refuerza lo que más te está costando.`,
+      description: `Tienes ${failedQuestions} ${failedQuestions === 1 ? 'pregunta fallada' : 'fallos'} por repasar en ${failedRow.subject.name}.`,
       buttonLabel: 'Repasar fallos',
       icon: 'refresh-circle',
       href: buildClassHref(failedRow.subject),
@@ -390,8 +391,8 @@ export default function StudentHome() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color="#6574FF" />
-        <Text className="mt-4 text-[#8FA7C7]">Preparando tu aventura...</Text>
+        <OmniGuide state="blink" size={116} />
+        <Text className="mt-4 text-[#8FA7C7]">Omni está preparando tu aventura...</Text>
       </View>
     )
   }
@@ -508,12 +509,12 @@ export default function StudentHome() {
               <View style={{ gap: 10 }}>
                 {enrolledSubjects.length > 0 ? (
                   subjectProgressRows.slice(0, 3).map((row, index) => (
-                      <SubjectRow
-                        key={getCourseRowKey(row.subject)}
-                        subject={row.subject}
-                        index={index}
-                        progress={row.progress}
-                      />
+                    <SubjectRow
+                      key={getCourseRowKey(row.subject)}
+                      subject={row.subject}
+                      index={index}
+                      progress={row.progress}
+                    />
                   ))
                 ) : (
                   <EmptyClasses />
@@ -634,50 +635,50 @@ function MobileStudentHome({
       bottomPadding={152}
       bottomNav={<StudentBottomNav active="home" />}
     >
-        <MobileHeader
-          title={`¡Hola, ${alias}!`}
-          subtitle="Tu siguiente paso está listo."
-          right={(
-            <>
-              <NotificationBadge />
-              <StudentHeaderAvatar />
-            </>
-          )}
-        />
+      <MobileHeader
+        title={`¡Hola, ${alias}!`}
+        subtitle="Tu siguiente paso está listo."
+        right={(
+          <>
+            <NotificationBadge />
+            <StudentHeaderAvatar />
+          </>
+        )}
+      />
 
-        <MobileLevelCard
-          level={level}
-          points={points}
-          nextLevelProgress={nextLevelProgress}
-          className="mt-8"
-        />
+      <MobileLevelCard
+        level={level}
+        points={points}
+        nextLevelProgress={nextLevelProgress}
+        className="mt-8"
+      />
 
-        <MobileReviewCard action={heroAction} failedQuestions={failedQuestions} className="mt-5" />
+      <MobileReviewCard action={heroAction} failedQuestions={failedQuestions} className="mt-5" />
 
-        <MobileMetricGrid
-          failedQuestions={failedQuestions}
-          accuracyPercent={accuracyPercent}
-          streakDays={streakDays}
-          className="mt-5"
-        />
+      <MobileMetricGrid
+        failedQuestions={failedQuestions}
+        accuracyPercent={accuracyPercent}
+        streakDays={streakDays}
+        className="mt-5"
+      />
 
-        <MobileCoursesSection rows={subjectProgressRows} className="mt-7" />
+      <MobileCoursesSection rows={subjectProgressRows} className="mt-7" />
 
-        <MobileWeeklyGoalCard
-          count={weeklyAttemptCount}
-          target={weeklyGoalTarget}
-          percent={weeklyGoalPercent}
-          streakDays={streakDays}
-          className="mt-6"
-        />
+      <MobileWeeklyGoalCard
+        count={weeklyAttemptCount}
+        target={weeklyGoalTarget}
+        percent={weeklyGoalPercent}
+        streakDays={streakDays}
+        className="mt-6"
+      />
 
-        <MobileJoinClassCard
-          inviteCode={inviteCode}
-          setInviteCode={setInviteCode}
-          joining={joining}
-          onJoinClass={onJoinClass}
-          className="mt-5"
-        />
+      <MobileJoinClassCard
+        inviteCode={inviteCode}
+        setInviteCode={setInviteCode}
+        joining={joining}
+        onJoinClass={onJoinClass}
+        className="mt-5"
+      />
     </MobileScreen>
   )
 }
@@ -706,7 +707,7 @@ function MobileLevelCard({
       />
       <View className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-[#5A46D8]/20" />
       <View className="absolute bottom-2 right-7">
-        <Ionicons name="rocket" size={78} color="#8ACBFF" style={{ transform: [{ rotate: '36deg' }], opacity: 0.92 }} />
+        <OmniGuide state="normal" autoBlink size={88} />
       </View>
 
       <View className="relative flex-row items-center gap-4">
@@ -952,8 +953,10 @@ function MobileEmptyCourseCard() {
     <View className="w-[190px]">
       <MobileEmptyState
         icon="school-outline"
+        omniState="thinking"
+        omniSize={78}
         title="Tu primer curso"
-        description="Introduce un código y empieza."
+        description="Introduce un código y Omni te acompaña."
         color="#9FD6FF"
         className="h-full px-4 py-5"
       />
@@ -1026,15 +1029,17 @@ function StudentMobileOnboardingCard({
         <View className="flex-row items-start justify-between gap-3">
           <View className="min-w-0 flex-1">
             <Text className="text-[12px] font-black uppercase tracking-[0.08em] text-[#9FD6FF]">
-              Primeros pasos
+              Empieza con Omni
             </Text>
-            <Text className="mt-2 text-[20px] font-black text-white">Empieza con OmniQuest</Text>
-            <Text className="mt-1 text-[13px] leading-5 text-[#D8E3F3]">
-              Sigue esta guía para entrar a un curso, jugar y ver tu progreso.
-            </Text>
-          </View>
-          <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#192D68]">
-            <Ionicons name="compass-outline" size={25} color="#9FD6FF" />
+            <View className="mt-2 flex-row items-center gap-2">
+              <OmniGuide state="happy" size={72} />
+              <View className="min-w-0 flex-1">
+                <Text className="mt-2 text-[20px] font-black text-white">Tu primera aventura</Text>
+                <Text className="mt-1 text-[13px] leading-5 text-[#D8E3F3]">
+                  ¡Hola, soy Omni! Te guiaré para unirte a un curso, responder tu primera pregunta y revisar tu progreso.
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -1128,28 +1133,15 @@ function HeroCard({ isWide, action }: { isWide: boolean; action: HomeHeroAction 
 
   return (
     <View
-      className="overflow-hidden rounded-2xl border border-[#1C3762] bg-[#0B1B48]"
-      style={{ flex: isWide ? 1.55 : undefined, minHeight: 220 }}
+      className="overflow-hidden rounded-2xl border border-[#1C3762] bg-[#0B1B48] flex-row items-center justify-between p-6"
+      style={{ flex: isWide ? 1.55 : undefined, minHeight: 100 }}
     >
       <View className="absolute inset-0 bg-[#0D1C55]" />
-      <View className="absolute right-5 top-5 h-28 w-28 rounded-full bg-[#5135D8]/50" />
-      <View className="absolute right-11 top-12 h-12 w-36 rounded-full border border-[#7B68FF]/45" style={{ transform: [{ rotate: '-18deg' }] }} />
-      <View className="absolute bottom-[-34px] right-12 h-36 w-36 rounded-full bg-[#051337]" />
-      <View className="absolute bottom-[-54px] right-28 h-28 w-40 rounded-full bg-[#071C50]" />
-      <View className="absolute bottom-12 right-28 h-3 w-3 rounded-full bg-[#7B68FF]" />
-      <Ionicons
-        name="rocket"
-        size={72}
-        color="#58B5FF"
-        style={{ position: 'absolute', bottom: 42, right: 68, transform: [{ rotate: '34deg' }] }}
-      />
-
-      <View className="relative flex-1 justify-center p-8">
+      <View className="relative flex-1 justify-center">
         <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: 32 }} className="max-w-[420px] text-[24px] leading-10 text-white">{action.title}</Text>
-        <Text className="mt-3 max-w-[360px] text-[14px] leading-6 text-[#B4C4DA]">
+        <Text className="mt-3 max-w-[300px] text-[14px] leading-6 text-[#B4C4DA]">
           {action.description}
         </Text>
-
         <Link href={action.href as any} asChild>
           <Pressable className="mt-5 w-[184px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: accentColor }}>
             <Ionicons name={action.icon} size={18} color="#FFFFFF" />
@@ -1157,6 +1149,8 @@ function HeroCard({ isWide, action }: { isWide: boolean; action: HomeHeroAction 
           </Pressable>
         </Link>
       </View>
+      <OmniGuide state={action.icon === 'refresh-circle' ? 'thinking' : 'normal'} autoBlink={action.icon !== 'refresh-circle'} size={132} />
+
     </View>
   )
 }
@@ -1297,6 +1291,8 @@ function EmptyClasses() {
   return (
     <StudentEmptyState
       icon="school-outline"
+      omniState="thinking"
+      omniSize={92}
       title="Aún no tienes cursos"
       message="Introduce el código de tu profesor para unirte a un curso o clase."
     />

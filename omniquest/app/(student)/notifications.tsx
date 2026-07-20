@@ -23,6 +23,7 @@ import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 import { withAlpha } from '../../lib/color'
+import OmniGuide from '../../components/OmniGuide'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
 
@@ -435,8 +436,6 @@ function MobileStudentNotifications({
         ) : (
           <MobileNotificationEmpty filter={selectedFilter} />
         )}
-
-        <MobileAllCaughtUpBanner unreadCount={unreadCount} />
       </ScrollView>
 
       <StudentBottomNav active="notifications" />
@@ -544,44 +543,13 @@ function MobileNotificationEmpty({ filter }: { filter: NotificationFilter }) {
 
   return (
     <View className="items-center rounded-2xl border border-dashed border-[#1E3A63] bg-[#081B37] px-5 py-9">
-      <Ionicons name="mail-open-outline" size={36} color="#8FA7C7" />
+      <OmniGuide state="happy" size={82} />
       <Text className="mt-3 text-center text-[17px] font-black text-white">{title}</Text>
       <Text className="mt-2 text-center text-[13px] leading-5 text-[#8FA7C7]">{detail}</Text>
     </View>
   )
 }
 
-function MobileAllCaughtUpBanner({ unreadCount }: { unreadCount: number }) {
-  return (
-    <LinearGradient
-      colors={['#2A1768', '#181B4B', '#0C1D3C']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ marginTop: 24, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#352A82' }}
-    >
-      <View className="min-h-[124px] flex-row items-center gap-4 p-5">
-        <View className="relative h-20 w-20 items-center justify-center rounded-full bg-[#5B21B6]/35">
-          <Ionicons name="notifications" size={44} color="#A78BFA" />
-          {unreadCount > 0 ? (
-            <View className="absolute right-0 top-2 h-9 min-w-9 items-center justify-center rounded-full bg-[#EF4444] px-2">
-              <Text className="text-[14px] font-black text-white">{unreadCount}</Text>
-            </View>
-          ) : null}
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className="text-[19px] font-black text-white">
-            {unreadCount > 0 ? 'Tienes novedades' : '¡Estás al día!'}
-          </Text>
-          <Text className="mt-2 text-[15px] leading-6 text-[#DDE7F4]">
-            {unreadCount > 0
-              ? 'Revísalas para seguir avanzando en tus cursos.'
-              : 'Sigue así, tu constancia te acerca a tus metas.'}
-          </Text>
-        </View>
-      </View>
-    </LinearGradient>
-  )
-}
 
 function getNotificationSectionTitle(filter: NotificationFilter) {
   if (filter === 'all') return 'Novedades'
@@ -750,7 +718,7 @@ function EmptyState({ filter }: { filter: NotificationFilter }) {
 
   return (
     <View className="items-center rounded-2xl border border-dashed border-[#29466F] bg-[#09162C] px-6 py-12">
-      <Ionicons name="mail-outline" size={48} color="#64748B" />
+      <OmniGuide state="happy" size={96} />
       <Text className="mt-4 text-center text-lg font-bold text-white">{title}</Text>
       <Text className="mt-2 max-w-[420px] text-center text-[13px] leading-5 text-[#8FA7C7]">{detail}</Text>
     </View>

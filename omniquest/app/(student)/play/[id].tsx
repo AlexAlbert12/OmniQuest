@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import AppConfirmModal from '../../../components/AppConfirmModal'
+import OmniGuide from '../../../components/OmniGuide'
 import { useGame } from '../../../hooks/useGame'
 import { getDifficultyMeta, normalizeDifficulty } from '../../../lib/difficulty'
 import type { Json } from '../../../types/database.types'
@@ -97,8 +98,8 @@ export default function PlayScreen() {
     return (
       <GameShell>
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#8B5CF6" />
-          <Text className="mt-4 text-[#B8C7E0]">Preparando la pregunta...</Text>
+          <OmniGuide state="blink" size={116} />
+          <Text className="mt-4 text-[#B8C7E0]">Omni está preparando la pregunta...</Text>
         </View>
       </GameShell>
     )
@@ -110,6 +111,7 @@ export default function PlayScreen() {
         <ResultState
           icon="construct-outline"
           iconColor="#8FA7C7"
+          omniState={reviewMode === 'failed' ? 'happy' : 'thinking'}
           title={reviewMode === 'failed' ? 'Sin fallos pendientes' : 'Todavía no hay preguntas'}
           detail={reviewMode === 'failed'
             ? 'No tienes preguntas falladas para repasar en este tema.'
@@ -127,6 +129,7 @@ export default function PlayScreen() {
         <ResultState
           icon="skull-outline"
           iconColor="#FB7185"
+          omniState="error"
           title="Partida terminada"
           detail="Te has quedado sin vidas, pero ya tienes pistas claras para mejorar."
           score={game.score}
@@ -146,6 +149,7 @@ export default function PlayScreen() {
         <ResultState
           icon="trophy"
           iconColor="#FBBF24"
+          omniState="happy"
           title="¡Partida completada!"
           detail="Buen cierre. Ya tienes claro qué reforzar."
           score={game.score}
@@ -319,6 +323,8 @@ export default function PlayScreen() {
       <AppConfirmModal
         visible={pendingAction === 'hint'}
         variant="info"
+        showOmni
+        omniState="thinking"
         title="¿Usar pista?"
         message="Se marcará una ayuda en la pregunta actual. Si aciertas, el servidor aplicará la penalización de puntos."
         cancelLabel="Cancelar"
@@ -329,6 +335,8 @@ export default function PlayScreen() {
       <AppConfirmModal
         visible={pendingAction === 'skip'}
         variant="warning"
+        showOmni
+        omniState="thinking"
         title="¿Saltar pregunta?"
         message="Vas a saltar esta pregunta y perderás 20 puntos. La pregunta quedará como no superada."
         cancelLabel="Cancelar"
@@ -339,6 +347,8 @@ export default function PlayScreen() {
       <AppConfirmModal
         visible={Boolean(feedbackDialog)}
         variant="info"
+        showOmni
+        omniState="thinking"
         title={feedbackDialog?.title ?? ''}
         message={feedbackDialog?.message ?? ''}
         cancelLabel="Cerrar"

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ActivityIndicator, Alert, Modal, Pressable, Text, View } from 'react-native'
+import OmniGuide, { type OmniState } from './OmniGuide'
 
 type NativeAlertButton = {
   text?: string
@@ -35,6 +36,7 @@ const variantStyles: Record<AppModalVariant, {
   border: string
   icon: keyof typeof Ionicons.glyphMap
   label: string
+  omniState: OmniState
 }> = {
   success: {
     color: '#43D991',
@@ -42,6 +44,7 @@ const variantStyles: Record<AppModalVariant, {
     border: '#2FBC7E',
     icon: 'checkmark-circle-outline',
     label: 'Confirmación',
+    omniState: 'happy',
   },
   warning: {
     color: '#FBBF24',
@@ -49,6 +52,7 @@ const variantStyles: Record<AppModalVariant, {
     border: '#F6A64A',
     icon: 'alert-circle-outline',
     label: 'Aviso',
+    omniState: 'thinking',
   },
   error: {
     color: '#FB7185',
@@ -56,6 +60,7 @@ const variantStyles: Record<AppModalVariant, {
     border: '#F43F5E',
     icon: 'close-circle-outline',
     label: 'Error',
+    omniState: 'error',
   },
   info: {
     color: '#58B5FF',
@@ -63,6 +68,7 @@ const variantStyles: Record<AppModalVariant, {
     border: '#3B82F6',
     icon: 'information-circle-outline',
     label: 'Información',
+    omniState: 'thinking',
   },
 }
 
@@ -195,8 +201,11 @@ function StyledAppModal({
 
           <View className="border-b px-6 py-5" style={{ borderColor: '#203864', backgroundColor: '#0B1B38' }}>
             <View className="flex-row items-center gap-3">
-              <View className="h-12 w-12 items-center justify-center rounded-2xl border" style={{ backgroundColor: style.background, borderColor: `${style.border}88` }}>
-                <Ionicons name={style.icon} size={27} color={style.color} />
+              <View className="relative">
+                <OmniGuide state={style.omniState} size={64} autoBlink={style.omniState === 'normal'} />
+                <View className="absolute -bottom-1 -right-1 h-7 w-7 items-center justify-center rounded-full border" style={{ backgroundColor: style.background, borderColor: style.border }}>
+                  <Ionicons name={style.icon} size={16} color={style.color} />
+                </View>
               </View>
               <View className="min-w-0 flex-1">
                 <Text className="text-[11px] font-black uppercase tracking-[0.12em]" style={{ color: style.color }}>

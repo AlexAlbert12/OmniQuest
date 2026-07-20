@@ -19,6 +19,7 @@ import TeacherHeaderAvatar from '../../components/teacher/TeacherHeaderAvatar';
 import { withAlpha } from '../../lib/color';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import { MobileHeader, MobileMetricCard } from '../../components/ui/mobile';
+import OmniGuide, { type OmniState } from '../../components/OmniGuide';
 
 type Subject = {
   id: number
@@ -394,7 +395,7 @@ export default function TeacherHomeScreen() {
                   onPress={() => router.push('/(teacher)/create-subject' as any)}
                   className="items-center justify-center rounded-2xl border border-dashed border-[#5364F5] bg-[#07162E] p-8"
                 >
-                  <Ionicons name="add-circle-outline" size={52} color="#9B8CFF" />
+                  <OmniGuide state="normal" autoBlink size={72} />
                   <Text className="mt-4 text-lg font-black text-white">Crea tu primer curso</Text>
                   <Text className="mt-2 text-center text-[#B7C4D7]">
                     Añade un curso para empezar a gestionar clases, alumnos y preguntas.
@@ -411,10 +412,9 @@ export default function TeacherHomeScreen() {
                       <ActivityRow key={item.id} item={item} />
                     ))
                   ) : (
-                    <View className="rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
-                      <Text className="text-center text-[12px] text-[#8FA7C7]">
-                        Aún no hay actividad reciente en tus cursos.
-                      </Text>
+                    <View className="items-center rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
+                      <OmniGuide state="normal" autoBlink size={58} />
+                      <Text className="mt-2 text-center text-[12px] text-[#8FA7C7]">Aún no hay actividad reciente en tus cursos.</Text>
                     </View>
                   )}
                 </View>
@@ -432,10 +432,9 @@ export default function TeacherHomeScreen() {
                       />
                     ))
                   ) : (
-                    <View className="rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
-                      <Text className="text-center text-[12px] text-[#8FA7C7]">
-                        Todavía no hay preguntas problemáticas detectadas.
-                      </Text>
+                    <View className="items-center rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
+                      <OmniGuide state="thinking" size={58} />
+                      <Text className="mt-2 text-center text-[12px] text-[#8FA7C7]">Todavía no hay preguntas problemáticas detectadas.</Text>
                     </View>
                   )}
                 </View>
@@ -600,13 +599,20 @@ function MobileRecommendedActions({
         </Pressable>
       </View>
 
+      {items.length > 0 ? (
+        <View className="mb-3 flex-row items-center gap-3 rounded-xl border border-[#243D66] bg-[#0D1D3B] px-3 py-2">
+          <OmniGuide state="thinking" size={52} />
+          <Text className="min-w-0 flex-1 text-[12px] leading-5 text-[#C7D3E5]">Omni recomienda: {items[0].title}</Text>
+        </View>
+      ) : null}
+
       <View className="gap-3">
         {items.length > 0 ? (
           items.slice(0, 3).map((item) => (
             <MobilePendingAction key={item.id} item={item} onPress={() => onPress(item)} />
           ))
         ) : (
-          <MobileEmptyState icon="checkmark-done-outline" text="No hay acciones pendientes ahora mismo." />
+          <MobileEmptyState icon="checkmark-done-outline" omniState="happy" text="No hay acciones pendientes ahora mismo." />
         )}
       </View>
     </View>
@@ -676,7 +682,7 @@ function MobileRecentCourses({
             onPress={onCreateSubject}
             className="items-center rounded-2xl border border-dashed border-[#5364F5] bg-[#0A1D3B] px-5 py-8"
           >
-            <Ionicons name="add-circle-outline" size={44} color="#9B8CFF" />
+            <OmniGuide state="normal" autoBlink size={66} />
             <Text className="mt-3 text-[18px] font-black text-white">Crea tu primer curso</Text>
             <Text className="mt-1 text-center text-[13px] leading-5 text-[#C7D3E5]">Empieza a organizar clases, alumnos y preguntas.</Text>
           </Pressable>
@@ -732,10 +738,10 @@ function MobileSubjectPreview({ subject, analytics }: { subject: Subject; analyt
   )
 }
 
-function MobileEmptyState({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+function MobileEmptyState({ icon, omniState, text }: { icon: keyof typeof Ionicons.glyphMap; omniState?: OmniState; text: string }) {
   return (
     <View className="items-center rounded-2xl border border-dashed border-[#253C67] bg-[#0A1D3B] px-4 py-6">
-      <Ionicons name={icon} size={30} color="#8FA7C7" />
+      {omniState ? <OmniGuide state={omniState} size={58} /> : <Ionicons name={icon} size={30} color="#8FA7C7" />}
       <Text className="mt-2 text-center text-[13px] leading-5 text-[#8FA7C7]">{text}</Text>
     </View>
   )
@@ -801,16 +807,22 @@ function RecommendedActionsPanel({
         </Pressable>
       </View>
 
+      {items.length > 0 ? (
+        <View className="mb-3 flex-row items-center gap-3 rounded-xl border border-[#243D66] bg-[#0D1D3B] px-3 py-2">
+          <OmniGuide state="thinking" size={52} />
+          <Text className="min-w-0 flex-1 text-[12px] leading-5 text-[#C7D3E5]">Omni recomienda: {items[0].title}</Text>
+        </View>
+      ) : null}
+
       <View className="gap-3">
         {items.length > 0 ? (
           items.slice(0, 3).map((item) => (
             <PendingActionRow key={item.id} item={item} onPress={() => onPress(item)} />
           ))
         ) : (
-          <View className="rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
-            <Text className="text-center text-[12px] text-[#8FA7C7]">
-              No hay acciones pendientes ahora mismo.
-            </Text>
+          <View className="items-center rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
+            <OmniGuide state="happy" size={58} />
+            <Text className="mt-2 text-center text-[12px] text-[#8FA7C7]">No hay acciones pendientes ahora mismo.</Text>
           </View>
         )}
       </View>

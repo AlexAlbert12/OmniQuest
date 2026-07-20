@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
+import OmniGuide from '../../components/OmniGuide';
 
 type TicketPriority = 'low' | 'medium' | 'high';
 type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
@@ -228,6 +229,11 @@ export default function TeacherHelpCenterScreen() {
           </View>
         </View>
 
+        <View className="mb-5 flex-row items-center gap-3 rounded-2xl border border-[#173056] bg-[#07162D] px-4 py-3">
+          <OmniGuide state="normal" autoBlink size={56} />
+          <Text className="min-w-0 flex-1 text-[13px] leading-5 text-[#D8E3F3]">Omni puede ayudarte a dejar el contexto del problema listo para soporte.</Text>
+        </View>
+
         <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
           <Panel title="FAQ" className={isDesktop ? 'flex-1' : ''}>
             {faqItems.map((item, index) => {
@@ -376,8 +382,9 @@ function ChoiceChip({ label, active, onPress }: { label: string; active: boolean
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <View className="rounded-xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-6">
-      <Text className="text-center text-[12px] text-[#8FA7C7]">{text}</Text>
+    <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-6">
+      <OmniGuide state="normal" autoBlink size={64} />
+      <Text className="mt-2 text-center text-[12px] text-[#8FA7C7]">{text}</Text>
     </View>
   );
 }

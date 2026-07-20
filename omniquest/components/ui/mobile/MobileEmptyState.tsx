@@ -1,6 +1,7 @@
 import React from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import OmniGuide, { type OmniSize, type OmniState } from '../../OmniGuide'
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -12,6 +13,8 @@ type MobileEmptyStateProps = {
   onAction?: () => void
   color?: string
   className?: string
+  omniSize?: OmniSize | number
+  omniState?: OmniState
 }
 
 export default function MobileEmptyState({
@@ -22,12 +25,18 @@ export default function MobileEmptyState({
   onAction,
   color = '#8B5CF6',
   className = '',
+  omniSize = 'md',
+  omniState,
 }: MobileEmptyStateProps) {
   return (
     <View className={`items-center rounded-[24px] border border-dashed border-[#28446F] bg-[#07162C] px-5 py-8 ${className}`}>
-      <View className="h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
-        <Ionicons name={icon} size={30} color={color} />
-      </View>
+      {omniState ? (
+        <OmniGuide state={omniState} size={omniSize} autoBlink={omniState === 'normal'} />
+      ) : (
+        <View className="h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
+          <Ionicons name={icon} size={30} color={color} />
+        </View>
+      )}
       <Text className="mt-4 text-center text-[19px] font-black text-white">{title}</Text>
       {description ? (
         <Text className="mt-2 max-w-[280px] text-center text-[13px] leading-5 text-[#AFC2DB]">{description}</Text>

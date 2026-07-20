@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
+import OmniGuide from '../../components/OmniGuide'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
@@ -282,7 +283,7 @@ export default function ActivityLogScreen() {
               }
               ListEmptyComponent={
                 <View className="mt-8 items-center justify-center rounded-2xl border border-dashed border-[#1A3155] bg-[#09162C] p-8">
-                  <Ionicons name="newspaper-outline" size={48} color="#4B6282" />
+                  <OmniGuide state="normal" autoBlink size={88} />
                   <Text className="mt-4 text-center text-[16px] font-bold text-white">
                     {attempts.length === 0 ? 'No hay actividad registrada' : 'No hay resultados con estos filtros'}
                   </Text>

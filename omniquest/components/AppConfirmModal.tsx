@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { ActivityIndicator, Modal, Pressable, Text, useWindowDimensions, View } from 'react-native'
+import OmniGuide, { type OmniState } from './OmniGuide'
 
 type AppConfirmModalVariant = 'danger' | 'info' | 'warning'
 
@@ -8,8 +9,10 @@ type AppConfirmModalProps = {
   cancelLabel?: string
   confirmLabel: string
   message: string
+  omniState?: OmniState
   onCancel: () => void
   onConfirm: () => void
+  showOmni?: boolean
   title: string
   variant?: AppConfirmModalVariant
   visible: boolean
@@ -26,8 +29,10 @@ export default function AppConfirmModal({
   cancelLabel = 'Cancelar',
   confirmLabel,
   message,
+  omniState = 'thinking',
   onCancel,
   onConfirm,
+  showOmni = false,
   title,
   variant = 'warning',
   visible,
@@ -44,9 +49,13 @@ export default function AppConfirmModal({
           style={{ borderColor: `${style.color}80` }}
         >
           <View className="flex-row items-start gap-4">
-            <View className="h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: `${style.color}24` }}>
-              <Ionicons name={style.icon} size={26} color={style.color} />
-            </View>
+            {showOmni ? (
+              <OmniGuide state={omniState} size={isPhone ? 58 : 64} autoBlink={omniState === 'normal'} />
+            ) : (
+              <View className="h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: `${style.color}24` }}>
+                <Ionicons name={style.icon} size={26} color={style.color} />
+              </View>
+            )}
             <View className="min-w-0 flex-1">
               <Text className="text-[21px] font-black text-white">{title}</Text>
               <Text className="mt-2 text-[14px] leading-6 text-[#BFD0E8]">{message}</Text>

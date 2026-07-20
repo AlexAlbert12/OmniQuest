@@ -14,6 +14,7 @@ import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import AuthInput from '../../components/auth/AuthInput'
 import BrandLogo from '../../components/BrandLogo'
+import OmniGuide from '../../components/OmniGuide'
 import HomeVisualBackground from '../../components/HomeVisualBackground'
 import { getAuthErrorMessage, getPasswordRecoveryRedirectTo, isValidEmail, normalizeEmail } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
@@ -97,11 +98,8 @@ export default function ForgotPasswordScreen() {
               Recupera el acceso a tu aventura.
             </Text>
 
-            <View className="mt-4 mb-5 flex-row items-center gap-3">
-              <View className="h-px w-16 bg-[#3B6FA5]" />
-              <Ionicons name="rocket" size={18} color="#8CD5FF" />
-              <View className="h-px w-16 bg-[#3B6FA5]" />
-            </View>
+            <OmniGuide state="thinking" size={isDesktop ? 88 : 76} style={{ marginTop: 12 }} />
+            <Text className="mb-5 mt-1 text-center text-[12px] text-[#AFC2DB]">Omni te ayuda a recuperar el acceso.</Text>
           </View>
 
           <LinearGradient

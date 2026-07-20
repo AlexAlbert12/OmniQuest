@@ -14,6 +14,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
+import OmniGuide from '../../components/OmniGuide'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import NotificationBadge from '../../components/NotificationBadge'
@@ -184,8 +185,8 @@ export default function BadgesScreen() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color={accentColor} />
-        <Text className="mt-4 text-[#8FA7C7]">Preparando tus insignias...</Text>
+        <OmniGuide state="blink" size={112} />
+        <Text className="mt-4 text-[#8FA7C7]">Omni está preparando tus insignias...</Text>
       </View>
     )
   }
@@ -402,7 +403,9 @@ function BadgeUnlockModal({
           </View>
 
           <View className="items-center px-6 pb-6 pt-5">
-            <View className="h-32 w-32 items-center justify-center">
+            <View className="flex-row items-center justify-center gap-4">
+              <OmniGuide state="happy" size={92} />
+              <View className="h-32 w-32 items-center justify-center">
               <Animated.View
                 className="absolute h-32 w-32 rounded-full"
                 style={{
@@ -416,6 +419,7 @@ function BadgeUnlockModal({
                 style={{ backgroundColor: `${badge.color}24`, borderColor: badge.color }}
               >
                 <Ionicons name={badge.icon} size={44} color={badge.color} />
+              </View>
               </View>
             </View>
 

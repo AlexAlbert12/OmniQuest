@@ -3,10 +3,11 @@ import { Pacifico_400Regular, useFonts } from '@expo-google-fonts/pacifico'
 import { useEffect, useState } from 'react'
 import { Stack, usePathname, useRouter, useSegments } from 'expo-router'
 import { supabase } from '../lib/supabase'
-import { View, ActivityIndicator } from 'react-native'
+import { Text, View } from 'react-native'
 import { AppThemeProvider, useAppTheme } from '../lib/appTheme'
 import { NotificationProvider } from '../hooks/useNotifications'
 import { AppModalProvider } from '../components/AppModalProvider'
+import OmniGuide from '../components/OmniGuide'
 
 const AUTH_ROUTE_ALIASES: Record<string, string> = {
   '/login': '/(auth)/login',
@@ -199,7 +200,10 @@ function RootNavigator() {
         className="flex-1 justify-center items-center"
         style={{ backgroundColor: theme === 'dark' ? '#0F2854' : '#F4F7FF' }}
       >
-        <ActivityIndicator size="large" color={theme === 'dark' ? '#BDE8F5' : '#5364F5'} />
+        <OmniGuide state="blink" size={118} />
+        <Text className="mt-4 text-center font-bold" style={{ color: theme === 'dark' ? '#DDEBFA' : '#263E61' }}>
+          Omni está preparando tu aventura...
+        </Text>
       </View>
     )
   }

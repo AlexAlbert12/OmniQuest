@@ -9,6 +9,7 @@ import HomeVisualBackground from '../../components/HomeVisualBackground'
 import { getAuthErrorMessage, isValidEmail, normalizeEmail } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
 import { createShadowStyle } from '../../lib/platformShadow'
+import OmniGuide from '../../components/OmniGuide'
 
 type LoginErrors = {
   email?: string
@@ -126,7 +127,7 @@ export default function LoginScreen() {
 
             <View className="mt-4 mb-5 flex-row items-center gap-3">
               <View className="h-px w-16 bg-[#3B6FA5]" />
-              <Ionicons name="rocket" size={18} color="#8CD5FF" />
+              <OmniGuide state="normal" autoBlink size={isDesktop ? 80 : isTablet ? 80 : 40} />
               <View className="h-px w-16 bg-[#3B6FA5]" />
             </View>
           </View>

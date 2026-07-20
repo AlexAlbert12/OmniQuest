@@ -19,6 +19,7 @@ import StudentHeaderAvatar from '../../components/student/StudentHeaderAvatar'
 import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { withAlpha } from '../../lib/color'
+import OmniGuide from '../../components/OmniGuide'
 
 type Profile = {
   id: string
@@ -264,7 +265,7 @@ export default function RankingScreen() {
                 <Text className={`${isDesktop ? 'text-[40px]' : 'text-[30px] leading-[36px]'} min-w-0 flex-1 font-black text-white`} numberOfLines={1}>Ranking</Text>
               </View>
               <Text className="mt-1 text-[13px] text-[#9BAEC9]">
-                Compite, aprende y sube posiciones 🚀
+                Compite, aprende y sube posiciones.
               </Text>
             </View>
             <View className="flex-row items-center gap-3">
@@ -577,7 +578,7 @@ function RankingListCard({
           ))
         ) : (
           <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-8">
-            <Ionicons name={selectedLeague.minPoints > rankingPoints ? 'lock-closed-outline' : 'trophy-outline'} size={34} color="#8FA7C7" />
+            <OmniGuide state="normal" autoBlink size={compact ? 72 : 84} />
             <Text className="mt-2 text-center text-[13px] text-[#AFC2DB]">
               {rankingRows.length === 0
                 ? emptyRankingMessage
@@ -1116,7 +1117,7 @@ function PositionCard({
 
         <View className="mt-5 flex-row items-center gap-4">
           <View className="h-24 w-24 items-center justify-center rounded-[28px] border-[6px] bg-[#15235A]" style={{ borderColor: league.color }}>
-            <Text className="text-[40px] font-black text-white">{isGuest || !hasRank ? '-' : rank}</Text>
+            {isGuest || !hasRank ? <OmniGuide state="normal" autoBlink size={72} /> : <Text className="text-[40px] font-black text-white">{rank}</Text>}
           </View>
           <View className="min-w-0 flex-1">
             <Text className="text-[17px] font-black text-white">
@@ -1150,7 +1151,7 @@ function PositionCard({
       </View>
       <View className="items-center py-5">
         <View className="h-36 w-36 items-center justify-center rounded-[38px] border-[8px] bg-[#15235A]" style={{ borderColor: league.color }}>
-          <Text className="text-[56px] font-black text-white">{isGuest || !hasRank ? '-' : rank}</Text>
+          {isGuest || !hasRank ? <OmniGuide state="normal" autoBlink size={104} /> : <Text className="text-[56px] font-black text-white">{rank}</Text>}
         </View>
         <Text className="mt-4 text-[16px] font-black text-white">
           {isGuest ? 'Modo invitado' : hasRank ? '¡Sigue así!' : 'Sin posición todavía'}
