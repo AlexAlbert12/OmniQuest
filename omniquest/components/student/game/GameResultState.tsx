@@ -2,6 +2,9 @@ import React from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import OmniGuide, { type OmniSize, type OmniState } from '../../OmniGuide'
+import AnimatedXpCounter from '../../gamification/AnimatedXpCounter'
+import BadgeUnlockModal from '../../gamification/BadgeUnlockModal'
+import type { StudentBadge } from '../../../lib/studentBadges'
 
 type GameSummary = {
   questionsTotal: number
@@ -26,6 +29,8 @@ export default function ResultState({
   onPress,
   secondaryAction,
   onSecondaryPress,
+  unlockedBadges = [],
+  onDismissUnlockedBadge,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   iconColor: string
@@ -39,9 +44,12 @@ export default function ResultState({
   onPress: () => void
   secondaryAction?: string
   onSecondaryPress?: () => void
+  unlockedBadges?: StudentBadge[]
+  onDismissUnlockedBadge?: () => void
 }) {
   return (
-    <ScrollView
+    <>
+      <ScrollView
       className="flex-1"
       contentContainerStyle={{
         alignItems: 'center',
@@ -98,7 +106,13 @@ export default function ResultState({
           </Pressable>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+      <BadgeUnlockModal
+        badge={unlockedBadges[0] || null}
+        visible={unlockedBadges.length > 0}
+        onClose={onDismissUnlockedBadge || (() => undefined)}
+      />
+    </>
   )
 }
 
@@ -125,7 +139,13 @@ function GameSummaryPanel({
             <Text className="text-[38px] font-black text-white">{summary.correct}/{totalQuestions}</Text>
             <Text className="text-[14px] font-bold text-[#C9D7EA]">correctas</Text>
           </View>
-          <Text className="mt-4 text-[32px] font-black text-[#9B6CFF]">+{xp} XP</Text>
+          <AnimatedXpCounter
+            value={xp}
+            prefix="+"
+            suffix=" XP"
+            accessibilityLabel={`${xp} puntos de experiencia ganados`}
+            style={{ marginTop: 16, color: '#9B6CFF', fontSize: 32, fontWeight: '900' }}
+          />
         </View>
 
         <View className="mt-5 gap-2">

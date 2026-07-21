@@ -7,7 +7,6 @@ import {
   Text,
   useWindowDimensions,
   View,
-  Image,
 } from 'react-native'
 import { useFocusEffect, useRouter, type Href } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -31,6 +30,15 @@ import { formatLongDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { withAlpha } from '../../lib/color'
+import GamifiedAvatar from '../../components/gamification/GamifiedAvatar'
+import AvatarCustomizationModal from '../../components/gamification/AvatarCustomizationModal'
+import {
+  DEFAULT_AVATAR_FRAME,
+  equipProfileCosmetics,
+  fetchAvatarCustomizationOptions,
+  type AvatarCustomizationOptions,
+  type ProfileCosmetics,
+} from '../../lib/avatarCosmetics'
 
 type Profile = {
   id: string
@@ -74,6 +82,9 @@ export default function ProfileScreen() {
   const [scores, setScores] = useState<SubjectScore[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [customizationVisible, setCustomizationVisible] = useState(false)
+  const [customizationOptions, setCustomizationOptions] = useState<AvatarCustomizationOptions | null>(null)
+  const [savingCosmetics, setSavingCosmetics] = useState(false)
   const { accentColor } = useAppTheme()
 
   const isDesktop = width >= 1024
@@ -89,6 +100,10 @@ export default function ProfileScreen() {
   const badges = buildStudentBadges(badgeMetrics)
   const unlockedBadges = badges.filter((badge) => badge.unlocked)
   const achievedBadges = unlockedBadges.slice(0, 3)
+  const cosmetics: ProfileCosmetics = customizationOptions?.cosmetics || {
+    frame: DEFAULT_AVATAR_FRAME,
+    featuredBadgeId: null,
+  }
   const memberSince = formatLongDate(profile?.created_at, '15 de marzo de 2008')
   const streakDays = calculateStreakDays(scores.flatMap((score) => [
     ...(score.played_days || []),
@@ -106,7 +121,7 @@ export default function ProfileScreen() {
 
       if (!userId) return
 
-      const [profileResult, enrollmentsResult, scoresResult] = await Promise.all([
+      const [profileResult, enrollmentsResult, scoresResult, nextCustomizationOptions] = await Promise.all([
         supabase.from('profiles').select('id, alias, avatar, created_at, points').eq('id', userId).single(),
         supabase
           .from('enrollments')
@@ -117,6 +132,10 @@ export default function ProfileScreen() {
           .select('subject_id, max_score, played_at, played_days, correct_answers, subjects(name)')
           .eq('student_id', userId)
           .order('played_at', { ascending: false }),
+        fetchAvatarCustomizationOptions().catch((error) => {
+          console.warn('No se pudieron cargar los cosméticos del avatar:', error)
+          return null
+        }),
       ])
 
       if (profileResult.error) throw profileResult.error
@@ -130,6 +149,7 @@ export default function ProfileScreen() {
           .filter(Boolean) || []
       )
       setScores((scoresResult.data || []) as SubjectScore[])
+      if (nextCustomizationOptions) setCustomizationOptions(nextCustomizationOptions)
     } catch (error) {
       console.error('Error fetching profile:', error)
     } finally {
@@ -195,10 +215,61 @@ export default function ProfileScreen() {
     }
   }
 
+  const openAvatarCustomization = async () => {
+    setCustomizationVisible(true)
+    try {
+      setCustomizationOptions(await fetchAvatarCustomizationOptions())
+    } catch (error) {
+      console.warn('No se pudo actualizar la personalización del avatar:', error)
+    }
+  }
+
+  const saveAvatarCustomization = async ({
+    frameKey,
+    featuredBadgeId,
+  }: {
+    frameKey: string | null
+    featuredBadgeId: string | null
+  }) => {
+    setSavingCosmetics(true)
+    try {
+      const nextCosmetics = await equipProfileCosmetics({ frameKey, featuredBadgeId })
+      setCustomizationOptions((current) => current
+        ? { ...current, cosmetics: nextCosmetics }
+        : {
+            level,
+            frames: [nextCosmetics.frame || DEFAULT_AVATAR_FRAME],
+            awardedBadgeIds: unlockedBadges.map((badge) => badge.id),
+            cosmetics: nextCosmetics,
+          })
+      setCustomizationVisible(false)
+    } catch (error: any) {
+      Alert.alert('No se pudo guardar', error?.message || 'Revisa los requisitos del marco e inténtalo de nuevo.')
+    } finally {
+      setSavingCosmetics(false)
+    }
+  }
+
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.replace(STUDENT_ROUTES.login)
   }
+
+  const avatarCustomizationModal = (
+    <AvatarCustomizationModal
+      alias={alias}
+      avatarUrl={profile?.avatar}
+      awardedBadgeIds={customizationOptions?.awardedBadgeIds || unlockedBadges.map((badge) => badge.id)}
+      busy={savingCosmetics || uploading}
+      cosmetics={cosmetics}
+      frames={customizationOptions?.frames || [DEFAULT_AVATAR_FRAME]}
+      level={customizationOptions?.level || level}
+      onChangePhoto={() => void pickImage()}
+      onClose={() => setCustomizationVisible(false)}
+      onSave={saveAvatarCustomization}
+      visible={customizationVisible}
+    />
+  )
 
   if (loading) {
     return (
@@ -211,6 +282,7 @@ export default function ProfileScreen() {
 
   if (!isDesktop) {
     return (
+      <>
       <MobileStudentProfile
         achievedBadges={achievedBadges}
         activeCourses={subjects.length}
@@ -221,19 +293,22 @@ export default function ProfileScreen() {
         nextLevelProgress={nextLevelProgress}
         points={points}
         profile={profile}
+        cosmetics={cosmetics}
         streakDays={streakDays}
-        uploading={uploading}
-        onPickImage={pickImage}
+        onCustomizeAvatar={() => void openAvatarCustomization()}
         onOpenActivity={() => router.push(STUDENT_ROUTES.activityLog)}
         onOpenBadges={() => router.push(STUDENT_ROUTES.badges)}
         onOpenClasses={() => router.push(STUDENT_ROUTES.classes)}
         onOpenProgress={() => router.push(STUDENT_ROUTES.progress)}
         onOpenSettings={() => router.push(STUDENT_ROUTES.settings)}
       />
+      {avatarCustomizationModal}
+      </>
     )
   }
 
   return (
+    <>
     <View className="flex-1 bg-[#061126]">
       <View className="flex-1 flex-row">
         {isDesktop ? (
@@ -244,6 +319,7 @@ export default function ProfileScreen() {
             level={level}
             points={points}
             nextLevelProgress={nextLevelProgress}
+            cosmetics={cosmetics}
             onSignOut={handleSignOut}
           />
         ) : null}
@@ -270,8 +346,8 @@ export default function ProfileScreen() {
               level={level}
               nextLevelProgress={nextLevelProgress}
               profile={profile}
-              uploading={uploading}
-              onPickImage={pickImage}
+              cosmetics={cosmetics}
+              onCustomizeAvatar={() => void openAvatarCustomization()}
             />
 
             <View className="flex-[1.35] flex-row gap-4">
@@ -379,6 +455,8 @@ export default function ProfileScreen() {
 
       {!isDesktop ? <StudentBottomNav active="profile" /> : null}
     </View>
+    {avatarCustomizationModal}
+    </>
   )
 }
 
@@ -392,9 +470,9 @@ function MobileStudentProfile({
   nextLevelProgress,
   points,
   profile,
+  cosmetics,
   streakDays,
-  uploading,
-  onPickImage,
+  onCustomizeAvatar,
   onOpenActivity,
   onOpenBadges,
   onOpenClasses,
@@ -410,9 +488,9 @@ function MobileStudentProfile({
   nextLevelProgress: number
   points: number
   profile: Profile | null
+  cosmetics: ProfileCosmetics
   streakDays: number
-  uploading: boolean
-  onPickImage: () => void
+  onCustomizeAvatar: () => void
   onOpenActivity: () => void
   onOpenBadges: () => void
   onOpenClasses: () => void
@@ -442,8 +520,8 @@ function MobileStudentProfile({
           nextLevelProgress={nextLevelProgress}
           points={points}
           profile={profile}
-          uploading={uploading}
-          onPickImage={onPickImage}
+          cosmetics={cosmetics}
+          onCustomizeAvatar={onCustomizeAvatar}
         />
 
         <View className="mt-4 flex-row flex-wrap gap-3">
@@ -516,8 +594,8 @@ function MobileProfileHero({
   nextLevelProgress,
   points,
   profile,
-  uploading,
-  onPickImage,
+  cosmetics,
+  onCustomizeAvatar,
 }: {
   accentColor: string
   alias: string
@@ -525,8 +603,8 @@ function MobileProfileHero({
   nextLevelProgress: number
   points: number
   profile: Profile | null
-  uploading: boolean
-  onPickImage: () => void
+  cosmetics: ProfileCosmetics
+  onCustomizeAvatar: () => void
 }) {
   const xpToNextLevel = Math.max(0, 100 - nextLevelProgress)
   const progressWidth = Math.min(100, Math.max(nextLevelProgress > 0 ? 8 : 0, nextLevelProgress))
@@ -543,20 +621,15 @@ function MobileProfileHero({
         <View className="absolute bottom-4 right-3 h-28 w-44 rounded-3xl bg-[#2563EB]/10" style={{ transform: [{ rotate: '-20deg' }] }} />
 
         <View className="flex-row items-center gap-4 pr-[76px]">
-          <Pressable
-            onPress={onPickImage}
-            disabled={uploading}
-            className="h-[118px] w-[118px] items-center justify-center rounded-full bg-[#0B1533]"
-            style={{ borderWidth: 3, borderColor: accentColor }}
-          >
-            {profile?.avatar && profile.avatar.startsWith('http') ? (
-              <Image source={{ uri: profile.avatar }} className="h-full w-full rounded-full" />
-            ) : (
-              <View className="h-full w-full items-center justify-center rounded-full bg-[#1C2A58]">
-                <Ionicons name="person" size={54} color="#DDE7FF" />
-              </View>
-            )}
-          </Pressable>
+          <GamifiedAvatar
+            alias={alias}
+            avatarUrl={profile?.avatar}
+            cosmetics={cosmetics}
+            editable
+            level={level}
+            onPress={onCustomizeAvatar}
+            size={118}
+          />
 
           <View className="min-w-0">
             <Text className="text-[29px] font-black leading-[34px] text-white">{alias}</Text>
@@ -722,15 +795,15 @@ function ProfileHero({
   level,
   nextLevelProgress,
   profile,
-  uploading,
-  onPickImage,
+  cosmetics,
+  onCustomizeAvatar,
 }: {
   alias: string
   level: number
   nextLevelProgress: number
   profile: Profile | null
-  uploading: boolean
-  onPickImage: () => void
+  cosmetics: ProfileCosmetics
+  onCustomizeAvatar: () => void
 }) {
   const { accentColor } = useAppTheme()
 
@@ -743,20 +816,15 @@ function ProfileHero({
       <View className="absolute right-2 top-10 h-8 w-28 rounded-full border border-[#7B68FF]/45" style={{ transform: [{ rotate: '-18deg' }] }} />
 
       <View className="relative flex-row items-center gap-6">
-        <Pressable onPress={onPickImage} disabled={uploading} className="h-28 w-28 items-center justify-center rounded-full border-4 border-[#91B8FF] bg-[#D8E7FF]">
-          {profile?.avatar && profile.avatar.startsWith('http') ? (
-            <Image source={{ uri: profile.avatar }} className="h-full w-full rounded-full" />
-          ) : (
-            <Ionicons name="person" size={50} color="#9FD6FF" />
-          )}
-          <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: accentColor }}>
-            {uploading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Ionicons name="create" size={15} color="#FFFFFF" />
-            )}
-          </View>
-        </Pressable>
+        <GamifiedAvatar
+          alias={alias}
+          avatarUrl={profile?.avatar}
+          cosmetics={cosmetics}
+          editable
+          level={level}
+          onPress={onCustomizeAvatar}
+          size={112}
+        />
 
         <View className="min-w-0 flex-1">
           <Text className="text-[28px] font-black text-white">{alias}</Text>

@@ -3,10 +3,14 @@ import { Image, Pressable, Text } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import type { PageHeaderRole } from './RolePageHeader'
+import GamifiedAvatar from '../gamification/GamifiedAvatar'
+import { useProfileCosmetics } from '../../hooks/useProfileCosmetics'
+import { getStudentLevel } from '../../lib/studentLevel'
 
 type HeaderProfile = {
   alias: string | null
   avatar: string | null
+  points: number | null
 }
 
 type RoleHeaderAvatarProps = {
@@ -16,7 +20,8 @@ type RoleHeaderAvatarProps = {
 /** Shared authenticated avatar used by student and teacher page headers. */
 export default function RoleHeaderAvatar({ role }: RoleHeaderAvatarProps) {
   const router = useRouter()
-  const [profile, setProfile] = React.useState<HeaderProfile>({ alias: null, avatar: null })
+  const [profile, setProfile] = React.useState<HeaderProfile>({ alias: null, avatar: null, points: 0 })
+  const { cosmetics } = useProfileCosmetics()
 
   useFocusEffect(
     React.useCallback(() => {
@@ -29,12 +34,12 @@ export default function RoleHeaderAvatar({ role }: RoleHeaderAvatarProps) {
 
         const { data, error } = await supabase
           .from('profiles')
-          .select('alias, avatar')
+          .select('alias, avatar, points')
           .eq('id', userId)
           .single()
 
         if (!cancelled && !error && data) {
-          setProfile({ alias: data.alias ?? null, avatar: data.avatar ?? null })
+          setProfile({ alias: data.alias ?? null, avatar: data.avatar ?? null, points: data.points ?? 0 })
         }
       }
 
@@ -48,6 +53,20 @@ export default function RoleHeaderAvatar({ role }: RoleHeaderAvatarProps) {
   const fallbackAlias = role === 'teacher' ? 'Profesor' : 'Alumno'
   const alias = profile.alias || fallbackAlias
   const destination = role === 'teacher' ? '/(teacher)/profile' : '/(student)/profile'
+
+  if (role === 'student') {
+    return (
+      <GamifiedAvatar
+        alias={alias}
+        avatarUrl={profile.avatar}
+        cosmetics={cosmetics}
+        level={getStudentLevel(profile.points ?? 0)}
+        onPress={() => router.push(destination as any)}
+        showLevel={false}
+        size={46}
+      />
+    )
+  }
 
   return (
     <Pressable

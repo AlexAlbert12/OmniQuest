@@ -92,6 +92,24 @@ export function getStudentBadgeMetrics({
   return getLegacyMetricsFromScores({ scores, totalPoints, subjectsCount })
 }
 
+const EMPTY_BADGE_METRICS: StudentBadgeMetrics = {
+  totalAnswers: 0,
+  correctAnswers: 0,
+  accuracyPercent: 0,
+  accuracyEligible: false,
+  streakDays: 0,
+  totalPoints: 0,
+  subjectsCount: 0,
+  practicedSubjects: 0,
+  practicedClassrooms: 0,
+  questionTypesPlayed: 0,
+}
+
+/** Returns stable visual metadata for a badge id without exposing answer data. */
+export function getStudentBadgePresentation(badgeId: string): StudentBadge | null {
+  return buildStudentBadges(EMPTY_BADGE_METRICS).find((badge) => badge.id === badgeId) || null
+}
+
 export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[] {
   return [
     createBadge({

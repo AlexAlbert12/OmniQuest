@@ -81,9 +81,11 @@ export function RoleSettingsSections({
           openPreferenceKey={data.openPreferenceKey}
           preferenceOptions={data.preferenceOptions}
           savingPreference={data.savingPreference}
+          savingHaptics={data.savingHaptics}
           onAccentColorChange={onAccentColorChange}
           onTogglePreferenceMenu={data.togglePreferenceMenu}
           onSelectPreference={(key, value) => void data.selectPreference(key, value)}
+          onToggleHaptics={(enabled) => void data.updateHapticsEnabled(enabled)}
           formatPreferenceLabel={data.formatPreferenceLabel}
         />
       ) : null}

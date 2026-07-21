@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Alert, Platform } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { supabase } from '../lib/supabase';
 import { normalizeDifficulty } from '../lib/difficulty';
 import type { Json } from '../types/database.types';
 import { fetchAttemptFeedback, type AttemptFeedback } from '../lib/studentSecureData';
 import { toSafeAnalyticsError, trackUsageEvent } from '../lib/analytics';
+import { useAppHaptics } from '../lib/haptics';
+import { getStudentBadgePresentation, type StudentBadge } from '../lib/studentBadges';
 import {
   buildGameSnapshotKey,
   clearGameSnapshot,
@@ -20,6 +21,18 @@ import {
 type StructuredAnswerPayload = {
   answerText?: string;
   payload?: Json;
+};
+
+type BadgeAwardResult = {
+  badge_id?: string;
+  awarded_at?: string | null;
+  reward_xp?: number | null;
+};
+
+type FinishGameResult = {
+  badge_sync?: {
+    new_awards?: BadgeAwardResult[];
+  };
 };
 
 type SubmitAnswerResult = {
@@ -71,6 +84,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   const isGeneralTopic = topicId === 'general';
   const isFailedReview = reviewMode === 'failed';
   const gameSnapshotKey = buildGameSnapshotKey([numericSubjectId, numericClassroomId, numericTopicId, isGeneralTopic, numericDifficulty, isFailedReview]);
+  const haptics = useAppHaptics();
 
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -97,6 +111,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   const [isOffline, setIsOffline] = useState(false);
   const [resumedFromSnapshot, setResumedFromSnapshot] = useState(false);
   const [pendingAnswer, setPendingAnswer] = useState<PendingGameAnswer | null>(null);
+  const [newlyUnlockedBadges, setNewlyUnlockedBadges] = useState<StudentBadge[]>([]);
 
   const loadGame = useCallback(async () => {
     setStatus('loading');
@@ -189,6 +204,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       setFeedbackNextStatus(null);
       setSummary({ ...emptySummary, questionsTotal: safeQuestions.length });
       setPendingAnswer(null);
+      setNewlyUnlockedBadges([]);
       setResumedFromSnapshot(false);
       setQuestions(safeQuestions);
       setTimeLeft(safeQuestions[0].time_limit_seconds ?? 30);
@@ -219,12 +235,38 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     finalizedAttemptIdsRef.current.add(attemptId);
 
     try {
-      const { error } = await supabase.rpc('finish_game_attempt', {
+      const { data, error } = await supabase.rpc('finish_game_attempt', {
         p_attempt_id: attemptId,
         p_status: nextStatus === 'gameOver' ? 'abandoned' : 'finished',
       });
 
       if (error) throw error;
+
+      const finishResult = data && typeof data === 'object' && !Array.isArray(data)
+        ? data as FinishGameResult
+        : {};
+      const newAwards = Array.isArray(finishResult.badge_sync?.new_awards)
+        ? finishResult.badge_sync?.new_awards || []
+        : [];
+      const unlocked = newAwards.flatMap((award) => {
+        if (!award.badge_id) return [];
+        const badge = getStudentBadgePresentation(award.badge_id);
+        if (!badge) return [];
+        return [{
+          ...badge,
+          unlocked: true,
+          statusLabel: 'Conseguida',
+          awardedAt: award.awarded_at ?? new Date().toISOString(),
+          rewardXp: Number(award.reward_xp ?? badge.rewardXp),
+          xp: `+${Number(award.reward_xp ?? badge.rewardXp)} XP`,
+        } satisfies StudentBadge];
+      });
+      if (unlocked.length > 0) {
+        setNewlyUnlockedBadges((current) => {
+          const existing = new Set(current.map((badge) => badge.id));
+          return [...current, ...unlocked.filter((badge) => !existing.has(badge.id))];
+        });
+      }
     } catch (error) {
       finalizedAttemptIdsRef.current.delete(attemptId);
       console.error('Error finalizing game attempt:', error);
@@ -382,21 +424,21 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
 
       if (requiresManualReview) {
         setAnswerStatus(null);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        void haptics.success();
         setFeedbackNextStatus(nextTerminalStatus);
         return;
       }
 
       if (isCorrect) {
         setAnswerStatus('correct');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        void haptics.success();
         setStreak((prev) => prev + 1);
         setFeedbackNextStatus(nextTerminalStatus);
         return;
       }
 
       setAnswerStatus('incorrect');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      void haptics.error();
       setStreak(0);
       setLives((prev) => {
         const newLives = prev - 1;
@@ -430,7 +472,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
         Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
       }
     }
-  }, [currentIndex, hasAnswered, numericClassroomId, numericSubjectId, numericTopicId, questions, status, timeLeft]);
+  }, [currentIndex, haptics, hasAnswered, numericClassroomId, numericSubjectId, numericTopicId, questions, status, timeLeft]);
 
   const handleTimeOut = useCallback(() => {
     void completeAnswer({ skipped: true, timedOut: true });
@@ -547,8 +589,12 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
 
     hintUsedRef.current = true;
     setHintedAnswerId(-1);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void haptics.impact();
     return true;
+  };
+
+  const dismissUnlockedBadge = () => {
+    setNewlyUnlockedBadges((current) => current.slice(1));
   };
 
   const skipQuestion = () => {
@@ -589,7 +635,9 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     isOffline,
     resumedFromSnapshot,
     pendingAnswer,
+    newlyUnlockedBadges,
     retryPendingAnswer,
+    dismissUnlockedBadge,
     retryLoadGame: loadGame,
     abandonGame,
     submitAnswer,

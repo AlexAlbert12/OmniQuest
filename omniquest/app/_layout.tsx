@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar'
 import { NotificationProvider } from '../hooks/useNotifications'
 import { AppModalProvider } from '../components/AppModalProvider'
 import OmniGuide from '../components/OmniGuide'
+import { AppHapticsProvider } from '../lib/haptics'
 
 const AUTH_ROUTE_ALIASES: Record<string, string> = {
   '/login': '/(auth)/login',
@@ -44,11 +45,13 @@ export default function RootLayout() {
   return (
     <I18nProvider>
       <AppThemeProvider>
-        <AppModalProvider>
-          <NotificationProvider>
-            <RootNavigator />
-          </NotificationProvider>
-        </AppModalProvider>
+        <AppHapticsProvider>
+          <AppModalProvider>
+            <NotificationProvider>
+              <RootNavigator />
+            </NotificationProvider>
+          </AppModalProvider>
+        </AppHapticsProvider>
       </AppThemeProvider>
     </I18nProvider>
   )

@@ -189,6 +189,8 @@ export default function PlayScreen() {
           onPress={() => router.back()}
           secondaryAction={game.summary.reviewQuestions.length > 0 ? 'Repasar fallos' : undefined}
           onSecondaryPress={game.summary.reviewQuestions.length > 0 ? handleReviewMistakes : undefined}
+          unlockedBadges={game.newlyUnlockedBadges}
+          onDismissUnlockedBadge={game.dismissUnlockedBadge}
         />
       </GameShell>
     )
@@ -209,6 +211,8 @@ export default function PlayScreen() {
           onPress={() => router.back()}
           secondaryAction={game.summary.reviewQuestions.length > 0 ? 'Repasar fallos' : undefined}
           onSecondaryPress={game.summary.reviewQuestions.length > 0 ? handleReviewMistakes : undefined}
+          unlockedBadges={game.newlyUnlockedBadges}
+          onDismissUnlockedBadge={game.dismissUnlockedBadge}
         />
       </GameShell>
     )

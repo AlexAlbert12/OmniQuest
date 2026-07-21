@@ -90,6 +90,90 @@ export type Database = {
           },
         ]
       }
+      avatar_frames: {
+        Row: {
+          frame_key: string
+          name: string
+          description: string | null
+          primary_color: string
+          secondary_color: string
+          rarity: string
+          minimum_level: number
+          required_badge_id: string | null
+          sort_order: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          frame_key: string
+          name: string
+          description?: string | null
+          primary_color: string
+          secondary_color: string
+          rarity?: string
+          minimum_level?: number
+          required_badge_id?: string | null
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          frame_key?: string
+          name?: string
+          description?: string | null
+          primary_color?: string
+          secondary_color?: string
+          rarity?: string
+          minimum_level?: number
+          required_badge_id?: string | null
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profile_cosmetics: {
+        Row: {
+          user_id: string
+          equipped_frame_key: string | null
+          featured_badge_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          equipped_frame_key?: string | null
+          featured_badge_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          equipped_frame_key?: string | null
+          featured_badge_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_cosmetics_equipped_frame_key_fkey"
+            columns: ["equipped_frame_key"]
+            isOneToOne: false
+            referencedRelation: "avatar_frames"
+            referencedColumns: ["frame_key"]
+          },
+          {
+            foreignKeyName: "profile_cosmetics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       answers: {
         Row: {
           id: number
@@ -1071,6 +1155,7 @@ export type Database = {
           date_format: string | null
           time_format: string | null
           week_start: string | null
+          haptics_enabled: boolean
           created_at: string
           updated_at: string
         }
@@ -1081,6 +1166,7 @@ export type Database = {
           date_format?: string | null
           time_format?: string | null
           week_start?: string | null
+          haptics_enabled?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -1091,6 +1177,7 @@ export type Database = {
           date_format?: string | null
           time_format?: string | null
           week_start?: string | null
+          haptics_enabled?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -1191,6 +1278,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      equip_profile_cosmetics: {
+        Args: {
+          p_frame_key?: string | null
+          p_featured_badge_id?: string | null
+        }
+        Returns: Json
+      }
+      get_avatar_customization_options: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_profile_cosmetics: {
+        Args: { p_user_ids?: string[] | null }
+        Returns: {
+          user_id: string
+          frame_key: string
+          name: string
+          description: string | null
+          primary_color: string
+          secondary_color: string
+          rarity: string
+          minimum_level: number
+          required_badge_id: string | null
+          featured_badge_id: string | null
+        }[]
+      }
       get_admin_dashboard_metrics: {
         Args: Record<PropertyKey, never>
         Returns: Json

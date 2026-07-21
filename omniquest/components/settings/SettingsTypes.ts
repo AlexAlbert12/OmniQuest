@@ -25,6 +25,7 @@ export type UserPreferencesState = {
   dateFormat: string
   timeFormat: string
   weekStart: string
+  hapticsEnabled: boolean
 }
 
 export type UserPreferencesRow = {
@@ -33,6 +34,7 @@ export type UserPreferencesRow = {
   date_format: string | null
   time_format: string | null
   week_start: string | null
+  haptics_enabled: boolean | null
 }
 
 export type NotificationSettingsState = {

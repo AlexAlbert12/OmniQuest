@@ -200,9 +200,11 @@ export function SettingsPreferencesPanel({
   openPreferenceKey,
   preferenceOptions,
   savingPreference,
+  savingHaptics,
   onAccentColorChange,
   onTogglePreferenceMenu,
   onSelectPreference,
+  onToggleHaptics,
   formatPreferenceLabel,
 }: {
   accentColor: string
@@ -211,9 +213,11 @@ export function SettingsPreferencesPanel({
   openPreferenceKey: PreferenceKey | null
   preferenceOptions: PreferenceOptions
   savingPreference: PreferenceKey | null
+  savingHaptics: boolean
   onAccentColorChange: (color: string) => void
   onTogglePreferenceMenu: (key: PreferenceKey) => void
   onSelectPreference: (key: PreferenceKey, value: string) => void
+  onToggleHaptics: (enabled: boolean) => void
   formatPreferenceLabel: FormatPreferenceLabel
 }) {
   const { themePreference, setTheme, colors } = useAppTheme()
@@ -291,6 +295,16 @@ export function SettingsPreferencesPanel({
           ))}
         </View>
       </View>
+
+      <NotificationRow
+        icon="phone-portrait-outline"
+        title="Respuesta táctil"
+        description="Vibra al responder, desbloquear logros y completar acciones importantes."
+        enabled={preferences.hapticsEnabled}
+        onPress={() => onToggleHaptics(!preferences.hapticsEnabled)}
+        disabled={savingHaptics}
+        loading={savingHaptics}
+      />
 
       <PreferenceRow
         label="Idioma"

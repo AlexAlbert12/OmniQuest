@@ -2,6 +2,9 @@ import React, { useEffect, useRef } from 'react'
 import { Animated, Easing, Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import OmniGuide from '../../OmniGuide'
+import AnswerFeedbackMotion from '../../gamification/AnswerFeedbackMotion'
+import CelebrationParticles from '../../gamification/CelebrationParticles'
+import XpGainBurst from '../../gamification/XpGainBurst'
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
@@ -105,8 +108,13 @@ export function QuestionFeedbackCard({
   })
 
   return (
-    <View className="mt-5 overflow-hidden rounded-[28px] border bg-[#09162C] p-5" style={{ borderColor: `${color}88` }}>
-      <View className="absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ backgroundColor: `${color}18` }} />
+    <AnswerFeedbackMotion status={feedback.status} style={{ marginTop: 20 }}>
+      <View className="overflow-hidden rounded-[28px] border bg-[#09162C] p-5" style={{ borderColor: `${color}88` }}>
+        <View className="absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ backgroundColor: `${color}18` }} />
+        {isCorrect ? <CelebrationParticles color={color} /> : null}
+        {isCorrect && feedback.earnedPoints > 0 ? (
+          <XpGainBurst amount={feedback.earnedPoints} visible />
+        ) : null}
       <View className="items-center">
         <Animated.View style={{ transform: [{ scale: iconScale }] }}>
           <OmniGuide state={isPending ? 'thinking' : isCorrect ? 'happy' : 'error'} size={96} />
@@ -157,7 +165,8 @@ export function QuestionFeedbackCard({
         <Text className="text-[16px] font-black text-white">Siguiente pregunta</Text>
         <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
       </Pressable>
-    </View>
+      </View>
+    </AnswerFeedbackMotion>
   )
 }
 

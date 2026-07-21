@@ -5,6 +5,7 @@ import * as Sharing from 'expo-sharing'
 import { useFocusEffect, useRouter, type Href } from 'expo-router'
 import { supabase } from '../lib/supabase'
 import { useI18n, type AppLocale } from '../lib/i18n'
+import { useAppHaptics } from '../lib/haptics'
 import { deactivateCurrentDevicePushToken, registerCurrentDeviceForPush } from '../lib/pushNotifications'
 import { getNextLevelProgress, getStudentLevel } from '../lib/studentLevel'
 import type { Database } from '../types/database.types'
@@ -58,6 +59,7 @@ const DEFAULT_PREFERENCES: UserPreferencesState = {
   dateFormat: 'DD/MM/YYYY',
   timeFormat: '24h',
   weekStart: 'monday',
+  hapticsEnabled: true,
 }
 
 const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsState = {
@@ -149,6 +151,7 @@ function toPreferenceState(row: UserPreferencesRow | null): UserPreferencesState
     dateFormat: row?.date_format || DEFAULT_PREFERENCES.dateFormat,
     timeFormat: row?.time_format || DEFAULT_PREFERENCES.timeFormat,
     weekStart: row?.week_start || DEFAULT_PREFERENCES.weekStart,
+    hapticsEnabled: row?.haptics_enabled ?? DEFAULT_PREFERENCES.hapticsEnabled,
   }
 }
 
@@ -191,6 +194,7 @@ async function fetchProfileWithOptionalVisibility(targetUserId: string) {
 export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   const router = useRouter()
   const { locale, setLocale, t } = useI18n()
+  const { setEnabled: setHapticsEnabled, selection: hapticSelection } = useAppHaptics()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [role, setRole] = useState<AppRole>(forcedRole || 'student')
   const [subjectsCount, setSubjectsCount] = useState(0)
@@ -211,6 +215,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   const [emailConfirmedAt, setEmailConfirmedAt] = useState<string | null>(null)
   const [preferences, setPreferences] = useState<UserPreferencesState>(DEFAULT_PREFERENCES)
   const [savingPreference, setSavingPreference] = useState<PreferenceKey | null>(null)
+  const [savingHaptics, setSavingHaptics] = useState(false)
   const [openPreferenceKey, setOpenPreferenceKey] = useState<PreferenceKey | null>(null)
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettingsState>(DEFAULT_NOTIFICATION_SETTINGS)
   const [pushRegistrationStatus, setPushRegistrationStatus] = useState<'idle' | 'registered' | 'denied' | 'unsupported' | 'error'>('idle')
@@ -542,6 +547,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
         date_format: next.dateFormat,
         time_format: next.timeFormat,
         week_start: next.weekStart,
+        haptics_enabled: next.hapticsEnabled,
       },
       { onConflict: 'user_id' }
     )
@@ -585,7 +591,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
         fetchProfileWithOptionalVisibility(session.user.id),
         supabase
           .from('user_preferences')
-          .select('language, timezone, date_format, time_format, week_start')
+          .select('language, timezone, date_format, time_format, week_start, haptics_enabled')
           .eq('user_id', session.user.id)
           .maybeSingle(),
         supabase
@@ -622,6 +628,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
 
       const nextPreferences = toPreferenceState((preferencesResult.data as UserPreferencesRow | null) || null)
       setPreferences(nextPreferences)
+      void setHapticsEnabled(nextPreferences.hapticsEnabled)
       if (nextPreferences.language === 'es-ES' || nextPreferences.language === 'en-US') {
         void setLocale(nextPreferences.language as AppLocale)
       }
@@ -634,7 +641,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     } finally {
       setLoading(false)
     }
-  }, [forcedRole, router, setLocale])
+  }, [forcedRole, router, setHapticsEnabled, setLocale])
 
   useFocusEffect(
     useCallback(() => {
@@ -903,6 +910,34 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     }
   }
 
+  const updateHapticsEnabled = async (enabled: boolean) => {
+    if (!userId || savingHaptics) return
+
+    const previousPreferences = preferences
+    const nextPreferences = { ...previousPreferences, hapticsEnabled: enabled }
+    setPreferences(nextPreferences)
+    setSavingHaptics(true)
+    await setHapticsEnabled(enabled)
+
+    try {
+      await savePreferences(userId, nextPreferences)
+      if (enabled) void hapticSelection()
+    } catch (error: unknown) {
+      setPreferences(previousPreferences)
+      await setHapticsEnabled(previousPreferences.hapticsEnabled)
+      if (isMissingPreferencesTableError(getErrorCode(error))) {
+        showAlert(
+          'Configuración pendiente',
+          'Aplica la migración de gamificación para guardar la respuesta táctil.'
+        )
+      } else {
+        showAlert('No se pudo guardar', getErrorMessage(error) || 'No se pudo actualizar la respuesta táctil.')
+      }
+    } finally {
+      setSavingHaptics(false)
+    }
+  }
+
   return {
     accentColors,
     alias,
@@ -951,6 +986,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     saving,
     savingNotificationKey,
     savingPreference,
+    savingHaptics,
     selectNotificationFrequency,
     selectPreference,
     setConfirmPassword,
@@ -972,6 +1008,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     toggleNotificationFrequencyMenu,
     togglePreferenceMenu,
     updateNotificationToggle,
+    updateHapticsEnabled,
     userInitials,
   }
 }

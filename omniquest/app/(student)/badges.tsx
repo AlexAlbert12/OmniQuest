@@ -1,8 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
   Alert,
-  Animated,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -13,7 +11,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
-import OmniGuide from '../../components/OmniGuide'
+import BadgeUnlockModal from '../../components/gamification/BadgeUnlockModal'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import {
@@ -32,6 +30,7 @@ import { withAlpha } from '../../lib/color'
 import { useNotifications } from '../../hooks/useNotifications'
 import { LinearGradient } from 'expo-linear-gradient'
 import { fetchStudentAttemptHistory } from '../../lib/studentSecureData'
+import OmniGuide from '@/components/OmniGuide'
 
 type Profile = {
   id: string
@@ -275,162 +274,6 @@ export default function BadgesScreen() {
 
       {!isDesktop ? <StudentBottomNav active="badges" /> : null}
     </View>
-  )
-}
-
-function BadgeUnlockModal({
-  badge,
-  visible,
-  remainingCount,
-  onClose,
-}: {
-  badge: StudentBadge | null
-  visible: boolean
-  remainingCount: number
-  onClose: () => void
-}) {
-  const scaleAnim = useRef(new Animated.Value(0.84)).current
-  const opacityAnim = useRef(new Animated.Value(0)).current
-  const glowAnim = useRef(new Animated.Value(0)).current
-
-  useEffect(() => {
-    if (!visible) {
-      scaleAnim.setValue(0.84)
-      opacityAnim.setValue(0)
-      glowAnim.setValue(0)
-      return
-    }
-
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 6,
-        tension: 95,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 220,
-        useNativeDriver: true,
-      }),
-    ]).start()
-
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowAnim, {
-          toValue: 0,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ])
-    )
-    pulseAnimation.start()
-
-    return () => pulseAnimation.stop()
-  }, [glowAnim, opacityAnim, scaleAnim, visible])
-
-  if (!badge) return null
-
-  const glowScale = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.12],
-  })
-  const glowOpacity = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.28, 0.52],
-  })
-
-  return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <View
-        className="flex-1 items-center justify-center px-5"
-        style={{ backgroundColor: 'rgba(2, 6, 23, 0.88)' }}
-      >
-        <Pressable className="absolute inset-0" onPress={onClose} />
-        <Animated.View
-          className="w-full max-w-[440px] overflow-hidden rounded-3xl border p-0"
-          style={{
-            opacity: opacityAnim,
-            transform: [{ scale: scaleAnim }],
-            backgroundColor: '#08142E',
-            borderColor: '#7C5CFF',
-            boxShadow: '0 28px 80px rgba(0, 0, 0, 0.58)',
-          } as any}
-        >
-          <View className="absolute right-[-50px] top-[-58px] h-40 w-40 rounded-full" style={{ backgroundColor: 'rgba(124, 92, 255, 0.26)' }} />
-          <View className="absolute bottom-[-70px] left-[-52px] h-40 w-52 rounded-full" style={{ backgroundColor: 'rgba(88, 181, 255, 0.14)' }} />
-
-          <View className="border-b border-[#263E7A] px-6 py-5" style={{ backgroundColor: '#111B45' }}>
-            <View className="items-center">
-              <View className="flex-row items-center gap-2 rounded-full border px-4 py-2" style={{ backgroundColor: '#2A1A5F', borderColor: '#8B5CF6' }}>
-                <Ionicons name="sparkles" size={16} color="#FBBF24" />
-                <Text className="text-[12px] font-black uppercase tracking-[0.08em]" style={{ color: '#FDE68A' }}>
-                  Logro desbloqueado
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View className="items-center px-6 pb-6 pt-5">
-            <View className="flex-row items-center justify-center gap-4">
-              <OmniGuide state="happy" size={92} />
-              <View className="h-32 w-32 items-center justify-center">
-              <Animated.View
-                className="absolute h-32 w-32 rounded-full"
-                style={{
-                  backgroundColor: `${badge.color}44`,
-                  opacity: glowOpacity,
-                  transform: [{ scale: glowScale }],
-                }}
-              />
-              <View
-                className="h-24 w-24 items-center justify-center rounded-3xl border-2"
-                style={{ backgroundColor: `${badge.color}24`, borderColor: badge.color }}
-              >
-                <Ionicons name={badge.icon} size={44} color={badge.color} />
-              </View>
-              </View>
-            </View>
-
-            <Text className="mt-4 text-center text-[29px] font-black text-white">
-              {badge.title}
-            </Text>
-            <Text className="mt-2 text-center text-[14px] leading-6 text-[#D8E3F3]">
-              {badge.requirement}
-            </Text>
-
-            <View className="mt-5 flex-row items-center gap-2 rounded-2xl border px-5 py-3" style={{ backgroundColor: 'rgba(251, 191, 36, 0.18)', borderColor: 'rgba(251, 191, 36, 0.45)' }}>
-              <Ionicons name="flash" size={18} color="#FBBF24" />
-              <Text className="font-black text-[#FDE68A]">Recompensa: {badge.xp}</Text>
-            </View>
-
-            {remainingCount > 0 ? (
-              <Text className="mt-3 text-center text-[12px] text-[#AFC2DB]">
-                Tienes {remainingCount} {remainingCount === 1 ? 'logro más' : 'logros más'} esperando.
-              </Text>
-            ) : null}
-
-            <Pressable
-              onPress={onClose}
-              className="mt-6 w-full items-center justify-center rounded-2xl px-5 py-4"
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.86 : 1,
-                backgroundColor: '#7C5CFF',
-              })}
-            >
-              <Text className="text-[15px] font-black text-white">
-                {remainingCount > 0 ? 'Ver siguiente logro' : 'Genial'}
-              </Text>
-            </Pressable>
-          </View>
-        </Animated.View>
-      </View>
-    </Modal>
   )
 }
 

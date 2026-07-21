@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
   Text,
@@ -20,6 +19,8 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { withAlpha } from '../../lib/color'
 import OmniGuide from '../../components/OmniGuide'
 import PaginationControls from '../../components/ui/PaginationControls'
+import GamifiedAvatar from '../../components/gamification/GamifiedAvatar'
+import { fetchProfileCosmeticsForUsers, type ProfileCosmetics } from '../../lib/avatarCosmetics'
 
 type Profile = {
   id: string
@@ -30,6 +31,7 @@ type Profile = {
   visibility?: string | null
   rank?: number | null
   total_count?: number | null
+  cosmetics?: ProfileCosmetics
 }
 
 type RankingLeague = {
@@ -210,9 +212,31 @@ export default function RankingScreen() {
             maxPoints: leagueFilter?.nextMinPoints ?? null,
           })
 
-      setProfiles(rankingPage.rows)
+      const cosmeticsIds = [
+        ...rankingPage.rows.map((row) => row.id),
+        rankingPage.current?.id,
+        userId,
+      ].filter((value): value is string => Boolean(value))
+      const cosmeticsMap = await fetchProfileCosmeticsForUsers(cosmeticsIds).catch((error) => {
+        console.warn('No se pudieron cargar los cosméticos del ranking:', error)
+        return new Map<string, ProfileCosmetics>()
+      })
+      const rowsWithCosmetics = rankingPage.rows.map((row) => ({
+        ...row,
+        cosmetics: cosmeticsMap.get(row.id),
+      }))
+      const currentWithCosmetics = rankingPage.current
+        ? { ...rankingPage.current, cosmetics: cosmeticsMap.get(rankingPage.current.id) }
+        : null
+
+      setProfiles(rowsWithCosmetics)
       setRankingTotal(rankingPage.total)
-      setRankingCurrent(rankingPage.current)
+      setRankingCurrent(currentWithCosmetics)
+      if (userId) {
+        setCurrentProfile((current) => current
+          ? { ...current, cosmetics: cosmeticsMap.get(userId) }
+          : current)
+      }
 
       if (!selectedLeagueName && rankingPage.current) {
         const detectedLeague = getRankingLeague(Number(rankingPage.current.points || 0))
@@ -973,13 +997,14 @@ function RankingRow({
           <View className={`${compact ? 'h-8 w-8' : 'h-9 w-9'} items-center justify-center rounded-full`} style={{ backgroundColor: position <= 3 ? medalColors[position - 1] : '#1E3356' }}>
             <Text className="font-black text-white">{position}</Text>
           </View>
-          <View className={`${compact ? 'h-10 w-10' : 'h-12 w-12'} items-center justify-center overflow-hidden rounded-full bg-[#17315E]`}>
-            {item.avatar && item.avatar.startsWith('http') ? (
-              <Image source={{ uri: item.avatar }} className="h-full w-full" />
-            ) : (
-              <Ionicons name="person" size={20} color="#9FD6FF" />
-            )}
-          </View>
+          <GamifiedAvatar
+            alias={item.alias}
+            avatarUrl={item.avatar}
+            cosmetics={item.cosmetics}
+            level={level}
+            showLevel={false}
+            size={compact ? 40 : 48}
+          />
           <View className="min-w-0 flex-1">
             <Text className={`font-black ${isMe ? 'text-white' : 'text-[#DDE7F4]'}`} numberOfLines={1}>
               {item.alias}{isMe ? ' (Tú)' : ''}
@@ -1010,13 +1035,14 @@ function RankingRow({
         )}
       </View>
 
-      <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#17315E]">
-        {item.avatar && item.avatar.startsWith('http') ? (
-          <Image source={{ uri: item.avatar }} className="h-full w-full" />
-        ) : (
-          <Ionicons name="person" size={20} color="#9FD6FF" />
-        )}
-      </View>
+      <GamifiedAvatar
+        alias={item.alias}
+        avatarUrl={item.avatar}
+        cosmetics={item.cosmetics}
+        level={level}
+        showLevel={false}
+        size={48}
+      />
 
       <View className="ml-4 min-w-0 flex-1">
         <Text className={`font-black ${isMe ? 'text-white' : 'text-[#DDE7F4]'}`} numberOfLines={1}>
@@ -1057,15 +1083,15 @@ function PodiumCard({
 
   return (
     <View className="min-w-[92px] flex-1 items-center">
-      <View
-        className="mb-2 h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 bg-[#17315E]"
-        style={{ borderColor: podiumColor }}
-      >
-        {item.avatar && item.avatar.startsWith('http') ? (
-          <Image source={{ uri: item.avatar }} className="h-full w-full" />
-        ) : (
-          <Ionicons name="person" size={20} color="#9FD6FF" />
-        )}
+      <View className="mb-2">
+        <GamifiedAvatar
+          alias={item.alias}
+          avatarUrl={item.avatar}
+          cosmetics={item.cosmetics}
+          level={getStudentLevel(points)}
+          showLevel={false}
+          size={52}
+        />
       </View>
 
       <View
