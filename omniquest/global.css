@@ -3,17 +3,53 @@
 @tailwind utilities;
 
 :root {
-  --omni-background: #061126;
-  --omni-surface: #07162c;
-  --omni-text: #ffffff;
-  --omni-focus: #8b5cf6;
+  --omni-background-primary: #061126;
+  --omni-background-secondary: #020b1b;
+  --omni-surface-default: #07162c;
+  --omni-surface-raised: #0d1d3b;
+  --omni-surface-interactive: #10213e;
+  --omni-border-default: #1a3155;
+  --omni-border-active: #7c5cff;
+  --omni-text-primary: #ffffff;
+  --omni-text-secondary: #c9d7ea;
+  --omni-text-muted: #8fa7c7;
+  --omni-text-inverse: #061126;
+  --omni-brand-student: #7c5cff;
+  --omni-brand-teacher: #38bdf8;
+  --omni-brand-admin: #a78bfa;
+  --omni-semantic-success: #34d399;
+  --omni-semantic-warning: #f59e0b;
+  --omni-semantic-danger: #fb7185;
+  --omni-semantic-info: #38bdf8;
+  --omni-gamification-xp: #fbbf24;
+  --omni-gamification-streak: #f97316;
+  --omni-gamification-badge: #f6c453;
+  --omni-background: var(--omni-background-primary);
+  --omni-surface: var(--omni-surface-default);
+  --omni-text: var(--omni-text-primary);
+  --omni-focus: var(--omni-border-active);
   color-scheme: dark;
 }
 
 html[data-theme='light'] {
-  --omni-background: #f4f7ff;
-  --omni-surface: #ffffff;
-  --omni-text: #13233d;
+  --omni-background-primary: #f4f7ff;
+  --omni-background-secondary: #eaf0fc;
+  --omni-surface-default: #ffffff;
+  --omni-surface-raised: #f8faff;
+  --omni-surface-interactive: #e7eefa;
+  --omni-border-default: #ccd8ea;
+  --omni-border-active: #7e96b8;
+  --omni-text-primary: #13233d;
+  --omni-text-secondary: #334a68;
+  --omni-text-muted: #657b98;
+  --omni-text-inverse: #ffffff;
+  --omni-semantic-success: #178a5d;
+  --omni-semantic-warning: #a86600;
+  --omni-semantic-danger: #c93855;
+  --omni-semantic-info: #147ca8;
+  --omni-gamification-xp: #a86600;
+  --omni-gamification-streak: #c4510a;
+  --omni-gamification-badge: #9a6b00;
   color-scheme: light;
 }
 
@@ -64,7 +100,6 @@ a[href]:active,
   filter: brightness(0.96);
 }
 
-/* React Native Web maps accessibility roles to ARIA roles. */
 button:focus-visible,
 a[href]:focus-visible,
 [role='button']:focus-visible,

@@ -3,14 +3,19 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import type { IconName, StudentRow } from './types';
+import type { SemanticIconKey } from '../../../lib/designTokens';
+import AppButton from '../../ui/AppButton';
+import AppPressable from '../../ui/AppPressable';
+import { useAppTheme } from '../../../lib/appTheme';
 import { formatRelativeDate, getInitials, getStatusMeta } from './studentUtils';
 
-export function MetricCard({ icon, title, value, detail, color }: {
-  icon: keyof typeof Ionicons.glyphMap
+export function MetricCard({ icon, semantic, title, value, detail, color }: {
+  icon?: keyof typeof Ionicons.glyphMap
+  semantic?: SemanticIconKey
   title: string
   value: string
   detail?: string
-  color: string
+  color?: string
 }) {
   return (
     <MobileMetricCard
@@ -18,6 +23,7 @@ export function MetricCard({ icon, title, value, detail, color }: {
       color={color}
       detail={detail}
       icon={icon}
+      semantic={semantic}
       label={title}
       value={value}
     />
@@ -50,19 +56,21 @@ export function PendingFirstAccessCard({
           </View>
         </View>
         <View className="flex-row flex-wrap gap-2">
-          <Pressable
-            onPress={onSendReminder}
+          <AppButton
+            label="Enviar recordatorio"
+            accessibilityLabel={sendingReminder ? 'Enviando recordatorios' : 'Enviar recordatorio'}
+            icon="send-outline"
+            loading={sendingReminder}
             disabled={sendingReminder}
-            className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
-            style={({ pressed }) => ({ opacity: sendingReminder ? 0.65 : pressed ? 0.82 : 1 })}
-          >
-            {sendingReminder ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="send-outline" size={16} color="#FFFFFF" />}
-            <Text className="text-[12px] font-black text-white">{sendingReminder ? 'Enviando...' : 'Enviar recordatorio'}</Text>
-          </Pressable>
-          <Pressable onPress={onExport} className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3">
-            <Ionicons name="download-outline" size={16} color="#DDE7F4" />
-            <Text className="text-[12px] font-black text-[#DDE7F4]">Exportar pendientes</Text>
-          </Pressable>
+            role="teacher"
+            onPress={onSendReminder}
+          />
+          <AppButton
+            label="Exportar pendientes"
+            icon="download-outline"
+            variant="secondary"
+            onPress={onExport}
+          />
         </View>
       </View>
     </View>
@@ -86,46 +94,26 @@ export function CycleSelectButton({
   const nextValue = selectedIndex >= options.length - 1 ? 'all' : options[selectedIndex + 1]?.id ?? 'all';
   const selectedLabel = value === 'all' ? allLabel : options.find((option) => option.id === value)?.label || allLabel;
 
+  const { tokens } = useAppTheme();
+
   return (
-    <Pressable
+    <AppPressable
+      accessibilityLabel={`${label}: ${selectedLabel}. Cambiar selección`}
+      accessibilityHint="Avanza a la siguiente opción"
       onPress={() => onChange(nextValue)}
-      className="h-12 min-w-[165px] flex-row items-center justify-between gap-3 rounded-xl border border-[#20375E] bg-[#07162E] px-4"
+      className="h-12 min-w-[165px] flex-row items-center justify-between gap-3 rounded-xl border px-4"
+      style={({ pressed }) => ({
+        borderColor: tokens.border.default,
+        backgroundColor: tokens.surface.interactive,
+        opacity: pressed ? 0.78 : 1,
+      })}
     >
       <View className="min-w-0 flex-1">
-        <Text className="text-[10px] font-black uppercase tracking-[0.8px] text-[#8FA7C7]">{label}</Text>
-        <Text className="text-[12px] font-bold text-[#DDE7F4]" numberOfLines={1}>{selectedLabel}</Text>
+        <Text className="text-[10px] font-black uppercase tracking-[0.8px]" style={{ color: tokens.text.muted }}>{label}</Text>
+        <Text className="text-[12px] font-bold" style={{ color: tokens.text.primary }} numberOfLines={1}>{selectedLabel}</Text>
       </View>
-      <Ionicons name="chevron-down" size={16} color="#AFC2DB" />
-    </Pressable>
-  );
-}
-
-export function CycleStringSelectButton<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string
-  value: T
-  options: { value: T; label: string }[]
-  onChange: (value: T) => void
-}) {
-  const selectedIndex = options.findIndex((option) => option.value === value);
-  const nextOption = options[selectedIndex >= options.length - 1 ? 0 : selectedIndex + 1] || options[0];
-  const selectedLabel = options.find((option) => option.value === value)?.label || options[0]?.label || '';
-
-  return (
-    <Pressable
-      onPress={() => onChange(nextOption.value)}
-      className="h-12 min-w-[165px] flex-row items-center justify-between gap-3 rounded-xl border border-[#20375E] bg-[#07162E] px-4"
-    >
-      <View className="min-w-0 flex-1">
-        <Text className="text-[10px] font-black uppercase tracking-[0.8px] text-[#8FA7C7]">{label}</Text>
-        <Text className="text-[12px] font-bold text-[#DDE7F4]" numberOfLines={1}>{selectedLabel}</Text>
-      </View>
-      <Ionicons name="chevron-down" size={16} color="#AFC2DB" />
-    </Pressable>
+      <Ionicons name="chevron-down" size={16} color={tokens.text.muted} />
+    </AppPressable>
   );
 }
 

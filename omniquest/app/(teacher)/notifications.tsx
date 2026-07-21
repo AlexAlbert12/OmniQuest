@@ -20,6 +20,8 @@ import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
 import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
 import OmniGuide from '../../components/OmniGuide'
+import AppButton from '../../components/ui/AppButton'
+import AppTabs from '../../components/ui/AppTabs'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
 
@@ -170,27 +172,22 @@ export default function NotificationsScreen() {
             showNotifications={false}
             actions={(
               <>
-                <Pressable
+                <AppButton
+                  label="Actualizar"
                   accessibilityLabel="Actualizar notificaciones"
-                  accessibilityRole="button"
+                  icon="refresh-outline"
+                  variant="secondary"
+                  loading={refreshing}
                   onPress={() => void onRefresh()}
-                  className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-                >
-                  <Ionicons name="refresh-outline" size={16} color="#AFC2DB" />
-                  <Text className="text-[12px] font-bold text-[#DDE7F4]">Actualizar</Text>
-                </Pressable>
+                />
                 {unreadCount > 0 ? (
-                  <Pressable
+                  <AppButton
+                    label="Marcar todo leído"
                     accessibilityLabel="Marcar todas las notificaciones como leídas"
-                    accessibilityRole="button"
+                    icon="checkmark-done-outline"
+                    role="teacher"
                     onPress={() => void markAllAsRead()}
-                    className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-                  >
-                    <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
-                    <Text className="text-[12px] font-bold text-white">Marcar todo leído</Text>
-                  </Pressable>
+                  />
                 ) : null}
               </>
             )}
@@ -210,16 +207,20 @@ export default function NotificationsScreen() {
             ))}
           </View>
 
-          <View className="mb-5 flex-row flex-wrap gap-3">
-            {filterOptions.map((option) => (
-              <FilterChip
-                key={option.id}
-                option={option}
-                active={selectedFilter === option.id}
-                count={option.id === 'unread' ? unreadCount : option.id === 'all' ? notifications.length : undefined}
-                onPress={() => setSelectedFilter(option.id)}
-              />
-            ))}
+          <View className="mb-5">
+            <AppTabs<NotificationFilter>
+              accessibilityLabel="Filtrar notificaciones"
+              compact
+              role="teacher"
+              items={filterOptions.map((option) => ({
+                key: option.id,
+                label: option.label,
+                icon: option.icon,
+                badge: option.id === 'unread' ? unreadCount : option.id === 'all' ? notifications.length : undefined,
+              }))}
+              value={selectedFilter}
+              onChange={setSelectedFilter}
+            />
           </View>
 
           <View style={{ gap: 12 }}>
@@ -277,38 +278,6 @@ function CategoryCard({
       </View>
       <Text className="text-[12px] font-semibold text-[#B7C4D7]">{label}</Text>
       <Text className="mt-1 text-[24px] font-black text-white">{count}</Text>
-    </Pressable>
-  )
-}
-
-function FilterChip({
-  option,
-  active,
-  count,
-  onPress,
-}: {
-  option: { id: NotificationFilter; label: string; icon: keyof typeof Ionicons.glyphMap }
-  active: boolean
-  count?: number
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className={`flex-row items-center gap-2 rounded-full px-4 py-2 ${
-        active ? 'bg-[#5A46D8]' : 'border border-[#20375E] bg-[#09162C]'
-      }`}
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-    >
-      <Ionicons name={option.icon} size={14} color={active ? '#FFFFFF' : '#B7C4D7'} />
-      <Text className={`text-[13px] font-semibold ${active ? 'text-white' : 'text-[#B7C4D7]'}`}>
-        {option.label}
-      </Text>
-      {typeof count === 'number' ? (
-        <View className={active ? 'rounded-full bg-white/20 px-2 py-0.5' : 'rounded-full bg-[#13284A] px-2 py-0.5'}>
-          <Text className="text-[10px] font-black text-white">{count}</Text>
-        </View>
-      ) : null}
     </Pressable>
   )
 }

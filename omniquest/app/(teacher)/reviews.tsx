@@ -23,6 +23,7 @@ import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import PaginationControls from '../../components/ui/PaginationControls'
+import AppTabs from '../../components/ui/AppTabs'
 
 type ReviewStatus = 'pending' | 'in_review' | 'needs_changes' | 'approved' | 'rejected'
 type ReviewRow = {
@@ -175,10 +176,10 @@ export default function TeacherReviewsScreen() {
           />
 
           <View className="flex-row flex-wrap gap-3">
-            <MobileMetricCard icon="time-outline" label="Pendientes en página" value={String(pageStats.pending)} color="#F59E0B" compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
+            <MobileMetricCard semantic="attention" label="Pendientes en página" value={String(pageStats.pending)} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
             <MobileMetricCard icon="eye-outline" label="En revisión" value={String(pageStats.inReview)} color="#38BDF8" compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
-            <MobileMetricCard icon="refresh-outline" label="Necesita cambios" value={String(pageStats.needsChanges)} color="#A78BFA" compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
-            <MobileMetricCard icon="checkmark-done-outline" label="Decisión final" value={String(pageStats.final)} color="#34D399" compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
+            <MobileMetricCard semantic="audit" label="Necesita cambios" value={String(pageStats.needsChanges)} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
+            <MobileMetricCard semantic="success" label="Decisión final" value={String(pageStats.final)} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
           </View>
 
           <View className="mt-5 flex-row items-center rounded-2xl border px-3" style={{ borderColor: colors.border, backgroundColor: colors.surface }}>
@@ -459,18 +460,17 @@ function ReviewDetailModal({ row, visible, onClose, onChanged }: { row: ReviewRo
 }
 
 function FilterStrip<T extends string>({ values, active, onChange }: { values: { value: T; label: string }[]; active: T; onChange: (value: T) => void }) {
-  const { colors, accentColor } = useAppTheme()
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 7 }}>
-      {values.map((item) => {
-        const selected = item.value === active
-        return (
-          <Pressable key={item.value} accessibilityRole="tab" accessibilityState={{ selected }} onPress={() => onChange(item.value)} style={({ pressed }) => ({ minHeight: 40, borderWidth: 1, borderColor: selected ? accentColor : colors.border, borderRadius: 13, paddingHorizontal: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: selected ? withAlpha(accentColor, '20') : colors.surface, opacity: pressed ? 0.7 : 1 })}>
-            <Text style={{ color: selected ? accentColor : colors.textSecondary, fontSize: 12, fontWeight: '800' }}>{item.label}</Text>
-          </Pressable>
-        )
-      })}
-    </ScrollView>
+    <View className="mt-3">
+      <AppTabs<T>
+        accessibilityLabel="Filtros de revisión"
+        compact
+        role="teacher"
+        items={values.map((item) => ({ key: item.value, label: item.label }))}
+        value={active}
+        onChange={onChange}
+      />
+    </View>
   )
 }
 

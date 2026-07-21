@@ -1,9 +1,11 @@
 import React from 'react';
-import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
-import { Link } from 'expo-router';
+import { Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty';
 import { SubjectPanel } from './SubjectShared';
+import AppButton from '../../ui/AppButton';
+import AppTabs from '../../ui/AppTabs';
 
 type Question = {
   id: number
@@ -61,6 +63,7 @@ export function SubjectQuestionsTab({
   onDifficultyChange: (value: DifficultyLevel | 'all') => void
   onDeleteQuestion: (questionId: number) => void
 }) {
+  const router = useRouter();
   const addQuestionHref = buildQuestionHref({
     classroomId: selectedClassroomId,
     difficulty: selectedDifficulty,
@@ -85,11 +88,16 @@ export function SubjectQuestionsTab({
 
       <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
         <SubjectPanel title="Gestión rápida">
-          <Link href={addQuestionHref as any} asChild>
-            <Pressable className="mb-3 rounded-xl bg-[#5A46D8] px-4 py-3">
-              <Text className="text-center font-bold text-white">Nueva pregunta</Text>
-            </Pressable>
-          </Link>
+          <View className="mb-3">
+            <AppButton
+              label="Nueva pregunta"
+              accessibilityLabel="Crear nueva pregunta"
+              icon="add"
+              role="teacher"
+              fullWidth
+              onPress={() => router.push(addQuestionHref as any)}
+            />
+          </View>
           <Text className="text-[12px] text-[#8FA7C7]">
             Total preguntas: <Text className="font-bold text-white">{questionsCount}</Text>
           </Text>
@@ -118,6 +126,8 @@ export function SubjectQuestionsPanel({
   onDifficultyChange: (value: DifficultyLevel | 'all') => void
   onDeleteQuestion: (questionId: number) => void
 }) {
+  const router = useRouter();
+
   return (
     <SubjectPanel title={`Preguntas: ${selectedTopicLabel}`}>
       <DifficultyFilterBar selected={selectedDifficulty} onChange={onDifficultyChange} />
@@ -126,11 +136,15 @@ export function SubjectQuestionsPanel({
           <Ionicons name="help-circle-outline" size={44} color="#64748B" />
           <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
           <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primera pregunta para activar este tema.</Text>
-          <Link href={addQuestionHref as any} asChild>
-            <Pressable className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
-              <Text className="font-bold text-white">Crear pregunta</Text>
-            </Pressable>
-          </Link>
+          <View className="mt-5">
+            <AppButton
+              label="Crear pregunta"
+              accessibilityLabel="Crear primera pregunta"
+              icon="add"
+              role="teacher"
+              onPress={() => router.push(addQuestionHref as any)}
+            />
+          </View>
         </View>
       ) : (
         <View className="gap-3">
@@ -157,41 +171,21 @@ function DifficultyFilterBar({
   selected: DifficultyLevel | 'all'
   onChange: (value: DifficultyLevel | 'all') => void
 }) {
-  const { width } = useWindowDimensions();
-  const isPhone = width < 640;
-
   return (
-    <ScrollView
-      horizontal={isPhone}
-      showsHorizontalScrollIndicator={false}
-      className="mb-4"
-      contentContainerStyle={{ gap: 8, flexWrap: isPhone ? 'nowrap' : 'wrap', paddingRight: isPhone ? 8 : 0 }}
-    >
-      <Pressable
-        onPress={() => onChange('all')}
-        className="rounded-lg border px-3 py-2"
-        style={{
-          borderColor: selected === 'all' ? '#8B5CF6' : '#20375E',
-          backgroundColor: selected === 'all' ? '#312E8126' : '#09162C',
-        }}
-      >
-        <Text className="text-[12px] font-bold" style={{ color: selected === 'all' ? '#D8B4FE' : '#AFC2DB' }}>Todas</Text>
-      </Pressable>
-      {difficultyOptions.map((option) => {
-        const active = selected === option.value;
-        return (
-          <Pressable
-            key={option.value}
-            onPress={() => onChange(option.value)}
-            className="rounded-lg border px-3 py-2"
-            style={{ borderColor: active ? option.color : '#20375E', backgroundColor: active ? `${option.color}26` : '#09162C' }}
-          >
-            <Text className="text-[12px] font-bold" style={{ color: active ? '#FFFFFF' : '#AFC2DB' }}>{option.label}</Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-  );
+    <View className="mb-4">
+      <AppTabs
+        accessibilityLabel="Filtrar preguntas por dificultad"
+        compact
+        items={[
+          { key: 'all' as const, label: 'Todas' },
+          ...difficultyOptions.map((option) => ({ key: option.value, label: option.label })),
+        ]}
+        onChange={onChange}
+        role="teacher"
+        value={selected}
+      />
+    </View>
+  )
 }
 
 function QuestionRow({
@@ -209,6 +203,8 @@ function QuestionRow({
 }) {
   const answer = question.answers?.find((item) => item.is_correct)?.text || 'Sin respuesta marcada';
   const difficulty = getDifficultyMeta(question.difficulty || 1);
+  const router = useRouter();
+  const editHref = `/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${question.classroom_id ? `&classroomId=${question.classroom_id}` : ''}${question.topic_id ? `&topicId=${question.topic_id}` : ''}&difficulty=${question.difficulty || 1}`;
 
   return (
     <View className="rounded-xl border border-[#183052] bg-[#09162C] p-4">
@@ -225,14 +221,22 @@ function QuestionRow({
         <View className="rounded-lg bg-[#13284A] px-3 py-2">
           <Text className="text-[11px] font-black text-[#C4D0E3]">{question.points_base ?? 0} pts</Text>
         </View>
-        <Link href={`/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${question.classroom_id ? `&classroomId=${question.classroom_id}` : ''}${question.topic_id ? `&topicId=${question.topic_id}` : ''}&difficulty=${question.difficulty || 1}` as any} asChild>
-          <Pressable className="rounded-lg border border-[#4F46E5] bg-[#312E8126] p-2">
-            <Ionicons name="create-outline" size={18} color="#A78BFA" />
-          </Pressable>
-        </Link>
-        <Pressable onPress={onDelete} className="rounded-lg border border-[#BE123C] bg-[#7F1D1D33] p-2">
-          <Ionicons name="trash-outline" size={18} color="#FB7185" />
-        </Pressable>
+        <AppButton
+          accessibilityLabel={`Editar pregunta: ${question.text}`}
+          icon="create-outline"
+          iconOnly
+          size="sm"
+          variant="secondary"
+          onPress={() => router.push(editHref as any)}
+        />
+        <AppButton
+          accessibilityLabel={`Eliminar pregunta: ${question.text}`}
+          icon="trash-outline"
+          iconOnly
+          size="sm"
+          variant="danger"
+          onPress={onDelete}
+        />
       </View>
     </View>
   );

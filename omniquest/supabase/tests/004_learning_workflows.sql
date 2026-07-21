@@ -3,20 +3,16 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(33);
+select plan(28);
 
--- Teacher planning and task completion.
-select ok(to_regclass('public.learning_tasks') is not null, 'learning tasks table exists');
-select ok(to_regclass('public.learning_task_completions') is not null, 'learning task completions table exists');
-select ok((select relrowsecurity from pg_class where oid = 'public.learning_tasks'::regclass), 'learning tasks have RLS');
-select ok((select relrowsecurity from pg_class where oid = 'public.learning_task_completions'::regclass), 'learning task completions have RLS');
-select ok(to_regprocedure('public.save_learning_task(bigint,bigint,bigint,bigint,text,text,timestamp with time zone,timestamp with time zone,text,text)') is not null, 'save learning task RPC exists');
-select ok(to_regprocedure('public.delete_learning_task(bigint)') is not null, 'delete learning task RPC exists');
-select ok(to_regprocedure('public.get_teacher_learning_tasks_page(bigint,bigint,text,text,timestamp with time zone,timestamp with time zone,integer,integer)') is not null, 'teacher task page RPC exists');
-select ok(to_regprocedure('public.get_student_learning_tasks_page(text,text,integer,integer)') is not null, 'student task page RPC exists');
-select ok(to_regprocedure('public.set_learning_task_completed(bigint,boolean)') is not null, 'task completion RPC exists');
-select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'learning_tasks' and policyname = 'learning_tasks_select_visible'), 'task visibility policy exists');
-select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'learning_task_completions' and policyname = 'learning_task_completions_insert_self'), 'students may only complete available tasks');
+-- Standalone tasks were intentionally removed. Topic deadlines remain available.
+select ok(to_regclass('public.learning_tasks') is null, 'standalone learning tasks table was removed');
+select ok(to_regclass('public.learning_task_completions') is null, 'task completions table was removed');
+select ok(to_regprocedure('public.save_learning_task(bigint,bigint,bigint,bigint,text,text,timestamp with time zone,timestamp with time zone,text,text)') is null, 'task save RPC was removed');
+select ok(to_regprocedure('public.get_student_learning_tasks_page(text,text,integer,integer)') is null, 'student tasks RPC was removed');
+select ok(exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'subject_topics' and column_name = 'available_until'), 'topic deadline remains available');
+select ok(to_regprocedure('public.assert_topic_playable(bigint)') is not null, 'topic deadline is enforced by the server');
+select ok(not exists(select 1 from public.notifications where type = 'task' or related_table = 'learning_tasks'), 'obsolete task notifications were removed');
 
 -- Advanced manual review.
 select ok(to_regclass('public.manual_review_comments') is not null, 'manual review comments table exists');
@@ -42,7 +38,6 @@ select ok(exists(select 1 from pg_policies where schemaname = 'storage' and tabl
 select ok(to_regprocedure('public.save_teacher_question(bigint,bigint,bigint,bigint,text,text,integer,integer,integer,text,jsonb,text,text,text,text,text)') is not null, 'teacher question RPC accepts media metadata');
 select ok(to_regprocedure('public.get_safe_game_questions(bigint,bigint,bigint,boolean,integer,boolean)') is not null, 'safe game questions RPC still exists');
 select ok(has_function_privilege('authenticated', 'public.get_safe_game_questions(bigint,bigint,bigint,boolean,integer,boolean)', 'EXECUTE'), 'students can fetch safe rich-media questions');
-select ok(not has_function_privilege('anon', 'public.save_learning_task(bigint,bigint,bigint,bigint,text,text,timestamp with time zone,timestamp with time zone,text,text)', 'EXECUTE'), 'anonymous users cannot create tasks');
 
 select * from finish();
 rollback;

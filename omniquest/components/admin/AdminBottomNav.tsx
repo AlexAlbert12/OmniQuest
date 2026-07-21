@@ -8,7 +8,7 @@ import MobileBottomNavigation, {
 type AdminBottomNavSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'support' | 'audit'
 
 export default function AdminBottomNav({ active }: { active: AdminBottomNavSection }) {
-  const { accentColor } = useAppTheme()
+  const { tokens } = useAppTheme()
   const { t } = useI18n()
   const navItems = useMemo<MobileBottomNavigationItem<AdminBottomNavSection>[]>(() => [
     { key: 'home', label: t('nav.admin.home'), href: '/(admin)/homeAdmin', icon: 'home-outline', activeIcon: 'home' },
@@ -23,7 +23,7 @@ export default function AdminBottomNav({ active }: { active: AdminBottomNavSecti
   return (
     <MobileBottomNavigation
       activeKey={active}
-      accentColor={accentColor}
+      accentColor={tokens.brand.admin}
       items={navItems}
       scrollable
     />

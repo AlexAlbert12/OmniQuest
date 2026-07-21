@@ -339,7 +339,6 @@ export default function TeacherHomeScreen() {
             <QuickActionButton icon="add-circle-outline" label="Crear curso" onPress={() => router.push('/(teacher)/create-subject' as any)} />
             <QuickActionButton icon="person-add-outline" label="Importar alumnos" onPress={() => router.push(subjects[0] ? `/(teacher)/subject/${subjects[0].id}?tab=students` as any : '/(teacher)/students' as any)} />
             <QuickActionButton icon="help-circle-outline" label="Crear pregunta" onPress={() => router.push(subjects[0] ? `/(teacher)/subject/add-question?subjectId=${subjects[0].id}` as any : '/(teacher)/create-subject' as any)} />
-            <QuickActionButton icon="calendar-outline" label="Planificar tareas" onPress={() => router.push('/(teacher)/planning' as any)} />
             <QuickActionButton icon="create-outline" label="Revisar abiertas" onPress={() => router.push('/(teacher)/reviews' as any)} />
             <QuickActionButton icon="people-outline" label="Ver estudiantes" onPress={() => router.push('/(teacher)/students' as any)} />
           </View>
@@ -486,10 +485,10 @@ function MobileTeacherHome({
           className="mb-6"
           actions={(
             <>
-              <Link href="/(teacher)/planning" asChild>
-                <Pressable accessibilityRole="button" className="h-11 flex-row items-center gap-2 rounded-xl border border-[#25466E] bg-[#0A1D3B] px-3">
-                  <Ionicons name="calendar-outline" size={19} color="#60A5FA" />
-                  <Text className="text-[12px] font-black text-[#D7E2F4]">Planificar</Text>
+              <Link href="/(teacher)/create-subject" asChild>
+                <Pressable accessibilityRole="button" accessibilityLabel="Crear curso" className="h-11 flex-row items-center gap-2 rounded-xl border border-[#25466E] bg-[#0A1D3B] px-3">
+                  <Ionicons name="add-circle-outline" size={19} color="#60A5FA" />
+                  <Text className="text-[12px] font-black text-[#D7E2F4]">Crear</Text>
                 </Pressable>
               </Link>
               <Link href="/(teacher)/reviews" asChild>

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as SystemUI from 'expo-system-ui'
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { Platform, useColorScheme } from 'react-native'
+import { createDesignColorTokens, type DesignColorTokens } from './designTokens'
 
 export type AppThemeMode = 'dark' | 'light'
 export type AppThemePreference = AppThemeMode | 'system'
@@ -27,6 +28,7 @@ type AppThemeContextValue = {
   theme: AppThemeMode
   themePreference: AppThemePreference
   colors: AppThemeColors
+  tokens?: DesignColorTokens
   accentColor: string
   setTheme: (nextTheme: AppThemePreference) => void
   setAccentColor: (nextAccent: string) => void
@@ -38,38 +40,23 @@ const APP_ACCENT_STORAGE_KEY = 'omniquest:accent'
 const DEFAULT_THEME: AppThemePreference = 'system'
 const DEFAULT_ACCENT = '#7C5CFF'
 
-const DARK_COLORS: AppThemeColors = {
-  background: '#061126',
-  backgroundAlt: '#020B1B',
-  surface: '#07162C',
-  surfaceRaised: '#0D1D3B',
-  surfaceMuted: '#10213E',
-  border: '#1A3155',
-  borderStrong: '#27456F',
-  text: '#FFFFFF',
-  textSecondary: '#C9D7EA',
-  textMuted: '#8FA7C7',
-  navigation: '#050E1F',
-  danger: '#FB7185',
-  success: '#43D991',
-  warning: '#FBBF24',
-}
-
-const LIGHT_COLORS: AppThemeColors = {
-  background: '#F4F7FF',
-  backgroundAlt: '#EAF0FC',
-  surface: '#FFFFFF',
-  surfaceRaised: '#F8FAFF',
-  surfaceMuted: '#E7EEFA',
-  border: '#CCD8EA',
-  borderStrong: '#AFC0D8',
-  text: '#13233D',
-  textSecondary: '#334A68',
-  textMuted: '#657B98',
-  navigation: '#FFFFFF',
-  danger: '#C93855',
-  success: '#178A5D',
-  warning: '#A86600',
+function createLegacyThemeColors(tokens: DesignColorTokens): AppThemeColors {
+  return {
+    background: tokens.background.primary,
+    backgroundAlt: tokens.background.secondary,
+    surface: tokens.surface.default,
+    surfaceRaised: tokens.surface.raised,
+    surfaceMuted: tokens.surface.interactive,
+    border: tokens.border.default,
+    borderStrong: tokens.border.active,
+    text: tokens.text.primary,
+    textSecondary: tokens.text.secondary,
+    textMuted: tokens.text.muted,
+    navigation: tokens.background.secondary,
+    danger: tokens.semantic.danger,
+    success: tokens.semantic.success,
+    warning: tokens.semantic.warning,
+  }
 }
 
 const AppThemeContext = createContext<AppThemeContextValue | undefined>(undefined)
@@ -104,7 +91,8 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   const theme: AppThemeMode = themePreference === 'system'
     ? systemTheme === 'light' ? 'light' : 'dark'
     : themePreference
-  const colors = theme === 'dark' ? DARK_COLORS : LIGHT_COLORS
+  const tokens = useMemo(() => createDesignColorTokens(theme, accentColor), [accentColor, theme])
+  const colors = useMemo(() => createLegacyThemeColors(tokens), [tokens])
 
   useEffect(() => {
     let mounted = true
@@ -133,9 +121,10 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       document.documentElement.style.colorScheme = theme
       document.documentElement.dataset.theme = theme
+      document.documentElement.style.setProperty('--omni-border-active', accentColor)
     }
     void SystemUI.setBackgroundColorAsync(colors.background).catch(() => undefined)
-  }, [colors.background, theme])
+  }, [accentColor, colors.background, theme])
 
   const setTheme = (nextTheme: AppThemePreference) => {
     setThemePreference(nextTheme)
@@ -152,17 +141,35 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     theme,
     themePreference,
     colors,
+    tokens,
     accentColor,
     setTheme,
     setAccentColor,
     ready,
-  }), [theme, themePreference, colors, accentColor, ready])
+  }), [theme, themePreference, colors, tokens, accentColor, ready])
 
   return <AppThemeContext.Provider value={value}>{children}</AppThemeContext.Provider>
 }
 
-export function useAppTheme() {
+export type ResolvedAppThemeContextValue = Omit<AppThemeContextValue, 'tokens'> & {
+  tokens: DesignColorTokens
+}
+
+export function useAppTheme(): ResolvedAppThemeContextValue {
   const context = useContext(AppThemeContext)
   if (!context) throw new Error('useAppTheme must be used inside AppThemeProvider')
-  return context
+
+  // Fast Refresh or a partial file copy can temporarily leave mounted consumers
+  // with the legacy context shape, which did not include `tokens`. Resolve the
+  // canonical palette here so every consumer always receives a complete theme.
+  const tokens = context.tokens ?? createDesignColorTokens(context.theme, context.accentColor)
+
+  if (context.tokens) {
+    return context as ResolvedAppThemeContextValue
+  }
+
+  return {
+    ...context,
+    tokens,
+  }
 }

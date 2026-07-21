@@ -61,7 +61,7 @@ export default function RolePageHeader({
   backAction,
   className = '',
   icon,
-  iconColor = '#9FD6FF',
+  iconColor,
   isDesktop,
   leading,
   mobileTitle,
@@ -75,9 +75,10 @@ export default function RolePageHeader({
   title,
   titleNumberOfLines = 1,
 }: RolePageHeaderProps) {
-  const { colors } = useAppTheme()
+  const { colors, tokens } = useAppTheme()
   const { t } = useI18n()
   const displayTitle = !isDesktop && mobileTitle ? mobileTitle : title
+  const resolvedIconColor = iconColor || tokens.brand[role]
   const Avatar = role === 'teacher' ? TeacherHeaderAvatar : StudentHeaderAvatar
   const actionsOnTop = Boolean(actions) && (actionsPosition === 'top' || (actionsPosition === 'auto' && isDesktop))
   const actionsBelow = Boolean(actions) && (actionsPosition === 'below' || (actionsPosition === 'auto' && !isDesktop))
@@ -110,7 +111,7 @@ export default function RolePageHeader({
                 importantForAccessibility="no-hide-descendants"
                 name={icon}
                 size={isDesktop ? 40 : 30}
-                color={iconColor}
+                color={resolvedIconColor}
               />
             ) : null)}
 

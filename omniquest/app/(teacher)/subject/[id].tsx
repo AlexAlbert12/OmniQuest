@@ -13,6 +13,8 @@ import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MobileMetricCard from '../../../components/ui/mobile/MobileMetricCard'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout';
+import { useAppTheme } from '../../../lib/appTheme';
+import type { SemanticIconKey } from '../../../lib/designTokens';
 import { difficultyOptions } from '../../../lib/difficulty';
 import { exportCsvFile, exportMarkdownFile, formatExportDateTime, slugifyFilename } from '../../../lib/reportExports';
 import {
@@ -23,6 +25,9 @@ import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav';
 import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader';
 import TeacherStudentImportModal from '../../../components/teacher/TeacherStudentImportModal';
+import AppButton from '../../../components/ui/AppButton';
+import AppTabs from '../../../components/ui/AppTabs';
+import DateTimeCalendarField from '../../../components/ui/DateTimeCalendarField';
 import { GradeDistributionBars, SubjectPanel as Panel, type IconName } from '../../../components/teacher/subject/SubjectShared';
 import { SubjectQuestionsPanel, SubjectQuestionsTab } from '../../../components/teacher/subject/SubjectQuestionsTab';
 import { SubjectStudentsTab } from '../../../components/teacher/subject/SubjectStudentsTab';
@@ -40,6 +45,7 @@ export default function SubjectDetailScreen() {
   const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const { tokens } = useAppTheme();
 
   const isDesktop = width >= 1080;
   const isWide = width >= 900;
@@ -264,22 +270,6 @@ export default function SubjectDetailScreen() {
     if (activeTab === 'activities') {
       return (
         <View className="gap-5">
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/(teacher)/planning' as any)}
-            className="flex-row items-center justify-between rounded-2xl border border-[#2B4A78] bg-[#0A1D3B] p-4"
-          >
-            <View className="min-w-0 flex-1 flex-row items-center gap-3">
-              <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#173C64]">
-                <Ionicons name="calendar-outline" size={23} color="#60A5FA" />
-              </View>
-              <View className="min-w-0 flex-1">
-                <Text className="font-black text-white">Planificar tareas y fechas</Text>
-                <Text className="mt-1 text-[12px] text-[#8FA7C7]">Abre el calendario docente para esta y otras clases.</Text>
-              </View>
-            </View>
-            <Ionicons name="arrow-forward" size={21} color="#60A5FA" />
-          </Pressable>
           <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
           <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
             <Panel title="Actividad reciente">
@@ -643,7 +633,7 @@ export default function SubjectDetailScreen() {
 
   const currentSubject = subject;
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <TeacherSidebar
@@ -677,66 +667,54 @@ export default function SubjectDetailScreen() {
             )}
             actions={(
               <>
-                <Pressable
+                <AppButton
                   accessibilityLabel="Abrir acciones del curso"
-                  accessibilityRole="button"
+                  icon="ellipsis-horizontal"
+                  iconOnly
+                  variant="secondary"
                   onPress={handleClassMenu}
-                  className="rounded-xl border border-[#20375E] bg-[#09162C] p-3"
-                >
-                  <Ionicons name="ellipsis-horizontal" size={19} color="#C4D0E3" />
-                </Pressable>
-                <Pressable
+                />
+                <AppButton
+                  label={isDesktop ? 'Compartir código' : undefined}
                   accessibilityLabel="Compartir código del curso"
-                  accessibilityRole="button"
+                  icon="share-social-outline"
+                  iconOnly={!isDesktop}
+                  variant="secondary"
                   onPress={() => showAlert('Código del curso', `Comparte este código con tus alumnos: ${currentSubject.code}`)}
-                  className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
-                >
-                  <Ionicons name="share-social-outline" size={16} color="#AFC2DB" />
-                  {isDesktop ? <Text className="text-[12px] font-bold text-[#DCE7F8]">Compartir código</Text> : null}
-                </Pressable>
-                <Pressable
+                />
+                <AppButton
+                  label={isDesktop ? 'Editar curso' : undefined}
                   accessibilityLabel="Editar curso"
-                  accessibilityRole="button"
+                  icon="create-outline"
+                  iconOnly={!isDesktop}
+                  role="teacher"
                   onPress={() => router.push(`/(teacher)/edit-subject?id=${currentSubject.id}` as any)}
-                  className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
-                >
-                  <Ionicons name="create-outline" size={16} color="#FFFFFF" />
-                  {isDesktop ? <Text className="text-[12px] font-bold text-white">Editar curso</Text> : null}
-                </Pressable>
+                />
               </>
             )}
           />
 
           <Panel title="Clases del curso">
-            <ScrollView
-              horizontal={!isWide}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 12, flexWrap: isWide ? 'wrap' : 'nowrap', paddingRight: isWide ? 0 : 8 }}
-            >
-              {classrooms.map((classroom) => {
-                const active = classroom.id === selectedClassroomId;
-                return (
-                  <Pressable
-                    key={classroom.id}
-                    onPress={() => {
-                      setSelectedClassroomId(classroom.id);
-                      setSelectedTopicId('all');
-                    }}
-                    className="flex-row items-center gap-2 rounded-xl px-4 py-3"
-                    style={({ pressed }) => ({
-                      borderWidth: 1,
-                      borderColor: active ? '#8B5CF6' : '#20375E',
-                      backgroundColor: active ? '#211B58' : '#09162C',
-                      opacity: pressed ? 0.82 : 1,
-                    })}
-                  >
-                    <Ionicons name={active ? 'radio-button-on' : 'ellipse-outline'} size={16} color={active ? '#C4B5FD' : '#8FA7C7'} />
-                    <Text className={`text-[12px] font-black ${active ? 'text-[#C4B5FD]' : 'text-[#B7C4D7]'}`}>{classroom.name}</Text>
-                    {classroom.code ? <Text className="font-mono text-[11px] text-[#8FA7C7]">{classroom.code}</Text> : null}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+            {classrooms.length > 0 ? (
+              <AppTabs
+                accessibilityLabel="Clases del curso"
+                items={classrooms.map((classroom) => ({
+                  key: classroom.id,
+                  label: classroom.code ? `${classroom.name} · ${classroom.code}` : classroom.name,
+                  icon: 'people-outline' as IconName,
+                }))}
+                onChange={(classroomId) => {
+                  setSelectedClassroomId(classroomId);
+                  setSelectedTopicId('all');
+                }}
+                role="teacher"
+                value={selectedClassroomId ?? classrooms[0].id}
+              />
+            ) : (
+              <View className="rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-4">
+                <Text className="text-[12px] text-[#8FA7C7]">Todavía no hay clases en este curso.</Text>
+              </View>
+            )}
 
             <View className="mt-4 flex-row flex-wrap items-end gap-3 border-t border-[#13284A] pt-4">
               <View className="min-w-[240px] flex-1">
@@ -749,49 +727,44 @@ export default function SubjectDetailScreen() {
                   onChangeText={setNewClassroomName}
                 />
               </View>
-              <Pressable
-                onPress={handleCreateClassroom}
+              <AppButton
+                label="Crear clase"
+                accessibilityLabel={creatingClassroom ? 'Creando clase' : 'Crear clase'}
+                icon="add"
+                loading={creatingClassroom}
                 disabled={creatingClassroom}
-                className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-5 py-3"
-                style={({ pressed }) => ({ opacity: creatingClassroom ? 0.65 : pressed ? 0.82 : 1 })}
-              >
-                {creatingClassroom ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="add" size={16} color="#FFFFFF" />}
-                <Text className="text-[12px] font-bold text-white">{creatingClassroom ? 'Creando...' : 'Crear clase'}</Text>
-              </Pressable>
+                role="teacher"
+                onPress={handleCreateClassroom}
+              />
             </View>
           </Panel>
 
           <View className={isWide ? 'mb-5 flex-row gap-4' : 'mb-5 gap-4'}>
-            <MetricCard icon="checkmark-circle" label="Precisión media" value={`${averageAccuracy}%`} color="#34D399" detail="Aciertos sobre respuestas estimadas" />
-            <MetricCard icon="shield-checkmark" label="Nota media" value={`${averageGrade.toFixed(1)}`} suffix="/10" color="#F59E0B" detail="Calculada por precisión" />
-            <MetricCard icon="star" label="XP media" value={`${averageXp.toLocaleString('es-ES')} pts`} color="#3B82F6" detail="Puntos y bonus separados" />
-            <MetricCard icon="radio-button-on" label="Preguntas respondidas" value={`${answeredClassQuestions}/${possibleClassQuestions}`} color="#F43F5E" detail="Respuestas sobre preguntas posibles" />
-            <MetricCard icon="trending-up" label="Participación" value={`${participation}%`} color="#8B5CF6" detail={INSUFFICIENT_TREND_DATA} />
+            <MetricCard semantic="success" label="Precisión media" value={`${averageAccuracy}%`} detail="Aciertos sobre respuestas estimadas" />
+            <MetricCard semantic="achievement" label="Nota media" value={`${averageGrade.toFixed(1)}`} suffix="/10" detail="Calculada por precisión" />
+            <MetricCard semantic="xp" label="XP media" value={`${averageXp.toLocaleString('es-ES')} pts`} detail="Puntos y bonus separados" />
+            <MetricCard icon="radio-button-on" label="Preguntas respondidas" value={`${answeredClassQuestions}/${possibleClassQuestions}`} color={tokens.semantic.info} detail="Respuestas sobre preguntas posibles" />
+            <MetricCard semantic="student" label="Participación" value={`${participation}%`} detail={INSUFFICIENT_TREND_DATA} />
           </View>
 
           <Panel title={`Temas de ${selectedClassroom?.name || 'la clase activa'}`}>
-            <ScrollView
-              horizontal={!isWide}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 12, flexWrap: isWide ? 'wrap' : 'nowrap', paddingRight: isWide ? 0 : 8 }}
-              className="mb-4"
-            >
-              <TopicFilterChip
-                label="Todos"
-                icon="albums-outline"
-                active={selectedTopicId === 'all'}
-                onPress={() => setSelectedTopicId('all')}
+            <View className="mb-4">
+              <AppTabs
+                accessibilityLabel="Filtrar temas"
+                compact
+                items={[
+                  { key: 'all' as const, label: 'Todos', icon: 'albums-outline' as IconName },
+                  ...topicRows.map((topic) => ({
+                    key: topic.id,
+                    label: topic.title,
+                    icon: topic.icon && topic.icon.includes('-outline') ? topic.icon as IconName : 'book-outline' as IconName,
+                  })),
+                ]}
+                onChange={setSelectedTopicId}
+                role="teacher"
+                value={selectedTopicId}
               />
-              {topicRows.map((topic) => (
-                <TopicFilterChip
-                  key={topic.id}
-                  label={topic.title}
-                  icon={topic.icon && topic.icon.includes('-outline') ? topic.icon as IconName : 'book-outline'}
-                  active={selectedTopicId === topic.id}
-                  onPress={() => setSelectedTopicId(topic.id)}
-                />
-              ))}
-            </ScrollView>
+            </View>
 
             <View style={{ gap: 12 }}>
               {topicRows.length === 0 ? (
@@ -838,71 +811,48 @@ export default function SubjectDetailScreen() {
                   onChangeText={setNewTopicDescription}
                 />
               </View>
-              <View className="min-w-[240px] flex-1">
-                <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Límite opcional</Text>
-                <TextInput
-                  className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3 text-white"
-                  placeholder="2026-07-01 18:30"
-                  placeholderTextColor="#60799C"
+              <View className="min-w-[300px] flex-[1.2]">
+                <DateTimeCalendarField
                   value={newTopicAvailableUntil}
-                  onChangeText={setNewTopicAvailableUntil}
+                  onChange={setNewTopicAvailableUntil}
                 />
-                <Text className="mt-1 text-[10px] text-[#8FA7C7]">Vacío = siempre abierto.</Text>
               </View>
-              <View className="min-w-[220px]">
+              <View className="min-w-[260px] flex-1">
                 <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Dificultad inicial</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {difficultyOptions.map((option) => {
-                    const active = newTopicDifficulty === option.value;
-                    return (
-                      <Pressable
-                        key={option.value}
-                        onPress={() => setNewTopicDifficulty(option.value)}
-                        className="rounded-lg border px-3 py-2"
-                        style={{
-                          borderColor: active ? option.color : '#20375E',
-                          backgroundColor: active ? `${option.color}30` : '#09162C',
-                        }}
-                      >
-                        <Text className="text-[12px] font-bold" style={{ color: active ? '#FFFFFF' : '#AFC2DB' }}>
-                          {option.shortLabel}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                <AppTabs
+                  accessibilityLabel="Dificultad inicial"
+                  compact
+                  fill
+                  items={difficultyOptions.map((option) => ({ key: option.value, label: option.shortLabel }))}
+                  onChange={setNewTopicDifficulty}
+                  role="teacher"
+                  value={newTopicDifficulty}
+                />
               </View>
-              <Pressable
-                onPress={handleCreateTopic}
+              <AppButton
+                label="Crear tema"
+                accessibilityLabel={creatingTopic ? 'Creando tema' : 'Crear tema'}
+                icon="add"
+                loading={creatingTopic}
                 disabled={creatingTopic}
-                className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-5 py-3"
-                style={({ pressed }) => ({ opacity: creatingTopic ? 0.65 : pressed ? 0.82 : 1 })}
-              >
-                {creatingTopic ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="add" size={16} color="#FFFFFF" />}
-                <Text className="text-[12px] font-bold text-white">{creatingTopic ? 'Creando...' : 'Crear tema'}</Text>
-              </Pressable>
+                role="teacher"
+                onPress={handleCreateTopic}
+              />
             </View>
           </Panel>
 
-          <View className="mb-5 rounded-xl border border-[#183052] bg-[#07162D] p-2">
-            <ScrollView
-              horizontal={!isWide}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8, flexWrap: isWide ? 'wrap' : 'nowrap', paddingRight: isWide ? 0 : 8 }}
-            >
-              {teacherSubjectTabItems.map((tab) => {
-              const isActive = activeTab === tab.key;
-
-              return (
-                <Pressable key={tab.label} onPress={() => setActiveTab(tab.key)}>
-                  <View className={`flex-row items-center gap-2 rounded-lg px-4 py-3 ${isActive ? 'border-b-2 border-[#8B5CF6]' : ''}`}>
-                    <Ionicons name={isActive ? tab.icon.replace('-outline', '') as IconName : tab.icon} size={15} color={isActive ? '#A78BFA' : '#AFC2DB'} />
-                    <Text className={`text-[12px] font-bold ${isActive ? 'text-[#A78BFA]' : 'text-[#B7C4D7]'}`}>{tab.label}</Text>
-                  </View>
-                </Pressable>
-              );
-              })}
-            </ScrollView>
+          <View className="mb-5">
+            <AppTabs
+              accessibilityLabel="Secciones del curso"
+              items={teacherSubjectTabItems.map((tab) => ({
+                key: tab.key,
+                label: tab.label,
+                icon: tab.icon,
+              }))}
+              onChange={setActiveTab}
+              role="teacher"
+              value={activeTab}
+            />
           </View>
 
           {renderTabContent(currentSubject)}
@@ -928,12 +878,13 @@ export default function SubjectDetailScreen() {
   );
 }
 
-function MetricCard({ icon, label, value, suffix, color, detail }: {
-  icon: keyof typeof Ionicons.glyphMap
+function MetricCard({ icon, semantic, label, value, suffix, color, detail }: {
+  icon?: keyof typeof Ionicons.glyphMap
+  semantic?: SemanticIconKey
   label: string
   value: string
   suffix?: string
-  color: string
+  color?: string
   detail?: string
 }) {
   return (
@@ -942,6 +893,7 @@ function MetricCard({ icon, label, value, suffix, color, detail }: {
       color={color}
       detail={detail}
       icon={icon}
+      semantic={semantic}
       label={label}
       suffix={suffix}
       value={value}
@@ -1009,29 +961,6 @@ function ReportMetricCard({ icon, label, value, suffix, color, detail }: {
       value={value}
     />
   )
-}
-
-function TopicFilterChip({
-  label,
-  icon,
-  active,
-  onPress,
-}: {
-  label: string
-  icon: IconName
-  active: boolean
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className={`flex-row items-center gap-2 rounded-lg px-4 py-3 ${active ? 'bg-[#4F46E5]' : 'border border-[#20375E] bg-[#09162C]'}`}
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-    >
-      <Ionicons name={icon} size={15} color={active ? '#FFFFFF' : '#AFC2DB'} />
-      <Text className={`text-[12px] font-bold ${active ? 'text-white' : 'text-[#DDE7F4]'}`}>{label}</Text>
-    </Pressable>
-  );
 }
 
 function TopicSummaryRow({

@@ -90,90 +90,6 @@ export type Database = {
           },
         ]
       }
-      avatar_frames: {
-        Row: {
-          frame_key: string
-          name: string
-          description: string | null
-          primary_color: string
-          secondary_color: string
-          rarity: string
-          minimum_level: number
-          required_badge_id: string | null
-          sort_order: number
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          frame_key: string
-          name: string
-          description?: string | null
-          primary_color: string
-          secondary_color: string
-          rarity?: string
-          minimum_level?: number
-          required_badge_id?: string | null
-          sort_order?: number
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          frame_key?: string
-          name?: string
-          description?: string | null
-          primary_color?: string
-          secondary_color?: string
-          rarity?: string
-          minimum_level?: number
-          required_badge_id?: string | null
-          sort_order?: number
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      profile_cosmetics: {
-        Row: {
-          user_id: string
-          equipped_frame_key: string | null
-          featured_badge_id: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          user_id: string
-          equipped_frame_key?: string | null
-          featured_badge_id?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          user_id?: string
-          equipped_frame_key?: string | null
-          featured_badge_id?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profile_cosmetics_equipped_frame_key_fkey"
-            columns: ["equipped_frame_key"]
-            isOneToOne: false
-            referencedRelation: "avatar_frames"
-            referencedColumns: ["frame_key"]
-          },
-          {
-            foreignKeyName: "profile_cosmetics_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       answers: {
         Row: {
           id: number
@@ -355,116 +271,6 @@ export type Database = {
           },
           {
             foreignKeyName: "game_attempts_topic_id_fkey"
-            columns: ["topic_id"]
-            isOneToOne: false
-            referencedRelation: "subject_topics"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      learning_task_completions: {
-        Row: {
-          completed_at: string
-          student_id: string
-          task_id: number
-        }
-        Insert: {
-          completed_at?: string
-          student_id: string
-          task_id: number
-        }
-        Update: {
-          completed_at?: string
-          student_id?: string
-          task_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "learning_task_completions_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "learning_task_completions_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "learning_tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      learning_tasks: {
-        Row: {
-          classroom_id: number
-          created_at: string
-          description: string | null
-          due_at: string
-          id: number
-          priority: string
-          starts_at: string | null
-          status: string
-          subject_id: number
-          teacher_id: string
-          title: string
-          topic_id: number | null
-          updated_at: string
-        }
-        Insert: {
-          classroom_id: number
-          created_at?: string
-          description?: string | null
-          due_at: string
-          id?: number
-          priority?: string
-          starts_at?: string | null
-          status?: string
-          subject_id: number
-          teacher_id: string
-          title: string
-          topic_id?: number | null
-          updated_at?: string
-        }
-        Update: {
-          classroom_id?: number
-          created_at?: string
-          description?: string | null
-          due_at?: string
-          id?: number
-          priority?: string
-          starts_at?: string | null
-          status?: string
-          subject_id?: number
-          teacher_id?: string
-          title?: string
-          topic_id?: number | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "learning_tasks_classroom_id_fkey"
-            columns: ["classroom_id"]
-            isOneToOne: false
-            referencedRelation: "classrooms"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "learning_tasks_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "learning_tasks_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "learning_tasks_topic_id_fkey"
             columns: ["topic_id"]
             isOneToOne: false
             referencedRelation: "subject_topics"
@@ -1155,7 +961,6 @@ export type Database = {
           date_format: string | null
           time_format: string | null
           week_start: string | null
-          haptics_enabled: boolean
           created_at: string
           updated_at: string
         }
@@ -1166,7 +971,6 @@ export type Database = {
           date_format?: string | null
           time_format?: string | null
           week_start?: string | null
-          haptics_enabled?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -1177,7 +981,6 @@ export type Database = {
           date_format?: string | null
           time_format?: string | null
           week_start?: string | null
-          haptics_enabled?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -1278,32 +1081,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      equip_profile_cosmetics: {
-        Args: {
-          p_frame_key?: string | null
-          p_featured_badge_id?: string | null
-        }
-        Returns: Json
-      }
-      get_avatar_customization_options: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_profile_cosmetics: {
-        Args: { p_user_ids?: string[] | null }
-        Returns: {
-          user_id: string
-          frame_key: string
-          name: string
-          description: string | null
-          primary_color: string
-          secondary_color: string
-          rarity: string
-          minimum_level: number
-          required_badge_id: string | null
-          featured_badge_id: string | null
-        }[]
-      }
       get_admin_dashboard_metrics: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -1610,34 +1387,8 @@ export type Database = {
         Args: { p_attempt_history_id: number }
         Returns: Json
       }
-      delete_learning_task: {
-        Args: { p_task_id: number }
-        Returns: boolean
-      }
       get_manual_review_thread: {
         Args: { p_attempt_history_id: number }
-        Returns: Json
-      }
-      get_student_learning_tasks_page: {
-        Args: {
-          p_filter?: string
-          p_search?: string | null
-          p_limit?: number
-          p_offset?: number
-        }
-        Returns: Json
-      }
-      get_teacher_learning_tasks_page: {
-        Args: {
-          p_subject_id?: number | null
-          p_classroom_id?: number | null
-          p_status?: string | null
-          p_search?: string | null
-          p_from?: string | null
-          p_to?: string | null
-          p_limit?: number
-          p_offset?: number
-        }
         Returns: Json
       }
       get_teacher_manual_review_queue: {
@@ -1658,25 +1409,6 @@ export type Database = {
           p_notes?: string | null
           p_comment_audience?: string
         }
-        Returns: Json
-      }
-      save_learning_task: {
-        Args: {
-          p_task_id?: number | null
-          p_subject_id?: number | null
-          p_classroom_id?: number | null
-          p_topic_id?: number | null
-          p_title?: string
-          p_description?: string | null
-          p_starts_at?: string | null
-          p_due_at?: string | null
-          p_status?: string
-          p_priority?: string
-        }
-        Returns: Json
-      }
-      set_learning_task_completed: {
-        Args: { p_task_id: number; p_completed?: boolean }
         Returns: Json
       }
       save_teacher_question: {

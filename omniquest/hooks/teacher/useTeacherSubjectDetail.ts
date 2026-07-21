@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { accuracyToGrade, answersToAccuracyPercent } from '../../lib/grades';
 import { type DifficultyLevel } from '../../lib/difficulty';
+import { parseDateTimeInput } from '../../lib/calendar';
 import {
   buildStudentListRows,
   buildStudentReportRows,
@@ -1018,16 +1019,6 @@ export function useTeacherSubjectDetail({
     topicRows,
     topics,
   };
-}
-
-function parseDateTimeInput(value: string) {
-  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
-  if (!match) return null;
-
-  const [, year, month, day, hour, minute] = match;
-  const parsed = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed;
 }
 
 function formatRelative(value: string | null | undefined, index: number) {

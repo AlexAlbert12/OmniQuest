@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
 
@@ -8,26 +8,23 @@ const read = (path) => readFileSync(join(root, path), 'utf8')
 
 const migrationPath = 'supabase/migrations/20260720120000_learning_planning_manual_review_media.sql'
 
-test('teacher planning provides protected tasks, calendar pages and student completion', () => {
-  const migration = read(migrationPath)
-  const teacherPlanning = read('app/(teacher)/planning.tsx')
-  const studentTasks = read('app/(student)/tasks.tsx')
-  const calendar = read('components/planning/MonthCalendar.tsx')
-  const editor = read('components/teacher/LearningTaskEditorModal.tsx')
+test('standalone tasks are removed and the calendar is reused for topic deadlines', () => {
+  const cleanup = read('supabase/migrations/20260721140000_remove_learning_tasks.sql')
+  const calendar = read('components/ui/DateCalendar.tsx')
+  const dateTimeField = read('components/ui/DateTimeCalendarField.tsx')
+  const topicForm = read('components/teacher/TeacherTopicForm.tsx')
+  const subject = read('app/(teacher)/subject/[id].tsx')
 
-  assert.match(migration, /create table if not exists public\.learning_tasks/)
-  assert.match(migration, /create table if not exists public\.learning_task_completions/)
-  assert.match(migration, /create or replace function public\.save_learning_task/)
-  assert.match(migration, /create or replace function public\.get_teacher_learning_tasks_page/)
-  assert.match(migration, /create or replace function public\.get_student_learning_tasks_page/)
-  assert.match(migration, /create or replace function public\.set_learning_task_completed/)
-  assert.match(migration, /learning_tasks_select_visible/)
-  assert.match(teacherPlanning, /Planificación docente/)
-  assert.match(teacherPlanning, /get_teacher_learning_tasks_page/)
-  assert.match(studentTasks, /get_student_learning_tasks_page/)
-  assert.match(studentTasks, /set_learning_task_completed/)
+  assert.equal(existsSync(join(root, 'app/(teacher)/planning.tsx')), false)
+  assert.equal(existsSync(join(root, 'app/(student)/tasks.tsx')), false)
+  assert.equal(existsSync(join(root, 'components/teacher/LearningTaskEditorModal.tsx')), false)
+  assert.match(cleanup, /drop table if exists public\.learning_tasks/)
+  assert.match(cleanup, /drop function if exists public\.save_learning_task/)
   assert.match(calendar, /getMonthGrid/)
-  assert.match(editor, /save_learning_task/)
+  assert.match(dateTimeField, /DateCalendar/)
+  assert.match(topicForm, /DateTimeCalendarField/)
+  assert.match(subject, /DateTimeCalendarField/)
+  assert.match(subject, /newTopicAvailableUntil/)
 })
 
 test('advanced manual review has a dedicated queue, comments and explicit states', () => {
@@ -75,16 +72,15 @@ test('question rich media is uploaded by teachers and rendered safely in game', 
   assert.match(mediaView, /VideoView/)
 })
 
-test('new teacher and student routes are reachable from shared navigation', () => {
+test('shared navigation keeps review access and removes obsolete task routes', () => {
   const teacherSidebar = read('components/teacher/TeacherSidebar.tsx')
   const teacherBottomNav = read('components/teacher/TeacherBottomNav.tsx')
   const studentSidebar = read('components/student/StudentSidebar.tsx')
   const studentBottomNav = read('components/student/StudentBottomNav.tsx')
 
-  assert.match(teacherSidebar, /\/\(teacher\)\/planning/)
   assert.match(teacherSidebar, /\/\(teacher\)\/reviews/)
-  assert.match(teacherBottomNav, /active === 'planning'/)
   assert.match(teacherBottomNav, /active === 'reviews'/)
-  assert.match(studentSidebar, /\/\(student\)\/tasks/)
-  assert.match(studentBottomNav, /active === 'tasks'/)
+  assert.doesNotMatch(teacherSidebar, /\/\(teacher\)\/planning/)
+  assert.doesNotMatch(studentSidebar, /\/\(student\)\/tasks/)
+  assert.doesNotMatch(studentBottomNav, /active === 'tasks'/)
 })

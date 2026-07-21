@@ -18,6 +18,9 @@ import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader';
 import { withAlpha } from '../../lib/color';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
+import AppButton from '../../components/ui/AppButton';
+import AppTabs from '../../components/ui/AppTabs';
+import type { SemanticIconKey } from '../../lib/designTokens';
 
 type Subject = {
   id: number
@@ -425,30 +428,29 @@ export default function TeacherClassesScreen() {
             subtitle="Gestiona tus cursos, clases, estudiantes y actividades."
             notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
             actions={(
-              <Pressable
+              <AppButton
+                label="Crear curso"
                 accessibilityLabel="Crear curso"
-                accessibilityRole="button"
+                icon="add"
+                role="teacher"
                 onPress={() => router.push('/(teacher)/create-subject' as any)}
-                className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-5 py-3"
-              >
-                <Ionicons name="add" size={18} color="#FFFFFF" />
-                <Text className="font-bold text-white">Crear curso</Text>
-              </Pressable>
+              />
             )}
           />
 
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
-            <MetricCard icon="school" title="Cursos activos" value={String(subjects.length)} trend={formatWeeklyTrend(subjects.filter((subject) => isAfterDate(subject.created_at, getRecentThresholdDate(7))).length, 'curso nuevo', 'cursos nuevos')} color="#8B5CF6" />
-            <MetricCard icon="people" title="Estudiantes" value={String(totals.students)} trend={formatWeeklyTrend(totals.enrolledThisWeek, 'estudiante nuevo', 'estudiantes nuevos')} color="#43D991" />
-            <MetricCard icon="clipboard" title="Preguntas" value={String(totals.questions)} trend={formatWeeklyTrend(totals.questionsThisWeek, 'pregunta nueva', 'preguntas nuevas')} color="#3B82F6" />
-            <MetricCard icon="people-circle" title="Participación media" value={`${totals.participation}%`} trend={formatWeeklyTrend(totals.activeStudentsThisWeek, 'alumno activo', 'alumnos activos')} color="#F6A64A" />
+            <MetricCard semantic="course" title="Cursos activos" value={String(subjects.length)} trend={formatWeeklyTrend(subjects.filter((subject) => isAfterDate(subject.created_at, getRecentThresholdDate(7))).length, 'curso nuevo', 'cursos nuevos')} />
+            <MetricCard semantic="student" title="Estudiantes" value={String(totals.students)} trend={formatWeeklyTrend(totals.enrolledThisWeek, 'estudiante nuevo', 'estudiantes nuevos')} />
+            <MetricCard icon="help-circle" title="Preguntas" value={String(totals.questions)} trend={formatWeeklyTrend(totals.questionsThisWeek, 'pregunta nueva', 'preguntas nuevas')} color="#38BDF8" />
+            <MetricCard semantic="success" title="Participación media" value={`${totals.participation}%`} trend={formatWeeklyTrend(totals.activeStudentsThisWeek, 'alumno activo', 'alumnos activos')} />
           </View>
 
           <View className={isDesktop ? 'mt-6 flex-row gap-5' : 'mt-6 gap-5'}>
             <View className={isDesktop ? 'flex-[1.55]' : ''}>
-              <View className="mb-4 flex-row flex-wrap items-center gap-3">
-                <View className="h-12 min-w-[260px] flex-1 flex-row items-center rounded-xl border border-[#20375E] bg-[#09162C] px-4">
+              <View className="mb-4 gap-3">
+                <View className="h-12 min-w-[260px] flex-row items-center rounded-xl border border-[#20375E] bg-[#09162C] px-4">
                   <TextInput
+                    accessibilityLabel="Buscar curso"
                     className="min-w-0 flex-1 text-white"
                     placeholder="Buscar curso..."
                     placeholderTextColor="#8FA7C7"
@@ -457,29 +459,22 @@ export default function TeacherClassesScreen() {
                   />
                   <Ionicons name="search-outline" size={20} color="#AFC2DB" />
                 </View>
-                <View className="flex-row flex-wrap gap-2">
-                  {teacherClassFilters.map((filter) => {
-                    const active = selectedFilter === filter.id;
-                    return (
-                      <Pressable
-                        key={filter.id}
-                        onPress={() => setSelectedFilter(filter.id)}
-                        className={`h-12 flex-row items-center gap-2 rounded-xl border px-4 ${active ? 'border-[#5D64FF] bg-[#4F46E5]' : 'border-[#20375E] bg-[#09162C]'
-                          }`}
-                      >
-                        <Ionicons name={filter.icon} size={16} color={active ? '#FFFFFF' : '#B9A7FF'} />
-                        <Text className={`font-semibold ${active ? 'text-white' : 'text-[#DDE7F4]'}`}>{filter.label}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                <Pressable
-                  onPress={() => setSelectedSort((current) => getNextClassSort(current))}
-                  className="h-12 flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4"
-                >
-                  <Text className="font-semibold text-[#DDE7F4]">Ordenar por: {getClassSortLabel(selectedSort)}</Text>
-                  <Ionicons name="swap-vertical-outline" size={16} color="#AFC2DB" />
-                </Pressable>
+                <AppTabs<ClassFilter>
+                  accessibilityLabel="Filtrar cursos"
+                  compact
+                  role="teacher"
+                  items={teacherClassFilters.map((filter) => ({ key: filter.id, label: filter.label, icon: filter.icon }))}
+                  value={selectedFilter}
+                  onChange={setSelectedFilter}
+                />
+                <AppTabs<ClassSort>
+                  accessibilityLabel="Ordenar cursos"
+                  compact
+                  role="teacher"
+                  items={teacherClassSorts.map((sort) => ({ key: sort.id, label: sort.label, icon: 'swap-vertical-outline' as const }))}
+                  value={selectedSort}
+                  onChange={setSelectedSort}
+                />
               </View>
 
               <View style={{ gap: 16 }}>
@@ -912,16 +907,18 @@ function MobileActivityPlanRow({ item }: { item: ActivityPlanItem }) {
 
 function MetricCard({
   icon,
+  semantic,
   title,
   value,
   trend,
   color,
 }: {
-  icon: keyof typeof Ionicons.glyphMap
+  icon?: keyof typeof Ionicons.glyphMap
+  semantic?: SemanticIconKey
   title: string
   value: string
   trend: string
-  color: string
+  color?: string
 }) {
   const hasGrowth = !trend.toLowerCase().startsWith('sin')
 
@@ -930,8 +927,9 @@ function MetricCard({
       className="min-w-[190px] flex-1"
       color={color}
       detail={trend}
-      detailColor={hasGrowth ? '#58E28B' : '#8FA7C7'}
+      detailColor={hasGrowth ? '#34D399' : '#8FA7C7'}
       icon={icon}
+      semantic={semantic}
       label={title}
       value={value}
     />

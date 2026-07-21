@@ -22,6 +22,9 @@ import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader'
 import { exportCsvFile, formatExportDateTime, slugifyFilename } from '../../../lib/reportExports'
 import QuestionMedia from '../../../components/questions/QuestionMedia'
 import { cloneQuestionMedia, removeQuestionMedia } from '../../../lib/questionMedia'
+import type { SemanticIconKey } from '../../../lib/designTokens'
+import AppButton from '../../../components/ui/AppButton'
+import AppTabs from '../../../components/ui/AppTabs'
 
 type QuestionDetail = {
   id: number
@@ -585,48 +588,50 @@ export default function TeacherQuestionReportScreen() {
                   </View>
 
                   <View className={`${isPhone ? 'gap-2' : 'flex-row flex-wrap gap-2'}`}>
-                    <Pressable
+                    <AppButton
+                      label="Crear repaso"
+                      icon="sparkles-outline"
+                      role="teacher"
+                      size={isPhone ? 'lg' : 'md'}
+                      fullWidth={isPhone}
+                      loading={creatingReview}
+                      disabled={duplicating}
                       onPress={handleCreateReviewQuestion}
-                      disabled={creatingReview || duplicating}
-                      className={`${isPhone ? 'justify-center py-4' : 'px-4 py-3'} flex-row items-center gap-2 rounded-xl bg-[#5A46D8]`}
-                      style={({ pressed }) => ({ opacity: creatingReview || duplicating ? 0.62 : pressed ? 0.82 : 1 })}
-                    >
-                      <Ionicons name="sparkles-outline" size={16} color="#FFFFFF" />
-                      <Text className="text-[12px] font-black text-white">{creatingReview ? 'Creando...' : 'Crear repaso'}</Text>
-                    </Pressable>
-                    <Pressable
+                    />
+                    <AppButton
+                      label="Duplicar"
+                      icon="copy-outline"
+                      variant="secondary"
+                      size={isPhone ? 'lg' : 'md'}
+                      fullWidth={isPhone}
+                      loading={duplicating}
+                      disabled={creatingReview}
                       onPress={handleDuplicateQuestion}
-                      disabled={creatingReview || duplicating}
-                      className={`${isPhone ? 'justify-center py-4' : 'px-4 py-3'} flex-row items-center gap-2 rounded-xl border border-[#4F46E5] bg-[#312E8126]`}
-                      style={({ pressed }) => ({ opacity: creatingReview || duplicating ? 0.62 : pressed ? 0.82 : 1 })}
-                    >
-                      <Ionicons name="copy-outline" size={16} color="#C4B5FD" />
-                      <Text className="text-[12px] font-black text-[#C4B5FD]">{duplicating ? 'Duplicando...' : 'Duplicar'}</Text>
-                    </Pressable>
-                    <Pressable
+                    />
+                    <AppButton
+                      label="Exportar CSV"
+                      icon="download-outline"
+                      variant="ghost"
+                      size={isPhone ? 'lg' : 'md'}
+                      fullWidth={isPhone}
                       onPress={handleExportQuestionReportCsv}
-                      className={`${isPhone ? 'justify-center py-4' : 'px-4 py-3'} flex-row items-center gap-2 rounded-xl border border-[#2563EB] bg-[#0B244B]`}
-                      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-                    >
-                      <Ionicons name="download-outline" size={16} color="#BFDBFE" />
-                      <Text className="text-[12px] font-black text-[#BFDBFE]">Exportar CSV</Text>
-                    </Pressable>
-                    <Pressable
+                    />
+                    <AppButton
+                      label="Editar"
+                      icon="create-outline"
+                      variant="secondary"
+                      size={isPhone ? 'lg' : 'md'}
+                      fullWidth={isPhone}
                       onPress={() => router.push(`/(teacher)/subject/edit-question?subjectId=${question.subject_id}&questionId=${question.id}` as any)}
-                      className={`${isPhone ? 'justify-center py-4' : 'px-4 py-3'} flex-row items-center gap-2 rounded-xl bg-[#7C5CFF]`}
-                      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-                    >
-                      <Ionicons name="create-outline" size={16} color="#FFFFFF" />
-                      <Text className="text-[12px] font-black text-white">Editar</Text>
-                    </Pressable>
-                    <Pressable
+                    />
+                    <AppButton
+                      label="Ver curso"
+                      icon="book-outline"
+                      variant="ghost"
+                      size={isPhone ? 'lg' : 'md'}
+                      fullWidth={isPhone}
                       onPress={() => router.push(`/(teacher)/subject/${question.subject_id}` as any)}
-                      className={`${isPhone ? 'justify-center py-4' : 'px-4 py-3'} flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E]`}
-                      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-                    >
-                      <Ionicons name="book-outline" size={16} color="#DDE7F4" />
-                      <Text className="text-[12px] font-black text-[#DDE7F4]">Ver curso</Text>
-                    </Pressable>
+                    />
                   </View>
                 </View>
               </View>
@@ -635,76 +640,56 @@ export default function TeacherQuestionReportScreen() {
                 <View className="gap-4">
                   <View>
                     <Text className="mb-2 text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Clase</Text>
-                    <ScrollView
-                      horizontal={isPhone}
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={{ gap: 8, flexWrap: isPhone ? 'nowrap' : 'wrap', paddingRight: isPhone ? 8 : 0 }}
-                    >
-                      <FilterChip
-                        icon="albums-outline"
-                        label="Todas las clases"
-                        active={selectedClassroomId === 'all'}
-                        onPress={() => setSelectedClassroomId('all')}
-                      />
-                      {classroomOptions.map((classroomOption) => (
-                        <FilterChip
-                          key={classroomOption.id}
-                          icon="people-outline"
-                          label={classroomOption.name || `Clase ${classroomOption.id}`}
-                          active={selectedClassroomId === classroomOption.id}
-                          onPress={() => setSelectedClassroomId(classroomOption.id)}
-                        />
-                      ))}
-                    </ScrollView>
+                    <AppTabs<number | 'all'>
+                      accessibilityLabel="Filtrar intentos por clase"
+                      compact
+                      role="teacher"
+                      items={[
+                        { key: 'all', label: 'Todas las clases', icon: 'albums-outline' },
+                        ...classroomOptions.map((classroomOption) => ({
+                          key: classroomOption.id,
+                          label: classroomOption.name || `Clase ${classroomOption.id}`,
+                          icon: 'people-outline' as const,
+                        })),
+                      ]}
+                      value={selectedClassroomId}
+                      onChange={setSelectedClassroomId}
+                    />
                   </View>
 
                   <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
-                    <View className="flex-1">
+                    <View className="min-w-0 flex-1">
                       <Text className="mb-2 text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Fecha</Text>
-                      <ScrollView
-                        horizontal={isPhone}
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ gap: 8, flexWrap: isPhone ? 'nowrap' : 'wrap', paddingRight: isPhone ? 8 : 0 }}
-                      >
-                        {attemptDateFilters.map((filter) => (
-                          <FilterChip
-                            key={filter.value}
-                            icon={filter.icon}
-                            label={filter.label}
-                            active={selectedDateFilter === filter.value}
-                            onPress={() => setSelectedDateFilter(filter.value)}
-                          />
-                        ))}
-                      </ScrollView>
+                      <AppTabs<AttemptDateFilter>
+                        accessibilityLabel="Filtrar intentos por fecha"
+                        compact
+                        role="teacher"
+                        items={attemptDateFilters.map((filter) => ({ key: filter.value, label: filter.label, icon: filter.icon }))}
+                        value={selectedDateFilter}
+                        onChange={setSelectedDateFilter}
+                      />
                     </View>
 
-                    <View className="flex-1">
+                    <View className="min-w-0 flex-1">
                       <Text className="mb-2 text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Resultado</Text>
-                      <ScrollView
-                        horizontal={isPhone}
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ gap: 8, flexWrap: isPhone ? 'nowrap' : 'wrap', paddingRight: isPhone ? 8 : 0 }}
-                      >
-                        {attemptStatusFilters.map((filter) => (
-                          <FilterChip
-                            key={filter.value}
-                            icon={filter.icon}
-                            label={filter.label}
-                            active={selectedStatusFilter === filter.value}
-                            onPress={() => setSelectedStatusFilter(filter.value)}
-                          />
-                        ))}
-                      </ScrollView>
+                      <AppTabs<AttemptStatusFilter>
+                        accessibilityLabel="Filtrar intentos por resultado"
+                        compact
+                        role="teacher"
+                        items={attemptStatusFilters.map((filter) => ({ key: filter.value, label: filter.label, icon: filter.icon }))}
+                        value={selectedStatusFilter}
+                        onChange={setSelectedStatusFilter}
+                      />
                     </View>
                   </View>
                 </View>
               </Panel>
 
               <View className={isWide ? 'mt-5 flex-row gap-4' : 'mt-5 gap-4'}>
-                <ReportMetricCard icon="people" title="Alumnos afectados" value={String(affectedStudents)} detail="Fallaron al menos una vez" color="#F43F5E" />
-                <ReportMetricCard icon="close-circle" title="Tasa de fallo" value={`${stats.failureRate}%`} detail={`${stats.failedAttempts} de ${stats.totalAttempts} intentos`} color="#FB7185" />
-                <ReportMetricCard icon="checkmark-circle" title="Aciertos" value={String(stats.correctAttempts)} detail="Intentos correctos" color="#43D991" />
-                <ReportMetricCard icon="time" title="Tiempo medio" value={stats.averageTimeLabel} detail="Por intento" color="#58B5FF" />
+                <ReportMetricCard semantic="attention" title="Alumnos afectados" value={String(affectedStudents)} detail="Necesitan una revisión docente" />
+                <ReportMetricCard semantic="critical" title="Tasa de fallo" value={`${stats.failureRate}%`} detail={`${stats.failedAttempts} de ${stats.totalAttempts} intentos`} />
+                <ReportMetricCard semantic="success" title="Aciertos" value={String(stats.correctAttempts)} detail="Intentos correctos" />
+                <ReportMetricCard icon="time" title="Tiempo medio" value={stats.averageTimeLabel} detail="Por intento" color="#38BDF8" />
               </View>
 
               <View className={isWide ? 'mt-5 flex-row items-start gap-5' : 'mt-5 gap-5'}>
@@ -764,12 +749,13 @@ export default function TeacherQuestionReportScreen() {
   )
 }
 
-function ReportMetricCard({ icon, title, value, detail, color }: {
-  icon: keyof typeof Ionicons.glyphMap
+function ReportMetricCard({ icon, semantic, title, value, detail, color }: {
+  icon?: keyof typeof Ionicons.glyphMap
+  semantic?: SemanticIconKey
   title: string
   value: string
   detail: string
-  color: string
+  color?: string
 }) {
   return (
     <MobileMetricCard
@@ -777,6 +763,7 @@ function ReportMetricCard({ icon, title, value, detail, color }: {
       color={color}
       detail={detail}
       icon={icon}
+      semantic={semantic}
       label={title}
       value={value}
     />
@@ -810,38 +797,6 @@ function Badge({ label, color }: { label: string; color: string }) {
     <View className="rounded-full px-3 py-1" style={{ backgroundColor: `${color}24` }}>
       <Text className="text-[11px] font-black" style={{ color }}>{label}</Text>
     </View>
-  )
-}
-
-function FilterChip({
-  icon,
-  label,
-  active,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  label: string
-  active: boolean
-  onPress: () => void
-}) {
-  const { width } = useWindowDimensions()
-  const isPhone = width < 640
-
-  return (
-    <Pressable
-      onPress={onPress}
-      className={`${isPhone ? 'min-h-[44px] px-4 py-3' : 'px-3 py-2'} flex-row items-center gap-2 rounded-xl border`}
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.82 : 1,
-        borderColor: active ? '#8B5CF6' : '#20375E',
-        backgroundColor: active ? '#4C2FA633' : '#07162E',
-      })}
-    >
-      <Ionicons name={icon} size={15} color={active ? '#C4B5FD' : '#AFC2DB'} />
-      <Text className="text-[12px] font-black" style={{ color: active ? '#FFFFFF' : '#DDE7F4' }}>
-        {label}
-      </Text>
-    </Pressable>
   )
 }
 

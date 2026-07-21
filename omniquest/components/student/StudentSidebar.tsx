@@ -1,15 +1,13 @@
 import React from 'react'
-import { Animated, Easing, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native'
+import { Animated, Easing, Image, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import BrandLogo from '../BrandLogo'
 import { useAppTheme } from '../../lib/appTheme'
-import GamifiedAvatar from '../gamification/GamifiedAvatar'
-import { useProfileCosmetics } from '../../hooks/useProfileCosmetics'
-import type { ProfileCosmetics } from '../../lib/avatarCosmetics'
+import OmniGuide from '../../components/OmniGuide'
 
-export type StudentSection = 'home' | 'classes' | 'tasks' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings'
+export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings'
 
 type StudentSidebarProps = {
   activeSection: StudentSection
@@ -18,7 +16,6 @@ type StudentSidebarProps = {
   level: number
   points: number
   nextLevelProgress: number
-  cosmetics?: ProfileCosmetics | null
   onSignOut: () => void
 }
 
@@ -34,7 +31,6 @@ type NavItem = {
 const navItems: NavItem[] = [
   { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(student)/homeStudent' },
   { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(student)/classes' },
-  { section: 'tasks', label: 'Tareas', icon: 'calendar-outline', href: '/(student)/tasks' },
   { section: 'progress', label: 'Progreso', icon: 'stats-chart-outline', href: '/(student)/progress' },
   { section: 'ranking', label: 'Ranking', icon: 'trophy-outline', href: '/(student)/ranking' },
   { section: 'badges', label: 'Logros', icon: 'ribbon-outline', href: '/(student)/badges' },
@@ -50,14 +46,12 @@ export default function StudentSidebar({
   level,
   points,
   nextLevelProgress,
-  cosmetics: providedCosmetics,
   onSignOut,
 }: StudentSidebarProps) {
-  const { theme, accentColor } = useAppTheme()
-  const { cosmetics: loadedCosmetics } = useProfileCosmetics()
-  const cosmetics = providedCosmetics || loadedCosmetics
+  const { theme, tokens } = useAppTheme()
   const { width } = useWindowDimensions()
   const isDark = theme === 'dark'
+  const accentColor = tokens.brand.student
   const isCompact = width >= 1024 && width < 1280
   const safeProgress = Math.min(Math.max(nextLevelProgress, 0), 100)
 
@@ -81,12 +75,11 @@ export default function StudentSidebar({
       >
         {isCompact ? (
           <View className="h-12 w-12 items-center justify-center rounded-2xl border border-[#1A3155] bg-[#091A35]">
-            <Ionicons name="rocket" size={23} color="#9FD6FF" />
+          <OmniGuide size={24} state="happy" />
           </View>
         ) : (
           <>
             <BrandLogo size={30} />
-            <Ionicons name="rocket" size={18} color="#9FD6FF" />
           </>
         )}
       </View>
@@ -121,7 +114,7 @@ export default function StudentSidebar({
           >
             {isCompact ? (
               <View className="items-center" style={{ gap: 8 }}>
-                <GamifiedAvatar alias={alias} avatarUrl={avatar} cosmetics={cosmetics} level={level} showLevel={false} size={44} />
+                <Avatar avatar={avatar} alias={alias} size={44} />
                 <View className="h-1.5 w-full overflow-hidden rounded-full bg-[#13294C]">
                   <View className="h-full rounded-full" style={{ width: `${safeProgress}%`, backgroundColor: accentColor }} />
                 </View>
@@ -129,7 +122,7 @@ export default function StudentSidebar({
             ) : (
               <>
                 <View className="flex-row items-center gap-3">
-                  <GamifiedAvatar alias={alias} avatarUrl={avatar} cosmetics={cosmetics} level={level} showLevel={false} size={48} />
+                  <Avatar avatar={avatar} alias={alias} size={48} />
                   <View className="min-w-0 flex-1">
                     <Text className="text-[14px] font-bold text-white" numberOfLines={1}>{alias}</Text>
                     <View className="mt-1 flex-row items-center gap-1">
@@ -150,17 +143,24 @@ export default function StudentSidebar({
             )}
           </Pressable>
         </Link>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Cerrar sesión"
-          onPress={onSignOut}
-          className="flex-row items-center justify-center rounded-2xl border border-[#4A1E2B] bg-[#2A0B18]"
-          style={{ minHeight: 44, paddingHorizontal: isCompact ? 0 : 14, gap: isCompact ? 0 : 10 }}
-        >
-          <Ionicons name="log-out-outline" size={20} color="#FB7185" />
-          {!isCompact ? <Text className="text-[13px] font-black text-[#FCA5A5]">Cerrar sesión</Text> : null}
-        </Pressable>
       </View>
+    </View>
+  )
+}
+
+function Avatar({ avatar, alias, size }: { avatar?: string | null; alias: string; size: number }) {
+  const initials = getInitials(alias)
+
+  return (
+    <View
+      className="items-center justify-center overflow-hidden rounded-full bg-[#192C62]"
+      style={{ height: size, width: size }}
+    >
+      {avatar && avatar.startsWith('http') ? (
+        <Image source={{ uri: avatar }} className="h-full w-full" />
+      ) : (
+        <Text className="font-black text-white">{initials}</Text>
+      )}
     </View>
   )
 }

@@ -23,6 +23,9 @@ import { getTimeAgo } from '../../lib/time'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
+import AppButton from '../../components/ui/AppButton'
+import AppTabs from '../../components/ui/AppTabs'
+import type { SemanticIconKey } from '../../lib/designTokens'
 
 type TeacherAuditLogRow = {
   id: number
@@ -201,16 +204,14 @@ export default function TeacherAuditScreen() {
             subtitle="Revisa las acciones docentes sensibles para explicar trazabilidad: alumnos, preguntas, cursos y códigos."
             notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
             actions={(
-              <Pressable
+              <AppButton
+                label="Actualizar"
                 accessibilityLabel="Actualizar auditoría"
-                accessibilityRole="button"
+                icon="refresh-outline"
+                variant="secondary"
+                loading={refreshing}
                 onPress={onRefresh}
-                className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
-                style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-              >
-                <Ionicons name="refresh-outline" size={16} color="#AFC2DB" />
-                <Text className="text-[12px] font-bold text-[#DDE7F4]">Actualizar</Text>
-              </Pressable>
+              />
             )}
           />
 
@@ -226,24 +227,30 @@ export default function TeacherAuditScreen() {
 
           {logs.length > 0 ? (
             <View className={isWide ? 'mb-5 flex-row gap-4' : 'mb-5 gap-4'}>
-              <AuditStatCard icon="document-text" label="Acciones registradas" value={String(stats.total)} detail="Últimos eventos" color="#8B5CF6" />
-              <AuditStatCard icon="calendar" label="Últimos 7 días" value={String(stats.lastWeek)} detail="Actividad reciente" color="#58B5FF" />
-              <AuditStatCard icon="people" label="Acciones con alumnos" value={String(stats.student)} detail="Inscripciones y progreso" color="#43D991" />
-              <AuditStatCard icon="warning" label="Críticas" value={String(stats.destructive)} detail="Borrado o archivado" color="#FB7185" />
+              <AuditStatCard semantic="audit" label="Acciones registradas" value={String(stats.total)} detail="Últimos eventos" />
+              <AuditStatCard icon="calendar" label="Últimos 7 días" value={String(stats.lastWeek)} detail="Actividad reciente" color="#38BDF8" />
+              <AuditStatCard semantic="student" label="Acciones con alumnos" value={String(stats.student)} detail="Inscripciones y progreso" />
+              <AuditStatCard semantic="critical" label="Críticas" value={String(stats.destructive)} detail="Borrado o archivado" />
             </View>
           ) : null}
 
           {logs.length > 0 ? (
-            <View className="mb-5 flex-row flex-wrap gap-3">
-              {auditFilters.map((filter) => (
-              <AuditFilterChip
-                key={filter.id}
-                filter={filter}
-                active={selectedFilter === filter.id}
-                count={filter.id === 'all' ? logs.length : logs.filter((log) => getAuditActionMeta(log.action).category === filter.id).length}
-                onPress={() => { setPage(0); setSelectedFilter(filter.id) }}
+            <View className="mb-5">
+              <AppTabs<AuditFilter>
+                accessibilityLabel="Filtrar eventos de auditoría"
+                compact
+                role="teacher"
+                items={auditFilters.map((filter) => ({
+                  key: filter.id,
+                  label: filter.label,
+                  icon: filter.icon,
+                  badge: filter.id === 'all'
+                    ? totalLogs
+                    : logs.filter((log) => getAuditActionMeta(log.action).category === filter.id).length,
+                }))}
+                value={selectedFilter}
+                onChange={(filter) => { setPage(0); setSelectedFilter(filter) }}
               />
-              ))}
             </View>
           ) : null}
 
@@ -615,16 +622,18 @@ function getAuditFilterColor(filter: AuditFilter) {
 
 function AuditStatCard({
   icon,
+  semantic,
   label,
   value,
   detail,
   color,
 }: {
-  icon: keyof typeof Ionicons.glyphMap
+  icon?: keyof typeof Ionicons.glyphMap
+  semantic?: SemanticIconKey
   label: string
   value: string
   detail: string
-  color: string
+  color?: string
 }) {
   return (
     <MobileMetricCard
@@ -632,41 +641,10 @@ function AuditStatCard({
       color={color}
       detail={detail}
       icon={icon}
+      semantic={semantic}
       label={label}
       value={value}
     />
-  )
-}
-
-function AuditFilterChip({
-  filter,
-  active,
-  count,
-  onPress,
-}: {
-  filter: { id: AuditFilter; label: string; icon: keyof typeof Ionicons.glyphMap }
-  active: boolean
-  count: number
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center gap-2 rounded-xl border px-4 py-3"
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.82 : 1,
-        borderColor: active ? '#8B5CF6' : '#20375E',
-        backgroundColor: active ? '#4C2FA666' : '#07162E',
-      })}
-    >
-      <Ionicons name={filter.icon} size={16} color={active ? '#FFFFFF' : '#AFC2DB'} />
-      <Text className="text-[12px] font-black" style={{ color: active ? '#FFFFFF' : '#DDE7F4' }}>
-        {filter.label}
-      </Text>
-      <View className="rounded-full bg-[#1B3158] px-2 py-0.5">
-        <Text className="text-[12px] font-black text-white">{count}</Text>
-      </View>
-    </Pressable>
   )
 }
 

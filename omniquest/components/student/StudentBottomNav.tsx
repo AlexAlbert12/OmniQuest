@@ -5,11 +5,11 @@ import MobileBottomNavigation, {
   MobileBottomNavigationItem,
 } from '../ui/mobile/MobileBottomNavigation'
 
-export type StudentBottomNavKey = 'home' | 'classes' | 'progress' | 'profile' | 'settings' | 'ranking' | 'badges' | 'tasks' | 'notifications'
+export type StudentBottomNavKey = 'home' | 'classes' | 'progress' | 'profile' | 'settings' | 'ranking' | 'badges' | 'notifications'
 type VisibleStudentBottomNavKey = 'home' | 'classes' | 'progress' | 'ranking' | 'profile'
 
 export default function StudentBottomNav({ active }: { active: StudentBottomNavKey }) {
-  const { accentColor } = useAppTheme()
+  const { tokens } = useAppTheme()
   const { t } = useI18n()
   const navItems = useMemo<MobileBottomNavigationItem<VisibleStudentBottomNavKey>[]>(() => [
     { key: 'home', label: t('nav.student.home'), href: '/(student)/homeStudent', icon: 'home-outline', activeIcon: 'home' },
@@ -22,7 +22,7 @@ export default function StudentBottomNav({ active }: { active: StudentBottomNavK
   return (
     <MobileBottomNavigation
       activeKey={getVisibleActiveKey(active)}
-      accentColor={accentColor}
+      accentColor={tokens.brand.student}
       items={navItems}
     />
   )
@@ -30,6 +30,5 @@ export default function StudentBottomNav({ active }: { active: StudentBottomNavK
 
 function getVisibleActiveKey(active: StudentBottomNavKey): VisibleStudentBottomNavKey {
   if (active === 'badges' || active === 'notifications' || active === 'settings') return 'profile'
-  if (active === 'tasks') return 'classes'
   return active
 }

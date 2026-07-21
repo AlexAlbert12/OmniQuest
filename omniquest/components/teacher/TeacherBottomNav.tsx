@@ -9,7 +9,7 @@ import type { TeacherSection } from './TeacherSidebar'
 type VisibleTeacherBottomNavKey = 'home' | 'classes' | 'students' | 'audit' | 'profile'
 
 export default function TeacherBottomNav({ active }: { active: TeacherSection }) {
-  const { accentColor } = useAppTheme()
+  const { tokens } = useAppTheme()
   const { t } = useI18n()
   const navItems = useMemo<MobileBottomNavigationItem<VisibleTeacherBottomNavKey>[]>(() => [
     { key: 'home', label: t('nav.teacher.home'), href: '/(teacher)/homeTeacher', icon: 'home-outline', activeIcon: 'home' },
@@ -22,7 +22,7 @@ export default function TeacherBottomNav({ active }: { active: TeacherSection })
   return (
     <MobileBottomNavigation
       activeKey={getVisibleActiveKey(active)}
-      accentColor={accentColor}
+      accentColor={tokens.brand.teacher}
       items={navItems}
     />
   )
@@ -30,7 +30,6 @@ export default function TeacherBottomNav({ active }: { active: TeacherSection })
 
 function getVisibleActiveKey(active: TeacherSection): VisibleTeacherBottomNavKey {
   if (active === 'notifications' || active === 'settings') return 'profile'
-  if (active === 'planning') return 'classes'
   if (active === 'reviews') return 'students'
   return active
 }

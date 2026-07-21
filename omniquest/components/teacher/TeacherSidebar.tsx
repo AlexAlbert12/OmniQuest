@@ -7,7 +7,7 @@ import BrandLogo from '../BrandLogo'
 import { useAppTheme } from '../../lib/appTheme'
 import { supabase } from '../../lib/supabase'
 
-export type TeacherSection = 'home' | 'classes' | 'planning' | 'students' | 'reviews' | 'notifications' | 'audit' | 'profile' | 'settings'
+export type TeacherSection = 'home' | 'classes' | 'students' | 'reviews' | 'notifications' | 'audit' | 'profile' | 'settings'
 
 type TeacherSidebarProps = {
   activeSection: TeacherSection
@@ -24,7 +24,6 @@ const navItems: {
 }[] = [
     { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(teacher)/homeTeacher' },
     { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(teacher)/classes' },
-    { section: 'planning', label: 'Planificación', icon: 'calendar-outline', href: '/(teacher)/planning' },
     { section: 'students', label: 'Estudiantes', icon: 'people-outline', href: '/(teacher)/students' },
     { section: 'reviews', label: 'Revisión', icon: 'create-outline', href: '/(teacher)/reviews' },
     { section: 'audit', label: 'Auditoría', icon: 'shield-checkmark-outline', href: '/(teacher)/audit' },
@@ -40,8 +39,9 @@ export default function TeacherSidebar({
   alias,
   avatar,
 }: TeacherSidebarProps) {
-  const { theme, accentColor } = useAppTheme()
+  const { theme, tokens } = useAppTheme()
   const isDark = theme === 'dark'
+  const accentColor = tokens.brand.teacher
 
   const [localAlias, setLocalAlias] = React.useState<string | null | undefined>(alias)
   const [localAvatar, setLocalAvatar] = React.useState<string | null | undefined>(avatar)
@@ -105,7 +105,6 @@ export default function TeacherSidebar({
     >
       <View className="mb-7 flex-row items-center gap-2 px-2">
         <BrandLogo size={30} />
-        <Ionicons name="rocket" size={18} color="#9FD6FF" />
       </View>
 
       <View style={{ gap: 10 }}>
@@ -155,15 +154,6 @@ export default function TeacherSidebar({
           </View>
         </Pressable>
       </Link>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Cerrar sesión"
-        onPress={onSignOut}
-        className="mt-2 flex-row items-center justify-center gap-2 rounded-2xl border border-[#4A1E2B] bg-[#2A0B18] px-4 py-3"
-      >
-        <Ionicons name="log-out-outline" size={19} color="#FB7185" />
-        <Text className="text-[13px] font-black text-[#FCA5A5]">Cerrar sesión</Text>
-      </Pressable>
     </View>
   )
 }

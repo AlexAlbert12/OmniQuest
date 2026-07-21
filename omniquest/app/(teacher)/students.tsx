@@ -19,6 +19,9 @@ import { accuracyToGrade, answersToAccuracyPercent } from '../../lib/grades';
 import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader';
+import AppButton from '../../components/ui/AppButton';
+import AppTabs from '../../components/ui/AppTabs';
+import { useAppTheme } from '../../lib/appTheme';
 import {
   statusFilterOptions,
   sortOptions,
@@ -40,7 +43,6 @@ import { StudentActionsModal, StudentDetailModal, ConfirmModal } from '../../com
 import {
   AttentionRow,
   CycleSelectButton,
-  CycleStringSelectButton,
   LegendRow,
   MetricCard,
   Panel,
@@ -74,6 +76,7 @@ const STUDENTS_PAGE_SIZE = 5;
 export default function TeacherStudentsScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
+  const { tokens } = useAppTheme();
   const { subjectId, classroomId } = useLocalSearchParams<{ subjectId?: string; classroomId?: string }>();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
@@ -711,7 +714,7 @@ export default function TeacherStudentsScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: tokens.background.primary }}>
         <ActivityIndicator size="large" color="#8B5CF6" />
         <Text className="mt-4 text-[#8FA7C7]">Cargando estudiantes...</Text>
       </View>
@@ -800,7 +803,7 @@ export default function TeacherStudentsScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <TeacherSidebar
@@ -829,77 +832,88 @@ export default function TeacherStudentsScreen() {
             notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
           />
 
-          <View className="mb-4 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
-            <ScrollView
-              horizontal={!isWide}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{
-                gap: 12,
-                flexGrow: isWide ? 1 : undefined,
-                flexWrap: isWide ? 'wrap' : 'nowrap',
-                alignItems: 'center',
-              }}
-            >
-              <CycleSelectButton
-                label="Curso"
-              value={selectedSubjectId}
-              allLabel="Todos"
-              options={subjects.map((subject) => ({ id: subject.id, label: subject.name }))}
-              onChange={(value) => {
-                setSelectedSubjectId(value);
-                setSelectedClassroomId('all');
-              }}
-            />
-            <CycleSelectButton
-              label="Clase"
-              value={selectedClassroomId}
-              allLabel="Todas"
-              options={classroomOptions.map((classroom) => ({ id: classroom.id, label: classroom.name }))}
-              onChange={setSelectedClassroomId}
-            />
-            <CycleStringSelectButton
-              label="Estado"
-              value={selectedStatus}
-              options={statusFilterOptions}
-              onChange={setSelectedStatus}
-            />
-            <CycleStringSelectButton
-              label="Ordenar"
-              value={selectedSort}
-              options={sortOptions}
-              onChange={setSelectedSort}
-            />
-            <View className="h-12 min-w-[230px] flex-1 flex-row items-center rounded-xl border border-[#20375E] bg-[#07162E] px-4">
-              <TextInput
-                className="min-w-0 flex-1 text-white"
-                placeholder="Buscar estudiante, curso o clase..."
-                placeholderTextColor="#8FA7C7"
-                value={search}
-                onChangeText={setSearch}
-              />
-              <Ionicons name="search-outline" size={20} color="#AFC2DB" />
+          <View
+            className="mb-4 rounded-2xl border p-4"
+            style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}
+          >
+            <View style={{ gap: 12 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+                <CycleSelectButton
+                  label="Curso"
+                  value={selectedSubjectId}
+                  allLabel="Todos"
+                  options={subjects.map((subject) => ({ id: subject.id, label: subject.name }))}
+                  onChange={(value) => {
+                    setSelectedSubjectId(value);
+                    setSelectedClassroomId('all');
+                  }}
+                />
+                <CycleSelectButton
+                  label="Clase"
+                  value={selectedClassroomId}
+                  allLabel="Todas"
+                  options={classroomOptions.map((classroom) => ({ id: classroom.id, label: classroom.name }))}
+                  onChange={setSelectedClassroomId}
+                />
+                <View
+                  className="h-12 min-w-[300px] flex-1 flex-row items-center rounded-xl border px-4"
+                  style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive }}
+                >
+                  <TextInput
+                    accessibilityLabel="Buscar estudiante, curso o clase"
+                    className="min-w-0 flex-1"
+                    style={{ color: tokens.text.primary }}
+                    placeholder="Buscar estudiante, curso o clase..."
+                    placeholderTextColor={tokens.text.muted}
+                    value={search}
+                    onChangeText={setSearch}
+                  />
+                  <Ionicons name="search-outline" size={20} color={tokens.text.muted} />
+                </View>
+                <AppButton
+                  label="Exportar"
+                  accessibilityLabel="Exportar estudiantes visibles"
+                  icon="download-outline"
+                  variant="secondary"
+                  disabled={visibleStudents.length === 0}
+                  onPress={handleExportStudentsCsv}
+                />
+              </View>
+
+              <View style={{ flexDirection: isWide ? 'row' : 'column', gap: 12 }}>
+                <View style={{ minWidth: 0, flex: 1 }}>
+                  <Text className="mb-2 text-[10px] font-black uppercase tracking-[0.8px]" style={{ color: tokens.text.muted }}>Estado</Text>
+                  <AppTabs<StudentStatusFilter>
+                    accessibilityLabel="Filtrar estudiantes por estado"
+                    compact
+                    role="teacher"
+                    items={statusFilterOptions.map((option) => ({ key: option.value, label: option.label }))}
+                    value={selectedStatus}
+                    onChange={setSelectedStatus}
+                  />
+                </View>
+                <View style={{ minWidth: 0, flex: 1 }}>
+                  <Text className="mb-2 text-[10px] font-black uppercase tracking-[0.8px]" style={{ color: tokens.text.muted }}>Ordenar</Text>
+                  <AppTabs<StudentSortKey>
+                    accessibilityLabel="Ordenar estudiantes"
+                    compact
+                    role="teacher"
+                    items={sortOptions.map((option) => ({ key: option.value, label: option.label, icon: 'swap-vertical-outline' as const }))}
+                    value={selectedSort}
+                    onChange={setSelectedSort}
+                  />
+                </View>
+              </View>
             </View>
-              <Pressable
-                onPress={handleExportStudentsCsv}
-                disabled={visibleStudents.length === 0}
-                className="h-12 flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4"
-                style={({ pressed }) => ({
-                  opacity: visibleStudents.length === 0 ? 0.55 : pressed ? 0.86 : 1,
-                })}
-              >
-                <Ionicons name="download-outline" size={16} color="#AFC2DB" />
-                <Text className="font-semibold text-[#DDE7F4]">Exportar</Text>
-              </Pressable>
-            </ScrollView>
           </View>
 
           <View className={isWide ? 'flex-row flex-wrap gap-4' : 'gap-4'}>
-            <MetricCard icon="people" title="Total estudiantes" value={String(stats.total)} detail="Según filtros actuales" color="#8B5CF6" />
-            <MetricCard icon="checkmark-circle" title="Con actividad" value={String(stats.withActivity)} detail={`${stats.active} activos o excelentes`} color="#34D399" />
-            <MetricCard icon="time-outline" title="Sin actividad" value={String(stats.noActivity)} detail="Importados sin empezar" color="#8FA7C7" />
-            <MetricCard icon="medkit" title="Necesitan apoyo" value={String(stats.needsHelp)} detail="Con baja precisión o nota" color="#F59E0B" />
-            <MetricCard icon="analytics" title="Precisión media" value={formatNullablePercent(stats.averageAccuracy)} detail={stats.averageAccuracy === null ? 'Sin datos todavía' : 'Solo alumnos con intentos'} color="#3B82F6" />
-            <MetricCard icon="school" title="Nota media" value={formatNullableGrade(stats.averageGrade)} detail={stats.averageGrade === null ? 'Sin datos todavía' : 'Solo alumnos con intentos'} color="#F6A64A" />
+            <MetricCard semantic="student" title="Total estudiantes" value={String(stats.total)} detail="Según filtros actuales" />
+            <MetricCard semantic="success" title="Con actividad" value={String(stats.withActivity)} detail={`${stats.active} activos o excelentes`} />
+            <MetricCard icon="time-outline" title="Sin actividad" value={String(stats.noActivity)} detail="Importados sin empezar" color={tokens.text.muted} />
+            <MetricCard semantic="attention" title="Necesitan apoyo" value={String(stats.needsHelp)} detail="Con baja precisión o nota" />
+            <MetricCard icon="analytics" title="Precisión media" value={formatNullablePercent(stats.averageAccuracy)} detail={stats.averageAccuracy === null ? 'Sin datos todavía' : 'Solo alumnos con intentos'} color={tokens.semantic.info} />
+            <MetricCard semantic="achievement" title="Nota media" value={formatNullableGrade(stats.averageGrade)} detail={stats.averageGrade === null ? 'Sin datos todavía' : 'Solo alumnos con intentos'} />
           </View>
 
           {pendingStudents.length > 0 ? (

@@ -16,6 +16,9 @@ import TeacherPageHeader from './TeacherPageHeader';
 import { supabase } from '../../lib/supabase';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import TeacherBottomNav from './TeacherBottomNav';
+import AppButton from '../ui/AppButton';
+import DateTimeCalendarField from '../ui/DateTimeCalendarField';
+import { parseDateTimeInput, toDateTimeInputValue } from '../../lib/calendar';
 
 type TeacherTopicFormProps = {
   topicId?: string;
@@ -120,7 +123,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
         setDescription(nextTopic.description || '');
         setIcon(topicIcon);
         setSortOrder(String(nextTopic.sort_order || 1));
-        setAvailableUntilInput(formatDateTimeInput(nextTopic.available_until));
+        setAvailableUntilInput(toDateTimeInputValue(nextTopic.available_until));
       } catch (error: any) {
         showAlert('Error', error.message || 'No se pudo cargar el tema.');
         router.back();
@@ -312,25 +315,11 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
                       </View>
                     </View>
 
-                    <View className="min-w-[260px] flex-1 rounded-xl border border-[#28456B] bg-[#0A2042] p-3">
-                      <View className="flex-row items-start gap-3">
-                        <View className="h-11 w-11 items-center justify-center rounded-lg bg-[#F6A64A26]">
-                          <Ionicons name="time-outline" size={20} color="#F6A64A" />
-                        </View>
-                        <View className="min-w-0 flex-1">
-                          <Text className="text-[13px] font-semibold text-[#AFC2DB]">Fecha límite opcional</Text>
-                          <TextInput
-                            className="mt-2 rounded-lg border border-[#35567D] bg-[#0B2348] px-3 py-2 text-[15px] font-bold text-white"
-                            placeholder="2026-07-01 18:30"
-                            placeholderTextColor="#7F95B7"
-                            value={availableUntilInput}
-                            onChangeText={setAvailableUntilInput}
-                          />
-                          <Text className="mt-2 text-[11px] leading-4 text-[#8FA7C7]">
-                            Vacío = siempre abierto. Al pasar la fecha, el tema se bloquea para jugar.
-                          </Text>
-                        </View>
-                      </View>
+                    <View className="min-w-[300px] flex-1 rounded-xl border border-[#28456B] bg-[#0A2042] p-3">
+                      <DateTimeCalendarField
+                        value={availableUntilInput}
+                        onChange={setAvailableUntilInput}
+                      />
                     </View>
                   </View>
                 </SectionCard>
@@ -364,20 +353,18 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
             </View>
 
             <View className={`mt-4 rounded-2xl border border-[#1A3155] bg-[#071B3D] p-4 ${isWide ? 'flex-row items-center justify-between' : 'gap-3'}`}>
-              <Pressable onPress={() => router.back()} className="flex-row items-center gap-2 rounded-xl border border-[#2A456A] bg-[#091A39] px-6 py-3">
-                <Ionicons name="close" size={16} color="#DDE7F4" />
-                <Text className="text-[15px] font-bold text-[#DDE7F4]">Cancelar</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={handleSave}
+              <AppButton label="Cancelar" variant="secondary" icon="close" size="lg" onPress={() => router.back()} />
+              <AppButton
+                label="Guardar cambios"
+                accessibilityLabel={saving ? 'Guardando cambios' : 'Guardar cambios'}
+                icon="sparkles-outline"
+                loading={saving}
                 disabled={!canSave}
-                className={`${isWide ? 'min-w-[320px]' : ''} flex-row items-center justify-center gap-2 rounded-xl bg-[#5A46D8] px-10 py-3`}
-                style={({ pressed }) => ({ opacity: !canSave ? 0.7 : pressed ? 0.86 : 1 })}
-              >
-                {saving ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="sparkles-outline" size={16} color="#FFFFFF" />}
-                <Text className="text-[15px] font-black text-white">{saving ? 'Guardando...' : 'Guardar cambios'}</Text>
-              </Pressable>
+                size="lg"
+                role="teacher"
+                onPress={handleSave}
+                style={isWide ? { minWidth: 320 } : { width: '100%' }}
+              />
             </View>
           </View>
         </View>
@@ -418,25 +405,6 @@ function SectionCard({
 
 function Label({ text, className = '' }: { text: string; className?: string }) {
   return <Text className={`text-[15px] font-semibold text-white ${className}`}>{text}</Text>;
-}
-
-function parseDateTimeInput(value: string) {
-  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
-  if (!match) return null;
-
-  const [, year, month, day, hour, minute] = match;
-  const parsed = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed;
-}
-
-function formatDateTimeInput(value?: string | null) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-
-  const pad = (part: number) => String(part).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function FeatureRow({
