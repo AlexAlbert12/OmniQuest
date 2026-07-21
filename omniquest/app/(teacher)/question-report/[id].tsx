@@ -20,6 +20,8 @@ import TeacherSidebar from '../../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader'
 import { exportCsvFile, formatExportDateTime, slugifyFilename } from '../../../lib/reportExports'
+import QuestionMedia from '../../../components/questions/QuestionMedia'
+import { cloneQuestionMedia, removeQuestionMedia } from '../../../lib/questionMedia'
 
 type QuestionDetail = {
   id: number
@@ -29,6 +31,11 @@ type QuestionDetail = {
   classroom_id: number | null
   topic_id: number | null
   explanation: string | null
+  media_type: 'image' | 'audio' | 'video' | null
+  media_url: string | null
+  media_path: string | null
+  media_alt_text: string | null
+  media_caption: string | null
   points_base: number | null
   time_limit_seconds: number | null
   difficulty: number | null
@@ -186,6 +193,11 @@ export default function TeacherQuestionReportScreen() {
             classroom_id,
             topic_id,
             explanation,
+            media_type,
+            media_url,
+            media_path,
+            media_alt_text,
+            media_caption,
             points_base,
             time_limit_seconds,
             difficulty,
@@ -369,11 +381,22 @@ export default function TeacherQuestionReportScreen() {
 
     const setBusy = review ? setCreatingReview : setDuplicating
     setBusy(true)
+    let clonedMediaPath: string | null = null
     try {
       const nextText = review ? `Repaso: ${question.text}` : `Copia de ${question.text}`
       const nextExplanation = review
         ? [question.explanation, 'Pregunta creada desde el informe para reforzar una pregunta con fallos.'].filter(Boolean).join('\n\n')
         : question.explanation
+
+      const clonedMedia = question.media_type && question.media_url
+        ? await cloneQuestionMedia({
+            type: question.media_type,
+            url: question.media_url,
+            sourcePath: question.media_path,
+            subjectId: question.subject_id,
+          })
+        : null
+      clonedMediaPath = clonedMedia?.path ?? null
 
       const { data: newQuestionId, error } = await supabase.rpc('save_teacher_question', {
         p_subject_id: question.subject_id,
@@ -387,6 +410,11 @@ export default function TeacherQuestionReportScreen() {
         p_difficulty: question.difficulty ?? 1,
         p_explanation: nextExplanation || null,
         p_answers: answerPayload as any,
+        p_media_type: clonedMedia?.type ?? null,
+        p_media_url: clonedMedia?.url ?? null,
+        p_media_path: clonedMedia?.path ?? null,
+        p_media_alt_text: question.media_alt_text,
+        p_media_caption: question.media_caption,
       })
 
       if (error) throw error
@@ -402,6 +430,12 @@ export default function TeacherQuestionReportScreen() {
         router.push(`/(teacher)/subject/edit-question?subjectId=${question.subject_id}&questionId=${newQuestionId}` as any)
       }
     } catch (error: any) {
+      if (clonedMediaPath) {
+        try {
+          await removeQuestionMedia(clonedMediaPath)
+        } catch {
+        }
+      }
       showAlert('No se pudo crear la pregunta', error?.message || 'Revisa la conexión e inténtalo de nuevo.')
     } finally {
       setBusy(false)
@@ -536,6 +570,13 @@ export default function TeacherQuestionReportScreen() {
                       {topic?.title ? <Badge label={topic.title} color="#F6A64A" /> : null}
                     </View>
                     <Text className={`${isPhone ? 'text-[22px] leading-7' : 'text-[26px] leading-8'} font-black text-white`}>{question.text}</Text>
+                    <QuestionMedia
+                      type={question.media_type}
+                      url={question.media_url}
+                      altText={question.media_alt_text}
+                      caption={question.media_caption}
+                      compact={isPhone}
+                    />
                     {question.explanation ? (
                       <Text className="mt-3 text-[13px] leading-5 text-[#AFC2DB]">
                         Explicación: {question.explanation}

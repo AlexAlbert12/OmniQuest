@@ -65,7 +65,16 @@
             ]
           }
         }
-      ]
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-video",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

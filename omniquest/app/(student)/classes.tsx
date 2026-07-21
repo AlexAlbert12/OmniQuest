@@ -308,15 +308,27 @@ export default function ClassesScreen() {
               showAvatar={isDesktop}
               actionsPosition="top"
               actions={(
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={showMobileFilters ? 'Ocultar filtros de cursos' : 'Mostrar filtros de cursos'}
-                  onPress={() => setShowMobileFilters((value) => !value)}
-                  className="h-12 w-12 items-center justify-center rounded-2xl border border-[#33405A] bg-[#1A2335]"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-                >
-                  <Ionicons name={showMobileFilters ? 'close' : 'options'} size={24} color="#C7D5F2" />
-                </Pressable>
+                <>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Abrir mis tareas"
+                    onPress={() => router.push('/(student)/tasks' as any)}
+                    className="h-12 flex-row items-center justify-center gap-2 rounded-2xl border border-[#33405A] bg-[#1A2335] px-3"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                  >
+                    <Ionicons name="calendar-outline" size={22} color="#60A5FA" />
+                    {isDesktop ? <Text className="text-[12px] font-black text-[#C7D5F2]">Mis tareas</Text> : null}
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={showMobileFilters ? 'Ocultar filtros de cursos' : 'Mostrar filtros de cursos'}
+                    onPress={() => setShowMobileFilters((value) => !value)}
+                    className="h-12 w-12 items-center justify-center rounded-2xl border border-[#33405A] bg-[#1A2335]"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                  >
+                    <Ionicons name={showMobileFilters ? 'close' : 'options'} size={24} color="#C7D5F2" />
+                  </Pressable>
+                </>
               )}
             />
 

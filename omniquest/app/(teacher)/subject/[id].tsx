@@ -263,7 +263,24 @@ export default function SubjectDetailScreen() {
 
     if (activeTab === 'activities') {
       return (
-        <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
+        <View className="gap-5">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/(teacher)/planning' as any)}
+            className="flex-row items-center justify-between rounded-2xl border border-[#2B4A78] bg-[#0A1D3B] p-4"
+          >
+            <View className="min-w-0 flex-1 flex-row items-center gap-3">
+              <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#173C64]">
+                <Ionicons name="calendar-outline" size={23} color="#60A5FA" />
+              </View>
+              <View className="min-w-0 flex-1">
+                <Text className="font-black text-white">Planificar tareas y fechas</Text>
+                <Text className="mt-1 text-[12px] text-[#8FA7C7]">Abre el calendario docente para esta y otras clases.</Text>
+              </View>
+            </View>
+            <Ionicons name="arrow-forward" size={21} color="#60A5FA" />
+          </Pressable>
+          <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
           <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
             <Panel title="Actividad reciente">
               {recentActivity.map((item, index) => (
@@ -288,6 +305,7 @@ export default function SubjectDetailScreen() {
                 <Text className="text-[12px] text-[#8FA7C7]">Aún no hay temas para analizar actividad.</Text>
               )}
             </Panel>
+          </View>
           </View>
         </View>
       );
@@ -374,6 +392,22 @@ export default function SubjectDetailScreen() {
     if (activeTab === 'review') {
       return (
         <View className="gap-5">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/(teacher)/reviews' as any)}
+            className="flex-row items-center justify-between rounded-2xl border border-[#594A86] bg-[#17163A] p-4"
+          >
+            <View className="min-w-0 flex-1 flex-row items-center gap-3">
+              <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#33255D]">
+                <Ionicons name="create-outline" size={23} color="#C4B5FD" />
+              </View>
+              <View className="min-w-0 flex-1">
+                <Text className="font-black text-white">Abrir cola avanzada de revisión</Text>
+                <Text className="mt-1 text-[12px] text-[#AFC2DB]">Estados, comentarios visibles, notas internas y paginación.</Text>
+              </View>
+            </View>
+            <Ionicons name="arrow-forward" size={21} color="#C4B5FD" />
+          </Pressable>
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
             <ReportMetricCard
               icon="time"

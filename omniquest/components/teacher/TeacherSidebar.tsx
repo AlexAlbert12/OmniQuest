@@ -7,7 +7,7 @@ import BrandLogo from '../BrandLogo'
 import { useAppTheme } from '../../lib/appTheme'
 import { supabase } from '../../lib/supabase'
 
-export type TeacherSection = 'home' | 'classes' | 'students' | 'notifications' | 'audit' | 'profile' | 'settings'
+export type TeacherSection = 'home' | 'classes' | 'planning' | 'students' | 'reviews' | 'notifications' | 'audit' | 'profile' | 'settings'
 
 type TeacherSidebarProps = {
   activeSection: TeacherSection
@@ -24,7 +24,9 @@ const navItems: {
 }[] = [
     { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(teacher)/homeTeacher' },
     { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(teacher)/classes' },
+    { section: 'planning', label: 'Planificación', icon: 'calendar-outline', href: '/(teacher)/planning' },
     { section: 'students', label: 'Estudiantes', icon: 'people-outline', href: '/(teacher)/students' },
+    { section: 'reviews', label: 'Revisión', icon: 'create-outline', href: '/(teacher)/reviews' },
     { section: 'audit', label: 'Auditoría', icon: 'shield-checkmark-outline', href: '/(teacher)/audit' },
     { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(teacher)/notifications' },
     { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(teacher)/profile' },

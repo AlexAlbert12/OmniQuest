@@ -31,9 +31,20 @@ export type SafeAttemptAnswer = {
 
 export type SafeAttemptQuestion = SafeStudentQuestion & {
   explanation?: string | null
+  media_type?: 'image' | 'audio' | 'video' | null
+  media_url?: string | null
+  media_alt_text?: string | null
+  media_caption?: string | null
   subjects?: SafeAttemptSubject | SafeAttemptSubject[] | null
   subject_topics?: SafeAttemptTopic | SafeAttemptTopic[] | null
   answers?: SafeAttemptAnswer[] | null
+}
+
+export type SafeManualReviewComment = {
+  id: number
+  author_name: string | null
+  body: string
+  created_at: string
 }
 
 export type SafeStudentAttempt = {
@@ -50,6 +61,7 @@ export type SafeStudentAttempt = {
   was_skipped: boolean | null
   manual_review_status?: string | null
   review_notes?: string | null
+  review_comments?: SafeManualReviewComment[] | null
   questions: SafeAttemptQuestion | SafeAttemptQuestion[] | null
 }
 
@@ -63,6 +75,7 @@ export type AttemptFeedback = {
   correct_answer_text?: string | null
   explanation?: string | null
   review_notes?: string | null
+  review_comments?: SafeManualReviewComment[]
 }
 
 

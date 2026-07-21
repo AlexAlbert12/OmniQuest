@@ -30,5 +30,7 @@ export default function TeacherBottomNav({ active }: { active: TeacherSection })
 
 function getVisibleActiveKey(active: TeacherSection): VisibleTeacherBottomNavKey {
   if (active === 'notifications' || active === 'settings') return 'profile'
+  if (active === 'planning') return 'classes'
+  if (active === 'reviews') return 'students'
   return active
 }

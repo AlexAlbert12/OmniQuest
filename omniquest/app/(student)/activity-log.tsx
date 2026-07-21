@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import PaginationControls from '../../components/ui/PaginationControls'
+import QuestionMedia from '../../components/questions/QuestionMedia'
 import OmniGuide from '../../components/OmniGuide'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
@@ -42,11 +43,22 @@ type AttemptTopic = {
   title: string | null
 }
 
+type ManualReviewComment = {
+  id: number
+  author_name: string | null
+  body: string
+  created_at: string
+}
+
 type AttemptQuestion = {
   id: number
   text: string | null
   type: string | null
   explanation: string | null
+  media_type?: 'image' | 'audio' | 'video' | null
+  media_url?: string | null
+  media_alt_text?: string | null
+  media_caption?: string | null
   subject_id: number | null
   topic_id: number | null
   subjects?: AttemptSubject | AttemptSubject[] | null
@@ -65,6 +77,9 @@ type AttemptRow = {
   earned_points: number | null
   hint_used: boolean | null
   was_skipped: boolean | null
+  manual_review_status?: string | null
+  review_notes?: string | null
+  review_comments?: ManualReviewComment[] | null
   questions: AttemptQuestion | AttemptQuestion[] | null
 }
 
@@ -452,7 +467,10 @@ function AttemptCard({
   const explanation = question?.explanation?.trim() || 'El profesor no ha añadido explicación para esta pregunta.'
   const earnedPoints = Math.max(0, Number(item.earned_points ?? (isCorrect ? 10 : 0)))
   const formattedDate = formatAttemptDate(item.attempted_at)
-  const resultColor = isCorrect ? '#43D991' : '#FB7185'
+  const reviewStatus = getStudentReviewStatus(item.manual_review_status, isCorrect)
+  const reviewComments = Array.isArray(item.review_comments) ? item.review_comments : []
+  const revealSolution = !reviewStatus.waiting
+  const resultColor = reviewStatus.color
 
   return (
     <Pressable
@@ -463,15 +481,15 @@ function AttemptCard({
       <View className="flex-row items-center gap-4">
         <View
           className="h-12 w-12 items-center justify-center rounded-xl"
-          style={{ backgroundColor: isCorrect ? '#70E0A520' : '#FB718520' }}
+          style={{ backgroundColor: `${resultColor}20` }}
         >
-          <Ionicons name={isCorrect ? 'checkmark-circle' : 'close-circle'} size={26} color={resultColor} />
+          <Ionicons name={reviewStatus.icon} size={26} color={resultColor} />
         </View>
 
         <View className="min-w-0 flex-1">
           <View className="mb-1 flex-row flex-wrap items-center gap-2">
             <Text className="text-[15px] font-black text-white" numberOfLines={1}>
-              {isCorrect ? 'Respuesta correcta' : 'Respuesta incorrecta'}
+              {reviewStatus.label}
             </Text>
             <View className="rounded-full bg-[#13284A] px-2 py-0.5">
               <Text className="text-[11px] font-black text-[#9FD6FF]">{getQuestionTypeLabel(question?.type)}</Text>
@@ -487,8 +505,8 @@ function AttemptCard({
 
         <View className="items-end gap-1">
           <Text className="text-[12px] text-[#8FA7C7]">{formattedDate}</Text>
-          <View className="rounded-md px-2 py-0.5" style={{ backgroundColor: isCorrect ? '#22C55E20' : '#33415550' }}>
-            <Text className="text-[12px] font-black" style={{ color: isCorrect ? '#43D991' : '#94A7C4' }}>
+          <View className="rounded-md px-2 py-0.5" style={{ backgroundColor: `${resultColor}20` }}>
+            <Text className="text-[12px] font-black" style={{ color: resultColor }}>
               {earnedPoints > 0 ? `+${earnedPoints} XP` : '0 XP'}
             </Text>
           </View>
@@ -506,9 +524,53 @@ function AttemptCard({
           ) : (
             <View className="gap-3">
               <DetailBlock icon="help-circle" label="Pregunta" value={questionText} />
-              <DetailBlock icon="person-circle" label="Tu respuesta" value={submittedAnswer} highlightColor={isCorrect ? '#70E0A5' : '#FB7185'} />
-              <DetailBlock icon="checkmark-done-circle" label="Respuesta correcta" value={correctAnswer} highlightColor="#70E0A5" />
-              <DetailBlock icon="bulb" label="Explicación" value={explanation} />
+              {question?.media_type && question.media_url ? (
+                <QuestionMedia
+                  type={question.media_type}
+                  url={question.media_url}
+                  altText={question.media_alt_text}
+                  caption={question.media_caption}
+                  compact
+                />
+              ) : null}
+              <DetailBlock icon="person-circle" label="Tu respuesta" value={submittedAnswer} highlightColor={resultColor} />
+
+              {reviewStatus.waiting ? (
+                <View className="rounded-2xl border p-4" style={{ borderColor: `${resultColor}70`, backgroundColor: `${resultColor}12` }}>
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name={reviewStatus.icon} size={20} color={resultColor} />
+                    <Text className="text-[13px] font-black" style={{ color: resultColor }}>{reviewStatus.label}</Text>
+                  </View>
+                  <Text className="mt-2 text-[12px] leading-5 text-[#AFC2DB]">{reviewStatus.description}</Text>
+                </View>
+              ) : (
+                <>
+                  <DetailBlock icon="checkmark-done-circle" label="Respuesta correcta" value={correctAnswer} highlightColor="#70E0A5" />
+                  <DetailBlock icon="bulb" label="Explicación" value={explanation} />
+                </>
+              )}
+
+              {reviewComments.length > 0 ? (
+                <View className="rounded-2xl border border-[#3A315E] bg-[#17152C] p-4">
+                  <View className="mb-3 flex-row items-center gap-2">
+                    <Ionicons name="chatbubble-ellipses" size={18} color="#A78BFA" />
+                    <Text className="text-[13px] font-black text-[#D8CCFF]">Comentarios del profesor</Text>
+                  </View>
+                  <View className="gap-3">
+                    {reviewComments.map((comment) => (
+                      <View key={comment.id} className="rounded-xl bg-[#211E3A] p-3">
+                        <View className="flex-row items-center justify-between gap-3">
+                          <Text className="min-w-0 flex-1 text-[11px] font-black text-[#C4B5FD]" numberOfLines={1}>{comment.author_name || 'Profesor'}</Text>
+                          <Text className="text-[10px] text-[#8FA7C7]">{formatAttemptDate(comment.created_at)}</Text>
+                        </View>
+                        <Text className="mt-2 text-[12px] leading-5 text-[#E7E2FF]">{comment.body}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : item.review_notes ? (
+                <DetailBlock icon="chatbubble-ellipses" label="Comentario del profesor" value={item.review_notes} highlightColor="#A78BFA" />
+              ) : null}
 
               <View className="flex-row flex-wrap gap-3">
                 <MiniMetric icon="timer" label="Tiempo empleado" value={formatTimeTaken(item.time_taken_seconds)} />
@@ -524,6 +586,28 @@ function AttemptCard({
       ) : null}
     </Pressable>
   )
+}
+
+function getStudentReviewStatus(status: string | null | undefined, isCorrect: boolean) {
+  const normalized = status || 'not_required'
+  if (normalized === 'pending') {
+    return { label: 'Pendiente de revisión', color: '#F59E0B', icon: 'time' as const, waiting: true, description: 'Tu profesor todavía tiene que revisar esta respuesta abierta.' }
+  }
+  if (normalized === 'in_review') {
+    return { label: 'En revisión', color: '#38BDF8', icon: 'eye' as const, waiting: true, description: 'Tu profesor está revisando la respuesta. La solución se mostrará cuando termine.' }
+  }
+  if (normalized === 'needs_changes') {
+    return { label: 'Necesita cambios', color: '#A78BFA', icon: 'refresh-circle' as const, waiting: true, description: 'Consulta los comentarios del profesor y vuelve a practicar este tema.' }
+  }
+  if (normalized === 'approved') {
+    return { label: 'Respuesta aprobada', color: '#43D991', icon: 'checkmark-circle' as const, waiting: false, description: '' }
+  }
+  if (normalized === 'rejected') {
+    return { label: 'Respuesta revisada', color: '#FB7185', icon: 'close-circle' as const, waiting: false, description: '' }
+  }
+  return isCorrect
+    ? { label: 'Respuesta correcta', color: '#43D991', icon: 'checkmark-circle' as const, waiting: false, description: '' }
+    : { label: 'Respuesta incorrecta', color: '#FB7185', icon: 'close-circle' as const, waiting: false, description: '' }
 }
 
 function DetailBlock({

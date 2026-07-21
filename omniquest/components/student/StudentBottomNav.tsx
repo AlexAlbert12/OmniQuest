@@ -5,7 +5,7 @@ import MobileBottomNavigation, {
   MobileBottomNavigationItem,
 } from '../ui/mobile/MobileBottomNavigation'
 
-export type StudentBottomNavKey = 'home' | 'classes' | 'progress' | 'profile' | 'settings' | 'ranking' | 'badges' | 'notifications'
+export type StudentBottomNavKey = 'home' | 'classes' | 'progress' | 'profile' | 'settings' | 'ranking' | 'badges' | 'tasks' | 'notifications'
 type VisibleStudentBottomNavKey = 'home' | 'classes' | 'progress' | 'ranking' | 'profile'
 
 export default function StudentBottomNav({ active }: { active: StudentBottomNavKey }) {
@@ -30,5 +30,6 @@ export default function StudentBottomNav({ active }: { active: StudentBottomNavK
 
 function getVisibleActiveKey(active: StudentBottomNavKey): VisibleStudentBottomNavKey {
   if (active === 'badges' || active === 'notifications' || active === 'settings') return 'profile'
+  if (active === 'tasks') return 'classes'
   return active
 }

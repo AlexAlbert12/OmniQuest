@@ -20,6 +20,7 @@ import { useI18n } from '../../../lib/i18n'
 import GameShell from '../../../components/student/game/GameShell'
 import ResultState from '../../../components/student/game/GameResultState'
 import { BottomHud, GameStatsBar, LivesBadge, TimerPill } from '../../../components/student/game/GameHud'
+import QuestionMedia from '../../../components/questions/QuestionMedia'
 import {
   AnswerFeedback,
   AnswerOption,
@@ -57,6 +58,10 @@ type Question = {
   answers: Answer[]
   pair_options?: string[]
   blank_count?: number | null
+  media_type?: 'image' | 'audio' | 'video' | null
+  media_url?: string | null
+  media_alt_text?: string | null
+  media_caption?: string | null
 }
 
 
@@ -320,6 +325,15 @@ export default function PlayScreen() {
                 <Text className={`${isDesktop ? 'text-[30px] leading-10' : 'text-[24px] leading-8'} mt-4 max-w-[720px] text-center font-black text-white`}>
                   {currentQuestion?.text}
                 </Text>
+                {currentQuestion?.media_type && currentQuestion.media_url ? (
+                  <QuestionMedia
+                    type={currentQuestion.media_type}
+                    url={currentQuestion.media_url}
+                    altText={currentQuestion.media_alt_text}
+                    caption={currentQuestion.media_caption}
+                    compact={!isDesktop}
+                  />
+                ) : null}
                 <View className="mt-4 flex-row items-center gap-2 rounded-full bg-[#071426]/80 px-4 py-2">
                   <Ionicons name="star" size={18} color="#76A7FF" />
                   <Text className="text-[13px] font-semibold text-[#C7D6ED]">{getQuestionInstruction(questionType)}</Text>

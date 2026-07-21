@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import BrandLogo from '../BrandLogo'
 import { useAppTheme } from '../../lib/appTheme'
 
-export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings'
+export type StudentSection = 'home' | 'classes' | 'tasks' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings'
 
 type StudentSidebarProps = {
   activeSection: StudentSection
@@ -30,6 +30,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(student)/homeStudent' },
   { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(student)/classes' },
+  { section: 'tasks', label: 'Tareas', icon: 'calendar-outline', href: '/(student)/tasks' },
   { section: 'progress', label: 'Progreso', icon: 'stats-chart-outline', href: '/(student)/progress' },
   { section: 'ranking', label: 'Ranking', icon: 'trophy-outline', href: '/(student)/ranking' },
   { section: 'badges', label: 'Logros', icon: 'ribbon-outline', href: '/(student)/badges' },

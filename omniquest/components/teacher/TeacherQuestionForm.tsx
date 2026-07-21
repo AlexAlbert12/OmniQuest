@@ -18,6 +18,9 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import { difficultyOptions, getDifficultyMeta, normalizeDifficulty, type DifficultyLevel } from '../../lib/difficulty';
 import type { Json } from '../../types/database.types';
 import TeacherBottomNav from './TeacherBottomNav';
+import TeacherQuestionMediaEditor, { type TeacherQuestionMediaValue } from './TeacherQuestionMediaEditor';
+import QuestionMedia from '../questions/QuestionMedia';
+import { removeQuestionMedia, uploadQuestionMedia } from '../../lib/questionMedia';
 
 type QuestionTypeId = 'multiple' | 'boolean' | 'dragdrop' | 'match' | 'fill' | 'order' | 'open';
 type WizardStep = 1 | 2 | 3 | 4;
@@ -110,6 +113,16 @@ export default function TeacherQuestionForm({
   const [orderItemsText, setOrderItemsText] = useState('');
   const [matchPairsText, setMatchPairsText] = useState('');
   const [dragdropPairsText, setDragdropPairsText] = useState('');
+  const [media, setMedia] = useState<TeacherQuestionMediaValue>({
+    type: null,
+    url: null,
+    path: null,
+    altText: '',
+    caption: '',
+    pendingAsset: null,
+    removeExisting: false,
+  });
+  const [originalMediaPath, setOriginalMediaPath] = useState<string | null>(null);
 
   const isDesktop = width >= 1080;
   const typeColumns = width >= 1320 ? 3 : width >= 720 ? 2 : 1;
@@ -161,7 +174,7 @@ export default function TeacherQuestionForm({
           isEdit && normalizedQuestionId
             ? supabase
                 .from('questions')
-                .select('id, text, type, difficulty, points_base, time_limit_seconds, topic_id, classroom_id, explanation, answers(text, is_correct, sort_order)')
+                .select('id, text, type, difficulty, points_base, time_limit_seconds, topic_id, classroom_id, explanation, media_type, media_url, media_path, media_alt_text, media_caption, answers(text, is_correct, sort_order)')
                 .eq('id', normalizedQuestionId)
                 .eq('subject_id', normalizedSubjectId)
                 .single()
@@ -184,6 +197,16 @@ export default function TeacherQuestionForm({
           setTimeLimit(String(questionData.time_limit_seconds || 30));
           setPoints(String(questionData.points_base || 10));
           setExplanation(questionData.explanation || '');
+          setMedia({
+            type: questionData.media_type || null,
+            url: questionData.media_url || null,
+            path: questionData.media_path || null,
+            altText: questionData.media_alt_text || '',
+            caption: questionData.media_caption || '',
+            pendingAsset: null,
+            removeExisting: false,
+          });
+          setOriginalMediaPath(questionData.media_path || null);
           setSelectedDifficulty(normalizeDifficulty(questionData.difficulty) || 1);
           nextSelectedTopicId = questionData.topic_id ? String(questionData.topic_id) : null;
 
@@ -353,6 +376,11 @@ export default function TeacherQuestionForm({
       return false;
     }
 
+    if (media.type === 'image' && !media.altText.trim()) {
+      showAlert('Texto alternativo necesario', 'Describe brevemente la imagen para que la pregunta sea accesible.');
+      return false;
+    }
+
     return true;
   };
 
@@ -463,7 +491,20 @@ export default function TeacherQuestionForm({
     });
 
     setSaving(true);
+    let uploadedPath: string | null = null;
     try {
+      let mediaType = media.type;
+      let mediaUrl = media.url;
+      let mediaPath = media.path;
+
+      if (media.pendingAsset) {
+        const uploaded = await uploadQuestionMedia(media.pendingAsset, Number(normalizedSubjectId));
+        mediaType = uploaded.type;
+        mediaUrl = uploaded.url;
+        mediaPath = uploaded.path;
+        uploadedPath = uploaded.path;
+      }
+
       const { error: saveQuestionError } = await supabase.rpc('save_teacher_question', {
         p_subject_id: Number(normalizedSubjectId),
         p_question_id: isEdit ? Number(normalizedQuestionId) : null,
@@ -476,13 +517,32 @@ export default function TeacherQuestionForm({
         p_difficulty: selectedDifficulty,
         p_explanation: explanation.trim() || null,
         p_answers: answersToSave as unknown as Json,
+        p_media_type: mediaType,
+        p_media_url: mediaUrl,
+        p_media_path: mediaPath,
+        p_media_alt_text: mediaType === 'image' ? media.altText.trim() || null : null,
+        p_media_caption: media.caption.trim() || null,
       });
 
       if (saveQuestionError) throw saveQuestionError;
 
+      if (originalMediaPath && originalMediaPath !== mediaPath && (media.removeExisting || media.pendingAsset)) {
+        try {
+          await removeQuestionMedia(originalMediaPath);
+        } catch (cleanupError) {
+          console.warn('No se pudo eliminar el archivo multimedia anterior:', cleanupError);
+        }
+      }
+
       showAlert(isEdit ? 'Pregunta actualizada' : 'Pregunta creada', isEdit ? 'Los cambios se guardaron correctamente.' : 'La pregunta se guardó correctamente.');
       router.back();
     } catch (error: any) {
+      if (uploadedPath) {
+        try {
+          await removeQuestionMedia(uploadedPath);
+        } catch {
+        }
+      }
       showAlert('Error', error.message || 'No se pudo guardar la pregunta.');
     } finally {
       setSaving(false);
@@ -628,6 +688,13 @@ export default function TeacherQuestionForm({
                         detail="Escribe cada relación como izquierda | derecha. En el juego el alumno tocará un elemento y después su pareja o destino."
                       />
                     ) : null}
+
+                    <TeacherQuestionMediaEditor
+                      value={media}
+                      onChange={setMedia}
+                      disabled={saving}
+                      onError={(message) => showAlert('Contenido multimedia', message)}
+                    />
 
                     <View className={isDesktop ? 'flex-row gap-3' : 'gap-3'}>
                       <View className="flex-1">
@@ -811,6 +878,16 @@ export default function TeacherQuestionForm({
                     <Text className="mt-5 text-[34px] font-black text-white md:text-[42px]">
                       {questionText.trim() || '¿Cuál es la capital de Francia?'}
                     </Text>
+
+                    {media.type && (media.pendingAsset?.uri || media.url) ? (
+                      <QuestionMedia
+                        type={media.type}
+                        url={media.pendingAsset?.uri || media.url}
+                        altText={media.altText}
+                        caption={media.caption}
+                        compact
+                      />
+                    ) : null}
 
                     {isChoiceType ? (
                       <View className="mt-5 gap-3">
