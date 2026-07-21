@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -79,7 +80,7 @@ export default function RankingScreen() {
   const [page, setPage] = useState(0)
   const [rankingTotal, setRankingTotal] = useState(0)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [selectedScope, setSelectedScope] = useState<RankingScope>('weekly')
+  const [selectedScope, setSelectedScope] = useState<RankingScope>('global')
   const [selectedLeagueName, setSelectedLeagueName] = useState<string | null>(null)
   const [classOptions, setClassOptions] = useState<ClassOption[]>([])
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null)
@@ -92,7 +93,7 @@ export default function RankingScreen() {
   const selectedClass = classOptions.find((classOption) => classOption.id === selectedClassId) || null
 
   const points = currentProfile?.points ?? rankingRows.find((item) => item.id === currentUserId)?.points ?? 0
-  const alias = currentProfile?.alias || 'Usuario'
+  const alias = currentProfile?.alias || 'Sin alias'
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)
   const isGuest = currentProfile?.role_id === 'guest'
@@ -436,7 +437,10 @@ export default function RankingScreen() {
                   />
                 </View>
 
-                <View className="flex-1 gap-5">
+                <View
+                  className="flex-1 gap-5"
+                  style={Platform.OS === 'web' ? ({ position: 'sticky', top: 20, alignSelf: 'flex-start' } as any) : undefined}
+                >
                   <PositionCard
                     rank={selectedRank}
                     points={rankingPoints}
@@ -914,15 +918,14 @@ function RankingTabs({
   const { accentColor } = useAppTheme()
   const { width } = useWindowDimensions()
   const isPhone = width < 640
-  const tabs: { label: string; icon: keyof typeof Ionicons.glyphMap; scope: RankingScope }[] = [
-    { label: 'Esta semana', icon: 'calendar-outline', scope: 'weekly' },
-    { label: 'Todo el tiempo', icon: 'globe-outline', scope: 'global' },
-    { label: 'Clase', icon: 'school-outline', scope: 'class' },
+  const tabs: { label: string; icon: keyof typeof Ionicons.glyphMap; activeIcon: keyof typeof Ionicons.glyphMap; scope: RankingScope }[] = [
+    { label: 'Global', icon: 'globe-outline', activeIcon: 'globe', scope: 'global' },
+    { label: 'Semana', icon: 'calendar-outline', activeIcon: 'calendar', scope: 'weekly' },
+    { label: 'Clase', icon: 'school-outline', activeIcon: 'school', scope: 'class' },
   ] as const
 
   const renderTab = (tab: (typeof tabs)[number]) => {
     const active = activeScope === tab.scope
-    const compactLabel = tab.scope === 'weekly' ? 'Semana' : tab.scope === 'global' ? 'Global' : 'Clase'
 
     return (
       <Pressable
@@ -935,9 +938,9 @@ function RankingTabs({
           backgroundColor: active ? accentColor : '#09162C',
         }}
       >
-        <Ionicons name={tab.icon} size={18} color={active ? '#FFFFFF' : '#AFC2DB'} />
+        <Ionicons name={active ? tab.activeIcon : tab.icon} size={18} color={active ? '#FFFFFF' : '#AFC2DB'} />
         <Text className={`font-bold ${active ? 'text-white' : 'text-[#AFC2DB]'}`} numberOfLines={1}>
-          {isPhone ? compactLabel : tab.label}
+          {tab.label}
         </Text>
       </Pressable>
     )

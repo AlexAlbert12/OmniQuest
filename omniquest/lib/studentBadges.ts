@@ -24,8 +24,11 @@ export type StudentBadgeAttempt = {
   questions?: StudentBadgeAttemptQuestion | StudentBadgeAttemptQuestion[] | null
 }
 
+export type StudentBadgeCategory = 'xp' | 'streak' | 'accuracy' | 'courses' | 'challenges'
+
 export type StudentBadge = {
   id: string
+  category: StudentBadgeCategory
   title: string
   detail: string
   requirement: string
@@ -114,6 +117,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
   return [
     createBadge({
       id: 'first-step',
+      category: 'challenges',
       title: 'Primer paso',
       requirement: 'Responde correctamente tu primera pregunta',
       current: metrics.correctAnswers,
@@ -124,6 +128,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
     }),
     createBadge({
       id: 'first-session',
+      category: 'challenges',
       title: 'Primera sesión',
       requirement: 'Completa tus primeras 5 preguntas',
       current: metrics.totalAnswers,
@@ -134,6 +139,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
     }),
     createBadge({
       id: 'practice-25',
+      category: 'challenges',
       title: 'En marcha',
       requirement: 'Responde 25 preguntas',
       current: metrics.totalAnswers,
@@ -144,6 +150,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
     }),
     createBadge({
       id: 'practice-100',
+      category: 'challenges',
       title: 'Maestro de retos',
       requirement: 'Responde 100 preguntas',
       current: metrics.totalAnswers,
@@ -154,6 +161,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
     }),
     createBadge({
       id: 'correct-50',
+      category: 'accuracy',
       title: 'Buena puntería',
       requirement: 'Consigue 50 respuestas correctas',
       current: metrics.correctAnswers,
@@ -164,6 +172,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
     }),
     createBadge({
       id: 'accuracy-80',
+      category: 'accuracy',
       title: 'Precisión brillante',
       requirement: 'Alcanza un 80% de precisión con al menos 20 respuestas',
       current: metrics.accuracyEligible ? metrics.accuracyPercent : 0,
@@ -174,6 +183,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
     }),
     createBadge({
       id: 'streak-3',
+      category: 'streak',
       title: 'Constante',
       requirement: 'Practica durante 3 días seguidos',
       current: metrics.streakDays,
@@ -184,6 +194,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
     }),
     createBadge({
       id: 'streak-7',
+      category: 'streak',
       title: 'Racha semanal',
       requirement: 'Practica durante 7 días seguidos',
       current: metrics.streakDays,
@@ -194,6 +205,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
     }),
     createBadge({
       id: 'course-explorer',
+      category: 'courses',
       title: 'Explorador de cursos',
       requirement: 'Practica en 3 cursos diferentes',
       current: metrics.practicedSubjects,
@@ -204,6 +216,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
     }),
     createBadge({
       id: 'class-explorer',
+      category: 'courses',
       title: 'Explorador de clases',
       requirement: 'Practica en 3 clases diferentes',
       current: metrics.practicedClassrooms,
@@ -214,6 +227,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
     }),
     createBadge({
       id: 'question-type-explorer',
+      category: 'challenges',
       title: 'Explorador de formatos',
       requirement: 'Practica 3 tipos de pregunta diferentes',
       current: metrics.questionTypesPlayed,
@@ -224,6 +238,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
     }),
     createBadge({
       id: 'xp-500',
+      category: 'xp',
       title: 'Cazador de XP',
       requirement: 'Acumula 500 XP',
       current: metrics.totalPoints,
@@ -234,6 +249,7 @@ export function buildStudentBadges(metrics: StudentBadgeMetrics): StudentBadge[]
     }),
     createBadge({
       id: 'xp-2000',
+      category: 'xp',
       title: 'Leyenda XP',
       requirement: 'Acumula 2.000 XP',
       current: metrics.totalPoints,
@@ -351,6 +367,7 @@ function normalizeQuestionRelation(
 
 function createBadge({
   id,
+  category,
   title,
   requirement,
   current,
@@ -360,6 +377,7 @@ function createBadge({
   color,
 }: {
   id: string
+  category: StudentBadgeCategory
   title: string
   requirement: string
   current: number
@@ -374,6 +392,7 @@ function createBadge({
 
   return {
     id,
+    category,
     title,
     detail: unlocked ? 'Insignia global conseguida' : 'Insignia global pendiente',
     requirement,

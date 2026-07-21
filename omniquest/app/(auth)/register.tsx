@@ -1,34 +1,26 @@
-import React, { useState } from 'react'
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
-import { Link, useRouter } from 'expo-router'
+import React, { useMemo, useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
+import { Link, useRouter } from 'expo-router'
+import { Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import AuthCard from '../../components/auth/AuthCard'
 import AuthInput from '../../components/auth/AuthInput'
+import AuthRoleNotice from '../../components/auth/AuthRoleNotice'
+import AuthStatusBanner from '../../components/auth/AuthStatusBanner'
+import AuthSubmitButton from '../../components/auth/AuthSubmitButton'
+import EmailVerificationPanel from '../../components/auth/EmailVerificationPanel'
+import PasswordStrength from '../../components/auth/PasswordStrength'
 import BrandLogo from '../../components/BrandLogo'
-import OmniGuide from '../../components/OmniGuide'
 import HomeVisualBackground from '../../components/HomeVisualBackground'
-import { getAuthErrorMessage, getEmailRedirectTo, isValidEmail, normalizeEmail } from '../../lib/auth'
+import OmniGuide from '../../components/OmniGuide'
+import { getAuthErrorMessage, getEmailRedirectTo, getPasswordStrength, isValidEmail, normalizeEmail } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
-import { createShadowStyle } from '../../lib/platformShadow'
 
-type RegisterErrors = {
-  alias?: string
-  confirmPassword?: string
-  email?: string
-  password?: string
-}
+type RegisterErrors = { alias?: string; confirmPassword?: string; email?: string; password?: string }
+type Status = { variant: 'info' | 'success' | 'warning' | 'error'; title?: string; message: string } | null
 
 export default function RegisterScreen() {
   const { width, height } = useWindowDimensions()
+  const router = useRouter()
   const [alias, setAlias] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -36,121 +28,102 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [statusMessage, setStatusMessage] = useState('')
+  const [resending, setResending] = useState(false)
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null)
+  const [verificationSent, setVerificationSent] = useState(false)
+  const [status, setStatus] = useState<Status>(null)
   const [fieldErrors, setFieldErrors] = useState<RegisterErrors>({})
-  const router = useRouter()
 
   const isDesktop = width >= 1100
   const isTablet = width >= 760
   const isWeb = Platform.OS === 'web'
+  const passwordStrength = useMemo(() => getPasswordStrength(password), [password])
 
-  const clearFieldError = (field: keyof RegisterErrors) => {
-    setFieldErrors((current) => ({ ...current, [field]: undefined }))
-    setStatusMessage('')
+  const validateAlias = (value = alias) => {
+    const trimmed = value.trim()
+    const error = trimmed.length < 3 ? 'El alias debe tener al menos 3 caracteres.' : trimmed.length > 30 ? 'El alias no puede superar 30 caracteres.' : undefined
+    setFieldErrors((current) => ({ ...current, alias: error }))
+    return !error
+  }
+  const validateEmail = (value = email) => {
+    const error = isValidEmail(normalizeEmail(value)) ? undefined : 'Introduce un correo electrónico válido.'
+    setFieldErrors((current) => ({ ...current, email: error }))
+    return !error
+  }
+  const validatePassword = (value = password) => {
+    const strength = getPasswordStrength(value)
+    const error = strength.isAcceptable ? undefined : 'Usa 8 caracteres y combina mayúsculas, minúsculas, números o símbolos.'
+    setFieldErrors((current) => ({ ...current, password: error }))
+    return !error
+  }
+  const validateConfirmation = (value = confirmPassword, sourcePassword = password) => {
+    const error = !value ? 'Repite tu contraseña.' : value !== sourcePassword ? 'Las contraseñas no coinciden.' : undefined
+    setFieldErrors((current) => ({ ...current, confirmPassword: error }))
+    return !error
   }
 
-  async function signUpWithEmail() {
+  const signUpWithEmail = async () => {
     const normalizedEmail = normalizeEmail(email)
-    const nextErrors: RegisterErrors = {}
+    const checks = [validateAlias(), validateEmail(normalizedEmail), validatePassword(), validateConfirmation(confirmPassword, password)]
+    if (checks.some((valid) => !valid)) return
 
-    if (!alias.trim()) {
-      nextErrors.alias = 'Elige un alias para tu perfil.'
-    }
-
-    if (!isValidEmail(normalizedEmail)) {
-      nextErrors.email = 'Introduce un correo electrónico válido.'
-    }
-
-    if (password.length < 6) {
-      nextErrors.password = 'La contraseña debe tener al menos 6 caracteres.'
-    }
-
-    if (confirmPassword !== password) {
-      nextErrors.confirmPassword = 'Las contraseñas no coinciden.'
-    }
-
-    if (Object.keys(nextErrors).length > 0) {
-      setFieldErrors(nextErrors)
-      setStatusMessage('')
-      return
-    }
-
-    setFieldErrors({})
-    setStatusMessage('Creando cuenta...')
     setLoading(true)
-
+    setStatus({ variant: 'info', message: 'Estamos creando tu cuenta de alumno…' })
     try {
       const { data, error } = await supabase.auth.signUp({
         email: normalizedEmail,
         password,
         options: {
-          emailRedirectTo: getEmailRedirectTo(),
-          data: {
-            alias: alias.trim(),
-            role_id: 'student',
-          },
+          emailRedirectTo: getEmailRedirectTo('/login'),
+          data: { alias: alias.trim(), role_id: 'student' },
         },
       })
-
       if (error) {
-        setStatusMessage(getAuthErrorMessage(error, 'signUp') || 'No hemos podido crear la cuenta. Revisa los datos.')
+        setStatus({ variant: 'error', title: 'No se pudo crear la cuenta', message: getAuthErrorMessage(error, 'signUp') })
         return
       }
-
       if (!data.session) {
-        setStatusMessage('Cuenta creada. Revisa tu correo antes de iniciar sesión.')
-        Alert.alert(
-          'Revisa tu correo',
-          'Cuenta creada correctamente. Si la confirmación por email está activada, confirma tu correo antes de iniciar sesión.'
-        )
-        router.replace('/(auth)/login' as any)
+        setVerificationEmail(normalizedEmail)
+        setVerificationSent(false)
+        setStatus(null)
         return
       }
-
-      setStatusMessage('Cuenta creada correctamente.')
+      setStatus({ variant: 'success', message: 'Cuenta creada. Preparando tu aventura…' })
       router.replace('/(student)/homeStudent' as any)
     } catch (error) {
       console.error('[register] unexpected error', error)
-      setStatusMessage('No hemos podido crear la cuenta. Inténtalo de nuevo.')
+      setStatus({ variant: 'error', title: 'Error de conexión', message: 'No hemos podido crear la cuenta. Inténtalo de nuevo.' })
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <ScrollView
-      className="flex-1 bg-[#010611]"
-      contentContainerStyle={{ flexGrow: 1 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View
-        className="overflow-hidden bg-[#010611]"
-        style={{
-          minHeight: isDesktop ? Math.max(height, 860) : Math.max(height, 860),
-          borderRadius: isWeb ? 0 : 34,
-        }}
-      >
-        <HomeVisualBackground isDesktop={isDesktop} />
+  const resendVerification = async () => {
+    if (!verificationEmail) return
+    setResending(true)
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: verificationEmail,
+        options: { emailRedirectTo: getEmailRedirectTo('/login') },
+      })
+      if (error) throw error
+      setVerificationSent(true)
+    } catch (error: any) {
+      setStatus({ variant: 'error', title: 'No se pudo reenviar', message: getAuthErrorMessage(error, 'signUp') })
+    } finally {
+      setResending(false)
+    }
+  }
 
-        <View
-          className="z-10 flex-1 items-center justify-center"
-          style={{
-            paddingHorizontal: isDesktop ? 32 : 22,
-            paddingVertical: isDesktop ? 34 : 28,
-          }}
-        >
+  return (
+    <ScrollView className="flex-1 bg-[#010611]" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <View className="overflow-hidden bg-[#010611]" style={{ minHeight: Math.max(height, 860), borderRadius: isWeb ? 0 : 34 }}>
+        <HomeVisualBackground isDesktop={isDesktop} />
+        <View className="z-10 flex-1 items-center justify-center" style={{ paddingHorizontal: isDesktop ? 32 : 22, paddingVertical: 32 }}>
           <View className="absolute left-5 top-5 z-20">
             <Link href="/" asChild>
-              <Pressable
-                className="flex-row items-center gap-2 px-4 py-3"
-                style={({ pressed }) => ({
-                  backgroundColor: 'rgba(16, 42, 82, 0.72)',
-                  borderColor: 'rgba(99, 177, 235, 0.28)',
-                  borderWidth: 1,
-                  borderRadius: 999,
-                  opacity: pressed ? 0.8 : 1,
-                })}
-              >
+              <Pressable accessibilityRole="button" accessibilityLabel="Volver al inicio" className="flex-row items-center gap-2 rounded-full border border-[#3B6FA5]/40 bg-[#102A52]/85 px-4 py-3">
                 <Ionicons name="home-outline" size={18} color="#8CD5FF" />
                 <Text className="font-extrabold text-[#DDE8FF]">Inicio</Text>
               </Pressable>
@@ -158,215 +131,116 @@ export default function RegisterScreen() {
           </View>
 
           <View className="items-center px-2">
-            <BrandLogo center size={isDesktop ? 68 : 44} />
-            <Text
-              style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }}
-              className="mt-1 text-center text-[#4FB8FF]"
-            >
-              Crea tu cuenta para empezar.
-            </Text>
-
-            <View className="mt-4 mb-5 flex-row items-center gap-3">
+            <BrandLogo center size={isDesktop ? 68 : 48} />
+            <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }} className="mt-1 text-center text-[#4FB8FF]">Crea tu cuenta para empezar.</Text>
+            <View className="mb-5 mt-4 flex-row items-center gap-3">
               <View className="h-px w-16 bg-[#3B6FA5]" />
-              <OmniGuide state="normal" autoBlink size={isDesktop ? 80 : isTablet ? 80 : 40} />
+              <OmniGuide state={verificationEmail ? 'happy' : 'normal'} autoBlink={!verificationEmail} size={isDesktop ? 80 : isTablet ? 70 : 48} />
               <View className="h-px w-16 bg-[#3B6FA5]" />
             </View>
           </View>
 
-          <LinearGradient
-            colors={['rgba(145, 73, 246, 0.26)', 'rgba(34, 28, 78, 0.92)']}
-            start={{ x: 1, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={{
-              borderColor: 'rgba(148, 163, 184, 0.18)',
-              borderRadius: 32,
-              borderWidth: 1,
-              maxWidth: isTablet ? 620 : 440,
-              overflow: 'hidden',
-              width: '100%',
-              ...createShadowStyle({
-                color: '#A855F7',
-                opacity: 0.14,
-                radius: 24,
-                offsetY: 12,
-                elevation: 10,
-                web: '0 18px 34px rgba(168, 85, 247, 0.18)',
-              }),
-            }}
-          >
-            <View style={{ padding: isDesktop ? 30 : 22, gap: 18 }}>
-              <View className="flex-row items-center gap-4">
-                <View
-                  className="items-center justify-center"
-                  style={{ backgroundColor: '#A56BFF', borderRadius: 22, height: 64, width: 64 }}
-                >
-                  <Ionicons name="game-controller-outline" size={31} color="#FFFFFF" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-[27px] font-extrabold text-white">Crear cuenta</Text>
-                  <Text className="mt-1 text-[15px] font-semibold text-[#B8C5E0]">Empieza como alumno</Text>
-                </View>
-              </View>
-
-              <AuthInput
-                label="Alias"
-                icon="person-outline"
-                placeholder="Jugador123"
-                value={alias}
-                onChangeText={(value) => {
-                  setAlias(value)
-                  clearFieldError('alias')
-                }}
-                error={fieldErrors.alias}
-                autoCapitalize="none"
-                autoComplete="username"
-                textContentType="username"
-              />
-
-              <AuthInput
-                label="Correo electrónico"
-                icon="mail-outline"
-                placeholder="Introduce tu correo"
-                value={email}
-                onChangeText={(value) => {
-                  setEmail(value)
-                  clearFieldError('email')
-                }}
-                error={fieldErrors.email}
-                autoCapitalize="none"
-                autoComplete="email"
-                autoCorrect={false}
-                inputMode="email"
-                keyboardType="email-address"
-                textContentType="emailAddress"
-              />
-
-              <AuthInput
-                label="Contraseña"
-                icon="lock-closed-outline"
-                placeholder="Introduce tu contraseña"
-                value={password}
-                onChangeText={(value) => {
-                  setPassword(value)
-                  clearFieldError('password')
-                  if (fieldErrors.confirmPassword) clearFieldError('confirmPassword')
-                }}
-                error={fieldErrors.password}
-                helper="Mínimo 6 caracteres."
-                autoComplete="new-password"
-                secureTextEntry={!showPassword}
-                secureVisible={showPassword}
-                showSecureToggle
-                textContentType="newPassword"
-                onToggleSecureText={() => setShowPassword((current) => !current)}
-              />
-
-              <AuthInput
-                label="Confirmar contraseña"
-                icon="lock-closed-outline"
-                placeholder="Repite tu contraseña"
-                value={confirmPassword}
-                onChangeText={(value) => {
-                  setConfirmPassword(value)
-                  clearFieldError('confirmPassword')
-                }}
-                error={fieldErrors.confirmPassword}
-                autoComplete="new-password"
-                secureTextEntry={!showConfirmPassword}
-                secureVisible={showConfirmPassword}
-                showSecureToggle
-                textContentType="newPassword"
-                onToggleSecureText={() => setShowConfirmPassword((current) => !current)}
-              />
-
-              <AuthGradientButton
-                loading={loading}
-                loadingLabel="Creando cuenta..."
-                label="Registrarse"
-                onPress={signUpWithEmail}
-              />
-
-              {statusMessage ? (
-                <Text className="text-center text-[13px] font-semibold text-[#8CD5FF]">{statusMessage}</Text>
-              ) : null}
-            </View>
-
-            <View
-              className="border-t px-5 py-5"
-              style={{
-                backgroundColor: 'rgba(16, 42, 82, 0.42)',
-                borderColor: 'rgba(99, 177, 235, 0.14)',
-              }}
-            >
+          <AuthCard
+            accentColor="#A56BFF"
+            icon={verificationEmail ? 'mail-open-outline' : 'game-controller-outline'}
+            title={verificationEmail ? 'Un último paso' : 'Crear cuenta'}
+            subtitle={verificationEmail ? 'Verifica tu correo para activar la cuenta' : 'Empieza tu aventura como alumno'}
+            isDesktop={isDesktop}
+            maxWidth={isTablet ? 620 : 470}
+            footer={!verificationEmail ? (
               <View className="flex-row flex-wrap items-center justify-center gap-1">
                 <Text className="text-[13px] font-semibold text-[#AEBBDD]">¿Ya tienes cuenta?</Text>
-                <Link href="/(auth)/login" asChild>
-                  <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.76 : 1 })}>
-                    <Text className="text-[13px] font-extrabold text-[#42B9FF]">Inicia sesión.</Text>
-                  </Pressable>
-                </Link>
+                <Link href="/(auth)/login" asChild><Pressable accessibilityRole="link" hitSlop={6}><Text className="text-[13px] font-extrabold text-[#42B9FF]">Inicia sesión.</Text></Pressable></Link>
               </View>
-            </View>
-          </LinearGradient>
+            ) : undefined}
+          >
+            {verificationEmail ? (
+              <EmailVerificationPanel
+                email={verificationEmail}
+                loading={resending}
+                sent={verificationSent}
+                onResend={() => void resendVerification()}
+                onGoToLogin={() => router.replace('/(auth)/login' as any)}
+                onChangeEmail={() => { setVerificationEmail(null); setVerificationSent(false); setStatus(null) }}
+              />
+            ) : (
+              <>
+                <AuthRoleNotice mode="register" />
+                <AuthInput
+                  label="Alias público"
+                  icon="person-outline"
+                  placeholder="Jugador123"
+                  value={alias}
+                  onChangeText={(value) => { setAlias(value); if (fieldErrors.alias) validateAlias(value); setStatus(null) }}
+                  onBlur={() => validateAlias()}
+                  error={fieldErrors.alias}
+                  valid={alias.trim().length >= 3 && !fieldErrors.alias}
+                  autoCapitalize="none"
+                  autoComplete="username"
+                  textContentType="username"
+                />
+                <AuthInput
+                  label="Correo electrónico"
+                  icon="mail-outline"
+                  placeholder="tu@email.com"
+                  value={email}
+                  onChangeText={(value) => { setEmail(value); if (fieldErrors.email) validateEmail(value); setStatus(null) }}
+                  onBlur={() => validateEmail()}
+                  error={fieldErrors.email}
+                  valid={Boolean(email) && !fieldErrors.email && isValidEmail(normalizeEmail(email))}
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  autoCorrect={false}
+                  inputMode="email"
+                  keyboardType="email-address"
+                  textContentType="emailAddress"
+                />
+                <AuthInput
+                  label="Contraseña"
+                  icon="lock-closed-outline"
+                  placeholder="Crea una contraseña segura"
+                  value={password}
+                  onChangeText={(value) => {
+                    setPassword(value)
+                    if (fieldErrors.password) validatePassword(value)
+                    if (confirmPassword) validateConfirmation(confirmPassword, value)
+                    setStatus(null)
+                  }}
+                  onBlur={() => validatePassword()}
+                  error={fieldErrors.password}
+                  autoComplete="new-password"
+                  secureTextEntry={!showPassword}
+                  secureVisible={showPassword}
+                  showSecureToggle
+                  textContentType="newPassword"
+                  onToggleSecureText={() => setShowPassword((current) => !current)}
+                />
+                <PasswordStrength result={passwordStrength} />
+                <AuthInput
+                  label="Confirmar contraseña"
+                  icon="shield-checkmark-outline"
+                  placeholder="Repite tu contraseña"
+                  value={confirmPassword}
+                  onChangeText={(value) => { setConfirmPassword(value); if (fieldErrors.confirmPassword || value === password) validateConfirmation(value, password); setStatus(null) }}
+                  onBlur={() => validateConfirmation()}
+                  onSubmitEditing={() => void signUpWithEmail()}
+                  error={fieldErrors.confirmPassword}
+                  valid={Boolean(confirmPassword) && confirmPassword === password && !fieldErrors.confirmPassword}
+                  autoComplete="new-password"
+                  secureTextEntry={!showConfirmPassword}
+                  secureVisible={showConfirmPassword}
+                  showSecureToggle
+                  textContentType="newPassword"
+                  returnKeyType="done"
+                  onToggleSecureText={() => setShowConfirmPassword((current) => !current)}
+                />
+                {status ? <AuthStatusBanner variant={status.variant} title={status.title} message={status.message} /> : null}
+                <AuthSubmitButton label="Crear cuenta de alumno" loadingLabel="Creando cuenta…" loading={loading} disabled={!passwordStrength.isAcceptable} onPress={() => void signUpWithEmail()} />
+              </>
+            )}
+          </AuthCard>
         </View>
       </View>
     </ScrollView>
-  )
-}
-
-function AuthGradientButton({
-  label,
-  loading,
-  loadingLabel,
-  onPress,
-}: {
-  label: string
-  loading: boolean
-  loadingLabel: string
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={loading}
-      style={({ pressed }) => ({ opacity: loading ? 0.7 : pressed ? 0.9 : 1 })}
-    >
-      <LinearGradient
-        colors={['#3479F4', '#8D63F7']}
-        start={{ x: 0, y: 0.15 }}
-        end={{ x: 1, y: 0.9 }}
-        style={{
-          alignItems: 'center',
-          borderRadius: 26,
-          flexDirection: 'row',
-          justifyContent: 'center',
-          minHeight: 62,
-          paddingHorizontal: 22,
-          ...createShadowStyle({
-            color: '#7C66FF',
-            opacity: 0.32,
-            radius: 20,
-            offsetY: 10,
-            elevation: 8,
-            web: '0 16px 30px rgba(124, 102, 255, 0.26)',
-          }),
-        }}
-      >
-        <View className="flex-row items-center gap-3">
-          {loading ? <ActivityIndicator color="#F5FBFF" /> : null}
-          <Text className="text-[17px] font-extrabold text-[#F5FBFF]">
-            {loading ? loadingLabel : label}
-          </Text>
-        </View>
-        {!loading ? (
-          <View
-            className="absolute right-3 items-center justify-center rounded-full"
-            style={{ backgroundColor: 'rgba(255,255,255,0.18)', height: 44, width: 44 }}
-          >
-            <Ionicons name="arrow-forward" size={24} color="#F5FBFF" />
-          </View>
-        ) : null}
-      </LinearGradient>
-    </Pressable>
   )
 }

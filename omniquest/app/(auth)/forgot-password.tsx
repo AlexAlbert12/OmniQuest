@@ -1,194 +1,116 @@
 import React, { useState } from 'react'
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
 import { Link } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import AuthCard from '../../components/auth/AuthCard'
 import AuthInput from '../../components/auth/AuthInput'
+import AuthStatusBanner from '../../components/auth/AuthStatusBanner'
+import AuthSubmitButton from '../../components/auth/AuthSubmitButton'
 import BrandLogo from '../../components/BrandLogo'
-import OmniGuide from '../../components/OmniGuide'
 import HomeVisualBackground from '../../components/HomeVisualBackground'
+import OmniGuide from '../../components/OmniGuide'
 import { getAuthErrorMessage, getPasswordRecoveryRedirectTo, isValidEmail, normalizeEmail } from '../../lib/auth'
 import { supabase } from '../../lib/supabase'
-import { createShadowStyle } from '../../lib/platformShadow'
 
 export default function ForgotPasswordScreen() {
   const { width, height } = useWindowDimensions()
   const [email, setEmail] = useState('')
+  const [emailError, setEmailError] = useState<string | undefined>()
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
+  const [status, setStatus] = useState<{ variant: 'success' | 'error'; title?: string; message: string } | null>(null)
 
   const isDesktop = width >= 1100
   const isTablet = width >= 760
-  const isWeb = Platform.OS === 'web'
 
-  const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n\n${message}`)
-      return
-    }
-
-    Alert.alert(title, message)
+  const validateEmail = (value = email) => {
+    const error = isValidEmail(normalizeEmail(value)) ? undefined : 'Introduce un correo electrónico válido.'
+    setEmailError(error)
+    return !error
   }
 
   const sendRecoveryEmail = async () => {
     const normalizedEmail = normalizeEmail(email)
-
-    if (!isValidEmail(normalizedEmail)) {
-      showAlert('Error', 'Introduce un correo electrónico válido.')
-      return
-    }
+    if (!validateEmail(normalizedEmail)) return
 
     setLoading(true)
+    setStatus(null)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         redirectTo: getPasswordRecoveryRedirectTo(),
       })
-
-      if (error) {
-        showAlert('Error', getAuthErrorMessage(error, 'resetPassword'))
-        return
-      }
-
+      if (error) throw error
       setSent(true)
-      showAlert('Revisa tu correo', 'Te hemos enviado un enlace para crear una nueva contraseña.')
-    } catch (error) {
-      showAlert('Error', error instanceof Error ? error.message : 'No se pudo enviar el correo de recuperación.')
+      setStatus({
+        variant: 'success',
+        title: 'Revisa tu correo',
+        message: `Hemos enviado un enlace de recuperación a ${normalizedEmail}. También puede estar en correo no deseado.`,
+      })
+    } catch (error: any) {
+      setStatus({ variant: 'error', title: 'No se pudo enviar', message: getAuthErrorMessage(error, 'resetPassword') })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-[#010611]"
-      contentContainerStyle={{ flexGrow: 1 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View
-        className="overflow-hidden bg-[#010611]"
-        style={{
-          minHeight: isDesktop ? Math.max(height, 760) : Math.max(height, 760),
-          borderRadius: isWeb ? 0 : 34,
-        }}
-      >
+    <ScrollView className="flex-1 bg-[#010611]" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <View className="overflow-hidden bg-[#010611]" style={{ minHeight: Math.max(height, 760) }}>
         <HomeVisualBackground isDesktop={isDesktop} />
-
-        <View
-          className="z-10 flex-1 items-center justify-center"
-          style={{
-            paddingHorizontal: isDesktop ? 32 : 22,
-            paddingVertical: isDesktop ? 34 : 28,
-          }}
-        >
+        <View className="z-10 flex-1 items-center justify-center" style={{ paddingHorizontal: isDesktop ? 32 : 22, paddingVertical: 34 }}>
           <View className="items-center px-2">
-            <BrandLogo center size={isDesktop ? 68 : 44} />
-            <Text
-              style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }}
-              className="mt-1 text-center text-[#4FB8FF]"
-            >
-              Recupera el acceso a tu aventura.
-            </Text>
-
-            <OmniGuide state="thinking" size={isDesktop ? 88 : 76} style={{ marginTop: 12 }} />
-            <Text className="mb-5 mt-1 text-center text-[12px] text-[#AFC2DB]">Omni te ayuda a recuperar el acceso.</Text>
+            <BrandLogo center size={isDesktop ? 68 : 48} />
+            <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }} className="mt-1 text-center text-[#4FB8FF]">Recupera el acceso a tu aventura.</Text>
+            <OmniGuide state={sent ? 'happy' : 'thinking'} size={isDesktop ? 88 : 72} style={{ marginTop: 12 }} />
           </View>
 
-          <LinearGradient
-            colors={['rgba(56, 189, 248, 0.18)', 'rgba(18, 58, 92, 0.90)']}
-            start={{ x: 1, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={{
-              borderColor: 'rgba(148, 163, 184, 0.18)',
-              borderRadius: 32,
-              borderWidth: 1,
-              maxWidth: isTablet ? 560 : 430,
-              overflow: 'hidden',
-              width: '100%',
-              ...createShadowStyle({
-                color: '#38BDF8',
-                opacity: 0.14,
-                radius: 24,
-                offsetY: 12,
-                elevation: 10,
-                web: '0 18px 34px rgba(56, 189, 248, 0.16)',
-              }),
-            }}
-          >
-            <View className="p-6" style={{ gap: 18 }}>
-              <View className="items-center">
-                <View
-                  className="items-center justify-center"
-                  style={{ backgroundColor: '#38BDF8', borderRadius: 22, height: 64, width: 64 }}
-                >
-                  <Ionicons name="key-outline" size={31} color="#FFFFFF" />
-                </View>
-                <Text className="mt-4 text-center text-[25px] font-extrabold text-white">¿Olvidaste tu contraseña?</Text>
-                <Text className="mt-2 text-center text-[14px] font-semibold leading-6 text-[#B8C5E0]">
-                  Escribe tu correo y te enviaremos un enlace para establecer una nueva contraseña.
-                </Text>
-              </View>
-
-              <AuthInput
-                label="Correo electrónico"
-                icon="mail-outline"
-                placeholder="tu@email.com"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-              />
-
-              <Pressable
-                onPress={sendRecoveryEmail}
-                disabled={loading}
-                style={({ pressed }) => ({ opacity: loading ? 0.7 : pressed ? 0.9 : 1 })}
-              >
-                <LinearGradient
-                  colors={['#3479F4', '#8D63F7']}
-                  start={{ x: 0, y: 0.15 }}
-                  end={{ x: 1, y: 0.9 }}
-                  style={{
-                    alignItems: 'center',
-                    borderRadius: 26,
-                    flexDirection: 'row',
-                    justifyContent: 'center',
-                    minHeight: 62,
-                    paddingHorizontal: 22,
-                  }}
-                >
-                  {loading ? <ActivityIndicator color="#F5FBFF" /> : null}
-                  <Text className="ml-2 text-[17px] font-extrabold text-[#F5FBFF]">
-                    {loading ? 'Enviando...' : sent ? 'Reenviar enlace' : 'Enviar enlace'}
-                  </Text>
-                </LinearGradient>
-              </Pressable>
-            </View>
-
-            <View
-              className="border-t px-5 py-5"
-              style={{
-                backgroundColor: 'rgba(16, 42, 82, 0.42)',
-                borderColor: 'rgba(99, 177, 235, 0.14)',
-              }}
-            >
+          <AuthCard
+            accentColor="#38BDF8"
+            icon="key-outline"
+            title="Recuperar contraseña"
+            subtitle="Te enviaremos un enlace seguro para crear una contraseña nueva"
+            isDesktop={isDesktop}
+            maxWidth={isTablet ? 560 : 440}
+            footer={(
               <Link href="/login" asChild>
-                <Pressable className="flex-row items-center justify-center gap-2">
-                  <Ionicons name="arrow-back" size={16} color="#42B9FF" />
+                <Pressable accessibilityRole="link" className="flex-row items-center justify-center gap-2" hitSlop={6}>
                   <Text className="font-extrabold text-[#42B9FF]">Volver a iniciar sesión</Text>
                 </Pressable>
               </Link>
-            </View>
-          </LinearGradient>
+            )}
+          >
+            <AuthInput
+              label="Correo electrónico"
+              icon="mail-outline"
+              placeholder="tu@email.com"
+              value={email}
+              onChangeText={(value) => {
+                setEmail(value)
+                if (emailError) validateEmail(value)
+                setStatus(null)
+              }}
+              onBlur={() => validateEmail()}
+              onSubmitEditing={() => void sendRecoveryEmail()}
+              error={emailError}
+              valid={Boolean(email) && !emailError && isValidEmail(normalizeEmail(email))}
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              inputMode="email"
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              returnKeyType="send"
+            />
+
+            {status ? <AuthStatusBanner variant={status.variant} title={status.title} message={status.message} /> : null}
+
+            <AuthSubmitButton
+              label={sent ? 'Reenviar enlace' : 'Enviar enlace de recuperación'}
+              loadingLabel="Enviando…"
+              loading={loading}
+              icon="paper-plane"
+              onPress={() => void sendRecoveryEmail()}
+            />
+          </AuthCard>
         </View>
       </View>
     </ScrollView>

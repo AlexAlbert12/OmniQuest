@@ -280,61 +280,48 @@ export default function ProgressScreen() {
             icon="stats-chart"
             isDesktop={isDesktop}
             title="Progreso"
-            subtitle="Analiza tu aprendizaje y sigue mejorando cada día."
+            subtitle="Descubre qué practicar hoy y sigue avanzando paso a paso."
           />
 
-          <View className={isDesktop ? 'flex-row flex-wrap items-stretch justify-between gap-4' : 'gap-4'}>
+          <View className="mb-3 mt-1 flex-row items-center gap-2">
+            <Ionicons name="sparkles" size={20} color={accentColor} />
+            <Text className="text-[18px] font-black text-white">Tu recomendación de hoy</Text>
+          </View>
+
+          <StudentPrimaryLearningCTA
+            icon={recommendedArea ? 'sparkles' : 'book'}
+            title={recommendedArea ? `Practica ${recommendedArea.title}` : 'Continúa tu ruta de aprendizaje'}
+            subtitle={recommendedArea ? `Tienes ${recommendedArea.failedCount} preguntas preparadas para reforzar este contenido.` : 'Entra en tus cursos y completa la siguiente actividad disponible.'}
+            meta={recommendedArea ? '+20 XP posibles' : `${subjectProgress.length} cursos activos`}
+            ctaLabel={recommendedArea ? 'Practicar ahora' : 'Ver cursos'}
+            color={recommendedArea?.color ?? accentColor}
+            onPress={() => recommendedArea ? handleReviewArea(recommendedArea) : router.push('/(student)/classes' as any)}
+          />
+
+          <View className="mt-5 flex-row flex-wrap items-stretch gap-4">
             <ProgressOverviewCard
               progressPercent={safeProgressPercent}
               accentColor={accentColor}
-              className={isDesktop ? 'flex-[1] min-w-[250px] max-w-[270px]' : ''}
-            />
-            <ProgressMetricCard
-              icon="help-circle"
-              title="Preguntas respondidas"
-              value={String(savedScores)}
-              detail={weeklyAttemptsCount > 0 ? `Esta semana: ${weeklyAttemptsCount}` : 'Empieza tu primera práctica'}
-              color="#58B5FF"
-              className={isDesktop ? 'flex-1 min-w-[200px] max-w-[220px]' : ''}
-            />
-            <ProgressMetricCard
-              icon="speedometer"
-              title="Precisión global"
-              value={`${safeAccuracyPercent}%`}
-              detail={safeAccuracyPercent >= 80 ? '¡Excelente!' : failedQuestions > 0 ? 'Mejora repasando' : 'Buen ritmo'}
-              detailColor={safeAccuracyPercent >= 70 ? '#22C55E' : '#FBBF24'}
-              color="#F6A64A"
-              className={isDesktop ? 'flex-1 min-w-[200px] max-w-[220px]' : ''}
+              className={isDesktop ? 'flex-1 min-w-[220px]' : ''}
             />
             <ProgressMetricCard
               icon="refresh-circle"
               title="Preguntas para practicar"
               value={String(failedQuestions)}
-              detail={failedQuestions > 0 ? 'Plan recomendado' : 'Sin pendientes'}
+              detail={failedQuestions > 0 ? 'Oportunidad de mejora' : 'Todo al día'}
               detailColor={failedQuestions > 0 ? '#FBBF24' : '#22C55E'}
               color="#FBBF24"
-              className={isDesktop ? 'flex-1 min-w-[200px] max-w-[220px]' : ''}
+              className={isDesktop ? 'flex-1 min-w-[220px]' : ''}
             />
             <ProgressMetricCard
-              icon="flash"
-              title="XP total acumulada"
-              value={`${points.toLocaleString()} XP`}
-              detail={points > 0 ? 'Sigue así' : 'Aún sin XP'}
-              color="#FBBF24"
-              className={isDesktop ? 'flex-1 min-w-[200px] max-w-[220px]' : ''}
+              icon="flame"
+              title="Racha actual"
+              value={`${badgeMetrics.streakDays} días`}
+              detail={badgeMetrics.streakDays > 0 ? 'Mantén el ritmo' : 'Empieza hoy'}
+              color="#FF7B45"
+              className={isDesktop ? 'flex-1 min-w-[220px]' : ''}
             />
           </View>
-
-          <StudentPrimaryLearningCTA
-            className="mt-5"
-            icon={recommendedArea ? 'sparkles' : 'book'}
-            title={recommendedArea ? `Repasa ${recommendedArea.title}` : 'Continúa tu ruta de aprendizaje'}
-            subtitle={recommendedArea ? `${recommendedArea.failedCount} preguntas para practicar y subir tu precisión.` : 'Entra en tus cursos y completa la siguiente actividad disponible.'}
-            meta={recommendedArea ? '+20 XP posibles' : `${subjectProgress.length} cursos activos`}
-            ctaLabel={recommendedArea ? 'Repasar ahora' : 'Ver cursos'}
-            color={recommendedArea?.color ?? accentColor}
-            onPress={() => recommendedArea ? handleReviewArea(recommendedArea) : router.push('/(student)/classes' as any)}
-          />
 
           <View className={isDesktop ? 'mt-5 flex-row flex-wrap items-stretch gap-5' : 'mt-5 gap-5'}>
             <ReinforcementCard
@@ -470,6 +457,28 @@ function MobileStudentProgress({
           subtitle="Sigue aprendiendo cada día."
         />
 
+        <View className="mb-3 flex-row items-center gap-2">
+          <Ionicons name="sparkles" size={19} color={accentColor} />
+          <Text className="text-[17px] font-black text-white">Tu recomendación de hoy</Text>
+        </View>
+
+        <StudentPrimaryLearningCTA
+          icon={recommendedArea ? 'sparkles' : 'book'}
+          title={recommendedArea ? `Practica ${recommendedArea.title}` : 'Continúa tu aprendizaje'}
+          subtitle={recommendedArea ? `${recommendedArea.failedCount} preguntas preparadas para reforzar este contenido.` : 'Entra en tus cursos y completa la siguiente actividad.'}
+          meta={recommendedArea ? '+20 XP posibles' : `${subjectProgress.length} cursos activos`}
+          ctaLabel={recommendedArea ? 'Practicar' : 'Ver cursos'}
+          color={recommendedArea?.color ?? accentColor}
+          onPress={() => recommendedArea ? handleReviewArea(recommendedArea) : router.push('/(student)/classes' as any)}
+        />
+
+        <View className="mt-3 flex-row items-start gap-2 rounded-xl border border-[#1A3155] bg-[#09162C] px-3 py-3">
+          <Ionicons name="information-circle-outline" size={17} color="#8CD5FF" />
+          <Text className="min-w-0 flex-1 text-[11px] font-semibold leading-4 text-[#AFC2DB]">
+            Calculado según tus últimos intentos y las preguntas que más te conviene practicar.
+          </Text>
+        </View>
+
         <MobileProgressHero
           level={level}
           points={points}
@@ -479,27 +488,14 @@ function MobileStudentProgress({
           accentColor={accentColor}
         />
 
-        <StudentPrimaryLearningCTA
-          className="mt-5"
-          icon={recommendedArea ? 'sparkles' : 'book'}
-          title={recommendedArea ? `Repasa ${recommendedArea.title}` : 'Continúa tu aprendizaje'}
-          subtitle={recommendedArea ? `${recommendedArea.failedCount} preguntas para practicar y ganar XP.` : 'Entra en tus cursos y completa la siguiente actividad.'}
-          meta={recommendedArea ? '+20 XP posibles' : `${subjectProgress.length} cursos activos`}
-          ctaLabel={recommendedArea ? 'Repasar' : 'Ver cursos'}
-          color={recommendedArea?.color ?? accentColor}
-          onPress={() => recommendedArea ? handleReviewArea(recommendedArea) : router.push('/(student)/classes' as any)}
-        />
-
-        <View className="mt-5 flex-row flex-wrap gap-3">
-          <MobileProgressStat icon="help-circle" label="Respondidas" value={String(answeredQuestions)} helper={weeklyAttemptsCount > 0 ? `+${weeklyAttemptsCount} semana` : 'Empieza'} color="#38BDF8" />
-          <MobileProgressStat icon="speedometer" label="Precisión" value={`${accuracyPercent}%`} helper={accuracyPercent >= 80 ? '¡Excelente!' : 'A mejorar'} color="#22C55E" />
-          <MobileProgressStat icon="refresh-circle" label="Para practicar" value={String(failedQuestions)} helper={failedQuestions > 0 ? 'Recomendado' : 'Limpio'} color="#FBBF24" />
-          <MobileProgressStat icon="flame" label="Racha" value={String(streakDays)} helper="días" color="#FF7B45" />
+        <View className="mt-5 flex-row gap-3">
+          <MobileProgressStat icon="refresh-circle" label="Para practicar" value={String(failedQuestions)} helper={failedQuestions > 0 ? 'Oportunidad' : 'Todo al día'} color="#FBBF24" />
+          <MobileProgressStat icon="flame" label="Racha actual" value={String(streakDays)} helper="días" color="#FF7B45" />
         </View>
 
         <MobileSectionHeader
           icon="sparkles"
-          title="Retos recomendados"
+          title="Oportunidades de mejora"
           actionLabel="Historial"
           onAction={() => router.push('/(student)/activity-log' as any)}
         />
@@ -523,7 +519,6 @@ function MobileStudentProgress({
           <MobileCourseProgressCard subjects={subjectProgress} onSeeAll={() => router.push('/(student)/classes' as any)} />
         </View>
 
-        <MobileStreakCard streakDays={streakDays} />
       </ScrollView>
 
       <StudentBottomNav active="progress" />
@@ -946,7 +941,7 @@ function ReinforcementCard({
 }) {
   return (
     <StudentDashboardCard
-      title="Retos recomendados"
+      title="Oportunidades de mejora"
       actionLabel={onSeeAll ? 'Ver historial' : undefined}
       onAction={onSeeAll}
       className={className}
@@ -1022,7 +1017,7 @@ function SubjectProgressRow({
       meta={[
         { label: 'Progreso', value: `${safePercent}%` },
         { label: 'Respondidas', value: `${subject.scoreCount} / ${subject.totalQuestions}` },
-        { label: 'Fallos', value: String(subject.failedQuestions), color: subject.failedQuestions > 0 ? '#FB7185' : '#43D991' },
+        { label: 'Practicar', value: String(subject.failedQuestions), color: subject.failedQuestions > 0 ? '#FBBF24' : '#43D991' },
         { label: 'Pendientes', value: String(subject.pendingQuestions) },
         { label: 'Mejor', value: subject.bestScore === null ? '-' : `${subject.bestScore.toLocaleString()} XP` },
       ]}

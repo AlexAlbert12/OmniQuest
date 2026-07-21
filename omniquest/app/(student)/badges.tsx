@@ -11,6 +11,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
+import AppTabs from '../../components/ui/AppTabs'
 import BadgeUnlockModal from '../../components/gamification/BadgeUnlockModal'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
@@ -20,6 +21,7 @@ import {
   syncStudentBadgeAwards,
   type StudentBadge,
   type StudentBadgeAttempt,
+  type StudentBadgeCategory,
 } from '../../lib/studentBadges'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
@@ -40,6 +42,16 @@ type Profile = {
 }
 
 type BadgeFilter = 'all' | 'unlocked' | 'locked'
+type BadgeCategoryFilter = 'all' | StudentBadgeCategory
+
+const badgeCategoryTabs: { key: BadgeCategoryFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'all', label: 'Todos', icon: 'apps-outline' },
+  { key: 'xp', label: 'XP', icon: 'flash-outline' },
+  { key: 'streak', label: 'Racha', icon: 'flame-outline' },
+  { key: 'accuracy', label: 'Precisión', icon: 'speedometer-outline' },
+  { key: 'courses', label: 'Cursos', icon: 'book-outline' },
+  { key: 'challenges', label: 'Retos', icon: 'flag-outline' },
+]
 
 export default function BadgesScreen() {
   const { width } = useWindowDimensions()
@@ -49,6 +61,7 @@ export default function BadgesScreen() {
   const [subjectsCount, setSubjectsCount] = useState(0)
   const [syncedBadges, setSyncedBadges] = useState<StudentBadge[]>([])
   const [activeFilter, setActiveFilter] = useState<BadgeFilter>('all')
+  const [activeCategory, setActiveCategory] = useState<BadgeCategoryFilter>('all')
   const [celebrationBadges, setCelebrationBadges] = useState<StudentBadge[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -56,7 +69,7 @@ export default function BadgesScreen() {
   const { accentColor } = useAppTheme()
   const { refresh: refreshStudentNotifications } = useNotifications('student')
   const points = profile?.points ?? 0
-  const alias = profile?.alias || 'Alex'
+  const alias = profile?.alias || 'Sin alias'
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)
   const metrics = getStudentBadgeMetrics({ attempts, totalPoints: points, subjectsCount })
@@ -68,10 +81,14 @@ export default function BadgesScreen() {
   const nextBadge = [...lockedBadges].sort((a, b) => (b.current / Math.max(b.target, 1)) - (a.current / Math.max(a.target, 1)))[0] ?? null
 
   const visibleBadges = useMemo(() => {
-    if (activeFilter === 'unlocked') return unlockedBadges
-    if (activeFilter === 'locked') return lockedBadges
-    return badges
-  }, [activeFilter, badges, lockedBadges, unlockedBadges])
+    const categoryBadges = activeCategory === 'all'
+      ? badges
+      : badges.filter((badge) => badge.category === activeCategory)
+
+    if (activeFilter === 'unlocked') return categoryBadges.filter((badge) => badge.unlocked)
+    if (activeFilter === 'locked') return categoryBadges.filter((badge) => !badge.unlocked)
+    return categoryBadges
+  }, [activeCategory, activeFilter, badges])
   const activeCelebrationBadge = celebrationBadges[0] ?? null
 
   const handleCloseCelebration = useCallback(() => {
@@ -240,13 +257,11 @@ export default function BadgesScreen() {
           ) : null}
 
           <View className="mt-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-            <View className={isDesktop ? 'flex-row items-center justify-between gap-4' : 'gap-4'}>
-              <View>
-                <Text className="text-[15px] font-black text-white">Todas las insignias</Text>
+            <View className={isDesktop ? 'flex-row items-start justify-between gap-4' : 'gap-4'}>
+              <View className="min-w-0 flex-1">
+                <Text className="text-[15px] font-black text-white">Colección por categorías</Text>
                 <Text className="mt-1 text-[12px] leading-5 text-[#8FA7C7]">
-                  {isDesktop
-                    ? 'Son generales para todos los cursos y clases. Las bloqueadas muestran cuánto te falta.'
-                    : 'Las bloqueadas muestran cuánto falta para conseguirlas.'}
+                  Explora logros de XP, racha, precisión, cursos y retos. Las insignias bloqueadas muestran tu avance real.
                 </Text>
               </View>
               <View className="flex-row rounded-xl border border-[#1A3155] bg-[#0D1D3B] p-1">
@@ -256,10 +271,27 @@ export default function BadgesScreen() {
               </View>
             </View>
 
+            <View className="mt-4">
+              <AppTabs<BadgeCategoryFilter>
+                accessibilityLabel="Filtrar logros por categoría"
+                compact
+                role="student"
+                value={activeCategory}
+                onChange={setActiveCategory}
+                items={badgeCategoryTabs}
+              />
+            </View>
+
             <View className={isDesktop ? 'mt-5 flex-row flex-wrap gap-4' : 'mt-5 flex-row flex-wrap gap-3'}>
-              {visibleBadges.map((badge) => (
+              {visibleBadges.length > 0 ? visibleBadges.map((badge) => (
                 <BadgeCard key={badge.id} badge={badge} isDesktop={isDesktop} />
-              ))}
+              )) : (
+                <View className="w-full items-center rounded-2xl border border-dashed border-[#29466F] bg-[#0D1D3B] px-5 py-10">
+                  <OmniGuide state="thinking" size={72} />
+                  <Text className="mt-3 text-[15px] font-black text-white">No hay logros en este filtro</Text>
+                  <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Prueba otra categoría o cambia el estado de las insignias.</Text>
+                </View>
+              )}
             </View>
           </View>
         </ScrollView>
@@ -297,7 +329,7 @@ function NextBadgeCard({ badge, isDesktop }: { badge: StudentBadge; isDesktop: b
             <Text className="text-[12px] font-black uppercase tracking-[0.08em]" style={{ color: badge.color }}>Siguiente logro</Text>
             <Text className="mt-1 text-[19px] font-black text-white" numberOfLines={2}>{badge.title}</Text>
             <Text className="mt-1 text-[13px] leading-5 text-[#DDE7F4]" numberOfLines={2}>
-              {remaining > 0 ? `Te faltan ${remaining.toLocaleString()} para desbloquearlo.` : 'Está listo para desbloquear.'}
+              {remaining > 0 ? getRemainingBadgeMessage(badge, remaining) : 'Está listo para desbloquear.'}
             </Text>
           </View>
         </View>
@@ -318,6 +350,24 @@ function NextBadgeCard({ badge, isDesktop }: { badge: StudentBadge; isDesktop: b
       </View>
     </LinearGradient>
   )
+}
+
+function getRemainingBadgeMessage(badge: StudentBadge, remaining: number) {
+  const amount = remaining.toLocaleString()
+  switch (badge.category) {
+    case 'xp':
+      return `Te faltan ${amount} XP para desbloquearlo.`
+    case 'streak':
+      return `Te faltan ${amount} día${remaining === 1 ? '' : 's'} de racha.`
+    case 'courses':
+      return `Te faltan ${amount} curso${remaining === 1 ? '' : 's'} o clase${remaining === 1 ? '' : 's'} por explorar.`
+    case 'accuracy':
+      return badge.id === 'accuracy-80'
+        ? `Te faltan ${amount} puntos de precisión.`
+        : `Te faltan ${amount} respuestas correctas.`
+    default:
+      return `Te faltan ${amount} pregunta${remaining === 1 ? '' : 's'}.`
+  }
 }
 
 function MetricTile({
@@ -363,7 +413,7 @@ function BadgeCard({ badge, isDesktop }: { badge: StudentBadge; isDesktop: boole
   return (
     <View
       className={`rounded-2xl border bg-[#0D1D3B] ${isDesktop ? 'p-4' : 'p-3'} ${badge.unlocked ? 'border-[#2FBC7E]/50' : 'border-[#1A3155]'}`}
-      style={{ width: isDesktop ? '31.8%' : '47.7%' }}
+      style={{ width: isDesktop ? '31.8%' : '48%', minHeight: isDesktop ? 292 : 224 }}
     >
       <View className="flex-row items-start justify-between gap-3">
         <View

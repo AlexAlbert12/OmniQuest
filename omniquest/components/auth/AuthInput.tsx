@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
-import { Pressable, Text, TextInput, TextInputProps, View } from 'react-native'
+import { Pressable, Text, TextInput, type TextInputProps, View } from 'react-native'
 
 type AuthInputProps = TextInputProps & {
   error?: string
@@ -9,6 +9,7 @@ type AuthInputProps = TextInputProps & {
   onToggleSecureText?: () => void
   secureVisible?: boolean
   showSecureToggle?: boolean
+  valid?: boolean
 }
 
 export default function AuthInput({
@@ -19,33 +20,43 @@ export default function AuthInput({
   onToggleSecureText,
   secureVisible,
   showSecureToggle,
+  valid = false,
   style,
   ...inputProps
 }: AuthInputProps) {
+  const borderColor = error ? '#FB7185' : valid ? '#34D399' : 'rgba(148, 163, 184, 0.18)'
+  const iconColor = error ? '#FDA4AF' : valid ? '#6EE7B7' : '#8CD5FF'
+
   return (
     <View style={{ gap: 8 }}>
       <Text className="ml-1 text-[13px] font-extrabold text-[#DDE8FF]">{label}</Text>
       <View
         className="flex-row items-center border"
         style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.045)',
-          borderColor: error ? '#F87171' : 'rgba(148, 163, 184, 0.14)',
-          borderRadius: 22,
-          minHeight: 62,
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          borderColor,
+          borderRadius: 20,
+          minHeight: 58,
         }}
       >
         <View
           className="ml-3 items-center justify-center"
           style={{
-            backgroundColor: error ? 'rgba(248, 113, 113, 0.12)' : 'rgba(66, 185, 255, 0.10)',
-            borderRadius: 15,
-            height: 42,
-            width: 42,
+            backgroundColor: error
+              ? 'rgba(251, 113, 133, 0.13)'
+              : valid
+                ? 'rgba(52, 211, 153, 0.12)'
+                : 'rgba(66, 185, 255, 0.10)',
+            borderRadius: 14,
+            height: 40,
+            width: 40,
           }}
         >
-          <Ionicons name={icon} size={20} color={error ? '#FCA5A5' : '#8CD5FF'} />
+          <Ionicons name={valid ? 'checkmark-circle' : icon} size={20} color={iconColor} />
         </View>
         <TextInput
+          accessibilityLabel={label}
+          accessibilityHint={error || helper}
           className="flex-1 px-3 py-4 text-[15px] font-semibold text-[#F5FBFF]"
           placeholderTextColor="#93A8C8"
           style={style}
@@ -53,7 +64,10 @@ export default function AuthInput({
         />
         {showSecureToggle ? (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={secureVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
             onPress={onToggleSecureText}
+            hitSlop={7}
             className="mr-3 items-center justify-center rounded-full p-2"
             style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
           >
@@ -66,7 +80,10 @@ export default function AuthInput({
         ) : null}
       </View>
       {error ? (
-        <Text className="ml-1 text-[12px] font-semibold text-[#FCA5A5]">{error}</Text>
+        <View className="ml-1 flex-row items-start gap-1.5">
+          <Ionicons name="alert-circle" size={14} color="#FDA4AF" />
+          <Text className="min-w-0 flex-1 text-[12px] font-semibold text-[#FDA4AF]">{error}</Text>
+        </View>
       ) : helper ? (
         <Text className="ml-1 text-[12px] font-semibold text-[#AEBBDD]">{helper}</Text>
       ) : null}

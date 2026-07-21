@@ -1,48 +1,30 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native'
+import { ActivityIndicator, Alert, Platform, RefreshControl, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
-import { supabase } from '../../lib/supabase'
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
-import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
-import { getTimeAgo } from '../../lib/time'
-import StudentSidebar from '../../components/student/StudentSidebar'
+import AppButton from '../../components/ui/AppButton'
+import AppTabs from '../../components/ui/AppTabs'
+import NotificationEmptyState from '../../components/notifications/NotificationEmptyState'
+import NotificationListItem from '../../components/notifications/NotificationListItem'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
-import { AppNotification, NotificationType, useNotifications } from '../../hooks/useNotifications'
-import { withAlpha } from '../../lib/color'
-import OmniGuide from '../../components/OmniGuide'
+import StudentSidebar from '../../components/student/StudentSidebar'
+import { useNotifications, type AppNotification, type NotificationType } from '../../hooks/useNotifications'
+import { useAppTheme } from '../../lib/appTheme'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
+import { supabase } from '../../lib/supabase'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
+type Profile = { alias: string; avatar: string | null; points: number | null }
 
-type Profile = {
-  alias: string
-  avatar: string | null
-  points: number | null
-}
-
-const filterOptions: {
-  id: NotificationFilter
-  label: string
-  icon: keyof typeof Ionicons.glyphMap
-}[] = [
-  { id: 'all', label: 'Todas', icon: 'list' },
-  { id: 'unread', label: 'Sin leer', icon: 'mail-unread-outline' },
-  { id: 'new_class', label: 'Cursos', icon: 'book-outline' },
-  { id: 'student_activity', label: 'Actividad', icon: 'checkmark-circle-outline' },
-  { id: 'achievement', label: 'Logros', icon: 'trophy-outline' },
-  { id: 'announcement', label: 'Avisos', icon: 'alert-circle-outline' },
+const filterOptions: { key: NotificationFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'all', label: 'Todas', icon: 'list-outline' },
+  { key: 'unread', label: 'Sin leer', icon: 'mail-unread-outline' },
+  { key: 'new_class', label: 'Cursos', icon: 'book-outline' },
+  { key: 'student_activity', label: 'Actividad', icon: 'checkmark-circle-outline' },
+  { key: 'achievement', label: 'Logros', icon: 'trophy-outline' },
+  { key: 'announcement', label: 'Avisos', icon: 'alert-circle-outline' },
 ]
 
 const categoryLabels: Record<NotificationType, string> = {
@@ -56,6 +38,7 @@ const categoryLabels: Record<NotificationType, string> = {
 export default function StudentNotificationsScreen() {
   const { width } = useWindowDimensions()
   const router = useRouter()
+  const { tokens } = useAppTheme()
   const {
     notifications,
     unreadCount,
@@ -73,7 +56,6 @@ export default function StudentNotificationsScreen() {
   const [selectedFilter, setSelectedFilter] = useState<NotificationFilter>('all')
 
   const isDesktop = width >= 1080
-  const isWide = width >= 860
   const points = profile?.points ?? 0
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)
@@ -84,49 +66,31 @@ export default function StudentNotificationsScreen() {
     return notifications.filter((notification) => notification.type === selectedFilter)
   }, [notifications, selectedFilter])
 
-  const categoryStats = useMemo(
-    () =>
-      filterOptions
-        .filter((option): option is { id: NotificationType; label: string; icon: keyof typeof Ionicons.glyphMap } =>
-          option.id !== 'all' && option.id !== 'unread'
-        )
-        .map((option) => {
-          const categoryNotifications = notifications.filter((notification) => notification.type === option.id)
-          return {
-            ...option,
-            count: categoryNotifications.length,
-            unread: categoryNotifications.filter((notification) => !notification.isRead).length,
-          }
-        }),
-    [notifications]
-  )
+  const tabs = useMemo(() => filterOptions.map((option) => ({
+    ...option,
+    badge: option.key === 'all'
+      ? notifications.length
+      : option.key === 'unread'
+        ? unreadCount
+        : notifications.filter((notification) => notification.type === option.key).length,
+  })), [notifications, unreadCount])
 
   const fetchProfile = useCallback(async () => {
     try {
       const { data: session } = await supabase.auth.getSession()
       const userId = session.session?.user.id
       if (!userId) return
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('alias, avatar, points')
-        .eq('id', userId)
-        .single()
-
-      if (error) throw error
+      const { data, error: profileError } = await supabase.from('profiles').select('alias, avatar, points').eq('id', userId).single()
+      if (profileError) throw profileError
       setProfile(data as Profile)
-    } catch (error: any) {
-      console.error('Error cargando perfil para notificaciones:', error.message)
+    } catch (profileError: any) {
+      console.error('Error cargando perfil para notificaciones:', profileError?.message)
     } finally {
       setProfileLoading(false)
     }
   }, [])
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchProfile()
-    }, [fetchProfile])
-  )
+  useFocusEffect(useCallback(() => { void fetchProfile() }, [fetchProfile]))
 
   const onRefresh = async () => {
     setRefreshing(true)
@@ -134,69 +98,34 @@ export default function StudentNotificationsScreen() {
     setRefreshing(false)
   }
 
-  const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`)
-      return
-    }
-    Alert.alert(title, message)
-  }
-
   useEffect(() => {
     if (!error) return
-    showAlert('Error de notificaciones', error)
+    if (Platform.OS === 'web') window.alert(`Error de notificaciones\n${error}`)
+    else Alert.alert('Error de notificaciones', error)
     clearError()
   }, [clearError, error])
 
   const handleNotificationAction = async (notification: AppNotification) => {
-    if (!notification.isRead) {
-      await markAsRead(notification.id)
-    }
-
-    if (notification.actionUrl) {
-      router.push(notification.actionUrl as any)
-    }
+    if (!notification.isRead) await markAsRead(notification.id)
+    if (notification.actionUrl) router.push(notification.actionUrl as any)
   }
 
   const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-      router.replace('/(auth)/login' as any)
-    } catch (error: any) {
-      console.error('Error cerrando sesión:', error)
-      showAlert('No se pudo cerrar sesión', error?.message || 'Revisa tu conexión o inténtalo de nuevo.')
-    }
+    await supabase.auth.signOut()
+    router.replace('/(auth)/login' as any)
   }
 
   if (loading || profileLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando notificaciones...</Text>
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: tokens.background.primary }}>
+        <ActivityIndicator size="large" color={tokens.brand.student} />
+        <Text className="mt-4" style={{ color: tokens.text.muted }}>Cargando notificaciones…</Text>
       </View>
     )
   }
 
-  if (!isDesktop) {
-    return (
-      <MobileStudentNotifications
-        categoryStats={categoryStats}
-        filteredNotifications={filteredNotifications}
-        notificationsCount={notifications.length}
-        refreshing={refreshing}
-        selectedFilter={selectedFilter}
-        unreadCount={unreadCount}
-        onFilterChange={setSelectedFilter}
-        onMarkAllAsRead={() => void markAllAsRead()}
-        onNotificationPress={(notification) => void handleNotificationAction(notification)}
-        onRefresh={() => void onRefresh()}
-      />
-    )
-  }
-
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <StudentSidebar
@@ -217,473 +146,87 @@ export default function StudentNotificationsScreen() {
             paddingTop: isDesktop ? 28 : 18,
             paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER,
           }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.brand.student} />}
           showsVerticalScrollIndicator={false}
         >
           <StudentPageHeader
             icon="notifications"
             isDesktop={isDesktop}
             title="Notificaciones"
-            subtitle={unreadCount > 0
-              ? `Tienes ${unreadCount} notificación${unreadCount === 1 ? '' : 'es'} sin leer`
-              : 'Todo está al día en tus cursos'}
+            subtitle={unreadCount > 0 ? `Tienes ${unreadCount} novedad${unreadCount === 1 ? '' : 'es'} por revisar` : 'Todo está al día en tus cursos'}
             showNotifications={false}
             actions={(
-              <>
-                <Pressable
+              <View className="flex-row gap-2">
+                <AppButton
                   accessibilityLabel="Actualizar notificaciones"
-                  accessibilityRole="button"
+                  icon="refresh-outline"
+                  iconOnly={!isDesktop}
+                  label={isDesktop ? 'Actualizar' : undefined}
+                  loading={refreshing}
+                  size="sm"
+                  variant="secondary"
                   onPress={() => void onRefresh()}
-                  className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-                >
-                  <Ionicons name="refresh-outline" size={16} color="#AFC2DB" />
-                  <Text className="text-[12px] font-bold text-[#DDE7F4]">Actualizar</Text>
-                </Pressable>
+                />
                 {unreadCount > 0 ? (
-                  <Pressable
-                    accessibilityLabel="Marcar todas las notificaciones como leídas"
-                    accessibilityRole="button"
+                  <AppButton
+                    accessibilityLabel="Marcar todas como leídas"
+                    icon="checkmark-done-outline"
+                    iconOnly={!isDesktop}
+                    label={isDesktop ? 'Marcar todas como leídas' : undefined}
+                    role="student"
+                    size="sm"
                     onPress={() => void markAllAsRead()}
-                    className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-                  >
-                    <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
-                    <Text className="text-[12px] font-bold text-white">Marcar leídas</Text>
-                  </Pressable>
+                  />
                 ) : null}
-              </>
+              </View>
             )}
           />
 
-          <View className={isWide ? 'mb-5 flex-row gap-4' : 'mb-5 gap-4'}>
-            {categoryStats.map((category) => (
-              <CategoryCard
-                key={category.id}
-                label={category.label}
-                icon={category.icon}
-                count={category.count}
-                unread={category.unread}
-                active={selectedFilter === category.id}
-                onPress={() => setSelectedFilter(category.id)}
-              />
-            ))}
+          <AppTabs<NotificationFilter>
+            accessibilityLabel="Filtrar notificaciones"
+            compact
+            role="student"
+            items={tabs}
+            value={selectedFilter}
+            onChange={setSelectedFilter}
+          />
+
+          <View className="mb-3 mt-5 flex-row items-center justify-between gap-3">
+            <View>
+              <Text className="text-[20px] font-black" style={{ color: tokens.text.primary }}>{getSectionTitle(selectedFilter)}</Text>
+              {!isDesktop ? <Text className="mt-1 text-[11px]" style={{ color: tokens.text.muted }}>Desliza a la derecha para marcar como leída y a la izquierda para eliminar.</Text> : null}
+            </View>
+            <View className="rounded-full px-3 py-1.5" style={{ backgroundColor: tokens.surface.interactive }}>
+              <Text className="text-[11px] font-black" style={{ color: tokens.text.secondary }}>{filteredNotifications.length}</Text>
+            </View>
           </View>
 
-          <View className="mb-5 flex-row flex-wrap gap-3">
-            {filterOptions.map((option) => (
-              <FilterChip
-                key={option.id}
-                option={option}
-                active={selectedFilter === option.id}
-                count={option.id === 'unread' ? unreadCount : option.id === 'all' ? notifications.length : undefined}
-                onPress={() => setSelectedFilter(option.id)}
+          <View style={{ gap: 11 }}>
+            {filteredNotifications.length > 0 ? filteredNotifications.map((notification) => (
+              <NotificationListItem
+                key={notification.id}
+                notification={notification}
+                categoryLabel={categoryLabels[notification.type]}
+                role="student"
+                compact={!isDesktop}
+                swipeEnabled={!isDesktop}
+                onPress={() => handleNotificationAction(notification)}
+                onMarkAsRead={() => markAsRead(notification.id)}
+                onDelete={() => deleteNotification(notification.id)}
               />
-            ))}
-          </View>
-
-          <View style={{ gap: 12 }}>
-            {filteredNotifications.length === 0 ? (
-              <EmptyState filter={selectedFilter} />
-            ) : (
-              filteredNotifications.map((notification) => (
-                <NotificationItem
-                  key={notification.id}
-                  notification={notification}
-                  onPress={() => void handleNotificationAction(notification)}
-                  onMarkAsRead={() => void markAsRead(notification.id)}
-                  onDelete={() => void deleteNotification(notification.id)}
-                />
-              ))
+            )) : (
+              <NotificationEmptyState audience="student" unreadOnly={selectedFilter === 'unread'} />
             )}
           </View>
         </ScrollView>
       </View>
-
       {!isDesktop ? <StudentBottomNav active="notifications" /> : null}
     </View>
   )
 }
 
-function MobileStudentNotifications({
-  categoryStats,
-  filteredNotifications,
-  notificationsCount,
-  refreshing,
-  selectedFilter,
-  unreadCount,
-  onFilterChange,
-  onMarkAllAsRead,
-  onNotificationPress,
-  onRefresh,
-}: {
-  categoryStats: {
-    id: NotificationType
-    label: string
-    icon: keyof typeof Ionicons.glyphMap
-    count: number
-    unread: number
-  }[]
-  filteredNotifications: AppNotification[]
-  notificationsCount: number
-  refreshing: boolean
-  selectedFilter: NotificationFilter
-  unreadCount: number
-  onFilterChange: (filter: NotificationFilter) => void
-  onMarkAllAsRead: () => void
-  onNotificationPress: (notification: AppNotification) => void
-  onRefresh: () => void
-}) {
-  return (
-    <View className="flex-1 bg-[#031022]">
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 6 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
-        showsVerticalScrollIndicator={false}
-      >
-        <StudentPageHeader
-          icon="notifications"
-          isDesktop={false}
-          title="Notificaciones"
-          subtitle={unreadCount > 0
-            ? `${unreadCount} novedad${unreadCount === 1 ? '' : 'es'} por revisar`
-            : 'Todo está al día en tus cursos'}
-          showNotifications={false}
-        />
-
-        <View className="mb-5 flex-row gap-3">
-          <Pressable
-            onPress={onRefresh}
-            className="min-h-[48px] flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-[#20375E] bg-[#071832] px-4"
-            style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
-          >
-            <Ionicons name="refresh" size={18} color="#DDE7F4" />
-            <Text className="text-[14px] font-black text-white">Actualizar</Text>
-          </Pressable>
-          <Pressable
-            onPress={onMarkAllAsRead}
-            disabled={unreadCount === 0}
-            className="min-h-[48px] flex-1 flex-row items-center justify-center gap-2 rounded-2xl px-4"
-            style={({ pressed }) => ({
-              backgroundColor: '#6D4AFF',
-              opacity: unreadCount === 0 ? 0.55 : pressed ? 0.78 : 1,
-            })}
-          >
-            <Ionicons name="checkmark-done" size={18} color="#FFFFFF" />
-            <Text className="text-[14px] font-black text-white">Marcar leídas</Text>
-          </Pressable>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="-mx-5 mb-6"
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
-        >
-          {filterOptions.map((option) => (
-            <MobileFilterChip
-              key={option.id}
-              option={option}
-              active={selectedFilter === option.id}
-              count={option.id === 'unread' ? unreadCount : option.id === 'all' ? notificationsCount : categoryStats.find((category) => category.id === option.id)?.unread}
-              onPress={() => onFilterChange(option.id)}
-            />
-          ))}
-        </ScrollView>
-
-        <View className="mb-4 flex-row items-center gap-3">
-          <Text className="text-[22px] font-black text-white">{getNotificationSectionTitle(selectedFilter)}</Text>
-          <View className="rounded-full bg-[#071832] px-3 py-1">
-            <Text className="text-[12px] font-black text-[#8FA7C7]">{filteredNotifications.length}</Text>
-          </View>
-        </View>
-
-        {filteredNotifications.length > 0 ? (
-          <View className="gap-3">
-            {filteredNotifications.map((notification) => (
-              <MobileNotificationCard
-                key={notification.id}
-                notification={notification}
-                onPress={() => onNotificationPress(notification)}
-              />
-            ))}
-          </View>
-        ) : (
-          <MobileNotificationEmpty filter={selectedFilter} />
-        )}
-      </ScrollView>
-
-      <StudentBottomNav active="notifications" />
-    </View>
-  )
-}
-
-function MobileFilterChip({
-  active,
-  count,
-  onPress,
-  option,
-}: {
-  active: boolean
-  count?: number
-  onPress: () => void
-  option: { id: NotificationFilter; label: string; icon: keyof typeof Ionicons.glyphMap }
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-full px-4"
-      style={({ pressed }) => ({
-        borderWidth: active ? 0 : 1,
-        borderColor: '#20375E',
-        backgroundColor: active ? '#6D4AFF' : '#071832',
-        opacity: pressed ? 0.82 : 1,
-      })}
-    >
-      <Ionicons name={option.icon} size={15} color={active ? '#FFFFFF' : '#DDE7F4'} />
-      <Text className={`text-[13px] font-black ${active ? 'text-white' : 'text-[#DDE7F4]'}`}>{option.label}</Text>
-      {typeof count === 'number' ? (
-        <View className="min-w-6 items-center rounded-full px-2 py-0.5" style={{ backgroundColor: active ? '#FFFFFF2E' : '#13284A' }}>
-          <Text className="text-[10px] font-black text-white">{count}</Text>
-        </View>
-      ) : null}
-    </Pressable>
-  )
-}
-
-function MobileNotificationCard({
-  notification,
-  onPress,
-}: {
-  notification: AppNotification
-  onPress: () => void
-}) {
-  const timeAgo = getTimeAgo(notification.timestamp)
-  const accent = getNotificationTypeAccent(notification.type, notification.color)
-
-  return (
-    <Pressable
-      onPress={onPress}
-      className="relative min-h-[116px] flex-row items-center gap-3 rounded-2xl border border-[#17345B] bg-[#071832] p-4"
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-    >
-      {!notification.isRead ? <View className="absolute left-2 top-7 h-2.5 w-2.5 rounded-full bg-[#7C5CFF]" /> : null}
-      <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(accent, '28') }}>
-        <Ionicons name={notification.icon} size={27} color={accent} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <View className="flex-row items-center gap-2">
-          <Text className="min-w-0 flex-1 text-[16px] font-black text-white" numberOfLines={2}>{notification.title}</Text>
-          <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: withAlpha(accent, '26') }}>
-            <Text className="text-[11px] font-black" style={{ color: accent }}>{categoryLabels[notification.type]}</Text>
-          </View>
-        </View>
-        <Text className="mt-2 text-[14px] leading-5 text-[#C7D3E5]" numberOfLines={3}>{notification.description}</Text>
-        <View className="mt-3 flex-row flex-wrap items-center gap-3">
-          <View className="flex-row items-center gap-1.5">
-            <Ionicons name="time-outline" size={14} color="#8FA7C7" />
-            <Text className="text-[12px] text-[#8FA7C7]">{timeAgo}</Text>
-          </View>
-          {notification.subjectName ? (
-            <View className="flex-row items-center gap-1.5">
-              <Ionicons name="book-outline" size={14} color="#8FA7C7" />
-              <Text className="text-[12px] text-[#C7D3E5]" numberOfLines={1}>{notification.subjectName}</Text>
-            </View>
-          ) : null}
-        </View>
-      </View>
-      <Ionicons name="chevron-forward" size={22} color="#B7C4D7" />
-    </Pressable>
-  )
-}
-
-function MobileNotificationEmpty({ filter }: { filter: NotificationFilter }) {
-  const title = filter === 'unread' ? 'Nada sin leer' : 'Sin notificaciones'
-  const detail = filter === 'unread'
-    ? 'Todo lo importante ya está marcado como leído.'
-    : 'Aquí aparecerán nuevos cursos, actividad, logros y avisos.'
-
-  return (
-    <View className="items-center rounded-2xl border border-dashed border-[#1E3A63] bg-[#081B37] px-5 py-9">
-      <OmniGuide state="happy" size={82} />
-      <Text className="mt-3 text-center text-[17px] font-black text-white">{title}</Text>
-      <Text className="mt-2 text-center text-[13px] leading-5 text-[#8FA7C7]">{detail}</Text>
-    </View>
-  )
-}
-
-
-function getNotificationSectionTitle(filter: NotificationFilter) {
+function getSectionTitle(filter: NotificationFilter) {
   if (filter === 'all') return 'Novedades'
   if (filter === 'unread') return 'Sin leer'
   return categoryLabels[filter]
-}
-
-function getNotificationTypeAccent(type: NotificationType, fallback?: string) {
-  const colors: Record<NotificationType, string> = {
-    enrollment: '#A855F7',
-    new_class: '#8B5CF6',
-    student_activity: '#22C55E',
-    achievement: '#F59E0B',
-    announcement: '#38BDF8',
-  }
-
-  return colors[type] || fallback || '#8B5CF6'
-}
-
-function CategoryCard({
-  label,
-  icon,
-  count,
-  unread,
-  active,
-  onPress,
-}: {
-  label: string
-  icon: keyof typeof Ionicons.glyphMap
-  count: number
-  unread: number
-  active: boolean
-  onPress: () => void
-}) {
-  return (
-    <MobileMetricCard
-      className={`min-w-[160px] flex-1 ${active ? 'border-[#6D5AF6]' : ''}`}
-      color={active ? '#A78BFA' : '#8FA7C7'}
-      compact
-      detail={unread > 0 ? `${unread} sin leer` : 'Todo revisado'}
-      detailColor={unread > 0 ? '#FFB4B4' : '#8FA7C7'}
-      icon={icon}
-      label={label}
-      onPress={onPress}
-      value={count}
-    />
-  )
-}
-
-function FilterChip({
-  option,
-  active,
-  count,
-  onPress,
-}: {
-  option: { id: NotificationFilter; label: string; icon: keyof typeof Ionicons.glyphMap }
-  active: boolean
-  count?: number
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className={`flex-row items-center gap-2 rounded-full px-4 py-2 ${
-        active ? 'bg-[#5A46D8]' : 'border border-[#20375E] bg-[#09162C]'
-      }`}
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-    >
-      <Ionicons name={option.icon} size={14} color={active ? '#FFFFFF' : '#B7C4D7'} />
-      <Text className={`text-[13px] font-semibold ${active ? 'text-white' : 'text-[#B7C4D7]'}`}>
-        {option.label}
-      </Text>
-      {typeof count === 'number' ? (
-        <View className={active ? 'rounded-full bg-white/20 px-2 py-0.5' : 'rounded-full bg-[#13284A] px-2 py-0.5'}>
-          <Text className="text-[10px] font-black text-white">{count}</Text>
-        </View>
-      ) : null}
-    </Pressable>
-  )
-}
-
-function NotificationItem({
-  notification,
-  onPress,
-  onMarkAsRead,
-  onDelete,
-}: {
-  notification: AppNotification
-  onPress: () => void
-  onMarkAsRead: () => void
-  onDelete: () => void
-}) {
-  const timeAgo = getTimeAgo(notification.timestamp)
-  const [showDeleteAction, setShowDeleteAction] = useState(Platform.OS !== 'web')
-
-  return (
-    <View
-      onPointerEnter={() => setShowDeleteAction(true)}
-      onPointerLeave={() => setShowDeleteAction(Platform.OS !== 'web')}
-      className={`flex-row gap-3 rounded-xl border px-4 py-3 ${
-        notification.isRead ? 'border-[#1A3155] bg-[#07162E]' : 'border-[#5364F5] bg-[#0F1E35]'
-      }`}
-    >
-      <View
-        className="h-12 w-12 flex-shrink-0 items-center justify-center rounded-full"
-        style={{ backgroundColor: `${notification.color}24` }}
-      >
-        <Ionicons name={notification.icon} size={22} color={notification.color} />
-      </View>
-
-      <Pressable className="min-w-0 flex-1" onPress={onPress}>
-        <View className="flex-row items-start justify-between gap-3">
-          <View className="min-w-0 flex-1">
-            <View className="flex-row flex-wrap items-center gap-2">
-              <Text className={`text-[14px] font-bold ${notification.isRead ? 'text-[#B7C4D7]' : 'text-white'}`}>
-                {notification.title}
-              </Text>
-              <View className="rounded-full bg-[#13284A] px-2 py-1">
-                <Text className="text-[10px] font-bold text-[#AFC2DB]">{categoryLabels[notification.type]}</Text>
-              </View>
-              {!notification.isRead ? <View className="h-2 w-2 rounded-full bg-[#3B82F6]" /> : null}
-            </View>
-            <Text className="mt-1 text-[13px] leading-5 text-[#8FA7C7]">{notification.description}</Text>
-            <View className="mt-2 flex-row flex-wrap items-center gap-2">
-              <Ionicons name="time-outline" size={12} color="#64748B" />
-              <Text className="text-[11px] text-[#64748B]">{timeAgo}</Text>
-              {notification.subjectName && (
-                <>
-                  <Text className="text-[11px] text-[#415676]">·</Text>
-                  <Text className="text-[11px] font-semibold text-[#8FA7C7]">{notification.subjectName}</Text>
-                </>
-              )}
-            </View>
-          </View>
-
-          <View className="flex-row gap-2 pl-1">
-            {!notification.isRead ? (
-              <Pressable
-                onPress={onMarkAsRead}
-                className="h-8 w-8 items-center justify-center rounded-lg bg-[#3B82F6]/20"
-              >
-                <Ionicons name="checkmark-outline" size={16} color="#3B82F6" />
-              </Pressable>
-            ) : null}
-            <Pressable
-              onPress={onDelete}
-              onFocus={() => setShowDeleteAction(true)}
-              onBlur={() => setShowDeleteAction(Platform.OS !== 'web')}
-              className="h-8 w-8 items-center justify-center rounded-lg bg-[#EF4444]/20"
-              style={{ opacity: showDeleteAction ? 1 : 0 }}
-            >
-              <Ionicons name="trash-outline" size={16} color="#EF4444" />
-            </Pressable>
-          </View>
-        </View>
-      </Pressable>
-    </View>
-  )
-}
-
-function EmptyState({ filter }: { filter: NotificationFilter }) {
-  const title = filter === 'unread' ? 'Sin notificaciones sin leer' : 'Sin notificaciones'
-  const detail = filter === 'unread'
-    ? 'Todo lo importante ya está marcado como leído.'
-    : 'Aquí aparecerán nuevos cursos, actividad, logros y avisos de tus clases.'
-
-  return (
-    <View className="items-center rounded-2xl border border-dashed border-[#29466F] bg-[#09162C] px-6 py-12">
-      <OmniGuide state="happy" size={96} />
-      <Text className="mt-4 text-center text-lg font-bold text-white">{title}</Text>
-      <Text className="mt-2 max-w-[420px] text-center text-[13px] leading-5 text-[#8FA7C7]">{detail}</Text>
-    </View>
-  )
 }

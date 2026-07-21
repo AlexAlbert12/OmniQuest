@@ -1,11 +1,13 @@
 import React from 'react'
-import { Animated, Easing, Image, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native'
+import { Animated, Easing, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import BrandLogo from '../BrandLogo'
 import { useAppTheme } from '../../lib/appTheme'
 import OmniGuide from '../../components/OmniGuide'
+import GamifiedAvatar from '../gamification/GamifiedAvatar'
+import { useProfileCosmetics } from '../../hooks/useProfileCosmetics'
 
 export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings'
 
@@ -50,6 +52,7 @@ export default function StudentSidebar({
 }: StudentSidebarProps) {
   const { theme, tokens } = useAppTheme()
   const { width } = useWindowDimensions()
+  const { cosmetics } = useProfileCosmetics()
   const isDark = theme === 'dark'
   const accentColor = tokens.brand.student
   const isCompact = width >= 1024 && width < 1280
@@ -114,7 +117,7 @@ export default function StudentSidebar({
           >
             {isCompact ? (
               <View className="items-center" style={{ gap: 8 }}>
-                <Avatar avatar={avatar} alias={alias} size={44} />
+                <GamifiedAvatar avatarUrl={avatar} alias={alias} cosmetics={cosmetics} level={level} size={44} showLevel={false} />
                 <View className="h-1.5 w-full overflow-hidden rounded-full bg-[#13294C]">
                   <View className="h-full rounded-full" style={{ width: `${safeProgress}%`, backgroundColor: accentColor }} />
                 </View>
@@ -122,7 +125,7 @@ export default function StudentSidebar({
             ) : (
               <>
                 <View className="flex-row items-center gap-3">
-                  <Avatar avatar={avatar} alias={alias} size={48} />
+                  <GamifiedAvatar avatarUrl={avatar} alias={alias} cosmetics={cosmetics} level={level} size={48} showLevel={false} />
                   <View className="min-w-0 flex-1">
                     <Text className="text-[14px] font-bold text-white" numberOfLines={1}>{alias}</Text>
                     <View className="mt-1 flex-row items-center gap-1">
@@ -144,23 +147,6 @@ export default function StudentSidebar({
           </Pressable>
         </Link>
       </View>
-    </View>
-  )
-}
-
-function Avatar({ avatar, alias, size }: { avatar?: string | null; alias: string; size: number }) {
-  const initials = getInitials(alias)
-
-  return (
-    <View
-      className="items-center justify-center overflow-hidden rounded-full bg-[#192C62]"
-      style={{ height: size, width: size }}
-    >
-      {avatar && avatar.startsWith('http') ? (
-        <Image source={{ uri: avatar }} className="h-full w-full" />
-      ) : (
-        <Text className="font-black text-white">{initials}</Text>
-      )}
     </View>
   )
 }
@@ -368,15 +354,4 @@ function StudentNavButton({
 
 function filledIconFor(icon: IoniconName): IoniconName {
   return icon.endsWith('-outline') ? (icon.replace('-outline', '') as IoniconName) : icon
-}
-
-function getInitials(name: string) {
-  const trimmed = name.trim()
-  if (!trimmed) return 'A'
-
-  return trimmed
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('')
 }
