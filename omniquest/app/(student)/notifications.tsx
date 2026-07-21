@@ -13,7 +13,6 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
-import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
@@ -416,19 +415,6 @@ function MobileStudentNotifications({
       </ScrollView>
 
       <StudentBottomNav active="notifications" />
-    </View>
-  )
-}
-
-function NotificationTopButton({ count }: { count: number }) {
-  return (
-    <View className="relative h-12 w-12 items-center justify-center rounded-full border border-[#20375E] bg-[#071832]">
-      <Ionicons name="notifications-outline" size={22} color="#DDE7F4" />
-      {count > 0 ? (
-        <View className="absolute -right-1 -top-2 h-6 min-w-6 items-center justify-center rounded-full bg-[#EF4444] px-1.5">
-          <Text className="text-[10px] font-black text-white">{count > 99 ? '99+' : count}</Text>
-        </View>
-      ) : null}
     </View>
   )
 }

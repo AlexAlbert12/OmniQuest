@@ -100,7 +100,7 @@ export default function TeacherAuditScreen() {
       if (logsResult.error) throw logsResult.error
       if (subjectsResult.error) throw subjectsResult.error
 
-      const nextLogs = ((logsResult.data || []) as Array<TeacherAuditLogRow & { total_count?: number | null }>)
+      const nextLogs = ((logsResult.data || []) as (TeacherAuditLogRow & { total_count?: number | null })[])
       setLogs(nextLogs)
       setTotalLogs(Number(nextLogs[0]?.total_count || 0))
       setSubjectsCount(subjectsResult.count || 0)
@@ -314,6 +314,7 @@ function MobileTeacherAudit({
   onNextPage: () => void
   onNotifications: () => void
 }) {
+  const { colors } = useAppTheme()
   const metricCards = [
     {
       icon: 'document-text' as keyof typeof Ionicons.glyphMap,

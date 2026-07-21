@@ -59,14 +59,13 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const { width } = useWindowDimensions()
   const router = useRouter()
   const { section } = useLocalSearchParams<{ section?: string }>()
-  const { theme, colors, accentColor, setAccentColor } = useAppTheme()
+  const { colors, accentColor, setAccentColor } = useAppTheme()
   const { t } = useI18n()
   const scrollRef = useRef<ScrollView | null>(null)
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsMenuSectionKey>('general')
   const data = useSettingsData({ forcedRole })
 
   const isDesktop = width >= 1080
-  const isDark = theme === 'dark'
   const settingsSections = useMemo(
     () => settingsSectionDefinitions.map((item) => ({ ...item, label: t(item.labelKey) })),
     [t]

@@ -447,7 +447,7 @@ function AttemptCard({
   const questionText = question?.text || 'Pregunta eliminada'
   const topicTitle = topic?.title || 'Práctica libre'
   const subjectName = subject?.name || 'Clase no disponible'
-  const submittedAnswer = getSubmittedAnswerText(item, question, answers)
+  const submittedAnswer = getSubmittedAnswerText(item, answers)
   const correctAnswer = getCorrectAnswerText(question, answers)
   const explanation = question?.explanation?.trim() || 'El profesor no ha añadido explicación para esta pregunta.'
   const earnedPoints = Math.max(0, Number(item.earned_points ?? (isCorrect ? 10 : 0)))
@@ -625,7 +625,7 @@ function getQuestionAnswers(question: AttemptQuestion | null): AttemptAnswer[] {
   return Array.isArray(question?.answers) ? question.answers : []
 }
 
-function getSubmittedAnswerText(attempt: AttemptRow, question: AttemptQuestion | null, answers: AttemptAnswer[]) {
+function getSubmittedAnswerText(attempt: AttemptRow, answers: AttemptAnswer[]) {
   if (attempt.was_skipped) return 'Sin respuesta / tiempo agotado'
 
   const textAnswer = attempt.submitted_answer_text?.trim()
@@ -722,12 +722,4 @@ function formatTimeTaken(seconds: number | null) {
   const minutes = Math.floor(seconds / 60)
   const rest = seconds % 60
   return `${minutes}m ${rest}s`
-}
-
-function normalizeForSearch(value: string) {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
 }

@@ -16,6 +16,8 @@ export type RolePageHeaderProps = {
   role: PageHeaderRole
   /** Extra controls rendered before notifications and avatar. */
   actions?: ReactNode
+  /** Utility controls that always stay in the top-right area (for example global search). */
+  utilityActions?: ReactNode
   /** `auto` keeps actions on top on desktop and below the title on mobile. */
   actionsPosition?: PageHeaderActionsPosition
   /** Optional back navigation rendered above the title on detail/form screens. */
@@ -54,6 +56,7 @@ export type RolePageHeaderProps = {
 export default function RolePageHeader({
   role,
   actions,
+  utilityActions,
   actionsPosition = 'auto',
   backAction,
   className = '',
@@ -78,7 +81,7 @@ export default function RolePageHeader({
   const Avatar = role === 'teacher' ? TeacherHeaderAvatar : StudentHeaderAvatar
   const actionsOnTop = Boolean(actions) && (actionsPosition === 'top' || (actionsPosition === 'auto' && isDesktop))
   const actionsBelow = Boolean(actions) && (actionsPosition === 'below' || (actionsPosition === 'auto' && !isDesktop))
-  const showTopControls = actionsOnTop || showNotifications || showAvatar
+  const showTopControls = Boolean(utilityActions) || actionsOnTop || showNotifications || showAvatar
 
   return (
     <View className={`mb-6 ${className}`}>
@@ -134,6 +137,7 @@ export default function RolePageHeader({
 
         {showTopControls ? (
           <View className="flex-row items-center gap-3">
+            {utilityActions}
             {actionsOnTop ? actions : null}
             {showNotifications ? (
               <NotificationBadge

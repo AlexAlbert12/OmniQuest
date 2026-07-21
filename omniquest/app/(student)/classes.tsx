@@ -456,7 +456,7 @@ export default function ClassesScreen() {
             ) : null}
 
             <CourseGalaxyMap
-              items={classRows.map((subject, index) => {
+              items={classRows.map((subject) => {
                 const progress = progressBySubject[getCourseRowKey(subject)]
                 const progressPercent = progress?.percent ?? 0
                 const statusBadge = getMobileCourseStatusBadge(progress)

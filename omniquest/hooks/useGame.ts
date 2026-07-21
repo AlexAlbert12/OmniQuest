@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { normalizeDifficulty } from '../lib/difficulty';
 import type { Json } from '../types/database.types';
 import { fetchAttemptFeedback, type AttemptFeedback } from '../lib/studentSecureData';
+import { toSafeAnalyticsError, trackUsageEvent } from '../lib/analytics';
 import {
   buildGameSnapshotKey,
   clearGameSnapshot,
@@ -126,6 +127,17 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
         setFeedbackNextStatus(snapshot.feedbackNextStatus);
         setResumedFromSnapshot(true);
         setStatus('playing');
+        void trackUsageEvent('game_resumed', {
+          subjectId: numericSubjectId,
+          classroomId: numericClassroomId,
+          topicId: numericTopicId,
+          attemptId: snapshot.attemptId,
+          properties: {
+            question_index: snapshot.currentIndex,
+            score: snapshot.score,
+            pending_answer: Boolean(snapshot.pendingAnswer),
+          },
+        });
         return;
       }
 
@@ -184,6 +196,13 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     } catch (error: any) {
       console.error(error);
       const message = error?.message || 'No se pudo preparar la partida.';
+      void trackUsageEvent('game_error', {
+        subjectId: numericSubjectId,
+        classroomId: numericClassroomId,
+        topicId: numericTopicId,
+        attemptId: attemptIdRef.current,
+        properties: { stage: 'load', message: toSafeAnalyticsError(error) },
+      });
       setLoadError(message);
       setStatus('error');
     }
@@ -209,14 +228,31 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     } catch (error) {
       finalizedAttemptIdsRef.current.delete(attemptId);
       console.error('Error finalizing game attempt:', error);
+      void trackUsageEvent('game_error', {
+        subjectId: numericSubjectId,
+        classroomId: numericClassroomId,
+        topicId: numericTopicId,
+        attemptId,
+        properties: {
+          stage: 'finish_attempt',
+          requested_status: nextStatus === 'gameOver' ? 'abandoned' : 'finished',
+          message: toSafeAnalyticsError(error),
+        },
+      });
     }
-  }, []);
+  }, [numericClassroomId, numericSubjectId, numericTopicId]);
 
   const finishGame = useCallback((nextStatus: 'gameOver' | 'finished') => {
     setStatus(nextStatus);
     setPendingAnswer(null);
     void clearGameSnapshot(gameSnapshotKey);
     void finalizeGameAttempt(nextStatus);
+  }, [finalizeGameAttempt, gameSnapshotKey]);
+
+  const abandonGame = useCallback(async () => {
+    setPendingAnswer(null);
+    await clearGameSnapshot(gameSnapshotKey);
+    await finalizeGameAttempt('gameOver');
   }, [finalizeGameAttempt, gameSnapshotKey]);
 
   const nextQuestion = useCallback(() => {
@@ -370,6 +406,19 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     } catch (error: any) {
       console.error('Error submitting answer:', error);
       const online = await getNetworkAvailability().catch(() => false);
+      void trackUsageEvent('game_error', {
+        subjectId: numericSubjectId,
+        classroomId: numericClassroomId,
+        topicId: numericTopicId,
+        attemptId: attemptIdRef.current,
+        properties: {
+          stage: 'submit_answer',
+          question_id: Number(currentQ.id),
+          question_index: currentIndex,
+          online,
+          message: toSafeAnalyticsError(error),
+        },
+      });
       setIsOffline(!online);
       setHasAnswered(false);
       isSubmittingRef.current = false;
@@ -381,7 +430,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
         Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
       }
     }
-  }, [currentIndex, hasAnswered, questions, status, timeLeft]);
+  }, [currentIndex, hasAnswered, numericClassroomId, numericSubjectId, numericTopicId, questions, status, timeLeft]);
 
   const handleTimeOut = useCallback(() => {
     void completeAnswer({ skipped: true, timedOut: true });
@@ -542,6 +591,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     pendingAnswer,
     retryPendingAnswer,
     retryLoadGame: loadGame,
+    abandonGame,
     submitAnswer,
     submitStructuredAnswer,
     useHint,

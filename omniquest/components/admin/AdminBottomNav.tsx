@@ -5,7 +5,7 @@ import MobileBottomNavigation, {
   MobileBottomNavigationItem,
 } from '../ui/mobile/MobileBottomNavigation'
 
-type AdminBottomNavSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'audit'
+type AdminBottomNavSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'support' | 'audit'
 
 export default function AdminBottomNav({ active }: { active: AdminBottomNavSection }) {
   const { accentColor } = useAppTheme()
@@ -16,6 +16,7 @@ export default function AdminBottomNav({ active }: { active: AdminBottomNavSecti
     { key: 'students', label: t('nav.admin.students'), href: '/(admin)/students', icon: 'people-outline', activeIcon: 'people' },
     { key: 'courses', label: t('nav.admin.courses'), href: '/(admin)/courses', icon: 'book-outline', activeIcon: 'book' },
     { key: 'classrooms', label: t('nav.admin.classrooms'), href: '/(admin)/classrooms', icon: 'albums-outline', activeIcon: 'albums' },
+    { key: 'support', label: t('nav.admin.support'), href: '/(admin)/support', icon: 'headset-outline', activeIcon: 'headset' },
     { key: 'audit', label: t('nav.admin.audit'), href: '/(admin)/audit', icon: 'shield-checkmark-outline', activeIcon: 'shield-checkmark' },
   ], [t])
 

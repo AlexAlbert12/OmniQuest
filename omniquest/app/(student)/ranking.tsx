@@ -54,10 +54,6 @@ type ClassOption = {
   theme_color: string | null
 }
 
-type WeeklyRankingProfile = Profile & {
-  weekly_points: number
-}
-
 type RankingPagePayload = {
   rows: Profile[]
   total: number
@@ -200,7 +196,9 @@ export default function RankingScreen() {
         setSelectedClassId(null)
       }
 
-      const leagueFilter = selectedLeagueName ? selectedLeague : null
+      const leagueFilter = selectedLeagueName
+        ? rankingLeagues.find((rankingLeague) => rankingLeague.name === selectedLeagueName) || null
+        : null
       const rankingPage = selectedScope === 'class' && !effectiveSelectedClassId
         ? { rows: [], total: 0, current: null }
         : await fetchRankingPage({
@@ -226,7 +224,7 @@ export default function RankingScreen() {
     } finally {
       setLoading(false)
     }
-  }, [page, rankingPageSize, selectedClassId, selectedLeague.minPoints, selectedLeague.nextMinPoints, selectedLeagueName, selectedScope])
+  }, [page, rankingPageSize, selectedClassId, selectedLeagueName, selectedScope])
 
   const emptyRankingMessage = useMemo(() => {
     if (selectedScope === 'weekly') {
@@ -336,7 +334,6 @@ export default function RankingScreen() {
                 currentUserId={currentUserId}
                 maxPoints={selectedLeagueMaxPoints}
                 rankingRows={rankingRows}
-                rankingPoints={rankingPoints}
                 emptyRankingMessage={emptyRankingMessage}
                 orderedPodiumRows={page === 0 ? orderedPodiumRows : []}
                 totalRows={rankingTotal}
@@ -402,7 +399,6 @@ export default function RankingScreen() {
                     currentUserId={currentUserId}
                     maxPoints={selectedLeagueMaxPoints}
                     rankingRows={rankingRows}
-                    rankingPoints={rankingPoints}
                     emptyRankingMessage={emptyRankingMessage}
                     orderedPodiumRows={page === 0 ? orderedPodiumRows : []}
                     totalRows={rankingTotal}
@@ -536,7 +532,6 @@ function RankingListCard({
   currentUserId,
   maxPoints,
   rankingRows,
-  rankingPoints,
   emptyRankingMessage,
   orderedPodiumRows,
   totalRows,
@@ -549,7 +544,6 @@ function RankingListCard({
   currentUserId: string | null
   maxPoints: number
   rankingRows: Profile[]
-  rankingPoints: number
   emptyRankingMessage: string
   orderedPodiumRows: { item: Profile; position: number }[]
   totalRows: number

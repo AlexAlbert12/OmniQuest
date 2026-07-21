@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import {
+  BackHandler,
   Pressable,
   ScrollView,
   Text,
@@ -76,7 +77,7 @@ export default function PlayScreen() {
     selectedClassroomId,
     selectedDifficulty,
   )
-  const [pendingAction, setPendingAction] = useState<'hint' | 'skip' | null>(null)
+  const [pendingAction, setPendingAction] = useState<'hint' | 'skip' | 'exit' | null>(null)
   const [feedbackDialog, setFeedbackDialog] = useState<{ title: string; message: string } | null>(null)
 
   const isDesktop = width >= 1024
@@ -94,6 +95,30 @@ export default function PlayScreen() {
       params: { ...playRouteParams, review: 'failed' },
     } as any)
   }
+
+  const requestExit = () => {
+    if (game.status === 'playing') {
+      setPendingAction('exit')
+      return
+    }
+    router.back()
+  }
+
+  const confirmExit = async () => {
+    setPendingAction(null)
+    await game.abandonGame()
+    router.back()
+  }
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (game.status !== 'playing') return false
+      setPendingAction('exit')
+      return true
+    })
+
+    return () => subscription.remove()
+  }, [game.status])
 
   if (game.status === 'loading') {
     return (
@@ -240,7 +265,7 @@ export default function PlayScreen() {
               accessibilityLabel={t('common.close')}
               accessibilityRole="button"
               hitSlop={8}
-              onPress={() => router.back()}
+              onPress={requestExit}
               className="h-12 w-12 items-center justify-center rounded-2xl border border-[#20375E] bg-[#08172E]"
               style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
             >
@@ -353,6 +378,18 @@ export default function PlayScreen() {
           ) : null}
         </View>
       </ScrollView>
+      <AppConfirmModal
+        visible={pendingAction === 'exit'}
+        variant="warning"
+        showOmni
+        omniState="thinking"
+        title="¿Salir de la partida?"
+        message="La partida se marcará como abandonada. Podrás iniciar otra cuando quieras, pero este intento quedará registrado."
+        cancelLabel="Seguir jugando"
+        confirmLabel="Salir"
+        onCancel={() => setPendingAction(null)}
+        onConfirm={() => void confirmExit()}
+      />
       <AppConfirmModal
         visible={pendingAction === 'hint'}
         variant="info"
@@ -922,7 +959,7 @@ function PairingQuestion({
             2. Toca {labels.rightLabel.toLowerCase()}
           </Text>
           <View className="gap-3 rounded-2xl border border-[#1E355C] bg-[#061426] p-3">
-            {options.length > 0 ? options.map((option, index) => {
+            {options.length > 0 ? options.map((option) => {
               const ownerIndex = findOptionOwner(selections, option.key)
               const usedByCurrent = ownerIndex === activeIndex
               const usedByOther = ownerIndex !== null && ownerIndex !== activeIndex

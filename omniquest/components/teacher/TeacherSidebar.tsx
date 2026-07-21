@@ -153,6 +153,15 @@ export default function TeacherSidebar({
           </View>
         </Pressable>
       </Link>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Cerrar sesión"
+        onPress={onSignOut}
+        className="mt-2 flex-row items-center justify-center gap-2 rounded-2xl border border-[#4A1E2B] bg-[#2A0B18] px-4 py-3"
+      >
+        <Ionicons name="log-out-outline" size={19} color="#FB7185" />
+        <Text className="text-[13px] font-black text-[#FCA5A5]">Cerrar sesión</Text>
+      </Pressable>
     </View>
   )
 }

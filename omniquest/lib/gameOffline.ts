@@ -47,7 +47,7 @@ function webStorage() {
   return window.localStorage
 }
 
-export function buildGameSnapshotKey(parts: Array<string | number | null | undefined>) {
+export function buildGameSnapshotKey(parts: (string | number | boolean | null | undefined)[]) {
   return parts.map((part) => encodeURIComponent(String(part ?? 'none'))).join(':')
 }
 

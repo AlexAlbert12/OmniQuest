@@ -268,7 +268,6 @@ export default function ProfileScreen() {
             <ProfileHero
               alias={alias}
               level={level}
-              points={points}
               nextLevelProgress={nextLevelProgress}
               profile={profile}
               uploading={uploading}
@@ -721,7 +720,6 @@ function MobileCompactEmpty({
 function ProfileHero({
   alias,
   level,
-  points,
   nextLevelProgress,
   profile,
   uploading,
@@ -729,7 +727,6 @@ function ProfileHero({
 }: {
   alias: string
   level: number
-  points: number
   nextLevelProgress: number
   profile: Profile | null
   uploading: boolean

@@ -17,7 +17,8 @@ import { supabase } from '../../lib/supabase';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader';
-import OmniGuide from '../../components/OmniGuide';
+import OmniGuide from '../../components/OmniGuide'
+import { trackUsageEvent } from '../../lib/analytics';
 
 type TicketPriority = 'low' | 'medium' | 'high';
 type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
@@ -30,6 +31,9 @@ type SupportTicket = {
   status: TicketStatus
   priority: TicketPriority
   created_at: string
+  updated_at?: string | null
+  resolved_at?: string | null
+  admin_response?: string | null
 };
 
 const faqItems = [
@@ -109,7 +113,7 @@ export default function TeacherHelpCenterScreen() {
 
       const { data: ticketsData, error } = await supabase
         .from('user_support_tickets')
-        .select('id, subject, category, status, priority, created_at')
+        .select('id, subject, category, status, priority, created_at, updated_at, resolved_at, admin_response')
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false })
         .limit(20);
@@ -172,7 +176,7 @@ export default function TeacherHelpCenterScreen() {
             status: 'open',
           },
         ])
-        .select('id, subject, category, status, priority, created_at')
+        .select('id, subject, category, status, priority, created_at, updated_at, resolved_at, admin_response')
         .single();
 
       if (error) {
@@ -183,6 +187,7 @@ export default function TeacherHelpCenterScreen() {
       }
 
       setTickets((current) => [data as SupportTicket, ...current].slice(0, 20));
+      void trackUsageEvent('support_ticket_created', { properties: { role: 'teacher', category, priority } });
       setSubject('');
       setMessage('');
       setCategory('plataforma');
@@ -338,6 +343,15 @@ export default function TeacherHelpCenterScreen() {
                       {formatTicketCategory(ticket.category)} • Prioridad {formatTicketPriority(ticket.priority)} •{' '}
                       {formatRelativeDate(ticket.created_at)}
                     </Text>
+                    {ticket.admin_response ? (
+                      <View className="mt-3 rounded-xl border border-[#35578A] bg-[#10224A] p-3">
+                        <View className="flex-row items-center gap-2">
+                          <Ionicons name="chatbubble-ellipses-outline" size={15} color="#9FD6FF" />
+                          <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-[#9FD6FF]">Respuesta de soporte</Text>
+                        </View>
+                        <Text className="mt-2 text-[12px] leading-5 text-[#DDE7F4]">{ticket.admin_response}</Text>
+                      </View>
+                    ) : null}
                   </View>
                 ))}
               </View>

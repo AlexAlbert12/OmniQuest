@@ -218,7 +218,7 @@ export function SettingsPreferencesPanel({
 }) {
   const { themePreference, setTheme, colors } = useAppTheme()
   const { t } = useI18n()
-  const themeOptions: Array<{ value: AppThemePreference; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+  const themeOptions: { value: AppThemePreference; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { value: 'system', label: t('settings.appearance.system'), icon: 'phone-portrait-outline' },
     { value: 'dark', label: t('settings.appearance.dark'), icon: 'moon-outline' },
     { value: 'light', label: t('settings.appearance.light'), icon: 'sunny-outline' },

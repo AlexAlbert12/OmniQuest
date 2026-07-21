@@ -20,8 +20,6 @@ import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav';
 import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader';
 
-type IconName = keyof typeof Ionicons.glyphMap
-
 type TeacherActionResult = {
   error?: string
   [key: string]: unknown

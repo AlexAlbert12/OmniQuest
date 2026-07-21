@@ -19,8 +19,16 @@ import MobileMetricCard from '../ui/mobile/MobileMetricCard'
 import { supabase } from '../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { useAppTheme } from '../../lib/appTheme'
+import GlobalSearchButton from '../search/GlobalSearchButton'
+import {
+  exportAdminAudit,
+  exportAdminClassrooms,
+  exportAdminProfiles,
+  exportAdminSubjects,
+  exportAdminSupport,
+} from '../../lib/adminExports'
 
-type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'audit'
+type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'support' | 'audit'
 type IconName = keyof typeof Ionicons.glyphMap
 
 type ProfileRow = {
@@ -69,6 +77,39 @@ type AdminAuditLogRow = {
   target_id: string | null
   metadata: Record<string, unknown> | null
   created_at: string
+}
+
+
+type AdminSupportTicketRow = {
+  id: number
+  user_id: string
+  user_alias: string | null
+  user_email: string | null
+  role: 'student' | 'teacher'
+  category: string
+  subject: string
+  message: string
+  contact_email: string | null
+  priority: 'low' | 'medium' | 'high'
+  status: 'open' | 'in_progress' | 'resolved' | 'closed'
+  admin_response: string | null
+  assigned_admin_id: string | null
+  resolved_at: string | null
+  last_response_at: string | null
+  created_at: string
+  updated_at: string
+  total_count?: number | null
+}
+
+type AdminUsageAnalytics = {
+  days: number
+  game_started: number
+  game_finished: number
+  game_abandoned: number
+  game_errors: number
+  badges_unlocked: number
+  active_users: number
+  completion_rate: number
 }
 
 type EnrollmentRow = {
@@ -137,6 +178,7 @@ const adminSections: { section: AdminSection; label: string; icon: IconName; hre
   { section: 'students', label: 'Alumnos', icon: 'people-outline', href: '/(admin)/students' },
   { section: 'courses', label: 'Cursos', icon: 'book-outline', href: '/(admin)/courses' },
   { section: 'classrooms', label: 'Clases', icon: 'albums-outline', href: '/(admin)/classrooms' },
+  { section: 'support', label: 'Soporte', icon: 'headset-outline', href: '/(admin)/support' },
   { section: 'audit', label: 'Auditoría', icon: 'receipt-outline', href: '/(admin)/audit' },
 ]
 
@@ -151,6 +193,20 @@ function showAlert(title: string, message: string) {
   }
 
   Alert.alert(title, message)
+}
+
+async function runAdminExport(setExporting: (value: boolean) => void, task: () => Promise<boolean>) {
+  setExporting(true)
+  try {
+    const exported = await task()
+    if (!exported) {
+      showAlert('Exportación no disponible', 'No se pudo abrir el diálogo para guardar o compartir el archivo.')
+    }
+  } catch (error: any) {
+    showAlert('No se pudo exportar', error?.message || 'Revisa la conexión y vuelve a intentarlo.')
+  } finally {
+    setExporting(false)
+  }
 }
 
 function confirmAction(title: string, message: string, onConfirm: () => void) {
@@ -547,18 +603,12 @@ export function AdminHomeScreen() {
     <AdminScaffold activeSection="home" title="Inicio Admin" subtitle="Vista general del sistema, alertas y accesos rápidos." data={data}>
       <AdminMetrics data={data} activeSection="home" />
 
-      <View className="mt-5">
-        <AdminSectionIntro
-          title="Panel de control"
-          description="Supervisa usuarios, cursos, clases e inscripciones desde una vista general."
-        />
-      </View>
-
       <View className="mt-5 flex-row flex-wrap gap-4">
         <HomeShortcut icon="person-add-outline" label="Crear profesor" onPress={() => actions.router.push('/(admin)/teachers' as any)} />
         <HomeShortcut icon="archive-outline" label="Cursos archivados" onPress={() => actions.router.push('/(admin)/courses?archived=1' as any)} />
         <HomeShortcut icon="download-outline" label="Exportar usuarios" onPress={() => showAlert('Exportar usuarios', 'Usa las secciones Profesores o Alumnos para exportar el listado filtrado.')} />
         <HomeShortcut icon="albums-outline" label="Revisar clases" onPress={() => actions.router.push('/(admin)/classrooms' as any)} />
+        <HomeShortcut icon="headset-outline" label="Gestionar soporte" onPress={() => actions.router.push('/(admin)/support' as any)} />
         <HomeShortcut icon="receipt-outline" label="Ver auditoría" onPress={() => actions.router.push('/(admin)/audit' as any)} />
       </View>
 
@@ -580,6 +630,10 @@ export function AdminHomeScreen() {
             <SideFact label="Inscripciones" value={String(dashboard.enrollmentsCount)} />
           </Panel>
         </View>
+      </View>
+
+      <View className="mt-5">
+        <AdminUsageAnalyticsPanel refreshVersion={data.version} />
       </View>
 
       <View className="mt-5">
@@ -606,9 +660,14 @@ export function AdminTeachersScreen() {
   const adminPageSize = isDesktop ? ADMIN_PAGE_SIZE : 8
   const data = useAdminData()
   const actions = useAdminActions(data)
-  const params = useLocalSearchParams<{ teacherId?: string }>()
-  const [search, setSearch] = useState('')
+  const params = useLocalSearchParams<{ teacherId?: string; search?: string }>()
+  const [search, setSearch] = useState(() => getSearchParam(params.search))
+  const [exporting, setExporting] = useState(false)
   const [teacherAlias, setTeacherAlias] = useState('')
+
+  useEffect(() => {
+    setSearch(getSearchParam(params.search))
+  }, [params.search])
   const [teacherEmail, setTeacherEmail] = useState('')
   const [teacherPassword, setTeacherPassword] = useState('')
   const [creatingTeacher, setCreatingTeacher] = useState(false)
@@ -619,7 +678,7 @@ export function AdminTeachersScreen() {
     p_search: search.trim(),
     p_subject_id: null,
     p_classroom_id: null,
-    p_profile_id: params.teacherId || null,
+    p_profile_id: getSearchParam(params.teacherId) || null,
   }, data.version, adminPageSize)
   const visibleTeachers = teacherPage.rows
 
@@ -664,10 +723,6 @@ export function AdminTeachersScreen() {
     <AdminScaffold activeSection="teachers" title="Profesores" subtitle="Crea y gestiona las cuentas docentes." data={data}>
       <AdminMetrics data={data} activeSection="teachers" />
 
-      <View className="mt-5">
-        <AdminSectionIntro title="Gestión de profesores" description="Administra cuentas docentes, sus cursos y el acceso a la plataforma." />
-      </View>
-
       <Panel title="Crear cuenta de profesor" icon="person-add-outline" className="mt-5">
         <View className="flex-row flex-wrap items-end gap-3">
           <AdminInput label="Alias" value={teacherAlias} onChangeText={setTeacherAlias} placeholder="Ej. Profesor Random" />
@@ -703,7 +758,13 @@ export function AdminTeachersScreen() {
       </Panel>
 
       <Panel title="Listado de profesores" icon="school-outline" className="mt-5">
-        <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar profesor por nombre o correo..." />
+        <AdminListToolbar
+          search={search}
+          onChangeSearch={setSearch}
+          placeholder="Buscar profesor por nombre o correo..."
+          exporting={exporting}
+          onExport={() => void runAdminExport(setExporting, () => exportAdminProfiles({ role: 'teacher', search, profileId: getSearchParam(params.teacherId) || null }))}
+        />
         <View className="mt-4" style={{ gap: 12 }}>
           {teacherPage.loading && !teacherPage.refreshing ? <ListLoadingState /> : null}
           {visibleTeachers.map((profile) => (
@@ -732,15 +793,20 @@ export function AdminStudentsScreen() {
   const adminPageSize = isDesktop ? ADMIN_PAGE_SIZE : 8
   const data = useAdminData()
   const actions = useAdminActions(data)
-  const params = useLocalSearchParams<{ classroomId?: string; subjectId?: string }>()
-  const [search, setSearch] = useState('')
+  const params = useLocalSearchParams<{ classroomId?: string; subjectId?: string; profileId?: string; search?: string }>()
+  const [search, setSearch] = useState(() => getSearchParam(params.search))
+  const [exporting, setExporting] = useState(false)
+
+  useEffect(() => {
+    setSearch(getSearchParam(params.search))
+  }, [params.search])
 
   const studentPage = useAdminRpcPage<ProfileRow>('get_admin_profiles_page', {
     p_role: 'student',
     p_search: search.trim(),
-    p_subject_id: params.subjectId ? Number(params.subjectId) : null,
-    p_classroom_id: params.classroomId ? Number(params.classroomId) : null,
-    p_profile_id: null,
+    p_subject_id: getNumericParam(params.subjectId),
+    p_classroom_id: getNumericParam(params.classroomId),
+    p_profile_id: getSearchParam(params.profileId) || null,
   }, data.version, adminPageSize)
   const visibleStudents = studentPage.rows
 
@@ -748,12 +814,20 @@ export function AdminStudentsScreen() {
     <AdminScaffold activeSection="students" title="Alumnos" subtitle="Consulta cuentas, inscripciones y progreso acumulado." data={data}>
       <AdminMetrics data={data} activeSection="students" />
 
-      <View className="mt-5">
-        <AdminSectionIntro title="Gestión de alumnos" description="Revisa alumnos registrados, inscripciones activas y acciones de mantenimiento." />
-      </View>
-
       <Panel title="Listado de alumnos" icon="people-outline" className="mt-5">
-        <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar alumno por nombre o correo..." />
+        <AdminListToolbar
+          search={search}
+          onChangeSearch={setSearch}
+          placeholder="Buscar alumno por nombre o correo..."
+          exporting={exporting}
+          onExport={() => void runAdminExport(setExporting, () => exportAdminProfiles({
+            role: 'student',
+            search,
+            subjectId: getNumericParam(params.subjectId),
+            classroomId: getNumericParam(params.classroomId),
+            profileId: getSearchParam(params.profileId) || null,
+          }))}
+        />
         <View className="mt-4" style={{ gap: 12 }}>
           {studentPage.loading && !studentPage.refreshing ? <ListLoadingState /> : null}
           {visibleStudents.map((profile) => (
@@ -782,13 +856,18 @@ export function AdminCoursesScreen() {
   const adminPageSize = isDesktop ? ADMIN_PAGE_SIZE : 8
   const data = useAdminData()
   const actions = useAdminActions(data)
-  const params = useLocalSearchParams<{ teacherId?: string; archived?: string }>()
-  const [search, setSearch] = useState('')
+  const params = useLocalSearchParams<{ teacherId?: string; archived?: string; search?: string }>()
+  const [search, setSearch] = useState(() => getSearchParam(params.search))
+  const [exporting, setExporting] = useState(false)
+
+  useEffect(() => {
+    setSearch(getSearchParam(params.search))
+  }, [params.search])
 
   const subjectPage = useAdminRpcPage<SubjectRow>('get_admin_subjects_page', {
     p_search: search.trim(),
-    p_teacher_id: params.teacherId || null,
-    p_archived: params.archived === '1' ? true : null,
+    p_teacher_id: getSearchParam(params.teacherId) || null,
+    p_archived: getSearchParam(params.archived) === '1' ? true : null,
   }, data.version, adminPageSize)
   const visibleSubjects = subjectPage.rows
 
@@ -796,12 +875,18 @@ export function AdminCoursesScreen() {
     <AdminScaffold activeSection="courses" title="Cursos" subtitle="Administra cursos activos, archivados y docentes responsables." data={data}>
       <AdminMetrics data={data} activeSection="courses" />
 
-      <View className="mt-5">
-        <AdminSectionIntro title="Gestión de cursos" description="Consulta cursos, clases asociadas, inscripciones y estado de archivo." />
-      </View>
-
       <Panel title="Listado de cursos" icon="book-outline" className="mt-5">
-        <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar curso o profesor..." />
+        <AdminListToolbar
+          search={search}
+          onChangeSearch={setSearch}
+          placeholder="Buscar curso o profesor..."
+          exporting={exporting}
+          onExport={() => void runAdminExport(setExporting, () => exportAdminSubjects({
+            search,
+            teacherId: getSearchParam(params.teacherId) || null,
+            archived: getSearchParam(params.archived) === '1' ? true : null,
+          }))}
+        />
         <View className="mt-4" style={{ gap: 12 }}>
           {subjectPage.loading && !subjectPage.refreshing ? <ListLoadingState /> : null}
           {visibleSubjects.map((subject) => (
@@ -832,13 +917,18 @@ export function AdminClassroomsScreen() {
   const adminPageSize = isDesktop ? ADMIN_PAGE_SIZE : 8
   const data = useAdminData()
   const actions = useAdminActions(data)
-  const params = useLocalSearchParams<{ subjectId?: string; studentId?: string }>()
-  const [search, setSearch] = useState('')
+  const params = useLocalSearchParams<{ subjectId?: string; studentId?: string; search?: string }>()
+  const [search, setSearch] = useState(() => getSearchParam(params.search))
+  const [exporting, setExporting] = useState(false)
+
+  useEffect(() => {
+    setSearch(getSearchParam(params.search))
+  }, [params.search])
 
   const classroomPage = useAdminRpcPage<ClassroomRow>('get_admin_classrooms_page', {
     p_search: search.trim(),
-    p_subject_id: params.subjectId ? Number(params.subjectId) : null,
-    p_student_id: params.studentId || null,
+    p_subject_id: getNumericParam(params.subjectId),
+    p_student_id: getSearchParam(params.studentId) || null,
   }, data.version, adminPageSize)
   const visibleClassrooms = classroomPage.rows
 
@@ -846,12 +936,18 @@ export function AdminClassroomsScreen() {
     <AdminScaffold activeSection="classrooms" title="Clases" subtitle="Gestiona códigos, estado e inscripciones por clase." data={data}>
       <AdminMetrics data={data} activeSection="classrooms" />
 
-      <View className="mt-5">
-        <AdminSectionIntro title="Gestión de clases" description="Revisa clases de cada curso, códigos de acceso y alumnos inscritos." />
-      </View>
-
       <Panel title="Listado de clases" icon="albums-outline" className="mt-5">
-        <AdminSearch value={search} onChangeText={setSearch} placeholder="Buscar clase, código o curso..." />
+        <AdminListToolbar
+          search={search}
+          onChangeSearch={setSearch}
+          placeholder="Buscar clase, código o curso..."
+          exporting={exporting}
+          onExport={() => void runAdminExport(setExporting, () => exportAdminClassrooms({
+            search,
+            subjectId: getNumericParam(params.subjectId),
+            studentId: getSearchParam(params.studentId) || null,
+          }))}
+        />
         <View className="mt-4" style={{ gap: 12 }}>
           {classroomPage.loading && !classroomPage.refreshing ? <ListLoadingState /> : null}
           {visibleClassrooms.map((classroom) => (
@@ -876,12 +972,221 @@ export function AdminClassroomsScreen() {
 }
 
 
+
+export function AdminSupportScreen() {
+  const { width } = useWindowDimensions()
+  const isDesktop = width >= 1040
+  const pageSize = isDesktop ? 25 : 8
+  const data = useAdminData()
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('open')
+  const [priorityFilter, setPriorityFilter] = useState<string>('all')
+  const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [exporting, setExporting] = useState(false)
+  const [selectedTicket, setSelectedTicket] = useState<AdminSupportTicketRow | null>(null)
+  const [editStatus, setEditStatus] = useState<AdminSupportTicketRow['status']>('in_progress')
+  const [editPriority, setEditPriority] = useState<AdminSupportTicketRow['priority']>('medium')
+  const [adminResponse, setAdminResponse] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const supportPage = useAdminRpcPage<AdminSupportTicketRow>('get_admin_support_tickets_page', {
+    p_search: search.trim() || null,
+    p_status: statusFilter === 'all' ? null : statusFilter,
+    p_priority: priorityFilter === 'all' ? null : priorityFilter,
+    p_role: roleFilter === 'all' ? null : roleFilter,
+  }, data.version, pageSize)
+
+  const openTicket = (ticket: AdminSupportTicketRow) => {
+    setSelectedTicket(ticket)
+    setEditStatus(ticket.status === 'open' ? 'in_progress' : ticket.status)
+    setEditPriority(ticket.priority)
+    setAdminResponse(ticket.admin_response || '')
+  }
+
+  const saveTicket = async () => {
+    if (!selectedTicket) return
+    if ((editStatus === 'resolved' || editStatus === 'closed') && adminResponse.trim().length < 5) {
+      showAlert('Respuesta necesaria', 'Escribe una respuesta antes de resolver o cerrar el ticket.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const { error } = await (supabase.rpc as any)('admin_update_support_ticket', {
+        p_ticket_id: selectedTicket.id,
+        p_status: editStatus,
+        p_priority: editPriority,
+        p_admin_response: adminResponse.trim() || null,
+      })
+      if (error) throw error
+
+      setSelectedTicket(null)
+      setAdminResponse('')
+      supportPage.refresh()
+      await data.refresh()
+      showAlert('Ticket actualizado', 'La respuesta y el estado se han guardado correctamente.')
+    } catch (error: any) {
+      showAlert('No se pudo actualizar el ticket', error?.message || 'Inténtalo de nuevo.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <AdminScaffold activeSection="support" title="Soporte" subtitle="Gestiona solicitudes de alumnos y profesores desde una cola priorizada." data={data}>
+      <AdminMetrics data={data} activeSection="support" />
+
+      {selectedTicket ? (
+        <Panel title={`Gestionar ticket #${selectedTicket.id}`} icon="chatbubble-ellipses-outline" className="mt-5">
+          <View className={isDesktop ? 'flex-row gap-5' : 'gap-4'}>
+            <View className="min-w-0 flex-1">
+              <View className="flex-row flex-wrap items-center gap-2">
+                <SupportStatusPill status={selectedTicket.status} />
+                <SupportPriorityPill priority={selectedTicket.priority} />
+                <MiniPill icon={selectedTicket.role === 'teacher' ? 'school-outline' : 'person-outline'} label={selectedTicket.role === 'teacher' ? 'Profesor' : 'Alumno'} />
+              </View>
+              <Text className="mt-4 text-[18px] font-black text-white">{selectedTicket.subject}</Text>
+              <Text className="mt-1 text-[12px] font-semibold text-[#8FA7C7]">
+                {selectedTicket.user_alias || 'Usuario'} · {selectedTicket.user_email || selectedTicket.contact_email || 'Sin correo'} · {formatAuditDate(selectedTicket.created_at)}
+              </Text>
+              <View className="mt-4 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+                <Text className="text-[12px] font-black uppercase tracking-[0.7px] text-[#8FA7C7]">Mensaje</Text>
+                <Text className="mt-2 text-[14px] leading-6 text-[#DDE7F4]">{selectedTicket.message}</Text>
+              </View>
+            </View>
+
+            <View className={isDesktop ? 'w-[420px]' : ''}>
+              <Text className="text-[12px] font-black uppercase tracking-[0.7px] text-[#8FA7C7]">Estado</Text>
+              <View className="mt-2 flex-row flex-wrap gap-2">
+                {(['open', 'in_progress', 'resolved', 'closed'] as const).map((status) => (
+                  <AdminChoiceChip key={status} active={editStatus === status} label={getSupportStatusLabel(status)} onPress={() => setEditStatus(status)} />
+                ))}
+              </View>
+
+              <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-[#8FA7C7]">Prioridad</Text>
+              <View className="mt-2 flex-row flex-wrap gap-2">
+                {(['low', 'medium', 'high'] as const).map((priority) => (
+                  <AdminChoiceChip key={priority} active={editPriority === priority} label={getSupportPriorityLabel(priority)} onPress={() => setEditPriority(priority)} />
+                ))}
+              </View>
+
+              <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-[#8FA7C7]">Respuesta al usuario</Text>
+              <TextInput
+                accessibilityLabel="Respuesta del administrador"
+                className="mt-2 min-h-[130px] rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3 text-[14px] leading-5 text-white"
+                multiline
+                onChangeText={setAdminResponse}
+                placeholder="Explica la solución o los siguientes pasos..."
+                placeholderTextColor="#8FA7C7"
+                textAlignVertical="top"
+                value={adminResponse}
+              />
+
+              <View className="mt-4 flex-row flex-wrap justify-end gap-2">
+                <Pressable
+                  accessibilityLabel="Cancelar edición del ticket"
+                  accessibilityRole="button"
+                  onPress={() => setSelectedTicket(null)}
+                  className="h-11 items-center justify-center rounded-xl border border-[#20375E] bg-[#09162C] px-4"
+                >
+                  <Text className="font-black text-[#DDE7F4]">Cancelar</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Guardar respuesta del ticket"
+                  accessibilityRole="button"
+                  disabled={saving}
+                  onPress={() => void saveTicket()}
+                  className="h-11 flex-row items-center justify-center gap-2 rounded-xl bg-[#5A46D8] px-5"
+                  style={({ pressed }) => ({ opacity: saving ? 0.55 : pressed ? 0.8 : 1 })}
+                >
+                  {saving ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="send-outline" size={17} color="#FFFFFF" />}
+                  <Text className="font-black text-white">{saving ? 'Guardando...' : 'Guardar y notificar'}</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Panel>
+      ) : null}
+
+      <Panel title="Cola de tickets" icon="headset-outline" className="mt-5">
+        <AdminListToolbar
+          search={search}
+          onChangeSearch={setSearch}
+          placeholder="Buscar por usuario, asunto, mensaje o correo..."
+          exporting={exporting}
+          onExport={() => void runAdminExport(setExporting, () => exportAdminSupport({
+            search,
+            status: statusFilter === 'all' ? null : statusFilter,
+            priority: priorityFilter === 'all' ? null : priorityFilter,
+            role: roleFilter === 'all' ? null : roleFilter,
+          }))}
+        />
+
+        <View className="mt-3 gap-3">
+          <AdminFilterRow
+            label="Estado"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: 'all', label: 'Todos' },
+              { value: 'open', label: 'Abiertos' },
+              { value: 'in_progress', label: 'En proceso' },
+              { value: 'resolved', label: 'Resueltos' },
+              { value: 'closed', label: 'Cerrados' },
+            ]}
+          />
+          <AdminFilterRow
+            label="Prioridad"
+            value={priorityFilter}
+            onChange={setPriorityFilter}
+            options={[
+              { value: 'all', label: 'Todas' },
+              { value: 'high', label: 'Alta' },
+              { value: 'medium', label: 'Media' },
+              { value: 'low', label: 'Baja' },
+            ]}
+          />
+          <AdminFilterRow
+            label="Rol"
+            value={roleFilter}
+            onChange={setRoleFilter}
+            options={[
+              { value: 'all', label: 'Todos' },
+              { value: 'student', label: 'Alumnos' },
+              { value: 'teacher', label: 'Profesores' },
+            ]}
+          />
+        </View>
+
+        <View className="mt-4" style={{ gap: 12 }}>
+          {supportPage.loading && !supportPage.refreshing ? <ListLoadingState /> : null}
+          {supportPage.rows.map((ticket) => (
+            <SupportTicketCard key={ticket.id} ticket={ticket} onManage={() => openTicket(ticket)} />
+          ))}
+          {!supportPage.loading && supportPage.rows.length === 0 ? <EmptyState label="No hay tickets que coincidan con los filtros." /> : null}
+        </View>
+
+        <AdminPaginationControls
+          page={supportPage.page}
+          pageSize={supportPage.pageSize}
+          total={supportPage.total}
+          hasPrevious={supportPage.hasPrevious}
+          hasNext={supportPage.hasNext}
+          onPrevious={supportPage.previousPage}
+          onNext={supportPage.nextPage}
+        />
+      </Panel>
+    </AdminScaffold>
+  )
+}
+
 export function AdminAuditScreen() {
   const { width } = useWindowDimensions()
   const isDesktop = width >= 1040
   const auditPageSize = isDesktop ? 25 : 8
   const data = useAdminData()
   const [search, setSearch] = useState('')
+  const [exporting, setExporting] = useState(false)
 
   const auditPage = useAdminRpcPage<AdminAuditLogRow & { total_count?: number | null }>(
     'get_admin_audit_logs_page',
@@ -894,18 +1199,13 @@ export function AdminAuditScreen() {
     <AdminScaffold activeSection="audit" title="Auditoría" subtitle="Registro de acciones sensibles realizadas desde el portal admin." data={data}>
       <AdminMetrics data={data} activeSection="audit" />
 
-      <View className="mt-5">
-        <AdminSectionIntro
-          title="Registro de auditoría"
-          description="Consulta quién ejecutó cada acción crítica, sobre qué entidad y cuándo se realizó. El listado se pagina directamente en servidor."
-        />
-      </View>
-
       <Panel title="Últimas acciones registradas" icon="receipt-outline" className="mt-5">
-        <AdminSearch
-          value={search}
-          onChangeText={setSearch}
+        <AdminListToolbar
+          search={search}
+          onChangeSearch={setSearch}
           placeholder="Buscar por acción, admin, objetivo o metadata..."
+          exporting={exporting}
+          onExport={() => void runAdminExport(setExporting, () => exportAdminAudit(search))}
         />
         <View className="mt-4" style={{ gap: 12 }}>
           {auditPage.loading && !auditPage.refreshing ? <ListLoadingState /> : null}
@@ -987,6 +1287,7 @@ function AdminScaffold({
                 </View>
                 <Text className="mt-2 text-[14px] text-[#B7C4D7]">{subtitle}</Text>
               </View>
+              <GlobalSearchButton role="admin" />
             </View>
           ) : (
             <View className="mb-6">
@@ -997,15 +1298,18 @@ function AdminScaffold({
                   </View>
                   <Text className="min-w-0 text-[28px] font-black text-white" numberOfLines={1}>{title}</Text>
                 </View>
-                <Pressable
-                  onPress={handleSignOut}
-                  accessibilityRole="button"
-                  accessibilityLabel="Cerrar sesión"
-                  className="h-12 w-12 items-center justify-center rounded-2xl border border-[#20375E] bg-[#09162C]"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-                >
-                  <Ionicons name="log-out-outline" size={20} color="#FB7185" />
-                </Pressable>
+                <View className="flex-row items-center gap-2">
+                  <GlobalSearchButton role="admin" compact />
+                  <Pressable
+                    onPress={handleSignOut}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cerrar sesión"
+                    className="h-12 w-12 items-center justify-center rounded-2xl border border-[#20375E] bg-[#09162C]"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+                  >
+                    <Ionicons name="log-out-outline" size={20} color="#FB7185" />
+                  </Pressable>
+                </View>
               </View>
 
               <View className="rounded-[28px] border border-[#1A3155] bg-[#09162C] p-5">
@@ -1237,18 +1541,6 @@ function AdminMobileSectionTabs({ activeSection }: { activeSection: AdminSection
   )
 }
 
-function AdminSectionIntro({ title, description }: { title: string; description: string }) {
-  const { width } = useWindowDimensions()
-  if (width < 1040) return null
-
-  return (
-    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <Text className="text-[18px] font-black text-white">{title}</Text>
-      <Text className="mt-1 text-[13px] leading-5 text-[#B7C4D7]">{description}</Text>
-    </View>
-  )
-}
-
 function HomeShortcut({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
   return (
     <Pressable
@@ -1346,6 +1638,229 @@ function AdminSearch({ value, onChangeText, placeholder }: { value: string; onCh
       <Ionicons name="search-outline" size={19} color="#8FA7C7" />
     </View>
   )
+}
+
+
+function AdminListToolbar({
+  exporting,
+  onChangeSearch,
+  onExport,
+  placeholder,
+  search,
+}: {
+  exporting: boolean
+  onChangeSearch: (value: string) => void
+  onExport: () => void
+  placeholder: string
+  search: string
+}) {
+  return (
+    <View className="flex-row flex-wrap items-center gap-3">
+      <View className="min-w-[240px] flex-1">
+        <AdminSearch value={search} onChangeText={onChangeSearch} placeholder={placeholder} />
+      </View>
+      <Pressable
+        accessibilityLabel="Exportar listado filtrado a CSV"
+        accessibilityRole="button"
+        disabled={exporting}
+        onPress={onExport}
+        className="h-12 flex-row items-center justify-center gap-2 rounded-xl border border-[#35578A] bg-[#102A54] px-4"
+        style={({ pressed }) => ({ opacity: exporting ? 0.55 : pressed ? 0.78 : 1 })}
+      >
+        {exporting ? <ActivityIndicator color="#9FD6FF" /> : <Ionicons name="download-outline" size={18} color="#9FD6FF" />}
+        <Text className="font-black text-[#DDE7F4]">{exporting ? 'Exportando...' : 'Exportar CSV'}</Text>
+      </Pressable>
+    </View>
+  )
+}
+
+function AdminFilterRow({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string
+  onChange: (value: string) => void
+  options: { value: string; label: string }[]
+  value: string
+}) {
+  return (
+    <View>
+      <Text className="mb-2 text-[11px] font-black uppercase tracking-[0.7px] text-[#8FA7C7]">{label}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+        {options.map((option) => (
+          <AdminChoiceChip key={option.value} active={value === option.value} label={option.label} onPress={() => onChange(option.value)} />
+        ))}
+      </ScrollView>
+    </View>
+  )
+}
+
+function AdminChoiceChip({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      className="h-10 items-center justify-center rounded-xl border px-3"
+      style={({ pressed }) => ({
+        borderColor: active ? '#8B5CF6' : '#20375E',
+        backgroundColor: active ? '#2D1D6B' : '#09162C',
+        opacity: pressed ? 0.78 : 1,
+      })}
+    >
+      <Text className="text-[12px] font-black" style={{ color: active ? '#FFFFFF' : '#AFC2DB' }}>{label}</Text>
+    </Pressable>
+  )
+}
+
+function SupportTicketCard({ ticket, onManage }: { ticket: AdminSupportTicketRow; onManage: () => void }) {
+  return (
+    <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+      <View className="flex-row flex-wrap items-start justify-between gap-3">
+        <View className="min-w-[220px] flex-1">
+          <View className="flex-row flex-wrap items-center gap-2">
+            <SupportStatusPill status={ticket.status} />
+            <SupportPriorityPill priority={ticket.priority} />
+          </View>
+          <Text className="mt-3 text-[16px] font-black text-white">{ticket.subject}</Text>
+          <Text className="mt-1 text-[12px] font-semibold text-[#8FA7C7]">
+            {ticket.user_alias || 'Usuario'} · {ticket.role === 'teacher' ? 'Profesor' : 'Alumno'} · {formatAuditDate(ticket.created_at)}
+          </Text>
+        </View>
+        <Pressable
+          accessibilityLabel={`Gestionar ticket ${ticket.subject}`}
+          accessibilityRole="button"
+          onPress={onManage}
+          className="h-10 flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4"
+          style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+        >
+          <Ionicons name="create-outline" size={16} color="#FFFFFF" />
+          <Text className="text-[12px] font-black text-white">Gestionar</Text>
+        </Pressable>
+      </View>
+      <Text className="mt-3 text-[13px] leading-5 text-[#DDE7F4]" numberOfLines={3}>{ticket.message}</Text>
+      {ticket.admin_response ? (
+        <View className="mt-3 rounded-xl border border-[#30508A] bg-[#10224A] p-3">
+          <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-[#9FD6FF]">Última respuesta</Text>
+          <Text className="mt-1 text-[12px] leading-5 text-[#DDE7F4]" numberOfLines={2}>{ticket.admin_response}</Text>
+        </View>
+      ) : null}
+    </View>
+  )
+}
+
+function SupportStatusPill({ status }: { status: AdminSupportTicketRow['status'] }) {
+  const meta = {
+    open: { bg: '#3B1D2A', color: '#FB7185' },
+    in_progress: { bg: '#3A2A0B', color: '#FBBF24' },
+    resolved: { bg: '#063D31', color: '#34D399' },
+    closed: { bg: '#1A3155', color: '#AFC2DB' },
+  }[status]
+  return (
+    <View className="rounded-full px-3 py-1" style={{ backgroundColor: meta.bg }}>
+      <Text className="text-[11px] font-black" style={{ color: meta.color }}>{getSupportStatusLabel(status)}</Text>
+    </View>
+  )
+}
+
+function SupportPriorityPill({ priority }: { priority: AdminSupportTicketRow['priority'] }) {
+  const meta = {
+    high: { bg: '#3B1D2A', color: '#FB7185' },
+    medium: { bg: '#3A2A0B', color: '#FBBF24' },
+    low: { bg: '#102A54', color: '#9FD6FF' },
+  }[priority]
+  return (
+    <View className="rounded-full px-3 py-1" style={{ backgroundColor: meta.bg }}>
+      <Text className="text-[11px] font-black" style={{ color: meta.color }}>Prioridad {getSupportPriorityLabel(priority).toLowerCase()}</Text>
+    </View>
+  )
+}
+
+function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVersion: number }) {
+  const { width } = useWindowDimensions()
+  const isDesktop = width >= 1040
+  const [analytics, setAnalytics] = useState<AdminUsageAnalytics | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      const { data, error } = await (supabase.rpc as any)('get_admin_usage_analytics', { p_days: 30 })
+      if (!cancelled) {
+        if (error) {
+          console.warn('[admin] No se pudo cargar la analítica de uso:', error.message)
+          setAnalytics(null)
+        } else {
+          setAnalytics((data || null) as AdminUsageAnalytics | null)
+        }
+        setLoading(false)
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [refreshVersion])
+
+  return (
+    <Panel title="Analítica de uso · 30 días" icon="analytics-outline">
+      {loading ? (
+        <View className="items-center py-7">
+          <ActivityIndicator color="#8B5CF6" />
+          <Text className="mt-3 text-[13px] text-[#8FA7C7]">Calculando eventos de producto...</Text>
+        </View>
+      ) : analytics ? (
+        <>
+          <View className="flex-row flex-wrap gap-3">
+            <AdminMetric color="#38BDF8" icon="play" label="Partidas iniciadas" value={String(analytics.game_started || 0)} />
+            <AdminMetric color="#34D399" icon="checkmark-circle" label="Completadas" value={String(analytics.game_finished || 0)} />
+            <AdminMetric color="#F59E0B" icon="exit" label="Abandonadas" value={String(analytics.game_abandoned || 0)} />
+            <AdminMetric color="#FB7185" icon="warning" label="Errores" value={String(analytics.game_errors || 0)} />
+          </View>
+          <View className={isDesktop ? 'mt-4 flex-row gap-4' : 'mt-4 gap-3'}>
+            <View className="flex-1 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+              <Text className="text-[12px] font-bold text-[#8FA7C7]">Tasa de finalización</Text>
+              <Text className="mt-1 text-[26px] font-black text-white">{Number(analytics.completion_rate || 0).toFixed(1)}%</Text>
+            </View>
+            <View className="flex-1 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+              <Text className="text-[12px] font-bold text-[#8FA7C7]">Usuarios activos</Text>
+              <Text className="mt-1 text-[26px] font-black text-white">{analytics.active_users || 0}</Text>
+            </View>
+            <View className="flex-1 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+              <Text className="text-[12px] font-bold text-[#8FA7C7]">Logros desbloqueados</Text>
+              <Text className="mt-1 text-[26px] font-black text-white">{analytics.badges_unlocked || 0}</Text>
+            </View>
+          </View>
+        </>
+      ) : (
+        <EmptyState label="La analítica aparecerá cuando se registren eventos de uso." />
+      )}
+    </Panel>
+  )
+}
+
+function getSupportStatusLabel(status: AdminSupportTicketRow['status']) {
+  if (status === 'in_progress') return 'En proceso'
+  if (status === 'resolved') return 'Resuelto'
+  if (status === 'closed') return 'Cerrado'
+  return 'Abierto'
+}
+
+function getSupportPriorityLabel(priority: AdminSupportTicketRow['priority']) {
+  if (priority === 'high') return 'Alta'
+  if (priority === 'low') return 'Baja'
+  return 'Media'
+}
+
+function getSearchParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] || '' : value || ''
+}
+
+function getNumericParam(value: string | string[] | undefined) {
+  const raw = getSearchParam(value)
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
 type RowAction = {
@@ -1485,6 +2000,7 @@ function getAuditActionLabel(action: string) {
     'admin.course.archive': 'Admin archivó un curso',
     'admin.course.restore': 'Admin restauró un curso',
     'admin.student.delete_progress': 'Admin eliminó progreso de un alumno',
+    'admin.support.update': 'Admin actualizó un ticket de soporte',
     'admin.teacher.create': 'Admin creó un profesor',
     'admin.teacher.update_existing': 'Admin actualizó un profesor existente',
     'admin.user.activate': 'Admin activó un usuario',
@@ -1501,23 +2017,6 @@ function getAuditTargetLabel(log: AdminAuditLogRow) {
 
   if (name && target) return `${name} · ${target}`
   return name || target || 'Acción sin objetivo concreto'
-}
-
-function auditSearchText(log: AdminAuditLogRow, data: AdminData) {
-  const admin = data.profiles.find((profile) => profile.id === log.admin_id)
-  return [
-    log.action,
-    getAuditActionLabel(log.action),
-    getAuditTargetLabel(log),
-    log.target_table,
-    log.target_id,
-    admin?.alias,
-    admin?.email,
-    JSON.stringify(log.metadata || {}),
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase()
 }
 
 function stringMetadata(metadata: Record<string, unknown>, key: string) {
@@ -1730,6 +2229,7 @@ function filledIconFor(icon: IconName): IconName {
     'people-outline': 'people',
     'book-outline': 'book',
     'albums-outline': 'albums',
+    'headset-outline': 'headset',
     'receipt-outline': 'receipt',
   }
   return map[icon] || icon

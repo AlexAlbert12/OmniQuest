@@ -51,7 +51,7 @@ const COURSE_PALETTES = [
   { colors: ['#FF9EB5', '#E75B8D', '#7F2857'] as const, rim: '#FB7185', glow: '#EC4899' },
 ]
 
-const STAR_POSITIONS: Array<{ left: `${number}%`; top: number; size: number; opacity: number }> = [
+const STAR_POSITIONS: { left: `${number}%`; top: number; size: number; opacity: number }[] = [
   { left: '5%', top: 90, size: 3, opacity: 0.8 },
   { left: '20%', top: 170, size: 2, opacity: 0.55 },
   { left: '61%', top: 126, size: 3, opacity: 0.72 },
