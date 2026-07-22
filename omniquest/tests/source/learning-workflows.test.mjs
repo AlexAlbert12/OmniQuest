@@ -13,6 +13,7 @@ test('standalone tasks are removed and the calendar is reused for topic deadline
   const calendar = read('components/ui/DateCalendar.tsx')
   const dateTimeField = read('components/ui/DateTimeCalendarField.tsx')
   const topicForm = read('components/teacher/TeacherTopicForm.tsx')
+  const courseStructure = read('components/teacher/subject/SubjectCourseStructure.tsx')
   const subject = read('app/(teacher)/subject/[id].tsx')
 
   assert.equal(existsSync(join(root, 'app/(teacher)/planning.tsx')), false)
@@ -23,7 +24,8 @@ test('standalone tasks are removed and the calendar is reused for topic deadline
   assert.match(calendar, /getMonthGrid/)
   assert.match(dateTimeField, /DateCalendar/)
   assert.match(topicForm, /DateTimeCalendarField/)
-  assert.match(subject, /DateTimeCalendarField/)
+  assert.match(courseStructure, /DateTimeCalendarField/)
+  assert.match(courseStructure, /newTopicAvailableUntil/)
   assert.match(subject, /newTopicAvailableUntil/)
 })
 
@@ -54,6 +56,8 @@ test('question rich media is uploaded by teachers and rendered safely in game', 
   const mediaView = read('components/questions/QuestionMedia.tsx')
   const mediaEditor = read('components/teacher/TeacherQuestionMediaEditor.tsx')
   const form = read('components/teacher/TeacherQuestionForm.tsx')
+  const promptEditor = read('components/teacher/question-form/QuestionPromptEditor.tsx')
+  const formHook = read('components/teacher/question-form/useTeacherQuestionForm.ts')
   const game = read('app/(student)/play/[id].tsx')
 
   assert.match(migration, /add column if not exists media_type text/)
@@ -65,8 +69,9 @@ test('question rich media is uploaded by teachers and rendered safely in game', 
   assert.match(mediaLib, /uploadQuestionMedia/)
   assert.match(mediaLib, /cloneQuestionMedia/)
   assert.match(mediaEditor, /QuestionMedia/)
-  assert.match(form, /TeacherQuestionMediaEditor/)
-  assert.match(form, /p_media_type/)
+  assert.match(form, /QuestionPromptEditor/)
+  assert.match(promptEditor, /TeacherQuestionMediaEditor/)
+  assert.match(formHook, /p_media_type/)
   assert.match(game, /<QuestionMedia/)
   assert.match(mediaView, /useAudioPlayer/)
   assert.match(mediaView, /VideoView/)

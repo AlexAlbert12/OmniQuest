@@ -21,6 +21,8 @@ import { useAppTheme } from '../../../../lib/appTheme'
 import TeacherSidebar from '../../../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../../../components/teacher/TeacherPageHeader'
+import AppButton from '../../../../components/ui/AppButton'
+import AppTabs from '../../../../components/ui/AppTabs'
 import { exportCsvFile, formatExportDateTime, slugifyFilename } from '../../../../lib/reportExports'
 
 type IconName = keyof typeof Ionicons.glyphMap
@@ -178,6 +180,8 @@ type WeakTopic = {
   lastAttemptAt: string | null
 }
 
+type StudentHistoryTab = 'activity' | 'weaknesses' | 'reviews' | 'metrics'
+
 type EvolutionBucket = {
   dateKey: string
   label: string
@@ -204,7 +208,7 @@ export default function TeacherStudentHistoryScreen() {
   const { id, subjectId, classroomId } = useLocalSearchParams<{ id?: string; subjectId?: string; classroomId?: string }>()
   const router = useRouter()
   const { width } = useWindowDimensions()
-  const { colors } = useAppTheme()
+  const { colors, tokens } = useAppTheme()
   const [profile, setProfile] = useState<StudentProfile | null>(null)
   const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([])
   const [subjectScores, setSubjectScores] = useState<SubjectScoreRow[]>([])
@@ -217,6 +221,7 @@ export default function TeacherStudentHistoryScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [activeHistoryTab, setActiveHistoryTab] = useState<StudentHistoryTab>('activity')
 
   const isDesktop = width >= 1080
   const isWide = width >= 900
@@ -392,6 +397,8 @@ export default function TeacherStudentHistoryScreen() {
   const topTopicScores = useMemo(() => normalizeTopicScores(topicScores).slice(0, 8), [topicScores])
   const mainCourse = filteredCourseContexts[0] || courseContexts[0] || null
   const studentName = profile?.alias?.trim() || 'Alumno'
+  const studentHealth = getStudentHealth(stats, pendingReviews.length, profile?.active !== false)
+  const recommendation = getStudentRecommendation(stats, weakTopics, pendingReviews.length, mainCourse)
   const headerSubtitle = mainCourse
     ? `${mainCourse.subjectName} · ${mainCourse.classroomName}`
     : 'Historial completo por alumno'
@@ -593,111 +600,72 @@ export default function TeacherStudentHistoryScreen() {
             </View>
           ) : null}
 
-          <View className={isWide ? 'flex-row flex-wrap gap-4' : 'gap-4'}>
-            <MetricCard icon="flash-outline" title="XP global" value={(profile?.points ?? 0).toLocaleString()} detail="profiles.points sincronizado" color="#FBBF24" />
-            <MetricCard icon="checkmark-circle-outline" title="Precisión" value={stats.accuracyPercent === null ? 'Sin datos' : `${stats.accuracyPercent}%`} detail={`${stats.correctAttempts}/${stats.totalAttempts} respuestas correctas en esta página`} color="#38BDF8" />
-            <MetricCard icon="close-circle-outline" title="Preguntas falladas" value={String(stats.failedAttempts)} detail="En la página actual" color="#FB7185" />
-            <MetricCard icon="trophy-outline" title="XP en intentos" value={stats.earnedPoints.toLocaleString()} detail="XP de la página actual" color="#8B5CF6" />
-            <MetricCard icon="time-outline" title="Última actividad" value={stats.lastActivityAt ? getTimeAgo(stats.lastActivityAt) : 'Sin actividad'} detail={formatDateTime(stats.lastActivityAt)} color="#9FD6FF" />
-            <MetricCard icon="analytics-outline" title="Cobertura" value={stats.coveragePercent === null ? 'Sin datos' : `${stats.coveragePercent}%`} detail={`${stats.answeredQuestions}/${stats.totalQuestions} preguntas vistas`} color="#34D399" />
+          <StudentSummaryHero
+            studentName={studentName}
+            course={mainCourse}
+            status={studentHealth}
+            recommendation={recommendation}
+            points={profile?.points ?? 0}
+            lastActivityAt={stats.lastActivityAt}
+            onAssignReview={handleAssignReview}
+            onOpenCourse={handleOpenMainSubject}
+          />
+
+          <View className="mt-5">
+            <AppTabs<StudentHistoryTab>
+              accessibilityLabel="Secciones del historial del alumno"
+              role="teacher"
+              value={activeHistoryTab}
+              onChange={setActiveHistoryTab}
+              items={[
+                { key: 'activity', label: 'Actividad', icon: 'pulse-outline', badge: attemptTotal },
+                { key: 'weaknesses', label: 'Áreas débiles', icon: 'warning-outline', badge: weakTopics.length },
+                { key: 'reviews', label: 'Respuestas abiertas', icon: 'chatbox-ellipses-outline', badge: pendingReviews.length },
+                { key: 'metrics', label: 'Métricas', icon: 'analytics-outline' },
+              ]}
+            />
           </View>
 
-          <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
-            <View className={isDesktop ? 'flex-[1.55] gap-5' : 'gap-5'}>
-              <Panel title="Datos generales del alumno" action={profile?.active === false ? 'Usuario desactivado' : 'Usuario activo'}>
-                <View className="flex-row flex-wrap gap-3">
-                  <InfoPill icon="person-outline" label="ID" value={studentId || 'Sin ID'} />
-                  <InfoPill icon="calendar-outline" label="Alta" value={formatDate(profile?.created_at)} />
-                  <InfoPill icon="school-outline" label="Cursos del profesor" value={String(courseContexts.length)} />
-                  <InfoPill icon="speedometer-outline" label="Tiempo medio" value={stats.averageTimeSeconds === null ? 'Sin datos' : `${stats.averageTimeSeconds}s`} />
-                </View>
-              </Panel>
-
-              <Panel title="Cursos y clases">
-                <View className={isWide ? 'flex-row flex-wrap gap-3' : 'gap-3'}>
-                  {courseContexts.map((context) => (
-                    <CourseCard key={`${context.subjectId}:${context.classroomId ?? 'general'}`} context={context} />
-                  ))}
-                  {courseContexts.length === 0 ? <EmptyText text="No hay cursos asociados a este profesor." /> : null}
-                </View>
-              </Panel>
-
-              <Panel title="Evolución de esta página" action="Intentos cargados actualmente">
-                <View style={{ gap: 10 }}>
-                  {evolution.map((bucket) => (
-                    <EvolutionRow key={bucket.dateKey} bucket={bucket} />
-                  ))}
-                  {evolution.length === 0 ? <EmptyText text="La evolución aparecerá cuando el alumno tenga intentos registrados." /> : null}
-                </View>
-              </Panel>
-
-              <Panel title="Intentos recientes" action={`${attemptTotal} registros`}>
-                <View style={{ gap: 10 }}>
-                  {attemptsInView.map((attempt) => (
-                    <AttemptHistoryRow key={attempt.id} attempt={attempt} onOpenQuestion={handleOpenQuestionReport} />
-                  ))}
-                  {attemptsInView.length === 0 ? <EmptyText text="Todavía no hay intentos en tus cursos para este alumno." /> : null}
-                  <PaginationControls
-                    compact={!isDesktop}
-                    page={attemptPage}
-                    pageSize={attemptPageSize}
-                    total={attemptTotal}
-                    onPrevious={() => setAttemptPage((value) => Math.max(0, value - 1))}
-                    onNext={() => setAttemptPage((value) => value + 1)}
-                  />
-                </View>
-              </Panel>
+          {activeHistoryTab === 'activity' ? (
+            <View className={isDesktop ? 'mt-5 flex-row items-start gap-5' : 'mt-5 gap-5'}>
+              <View className={isDesktop ? 'min-w-0 flex-[1.55]' : ''}>
+                <Panel title="Timeline de actividad" action={`${attemptTotal} registros`}>
+                  <View style={{ gap: 10 }}>
+                    {attemptsInView.map((attempt) => (
+                      <AttemptHistoryRow key={attempt.id} attempt={attempt} onOpenQuestion={handleOpenQuestionReport} />
+                    ))}
+                    {attemptsInView.length === 0 ? <EmptyText text="Todavía no hay actividad registrada en los cursos del profesor." /> : null}
+                    <PaginationControls
+                      compact={!isDesktop}
+                      page={attemptPage}
+                      pageSize={attemptPageSize}
+                      total={attemptTotal}
+                      onPrevious={() => setAttemptPage((value) => Math.max(0, value - 1))}
+                      onNext={() => setAttemptPage((value) => value + 1)}
+                    />
+                  </View>
+                </Panel>
+              </View>
+              <View className={isDesktop ? 'min-w-0 flex-1' : ''}>
+                <Panel title="Evolución reciente" action="Intentos de la página">
+                  <View style={{ gap: 10 }}>
+                    {evolution.map((bucket) => <EvolutionRow key={bucket.dateKey} bucket={bucket} />)}
+                    {evolution.length === 0 ? <EmptyText text="La evolución aparecerá cuando existan intentos." /> : null}
+                  </View>
+                </Panel>
+              </View>
             </View>
+          ) : null}
 
-            <View className={isDesktop ? 'flex-1 gap-5' : 'gap-5'}>
-              <Panel title="Acciones docentes">
-                <View style={{ gap: 12 }}>
-                  <TeacherActionCard
-                    icon="add-circle-outline"
-                    title="Asignar repaso"
-                    detail={weakTopics[0] ? `Crear refuerzo sobre ${weakTopics[0].topicTitle}` : 'Crear una actividad de refuerzo para el alumno'}
-                    onPress={handleAssignReview}
-                    disabled={!mainCourse}
-                  />
-                  <TeacherActionCard
-                    icon="book-outline"
-                    title="Abrir curso principal"
-                    detail={mainCourse ? `${mainCourse.subjectName} · ${mainCourse.classroomName}` : 'No hay curso disponible'}
-                    onPress={handleOpenMainSubject}
-                    disabled={!mainCourse}
-                  />
-                  <TeacherActionCard
-                    icon="bug-outline"
-                    title="Analizar pregunta fallada"
-                    detail={failedAttempts[0] ? failedAttempts[0].questionText : 'No hay errores registrados'}
-                    onPress={() => failedAttempts[0] ? handleOpenQuestionReport(failedAttempts[0].questionId) : undefined}
-                    disabled={!failedAttempts[0]}
-                  />
-                  <TeacherActionCard
-                    icon="download-outline"
-                    title="Exportar página"
-                    detail="Descargar en CSV los intentos visibles y su contexto"
-                    onPress={handleExportStudentHistoryCsv}
-                  />
-                  <TeacherActionCard
-                    icon="people-outline"
-                    title="Volver al listado filtrado"
-                    detail="Gestionar matrícula, progreso y acciones masivas"
-                    onPress={goBackToStudents}
-                  />
-                </View>
-              </Panel>
-
-              <Panel title="Temas débiles" action="Por errores acumulados">
+          {activeHistoryTab === 'weaknesses' ? (
+            <View className={isDesktop ? 'mt-5 flex-row items-start gap-5' : 'mt-5 gap-5'}>
+              <Panel title="Áreas débiles" action="Prioridad docente">
                 <View style={{ gap: 10 }}>
-                  {weakTopics.map((topic) => (
-                    <WeakTopicRow key={topic.key} topic={topic} />
-                  ))}
-                  {weakTopics.length === 0 ? <EmptyText text={attemptsInView.length === 0 ? 'Sin intentos todavía.' : 'No hay temas débiles detectados.'} /> : null}
+                  {weakTopics.map((topic) => <WeakTopicRow key={topic.key} topic={topic} />)}
+                  {weakTopics.length === 0 ? <EmptyText text={attemptsInView.length === 0 ? 'Sin intentos todavía.' : 'No hay áreas débiles detectadas.'} /> : null}
                 </View>
               </Panel>
-
-              <Panel title="Preguntas falladas">
+              <Panel title="Preguntas que conviene revisar" action={`${failedAttempts.length} visibles`}>
                 <View style={{ gap: 10 }}>
                   {failedAttempts.map((attempt) => (
                     <FailedQuestionRow key={attempt.id} attempt={attempt} onOpenQuestion={handleOpenQuestionReport} />
@@ -705,36 +673,158 @@ export default function TeacherStudentHistoryScreen() {
                   {failedAttempts.length === 0 ? <EmptyText text="No hay preguntas falladas en el rango actual." /> : null}
                 </View>
               </Panel>
+            </View>
+          ) : null}
 
-              <Panel title="Revisión docente" action={pendingReviews.length > 0 ? `${pendingReviews.length} pendientes` : 'Sin pendientes'}>
+          {activeHistoryTab === 'reviews' ? (
+            <View className="mt-5">
+              <Panel title="Respuestas abiertas y revisión manual" action={pendingReviews.length > 0 ? `${pendingReviews.length} pendientes` : 'Sin pendientes'}>
                 <View style={{ gap: 10 }}>
-                  {pendingReviews.slice(0, 4).map((attempt) => (
+                  {pendingReviews.map((attempt) => (
                     <ReviewRow key={attempt.id} attempt={attempt} pending onOpenQuestion={handleOpenQuestionReport} />
                   ))}
                   {reviewedAttempts.map((attempt) => (
                     <ReviewRow key={attempt.id} attempt={attempt} onOpenQuestion={handleOpenQuestionReport} />
                   ))}
                   {pendingReviews.length === 0 && reviewedAttempts.length === 0 ? (
-                    <EmptyText text="Aquí aparecerán respuestas abiertas pendientes o ya revisadas por el profesor." />
+                    <EmptyText text="No hay respuestas abiertas pendientes ni revisiones recientes." />
                   ) : null}
                 </View>
               </Panel>
-
-              <Panel title="Progreso por tema" action="topic_scores">
-                <View style={{ gap: 10 }}>
-                  {topTopicScores.map((score) => (
-                    <TopicScoreRowView key={`${score.subjectName}:${score.topicTitle}:${score.playedAt ?? 'no-date'}`} score={score} />
-                  ))}
-                  {topTopicScores.length === 0 ? <EmptyText text="No hay progreso por tema todavía." /> : null}
-                </View>
-              </Panel>
             </View>
-          </View>
+          ) : null}
+
+          {activeHistoryTab === 'metrics' ? (
+            <View className="mt-5 gap-5">
+              <View className={isWide ? 'flex-row flex-wrap gap-4' : 'gap-4'}>
+                <MetricCard icon="flash-outline" title="XP global" value={(profile?.points ?? 0).toLocaleString()} detail="Experiencia acumulada" color={tokens.gamification.xp} />
+                <MetricCard icon="checkmark-circle-outline" title="Precisión" value={stats.accuracyPercent === null ? 'Sin datos' : `${stats.accuracyPercent}%`} detail={`${stats.correctAttempts}/${stats.totalAttempts} respuestas correctas`} color={tokens.semantic.info} />
+                <MetricCard icon="close-circle-outline" title="Para practicar" value={String(stats.failedAttempts)} detail="Intentos visibles" color={tokens.semantic.warning} />
+                <MetricCard icon="analytics-outline" title="Cobertura" value={stats.coveragePercent === null ? 'Sin datos' : `${stats.coveragePercent}%`} detail={`${stats.answeredQuestions}/${stats.totalQuestions} preguntas vistas`} color={tokens.semantic.success} />
+              </View>
+              <View className={isDesktop ? 'flex-row items-start gap-5' : 'gap-5'}>
+                <Panel title="Cursos y clases">
+                  <View className={isWide ? 'flex-row flex-wrap gap-3' : 'gap-3'}>
+                    {courseContexts.map((context) => <CourseCard key={`${context.subjectId}:${context.classroomId ?? 'general'}`} context={context} />)}
+                    {courseContexts.length === 0 ? <EmptyText text="No hay cursos asociados a este profesor." /> : null}
+                  </View>
+                </Panel>
+                <Panel title="Progreso por tema" action="topic_scores">
+                  <View style={{ gap: 10 }}>
+                    {topTopicScores.map((score) => (
+                      <TopicScoreRowView key={`${score.subjectName}:${score.topicTitle}:${score.playedAt ?? 'no-date'}`} score={score} />
+                    ))}
+                    {topTopicScores.length === 0 ? <EmptyText text="No hay progreso por tema todavía." /> : null}
+                  </View>
+                </Panel>
+              </View>
+            </View>
+          ) : null}
         </ScrollView>
       </View>
       {!isDesktop ? <TeacherBottomNav active="students" /> : null}
     </View>
   )
+}
+
+type StudentHealth = {
+  label: string
+  detail: string
+  color: string
+  icon: IconName
+}
+
+function StudentSummaryHero({
+  studentName,
+  course,
+  status,
+  recommendation,
+  points,
+  lastActivityAt,
+  onAssignReview,
+  onOpenCourse,
+}: {
+  studentName: string
+  course: CourseContext | null
+  status: StudentHealth
+  recommendation: string
+  points: number
+  lastActivityAt: string | null
+  onAssignReview: () => void
+  onOpenCourse: () => void
+}) {
+  const { tokens } = useAppTheme()
+  return (
+    <View
+      className="rounded-2xl border p-5 md:p-6"
+      style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}
+    >
+      <View className="flex-row flex-wrap items-start gap-5">
+        <View className="h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: `${status.color}24` }}>
+          <Text className="text-[20px] font-black" style={{ color: tokens.text.primary }}>{getInitials(studentName)}</Text>
+        </View>
+        <View className="min-w-[240px] flex-1">
+          <View className="flex-row flex-wrap items-center gap-2">
+            <Text className="text-[22px] font-black" style={{ color: tokens.text.primary }}>Resumen del alumno</Text>
+            <View className="flex-row items-center gap-2 rounded-full px-3 py-1.5" style={{ backgroundColor: `${status.color}20` }}>
+              <Ionicons name={status.icon} size={15} color={status.color} />
+              <Text className="text-[11px] font-black" style={{ color: status.color }}>{status.label}</Text>
+            </View>
+          </View>
+          <Text className="mt-2 text-[13px] leading-5" style={{ color: tokens.text.secondary }}>{status.detail}</Text>
+          <View className="mt-4 rounded-xl border p-4" style={{ borderColor: tokens.border.active, backgroundColor: tokens.surface.interactive }}>
+            <Text className="text-[11px] font-black uppercase tracking-[0.7px]" style={{ color: tokens.brand.teacher }}>Recomendación docente</Text>
+            <Text className="mt-2 text-[15px] font-bold leading-6" style={{ color: tokens.text.primary }}>{recommendation}</Text>
+          </View>
+        </View>
+        <View className="min-w-[220px] gap-3">
+          <View className="flex-row gap-3">
+            <SummaryValue label="XP" value={points.toLocaleString()} />
+            <SummaryValue label="Última actividad" value={lastActivityAt ? getTimeAgo(lastActivityAt) : 'Sin actividad'} />
+          </View>
+          <Text className="text-[12px]" style={{ color: tokens.text.secondary }} numberOfLines={2}>
+            {course ? `${course.subjectName} · ${course.classroomName}` : 'Sin curso principal disponible'}
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            <AppButton label="Asignar repaso" icon="sparkles-outline" size="sm" role="teacher" disabled={!course} onPress={onAssignReview} />
+            <AppButton label="Abrir curso" icon="book-outline" size="sm" variant="secondary" disabled={!course} onPress={onOpenCourse} />
+          </View>
+        </View>
+      </View>
+    </View>
+  )
+}
+
+function SummaryValue({ label, value }: { label: string; value: string }) {
+  const { tokens } = useAppTheme()
+  return (
+    <View className="min-w-[96px] flex-1 rounded-xl border p-3" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive }}>
+      <Text className="text-[10px] font-black uppercase tracking-[0.6px]" style={{ color: tokens.text.muted }}>{label}</Text>
+      <Text className="mt-1 text-[14px] font-black" style={{ color: tokens.text.primary }} numberOfLines={1}>{value}</Text>
+    </View>
+  )
+}
+
+function getStudentHealth(stats: ReturnType<typeof buildStats>, pendingReviewCount: number, active: boolean): StudentHealth {
+  if (!active) return { label: 'Cuenta desactivada', detail: 'El alumno no puede acceder hasta que se reactive su cuenta.', color: '#FB7185', icon: 'lock-closed-outline' }
+  if (pendingReviewCount > 0) return { label: 'Revisión pendiente', detail: `Hay ${pendingReviewCount} respuesta${pendingReviewCount === 1 ? '' : 's'} abierta${pendingReviewCount === 1 ? '' : 's'} por revisar.`, color: '#F59E0B', icon: 'chatbox-ellipses-outline' }
+  if (stats.totalAttempts === 0) return { label: 'Sin actividad', detail: 'Todavía no hay intentos registrados para valorar su evolución.', color: '#38BDF8', icon: 'time-outline' }
+  if ((stats.accuracyPercent ?? 100) < 50) return { label: 'Necesita apoyo', detail: 'La precisión reciente indica que conviene reforzar contenidos concretos.', color: '#F59E0B', icon: 'warning-outline' }
+  if ((stats.accuracyPercent ?? 0) >= 80) return { label: 'Buen progreso', detail: 'Mantiene una precisión alta y una evolución positiva.', color: '#34D399', icon: 'checkmark-circle-outline' }
+  return { label: 'En seguimiento', detail: 'La evolución es estable; revisa las áreas débiles antes de asignar nuevo contenido.', color: '#A78BFA', icon: 'pulse-outline' }
+}
+
+function getStudentRecommendation(
+  stats: ReturnType<typeof buildStats>,
+  weakTopics: WeakTopic[],
+  pendingReviewCount: number,
+  course: CourseContext | null,
+) {
+  if (pendingReviewCount > 0) return 'Revisa primero las respuestas abiertas pendientes para que la nota y el feedback reflejen su trabajo real.'
+  if (stats.totalAttempts === 0) return course ? `Invítale a comenzar con una actividad breve de ${course.subjectName}.` : 'Asigna el alumno a un curso antes de crear una recomendación.'
+  if (weakTopics[0]) return `Prepara un repaso breve sobre ${weakTopics[0].topicTitle}; concentra ${weakTopics[0].mistakes} error${weakTopics[0].mistakes === 1 ? '' : 'es'} recientes.`
+  if ((stats.accuracyPercent ?? 0) >= 80) return 'Mantén el ritmo con una actividad de dificultad media o un reto de ampliación.'
+  return 'Revisa la actividad reciente y asigna una práctica corta sobre el último contenido trabajado.'
 }
 
 function MetricCard({ icon, title, value, detail, color }: {
@@ -764,18 +854,6 @@ function Panel({ title, action, children }: { title: string; action?: string; ch
         {action ? <Text className="text-[12px] font-semibold text-[#B9A7FF]" numberOfLines={1}>{action}</Text> : null}
       </View>
       {children}
-    </View>
-  )
-}
-
-function InfoPill({ icon, label, value }: { icon: IconName; label: string; value: string }) {
-  return (
-    <View className="min-w-[160px] flex-1 rounded-xl border border-[#20375E] bg-[#07162E] p-3">
-      <View className="flex-row items-center gap-2">
-        <Ionicons name={icon} size={15} color="#9FD6FF" />
-        <Text className="text-[11px] font-bold uppercase tracking-[0.6px] text-[#8FA7C7]">{label}</Text>
-      </View>
-      <Text className="mt-2 text-[13px] font-black text-white" numberOfLines={2}>{value}</Text>
     </View>
   )
 }
@@ -853,37 +931,6 @@ function AttemptHistoryRow({ attempt, onOpenQuestion }: { attempt: NormalizedAtt
         </View>
         <Ionicons name="chevron-forward" size={16} color="#8FA7C7" />
       </View>
-    </Pressable>
-  )
-}
-
-function TeacherActionCard({
-  icon,
-  title,
-  detail,
-  disabled = false,
-  onPress,
-}: {
-  icon: IconName
-  title: string
-  detail: string
-  disabled?: boolean
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      onPress={disabled ? undefined : onPress}
-      className="flex-row items-center gap-3 rounded-xl border border-[#20375E] bg-[#07162E] p-3"
-      style={({ pressed }) => ({ opacity: disabled ? 0.48 : pressed ? 0.82 : 1 })}
-    >
-      <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#5A46D833]">
-        <Ionicons name={icon} size={20} color="#B9A7FF" />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="font-black text-white">{title}</Text>
-        <Text className="mt-1 text-[12px] text-[#8FA7C7]" numberOfLines={2}>{detail}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={16} color="#8FA7C7" />
     </Pressable>
   )
 }

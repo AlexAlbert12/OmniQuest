@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   Text,
@@ -41,24 +40,17 @@ import {
 import MobileTeacherStudents from '../../components/teacher/students/MobileTeacherStudents';
 import { StudentActionsModal, StudentDetailModal, ConfirmModal } from '../../components/teacher/students/StudentModals';
 import {
-  AttentionRow,
   CycleSelectButton,
-  LegendRow,
   MetricCard,
-  Panel,
-  PendingFirstAccessCard,
-  ProgressStat,
-  StudentCard,
   StudentPaginationControls,
 } from '../../components/teacher/students/TeacherStudentList';
+import TeacherStudentsDesktopTable, { TeacherStudentPrioritySections } from '../../components/teacher/students/TeacherStudentsDesktop';
 import {
   buildCourseContexts,
   buildRecentAttempts,
   buildWeakAreas,
   compareStudents,
   formatDate,
-  formatNullableGrade,
-  formatNullablePercent,
   getAnswerTotals,
   getFallbackScoreGrade,
   getFirstEnrollmentDate,
@@ -195,7 +187,7 @@ export default function TeacherStudentsScreen() {
   }, [visibleStudents]);
 
   const needsAttention = useMemo(
-    () => visibleStudents.filter((student) => student.status === 'needs_help' || student.status === 'inactive').slice(0, 4),
+    () => visibleStudents.filter((student) => student.status === 'needs_help' || student.status === 'inactive'),
     [visibleStudents]
   );
 
@@ -909,109 +901,59 @@ export default function TeacherStudentsScreen() {
 
           <View className={isWide ? 'flex-row flex-wrap gap-4' : 'gap-4'}>
             <MetricCard semantic="student" title="Total estudiantes" value={String(stats.total)} detail="Según filtros actuales" />
+            <MetricCard semantic="attention" title="Necesitan atención" value={String(needsAttention.length)} detail="Prioridad docente" />
+            <MetricCard icon="time-outline" title="Sin actividad" value={String(stats.noActivity)} detail="Pendientes de empezar" color={tokens.semantic.info} />
             <MetricCard semantic="success" title="Con actividad" value={String(stats.withActivity)} detail={`${stats.active} activos o excelentes`} />
-            <MetricCard icon="time-outline" title="Sin actividad" value={String(stats.noActivity)} detail="Importados sin empezar" color={tokens.text.muted} />
-            <MetricCard semantic="attention" title="Necesitan apoyo" value={String(stats.needsHelp)} detail="Con baja precisión o nota" />
-            <MetricCard icon="analytics" title="Precisión media" value={formatNullablePercent(stats.averageAccuracy)} detail={stats.averageAccuracy === null ? 'Sin datos todavía' : 'Solo alumnos con intentos'} color={tokens.semantic.info} />
-            <MetricCard semantic="achievement" title="Nota media" value={formatNullableGrade(stats.averageGrade)} detail={stats.averageGrade === null ? 'Sin datos todavía' : 'Solo alumnos con intentos'} />
           </View>
 
-          {pendingStudents.length > 0 ? (
-            <PendingFirstAccessCard
-              count={pendingStudents.length}
-              sendingReminder={sendingBulkReminders}
-              onSendReminder={handleSendReminder}
-              onExport={handleExportStudentsCsv}
+          <TeacherStudentPrioritySections
+            attentionStudents={needsAttention}
+            noActivityStudents={pendingStudents}
+            onViewDetails={handleViewStudentDetails}
+            onSendReminder={handleSendStudentReminder}
+          />
+
+          <View className="mt-5">
+            <View className="mb-4 flex-row flex-wrap items-end justify-between gap-3">
+              <View>
+                <Text className="text-[20px] font-black" style={{ color: tokens.text.primary }}>Listado general</Text>
+                <Text className="mt-1 text-[12px]" style={{ color: tokens.text.muted }}>
+                  Abre una fila para consultar más contexto sin sobrecargar la tabla.
+                </Text>
+              </View>
+              <Text className="text-[12px] font-black" style={{ color: tokens.brand.teacher }}>
+                {paginatedStudents.length} de {visibleStudents.length}
+              </Text>
+            </View>
+
+            {paginatedStudents.length > 0 ? (
+              <TeacherStudentsDesktopTable
+                students={paginatedStudents}
+                onViewDetails={handleViewStudentDetails}
+                onAssignActivity={handleAssignActivity}
+                onOpenActions={openStudentActions}
+              />
+            ) : (
+              <View
+                className="items-center justify-center rounded-2xl border p-8"
+                style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}
+              >
+                <Ionicons name="people-outline" size={48} color={tokens.text.muted} />
+                <Text className="mt-3 font-bold" style={{ color: tokens.text.primary }}>No hay estudiantes para mostrar</Text>
+                <Text className="mt-1 text-center text-[12px]" style={{ color: tokens.text.muted }}>
+                  Cambia el filtro, busca otro nombre o comparte el código de una clase.
+                </Text>
+              </View>
+            )}
+
+            <StudentPaginationControls
+              page={safeStudentPage}
+              pageCount={studentPageCount}
+              total={visibleStudents.length}
+              pageSize={STUDENTS_PAGE_SIZE}
+              onPrevious={() => setStudentPage((page) => Math.max(0, page - 1))}
+              onNext={() => setStudentPage((page) => Math.min(studentPageCount - 1, page + 1))}
             />
-          ) : null}
-
-          <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
-            <View className={isDesktop ? 'flex-[1.65]' : ''}>
-              <View className="mb-4 flex-row flex-wrap items-center justify-between gap-3">
-                <View>
-                  <Text className="text-[18px] font-black text-white">Listado de estudiantes</Text>
-                  <Text className="mt-1 text-[12px] text-[#8FA7C7]">
-                    Mostrando {paginatedStudents.length} de {visibleStudents.length} estudiantes visibles.
-                  </Text>
-                </View>
-              </View>
-
-              <View className={isWide ? 'flex-row flex-wrap gap-4' : 'gap-4'}>
-                {paginatedStudents.map((student) => (
-                  <StudentCard
-                    key={student.id}
-                    student={student}
-                    isWide={isWide}
-                    temporaryPassword={temporaryPasswordsByStudent[student.id] ?? null}
-                    reminderBusy={Boolean(reminderStudentIds[student.id])}
-                    onViewDetails={handleViewStudentDetails}
-                    onAssignActivity={handleAssignActivity}
-                    onOpenActions={openStudentActions}
-                    onSendReminder={handleSendStudentReminder}
-                    onResendCredentials={handleResendStudentCredentials}
-                    onCopyTemporaryPassword={handleCopyTemporaryPassword}
-                  />
-                ))}
-
-                {visibleStudents.length > 0 ? (
-                  <View className="w-full">
-                    <StudentPaginationControls
-                      page={safeStudentPage}
-                      pageCount={studentPageCount}
-                      total={visibleStudents.length}
-                      pageSize={STUDENTS_PAGE_SIZE}
-                      onPrevious={() => setStudentPage((page) => Math.max(0, page - 1))}
-                      onNext={() => setStudentPage((page) => Math.min(studentPageCount - 1, page + 1))}
-                    />
-                  </View>
-                ) : null}
-
-                {visibleStudents.length === 0 ? (
-                  <View className="w-full items-center justify-center rounded-2xl border border-[#1A3155] bg-[#09162C] p-8">
-                    <Ionicons name="people-outline" size={48} color="#60799C" />
-                    <Text className="mt-3 font-bold text-white">No hay estudiantes para mostrar</Text>
-                    <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">
-                      Cambia el filtro, busca otro nombre o comparte el código de una clase.
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            </View>
-
-            <View className={isDesktop ? 'flex-1 gap-4' : 'gap-4'}>
-              <Panel title="Resumen de progreso">
-                <View className="flex-row items-center gap-5">
-                  <View className="h-28 w-28 items-center justify-center rounded-full border-[8px] border-[#8B5CF6] bg-[#07162E]">
-                    <Text className="text-[24px] font-black text-white">{formatNullablePercent(stats.averageAccuracy)}</Text>
-                    <Text className="text-center text-[9px] text-[#B7C4D7]">Precisión media</Text>
-                  </View>
-                  <View className="min-w-0 flex-1" style={{ gap: 9 }}>
-                    <LegendRow color="#8FA7C7" label="Sin actividad" value={visibleStudents.filter((s) => s.status === 'no_activity').length} total={Math.max(stats.total, 1)} />
-                    <LegendRow color="#F59E0B" label="Necesita apoyo" value={visibleStudents.filter((s) => s.status === 'needs_help').length} total={Math.max(stats.total, 1)} />
-                    <LegendRow color="#94A3B8" label="Inactivo" value={visibleStudents.filter((s) => s.status === 'inactive').length} total={Math.max(stats.total, 1)} />
-                    <LegendRow color="#58E28B" label="Activo" value={visibleStudents.filter((s) => s.status === 'active').length} total={Math.max(stats.total, 1)} />
-                    <LegendRow color="#38BDF8" label="Excelente" value={visibleStudents.filter((s) => s.status === 'excellent').length} total={Math.max(stats.total, 1)} />
-                  </View>
-                </View>
-              </Panel>
-
-              <Panel title="Actividad registrada" action="Solo con intentos">
-                <ProgressStat label="Estudiantes con actividad" value={stats.withActivity} total={Math.max(stats.total, 1)} color="#8B5CF6" />
-                <ProgressStat label="Preguntas respondidas" value={stats.completedChallenges} total={Math.max(stats.completedChallenges + 6, 1)} color="#7C5CFF" />
-                <ProgressStat label="XP medio" value={stats.averageXp ?? 0} total={Math.max((stats.averageXp ?? 0) + 650, 1)} color="#3B82F6" />
-              </Panel>
-
-              <Panel title="Estudiantes que necesitan atención" action="Ver detalle">
-                <View style={{ gap: 12 }}>
-                  {needsAttention.map((student) => (
-                    <AttentionRow key={student.id} student={student} onPress={handleViewStudentDetails} />
-                  ))}
-                  {needsAttention.length === 0 ? (
-                    <Text className="text-[13px] text-[#B7C4D7]">No hay estudiantes en riesgo ahora mismo.</Text>
-                  ) : null}
-                </View>
-              </Panel>
-            </View>
           </View>
         </ScrollView>
       </View>

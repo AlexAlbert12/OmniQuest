@@ -157,7 +157,7 @@ export default function TeacherQuestionReportScreen() {
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<AttemptStatusFilter>('all')
   const [selectedDateFilter, setSelectedDateFilter] = useState<AttemptDateFilter>('all')
   const [duplicating, setDuplicating] = useState(false)
-  const [creatingReview, setCreatingReview] = useState(false)
+  const [archiving, setArchiving] = useState(false)
   const [subjectsCount, setSubjectsCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -346,6 +346,9 @@ export default function TeacherQuestionReportScreen() {
     [filteredAttempts]
   )
 
+  const pendingManualReviews = filteredAttempts.filter((attempt) => ['pending', 'in_review', 'needs_changes'].includes(attempt.manual_review_status || '')).length
+  const reportRecommendation = buildReportRecommendation(stats.failureRate, affectedStudents, pendingManualReviews)
+
   const subject = normalizeRelation(question?.subjects)
   const classroom = normalizeRelation(question?.classrooms)
   const topic = normalizeRelation(question?.subject_topics)
@@ -362,15 +365,11 @@ export default function TeacherQuestionReportScreen() {
     router.replace('/(auth)/login' as any)
   }
 
-  const handleCreateReviewQuestion = async () => {
-    await createQuestionFromCurrent({ review: true })
-  }
-
   const handleDuplicateQuestion = async () => {
     await createQuestionFromCurrent({ review: false })
   }
 
-  const createQuestionFromCurrent = async ({ review }: { review: boolean }) => {
+  const createQuestionFromCurrent = async ({ review = false }: { review?: boolean } = {}) => {
     if (!question || typeof question.subject_id !== 'number') {
       showAlert('Pregunta no disponible', 'No se pudo identificar el curso de la pregunta original.')
       return
@@ -382,8 +381,7 @@ export default function TeacherQuestionReportScreen() {
       return
     }
 
-    const setBusy = review ? setCreatingReview : setDuplicating
-    setBusy(true)
+    setDuplicating(true)
     let clonedMediaPath: string | null = null
     try {
       const nextText = review ? `Repaso: ${question.text}` : `Copia de ${question.text}`
@@ -441,10 +439,42 @@ export default function TeacherQuestionReportScreen() {
       }
       showAlert('No se pudo crear la pregunta', error?.message || 'Revisa la conexión e inténtalo de nuevo.')
     } finally {
-      setBusy(false)
+      setDuplicating(false)
     }
   }
 
+  const handleArchiveQuestion = async () => {
+    if (!question || archiving) return
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm('¿Archivar esta pregunta? Dejará de estar disponible para nuevas partidas.')
+      : await new Promise<boolean>((resolve) => {
+          Alert.alert(
+            'Archivar pregunta',
+            'La pregunta dejará de estar disponible para nuevas partidas. Podrás conservar sus datos históricos.',
+            [
+              { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Archivar', style: 'destructive', onPress: () => resolve(true) },
+            ],
+            { cancelable: true, onDismiss: () => resolve(false) }
+          )
+        })
+    if (!confirmed) return
+    setArchiving(true)
+    try {
+      const { error } = await supabase.from('questions').update({ active: false }).eq('id', question.id)
+      if (error) throw error
+      setQuestion((current) => current ? { ...current, active: false } : current)
+      showAlert('Pregunta archivada', 'La pregunta ya no aparecerá en nuevas partidas.')
+    } catch (error: any) {
+      showAlert('No se pudo archivar', error?.message || 'Inténtalo de nuevo.')
+    } finally {
+      setArchiving(false)
+    }
+  }
+
+  const handleOpenManualReview = () => {
+    router.push('/(teacher)/reviews' as any)
+  }
 
   const handleExportQuestionReportCsv = async () => {
     if (!question) return
@@ -563,78 +593,24 @@ export default function TeacherQuestionReportScreen() {
 
           {question && !errorMessage ? (
             <>
-              <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-                <View className={isWide ? 'flex-row items-start justify-between gap-5' : 'gap-4'}>
-                  <View className="min-w-0 flex-1">
-                    <View className="mb-3 flex-row flex-wrap items-center gap-2">
-                      <Badge label={questionTypeLabel} color="#8B5CF6" />
-                      <Badge label={subjectName} color="#58B5FF" />
-                      {classroom?.name ? <Badge label={classroom.name} color="#43D991" /> : null}
-                      {topic?.title ? <Badge label={topic.title} color="#F6A64A" /> : null}
-                    </View>
-                    <Text className={`${isPhone ? 'text-[22px] leading-7' : 'text-[26px] leading-8'} font-black text-white`}>{question.text}</Text>
-                    <QuestionMedia
-                      type={question.media_type}
-                      url={question.media_url}
-                      altText={question.media_alt_text}
-                      caption={question.media_caption}
-                      compact={isPhone}
-                    />
-                    {question.explanation ? (
-                      <Text className="mt-3 text-[13px] leading-5 text-[#AFC2DB]">
-                        Explicación: {question.explanation}
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  <View className={`${isPhone ? 'gap-2' : 'flex-row flex-wrap gap-2'}`}>
-                    <AppButton
-                      label="Crear repaso"
-                      icon="sparkles-outline"
-                      role="teacher"
-                      size={isPhone ? 'lg' : 'md'}
-                      fullWidth={isPhone}
-                      loading={creatingReview}
-                      disabled={duplicating}
-                      onPress={handleCreateReviewQuestion}
-                    />
-                    <AppButton
-                      label="Duplicar"
-                      icon="copy-outline"
-                      variant="secondary"
-                      size={isPhone ? 'lg' : 'md'}
-                      fullWidth={isPhone}
-                      loading={duplicating}
-                      disabled={creatingReview}
-                      onPress={handleDuplicateQuestion}
-                    />
-                    <AppButton
-                      label="Exportar CSV"
-                      icon="download-outline"
-                      variant="ghost"
-                      size={isPhone ? 'lg' : 'md'}
-                      fullWidth={isPhone}
-                      onPress={handleExportQuestionReportCsv}
-                    />
-                    <AppButton
-                      label="Editar"
-                      icon="create-outline"
-                      variant="secondary"
-                      size={isPhone ? 'lg' : 'md'}
-                      fullWidth={isPhone}
-                      onPress={() => router.push(`/(teacher)/subject/edit-question?subjectId=${question.subject_id}&questionId=${question.id}` as any)}
-                    />
-                    <AppButton
-                      label="Ver curso"
-                      icon="book-outline"
-                      variant="ghost"
-                      size={isPhone ? 'lg' : 'md'}
-                      fullWidth={isPhone}
-                      onPress={() => router.push(`/(teacher)/subject/${question.subject_id}` as any)}
-                    />
-                  </View>
-                </View>
-              </View>
+              <QuestionInsightHero
+                question={question}
+                questionTypeLabel={questionTypeLabel}
+                subjectName={subjectName}
+                classroomName={classroom?.name || null}
+                topicName={topic?.title || null}
+                failureRate={stats.failureRate}
+                affectedStudents={affectedStudents}
+                pendingManualReviews={pendingManualReviews}
+                recommendation={reportRecommendation}
+                isPhone={isPhone}
+                duplicating={duplicating}
+                archiving={archiving}
+                onEdit={() => router.push(`/(teacher)/subject/edit-question?subjectId=${question.subject_id}&questionId=${question.id}` as any)}
+                onDuplicate={handleDuplicateQuestion}
+                onArchive={handleArchiveQuestion}
+                onManualReview={handleOpenManualReview}
+              />
 
               <Panel title="Filtros del informe" action={`${filteredAttempts.length} de ${attempts.length} intentos`} className="mt-5">
                 <View className="gap-4">
@@ -686,9 +662,7 @@ export default function TeacherQuestionReportScreen() {
               </Panel>
 
               <View className={isWide ? 'mt-5 flex-row gap-4' : 'mt-5 gap-4'}>
-                <ReportMetricCard semantic="attention" title="Alumnos afectados" value={String(affectedStudents)} detail="Necesitan una revisión docente" />
-                <ReportMetricCard semantic="critical" title="Tasa de fallo" value={`${stats.failureRate}%`} detail={`${stats.failedAttempts} de ${stats.totalAttempts} intentos`} />
-                <ReportMetricCard semantic="success" title="Aciertos" value={String(stats.correctAttempts)} detail="Intentos correctos" />
+                <ReportMetricCard icon="layers-outline" title="Intentos analizados" value={String(stats.totalAttempts)} detail={`${stats.correctAttempts} correctos · ${stats.failedAttempts} para revisar`} color="#8B5CF6" />
                 <ReportMetricCard icon="time" title="Tiempo medio" value={stats.averageTimeLabel} detail="Por intento" color="#38BDF8" />
               </View>
 
@@ -747,6 +721,111 @@ export default function TeacherQuestionReportScreen() {
       {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
     </View>
   )
+}
+
+function QuestionInsightHero({
+  question,
+  questionTypeLabel,
+  subjectName,
+  classroomName,
+  topicName,
+  failureRate,
+  affectedStudents,
+  pendingManualReviews,
+  recommendation,
+  isPhone,
+  duplicating,
+  archiving,
+  onEdit,
+  onDuplicate,
+  onArchive,
+  onManualReview,
+}: {
+  question: QuestionDetail
+  questionTypeLabel: string
+  subjectName: string
+  classroomName: string | null
+  topicName: string | null
+  failureRate: number
+  affectedStudents: number
+  pendingManualReviews: number
+  recommendation: string
+  isPhone: boolean
+  duplicating: boolean
+  archiving: boolean
+  onEdit: () => void
+  onDuplicate: () => void
+  onArchive: () => void
+  onManualReview: () => void
+}) {
+  const severityColor = failureRate >= 60 ? '#FB7185' : failureRate >= 35 ? '#F59E0B' : '#34D399'
+  return (
+    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5 md:p-6">
+      <View className={isPhone ? 'gap-5' : 'flex-row items-start gap-6'}>
+        <View className="min-w-0 flex-[1.5]">
+          <View className="mb-3 flex-row flex-wrap items-center gap-2">
+            <Badge label={questionTypeLabel} color="#8B5CF6" />
+            <Badge label={subjectName} color="#58B5FF" />
+            {classroomName ? <Badge label={classroomName} color="#43D991" /> : null}
+            {topicName ? <Badge label={topicName} color="#F6A64A" /> : null}
+            {question.active === false ? <Badge label="Archivada" color="#FB7185" /> : null}
+          </View>
+          <Text className={`${isPhone ? 'text-[22px] leading-7' : 'text-[28px] leading-9'} font-black text-white`}>{question.text}</Text>
+          <QuestionMedia
+            type={question.media_type}
+            url={question.media_url}
+            altText={question.media_alt_text}
+            caption={question.media_caption}
+            compact={isPhone}
+          />
+          {question.explanation ? (
+            <Text className="mt-3 text-[13px] leading-5 text-[#AFC2DB]">Explicación: {question.explanation}</Text>
+          ) : null}
+        </View>
+
+        <View className="min-w-[280px] flex-1 gap-3">
+          <View className="flex-row gap-3">
+            <InsightMetric label="Tasa de fallo" value={`${failureRate}%`} color={severityColor} />
+            <InsightMetric label="Alumnos afectados" value={String(affectedStudents)} color="#F59E0B" />
+          </View>
+          <View className="rounded-xl border border-[#2A456A] bg-[#0D1D3B] p-4">
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="bulb-outline" size={18} color="#FBBF24" />
+              <Text className="text-[11px] font-black uppercase tracking-[0.7px] text-[#FBBF24]">Recomendación</Text>
+            </View>
+            <Text className="mt-2 text-[14px] font-bold leading-6 text-white">{recommendation}</Text>
+            {pendingManualReviews > 0 ? (
+              <Text className="mt-2 text-[12px] text-[#F6CFAE]">{pendingManualReviews} respuesta{pendingManualReviews === 1 ? '' : 's'} pendiente{pendingManualReviews === 1 ? '' : 's'} de revisión manual.</Text>
+            ) : null}
+          </View>
+        </View>
+      </View>
+
+      <View className={`${isPhone ? 'gap-2' : 'mt-5 flex-row flex-wrap gap-2'}`}>
+        <AppButton label="Editar pregunta" icon="create-outline" role="teacher" fullWidth={isPhone} onPress={onEdit} />
+        <AppButton label="Duplicar" icon="copy-outline" variant="secondary" fullWidth={isPhone} loading={duplicating} onPress={onDuplicate} />
+        <AppButton label="Revisar manualmente" icon="chatbox-ellipses-outline" variant="secondary" fullWidth={isPhone} onPress={onManualReview} />
+        <AppButton label={question.active === false ? 'Archivada' : 'Archivar'} icon="archive-outline" variant="danger" fullWidth={isPhone} loading={archiving} disabled={question.active === false} onPress={onArchive} />
+      </View>
+    </View>
+  )
+}
+
+function InsightMetric({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <View className="min-w-[120px] flex-1 rounded-xl border border-[#20375E] bg-[#07162E] p-3">
+      <Text className="text-[10px] font-black uppercase tracking-[0.6px] text-[#8FA7C7]">{label}</Text>
+      <Text className="mt-2 text-[25px] font-black" style={{ color }}>{value}</Text>
+    </View>
+  )
+}
+
+function buildReportRecommendation(failureRate: number, affectedStudents: number, pendingManualReviews: number) {
+  if (pendingManualReviews > 0) return 'Revisa primero las respuestas abiertas pendientes antes de modificar la pregunta o interpretar la tasa de fallo.'
+  if (affectedStudents === 0) return 'La pregunta no presenta incidencias. Mantén el enunciado y úsala como referencia para crear variantes.'
+  if (failureRate >= 60) return 'Revisa el enunciado y los distractores; la tasa de fallo sugiere una dificultad o ambigüedad excesiva.'
+  if (failureRate >= 35) return 'Crea un repaso breve y comprueba qué opción incorrecta concentra más respuestas.'
+  return 'La pregunta funciona de forma estable. Observa la distribución antes de realizar cambios.'
 }
 
 function ReportMetricCard({ icon, semantic, title, value, detail, color }: {

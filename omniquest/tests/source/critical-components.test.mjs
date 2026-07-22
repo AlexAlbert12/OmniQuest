@@ -24,13 +24,18 @@ test('game submission is server-scored and does not calculate correctness in the
   assert.doesNotMatch(source, /\.is_correct\s*===\s*true\s*\?\s*.*points_base/)
 })
 
-test('teacher question form validates content and saves through the transactional RPC', () => {
-  const source = read('components/teacher/TeacherQuestionForm.tsx')
+test('teacher question form delegates validation and persistence to the reusable form hook', () => {
+  const form = read('components/teacher/TeacherQuestionForm.tsx')
+  const hook = read('components/teacher/question-form/useTeacherQuestionForm.ts')
+  const validation = read('components/teacher/question-form/utils.ts')
 
-  assert.match(source, /const validateContentStep/)
-  assert.match(source, /const validateOptionsStep/)
-  assert.match(source, /rpc\(['"]save_teacher_question['"]/)
-  assert.match(source, /p_answers:\s*answersToSave/)
+  assert.match(form, /useTeacherQuestionForm\(props\)/)
+  assert.match(form, /QuestionTypeSelector/)
+  assert.match(form, /QuestionSettingsPanel/)
+  assert.match(form, /QuestionValidationPanel/)
+  assert.match(validation, /getQuestionValidationIssues/)
+  assert.match(hook, /rpc\(['"]save_teacher_question['"]/)
+  assert.match(hook, /p_answers:\s*answersToSave/)
 })
 
 test('student import validates emails and delegates privileged work to an Edge Function', () => {

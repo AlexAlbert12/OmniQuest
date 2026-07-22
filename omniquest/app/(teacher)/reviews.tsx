@@ -168,7 +168,7 @@ export default function TeacherReviewsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void fetchQueue() }} tintColor={accentColor} />}
         >
           <TeacherPageHeader
-            icon="create-outline"
+            icon="create"
             iconColor="#38BDF8"
             isDesktop={isDesktop}
             title="Revisión manual"
