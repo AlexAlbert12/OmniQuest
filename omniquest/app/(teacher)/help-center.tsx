@@ -90,6 +90,12 @@ export default function TeacherHelpCenterScreen() {
     return tickets.length > 0 ? `Mis tickets (${tickets.length})` : 'Mis tickets';
   }, [tickets.length]);
 
+  const ticketSummary = useMemo(() => ({
+    open: tickets.filter((ticket) => ticket.status === 'open').length,
+    inProgress: tickets.filter((ticket) => ticket.status === 'in_progress').length,
+    resolved: tickets.filter((ticket) => ticket.status === 'resolved' || ticket.status === 'closed').length,
+  }), [tickets]);
+
   const showAlert = (title: string, description: string) => {
     if (Platform.OS === 'web') {
       window.alert(`${title}\n${description}`);
@@ -233,6 +239,12 @@ export default function TeacherHelpCenterScreen() {
           <Text className="min-w-0 flex-1 text-[13px] leading-5 text-[#D8E3F3]">Omni puede ayudarte a dejar el contexto del problema listo para soporte.</Text>
         </View>
 
+        <View className="mb-5 flex-row flex-wrap gap-3">
+          <TicketSummaryCard icon="mail-unread-outline" label="Abiertos" value={ticketSummary.open} color="#A78BFA" />
+          <TicketSummaryCard icon="time-outline" label="En proceso" value={ticketSummary.inProgress} color="#38BDF8" />
+          <TicketSummaryCard icon="checkmark-circle-outline" label="Resueltos" value={ticketSummary.resolved} color="#34D399" />
+        </View>
+
         <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
           <Panel title="FAQ" className={isDesktop ? 'flex-1' : ''}>
             {faqItems.map((item, index) => {
@@ -252,17 +264,23 @@ export default function TeacherHelpCenterScreen() {
             })}
           </Panel>
 
-          <Panel title="Contacto rápido" className={isDesktop ? 'w-[360px]' : ''}>
-            <Text className="text-[13px] leading-6 text-[#B7C4D7]">
-              Si necesitas ayuda urgente, abre un ticket o escríbenos directamente.
-            </Text>
+          <Panel title="Contacto y seguimiento" className={isDesktop ? 'w-[360px]' : ''}>
+            <View className="rounded-xl border border-[#264267] bg-[#09162C] p-3">
+              <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-[#8FA7C7]">Correo de soporte</Text>
+              <Text className="mt-1 font-bold text-white">soporte@omniquest.app</Text>
+              <Text className="mt-2 text-[12px] leading-5 text-[#B7C4D7]">
+                Los tickets conservan estado, respuesta y fecha de resolución. Usa el correo para incidencias que no permitan entrar en la plataforma.
+              </Text>
+            </View>
             <Pressable
+              accessibilityLabel="Contactar soporte por correo"
+              accessibilityRole="button"
               onPress={handleContactSupport}
               className="mt-4 flex-row items-center justify-between rounded-xl border border-[#35578A] bg-[#0A2042] px-4 py-3"
             >
               <View className="flex-row items-center gap-2">
                 <Ionicons name="mail-outline" size={18} color="#A78BFA" />
-                <Text className="font-semibold text-white">Contactar soporte</Text>
+                <Text className="font-semibold text-white">Abrir correo</Text>
               </View>
               <Ionicons name="open-outline" size={16} color="#A78BFA" />
             </Pressable>
@@ -343,6 +361,7 @@ export default function TeacherHelpCenterScreen() {
                       {formatTicketCategory(ticket.category)} • Prioridad {formatTicketPriority(ticket.priority)} •{' '}
                       {formatRelativeDate(ticket.created_at)}
                     </Text>
+                    <TicketTimeline ticket={ticket} />
                     {ticket.admin_response ? (
                       <View className="mt-3 rounded-xl border border-[#35578A] bg-[#10224A] p-3">
                         <View className="flex-row items-center gap-2">
@@ -360,6 +379,48 @@ export default function TeacherHelpCenterScreen() {
         </View>
       </ScrollView>
       {!isDesktop ? <TeacherBottomNav active="profile" /> : null}
+    </View>
+  );
+}
+
+function TicketSummaryCard({ icon, label, value, color }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: number; color: string }) {
+  return (
+    <View className="min-w-[145px] flex-1 flex-row items-center gap-3 rounded-2xl border border-[#183052] bg-[#07162D] p-4">
+      <View className="h-10 w-10 items-center justify-center rounded-2xl" style={{ backgroundColor: `${color}24` }}>
+        <Ionicons name={icon} size={19} color={color} />
+      </View>
+      <View>
+        <Text className="text-[20px] font-black text-white">{value}</Text>
+        <Text className="text-[12px] font-semibold text-[#AFC2DB]">{label}</Text>
+      </View>
+    </View>
+  );
+}
+
+function TicketTimeline({ ticket }: { ticket: SupportTicket }) {
+  const steps = [
+    { key: 'open', label: 'Recibido' },
+    { key: 'in_progress', label: 'En revisión' },
+    { key: 'resolved', label: ticket.status === 'closed' ? 'Cerrado' : 'Resuelto' },
+  ];
+  const currentIndex = ticket.status === 'open' ? 0 : ticket.status === 'in_progress' ? 1 : 2;
+
+  return (
+    <View className="mt-3 flex-row items-center">
+      {steps.map((step, index) => {
+        const completed = index <= currentIndex;
+        return (
+          <React.Fragment key={step.key}>
+            <View className="items-center">
+              <View className="h-6 w-6 items-center justify-center rounded-full" style={{ backgroundColor: completed ? '#5A46D8' : '#173056' }}>
+                <Ionicons name={completed ? 'checkmark' : 'ellipse-outline'} size={12} color={completed ? '#FFFFFF' : '#8FA7C7'} />
+              </View>
+              <Text className="mt-1 text-[9px] font-bold" style={{ color: completed ? '#C4B5FD' : '#64748B' }}>{step.label}</Text>
+            </View>
+            {index < steps.length - 1 ? <View className="mx-2 mb-4 h-[2px] flex-1" style={{ backgroundColor: index < currentIndex ? '#5A46D8' : '#173056' }} /> : null}
+          </React.Fragment>
+        );
+      })}
     </View>
   );
 }

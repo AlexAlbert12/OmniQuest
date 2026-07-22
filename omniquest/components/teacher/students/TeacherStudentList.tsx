@@ -101,8 +101,9 @@ export function CycleSelectButton({
       accessibilityLabel={`${label}: ${selectedLabel}. Cambiar selección`}
       accessibilityHint="Avanza a la siguiente opción"
       onPress={() => onChange(nextValue)}
-      className="h-12 min-w-[165px] flex-row items-center justify-between gap-3 rounded-xl border px-4"
+      className="h-12 min-w-[165px] flex-row items-center justify-between gap-3 rounded-xl px-4"
       style={({ pressed }) => ({
+        borderWidth: 1,
         borderColor: tokens.border.default,
         backgroundColor: tokens.surface.interactive,
         opacity: pressed ? 0.78 : 1,

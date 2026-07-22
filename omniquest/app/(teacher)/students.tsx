@@ -69,7 +69,7 @@ export default function TeacherStudentsScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const { tokens } = useAppTheme();
-  const { subjectId, classroomId } = useLocalSearchParams<{ subjectId?: string; classroomId?: string }>();
+  const { subjectId, classroomId, status } = useLocalSearchParams<{ subjectId?: string; classroomId?: string; status?: string }>();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | 'all'>('all');
@@ -111,6 +111,14 @@ export default function TeacherStudentsScreen() {
       setSelectedClassroomId(parsedClassroomId);
     }
   }, [classroomId]);
+
+  useEffect(() => {
+    if (!status) return;
+    const allowedStatuses: StudentStatusFilter[] = ['all', 'active', 'inactive', 'needs_help', 'no_activity', 'excellent'];
+    if (allowedStatuses.includes(status as StudentStatusFilter)) {
+      setSelectedStatus(status as StudentStatusFilter);
+    }
+  }, [status]);
 
   useEffect(() => {
     if (selectedClassroomId === 'all') return;
@@ -608,10 +616,17 @@ export default function TeacherStudentsScreen() {
   };
 
   const handleViewHistory = (student: StudentRow) => {
-    showAlert(
-      'Historial del estudiante',
-      `Últimos intentos cargados: ${student.recentAttempts.length}. Puedes conectar esta acción con una pantalla de historial filtrada por ${student.alias}.`
-    );
+    setActionStudent(null);
+    setDetailStudent(null);
+
+    const params: Record<string, string> = { id: student.id };
+    if (selectedSubjectId !== 'all') params.subjectId = String(selectedSubjectId);
+    if (selectedClassroomId !== 'all') params.classroomId = String(selectedClassroomId);
+
+    router.push({
+      pathname: '/(teacher)/student/[id]/history',
+      params,
+    } as any);
   };
 
   const openStudentActions = (student: StudentRow) => {
@@ -930,6 +945,7 @@ export default function TeacherStudentsScreen() {
               <TeacherStudentsDesktopTable
                 students={paginatedStudents}
                 onViewDetails={handleViewStudentDetails}
+                onViewHistory={handleViewHistory}
                 onAssignActivity={handleAssignActivity}
                 onOpenActions={openStudentActions}
               />

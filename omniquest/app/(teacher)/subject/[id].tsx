@@ -44,7 +44,7 @@ import {
 const INSUFFICIENT_TREND_DATA = 'Datos disponibles cuando haya actividad suficiente'
 
 export default function SubjectDetailScreen() {
-  const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
+  const { id, tab, importStudents } = useLocalSearchParams<{ id: string; tab?: string; importStudents?: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { tokens } = useAppTheme();
@@ -124,6 +124,14 @@ export default function SubjectDetailScreen() {
     topicRows,
     topics,
   } = useTeacherSubjectDetail({ subjectId, tab });
+
+
+  React.useEffect(() => {
+    const shouldOpenImport = Array.isArray(importStudents) ? importStudents[0] === '1' : importStudents === '1';
+    if (!shouldOpenImport) return;
+    setActiveTab('students');
+    setShowStudentImportModal(true);
+  }, [importStudents, setActiveTab, setShowStudentImportModal]);
 
 
   const handleExportClassRankingCsv = async (currentSubject: Subject) => {

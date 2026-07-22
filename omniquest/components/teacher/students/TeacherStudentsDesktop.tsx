@@ -127,11 +127,13 @@ function PrioritySection({
 export default function TeacherStudentsDesktopTable({
   students,
   onViewDetails,
+  onViewHistory,
   onAssignActivity,
   onOpenActions,
 }: {
   students: StudentRow[]
   onViewDetails: (student: StudentRow) => void
+  onViewHistory: (student: StudentRow) => void
   onAssignActivity: (student: StudentRow) => void
   onOpenActions: (student: StudentRow) => void
 }) {
@@ -200,6 +202,7 @@ export default function TeacherStudentsDesktopTable({
                   <DetailPill label="Nota" value={`${student.averageScore.toFixed(1)}/10`} />
                   <DetailPill label="Área prioritaria" value={student.weakAreas[0]?.title || 'Sin alertas'} />
                   <View className="ml-auto flex-row gap-2">
+                    <AppButton label="Ver historial" icon="time-outline" size="sm" variant="secondary" onPress={() => onViewHistory(student)} />
                     <AppButton label="Asignar repaso" icon="locate-outline" size="sm" variant="secondary" onPress={() => onAssignActivity(student)} />
                     <AppButton accessibilityLabel={`Más acciones para ${student.alias}`} icon="ellipsis-horizontal" iconOnly size="sm" variant="ghost" onPress={() => onOpenActions(student)} />
                   </View>

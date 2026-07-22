@@ -1003,6 +1003,11 @@ export type Database = {
           activity_enabled: boolean
           news_enabled: boolean
           frequency: string
+          teacher_reminder_email: string | null
+          teacher_inactive_student_alerts: boolean
+          teacher_open_review_alerts: boolean
+          teacher_sensitive_action_alerts: boolean
+          teacher_digest_frequency: string
           created_at: string
           updated_at: string
         }
@@ -1014,6 +1019,11 @@ export type Database = {
           activity_enabled?: boolean
           news_enabled?: boolean
           frequency?: string
+          teacher_reminder_email?: string | null
+          teacher_inactive_student_alerts?: boolean
+          teacher_open_review_alerts?: boolean
+          teacher_sensitive_action_alerts?: boolean
+          teacher_digest_frequency?: string
           created_at?: string
           updated_at?: string
         }
@@ -1025,6 +1035,11 @@ export type Database = {
           activity_enabled?: boolean
           news_enabled?: boolean
           frequency?: string
+          teacher_reminder_email?: string | null
+          teacher_inactive_student_alerts?: boolean
+          teacher_open_review_alerts?: boolean
+          teacher_sensitive_action_alerts?: boolean
+          teacher_digest_frequency?: string
           created_at?: string
           updated_at?: string
         }

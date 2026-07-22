@@ -61,7 +61,7 @@ test('high-volume lists use server pagination RPCs', () => {
   const ranking = read('app/(student)/ranking.tsx')
   const teacherHistory = read('app/(teacher)/student/[id]/history.tsx')
   const teacherAudit = read('app/(teacher)/audit.tsx')
-  const admin = read('components/admin/AdminPortal.tsx')
+  const admin = read('components/admin/portal/AdminAuditSection.tsx') + read('components/admin/portal/AdminPagination.tsx')
 
   assert.match(activity, /fetchStudentAttemptHistoryPage/)
   assert.match(studentData, /get_student_attempt_history_page/)

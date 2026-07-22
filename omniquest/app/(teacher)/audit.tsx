@@ -37,7 +37,7 @@ type TeacherAuditLogRow = {
   created_at: string
 }
 
-type AuditFilter = 'all' | 'student' | 'question' | 'subject' | 'topic' | 'code' | 'profile'
+type AuditFilter = 'all' | 'student' | 'question' | 'subject' | 'code' | 'profile'
 
 type AuditActionMeta = {
   label: string
@@ -53,7 +53,6 @@ const auditFilters: { id: AuditFilter; label: string; icon: keyof typeof Ionicon
   { id: 'student', label: 'Alumnos', icon: 'people-outline' },
   { id: 'question', label: 'Preguntas', icon: 'help-circle-outline' },
   { id: 'subject', label: 'Cursos', icon: 'book-outline' },
-  { id: 'topic', label: 'Temas', icon: 'layers-outline' },
   { id: 'code', label: 'Códigos', icon: 'key-outline' },
   { id: 'profile', label: 'Perfil', icon: 'person-circle-outline' },
 ]
@@ -66,6 +65,7 @@ export default function TeacherAuditScreen() {
   const [subjectsCount, setSubjectsCount] = useState(0)
   const [page, setPage] = useState(0)
   const [totalLogs, setTotalLogs] = useState(0)
+  const [allLogsTotal, setAllLogsTotal] = useState(0)
   const [selectedFilter, setSelectedFilter] = useState<AuditFilter>('all')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -86,13 +86,21 @@ export default function TeacherAuditScreen() {
         return
       }
 
-      const [logsResult, subjectsResult] = await Promise.all([
+      const [logsResult, allLogsResult, subjectsResult] = await Promise.all([
         (supabase.rpc as any)('get_teacher_audit_logs_page', {
           p_category: selectedFilter,
           p_search: null,
           p_limit: pageSize,
           p_offset: page * pageSize,
         }),
+        selectedFilter === 'all'
+          ? Promise.resolve(null)
+          : (supabase.rpc as any)('get_teacher_audit_logs_page', {
+              p_category: 'all',
+              p_search: null,
+              p_limit: 1,
+              p_offset: 0,
+            }),
         supabase
           .from('subjects')
           .select('id', { count: 'exact', head: true })
@@ -101,11 +109,15 @@ export default function TeacherAuditScreen() {
       ])
 
       if (logsResult.error) throw logsResult.error
+      if (allLogsResult?.error) throw allLogsResult.error
       if (subjectsResult.error) throw subjectsResult.error
 
       const nextLogs = ((logsResult.data || []) as (TeacherAuditLogRow & { total_count?: number | null })[])
+      const selectedTotal = Number(nextLogs[0]?.total_count || 0)
+      const overallRows = ((allLogsResult?.data || []) as (TeacherAuditLogRow & { total_count?: number | null })[])
       setLogs(nextLogs)
-      setTotalLogs(Number(nextLogs[0]?.total_count || 0))
+      setTotalLogs(selectedTotal)
+      setAllLogsTotal(selectedFilter === 'all' ? selectedTotal : Number(overallRows[0]?.total_count || 0))
       setSubjectsCount(subjectsResult.count || 0)
     } catch (error: any) {
       console.error('Error cargando auditoría docente:', error)
@@ -127,12 +139,12 @@ export default function TeacherAuditScreen() {
   const stats = useMemo(() => {
     const lastWeekThreshold = Date.now() - 7 * 24 * 60 * 60 * 1000
     return {
-      total: totalLogs,
+      total: allLogsTotal,
       lastWeek: logs.filter((log) => new Date(log.created_at).getTime() >= lastWeekThreshold).length,
       student: logs.filter((log) => getAuditActionMeta(log.action).category === 'student').length,
       destructive: logs.filter((log) => getAuditActionMeta(log.action).tone === 'danger').length,
     }
-  }, [logs, totalLogs])
+  }, [allLogsTotal, logs])
 
   const onRefresh = () => {
     setRefreshing(true)
@@ -171,6 +183,7 @@ export default function TeacherAuditScreen() {
         page={page}
         pageSize={pageSize}
         totalLogs={totalLogs}
+        allLogsTotal={allLogsTotal}
         onPreviousPage={() => setPage((value) => Math.max(0, value - 1))}
         onNextPage={() => setPage((value) => value + 1)}
         onSelectFilter={(filter) => { setPage(0); setSelectedFilter(filter) }}
@@ -223,9 +236,7 @@ export default function TeacherAuditScreen() {
             </View>
           ) : null}
 
-          <AuditContextCard className="mb-5" />
-
-          {logs.length > 0 ? (
+          {allLogsTotal > 0 ? (
             <View className={isWide ? 'mb-5 flex-row gap-4' : 'mb-5 gap-4'}>
               <AuditStatCard semantic="audit" label="Acciones registradas" value={String(stats.total)} detail="Últimos eventos" />
               <AuditStatCard icon="calendar" label="Últimos 7 días" value={String(stats.lastWeek)} detail="Actividad reciente" color="#38BDF8" />
@@ -234,7 +245,7 @@ export default function TeacherAuditScreen() {
             </View>
           ) : null}
 
-          {logs.length > 0 ? (
+          {allLogsTotal > 0 ? (
             <View className="mb-5">
               <AppTabs<AuditFilter>
                 accessibilityLabel="Filtrar eventos de auditoría"
@@ -245,7 +256,7 @@ export default function TeacherAuditScreen() {
                   label: filter.label,
                   icon: filter.icon,
                   badge: filter.id === 'all'
-                    ? totalLogs
+                    ? allLogsTotal
                     : logs.filter((log) => getAuditActionMeta(log.action).category === filter.id).length,
                 }))}
                 value={selectedFilter}
@@ -254,28 +265,32 @@ export default function TeacherAuditScreen() {
             </View>
           ) : null}
 
-          <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-            <View className="mb-4 flex-row items-center justify-between gap-3">
-              <Text className="text-[18px] font-black text-white">Timeline de auditoría</Text>
-              <Text className="text-[12px] font-bold text-[#B9A7FF]">{totalLogs} registros</Text>
-            </View>
+          {allLogsTotal === 0 ? (
+            <AuditEmptyState selectedFilter="all" />
+          ) : (
+            <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+              <View className="mb-4 flex-row items-center justify-between gap-3">
+                <Text className="text-[18px] font-black text-white">Timeline de auditoría</Text>
+                <Text className="text-[12px] font-bold text-[#B9A7FF]">{totalLogs} registros</Text>
+              </View>
 
-            <View className="gap-3">
-              {filteredLogs.map((log) => (
-                <AuditLogItem key={log.id} log={log} />
-              ))}
-              {filteredLogs.length === 0 ? (
-                <AuditEmptyState selectedFilter={selectedFilter} />
-              ) : null}
-              <PaginationControls
-                page={page}
-                pageSize={pageSize}
-                total={totalLogs}
-                onPrevious={() => setPage((value) => Math.max(0, value - 1))}
-                onNext={() => setPage((value) => value + 1)}
-              />
+              <View className="gap-3">
+                {filteredLogs.map((log) => (
+                  <AuditLogItem key={log.id} log={log} />
+                ))}
+                {filteredLogs.length === 0 ? (
+                  <AuditEmptyState selectedFilter={selectedFilter} />
+                ) : null}
+                <PaginationControls
+                  page={page}
+                  pageSize={pageSize}
+                  total={totalLogs}
+                  onPrevious={() => setPage((value) => Math.max(0, value - 1))}
+                  onNext={() => setPage((value) => value + 1)}
+                />
+              </View>
             </View>
-          </View>
+          )}
         </ScrollView>
       </View>
       {!isDesktop ? <TeacherBottomNav active="audit" /> : null}
@@ -302,6 +317,7 @@ function MobileTeacherAudit({
   page,
   pageSize,
   totalLogs,
+  allLogsTotal,
   onPreviousPage,
   onNextPage,
   onNotifications,
@@ -317,6 +333,7 @@ function MobileTeacherAudit({
   page: number
   pageSize: number
   totalLogs: number
+  allLogsTotal: number
   onPreviousPage: () => void
   onNextPage: () => void
   onNotifications: () => void
@@ -397,9 +414,7 @@ function MobileTeacherAudit({
           </LinearGradient>
         ) : null}
 
-        <AuditContextCard className="mb-5" mobile />
-
-        {logs.length > 0 ? (
+        {allLogsTotal > 0 ? (
           <View className="mb-6 flex-row flex-wrap gap-3">
             {metricCards.slice(0, 4).map((metric) => (
               <MobileAuditStatCard key={metric.label} {...metric} />
@@ -407,7 +422,7 @@ function MobileTeacherAudit({
           </View>
         ) : null}
 
-        {logs.length > 0 ? (
+        {allLogsTotal > 0 ? (
           <View className="mb-6 flex-row flex-wrap gap-3">
             {auditFilters.map((filter) => (
             <MobileAuditFilterChip
@@ -421,71 +436,46 @@ function MobileTeacherAudit({
           </View>
         ) : null}
 
-        <LinearGradient
-          colors={['#071A33', '#061326']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          className="rounded-2xl border border-[#1D3760] p-4"
-        >
-          <View className="mb-4 flex-row items-center justify-between">
-            <View>
-              <Text className="text-[24px] font-black text-white">Timeline</Text>
-              <Text className="mt-1 text-[12px] font-bold text-[#8FA7C7]">{totalLogs} registros</Text>
-            </View>
-            {filteredLogs.length > 0 ? (
-              <View className="flex-row items-center gap-2">
-                <Text className="text-[16px] font-black text-[#B175FF]">Ver todas</Text>
-                <Ionicons name="arrow-forward" size={21} color="#B175FF" />
+        {allLogsTotal === 0 ? (
+          <AuditEmptyState selectedFilter="all" mobile />
+        ) : (
+          <LinearGradient
+            colors={['#071A33', '#061326']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            className="rounded-2xl border border-[#1D3760] p-4"
+          >
+            <View className="mb-4 flex-row items-center justify-between">
+              <View>
+                <Text className="text-[24px] font-black text-white">Timeline</Text>
+                <Text className="mt-1 text-[12px] font-bold text-[#8FA7C7]">{totalLogs} registros</Text>
               </View>
-            ) : null}
-          </View>
+            </View>
 
-          <View style={{ gap: 8 }}>
-            {filteredLogs.map((log) => (
-              <MobileAuditLogItem key={log.id} log={log} />
-            ))}
+            <View style={{ gap: 8 }}>
+              {filteredLogs.map((log) => (
+                <MobileAuditLogItem key={log.id} log={log} />
+              ))}
 
-            {filteredLogs.length === 0 ? (
-              <AuditEmptyState selectedFilter={selectedFilter} mobile />
-            ) : null}
+              {filteredLogs.length === 0 ? (
+                <AuditEmptyState selectedFilter={selectedFilter} mobile />
+              ) : null}
 
-            <PaginationControls
-              compact
-              page={page}
-              pageSize={pageSize}
-              total={totalLogs}
-              onPrevious={onPreviousPage}
-              onNext={onNextPage}
-            />
-          </View>
-        </LinearGradient>
+              <PaginationControls
+                compact
+                page={page}
+                pageSize={pageSize}
+                total={totalLogs}
+                onPrevious={onPreviousPage}
+                onNext={onNextPage}
+              />
+            </View>
+          </LinearGradient>
+        )}
       </ScrollView>
 
       <TeacherBottomNav active="audit" />
     </View>
-  )
-}
-
-function AuditContextCard({ className = '', mobile = false }: { className?: string; mobile?: boolean }) {
-  return (
-    <LinearGradient
-      colors={['#0D223F', '#07162C']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      className={`rounded-2xl border border-[#1D3760] ${mobile ? 'p-4' : 'p-5'} ${className}`}
-    >
-      <View className="flex-row items-start gap-3">
-        <View className={`${mobile ? 'h-11 w-11' : 'h-12 w-12'} items-center justify-center rounded-2xl bg-[#13284A]`}>
-          <Ionicons name="shield-checkmark-outline" size={mobile ? 23 : 25} color="#9FD6FF" />
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className={`${mobile ? 'text-[17px]' : 'text-[18px]'} font-black text-white`}>Aquí se registran acciones sensibles</Text>
-          <Text className="mt-1 text-[13px] leading-5 text-[#B7C4D7]">
-            La auditoría deja trazabilidad de cambios relevantes sobre alumnos, cursos, temas, preguntas y códigos de acceso.
-          </Text>
-        </View>
-      </View>
-    </LinearGradient>
   )
 }
 
@@ -501,7 +491,7 @@ function AuditEmptyState({ selectedFilter, mobile = false }: { selectedFilter: A
       <Text className="mt-4 text-center text-[17px] font-black text-white">Todavía no hay acciones sensibles</Text>
       <Text className="mt-2 text-center text-[13px] leading-5 text-[#AFC2DB]">
         {isAll
-          ? 'Cuando edites cursos, temas, preguntas, códigos o alumnos, aparecerán aquí con fecha y contexto.'
+          ? 'Cuando gestiones alumnos, cursos, temas, preguntas, perfil o códigos, cada acción sensible aparecerá aquí con usuario, objeto y fecha.'
           : `No hay eventos en ${filterLabel}. Cambia el filtro o realiza una acción sensible para verla registrada.`}
       </Text>
     </View>
@@ -614,7 +604,6 @@ function getAuditFilterColor(filter: AuditFilter) {
   if (filter === 'student') return '#43D991'
   if (filter === 'question') return '#58B5FF'
   if (filter === 'subject') return '#9FD6FF'
-  if (filter === 'topic') return '#A78BFA'
   if (filter === 'code') return '#F59E0B'
   if (filter === 'profile') return '#38BDF8'
   return '#B175FF'
@@ -741,7 +730,7 @@ function getAuditActionMeta(action: string): AuditActionMeta {
     'teacher.topic.create': {
       label: 'Tema creado',
       badge: 'Tema',
-      category: 'topic',
+      category: 'subject',
       tone: 'neutral',
       icon: 'add-circle-outline',
       color: '#A78BFA',
@@ -749,7 +738,7 @@ function getAuditActionMeta(action: string): AuditActionMeta {
     'teacher.topic.update': {
       label: 'Tema actualizado',
       badge: 'Tema',
-      category: 'topic',
+      category: 'subject',
       tone: 'neutral',
       icon: 'layers-outline',
       color: '#A78BFA',

@@ -40,7 +40,7 @@ const ROUTES = {
   teacherSecurity: '/(teacher)/security' as AppHref,
 }
 
-const settingsSectionDefinitions: { key: SettingsMenuSectionKey; labelKey: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
+const studentSettingsSectionDefinitions: { key: SettingsMenuSectionKey; labelKey: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
   { key: 'general', labelKey: 'settings.section.general', icon: 'settings-outline', anchor: 'general' },
   { key: 'profile', labelKey: 'settings.section.profile', icon: 'person-outline', anchor: 'profile' },
   { key: 'preferences', labelKey: 'settings.section.preferences', icon: 'globe-outline', anchor: 'preferences' },
@@ -49,6 +49,15 @@ const settingsSectionDefinitions: { key: SettingsMenuSectionKey; labelKey: strin
   { key: 'data', labelKey: 'settings.section.data', icon: 'server-outline', anchor: 'data' },
   { key: 'security', labelKey: 'settings.section.security', icon: 'lock-closed-outline', anchor: 'security' },
   { key: 'about', labelKey: 'settings.section.about', icon: 'information-circle-outline', anchor: 'about' },
+]
+
+const teacherSettingsSectionDefinitions: { key: SettingsMenuSectionKey; label: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
+  { key: 'personal', label: 'Ajustes personales', icon: 'person-circle-outline', anchor: 'personal' },
+  { key: 'teaching', label: 'Preferencias docentes', icon: 'school-outline', anchor: 'teaching' },
+  { key: 'privacy', label: 'Privacidad', icon: 'shield-checkmark-outline', anchor: 'privacy' },
+  { key: 'data', label: 'Datos docentes', icon: 'server-outline', anchor: 'data' },
+  { key: 'security', label: 'Seguridad', icon: 'lock-closed-outline', anchor: 'security' },
+  { key: 'about', label: 'Ayuda y acerca de', icon: 'help-circle-outline', anchor: 'about' },
 ]
 
 function roleRoute(isTeacher: boolean, teacherRoute: AppHref, studentRoute: AppHref) {
@@ -67,8 +76,10 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
   const isDesktop = width >= 1080
   const settingsSections = useMemo(
-    () => settingsSectionDefinitions.map((item) => ({ ...item, label: t(item.labelKey) })),
-    [t]
+    () => data.isTeacher
+      ? teacherSettingsSectionDefinitions
+      : studentSettingsSectionDefinitions.map((item) => ({ ...item, label: t(item.labelKey) })),
+    [data.isTeacher, t]
   )
   const isLargeDesktop = width >= 1280
   const isMediumSettings = width >= 760
@@ -77,10 +88,14 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const RoleSections = data.isTeacher ? TeacherSettingsSections : StudentSettingsSections
 
   useEffect(() => {
-    if (!settingsSections.some((item) => item.key === activeSettingsSection)) {
-      setActiveSettingsSection('general')
+    if (data.isTeacher && activeSettingsSection === 'general') {
+      setActiveSettingsSection('personal')
+      return
     }
-  }, [activeSettingsSection, settingsSections])
+    if (!settingsSections.some((item) => item.key === activeSettingsSection)) {
+      setActiveSettingsSection(data.isTeacher ? 'personal' : 'general')
+    }
+  }, [activeSettingsSection, data.isTeacher, settingsSections])
 
   useEffect(() => {
     if (!section) return

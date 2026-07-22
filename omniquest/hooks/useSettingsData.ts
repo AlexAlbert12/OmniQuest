@@ -24,6 +24,8 @@ import type {
   UserPreferencesRow,
   UserPreferencesState,
   UserProfile,
+  TeacherNotificationSettingsRow,
+  TeacherNotificationSettingsState,
 } from '../components/settings/SettingsTypes'
 
 type ExportTableName =
@@ -69,6 +71,14 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsState = {
   activities: true,
   news: false,
   frequency: 'daily',
+}
+
+const DEFAULT_TEACHER_NOTIFICATION_SETTINGS: TeacherNotificationSettingsState = {
+  reminderEmail: '',
+  inactiveStudentAlerts: true,
+  openReviewAlerts: true,
+  sensitiveActionAlerts: true,
+  digestFrequency: 'daily',
 }
 
 export const notificationFrequencyOptions: NotificationFrequency[] = ['instant', 'daily', 'weekly']
@@ -171,6 +181,20 @@ function toNotificationSettingsState(row: NotificationSettingsRow | null): Notif
   }
 }
 
+function toTeacherNotificationSettingsState(
+  row: TeacherNotificationSettingsRow | null,
+  fallbackEmail: string,
+): TeacherNotificationSettingsState {
+  const digestFrequency = row?.teacher_digest_frequency
+  return {
+    reminderEmail: row?.teacher_reminder_email || fallbackEmail,
+    inactiveStudentAlerts: row?.teacher_inactive_student_alerts ?? true,
+    openReviewAlerts: row?.teacher_open_review_alerts ?? true,
+    sensitiveActionAlerts: row?.teacher_sensitive_action_alerts ?? true,
+    digestFrequency: digestFrequency === 'off' || digestFrequency === 'weekly' ? digestFrequency : 'daily',
+  }
+}
+
 async function fetchProfileWithOptionalVisibility(targetUserId: string) {
   const profileWithVisibility = await supabase
     .from('profiles')
@@ -218,6 +242,8 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   const [savingHaptics, setSavingHaptics] = useState(false)
   const [openPreferenceKey, setOpenPreferenceKey] = useState<PreferenceKey | null>(null)
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettingsState>(DEFAULT_NOTIFICATION_SETTINGS)
+  const [teacherNotificationSettings, setTeacherNotificationSettings] = useState<TeacherNotificationSettingsState>(DEFAULT_TEACHER_NOTIFICATION_SETTINGS)
+  const [savingTeacherNotificationKey, setSavingTeacherNotificationKey] = useState<keyof TeacherNotificationSettingsState | null>(null)
   const [pushRegistrationStatus, setPushRegistrationStatus] = useState<'idle' | 'registered' | 'denied' | 'unsupported' | 'error'>('idle')
   const [savingNotificationKey, setSavingNotificationKey] = useState<NotificationSettingKey | 'frequency' | null>(null)
   const [openNotificationFrequency, setOpenNotificationFrequency] = useState(false)
@@ -555,7 +581,11 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     if (error) throw error
   }
 
-  const saveNotificationSettings = async (targetUserId: string, next: NotificationSettingsState) => {
+  const saveNotificationSettings = async (
+    targetUserId: string,
+    next: NotificationSettingsState,
+    teacherNext: TeacherNotificationSettingsState = teacherNotificationSettings,
+  ) => {
     const { error } = await supabase.from('user_notification_preferences').upsert(
       {
         user_id: targetUserId,
@@ -565,6 +595,11 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
         activity_enabled: next.activities,
         news_enabled: next.news,
         frequency: next.frequency,
+        teacher_reminder_email: teacherNext.reminderEmail.trim() || null,
+        teacher_inactive_student_alerts: teacherNext.inactiveStudentAlerts,
+        teacher_open_review_alerts: teacherNext.openReviewAlerts,
+        teacher_sensitive_action_alerts: teacherNext.sensitiveActionAlerts,
+        teacher_digest_frequency: teacherNext.digestFrequency,
       },
       { onConflict: 'user_id' }
     )
@@ -587,20 +622,29 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
       setLastSignInAt(session.user.last_sign_in_at || null)
       setEmailConfirmedAt(session.user.email_confirmed_at || session.user.confirmed_at || null)
 
-      const [profileFetch, preferencesResult, notificationSettingsResult, subjectsResult] = await Promise.all([
+      const [profileFetch, preferencesResult, subjectsResult] = await Promise.all([
         fetchProfileWithOptionalVisibility(session.user.id),
         supabase
           .from('user_preferences')
           .select('language, timezone, date_format, time_format, week_start, haptics_enabled')
           .eq('user_id', session.user.id)
           .maybeSingle(),
-        supabase
+        supabase.from('subjects').select('id').eq('teacher_id', session.user.id).eq('is_archived', false),
+      ])
+
+      let notificationSettingsResult = await supabase
+        .from('user_notification_preferences')
+        .select('push_enabled, email_enabled, daily_summary_enabled, activity_enabled, news_enabled, frequency, teacher_reminder_email, teacher_inactive_student_alerts, teacher_open_review_alerts, teacher_sensitive_action_alerts, teacher_digest_frequency')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+
+      if (notificationSettingsResult.error?.code === '42703' || notificationSettingsResult.error?.code === 'PGRST204') {
+        notificationSettingsResult = await supabase
           .from('user_notification_preferences')
           .select('push_enabled, email_enabled, daily_summary_enabled, activity_enabled, news_enabled, frequency')
           .eq('user_id', session.user.id)
-          .maybeSingle(),
-        supabase.from('subjects').select('id').eq('teacher_id', session.user.id).eq('is_archived', false),
-      ])
+          .maybeSingle() as typeof notificationSettingsResult
+      }
 
       const profileResult = profileFetch.result
       if (profileResult.error && profileResult.error.code !== 'PGRST116') throw profileResult.error
@@ -634,6 +678,12 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
       }
       setNotificationSettings(
         toNotificationSettingsState((notificationSettingsResult.data as NotificationSettingsRow | null) || null)
+      )
+      setTeacherNotificationSettings(
+        toTeacherNotificationSettingsState(
+          (notificationSettingsResult.data as (NotificationSettingsRow & TeacherNotificationSettingsRow) | null) || null,
+          session.user.email || '',
+        )
       )
     } catch (error: unknown) {
       console.error('Error cargando configuración:', getErrorMessage(error))
@@ -870,6 +920,45 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     }
   }
 
+  const updateTeacherNotificationPreference = async <Key extends keyof TeacherNotificationSettingsState>(
+    key: Key,
+    value: TeacherNotificationSettingsState[Key],
+  ) => {
+    if (!userId) {
+      showAlert('Sesión no disponible', 'No se pudo identificar el profesor para guardar las preferencias.')
+      return false
+    }
+
+    if (key === 'reminderEmail') {
+      const reminderEmail = String(value).trim()
+      if (reminderEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reminderEmail)) {
+        showAlert('Correo no válido', 'Introduce un correo válido para recibir recordatorios docentes.')
+        return false
+      }
+      value = reminderEmail as TeacherNotificationSettingsState[Key]
+    }
+
+    const previous = teacherNotificationSettings
+    const next = { ...previous, [key]: value }
+    setTeacherNotificationSettings(next)
+    setSavingTeacherNotificationKey(key)
+
+    try {
+      await saveNotificationSettings(userId, notificationSettings, next)
+      return true
+    } catch (error: unknown) {
+      setTeacherNotificationSettings(previous)
+      if (isMissingNotificationPreferencesTableError(getErrorCode(error))) {
+        showAlert('Configuración pendiente', 'Aplica la migración de preferencias docentes para guardar estos ajustes.')
+      } else {
+        showAlert('No se pudo guardar', getErrorMessage(error) || 'No se pudieron guardar las preferencias docentes.')
+      }
+      return false
+    } finally {
+      setSavingTeacherNotificationKey(null)
+    }
+  }
+
   const togglePreferenceMenu = (key: PreferenceKey) => {
     setOpenNotificationFrequency(false)
     setOpenPreferenceKey((current) => (current === key ? null : key))
@@ -971,6 +1060,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     nextLevelProgress,
     notificationFrequencyOptions,
     notificationSettings,
+    teacherNotificationSettings,
     pushRegistrationStatus,
     openNotificationFrequency,
     openPreferenceKey,
@@ -985,6 +1075,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     role,
     saving,
     savingNotificationKey,
+    savingTeacherNotificationKey,
     savingPreference,
     savingHaptics,
     selectNotificationFrequency,
@@ -1008,6 +1099,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     toggleNotificationFrequencyMenu,
     togglePreferenceMenu,
     updateNotificationToggle,
+    updateTeacherNotificationPreference,
     updateHapticsEnabled,
     userInitials,
   }

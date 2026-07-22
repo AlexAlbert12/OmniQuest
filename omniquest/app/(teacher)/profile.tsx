@@ -62,7 +62,7 @@ const TEACHER_ROUTES = {
   login: '/(auth)/login',
   notifications: '/(teacher)/notifications',
   security: '/(teacher)/security',
-  settingsProfile: '/(teacher)/settings?section=profile',
+  settingsProfile: '/(teacher)/settings?section=personal',
   students: '/(teacher)/students',
   settings: '/(teacher)/settings',
 } satisfies Record<string, Href>
@@ -87,12 +87,6 @@ export default function TeacherProfileScreen() {
   const isDesktop = width >= 1024
 
   const stats = useMemo(() => {
-    const uniqueStudents = new Set(
-      enrollments
-        .map((enrollment) => enrollment.student_id)
-        .filter((value): value is string => Boolean(value))
-    )
-
     const enrollmentPairs = new Set(
       enrollments
         .filter((enrollment) => enrollment.subject_id && enrollment.student_id)
@@ -106,13 +100,19 @@ export default function TeacherProfileScreen() {
         .filter((pair) => enrollmentPairs.has(pair))
     )
 
+    const activeStudentIds = new Set(
+      scores
+        .filter((score) => score.student_id && (score.max_score ?? 0) > 0)
+        .map((score) => score.student_id as string)
+    )
+
     const participation = enrollmentPairs.size > 0
       ? Math.round((scorePairs.size / enrollmentPairs.size) * 100)
       : 0
 
     return {
       activeClasses: subjects.length,
-      uniqueStudents: uniqueStudents.size,
+      activeStudents: activeStudentIds.size,
       questionsCreated: questions.length,
       averageParticipation: participation,
     }
@@ -120,6 +120,7 @@ export default function TeacherProfileScreen() {
 
   const recentSubjects = subjects.slice(0, 4)
   const recentQuestions = questions.slice(0, 5)
+  const primarySubjectId = subjects[0]?.id ?? null
   const alias = profile?.alias || 'Profesor'
   const memberSince = formatLongDate(profile?.created_at)
 
@@ -296,7 +297,11 @@ export default function TeacherProfileScreen() {
         onSecurity={() => router.push(TEACHER_ROUTES.security)}
         onClasses={() => router.push(TEACHER_ROUTES.classes)}
         onStudents={() => router.push(TEACHER_ROUTES.students)}
-        onQuestions={() => router.push(TEACHER_ROUTES.classes)}
+        onQuestions={() => router.push(primarySubjectId ? (`/(teacher)/subject/${primarySubjectId}?tab=questions` as Href) : TEACHER_ROUTES.classes)}
+        onCreateQuestion={() => router.push(primarySubjectId ? (`/(teacher)/subject/add-question?subjectId=${primarySubjectId}` as Href) : '/(teacher)/create-subject' as Href)}
+        onImportStudents={() => router.push(primarySubjectId ? (`/(teacher)/subject/${primarySubjectId}?tab=students&importStudents=1` as Href) : TEACHER_ROUTES.classes)}
+        onReviewStudents={() => router.push(TEACHER_ROUTES.students)}
+        onConfigureProfile={() => router.push(TEACHER_ROUTES.settingsProfile)}
         onOpenSubject={(subjectId) => router.push(teacherSubjectRoute(subjectId))}
         onOpenSettings={() => router.push(TEACHER_ROUTES.settings)}
 
@@ -330,7 +335,7 @@ export default function TeacherProfileScreen() {
             icon="person"
             isDesktop={isDesktop}
             title="Perfil"
-            subtitle="Gestiona tu información docente y revisa tu actividad de clases."
+            subtitle="Tu perfil docente, impacto en el aula y accesos de trabajo."
             showAvatar={false}
           />
 
@@ -347,9 +352,17 @@ export default function TeacherProfileScreen() {
               stats={stats}
               onClasses={() => router.push(TEACHER_ROUTES.classes)}
               onStudents={() => router.push(TEACHER_ROUTES.students)}
-              onQuestions={() => router.push(TEACHER_ROUTES.classes)}
+              onQuestions={() => router.push(primarySubjectId ? (`/(teacher)/subject/${primarySubjectId}?tab=questions` as Href) : TEACHER_ROUTES.classes)}
             />
           </View>
+
+          <TeacherQuickAccessPanel
+            className="mt-5"
+            onCreateQuestion={() => router.push(primarySubjectId ? (`/(teacher)/subject/add-question?subjectId=${primarySubjectId}` as Href) : '/(teacher)/create-subject' as Href)}
+            onImportStudents={() => router.push(primarySubjectId ? (`/(teacher)/subject/${primarySubjectId}?tab=students&importStudents=1` as Href) : TEACHER_ROUTES.classes)}
+            onReviewStudents={() => router.push(TEACHER_ROUTES.students)}
+            onConfigureProfile={() => router.push(TEACHER_ROUTES.settingsProfile)}
+          />
 
           <View className={isDesktop ? 'mt-5 flex-row gap-5' : 'mt-5 gap-5'}>
             <ProfileCard title="Información del profesor" className={isDesktop ? 'flex-1' : ''}>
@@ -447,7 +460,7 @@ export default function TeacherProfileScreen() {
 
 type TeacherProfileStats = {
   activeClasses: number
-  uniqueStudents: number
+  activeStudents: number
   questionsCreated: number
   averageParticipation: number
 }
@@ -468,6 +481,10 @@ function MobileTeacherProfile({
   onClasses,
   onStudents,
   onQuestions,
+  onCreateQuestion,
+  onImportStudents,
+  onReviewStudents,
+  onConfigureProfile,
   onOpenSubject,
   onOpenSettings
 }: {
@@ -486,6 +503,10 @@ function MobileTeacherProfile({
   onClasses: () => void
   onStudents: () => void
   onQuestions: () => void
+  onCreateQuestion: () => void
+  onImportStudents: () => void
+  onReviewStudents: () => void
+  onConfigureProfile: () => void
   onOpenSubject: (subjectId: number) => void
   onOpenSettings: () => void
 }) {
@@ -531,6 +552,15 @@ function MobileTeacherProfile({
           onClasses={onClasses}
           onStudents={onStudents}
           onQuestions={onQuestions}
+        />
+
+        <TeacherQuickAccessPanel
+          className="mt-5"
+          mobile
+          onCreateQuestion={onCreateQuestion}
+          onImportStudents={onImportStudents}
+          onReviewStudents={onReviewStudents}
+          onConfigureProfile={onConfigureProfile}
         />
 
         <MobileTeacherInfoCard
@@ -613,6 +643,57 @@ function MobileTeacherProfileHero({
   )
 }
 
+function TeacherQuickAccessPanel({
+  onCreateQuestion,
+  onImportStudents,
+  onReviewStudents,
+  onConfigureProfile,
+  className = '',
+  mobile = false,
+}: {
+  onCreateQuestion: () => void
+  onImportStudents: () => void
+  onReviewStudents: () => void
+  onConfigureProfile: () => void
+  className?: string
+  mobile?: boolean
+}) {
+  const actions = [
+    { label: 'Crear pregunta', detail: 'Añade contenido al banco docente', icon: 'add-circle-outline' as const, color: '#8B5CF6', onPress: onCreateQuestion },
+    { label: 'Importar alumnos', detail: 'Incorpora una clase desde CSV', icon: 'cloud-upload-outline' as const, color: '#38BDF8', onPress: onImportStudents },
+    { label: 'Revisar alumnos', detail: 'Prioriza quién necesita apoyo', icon: 'people-outline' as const, color: '#34D399', onPress: onReviewStudents },
+    { label: 'Configurar perfil', detail: 'Actualiza datos y preferencias', icon: 'settings-outline' as const, color: '#F59E0B', onPress: onConfigureProfile },
+  ]
+
+  return (
+    <View className={`rounded-2xl border border-[#1C3762] bg-[#08182F] ${mobile ? 'p-4' : 'p-5'} ${className}`}>
+      <Text className={`${mobile ? 'text-[20px]' : 'text-[22px]'} font-black text-white`}>Accesos docentes</Text>
+      <Text className="mt-1 text-[13px] leading-5 text-[#8FA7C7]">Acciones frecuentes para preparar contenido y acompañar al alumnado.</Text>
+      <View className="mt-4 flex-row flex-wrap gap-3">
+        {actions.map((action) => (
+          <Pressable
+            key={action.label}
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
+            onPress={action.onPress}
+            className={`${mobile ? 'min-w-[145px]' : 'min-w-[220px]'} flex-1 flex-row items-center gap-3 rounded-xl border border-[#20375E] bg-[#0D1D3B] p-3`}
+            style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+          >
+            <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${action.color}24` }}>
+              <Ionicons name={action.icon} size={21} color={action.color} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-[13px] font-black text-white" numberOfLines={1}>{action.label}</Text>
+              <Text className="mt-1 text-[11px] leading-4 text-[#8FA7C7]" numberOfLines={2}>{action.detail}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={17} color="#8FA7C7" />
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  )
+}
+
 function TeacherImpactPanel({
   stats,
   onClasses,
@@ -646,7 +727,7 @@ function TeacherImpactPanel({
       <View className="flex-row flex-wrap gap-4">
         <MetricTile
           label="Alumnos activos"
-          value={String(stats.uniqueStudents)}
+          value={String(stats.activeStudents)}
           detail="Con inscripción"
           icon="people"
           color="#43D991"
@@ -716,7 +797,7 @@ function MobileTeacherImpactCard({
       <View className="flex-row flex-wrap gap-3">
         <MobileTeacherProfileMetric
           title="Alumnos activos"
-          value={String(stats.uniqueStudents)}
+          value={String(stats.activeStudents)}
           detail="Con inscripción"
           icon="people"
           color="#43D991"

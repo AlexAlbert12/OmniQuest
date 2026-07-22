@@ -5,8 +5,9 @@ export type AppRole = 'student' | 'teacher'
 export type PreferenceKey = 'language' | 'timezone' | 'dateFormat' | 'timeFormat' | 'weekStart'
 export type NotificationSettingKey = 'push' | 'email' | 'daily' | 'activities' | 'news'
 export type NotificationFrequency = 'instant' | 'daily' | 'weekly'
-export type SettingsMenuSectionKey = | 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'data' | 'security' | 'about'
-export type SettingsAnchorKey = | 'general' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'data' | 'security' | 'about'
+export type TeacherDigestFrequency = 'off' | 'daily' | 'weekly'
+export type SettingsMenuSectionKey = | 'general' | 'personal' | 'teaching' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'data' | 'security' | 'about'
+export type SettingsAnchorKey = | 'general' | 'personal' | 'teaching' | 'profile' | 'preferences' | 'notifications' | 'privacy' | 'data' | 'security' | 'about'
 export type ProfileVisibility = 'public' | 'private'
 export type SettingsMenuVariant = 'side' | 'tabs' | 'chips'
 
@@ -53,4 +54,20 @@ export type NotificationSettingsRow = {
   activity_enabled: boolean | null
   news_enabled: boolean | null
   frequency: string | null
+}
+
+export type TeacherNotificationSettingsState = {
+  reminderEmail: string
+  inactiveStudentAlerts: boolean
+  openReviewAlerts: boolean
+  sensitiveActionAlerts: boolean
+  digestFrequency: TeacherDigestFrequency
+}
+
+export type TeacherNotificationSettingsRow = {
+  teacher_reminder_email: string | null
+  teacher_inactive_student_alerts: boolean | null
+  teacher_open_review_alerts: boolean | null
+  teacher_sensitive_action_alerts: boolean | null
+  teacher_digest_frequency: string | null
 }
