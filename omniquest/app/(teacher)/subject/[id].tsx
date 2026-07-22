@@ -5,7 +5,6 @@ import {
   RefreshControl,
   ScrollView,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -15,7 +14,6 @@ import MobileMetricCard from '../../../components/ui/mobile/MobileMetricCard'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout';
 import { useAppTheme } from '../../../lib/appTheme';
 import type { SemanticIconKey } from '../../../lib/designTokens';
-import { difficultyOptions } from '../../../lib/difficulty';
 import { exportCsvFile, exportMarkdownFile, formatExportDateTime, slugifyFilename } from '../../../lib/reportExports';
 import {
   type EvolutionReport,
@@ -27,10 +25,14 @@ import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader';
 import TeacherStudentImportModal from '../../../components/teacher/TeacherStudentImportModal';
 import AppButton from '../../../components/ui/AppButton';
 import AppTabs from '../../../components/ui/AppTabs';
-import DateTimeCalendarField from '../../../components/ui/DateTimeCalendarField';
 import { GradeDistributionBars, SubjectPanel as Panel, type IconName } from '../../../components/teacher/subject/SubjectShared';
 import { SubjectQuestionsPanel, SubjectQuestionsTab } from '../../../components/teacher/subject/SubjectQuestionsTab';
 import { SubjectStudentsTab } from '../../../components/teacher/subject/SubjectStudentsTab';
+import {
+  SubjectAddQuestionCTA,
+  SubjectClassroomsSection,
+  SubjectTopicsSection,
+} from '../../../components/teacher/subject/SubjectCourseStructure';
 import {
   teacherSubjectTabItems,
   useTeacherSubjectDetail,
@@ -319,7 +321,7 @@ export default function SubjectDetailScreen() {
       );
     }
 
-    if (activeTab === 'reports') {
+    if (activeTab === 'analytics' || activeTab === 'reports') {
       return (
         <View className="gap-5">
           <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
@@ -532,7 +534,7 @@ export default function SubjectDetailScreen() {
           <Panel
             title="Actividad reciente"
             actionLabel="Ver todo"
-            onAction={() => setActiveTab('activities')}
+            onAction={() => setActiveTab('analytics')}
           >
             {recentActivity.map((item, index) => (
               <ActivityRow key={`${item.title}-${index}`} {...item} />
@@ -632,6 +634,7 @@ export default function SubjectDetailScreen() {
   }
 
   const currentSubject = subject;
+  const addQuestionHref = `/(teacher)/subject/add-question?subjectId=${currentSubject.id}${selectedClassroom?.id ? `&classroomId=${selectedClassroom.id}` : ''}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`;
   return (
     <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
       <View className="flex-1 flex-row">
@@ -648,7 +651,7 @@ export default function SubjectDetailScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 14,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER,
+            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER + 84,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
@@ -690,175 +693,81 @@ export default function SubjectDetailScreen() {
                   role="teacher"
                   onPress={() => router.push(`/(teacher)/edit-subject?id=${currentSubject.id}` as any)}
                 />
+                {isDesktop ? (
+                  <SubjectAddQuestionCTA href={addQuestionHref} />
+                ) : null}
               </>
             )}
           />
 
-          <Panel title="Clases del curso">
-            {classrooms.length > 0 ? (
-              <AppTabs
-                accessibilityLabel="Clases del curso"
-                items={classrooms.map((classroom) => ({
-                  key: classroom.id,
-                  label: classroom.code ? `${classroom.name} · ${classroom.code}` : classroom.name,
-                  icon: 'people-outline' as IconName,
-                }))}
-                onChange={(classroomId) => {
-                  setSelectedClassroomId(classroomId);
-                  setSelectedTopicId('all');
-                }}
-                role="teacher"
-                value={selectedClassroomId ?? classrooms[0].id}
-              />
-            ) : (
-              <View className="rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-4">
-                <Text className="text-[12px] text-[#8FA7C7]">Todavía no hay clases en este curso.</Text>
-              </View>
-            )}
-
-            <View className="mt-4 flex-row flex-wrap items-end gap-3 border-t border-[#13284A] pt-4">
-              <View className="min-w-[240px] flex-1">
-                <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Nueva clase dentro del curso</Text>
-                <TextInput
-                  className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3 text-white"
-                  placeholder="Ej. Grupo A, 1º DAM tarde..."
-                  placeholderTextColor="#60799C"
-                  value={newClassroomName}
-                  onChangeText={setNewClassroomName}
-                />
-              </View>
-              <AppButton
-                label="Crear clase"
-                accessibilityLabel={creatingClassroom ? 'Creando clase' : 'Crear clase'}
-                icon="add"
-                loading={creatingClassroom}
-                disabled={creatingClassroom}
-                role="teacher"
-                onPress={handleCreateClassroom}
-              />
-            </View>
-          </Panel>
-
-          <View className={isWide ? 'mb-5 flex-row gap-4' : 'mb-5 gap-4'}>
-            <MetricCard semantic="success" label="Precisión media" value={`${averageAccuracy}%`} detail="Aciertos sobre respuestas estimadas" />
-            <MetricCard semantic="achievement" label="Nota media" value={`${averageGrade.toFixed(1)}`} suffix="/10" detail="Calculada por precisión" />
-            <MetricCard semantic="xp" label="XP media" value={`${averageXp.toLocaleString('es-ES')} pts`} detail="Puntos y bonus separados" />
-            <MetricCard icon="radio-button-on" label="Preguntas respondidas" value={`${answeredClassQuestions}/${possibleClassQuestions}`} color={tokens.semantic.info} detail="Respuestas sobre preguntas posibles" />
-            <MetricCard semantic="student" label="Participación" value={`${participation}%`} detail={INSUFFICIENT_TREND_DATA} />
-          </View>
-
-          <Panel title={`Temas de ${selectedClassroom?.name || 'la clase activa'}`}>
-            <View className="mb-4">
-              <AppTabs
-                accessibilityLabel="Filtrar temas"
-                compact
-                items={[
-                  { key: 'all' as const, label: 'Todos', icon: 'albums-outline' as IconName },
-                  ...topicRows.map((topic) => ({
-                    key: topic.id,
-                    label: topic.title,
-                    icon: topic.icon && topic.icon.includes('-outline') ? topic.icon as IconName : 'book-outline' as IconName,
-                  })),
-                ]}
-                onChange={setSelectedTopicId}
-                role="teacher"
-                value={selectedTopicId}
-              />
-            </View>
-
-            <View style={{ gap: 12 }}>
-              {topicRows.length === 0 ? (
-                <View className="rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-5">
-                  <Text className="font-bold text-white">Todavía no hay temas</Text>
-                  <Text className="mt-1 text-[12px] text-[#8FA7C7]">Crea el primer tema para agrupar las preguntas de esta clase.</Text>
-                </View>
-              ) : (
-                topicRows.map((topic) => (
-                  <TopicSummaryRow
-                    key={topic.id}
-                    topic={topic}
-                    active={selectedTopicId === topic.id}
-                    onPress={() => {
-                      if (typeof topic.id === 'number') {
-                        router.push(`/(teacher)/topic/${topic.id}` as any);
-                      } else {
-                        setSelectedTopicId(topic.id);
-                      }
-                    }}
-                  />
-                ))
-              )}
-            </View>
-
-            <View className="mt-5 flex-row flex-wrap items-end gap-3 border-t border-[#13284A] pt-4">
-              <View className="min-w-[220px] flex-1">
-                <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Nuevo tema</Text>
-                <TextInput
-                  className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3 text-white"
-                  placeholder="Ej. Ecuaciones de primer grado"
-                  placeholderTextColor="#60799C"
-                  value={newTopicTitle}
-                  onChangeText={setNewTopicTitle}
-                />
-              </View>
-              <View className="min-w-[240px] flex-1">
-                <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Descripción</Text>
-                <TextInput
-                  className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3 text-white"
-                  placeholder="Opcional"
-                  placeholderTextColor="#60799C"
-                  value={newTopicDescription}
-                  onChangeText={setNewTopicDescription}
-                />
-              </View>
-              <View className="min-w-[300px] flex-[1.2]">
-                <DateTimeCalendarField
-                  value={newTopicAvailableUntil}
-                  onChange={setNewTopicAvailableUntil}
-                />
-              </View>
-              <View className="min-w-[260px] flex-1">
-                <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Dificultad inicial</Text>
-                <AppTabs
-                  accessibilityLabel="Dificultad inicial"
-                  compact
-                  fill
-                  items={difficultyOptions.map((option) => ({ key: option.value, label: option.shortLabel }))}
-                  onChange={setNewTopicDifficulty}
-                  role="teacher"
-                  value={newTopicDifficulty}
-                />
-              </View>
-              <AppButton
-                label="Crear tema"
-                accessibilityLabel={creatingTopic ? 'Creando tema' : 'Crear tema'}
-                icon="add"
-                loading={creatingTopic}
-                disabled={creatingTopic}
-                role="teacher"
-                onPress={handleCreateTopic}
-              />
-            </View>
-          </Panel>
-
           <View className="mb-5">
             <AppTabs
               accessibilityLabel="Secciones del curso"
-              items={teacherSubjectTabItems.map((tab) => ({
-                key: tab.key,
-                label: tab.label,
-                icon: tab.icon,
-              }))}
+              items={teacherSubjectTabItems.map((tab) => ({ key: tab.key, label: tab.label, icon: tab.icon }))}
               onChange={setActiveTab}
               role="teacher"
               value={activeTab}
             />
           </View>
 
+          {activeTab === 'summary' ? (
+            <>
+              <SubjectClassroomsSection
+                classrooms={classrooms}
+                creating={creatingClassroom}
+                newClassroomName={newClassroomName}
+                onCreate={handleCreateClassroom}
+                onNameChange={setNewClassroomName}
+                onSelect={(classroomId) => {
+                  setSelectedClassroomId(classroomId);
+                  setSelectedTopicId('all');
+                }}
+                selectedClassroomId={selectedClassroomId}
+              />
+              <View className={isDesktop ? 'mb-5 flex-row gap-4' : 'mb-5 flex-row gap-3'}>
+                {isDesktop ? (
+                  <>
+                    <MetricCard semantic="success" label="Precisión media" value={`${averageAccuracy}%`} detail="Aciertos sobre respuestas estimadas" />
+                    <MetricCard semantic="achievement" label="Nota media" value={averageGrade.toFixed(1)} suffix="/10" detail="Calculada por precisión" />
+                    <MetricCard semantic="xp" label="XP media" value={`${averageXp.toLocaleString('es-ES')} pts`} detail="Puntos y bonus separados" />
+                    <MetricCard icon="radio-button-on" label="Preguntas respondidas" value={`${answeredClassQuestions}/${possibleClassQuestions}`} color={tokens.semantic.info} detail="Respuestas sobre preguntas posibles" />
+                    <MetricCard semantic="student" label="Participación" value={`${participation}%`} detail={INSUFFICIENT_TREND_DATA} />
+                  </>
+                ) : (
+                  <>
+                    <MetricCard semantic="student" label="Participación" value={`${participation}%`} detail="Alumnos con actividad" />
+                    <MetricCard icon="radio-button-on" label="Respondidas" value={`${answeredClassQuestions}/${possibleClassQuestions}`} color={tokens.semantic.info} detail="Progreso de la clase" />
+                  </>
+                )}
+              </View>
+            </>
+          ) : null}
+
+          {activeTab === 'topics' ? (
+            <SubjectTopicsSection
+              creating={creatingTopic}
+              newTopicAvailableUntil={newTopicAvailableUntil}
+              newTopicDescription={newTopicDescription}
+              newTopicDifficulty={newTopicDifficulty}
+              newTopicTitle={newTopicTitle}
+              onAvailableUntilChange={setNewTopicAvailableUntil}
+              onCreate={handleCreateTopic}
+              onDescriptionChange={setNewTopicDescription}
+              onDifficultyChange={setNewTopicDifficulty}
+              onOpenTopic={(topicId) => router.push(`/(teacher)/topic/${topicId}` as any)}
+              onSelectTopic={setSelectedTopicId}
+              onTitleChange={setNewTopicTitle}
+              selectedClassroomName={selectedClassroom?.name}
+              selectedTopicId={selectedTopicId}
+              topicRows={topicRows}
+            />
+          ) : null}
+
           {renderTabContent(currentSubject)}
         </ScrollView>
       </View>
       {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
+      {!isDesktop ? <SubjectAddQuestionCTA href={addQuestionHref} sticky /> : null}
       <TeacherStudentImportModal
         visible={showStudentImportModal}
         subjectId={currentSubject.id}
@@ -961,53 +870,6 @@ function ReportMetricCard({ icon, label, value, suffix, color, detail }: {
       value={value}
     />
   )
-}
-
-function TopicSummaryRow({
-  topic,
-  active,
-  onPress,
-}: {
-  topic: {
-    id: number | 'general'
-    title: string
-    description: string | null
-    icon: string | null
-    availableUntil: string | null
-    questionsCount: number
-    playedCount: number
-    averageScore: number
-  }
-  active: boolean
-  onPress: () => void
-}) {
-  const icon = topic.icon && topic.icon.includes('-outline') ? topic.icon as IconName : 'book-outline';
-
-  return (
-    <Pressable
-      onPress={onPress}
-      className={`flex-row flex-wrap items-center gap-4 rounded-xl border p-4 ${active ? 'border-[#6D5AF6] bg-[#1A1E55]' : 'border-[#183052] bg-[#09162C]'}`}
-      style={({ pressed }) => ({ opacity: pressed ? 0.86 : 1 })}
-    >
-      <View className="h-12 w-12 items-center justify-center rounded-xl bg-[#13284A]">
-        {topic.icon && !topic.icon.includes('-outline') ? (
-          <Text className="text-[22px]">{topic.icon}</Text>
-        ) : (
-          <Ionicons name={icon} size={24} color="#A78BFA" />
-        )}
-      </View>
-      <View className="min-w-[220px] flex-1">
-        <Text className="font-black text-white">{topic.title}</Text>
-        <Text className="mt-1 text-[12px] text-[#8FA7C7]" numberOfLines={1}>
-          {topic.description || 'Tema de la clase'}
-        </Text>
-      </View>
-      <InfoStack label="Preguntas" value={String(topic.questionsCount)} />
-      <InfoStack label="Jugados" value={String(topic.playedCount)} />
-      <InfoStack label="XP media" value={`${topic.averageScore}`} />
-      <InfoStack label="Acceso" value={formatTopicDeadline(topic.availableUntil)} />
-    </Pressable>
-  );
 }
 
 function ActivityRow({

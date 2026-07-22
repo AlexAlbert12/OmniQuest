@@ -108,20 +108,17 @@ export type ManualReviewRow = {
   timeTaken: number | null
 }
 
-export type SubjectTabKey = 'summary' | 'students' | 'activities' | 'questions' | 'review' | 'reports' | 'resources' | 'settings'
+export type SubjectTabKey = 'summary' | 'topics' | 'questions' | 'students' | 'analytics' | 'activities' | 'review' | 'reports' | 'resources' | 'settings'
 
 export const teacherSubjectTabItems: { key: SubjectTabKey; label: string; icon: IconName }[] = [
   { key: 'summary', label: 'Resumen', icon: 'document-text-outline' },
-  { key: 'students', label: 'Estudiantes', icon: 'people-outline' },
-  { key: 'activities', label: 'Actividades', icon: 'calendar-outline' },
-  { key: 'questions', label: 'Preguntas', icon: 'checkmark-circle-outline' },
-  { key: 'review', label: 'Revisión', icon: 'create-outline' },
-  { key: 'reports', label: 'Informes', icon: 'bar-chart-outline' },
-  { key: 'resources', label: 'Recursos', icon: 'book-outline' },
-  { key: 'settings', label: 'Configuración', icon: 'settings-outline' },
+  { key: 'topics', label: 'Temas', icon: 'albums-outline' },
+  { key: 'questions', label: 'Preguntas', icon: 'help-circle-outline' },
+  { key: 'students', label: 'Alumnos', icon: 'people-outline' },
+  { key: 'analytics', label: 'Analítica', icon: 'bar-chart-outline' },
 ]
 
-type TopicRow = {
+export type TopicRow = {
   id: number | 'general'
   title: string
   description: string | null
@@ -1032,6 +1029,8 @@ function formatRelative(value: string | null | undefined, index: number) {
 
 function getSubjectTabFromParam(value: string | string[] | undefined): SubjectTabKey {
   const rawValue = Array.isArray(value) ? value[0] : value;
+  if (rawValue === 'reports' || rawValue === 'review' || rawValue === 'activities') return 'analytics';
+  if (rawValue === 'resources' || rawValue === 'settings') return 'summary';
   const tab = teacherSubjectTabItems.find((item) => item.key === rawValue);
   return tab ? tab.key : 'summary';
 }

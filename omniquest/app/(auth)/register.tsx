@@ -4,7 +4,6 @@ import { Link, useRouter } from 'expo-router'
 import { Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import AuthCard from '../../components/auth/AuthCard'
 import AuthInput from '../../components/auth/AuthInput'
-import AuthRoleNotice from '../../components/auth/AuthRoleNotice'
 import AuthStatusBanner from '../../components/auth/AuthStatusBanner'
 import AuthSubmitButton from '../../components/auth/AuthSubmitButton'
 import EmailVerificationPanel from '../../components/auth/EmailVerificationPanel'
@@ -165,7 +164,6 @@ export default function RegisterScreen() {
               />
             ) : (
               <>
-                <AuthRoleNotice mode="register" />
                 <AuthInput
                   label="Alias público"
                   icon="person-outline"

@@ -19,6 +19,7 @@ import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../.
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav';
 import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader';
+import TeacherTopicOverview, { TeacherTopicAddQuestionCTA } from '../../../components/teacher/topic/TeacherTopicOverview';
 
 type TeacherActionResult = {
   error?: string
@@ -82,9 +83,15 @@ export default function TopicDetailScreen() {
 
   const isDesktop = width >= 1080;
   const topicId = Array.isArray(id) ? id[0] : id;
-  const topicQuestions = questions
-    .filter((question) => question.topic_id === Number(topicId))
+  const allTopicQuestions = questions.filter((question) => question.topic_id === Number(topicId));
+  const topicQuestions = allTopicQuestions
     .filter((question) => selectedDifficulty === 'all' || (question.difficulty || 1) === selectedDifficulty);
+  const difficultyValues = Array.from(new Set(allTopicQuestions.map((question) => question.difficulty || 1)));
+  const difficultySummary = difficultyValues.length === 0
+    ? 'Sin definir'
+    : difficultyValues.length === 1
+      ? getDifficultyMeta(difficultyValues[0]).label
+      : 'Mixta';
 
   const scoreValues = topicScores
     .filter((score) => Number(score.topic_id) === Number(topicId) && typeof score.max_score === 'number')
@@ -247,6 +254,9 @@ export default function TopicDetailScreen() {
     );
   }
 
+  const addQuestionHref = `/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroom_id ?? ''}&topicId=${topic.id}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`;
+  const availabilityLabel = formatTopicDeadline(topic.available_until);
+
   return (
     <View className="flex-1 bg-[#061126]">
       <View className="flex-1 flex-row">
@@ -263,7 +273,7 @@ export default function TopicDetailScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 14,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER,
+            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER + 84,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
@@ -272,7 +282,7 @@ export default function TopicDetailScreen() {
             backAction={{ label: subject.name, onPress: () => router.push(`/(teacher)/subject/${subject.id}` as any) }}
             isDesktop={isDesktop}
             title={topic.title}
-            subtitle={`${topic.description || 'Tema de la clase'} · ${topicQuestions.length} pregunta${topicQuestions.length === 1 ? '' : 's'} · ${scoreValues.length} intento${scoreValues.length === 1 ? '' : 's'} · ${formatTopicDeadline(topic.available_until)}`}
+            subtitle={`${topic.description || 'Tema de la clase'} · ${allTopicQuestions.length} pregunta${allTopicQuestions.length === 1 ? '' : 's'} · ${availabilityLabel}`}
             titleNumberOfLines={2}
             subtitleNumberOfLines={3}
             leading={(
@@ -295,29 +305,19 @@ export default function TopicDetailScreen() {
                   <Ionicons name="create-outline" size={16} color="#AFC2DB" />
                   {isDesktop ? <Text className="text-[12px] font-bold text-[#DCE7F8]">Editar tema</Text> : null}
                 </Pressable>
-                <Link
-                  href={`/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroom_id ?? ''}&topicId=${topic.id}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`}
-                  asChild
-                >
-                  <Pressable
-                    accessibilityLabel="Crear nueva pregunta"
-                    accessibilityRole="button"
-                    className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3"
-                  >
-                    <Ionicons name="add" size={16} color="#FFFFFF" />
-                    {isDesktop ? <Text className="text-[12px] font-bold text-white">Nueva pregunta</Text> : null}
-                  </Pressable>
-                </Link>
+                {isDesktop ? <TeacherTopicAddQuestionCTA href={addQuestionHref} isDesktop /> : null}
               </>
             )}
           />
 
-          <View className="mb-5 flex-row flex-wrap gap-4">
-            <MetricCard icon="help-circle" label="Preguntas" value={String(topicQuestions.length)} color="#8B5CF6" />
-            <MetricCard icon="radio-button-on" label="Intentos" value={String(scoreValues.length)} color="#F59E0B" />
-            <MetricCard icon="star" label="XP media" value={`${averageXp.toLocaleString('es-ES')} XP`} color="#3B82F6" />
-            <MetricCard icon="trending-up" label="Participación" value={`${participation}%`} color="#F43F5E" />
-          </View>
+          <TeacherTopicOverview
+            availability={availabilityLabel}
+            difficulty={difficultySummary}
+            averageXp={averageXp}
+            attemptsCount={scoreValues.length}
+            participation={participation}
+            questionsCount={allTopicQuestions.length}
+          />
 
           <Panel title={`Preguntas del tema: ${topic.title}`}>
             <DifficultyFilterBar selected={selectedDifficulty} onChange={setSelectedDifficulty} />
@@ -327,7 +327,7 @@ export default function TopicDetailScreen() {
                 <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
                 <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primera pregunta para activar este tema.</Text>
                 <Link
-                  href={`/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroom_id ?? ''}&topicId=${topic.id}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`}
+                  href={addQuestionHref as any}
                   asChild
                 >
                   <Pressable className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
@@ -354,6 +354,7 @@ export default function TopicDetailScreen() {
         </ScrollView>
       </View>
       {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
+      {!isDesktop ? <TeacherTopicAddQuestionCTA href={addQuestionHref} isDesktop={false} /> : null}
     </View>
   );
 }

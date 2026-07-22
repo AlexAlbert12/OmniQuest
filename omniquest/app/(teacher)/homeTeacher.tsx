@@ -10,15 +10,17 @@ import {
 } from 'react-native';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader';
 import { withAlpha } from '../../lib/color';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
-import { MobileMetricCard } from '../../components/ui/mobile';
-import OmniGuide, { type OmniState } from '../../components/OmniGuide';
+import OmniGuide from '../../components/OmniGuide';
+import {
+  TeacherPriorityOverview,
+  TeacherTodayFocus,
+} from '../../components/teacher/home/TeacherHomePriorities';
 
 type Subject = {
   id: number
@@ -113,13 +115,13 @@ export default function TeacherHomeScreen() {
   const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
   const [pendingActions, setPendingActions] = useState<PendingActionItem[]>([]);
   const [problematicQuestions, setProblematicQuestions] = useState<ProblematicQuestionItem[]>([]);
+  const [openReviewCount, setOpenReviewCount] = useState(0);
   const [weeklyActiveStudentCount, setWeeklyActiveStudentCount] = useState(0);
   const [uniqueStudentCount, setUniqueStudentCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const isDesktop = width >= 1080;
-  const isWide = width >= 860;
 
   const totals = useMemo(() => {
     const analytics = Object.values(analyticsBySubject);
@@ -131,6 +133,7 @@ export default function TeacherHomeScreen() {
       students,
       questions,
       attempts,
+      classrooms: analytics.reduce((total, item) => total + item.classroomCount, 0),
     };
   }, [analyticsBySubject, uniqueStudentCount]);
 
@@ -164,12 +167,25 @@ export default function TeacherHomeScreen() {
       const nextSubjects = (data || []) as Subject[];
       setSubjects(nextSubjects);
 
+      const pendingReviewsResult = await (supabase.rpc as any)('get_teacher_manual_review_queue', {
+        p_subject_id: null,
+        p_classroom_id: null,
+        p_status: 'pending',
+        p_search: null,
+        p_limit: 1,
+        p_offset: 0,
+      });
+      if (!pendingReviewsResult.error) {
+        setOpenReviewCount(Number(pendingReviewsResult.data?.total || 0));
+      }
+
       const subjectIds = nextSubjects.map((subject) => subject.id);
       if (subjectIds.length === 0) {
         setAnalyticsBySubject({});
         setRecentActivity([]);
         setPendingActions([]);
         setProblematicQuestions([]);
+        setOpenReviewCount(0);
         setWeeklyActiveStudentCount(0);
         setUniqueStudentCount(0);
         return;
@@ -289,6 +305,7 @@ export default function TeacherHomeScreen() {
     return (
       <MobileTeacherHome
         analyticsBySubject={analyticsBySubject}
+        openReviewCount={openReviewCount}
         pendingActions={pendingActions}
         refreshing={refreshing}
         subjects={subjects}
@@ -300,6 +317,7 @@ export default function TeacherHomeScreen() {
         onImportStudents={() => router.push(subjects[0] ? `/(teacher)/subject/${subjects[0].id}?tab=students` as any : '/(teacher)/students' as any)}
         onOpenAction={(item) => router.push(item.href as any)}
         onOpenClasses={() => router.push('/(teacher)/classes' as any)}
+        onOpenReviews={() => router.push('/(teacher)/reviews' as any)}
         onOpenStudents={() => router.push('/(teacher)/students' as any)}
         onRefresh={onRefresh}
       />
@@ -335,25 +353,29 @@ export default function TeacherHomeScreen() {
             subtitle="Aquí tienes el estado de tus cursos, clases y estudiantes."
             notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
           />
-          <View className="mb-7 flex-row flex-wrap gap-3">
-            <QuickActionButton icon="add-circle-outline" label="Crear curso" onPress={() => router.push('/(teacher)/create-subject' as any)} />
-            <QuickActionButton icon="person-add-outline" label="Importar alumnos" onPress={() => router.push(subjects[0] ? `/(teacher)/subject/${subjects[0].id}?tab=students` as any : '/(teacher)/students' as any)} />
-            <QuickActionButton icon="help-circle-outline" label="Crear pregunta" onPress={() => router.push(subjects[0] ? `/(teacher)/subject/add-question?subjectId=${subjects[0].id}` as any : '/(teacher)/create-subject' as any)} />
-            <QuickActionButton icon="create-outline" label="Revisar abiertas" onPress={() => router.push('/(teacher)/reviews' as any)} />
-            <QuickActionButton icon="people-outline" label="Ver estudiantes" onPress={() => router.push('/(teacher)/students' as any)} />
-          </View>
+          <TeacherTodayFocus
+            primaryLabel={openReviewCount > 0 ? 'Revisar pendientes' : subjects.length > 0 ? 'Crear pregunta' : 'Crear curso'}
+            teacherAlias={teacherAlias}
+            onPrimary={() => router.push(openReviewCount > 0
+              ? '/(teacher)/reviews' as any
+              : subjects[0]
+                ? `/(teacher)/subject/add-question?subjectId=${subjects[0].id}` as any
+                : '/(teacher)/create-subject' as any)}
+          />
 
-          <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
-            <MetricCard icon="school" title="Cursos activos" value={String(subjects.length)} color="#8B5CF6" />
-            <MetricCard icon="people" title="Estudiantes inscritos" value={String(totals.students)} color="#43D991" />
-            <MetricCard icon="pulse" title="Alumnos activos" value={String(weeklyActiveStudentCount)} detail="esta semana" color="#38BDF8" />
-            <MetricCard icon="clipboard" title="Preguntas creadas" value={String(totals.questions)} color="#3B82F6" />
-          </View>
-
-          <RecommendedActionsPanel
-            items={pendingActions}
-            onPress={(item) => router.push(item.href as any)}
-            onViewAll={() => router.push('/(teacher)/students' as any)}
+          <TeacherPriorityOverview
+            attentionItems={pendingActions.filter((item) => item.id.startsWith('inactive-students-') || item.id.startsWith('no-students-'))}
+            classroomsCount={totals.classrooms}
+            coursesCount={subjects.length}
+            isDesktop
+            openReviewCount={openReviewCount}
+            onOpenAttention={(item) => {
+              const action = pendingActions.find((candidate) => candidate.id === item.id);
+              if (action) router.push(action.href as any);
+            }}
+            onOpenClasses={() => router.push('/(teacher)/classes' as any)}
+            onOpenReviews={() => router.push('/(teacher)/reviews' as any)}
+            onOpenStudents={() => router.push('/(teacher)/students' as any)}
           />
 
           <View className={isDesktop ? 'mt-8 flex-row gap-6' : 'mt-8 gap-6'}>
@@ -442,6 +464,7 @@ export default function TeacherHomeScreen() {
 
 function MobileTeacherHome({
   analyticsBySubject,
+  openReviewCount,
   pendingActions,
   refreshing,
   subjects,
@@ -449,23 +472,27 @@ function MobileTeacherHome({
   totals,
   weeklyActiveStudentCount,
   onCreateSubject,
+  onCreateQuestion,
   onOpenAction,
   onOpenClasses,
+  onOpenReviews,
   onOpenStudents,
   onRefresh,
 }: {
   analyticsBySubject: Record<number, SubjectAnalytics>
+  openReviewCount: number
   pendingActions: PendingActionItem[]
   refreshing: boolean
   subjects: Subject[]
   teacherAlias: string
-  totals: { students: number; questions: number; attempts: number }
+  totals: { students: number; questions: number; attempts: number; classrooms: number }
   weeklyActiveStudentCount: number
   onCreateQuestion: () => void
   onCreateSubject: () => void
   onImportStudents: () => void
   onOpenAction: (item: PendingActionItem) => void
   onOpenClasses: () => void
+  onOpenReviews: () => void
   onOpenStudents: () => void
   onRefresh: () => void
 }) {
@@ -501,66 +528,26 @@ function MobileTeacherHome({
           )}
         />
 
-        <LinearGradient
-          colors={['#111E54', '#101946', '#211044']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 22, borderWidth: 1, borderColor: '#263B72', overflow: 'hidden' }}
-        >
-          <View className="relative p-5">
-            <View className="absolute -right-8 top-4 h-28 w-44 rounded-3xl bg-[#A855F7]/15" style={{ transform: [{ rotate: '-22deg' }] }} />
-            <View className="absolute bottom-8 right-9 h-20 w-28 rounded-3xl bg-[#38BDF8]/10" style={{ transform: [{ rotate: '18deg' }] }} />
-
-            <Text className="text-[26px] font-black leading-[32px] text-white">¡Bienvenido de nuevo,</Text>
-            <Text className="mt-1 text-[42px] font-black leading-[48px] text-white" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
-              {teacherAlias}!
-            </Text>
-            <Text className="mt-4 max-w-[310px] text-[17px] leading-7 text-[#D7E2F4]">
-              Estas son las acciones que más pueden mover tus clases hoy.
-            </Text>
-          </View>
-        </LinearGradient>
-
-        <MobileRecommendedActions
-          items={pendingActions}
-          onPress={onOpenAction}
-          onViewStudents={onOpenStudents}
+        <TeacherTodayFocus
+          primaryLabel={openReviewCount > 0 ? 'Revisar pendientes' : subjects.length > 0 ? 'Crear pregunta' : 'Crear curso'}
+          teacherAlias={teacherAlias}
+          onPrimary={openReviewCount > 0 ? onOpenReviews : subjects.length > 0 ? onCreateQuestion : onCreateSubject}
         />
 
-        <View className="mt-5 flex-row flex-wrap gap-3">
-          <MobileMetricCard
-            icon="school"
-            title="Cursos activos"
-            value={String(subjects.length)}
-            detail="Cursos en marcha"
-            color="#8B5CF6"
-            onPress={onOpenClasses}
-          />
-          <MobileMetricCard
-            icon="people"
-            title="Estudiantes inscritos"
-            value={String(totals.students)}
-            detail="Total en tus clases"
-            color="#43D991"
-            onPress={onOpenStudents}
-          />
-          <MobileMetricCard
-            icon="pulse"
-            title="Alumnos activos"
-            value={String(weeklyActiveStudentCount)}
-            detail="esta semana"
-            color="#38BDF8"
-            onPress={onOpenStudents}
-          />
-          <MobileMetricCard
-            icon="clipboard"
-            title="Preguntas creadas"
-            value={String(totals.questions)}
-            detail="En tus cursos"
-            color="#F6A64A"
-            onPress={onOpenClasses}
-          />
-        </View>
+        <TeacherPriorityOverview
+          attentionItems={pendingActions.filter((item) => item.id.startsWith('inactive-students-') || item.id.startsWith('no-students-'))}
+          classroomsCount={totals.classrooms}
+          coursesCount={subjects.length}
+          isDesktop={false}
+          openReviewCount={openReviewCount}
+          onOpenAttention={(item) => {
+            const action = pendingActions.find((candidate) => candidate.id === item.id);
+            if (action) onOpenAction(action);
+          }}
+          onOpenClasses={onOpenClasses}
+          onOpenReviews={onOpenReviews}
+          onOpenStudents={onOpenStudents}
+        />
 
         <MobileRecentCourses
           analyticsBySubject={analyticsBySubject}
@@ -576,70 +563,6 @@ function MobileTeacherHome({
 }
 
 
-
-function MobileRecommendedActions({
-  items,
-  onPress,
-  onViewStudents,
-}: {
-  items: PendingActionItem[]
-  onPress: (item: PendingActionItem) => void
-  onViewStudents: () => void
-}) {
-  return (
-    <View className="mt-5 rounded-2xl border border-[#17345B] bg-[#071832] p-4">
-      <View className="mb-4 flex-row items-start justify-between gap-3">
-        <View className="min-w-0 flex-1">
-          <Text className="text-[24px] font-black text-white">Acciones recomendadas</Text>
-          <Text className="mt-1 text-[14px] leading-5 text-[#C7D3E5]">Prioriza lo que más impacto puede tener en tus cursos.</Text>
-        </View>
-        <Pressable onPress={onViewStudents} className="flex-row items-center gap-1 pt-1">
-          <Text className="text-[14px] font-black text-[#A970FF]">Ver estudiantes</Text>
-          <Ionicons name="arrow-forward" size={18} color="#A970FF" />
-        </Pressable>
-      </View>
-
-      {items.length > 0 ? (
-        <View className="mb-3 flex-row items-center gap-3 rounded-xl border border-[#243D66] bg-[#0D1D3B] px-3 py-2">
-          <OmniGuide state="thinking" size={52} />
-          <Text className="min-w-0 flex-1 text-[12px] leading-5 text-[#C7D3E5]">Omni recomienda: {items[0].title}</Text>
-        </View>
-      ) : null}
-
-      <View className="gap-3">
-        {items.length > 0 ? (
-          items.slice(0, 3).map((item) => (
-            <MobilePendingAction key={item.id} item={item} onPress={() => onPress(item)} />
-          ))
-        ) : (
-          <MobileEmptyState icon="checkmark-done-outline" omniState="happy" text="No hay acciones pendientes ahora mismo." />
-        )}
-      </View>
-    </View>
-  )
-}
-
-function MobilePendingAction({ item, onPress }: { item: PendingActionItem; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="min-h-[78px] flex-row items-center gap-3 rounded-2xl border border-[#17345B] bg-[#0A1D3B] p-3"
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-    >
-      <View className="h-14 w-14 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(item.color, '28') }}>
-        <Ionicons name={item.icon} size={28} color={item.color} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="text-[16px] font-black text-white" numberOfLines={1}>{item.title}</Text>
-        <Text className="mt-1 text-[13px] leading-5 text-[#C7D3E5]" numberOfLines={2}>{item.detail}</Text>
-      </View>
-      <View className="flex-row items-center gap-2">
-        <Text className="text-[14px] font-black" style={{ color: item.color }}>{item.actionLabel}</Text>
-        <Ionicons name="arrow-forward" size={18} color={item.color} />
-      </View>
-    </Pressable>
-  )
-}
 
 function MobileRecentCourses({
   analyticsBySubject,
@@ -738,99 +661,6 @@ function MobileSubjectPreview({ subject, analytics }: { subject: Subject; analyt
   )
 }
 
-function MobileEmptyState({ icon, omniState, text }: { icon: keyof typeof Ionicons.glyphMap; omniState?: OmniState; text: string }) {
-  return (
-    <View className="items-center rounded-2xl border border-dashed border-[#253C67] bg-[#0A1D3B] px-4 py-6">
-      {omniState ? <OmniGuide state={omniState} size={58} /> : <Ionicons name={icon} size={30} color="#8FA7C7" />}
-      <Text className="mt-2 text-center text-[13px] leading-5 text-[#8FA7C7]">{text}</Text>
-    </View>
-  )
-}
-
-function MetricCard({
-  icon,
-  title,
-  value,
-  detail,
-  color,
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  title: string
-  value: string
-  detail?: string
-  color: string
-}) {
-  return (
-    <MobileMetricCard
-      className="min-w-[190px] flex-1"
-      color={color}
-      detail={detail}
-      icon={icon}
-      label={title}
-      value={value}
-    />
-  )
-}
-
-function QuickActionButton({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-    >
-      <Ionicons name={icon} size={16} color="#B9A7FF" />
-      <Text className="text-[12px] font-black text-white">{label}</Text>
-    </Pressable>
-  );
-}
-
-function RecommendedActionsPanel({
-  items,
-  onPress,
-  onViewAll,
-}: {
-  items: PendingActionItem[]
-  onPress: (item: PendingActionItem) => void
-  onViewAll: () => void
-}) {
-  return (
-    <View className="mt-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <View className="mb-4 flex-row flex-wrap items-center justify-between gap-3">
-        <View>
-          <Text className="text-[20px] font-black text-white">Acciones recomendadas</Text>
-          <Text className="mt-1 text-[12px] text-[#8FA7C7]">Prioriza lo que más impacto puede tener en tus cursos.</Text>
-        </View>
-        <Pressable onPress={onViewAll} className="flex-row items-center gap-1">
-          <Text className="text-[12px] font-semibold text-[#B9A7FF]">Ver estudiantes</Text>
-          <Ionicons name="arrow-forward" size={13} color="#B9A7FF" />
-        </Pressable>
-      </View>
-
-      {items.length > 0 ? (
-        <View className="mb-3 flex-row items-center gap-3 rounded-xl border border-[#243D66] bg-[#0D1D3B] px-3 py-2">
-          <OmniGuide state="thinking" size={52} />
-          <Text className="min-w-0 flex-1 text-[12px] leading-5 text-[#C7D3E5]">Omni recomienda: {items[0].title}</Text>
-        </View>
-      ) : null}
-
-      <View className="gap-3">
-        {items.length > 0 ? (
-          items.slice(0, 3).map((item) => (
-            <PendingActionRow key={item.id} item={item} onPress={() => onPress(item)} />
-          ))
-        ) : (
-          <View className="items-center rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
-            <OmniGuide state="happy" size={58} />
-            <Text className="mt-2 text-center text-[12px] text-[#8FA7C7]">No hay acciones pendientes ahora mismo.</Text>
-          </View>
-        )}
-      </View>
-    </View>
-  );
-}
-
-
 function SubjectPreview({ subject, analytics }: { subject: Subject; analytics: SubjectAnalytics }) {
   return (
     <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
@@ -909,25 +739,6 @@ function ActivityRow({ item }: { item: RecentActivityItem }) {
       <Text className="min-w-0 flex-1 text-[13px] font-bold text-white">{item.title}</Text>
       <Text className="text-[11px] text-[#8FA7C7]">{item.time}</Text>
     </View>
-  );
-}
-
-function PendingActionRow({ item, onPress }: { item: PendingActionItem; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center gap-3 rounded-xl border border-[#172A4A] bg-[#0D1D3B] px-4 py-3"
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-    >
-      <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${item.color}29` }}>
-        <Ionicons name={item.icon} size={18} color={item.color} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="font-bold text-white" numberOfLines={1}>{item.title}</Text>
-        <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>{item.detail}</Text>
-      </View>
-      <Text className="text-[11px] font-bold text-[#B9A7FF]">{item.actionLabel}</Text>
-    </Pressable>
   );
 }
 

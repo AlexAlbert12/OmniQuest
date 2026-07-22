@@ -416,14 +416,14 @@ export default function StudentClassDetailScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingHorizontal: isDesktop ? 34 : 18,
+          paddingHorizontal: isDesktop ? 18 : 18,
           paddingTop: isDesktop ? 30 : 34,
           paddingBottom: isDesktop ? 70 : MOBILE_BOTTOM_NAV_SPACER + 28,
         }}
         showsVerticalScrollIndicator={false}
       >
         <GalaxyScreenBackground height={Math.max(2500, topics.length * 320 + 1280)} />
-        <View className="mx-auto w-full max-w-[1080px]">
+        <View className="mx-auto w-full max-w-[1480px]">
           <StudentPageHeader
             backAction={{ label: 'Mis cursos', onPress: () => router.back() }}
             isDesktop={isDesktop}

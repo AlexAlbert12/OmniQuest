@@ -79,6 +79,16 @@ a[href],
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .omni-no-hover-lift:hover {
+    transform: none !important;
+  }
+}
+
+.omni-no-hover-lift:active {
+  transform: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
   button:not(:disabled):hover,
   a[href]:hover,
   [role='button']:not([aria-disabled='true']):hover,

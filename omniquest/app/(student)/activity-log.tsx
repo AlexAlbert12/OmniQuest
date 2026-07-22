@@ -89,6 +89,10 @@ type FilterOption = {
   count: number
 }
 
+type ActivityListItem =
+  | { kind: 'date'; key: string; label: string; count: number }
+  | { kind: 'attempt'; key: string; attempt: AttemptRow }
+
 export default function ActivityLogScreen() {
   const { width } = useWindowDimensions()
   const { colors } = useAppTheme()
@@ -153,7 +157,7 @@ export default function ActivityLogScreen() {
   const subjectOptions = useMemo(() => buildSubjectOptions(attempts), [attempts])
   const topicOptions = useMemo(() => buildTopicOptions(attempts, selectedSubjectId), [attempts, selectedSubjectId])
 
-  const filteredAttempts = attempts
+  const activityRows = useMemo(() => buildActivityRows(attempts), [attempts])
 
   const statusFilters = useMemo(
     () => [
@@ -198,14 +202,19 @@ export default function ActivityLogScreen() {
     }
   }, [attemptDetails, expandedAttemptId])
 
-  const renderAttemptItem = ({ item }: { item: AttemptRow }) => {
-    const isExpanded = expandedAttemptId === item.id
+  const renderActivityItem = ({ item }: { item: ActivityListItem }) => {
+    if (item.kind === 'date') {
+      return <ActivityDateHeader label={item.label} count={item.count} />
+    }
+
+    const attempt = item.attempt
+    const isExpanded = expandedAttemptId === attempt.id
     return (
       <AttemptCard
-        item={isExpanded ? attemptDetails[item.id] ?? item : item}
+        item={isExpanded ? attemptDetails[attempt.id] ?? attempt : attempt}
         isExpanded={isExpanded}
-        isDetailLoading={loadingAttemptId === item.id}
-        onToggle={() => void handleToggleAttempt(item.id)}
+        isDetailLoading={loadingAttemptId === attempt.id}
+        onToggle={() => void handleToggleAttempt(attempt.id)}
       />
     )
   }
@@ -241,9 +250,9 @@ export default function ActivityLogScreen() {
             </View>
           ) : (
             <FlatList
-              data={filteredAttempts}
-              keyExtractor={(item) => String(item.id)}
-              renderItem={renderAttemptItem}
+              data={activityRows}
+              keyExtractor={(item) => item.key}
+              renderItem={renderActivityItem}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 40 }}
               refreshing={refreshing}
@@ -265,7 +274,7 @@ export default function ActivityLogScreen() {
                   topicOptions={topicOptions}
                   selectedTopicId={selectedTopicId}
                   onTopicChange={(value) => { setPage(0); setSelectedTopicId(value) }}
-                  visibleCount={filteredAttempts.length}
+                  visibleCount={attempts.length}
                   totalCount={totalAttempts}
                 />
               }
@@ -298,6 +307,71 @@ export default function ActivityLogScreen() {
       </View>
     </View>
   )
+}
+
+
+function ActivityDateHeader({ label, count }: { label: string; count: number }) {
+  return (
+    <View className="mb-3 mt-2 flex-row items-center gap-3">
+      <View className="h-px flex-1 bg-[#173056]" />
+      <View className="flex-row items-center gap-2 rounded-full border border-[#244269] bg-[#081A34] px-3 py-2">
+        <Ionicons name="calendar" size={14} color="#9F7AEA" />
+        <Text className="text-[12px] font-black text-[#DDE7F4]">{label}</Text>
+        <View className="rounded-full bg-[#172A4A] px-2 py-0.5">
+          <Text className="text-[10px] font-black text-[#9FB2CC]">{count}</Text>
+        </View>
+      </View>
+      <View className="h-px flex-1 bg-[#173056]" />
+    </View>
+  )
+}
+
+function buildActivityRows(attempts: AttemptRow[]): ActivityListItem[] {
+  const groups = new Map<string, AttemptRow[]>()
+
+  attempts.forEach((attempt) => {
+    const key = getAttemptDateKey(attempt.attempted_at)
+    const current = groups.get(key) || []
+    current.push(attempt)
+    groups.set(key, current)
+  })
+
+  const rows: ActivityListItem[] = []
+  groups.forEach((groupAttempts, key) => {
+    rows.push({
+      kind: 'date',
+      key: `date-${key}`,
+      label: formatActivityGroupLabel(groupAttempts[0]?.attempted_at),
+      count: groupAttempts.length,
+    })
+    groupAttempts.forEach((attempt) => {
+      rows.push({ kind: 'attempt', key: `attempt-${attempt.id}`, attempt })
+    })
+  })
+
+  return rows
+}
+
+function getAttemptDateKey(value: string) {
+  const date = new Date(value)
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+}
+
+function formatActivityGroupLabel(value?: string) {
+  if (!value) return 'Actividad'
+  const date = new Date(value)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+
+  if (getAttemptDateKey(value) === getAttemptDateKey(today.toISOString())) return 'Hoy'
+  if (getAttemptDateKey(value) === getAttemptDateKey(yesterday.toISOString())) return 'Ayer'
+
+  return date.toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).replace(/^./, (character) => character.toUpperCase())
 }
 
 function ActivityFilters({
@@ -463,13 +537,11 @@ function AttemptCard({
   const topicTitle = topic?.title || 'Práctica libre'
   const subjectName = subject?.name || 'Clase no disponible'
   const submittedAnswer = getSubmittedAnswerText(item, answers)
-  const correctAnswer = getCorrectAnswerText(question, answers)
-  const explanation = question?.explanation?.trim() || 'El profesor no ha añadido explicación para esta pregunta.'
+  const explanation = question?.explanation?.trim() || 'Vuelve a practicar este contenido para reforzar el concepto.'
   const earnedPoints = Math.max(0, Number(item.earned_points ?? (isCorrect ? 10 : 0)))
-  const formattedDate = formatAttemptDate(item.attempted_at)
+  const formattedTime = formatAttemptTime(item.attempted_at)
   const reviewStatus = getStudentReviewStatus(item.manual_review_status, isCorrect)
   const reviewComments = Array.isArray(item.review_comments) ? item.review_comments : []
-  const revealSolution = !reviewStatus.waiting
   const resultColor = reviewStatus.color
 
   return (
@@ -504,7 +576,7 @@ function AttemptCard({
         </View>
 
         <View className="items-end gap-1">
-          <Text className="text-[12px] text-[#8FA7C7]">{formattedDate}</Text>
+          <Text className="text-[12px] text-[#8FA7C7]">{formattedTime}</Text>
           <View className="rounded-md px-2 py-0.5" style={{ backgroundColor: `${resultColor}20` }}>
             <Text className="text-[12px] font-black" style={{ color: resultColor }}>
               {earnedPoints > 0 ? `+${earnedPoints} XP` : '0 XP'}
@@ -545,8 +617,18 @@ function AttemptCard({
                 </View>
               ) : (
                 <>
-                  <DetailBlock icon="checkmark-done-circle" label="Respuesta correcta" value={correctAnswer} highlightColor="#70E0A5" />
-                  <DetailBlock icon="bulb" label="Explicación" value={explanation} />
+                  <DetailBlock
+                    icon="bulb"
+                    label="Feedback de aprendizaje"
+                    value={explanation}
+                    highlightColor={isCorrect ? '#70E0A5' : '#FBBF24'}
+                  />
+                  <View className="flex-row items-start gap-3 rounded-xl border border-[#234166] bg-[#081B36] p-3">
+                    <Ionicons name="shield-checkmark" size={18} color="#67C7FF" />
+                    <Text className="min-w-0 flex-1 text-[12px] leading-5 text-[#AFC2DB]">
+                      Para proteger el contenido del curso, el historial no muestra una plantilla completa de soluciones. Puedes volver a practicar el tema para comprobar la respuesta.
+                    </Text>
+                  </View>
                 </>
               )}
 
@@ -740,24 +822,6 @@ function getSubmittedAnswerText(attempt: AttemptRow, answers: AttemptAnswer[]) {
   return 'Sin respuesta registrada'
 }
 
-function getCorrectAnswerText(question: AttemptQuestion | null, answers: AttemptAnswer[]) {
-  if (!question) return 'Pregunta eliminada'
-
-  const orderedAnswers = [...answers].sort((a, b) => (a.sort_order ?? a.id) - (b.sort_order ?? b.id))
-
-  if (question.type === 'ordering') {
-    return orderedAnswers.map((answer) => formatAnswerText(answer.text)).join(' → ') || 'Sin respuesta correcta registrada'
-  }
-
-  if (question.type === 'match_pairs' || question.type === 'drag_drop') {
-    return orderedAnswers.map((answer) => formatAnswerText(answer.text)).join('\n') || 'Sin respuesta correcta registrada'
-  }
-
-  const correctAnswers = orderedAnswers.filter((answer) => answer.is_correct === true || answer.is_correct === null)
-  const values = correctAnswers.length > 0 ? correctAnswers : orderedAnswers.filter((answer) => answer.is_correct !== false)
-
-  return values.map((answer) => formatAnswerText(answer.text)).filter(Boolean).join(', ') || 'Sin respuesta correcta registrada'
-}
 
 function formatAnswerText(value: string | null | undefined) {
   const text = String(value || '').trim()
@@ -795,6 +859,13 @@ function formatAttemptDate(value: string) {
   return date.toLocaleDateString('es-ES', {
     day: '2-digit',
     month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatAttemptTime(value: string) {
+  return new Date(value).toLocaleTimeString('es-ES', {
     hour: '2-digit',
     minute: '2-digit',
   })

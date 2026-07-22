@@ -4,7 +4,6 @@ import { Link } from 'expo-router'
 import { Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import AuthCard from '../../components/auth/AuthCard'
 import AuthInput from '../../components/auth/AuthInput'
-import AuthRoleNotice from '../../components/auth/AuthRoleNotice'
 import AuthStatusBanner from '../../components/auth/AuthStatusBanner'
 import AuthSubmitButton from '../../components/auth/AuthSubmitButton'
 import BrandLogo from '../../components/BrandLogo'
@@ -165,8 +164,6 @@ export default function LoginScreen() {
               </View>
             )}
           >
-            <AuthRoleNotice mode="login" />
-
             <AuthInput
               label="Correo electrónico"
               icon="mail-outline"

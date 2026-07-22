@@ -25,6 +25,7 @@ import {
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentDashboardCard from '../../components/student/StudentDashboardCard'
+import StudentMetricCard from '../../components/student/StudentMetricCard'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { formatLongDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
@@ -350,33 +351,37 @@ export default function ProfileScreen() {
               onCustomizeAvatar={() => void openAvatarCustomization()}
             />
 
-            <View className="flex-[1.35] flex-row gap-4">
-              <SummaryTile
+            <View className="flex-[1.35] flex-row flex-wrap gap-4">
+              <StudentMetricCard
                 title="Días de racha"
                 value={String(streakDays)}
                 icon="flame"
                 color="#F97316"
+                className="min-h-[150px] min-w-[190px]"
               />
-              <SummaryTile
+              <StudentMetricCard
                 title="XP acumulada"
                 value={points.toLocaleString()}
                 icon="flash"
                 color="#FBBF24"
                 onPress={() => router.push(STUDENT_ROUTES.progress)}
+                className="min-h-[150px] min-w-[190px]"
               />
-              <SummaryTile
+              <StudentMetricCard
                 title="Logros"
                 value={`${unlockedBadges.length}/${badges.length}`}
                 icon="ribbon"
                 color={accentColor}
                 onPress={() => router.push(STUDENT_ROUTES.badges)}
+                className="min-h-[150px] min-w-[190px]"
               />
-              <SummaryTile
+              <StudentMetricCard
                 title="Cursos activos"
                 value={String(subjects.length)}
                 icon="book"
                 color="#38BDF8"
                 onPress={() => router.push(STUDENT_ROUTES.classes)}
+                className="min-h-[150px] min-w-[190px]"
               />
             </View>
           </View>
@@ -845,30 +850,6 @@ function ProfileHero({
   )
 }
 
-function SummaryTile({
-  title,
-  value,
-  icon,
-  color,
-  onPress,
-}: {
-  title: string
-  value: string
-  icon: keyof typeof Ionicons.glyphMap
-  color: string
-  onPress?: () => void
-}) {
-  return (
-    <MobileMetricCard
-      className="min-w-[135px] flex-1 rounded-none border-0 border-r border-[#172A4A]"
-      color={color}
-      icon={icon}
-      label={title}
-      onPress={onPress}
-      value={value}
-    />
-  )
-}
 
 function InfoRow({
   icon,

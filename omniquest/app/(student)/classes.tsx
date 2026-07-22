@@ -292,13 +292,13 @@ export default function ClassesScreen() {
         <ScrollView
           className="flex-1"
           contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 32 : 16,
+            paddingHorizontal: isDesktop ? 18 : 16,
             paddingTop: isDesktop ? 28 : 30,
             paddingBottom: isDesktop ? 70 : MOBILE_BOTTOM_NAV_SPACER + 28,
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mx-auto w-full max-w-[1120px]">
+          <View className="mx-auto w-full max-w-[1480px]">
             <StudentPageHeader
               icon="book"
               isDesktop={isDesktop}

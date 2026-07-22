@@ -185,9 +185,10 @@ export function SettingsMenu({
         accessibilityState={{ selected: active }}
         hitSlop={6}
         onPress={() => onSectionPress(section)}
-        className={`flex-row items-center gap-2 border ${isChip ? 'min-h-[44px] rounded-full px-4 py-3' : 'rounded-xl px-4 py-3'}`}
+        className={`flex-row items-center gap-2 ${isChip ? 'min-h-[44px] rounded-full px-4 py-3' : 'rounded-xl px-4 py-3'}`}
         style={({ pressed }) => ({
           opacity: pressed ? 0.82 : 1,
+          borderWidth: 1,
           borderColor: active ? accentColor : colors.border,
           backgroundColor: active ? withAlpha(accentColor, '24') : colors.surfaceRaised,
         })}
@@ -213,7 +214,7 @@ export function SettingsMenu({
 
   if (variant === 'side') {
     return (
-      <View className="w-[220px] self-start rounded-xl border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surface }}>
+      <View className="w-[220px] self-start rounded-xl p-3" style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }}>
         <View className="gap-1">
           {sections.map(renderMenuItem)}
         </View>
@@ -223,8 +224,8 @@ export function SettingsMenu({
           accessibilityRole="button"
           accessibilityLabel="Cerrar sesión"
           hitSlop={6}
-          className="mt-4 flex-row items-center gap-2 rounded-xl border px-3 py-3"
-          style={({ pressed }) => ({ borderColor: colors.border, backgroundColor: colors.surfaceRaised, opacity: pressed ? 0.82 : 1 })}
+          className="mt-4 flex-row items-center gap-2 rounded-xl px-3 py-3"
+          style={({ pressed }) => ({ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceRaised, opacity: pressed ? 0.82 : 1 })}
         >
           <Ionicons name="log-out-outline" size={15} color="#F87171" />
           <Text className="text-[12px] font-bold text-[#F87171]">Cerrar sesión</Text>
@@ -234,7 +235,7 @@ export function SettingsMenu({
   }
 
   return (
-    <View className="rounded-xl border p-2" style={{ borderColor: colors.border, backgroundColor: colors.surface }}>
+    <View className="rounded-xl p-2" style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

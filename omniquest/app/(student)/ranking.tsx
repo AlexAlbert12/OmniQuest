@@ -760,7 +760,12 @@ function LeagueCarousel({
         ) : null}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: compact ? 10 : 12, paddingRight: 4 }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ overflow: 'hidden' }}
+        contentContainerStyle={{ gap: compact ? 10 : 12, paddingRight: 4, paddingVertical: 2 }}
+      >
         {leagues.map((rankingLeague) => {
           const isSelected = selectedLeague.name === rankingLeague.name
           const isCurrent = currentLeague.name === rankingLeague.name
@@ -788,8 +793,14 @@ function LeagueCarousel({
             <Pressable
               key={rankingLeague.name}
               onPress={() => onSelect(rankingLeague)}
-              className={`${compact ? 'rounded-xl p-3' : 'rounded-2xl p-4'} border`}
-              style={{ width: compact ? 156 : 232, borderColor, backgroundColor, opacity: isLocked ? 0.68 : 1 }}
+              className={`${compact ? 'rounded-xl p-3' : 'rounded-2xl p-4'} omni-no-hover-lift border`}
+              style={({ pressed }) => ({
+                width: compact ? 156 : 232,
+                borderColor,
+                backgroundColor,
+                opacity: pressed ? 0.82 : isLocked ? 0.68 : 1,
+                transform: [{ scale: 1 }],
+              })}
             >
               <View className={`${compact ? 'mb-2' : 'mb-3'} flex-row items-center justify-between gap-2`}>
                 <View

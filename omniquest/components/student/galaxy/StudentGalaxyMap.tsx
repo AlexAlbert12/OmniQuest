@@ -133,9 +133,9 @@ export function CourseGalaxyMap({
 }) {
   const { width } = useWindowDimensions()
   const isDesktop = width >= 1024
-  const mapWidth = Math.max(320, Math.min(isDesktop ? width - 390 : width - 30, isDesktop ? 980 : 430))
+  const mapWidth = Math.max(320, Math.min(isDesktop ? width - 330 : width - 30, isDesktop ? 1440 : 430))
   const planetSize = isDesktop ? 228 : 188
-  const rowHeight = isDesktop ? 340 : 352
+  const rowHeight = isDesktop ? 318 : 352
   const addRowHeight = 430
   const [joinOpen, setJoinOpen] = useState(false)
 
@@ -158,7 +158,7 @@ export function CourseGalaxyMap({
         const palette = getCoursePalette(item.color, index)
         const x = side === 'left' ? 12 : mapWidth - planetSize - 24
         const nextX = nextSide === 'left' ? 12 : mapWidth - planetSize - 24
-        const labelWidth = Math.min(isDesktop ? 390 : 286, mapWidth - 20)
+        const labelWidth = Math.min(isDesktop ? 280 : 286, mapWidth - 20)
         const labelX = side === 'left' ? 8 : mapWidth - labelWidth - 8
         const connectToAdd = index === items.length - 1
         const addSide = items.length % 2 === 0 ? 'right' : 'left'
@@ -195,7 +195,11 @@ export function CourseGalaxyMap({
                 {
                   width: labelWidth,
                   left: labelX,
-                  top: planetSize + 18,
+                  top: planetSize + (isDesktop ? 10 : 18),
+                  minHeight: isDesktop ? 76 : 92,
+                  borderRadius: isDesktop ? 20 : 24,
+                  paddingHorizontal: isDesktop ? 16 : 20,
+                  paddingVertical: isDesktop ? 10 : 16,
                 },
               ]}
             >
@@ -205,10 +209,24 @@ export function CourseGalaxyMap({
                 onPress={item.onPress}
                 style={({ pressed }) => ({ flex: 1, justifyContent: 'center', opacity: pressed ? 0.82 : 1, paddingRight: item.onMore ? 30 : 0 })}
               >
-                <Text style={[styles.courseTitle, { textAlign: side === 'left' ? 'left' : 'right' }]} numberOfLines={2}>
+                <Text
+                  style={[
+                    styles.courseTitle,
+                    isDesktop ? styles.courseTitleDesktop : null,
+                    { textAlign: side === 'left' ? 'left' : 'right' },
+                  ]}
+                  numberOfLines={2}
+                >
                   {item.title}
                 </Text>
-                <Text style={[styles.courseSubtitle, { textAlign: side === 'left' ? 'left' : 'right' }]} numberOfLines={2}>
+                <Text
+                  style={[
+                    styles.courseSubtitle,
+                    isDesktop ? styles.courseSubtitleDesktop : null,
+                    { textAlign: side === 'left' ? 'left' : 'right' },
+                  ]}
+                  numberOfLines={2}
+                >
                   <Text style={{ color: item.detailColor, fontWeight: '900' }}>{item.progress}%</Text>
                   {' · '}{item.subtitle}
                 </Text>
@@ -258,7 +276,7 @@ export function CourseGalaxyMap({
 export function TopicGalaxyMap({ items }: { items: GalaxyTopicItem[] }) {
   const { width } = useWindowDimensions()
   const isDesktop = width >= 1024
-  const mapWidth = Math.max(320, Math.min(isDesktop ? width - 260 : width - 24, isDesktop ? 840 : 430))
+  const mapWidth = Math.max(320, Math.min(isDesktop ? width - 330 : width - 24, isDesktop ? 1360 : 430))
   const nodeSize = isDesktop ? 178 : 152
   const rowHeight = isDesktop ? 300 : 280
   const mapHeight = Math.max(400, items.length * rowHeight + 80)
@@ -714,11 +732,20 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 27,
   },
+  courseTitleDesktop: {
+    fontSize: 18,
+    lineHeight: 23,
+  },
   courseSubtitle: {
     color: '#BBC8E3',
     fontSize: 16,
     lineHeight: 22,
     marginTop: 5,
+  },
+  courseSubtitleDesktop: {
+    fontSize: 14,
+    lineHeight: 19,
+    marginTop: 3,
   },
   addPlanet: {
     borderWidth: 4,

@@ -9,46 +9,30 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Link, useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import { supabase } from '../../lib/supabase';
 import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader';
-import { withAlpha } from '../../lib/color';
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import AppButton from '../../components/ui/AppButton';
 import AppTabs from '../../components/ui/AppTabs';
-import type { SemanticIconKey } from '../../lib/designTokens';
-
-type Subject = {
-  id: number
-  name: string
-  description: string | null
-  icon: string | null
-  code: string
-  theme_color: string | null
-  created_at?: string | null
-}
-
-type SubjectAnalytics = {
-  enrolledCount: number
-  activeStudentsCount: number
-  playedCount: number
-  answeredQuestionsCount: number
-  availableQuestionsCount: number
-  averageScore: number
-  questionsCount: number
-  topicsCount: number
-  enrolledThisWeek: number
-  activeStudentsThisWeek: number
-  playedThisWeek: number
-  questionsThisWeek: number
-}
+import PaginationControls from '../../components/ui/PaginationControls';
+import TeacherCoursesList from '../../components/teacher/classes/TeacherCoursesList';
+import TeacherClassroomsList from '../../components/teacher/classes/TeacherClassroomsList';
+import CreateCourseCTA from '../../components/teacher/classes/CreateCourseCTA';
+import {
+  emptyTeacherCourseAnalytics,
+  type TeacherClassroom,
+  type TeacherClassroomAnalytics,
+  type TeacherCourse as Subject,
+  type TeacherCourseAnalytics as SubjectAnalytics,
+} from '../../components/teacher/classes/types';
 
 type Enrollment = {
   subject_id: number | null
+  classroom_id?: number | null
   student_id: string | null
   joined_at?: string | null
 }
@@ -63,6 +47,7 @@ type SubjectScore = {
 type QuestionSummary = {
   id: number
   subject_id: number | null
+  classroom_id?: number | null
   text?: string | null
   created_at?: string | null
 }
@@ -75,35 +60,15 @@ type AttemptSummary = {
 
 type TopicSummary = {
   subject_id: number | null
+  classroom_id?: number | null
   title?: string | null
   created_at?: string | null
-}
-
-type ProfileSummary = {
-  id: string
-  alias: string | null
-}
-
-type ActivityPlanItem = {
-  icon: keyof typeof Ionicons.glyphMap
-  color: string
-  title: string
-  detail: string
-  label: string
-}
-
-type RecentActivityItem = {
-  icon: keyof typeof Ionicons.glyphMap
-  color: string
-  title: string
-  detail: string
-  time: string
-  timestamp: number
 }
 
 type ClassStatus = 'unconfigured' | 'no_activity' | 'in_progress' | 'completed'
 type ClassFilter = 'all' | ClassStatus
 type ClassSort = 'recent' | 'name' | 'participation'
+type CatalogTab = 'courses' | 'classrooms'
 
 const teacherClassFilters: { id: ClassFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'all', label: 'Todas', icon: 'apps-outline' },
@@ -119,28 +84,17 @@ const teacherClassSorts: { id: ClassSort; label: string }[] = [
   { id: 'participation', label: 'Participación' },
 ]
 
-const emptySubjectAnalytics: SubjectAnalytics = {
-  enrolledCount: 0,
-  activeStudentsCount: 0,
-  playedCount: 0,
-  answeredQuestionsCount: 0,
-  availableQuestionsCount: 0,
-  averageScore: 0,
-  questionsCount: 0,
-  topicsCount: 0,
-  enrolledThisWeek: 0,
-  activeStudentsThisWeek: 0,
-  playedThisWeek: 0,
-  questionsThisWeek: 0,
-}
+const emptySubjectAnalytics = emptyTeacherCourseAnalytics
 
 export default function TeacherClassesScreen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [classrooms, setClassrooms] = useState<TeacherClassroom[]>([]);
   const [analyticsBySubject, setAnalyticsBySubject] = useState<Record<number, SubjectAnalytics>>({});
-  const [activityPlan, setActivityPlan] = useState<ActivityPlanItem[]>([]);
-  const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
+  const [analyticsByClassroom, setAnalyticsByClassroom] = useState<Record<number, TeacherClassroomAnalytics>>({});
+  const [catalogTab, setCatalogTab] = useState<CatalogTab>('courses');
+  const [page, setPage] = useState(0);
   const [selectedFilter, setSelectedFilter] = useState<ClassFilter>('all');
   const [selectedSort, setSelectedSort] = useState<ClassSort>('recent');
   const [search, setSearch] = useState('');
@@ -148,7 +102,7 @@ export default function TeacherClassesScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const isDesktop = width >= 1080;
-  const isWide = width >= 860;
+  const pageSize = isDesktop ? 12 : 6;
 
   const filteredSubjects = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -184,6 +138,31 @@ export default function TeacherClassesScreen() {
       return toTimestamp(right.created_at) - toTimestamp(left.created_at);
     });
   }, [analyticsBySubject, search, selectedFilter, selectedSort, subjects]);
+
+  const coursesById = useMemo(
+    () => subjects.reduce<Record<number, Subject>>((rows, subject) => {
+      rows[subject.id] = subject;
+      return rows;
+    }, {}),
+    [subjects]
+  );
+
+  const filteredClassrooms = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    if (!normalizedSearch) return classrooms;
+
+    return classrooms.filter((classroom) => {
+      const subjectName = classroom.subject_id ? coursesById[classroom.subject_id]?.name || '' : '';
+      return `${classroom.name} ${classroom.code || ''} ${classroom.academic_year || ''} ${subjectName}`
+        .toLowerCase()
+        .includes(normalizedSearch);
+    });
+  }, [classrooms, coursesById, search]);
+
+  const visibleTotal = catalogTab === 'courses' ? filteredSubjects.length : filteredClassrooms.length;
+  const safePage = Math.min(page, Math.max(0, Math.ceil(visibleTotal / pageSize) - 1));
+  const pagedSubjects = filteredSubjects.slice(safePage * pageSize, (safePage + 1) * pageSize);
+  const pagedClassrooms = filteredClassrooms.slice(safePage * pageSize, (safePage + 1) * pageSize);
 
   const totals = useMemo(() => {
     const analytics = Object.values(analyticsBySubject);
@@ -237,28 +216,32 @@ export default function TeacherClassesScreen() {
 
       const subjectIds = nextSubjects.map((subject) => subject.id);
       if (subjectIds.length === 0) {
+        setClassrooms([]);
         setAnalyticsBySubject({});
-        setActivityPlan([]);
-        setRecentActivity([]);
+        setAnalyticsByClassroom({});
         return;
       }
 
-      const [enrollmentsResult, scoresResult, questionsResult, topicsResult] = await Promise.all([
-        supabase.from('enrollments').select('subject_id, student_id, joined_at').in('subject_id', subjectIds),
+      const [enrollmentsResult, scoresResult, questionsResult, topicsResult, classroomsResult] = await Promise.all([
+        supabase.from('enrollments').select('subject_id, classroom_id, student_id, joined_at').in('subject_id', subjectIds),
         supabase.from('subject_scores').select('subject_id, student_id, max_score, played_at').in('subject_id', subjectIds),
-        supabase.from('questions').select('id, subject_id, text, created_at').in('subject_id', subjectIds),
-        supabase.from('subject_topics').select('subject_id, title, created_at').in('subject_id', subjectIds).eq('active', true),
+        supabase.from('questions').select('id, subject_id, classroom_id, text, created_at').in('subject_id', subjectIds),
+        supabase.from('subject_topics').select('subject_id, classroom_id, title, created_at').in('subject_id', subjectIds).eq('active', true),
+        supabase.from('classrooms').select('id, subject_id, name, code, academic_year, created_at, active').in('subject_id', subjectIds).neq('active', false).order('created_at', { ascending: false }),
       ]);
 
       if (enrollmentsResult.error) throw enrollmentsResult.error;
       if (scoresResult.error) throw scoresResult.error;
       if (questionsResult.error) throw questionsResult.error;
       if (topicsResult.error) throw topicsResult.error;
+      if (classroomsResult.error) throw classroomsResult.error;
 
       const enrollments = (enrollmentsResult.data || []) as Enrollment[];
       const scores = (scoresResult.data || []) as SubjectScore[];
       const questions = (questionsResult.data || []) as QuestionSummary[];
       const topics = (topicsResult.data || []) as TopicSummary[];
+      const nextClassrooms = (classroomsResult.data || []) as TeacherClassroom[];
+      setClassrooms(nextClassrooms);
       const weekStart = getRecentThresholdDate(7);
       const questionIds = questions
         .map((question) => question.id)
@@ -276,14 +259,6 @@ export default function TeacherClassesScreen() {
 
         attempts = (attemptsData || []) as AttemptSummary[];
       }
-      const studentIds = Array.from(
-        new Set(
-          [...enrollments.map((item) => item.student_id), ...scores.map((item) => item.student_id)]
-            .filter((value): value is string => Boolean(value))
-        )
-      );
-      const profilesById = studentIds.length > 0 ? await fetchProfilesById(studentIds) : {};
-
       const nextAnalytics: Record<number, SubjectAnalytics> = {};
 
       subjectIds.forEach((subjectId) => {
@@ -348,8 +323,18 @@ export default function TeacherClassesScreen() {
         };
       });
       setAnalyticsBySubject(nextAnalytics);
-      setActivityPlan(buildActivityPlan(nextSubjects, nextAnalytics));
-      setRecentActivity(buildRecentActivity({ enrollments, scores, questions, subjects: nextSubjects, profilesById }));
+      setAnalyticsByClassroom(
+        nextClassrooms.reduce<Record<number, TeacherClassroomAnalytics>>((rows, classroom) => {
+          rows[classroom.id] = {
+            studentsCount: getUniqueIds(
+              enrollments.filter((item) => item.classroom_id === classroom.id).map((item) => item.student_id)
+            ).length,
+            questionsCount: questions.filter((item) => item.classroom_id === classroom.id).length,
+            topicsCount: topics.filter((item) => item.classroom_id === classroom.id).length,
+          };
+          return rows;
+        }, {})
+      );
     } catch (error: any) {
       console.error('Error cargando clases:', error.message);
     } finally {
@@ -378,28 +363,6 @@ export default function TeacherClassesScreen() {
     );
   }
 
-  if (!isDesktop) {
-    return (
-      <MobileTeacherClasses
-        activityPlan={activityPlan}
-        analyticsBySubject={analyticsBySubject}
-        filteredSubjects={filteredSubjects}
-        recentActivity={recentActivity}
-        refreshing={refreshing}
-        search={search}
-        selectedFilter={selectedFilter}
-        selectedSort={selectedSort}
-        subjects={subjects}
-        totals={totals}
-        onCreateSubject={() => router.push('/(teacher)/create-subject' as any)}
-        onRefresh={onRefresh}
-        onSearchChange={setSearch}
-        onSelectFilter={setSelectedFilter}
-        onToggleSort={() => setSelectedSort((current) => getNextClassSort(current))}
-      />
-    )
-  }
-
   return (
     <View className="flex-1 bg-[#061126]">
       <View className="flex-1 flex-row">
@@ -416,7 +379,7 @@ export default function TeacherClassesScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 28 : 18,
-            paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER,
+            paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER + 84,
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
           showsVerticalScrollIndicator={false}
@@ -424,10 +387,11 @@ export default function TeacherClassesScreen() {
           <TeacherPageHeader
             icon="book"
             isDesktop={isDesktop}
-            title="Mis cursos"
-            subtitle="Gestiona tus cursos, clases, estudiantes y actividades."
+            title="Cursos y clases"
+            mobileTitle="Cursos y clases"
+            subtitle="Encuentra rápido el grupo que necesitas gestionar."
             notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
-            actions={(
+            actions={isDesktop ? (
               <AppButton
                 label="Crear curso"
                 accessibilityLabel="Crear curso"
@@ -435,37 +399,55 @@ export default function TeacherClassesScreen() {
                 role="teacher"
                 onPress={() => router.push('/(teacher)/create-subject' as any)}
               />
-            )}
+            ) : undefined}
           />
 
-          <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
-            <MetricCard semantic="course" title="Cursos activos" value={String(subjects.length)} trend={formatWeeklyTrend(subjects.filter((subject) => isAfterDate(subject.created_at, getRecentThresholdDate(7))).length, 'curso nuevo', 'cursos nuevos')} />
-            <MetricCard semantic="student" title="Estudiantes" value={String(totals.students)} trend={formatWeeklyTrend(totals.enrolledThisWeek, 'estudiante nuevo', 'estudiantes nuevos')} />
-            <MetricCard icon="help-circle" title="Preguntas" value={String(totals.questions)} trend={formatWeeklyTrend(totals.questionsThisWeek, 'pregunta nueva', 'preguntas nuevas')} color="#38BDF8" />
-            <MetricCard semantic="success" title="Participación media" value={`${totals.participation}%`} trend={formatWeeklyTrend(totals.activeStudentsThisWeek, 'alumno activo', 'alumnos activos')} />
+          <View className="mb-4">
+            <AppTabs<CatalogTab>
+              accessibilityLabel="Ver cursos o clases"
+              fill
+              items={[
+                { key: 'courses', label: `Cursos (${subjects.length})`, icon: 'book-outline' },
+                { key: 'classrooms', label: `Clases (${classrooms.length})`, icon: 'people-outline' },
+              ]}
+              onChange={(nextTab) => {
+                setCatalogTab(nextTab);
+                setPage(0);
+                setSearch('');
+              }}
+              role="teacher"
+              value={catalogTab}
+            />
           </View>
 
-          <View className={isDesktop ? 'mt-6 flex-row gap-5' : 'mt-6 gap-5'}>
-            <View className={isDesktop ? 'flex-[1.55]' : ''}>
-              <View className="mb-4 gap-3">
-                <View className="h-12 min-w-[260px] flex-row items-center rounded-xl border border-[#20375E] bg-[#09162C] px-4">
-                  <TextInput
-                    accessibilityLabel="Buscar curso"
-                    className="min-w-0 flex-1 text-white"
-                    placeholder="Buscar curso..."
-                    placeholderTextColor="#8FA7C7"
-                    value={search}
-                    onChangeText={setSearch}
-                  />
-                  <Ionicons name="search-outline" size={20} color="#AFC2DB" />
-                </View>
+          <View className="mb-4 gap-3">
+            <View className="h-12 flex-row items-center rounded-xl border border-[#20375E] bg-[#09162C] px-4">
+              <Ionicons name="search-outline" size={20} color="#AFC2DB" />
+              <TextInput
+                accessibilityLabel={catalogTab === 'courses' ? 'Buscar curso' : 'Buscar clase'}
+                className="ml-3 min-w-0 flex-1 text-white"
+                placeholder={catalogTab === 'courses' ? 'Buscar curso...' : 'Buscar clase o curso...'}
+                placeholderTextColor="#8FA7C7"
+                value={search}
+                onChangeText={(value) => {
+                  setSearch(value);
+                  setPage(0);
+                }}
+              />
+            </View>
+
+            {isDesktop && catalogTab === 'courses' ? (
+              <View className="gap-3">
                 <AppTabs<ClassFilter>
                   accessibilityLabel="Filtrar cursos"
                   compact
                   role="teacher"
                   items={teacherClassFilters.map((filter) => ({ key: filter.id, label: filter.label, icon: filter.icon }))}
                   value={selectedFilter}
-                  onChange={setSelectedFilter}
+                  onChange={(filter) => {
+                    setSelectedFilter(filter);
+                    setPage(0);
+                  }}
                 />
                 <AppTabs<ClassSort>
                   accessibilityLabel="Ordenar cursos"
@@ -473,803 +455,63 @@ export default function TeacherClassesScreen() {
                   role="teacher"
                   items={teacherClassSorts.map((sort) => ({ key: sort.id, label: sort.label, icon: 'swap-vertical-outline' as const }))}
                   value={selectedSort}
-                  onChange={setSelectedSort}
+                  onChange={(sort) => {
+                    setSelectedSort(sort);
+                    setPage(0);
+                  }}
                 />
               </View>
-
-              <View style={{ gap: 16 }}>
-                {filteredSubjects.map((subject, index) => (
-                  <ClassCard
-                    key={subject.id}
-                    subject={subject}
-                    index={index}
-                    analytics={analyticsBySubject[subject.id] || emptySubjectAnalytics}
-                  />
-                ))}
-              </View>
-
-              {filteredSubjects.length === 0 ? <EmptyClasses hasAnyClasses={subjects.length > 0} /> : null}
-
-              <Pressable
-                onPress={() => router.push('/(teacher)/create-subject' as any)}
-                className="mt-5 flex-row items-center justify-center gap-6 rounded-2xl border border-dashed border-[#5364F5] bg-[#07162E] px-6 py-10"
-                style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
-              >
-                <View className="h-16 w-16 items-center justify-center rounded-full border-4 border-[#4F46E5] bg-[#251F63]">
-                  <Ionicons name="add" size={34} color="#9B8CFF" />
-                </View>
-                <View className="min-w-0">
-                  <Text className="text-[20px] font-black text-white">Crear nuevo curso</Text>
-                  <Text className="mt-2 text-[#B7C4D7]">Añade un nuevo curso y comienza a gestionar clases y alumnos.</Text>
-                </View>
-              </Pressable>
-            </View>
-
-            <View className={isDesktop ? 'flex-1 gap-4' : 'gap-4'}>
-              <SidePanel title="Siguientes acciones" action="Ver todas">
-                <View style={{ gap: 10 }}>
-                  {activityPlan.length > 0 ? (
-                    activityPlan.map((item) => <ActivityPlanRow key={`${item.title}-${item.detail}`} item={item} />)
-                  ) : (
-                    <EmptyPanelRow icon="checkmark-done-outline" text="Tus cursos no tienen acciones pendientes." />
-                  )}
-                </View>
-              </SidePanel>
-
-              <SidePanel title="Participación por curso" action="Ver informe">
-                <View style={{ gap: 14 }}>
-                  {subjects.slice(0, 3).map((subject) => {
-                    const analytics = analyticsBySubject[subject.id] || emptySubjectAnalytics;
-                    const participation = getParticipationPercent(analytics);
-                    return <ProgressRow key={subject.id} label={subject.name} value={participation} color={subject.theme_color || '#8B5CF6'} />;
-                  })}
-                </View>
-              </SidePanel>
-
-              <SidePanel title="Actividad reciente en cursos" action="Ver todo">
-                <View style={{ gap: 13 }}>
-                  {recentActivity.length > 0 ? (
-                    recentActivity.map((item) => <RecentActivityRow key={`${item.title}-${item.timestamp}`} item={item} />)
-                  ) : (
-                    <EmptyPanelRow icon="time-outline" text="Todavía no hay actividad registrada." />
-                  )}
-                </View>
-              </SidePanel>
-            </View>
+            ) : null}
           </View>
+
+          <View className="mb-3 flex-row items-center justify-between gap-3">
+            <Text className="text-[13px] text-[#AFC2DB]">
+              {catalogTab === 'courses'
+                ? `${visibleTotal} cursos · ${totals.students} alumnos · ${totals.questions} preguntas`
+                : `${visibleTotal} clases activas en ${subjects.length} cursos`}
+            </Text>
+            {!isDesktop && catalogTab === 'courses' ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setSelectedSort((current) => getNextClassSort(current));
+                  setPage(0);
+                }}
+                className="flex-row items-center gap-2 rounded-lg bg-[#102343] px-3 py-2"
+              >
+                <Ionicons name="swap-vertical-outline" size={15} color="#B9A7FF" />
+                <Text className="text-[12px] font-black text-[#B9A7FF]">{getClassSortLabel(selectedSort)}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          {catalogTab === 'courses' ? (
+            <TeacherCoursesList analyticsByCourse={analyticsBySubject} courses={pagedSubjects} isDesktop={isDesktop} />
+          ) : (
+            <TeacherClassroomsList
+              analyticsByClassroom={analyticsByClassroom}
+              classrooms={pagedClassrooms}
+              coursesById={coursesById}
+              isDesktop={isDesktop}
+            />
+          )}
+
+          <PaginationControls
+            compact={!isDesktop}
+            onNext={() => setPage((current) => current + 1)}
+            onPrevious={() => setPage((current) => Math.max(0, current - 1))}
+            page={safePage}
+            pageSize={pageSize}
+            total={visibleTotal}
+          />
+
+          {isDesktop ? <CreateCourseCTA onPress={() => router.push('/(teacher)/create-subject' as any)} /> : null}
         </ScrollView>
       </View>
       {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
+      {!isDesktop ? <CreateCourseCTA onPress={() => router.push('/(teacher)/create-subject' as any)} sticky /> : null}
     </View>
   );
-}
-
-function MobileTeacherClasses({
-  activityPlan,
-  analyticsBySubject,
-  filteredSubjects,
-  recentActivity,
-  refreshing,
-  search,
-  selectedFilter,
-  selectedSort,
-  subjects,
-  totals,
-  onCreateSubject,
-  onRefresh,
-  onSearchChange,
-  onSelectFilter,
-  onToggleSort,
-}: {
-  activityPlan: ActivityPlanItem[]
-  analyticsBySubject: Record<number, SubjectAnalytics>
-  filteredSubjects: Subject[]
-  recentActivity: RecentActivityItem[]
-  refreshing: boolean
-  search: string
-  selectedFilter: ClassFilter
-  selectedSort: ClassSort
-  subjects: Subject[]
-  totals: {
-    students: number
-    activeStudents: number
-    questions: number
-    participation: number
-    progress: number
-    averageScore: number
-    enrolledThisWeek: number
-    activeStudentsThisWeek: number
-    playedThisWeek: number
-    questionsThisWeek: number
-  }
-  onCreateSubject: () => void
-  onRefresh: () => void
-  onSearchChange: (value: string) => void
-  onSelectFilter: (filter: ClassFilter) => void
-  onToggleSort: () => void
-}) {
-  return (
-    <View className="flex-1 bg-[#031022]">
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 6 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
-        showsVerticalScrollIndicator={false}
-      >
-        <TeacherPageHeader
-          icon="book"
-          isDesktop={false}
-          title="Mis cursos"
-          subtitle="Gestiona cursos, clases y próximas acciones."
-          className="mb-7"
-        />
-
-        <View className="mb-5 flex-row flex-wrap gap-3">
-          <MobileClassMetric
-            color="#8B5CF6"
-            icon="school"
-            title="Cursos"
-            value={String(subjects.length)}
-            trend={formatWeeklyTrend(subjects.filter((subject) => isAfterDate(subject.created_at, getRecentThresholdDate(7))).length, 'curso nuevo', 'cursos nuevos')}
-          />
-          <MobileClassMetric
-            color="#43D991"
-            icon="people"
-            title="Estudiantes"
-            value={String(totals.students)}
-            trend={formatWeeklyTrend(totals.enrolledThisWeek, 'estudiante nuevo', 'estudiantes nuevos')}
-          />
-          <MobileClassMetric
-            color="#3B82F6"
-            icon="clipboard"
-            title="Preguntas"
-            value={String(totals.questions)}
-            trend={formatWeeklyTrend(totals.questionsThisWeek, 'pregunta nueva', 'preguntas nuevas')}
-          />
-          <MobileClassMetric
-            color="#F6A64A"
-            icon="people-circle"
-            title="Participación"
-            value={`${totals.participation}%`}
-            trend={formatWeeklyTrend(totals.activeStudentsThisWeek, 'alumno activo', 'alumnos activos')}
-          />
-        </View>
-
-        <View className="mb-4 flex-row gap-3">
-          <View className="h-14 min-w-0 flex-1 flex-row items-center rounded-2xl border border-[#20375E] bg-[#071832] px-4">
-            <Ionicons name="search-outline" size={22} color="#AFC2DB" />
-            <TextInput
-              className="ml-3 min-w-0 flex-1 text-[16px] text-white"
-              placeholder="Buscar cursos..."
-              placeholderTextColor="#8FA7C7"
-              value={search}
-              onChangeText={onSearchChange}
-            />
-          </View>
-          <Pressable
-            onPress={onToggleSort}
-            className="h-14 flex-row items-center gap-2 rounded-2xl border border-[#20375E] bg-[#071832] px-4"
-            style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-          >
-            <Ionicons name="funnel-outline" size={20} color="#DDE7F4" />
-            <Text className="font-bold text-[#DDE7F4]">Filtros</Text>
-          </Pressable>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5 mb-3" contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}>
-          {teacherClassFilters.map((filter) => (
-            <MobileClassFilterChip
-              key={filter.id}
-              active={selectedFilter === filter.id}
-              filter={filter}
-              onPress={() => onSelectFilter(filter.id)}
-            />
-          ))}
-        </ScrollView>
-
-        <View className="mb-4 flex-row items-center gap-2">
-          <Text className="text-[15px] text-[#C7D3E5]">Ordenar por:</Text>
-          <Pressable
-            onPress={onToggleSort}
-            className="flex-row items-center gap-2 rounded-xl bg-[#071832] px-4 py-3"
-            style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-          >
-            <Text className="text-[15px] font-black text-white">{getClassSortLabel(selectedSort)}</Text>
-            <Ionicons name="chevron-down-outline" size={15} color="#AFC2DB" />
-          </Pressable>
-        </View>
-
-        <View className="gap-4">
-          {filteredSubjects.map((subject, index) => (
-            <MobileTeacherClassCard
-              key={subject.id}
-              analytics={analyticsBySubject[subject.id] || emptySubjectAnalytics}
-              index={index}
-              subject={subject}
-            />
-          ))}
-          {filteredSubjects.length === 0 ? <EmptyClasses hasAnyClasses={subjects.length > 0} /> : null}
-        </View>
-
-        <Pressable
-          onPress={onCreateSubject}
-          className="mt-5 flex-row items-center gap-4 rounded-2xl border border-dashed border-[#6D4AFF] bg-[#071832] p-5"
-          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-        >
-          <View className="h-16 w-16 items-center justify-center rounded-full border-4 border-[#6D4AFF] bg-[#251F63]">
-            <Ionicons name="add" size={36} color="#9B8CFF" />
-          </View>
-          <View className="min-w-0 flex-1">
-            <Text className="text-[21px] font-black text-white">Crear nuevo curso</Text>
-            <Text className="mt-1 text-[14px] leading-5 text-[#C7D3E5]">Añade un nuevo curso y comienza a gestionar clases y alumnos.</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={24} color="#B7C4D7" />
-        </Pressable>
-
-        <View className="mt-5 gap-4">
-          <MobileClassesSidePanel title="Siguientes acciones" action="Ver todas">
-            <View className="gap-3">
-              {activityPlan.length > 0 ? (
-                activityPlan.map((item) => <MobileActivityPlanRow key={`${item.title}-${item.detail}`} item={item} />)
-              ) : (
-                <EmptyPanelRow icon="checkmark-done-outline" text="Tus cursos no tienen acciones pendientes." />
-              )}
-            </View>
-          </MobileClassesSidePanel>
-
-          <MobileClassesSidePanel title="Participación por curso" action="Ver informe">
-            <View className="gap-4">
-              {subjects.slice(0, 3).map((subject) => {
-                const analytics = analyticsBySubject[subject.id] || emptySubjectAnalytics;
-                return <ProgressRow key={subject.id} label={subject.name} value={getParticipationPercent(analytics)} color={subject.theme_color || '#8B5CF6'} />;
-              })}
-              {subjects.length === 0 ? <EmptyPanelRow icon="analytics-outline" text="Crea un curso para ver participación." /> : null}
-            </View>
-          </MobileClassesSidePanel>
-
-          <MobileClassesSidePanel title="Actividad reciente" action="Ver todo">
-            <View className="gap-3">
-              {recentActivity.length > 0 ? (
-                recentActivity.slice(0, 3).map((item) => <RecentActivityRow key={`${item.title}-${item.timestamp}`} item={item} />)
-              ) : (
-                <EmptyPanelRow icon="time-outline" text="Todavía no hay actividad registrada." />
-              )}
-            </View>
-          </MobileClassesSidePanel>
-        </View>
-      </ScrollView>
-
-      <TeacherBottomNav active="classes" />
-    </View>
-  )
-}
-
-function MobileClassMetric({
-  color,
-  icon,
-  title,
-  trend,
-  value,
-}: {
-  color: string
-  icon: keyof typeof Ionicons.glyphMap
-  title: string
-  trend: string
-  value: string
-}) {
-  return (
-    <MobileMetricCard
-      className="min-h-[106px] flex-1"
-      color={color}
-      compact
-      detail={trend}
-      icon={icon}
-      label={title}
-      value={value}
-    />
-  )
-}
-
-function MobileClassFilterChip({
-  active,
-  filter,
-  onPress,
-}: {
-  active: boolean
-  filter: { id: ClassFilter; label: string; icon: keyof typeof Ionicons.glyphMap }
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="h-14 flex-row items-center gap-2 rounded-2xl px-5"
-      style={({ pressed }) => ({
-        borderWidth: active ? 0 : 1,
-        borderColor: '#20375E',
-        backgroundColor: active ? '#6D4AFF' : '#071832',
-        opacity: pressed ? 0.82 : 1,
-      })}
-    >
-      <Ionicons name={filter.icon} size={18} color={active ? '#FFFFFF' : '#DDE7F4'} />
-      <Text className={`text-[15px] font-black ${active ? 'text-white' : 'text-[#DDE7F4]'}`}>{filter.label}</Text>
-    </Pressable>
-  )
-}
-
-function MobileTeacherClassCard({
-  analytics,
-  index,
-  subject,
-}: {
-  analytics: SubjectAnalytics
-  index: number
-  subject: Subject
-}) {
-  const fallbackColors = ['#8B5CF6', '#3B82F6', '#34D399', '#F6A64A'];
-  const color = subject.theme_color || fallbackColors[index % fallbackColors.length];
-  const participation = getParticipationPercent(analytics);
-  const progress = getProgressPercent(analytics);
-  const status = getClassStatusMeta(getClassStatus(analytics));
-  const needsAttention = participation < 40 || analytics.answeredQuestionsCount === 0;
-  const alertText = participation < 40
-    ? `Participación baja: ${participation}%`
-    : analytics.answeredQuestionsCount === 0
-      ? 'Sin respuestas todavía'
-      : null;
-
-  return (
-    <View className="overflow-hidden rounded-2xl border bg-[#071832]" style={{ borderColor: needsAttention ? '#F59E0B88' : '#244A7C' }}>
-      <View className="p-4">
-        <View className="flex-row items-start gap-4">
-          <View className="h-[72px] w-[72px] items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(color, '28') }}>
-            {subject.icon ? (
-              <Text className="text-[34px]">{subject.icon}</Text>
-            ) : (
-              <Ionicons name={index % 2 === 0 ? 'book-outline' : 'calculator-outline'} size={34} color={color} />
-            )}
-          </View>
-
-          <View className="min-w-0 flex-1">
-            <View className="flex-row items-center gap-2">
-              <Text className="min-w-0 flex-1 text-[21px] font-black text-white" numberOfLines={1}>{subject.name}</Text>
-              <Ionicons name="ellipsis-horizontal" size={23} color="#AFC2DB" />
-            </View>
-            <Text className="mt-2 text-[14px] leading-5 text-[#D7E2F4]" numberOfLines={2}>
-              {analytics.enrolledCount} alumnos · {analytics.questionsCount} preguntas · {participation}% participación
-            </Text>
-            {alertText ? (
-              <View className="mt-3 self-start flex-row items-center gap-2 rounded-full bg-[#3A2410] px-3 py-1.5">
-                <Ionicons name="alert-circle" size={15} color="#F6A64A" />
-                <Text className="text-[12px] font-black text-[#FBD38D]">{alertText}</Text>
-              </View>
-            ) : (
-              <View className="mt-3 self-start flex-row items-center gap-2 rounded-full bg-[#063B34] px-3 py-1.5">
-                <Ionicons name={status.icon} size={15} color={status.color} />
-                <Text className="text-[12px] font-black" style={{ color: status.color }}>{status.label}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        <View className="mt-4 h-2.5 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full" style={{ width: `${Math.max(progress > 0 ? 8 : 0, progress)}%`, backgroundColor: color }} />
-        </View>
-      </View>
-
-      <View className="flex-row items-center gap-3 border-t border-[#17345B] bg-[#06162E] p-3">
-        <Link href={`/(teacher)/subject/${subject.id}`} asChild>
-          <Pressable className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-[#6D4AFF]">
-            <Ionicons name="settings-outline" size={17} color="#FFFFFF" />
-            <Text className="font-black text-white">Gestionar</Text>
-          </Pressable>
-        </Link>
-        <Link href={`/(teacher)/subject/${subject.id}?tab=students`} asChild>
-          <Pressable className="h-12 w-12 items-center justify-center rounded-xl border border-[#2B4B7B] bg-[#0D1D3B]">
-            <Ionicons name="people-outline" size={19} color="#DDE7F4" />
-          </Pressable>
-        </Link>
-        <Link href={`/(teacher)/subject/${subject.id}?tab=reports`} asChild>
-          <Pressable className="h-12 w-12 items-center justify-center rounded-xl border border-[#2B4B7B] bg-[#0D1D3B]">
-            <Ionicons name="ellipsis-horizontal" size={20} color="#DDE7F4" />
-          </Pressable>
-        </Link>
-      </View>
-    </View>
-  )
-}
-
-function MobileClassesSidePanel({ title, action, children }: { title: string; action: string; children: React.ReactNode }) {
-  return (
-    <View className="rounded-2xl border border-[#17345B] bg-[#071832] p-5">
-      <View className="mb-4 flex-row items-center justify-between gap-3">
-        <Text className="min-w-0 flex-1 text-[18px] font-black text-white" numberOfLines={1}>{title}</Text>
-        <Text className="text-[13px] font-black text-[#A970FF]">{action}</Text>
-      </View>
-      {children}
-    </View>
-  )
-}
-
-function MobileActivityPlanRow({ item }: { item: ActivityPlanItem }) {
-  return (
-    <View className="flex-row items-center gap-3 rounded-2xl border border-[#17345B] bg-[#0A1D3B] p-3">
-      <View className="h-[52px] w-[52px] items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(item.color, '28') }}>
-        <Ionicons name={item.icon} size={24} color={item.color} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="font-black text-white" numberOfLines={1}>{item.title}</Text>
-        <Text className="mt-1 text-[13px] text-[#C7D3E5]" numberOfLines={1}>{item.detail}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={22} color="#C7D3E5" />
-    </View>
-  )
-}
-
-function MetricCard({
-  icon,
-  semantic,
-  title,
-  value,
-  trend,
-  color,
-}: {
-  icon?: keyof typeof Ionicons.glyphMap
-  semantic?: SemanticIconKey
-  title: string
-  value: string
-  trend: string
-  color?: string
-}) {
-  const hasGrowth = !trend.toLowerCase().startsWith('sin')
-
-  return (
-    <MobileMetricCard
-      className="min-w-[190px] flex-1"
-      color={color}
-      detail={trend}
-      detailColor={hasGrowth ? '#34D399' : '#8FA7C7'}
-      icon={icon}
-      semantic={semantic}
-      label={title}
-      value={value}
-    />
-  )
-}
-
-function ClassCard({
-  subject,
-  index,
-  analytics,
-}: {
-  subject: Subject
-  index: number
-  analytics: SubjectAnalytics
-}) {
-  const fallbackColors = ['#8B5CF6', '#3B82F6', '#34D399', '#F6A64A'];
-  const color = subject.theme_color || fallbackColors[index % fallbackColors.length];
-  const participation = getParticipationPercent(analytics);
-  const progress = getProgressPercent(analytics);
-  const status = getClassStatusMeta(getClassStatus(analytics));
-
-  return (
-    <View className={`overflow-hidden rounded-2xl border bg-[#09162C] ${index === 0 ? 'border-[#6D5AF6]' : 'border-[#1A3155]'}`}>
-      <Link href={`/(teacher)/subject/${subject.id}`} asChild>
-        <Pressable className="flex-row flex-wrap items-center gap-5 p-5" style={({ pressed }) => ({ opacity: pressed ? 0.86 : 1 })}>
-          <View
-            className="h-20 w-20 items-center justify-center rounded-xl border"
-            style={{ backgroundColor: `${color}28`, borderColor: `${color}66` }}
-          >
-            {subject.icon ? (
-              <Text className="text-[34px]">{subject.icon}</Text>
-            ) : (
-              <Ionicons name={index % 2 === 0 ? 'book-outline' : 'calculator-outline'} size={36} color={color} />
-            )}
-          </View>
-
-          <View className="min-w-[220px] flex-1">
-            <Text className="text-[22px] font-black text-white">{subject.name}</Text>
-            <View className="mt-2 flex-row flex-wrap items-center gap-2">
-              <Text className="text-[12px] text-[#B7C4D7]">{subject.description || '2º Bachillerato A'}</Text>
-              <Text className="text-[12px] text-[#60799C]">•</Text>
-              <Text className="text-[12px] text-[#B7C4D7]">Código:</Text>
-              <Text className="rounded-full bg-[#111E3C] px-2 py-1 font-mono text-[12px] font-bold text-[#9B8CFF]">{subject.code}</Text>
-            </View>
-            <View className="mt-3 flex-row flex-wrap gap-2">
-              <SmallPill icon={status.icon} label={status.label} color={status.color} />
-              <SmallPill icon="albums-outline" label={`${analytics.topicsCount} temas`} color="#F6A64A" />
-              <SmallPill icon="people-outline" label={`${analytics.enrolledCount} alumnos`} color="#38bdf8" />
-              <SmallPill icon="trophy-outline" label={`${analytics.averageScore} XP media`} color="#B9A7FF" />
-              <SmallPill icon="people-circle-outline" label={`${participation}% participación`} color="#58E28B" />
-              <SmallPill icon="checkmark-circle-outline" label={`${analytics.answeredQuestionsCount} respondidas`} color="#43D991" />            </View>
-          </View>
-
-          <View className="ml-auto items-center gap-2">
-            <ProgressRing progress={progress} color={color} />
-            <Text className="text-[12px] text-[#B7C4D7]">Progreso</Text>
-          </View>
-        </Pressable>
-      </Link>
-
-      <View className="flex-row flex-wrap border-t border-[#172A4A] bg-[#07162E]">
-        <ClassAction href={`/(teacher)/subject/${subject.id}`} icon="eye-outline" label="Ver curso" />
-        <ClassAction href={`/(teacher)/subject/${subject.id}?tab=students`} icon="people-outline" label="Estudiantes" />
-        <ClassAction href={`/(teacher)/subject/${subject.id}?tab=reports`} icon="analytics-outline" label="Informes" />
-        <ClassAction href={`/(teacher)/edit-subject?id=${subject.id}`} icon="create-outline" label="Editar" />
-      </View>
-    </View>
-  );
-}
-
-function ClassAction({
-  href,
-  icon,
-  label,
-  onPress,
-}: {
-  href?: string
-  icon: keyof typeof Ionicons.glyphMap
-  label: string
-  onPress?: () => void
-}) {
-  const content = (
-    <View className="min-w-[120px] flex-1 flex-row items-center justify-center gap-2 px-4 py-3">
-      <Ionicons name={icon} size={15} color="#AFC2DB" />
-      <Text className="text-[12px] font-semibold text-[#DDE7F4]">{label}</Text>
-    </View>
-  );
-
-  if (href) {
-    return (
-      <Link href={href as any} asChild>
-        <Pressable className="flex-1">{content}</Pressable>
-      </Link>
-    );
-  }
-
-  return <Pressable onPress={onPress} className="flex-1">{content}</Pressable>;
-}
-
-function SmallPill({ icon, label, color }: { icon: keyof typeof Ionicons.glyphMap; label: string; color: string }) {
-  return (
-    <View className="flex-row items-center gap-2 rounded-lg border border-[#20375E] bg-[#07162E] px-3 py-2">
-      <Ionicons name={icon} size={14} color={color} />
-      <Text className="text-[12px] font-semibold text-[#DDE7F4]">{label}</Text>
-    </View>
-  );
-}
-
-function ProgressRing({ progress, color }: { progress: number; color: string }) {
-  return (
-    <View className="h-20 w-20 items-center justify-center rounded-full border-[6px] bg-[#07162E]" style={{ borderColor: progress > 0 ? color : '#1A3155' }}>
-      <Text className="text-[19px] font-black text-white">{progress}%</Text>
-    </View>
-  );
-}
-
-function EmptyClasses({ hasAnyClasses }: { hasAnyClasses: boolean }) {
-  return (
-    <View className="items-center justify-center rounded-2xl border border-dashed border-[#20375E] bg-[#09162C] p-8">
-      <Ionicons name="school-outline" size={58} color="#60799C" />
-      <Text className="mt-4 text-center text-lg font-bold text-white">
-        {hasAnyClasses ? 'No hay cursos que coincidan' : 'Aún no tienes cursos'}
-      </Text>
-      <Text className="mt-2 text-center text-sm text-[#8FA7C7]">
-        {hasAnyClasses
-          ? 'Cambia el filtro o la búsqueda para ver más cursos.'
-          : 'Crea tu primer curso para empezar a gestionar clases y alumnos.'}
-      </Text>
-    </View>
-  );
-}
-
-function SidePanel({ title, action, children }: { title: string; action: string; children: React.ReactNode }) {
-  return (
-    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
-      <View className="mb-4 flex-row items-center justify-between">
-        <Text className="font-black text-white">{title}</Text>
-        <Pressable>
-          <Text className="text-[12px] font-semibold text-[#B9A7FF]">{action}</Text>
-        </Pressable>
-      </View>
-      {children}
-    </View>
-  );
-}
-
-function ActivityPlanRow({ item }: { item: ActivityPlanItem }) {
-  return (
-    <View className="flex-row items-center gap-4 rounded-xl border border-[#172A4A] bg-[#0D1D3B] p-3">
-      <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${item.color}33` }}>
-        <Ionicons name={item.icon} size={20} color={item.color} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="font-black text-white" numberOfLines={1}>{item.title}</Text>
-        <Text className="mt-1 text-[12px] text-[#B7C4D7]" numberOfLines={1}>{item.detail}</Text>
-      </View>
-      <View className="flex-row items-center gap-2">
-        <Ionicons name="flag-outline" size={15} color="#AFC2DB" />
-        <Text className="text-[12px] font-semibold text-white">{item.label}</Text>
-      </View>
-    </View>
-  );
-}
-
-function ProgressRow({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <View>
-      <View className="mb-2 flex-row items-center justify-between">
-        <Text className="text-[12px] font-semibold text-white">{label}</Text>
-        <Text className="text-[12px] text-[#DDE7F4]">{value}%</Text>
-      </View>
-      <View className="h-2 overflow-hidden rounded-full bg-[#13294C]">
-        <View className="h-full rounded-full" style={{ width: `${value}%`, backgroundColor: color }} />
-      </View>
-    </View>
-  );
-}
-
-function RecentActivityRow({ item }: { item: RecentActivityItem }) {
-  return (
-    <View className="flex-row items-start gap-3">
-      <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: `${item.color}33` }}>
-        <Ionicons name={item.icon} size={17} color={item.color} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="text-[13px] font-bold text-white" numberOfLines={1}>{item.title}</Text>
-        <Text className="mt-1 text-[11px] text-[#B7C4D7]" numberOfLines={1}>{item.detail}</Text>
-      </View>
-      <Text className="text-[11px] text-[#8FA7C7]">{item.time}</Text>
-    </View>
-  );
-}
-
-function EmptyPanelRow({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
-  return (
-    <View className="items-center justify-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B] p-4">
-      <Ionicons name={icon} size={24} color="#8FA7C7" />
-      <Text className="mt-2 text-center text-[12px] text-[#8FA7C7]">{text}</Text>
-    </View>
-  );
-}
-
-async function fetchProfilesById(studentIds: string[]) {
-  const { data, error } = await supabase.from('profiles').select('id, alias').in('id', studentIds);
-  if (error) throw error;
-
-  return ((data || []) as ProfileSummary[]).reduce<Record<string, ProfileSummary>>((acc, profile) => {
-    acc[profile.id] = profile;
-    return acc;
-  }, {});
-}
-
-function buildActivityPlan(subjects: Subject[], analyticsBySubject: Record<number, SubjectAnalytics>): ActivityPlanItem[] {
-  const actionItems = subjects.flatMap((subject) => {
-    const analytics = analyticsBySubject[subject.id] || emptySubjectAnalytics;
-    const color = subject.theme_color || '#8B5CF6';
-    const items: ActivityPlanItem[] = [];
-
-    if (analytics.questionsCount === 0) {
-      items.push({
-        icon: 'clipboard-outline',
-        color,
-        title: 'Añadir primeras preguntas',
-        detail: subject.name,
-        label: 'Contenido',
-      });
-    }
-
-    if (analytics.enrolledCount === 0) {
-      items.push({
-        icon: 'person-add-outline',
-        color: '#38BDF8',
-        title: 'Invitar estudiantes',
-        detail: subject.name,
-        label: 'Curso sin alumnos',
-      });
-    }
-
-    if (analytics.enrolledCount > 0 && analytics.activeStudentsCount === 0) {
-      items.push({
-        icon: 'flash-outline',
-        color: '#F6A64A',
-        title: 'Impulsar primera partida',
-        detail: subject.name,
-        label: 'Sin actividad',
-      });
-    }
-
-    if (analytics.enrolledCount > 0 && analytics.activeStudentsCount > 0) {
-      const participation = getParticipationPercent(analytics);
-      if (participation < 60) {
-        items.push({
-          icon: 'analytics-outline',
-          color: '#EC4899',
-          title: 'Revisar participación',
-          detail: `${subject.name} · ${participation}%`,
-          label: 'Seguimiento',
-        });
-      }
-    }
-
-    return items;
-  });
-
-  return actionItems.slice(0, 3);
-}
-
-function buildRecentActivity({
-  enrollments,
-  scores,
-  questions,
-  subjects,
-  profilesById,
-}: {
-  enrollments: Enrollment[]
-  scores: SubjectScore[]
-  questions: QuestionSummary[]
-  subjects: Subject[]
-  profilesById: Record<string, ProfileSummary>
-}) {
-  const subjectsById = new Map(subjects.map((subject) => [subject.id, subject]));
-
-  const scoreItems: RecentActivityItem[] = scores
-    .filter((score) => score.played_at)
-    .map((score) => {
-      const subject = score.subject_id ? subjectsById.get(score.subject_id) : null;
-      const studentName = getStudentName(score.student_id, profilesById);
-      const timestamp = toTimestamp(score.played_at);
-
-      return {
-        icon: 'trophy',
-        color: '#F6A64A',
-        title: `${studentName} completó una partida`,
-        detail: `${score.max_score ?? 0} puntos en ${subject?.name || 'un curso'}`,
-        time: formatRelativeDate(score.played_at),
-        timestamp,
-      };
-    });
-
-  const enrollmentItems: RecentActivityItem[] = enrollments
-    .filter((enrollment) => enrollment.joined_at)
-    .map((enrollment) => {
-      const subject = enrollment.subject_id ? subjectsById.get(enrollment.subject_id) : null;
-      const studentName = getStudentName(enrollment.student_id, profilesById);
-      const timestamp = toTimestamp(enrollment.joined_at);
-
-      return {
-        icon: 'person-add',
-        color: '#3B82F6',
-        title: `Nueva inscripción en ${subject?.name || 'un curso'}`,
-        detail: studentName,
-        time: formatRelativeDate(enrollment.joined_at),
-        timestamp,
-      };
-    });
-
-  const questionItems: RecentActivityItem[] = questions
-    .filter((question) => question.created_at)
-    .map((question) => {
-      const subject = question.subject_id ? subjectsById.get(question.subject_id) : null;
-      const timestamp = toTimestamp(question.created_at);
-
-      return {
-        icon: 'checkmark',
-        color: '#34D399',
-        title: `Pregunta creada en ${subject?.name || 'un curso'}`,
-        detail: question.text ? truncateText(question.text, 52) : 'Nueva pregunta disponible',
-        time: formatRelativeDate(question.created_at),
-        timestamp,
-      };
-    });
-
-  return [...scoreItems, ...enrollmentItems, ...questionItems]
-    .sort((a, b) => b.timestamp - a.timestamp)
-    .slice(0, 4);
-}
-
-function getStudentName(studentId: string | null, profilesById: Record<string, ProfileSummary>) {
-  if (!studentId) return 'Alumno';
-  return profilesById[studentId]?.alias || 'Alumno';
 }
 
 function getNextClassSort(current: ClassSort) {
@@ -1288,19 +530,6 @@ function getParticipationRate(analytics: SubjectAnalytics) {
   return analytics.activeStudentsCount / analytics.enrolledCount;
 }
 
-function getParticipationPercent(analytics: SubjectAnalytics) {
-  return Math.round(getParticipationRate(analytics) * 100);
-}
-
-function getProgressPercent(analytics: SubjectAnalytics) {
-  if (analytics.availableQuestionsCount <= 0) return 0;
-
-  return Math.min(
-    100,
-    Math.round((analytics.answeredQuestionsCount / analytics.availableQuestionsCount) * 100)
-  );
-}
-
 function getClassStatus(analytics: SubjectAnalytics): ClassStatus {
   if (analytics.questionsCount === 0 || analytics.enrolledCount === 0) {
     return 'unconfigured';
@@ -1315,26 +544,6 @@ function getClassStatus(analytics: SubjectAnalytics): ClassStatus {
   }
 
   return 'in_progress';
-}
-
-function getClassStatusMeta(status: ClassStatus): {
-  label: string
-  icon: keyof typeof Ionicons.glyphMap
-  color: string
-} {
-  if (status === 'unconfigured') {
-    return { label: 'Sin configurar', icon: 'construct-outline', color: '#F6A64A' };
-  }
-
-  if (status === 'no_activity') {
-    return { label: 'Sin actividad', icon: 'pause-circle-outline', color: '#8FA7C7' };
-  }
-
-  if (status === 'completed') {
-    return { label: 'Completada', icon: 'checkmark-done-outline', color: '#34D399' };
-  }
-
-  return { label: 'En curso', icon: 'time-outline', color: '#3B82F6' };
 }
 
 function getUniqueIds(values: (string | null | undefined)[]) {
@@ -1371,36 +580,4 @@ function toTimestamp(value: string | null | undefined) {
   if (!value) return 0;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-}
-
-function formatWeeklyTrend(count: number, singular: string, plural: string) {
-  if (count <= 0) return 'Sin cambios esta semana';
-  return `+${count} ${count === 1 ? singular : plural} esta semana`;
-}
-
-function formatRelativeDate(value: string | null | undefined) {
-  if (!value) return 'Sin fecha';
-
-  const timestamp = toTimestamp(value);
-  if (!timestamp) return 'Sin fecha';
-
-  const diffMs = Date.now() - timestamp;
-  const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
-  if (diffMinutes < 1) return 'Ahora';
-  if (diffMinutes < 60) return `Hace ${diffMinutes} min`;
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `Hace ${diffHours} h`;
-
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays === 1) return 'Ayer';
-  if (diffDays < 7) return `Hace ${diffDays} días`;
-
-  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(new Date(timestamp));
-}
-
-function truncateText(value: string, maxLength: number) {
-  const cleanValue = value.trim();
-  if (cleanValue.length <= maxLength) return cleanValue;
-  return `${cleanValue.slice(0, maxLength - 3)}...`;
 }
