@@ -45,12 +45,20 @@ export async function exportAdminProfiles({
   subjectId = null,
   classroomId = null,
   profileId = null,
+  active = null,
+  activityState = null,
+  createdFrom = null,
+  createdTo = null,
 }: {
   role: 'teacher' | 'student'
   search: string
   subjectId?: number | null
   classroomId?: number | null
   profileId?: string | null
+  active?: boolean | null
+  activityState?: string | null
+  createdFrom?: string | null
+  createdTo?: string | null
 }) {
   const rows = await fetchAllRpcRows<any>('get_admin_profiles_page', {
     p_role: role,
@@ -58,17 +66,23 @@ export async function exportAdminProfiles({
     p_subject_id: subjectId,
     p_classroom_id: classroomId,
     p_profile_id: profileId,
+    p_active: active,
+    p_activity_state: activityState,
+    p_created_from: createdFrom,
+    p_created_to: createdTo,
   })
 
   return exportCsvFile(
     datedFilename(`omniquest-${role === 'teacher' ? 'profesores' : 'alumnos'}`),
-    ['ID', 'Alias', 'Correo', 'Rol', 'Estado', 'Cursos', 'Inscripciones', 'Creado'],
+    ['ID', 'Alias', 'Correo', 'Rol', 'Estado', 'Actividad', 'Última actividad', 'Cursos', 'Inscripciones', 'Creado'],
     rows.map((row) => [
       row.id,
       row.alias,
       row.email,
       row.role_id,
       row.active === false ? 'Inactivo' : 'Activo',
+      row.activity_state,
+      formatExportDateTime(row.last_activity_at),
       row.subject_count ?? 0,
       row.enrollment_count ?? 0,
       formatExportDateTime(row.created_at),
@@ -80,20 +94,29 @@ export async function exportAdminSubjects({
   search,
   teacherId = null,
   archived = null,
+  active = null,
+  createdFrom = null,
+  createdTo = null,
 }: {
   search: string
   teacherId?: string | null
   archived?: boolean | null
+  active?: boolean | null
+  createdFrom?: string | null
+  createdTo?: string | null
 }) {
   const rows = await fetchAllRpcRows<any>('get_admin_subjects_page', {
     p_search: search.trim(),
     p_teacher_id: teacherId,
     p_archived: archived,
+    p_active: active,
+    p_created_from: createdFrom,
+    p_created_to: createdTo,
   })
 
   return exportCsvFile(
     datedFilename('omniquest-cursos'),
-    ['ID', 'Curso', 'Profesor', 'Correo profesor', 'Estado', 'Archivado', 'Clases', 'Inscripciones', 'Creado'],
+    ['ID', 'Curso', 'Profesor', 'Correo profesor', 'Estado', 'Archivado', 'Clases', 'Alumnos', 'Última actividad', 'Incidencias', 'Revisiones pendientes', 'Clases inactivas', 'Clases sin código', 'Creado'],
     rows.map((row) => [
       row.id,
       row.name,
@@ -103,6 +126,11 @@ export async function exportAdminSubjects({
       row.is_archived ? 'Sí' : 'No',
       row.classes_count ?? 0,
       row.enrollments_count ?? 0,
+      formatExportDateTime(row.last_activity_at),
+      row.incidents_count ?? 0,
+      row.pending_reviews_count ?? 0,
+      row.inactive_classrooms_count ?? 0,
+      row.missing_code_count ?? 0,
       formatExportDateTime(row.created_at),
     ]),
   )
@@ -112,46 +140,81 @@ export async function exportAdminClassrooms({
   search,
   subjectId = null,
   studentId = null,
+  teacherId = null,
+  active = null,
+  createdFrom = null,
+  createdTo = null,
 }: {
   search: string
   subjectId?: number | null
   studentId?: string | null
+  teacherId?: string | null
+  active?: boolean | null
+  createdFrom?: string | null
+  createdTo?: string | null
 }) {
   const rows = await fetchAllRpcRows<any>('get_admin_classrooms_page', {
     p_search: search.trim(),
     p_subject_id: subjectId,
     p_student_id: studentId,
+    p_teacher_id: teacherId,
+    p_active: active,
+    p_created_from: createdFrom,
+    p_created_to: createdTo,
   })
 
   return exportCsvFile(
     datedFilename('omniquest-clases'),
-    ['ID', 'Clase', 'Curso', 'Código', 'Estado', 'Alumnos', 'Creada'],
+    ['ID', 'Clase', 'Curso', 'Profesor', 'Correo profesor', 'Código', 'Estado', 'Alumnos', 'Última actividad', 'Incidencias', 'Revisiones pendientes', 'Creada'],
     rows.map((row) => [
       row.id,
       row.name,
       row.subject_name,
+      row.teacher_alias,
+      row.teacher_email,
       row.code,
       row.active === false ? 'Inactiva' : 'Activa',
       row.enrollments_count ?? 0,
+      formatExportDateTime(row.last_activity_at),
+      row.incidents_count ?? 0,
+      row.pending_reviews_count ?? 0,
       formatExportDateTime(row.created_at),
     ]),
   )
 }
 
-export async function exportAdminAudit(search: string) {
+export async function exportAdminAudit(filters: {
+  search: string
+  actorId?: string | null
+  action?: string | null
+  targetTable?: string | null
+  targetId?: string | null
+  from?: string | null
+  to?: string | null
+  severity?: string | null
+}) {
   const rows = await fetchAllRpcRows<any>('get_admin_audit_logs_page', {
-    p_search: search.trim() || null,
+    p_search: filters.search.trim() || null,
+    p_actor_id: filters.actorId || null,
+    p_action: filters.action || null,
+    p_target_table: filters.targetTable || null,
+    p_target_id: filters.targetId || null,
+    p_from: filters.from || null,
+    p_to: filters.to || null,
+    p_severity: filters.severity || null,
   })
 
   return exportCsvFile(
     datedFilename('omniquest-auditoria'),
-    ['ID', 'Admin ID', 'Acción', 'Tabla', 'Objetivo', 'Metadata', 'Fecha'],
+    ['ID', 'Actor', 'Correo actor', 'Acción', 'Entidad', 'Objetivo', 'Severidad', 'Metadata', 'Fecha'],
     rows.map((row) => [
       row.id,
-      row.admin_id,
+      row.actor_alias,
+      row.actor_email,
       row.action,
       row.target_table,
       row.target_id,
+      row.severity,
       JSON.stringify(row.metadata || {}),
       formatExportDateTime(row.created_at),
     ]),

@@ -1107,6 +1107,10 @@ export type Database = {
           p_subject_id?: number | null
           p_classroom_id?: number | null
           p_profile_id?: string | null
+          p_active?: boolean | null
+          p_activity_state?: string | null
+          p_created_from?: string | null
+          p_created_to?: string | null
           p_limit?: number | null
           p_offset?: number | null
         }
@@ -1119,6 +1123,8 @@ export type Database = {
           created_at: string
           subject_count: number
           enrollment_count: number
+          last_activity_at: string | null
+          activity_state: string
           total_count: number
         }[]
       }
@@ -1127,6 +1133,9 @@ export type Database = {
           p_search?: string | null
           p_teacher_id?: string | null
           p_archived?: boolean | null
+          p_active?: boolean | null
+          p_created_from?: string | null
+          p_created_to?: string | null
           p_limit?: number | null
           p_offset?: number | null
         }
@@ -1141,6 +1150,11 @@ export type Database = {
           teacher_email: string | null
           classes_count: number
           enrollments_count: number
+          last_activity_at: string | null
+          incidents_count: number
+          pending_reviews_count: number
+          inactive_classrooms_count: number
+          missing_code_count: number
           total_count: number
         }[]
       }
@@ -1149,6 +1163,10 @@ export type Database = {
           p_search?: string | null
           p_subject_id?: number | null
           p_student_id?: string | null
+          p_teacher_id?: string | null
+          p_active?: boolean | null
+          p_created_from?: string | null
+          p_created_to?: string | null
           p_limit?: number | null
           p_offset?: number | null
         }
@@ -1160,7 +1178,68 @@ export type Database = {
           active: boolean | null
           created_at: string
           subject_name: string | null
+          teacher_id: string | null
+          teacher_alias: string | null
+          teacher_email: string | null
           enrollments_count: number
+          last_activity_at: string | null
+          incidents_count: number
+          pending_reviews_count: number
+          total_count: number
+        }[]
+      }
+      get_admin_audit_logs_page: {
+        Args: {
+          p_search?: string | null
+          p_actor_id?: string | null
+          p_action?: string | null
+          p_target_table?: string | null
+          p_target_id?: string | null
+          p_from?: string | null
+          p_to?: string | null
+          p_severity?: string | null
+          p_limit?: number | null
+          p_offset?: number | null
+        }
+        Returns: {
+          id: number
+          admin_id: string
+          actor_alias: string | null
+          actor_email: string | null
+          action: string
+          target_table: string | null
+          target_id: string | null
+          severity: string
+          metadata: Json
+          created_at: string
+          total_count: number
+        }[]
+      }
+      get_admin_directory_filters: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_admin_profile_activity_page: {
+        Args: {
+          p_profile_id: string
+          p_search?: string | null
+          p_event_type?: string | null
+          p_from?: string | null
+          p_to?: string | null
+          p_limit?: number | null
+          p_offset?: number | null
+        }
+        Returns: {
+          event_id: string
+          profile_id: string
+          event_type: string
+          title: string
+          description: string | null
+          entity_table: string | null
+          entity_id: string | null
+          severity: string
+          metadata: Json
+          occurred_at: string
           total_count: number
         }[]
       }

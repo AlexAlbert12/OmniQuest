@@ -19,6 +19,7 @@ import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import { supabase } from '../../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { useAppTheme } from '../../../lib/appTheme'
+import type { AdminConfirmationRequester } from './AdminTypedConfirmation'
 import GlobalSearchButton from '../../search/GlobalSearchButton'
 import {
   exportAdminAudit,
@@ -40,6 +41,8 @@ export type ProfileRow = {
   created_at: string
   subject_count?: number | null
   enrollment_count?: number | null
+  last_activity_at?: string | null
+  activity_state?: 'recent' | 'inactive' | 'never' | string | null
   total_count?: number | null
 }
 
@@ -54,6 +57,11 @@ export type SubjectRow = {
   teacher_email?: string | null
   classes_count?: number | null
   enrollments_count?: number | null
+  last_activity_at?: string | null
+  incidents_count?: number | null
+  pending_reviews_count?: number | null
+  inactive_classrooms_count?: number | null
+  missing_code_count?: number | null
   total_count?: number | null
 }
 
@@ -65,20 +73,43 @@ export type ClassroomRow = {
   active: boolean | null
   created_at: string
   subject_name?: string | null
+  teacher_id?: string | null
+  teacher_alias?: string | null
+  teacher_email?: string | null
   enrollments_count?: number | null
+  last_activity_at?: string | null
+  incidents_count?: number | null
+  pending_reviews_count?: number | null
   total_count?: number | null
 }
 
 export type AdminAuditLogRow = {
   id: number
   admin_id: string
+  actor_alias?: string | null
+  actor_email?: string | null
   action: string
   target_table: string | null
   target_id: string | null
+  severity?: 'info' | 'warning' | 'critical' | string | null
   metadata: Record<string, unknown> | null
   created_at: string
+  total_count?: number | null
 }
 
+export type AdminProfileActivityRow = {
+  event_id: string
+  profile_id: string
+  event_type: string
+  title: string
+  description: string | null
+  entity_table: string | null
+  entity_id: string | null
+  severity: 'info' | 'warning' | 'critical' | 'success' | string
+  metadata: Record<string, unknown> | null
+  occurred_at: string
+  total_count?: number | null
+}
 
 export type AdminSupportTicketRow = {
   id: number
@@ -214,6 +245,23 @@ export function confirmAction(title: string, message: string, onConfirm: () => v
     { text: 'Cancelar', style: 'cancel' },
     { text: 'Confirmar', style: 'destructive', onPress: onConfirm },
   ])
+}
+
+
+export function confirmActionAsync(title: string, message: string) {
+  return new Promise<boolean>((resolve) => {
+    if (Platform.OS === 'web') {
+      resolve(typeof window !== 'undefined' ? window.confirm(`${title}
+
+${message}`) : false)
+      return
+    }
+
+    Alert.alert(title, message, [
+      { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
+      { text: 'Confirmar', style: 'destructive', onPress: () => resolve(true) },
+    ], { cancelable: true, onDismiss: () => resolve(false) })
+  })
 }
 
 export async function fetchOptionalRows<T>(
@@ -462,29 +510,45 @@ export function useAdminRpcPage<T extends { total_count?: number | null }>(
   }
 }
 
-export function useAdminActions(data: AdminData) {
+export function useAdminActions(data: AdminData, requestConfirmation?: AdminConfirmationRequester) {
   const router = useRouter()
+
+  const requestSensitiveConfirmation = useCallback(async (
+    options: Parameters<AdminConfirmationRequester>[0],
+  ) => {
+    if (requestConfirmation) return requestConfirmation(options)
+    return confirmActionAsync(options.title, `${options.message}
+
+Escribe ${options.confirmationText} en la confirmación para continuar.`)
+  }, [requestConfirmation])
 
   const toggleProfileActive = useCallback(
     async (profile: ProfileRow) => {
       const nextActive = profile.active === false
-      confirmAction(
-        nextActive ? 'Activar usuario' : 'Desactivar usuario',
-        `${nextActive ? 'Se activará' : 'Se desactivará'} la cuenta de ${profile.alias}.`,
-        async () => {
-          try {
-            await invokeAdminAction('admin-toggle-user', {
-              active: nextActive,
-              profileId: profile.id,
-            })
-            await data.refresh()
-          } catch (error: any) {
-            showAlert('No se pudo actualizar', error.message)
-          }
-        }
-      )
+      const approved = nextActive
+        ? await confirmActionAsync('Activar usuario', `Se activará la cuenta de ${profile.alias}.`)
+        : await requestSensitiveConfirmation({
+            title: 'Desactivar usuario',
+            message: `La cuenta de ${profile.alias} dejará de poder acceder a OmniQuest. Sus datos se conservarán y podrás reactivarla más adelante.`,
+            confirmationText: 'DESACTIVAR',
+            confirmLabel: 'Desactivar cuenta',
+            destructive: true,
+            icon: 'ban-outline',
+          })
+
+      if (!approved) return
+
+      try {
+        await invokeAdminAction('admin-toggle-user', {
+          active: nextActive,
+          profileId: profile.id,
+        })
+        await data.refresh()
+      } catch (error: any) {
+        showAlert('No se pudo actualizar', error.message)
+      }
     },
-    [data]
+    [data, requestSensitiveConfirmation]
   )
 
   const resetPassword = useCallback(async (profile: ProfileRow) => {
@@ -492,6 +556,16 @@ export function useAdminActions(data: AdminData) {
       showAlert('Sin correo', 'Este usuario no tiene correo guardado en profiles.email.')
       return
     }
+
+    const approved = await requestSensitiveConfirmation({
+      title: 'Restablecer contraseña',
+      message: `Se enviará un enlace de recuperación a ${profile.email}. Esta acción quedará registrada en auditoría.`,
+      confirmationText: 'RESET',
+      confirmLabel: 'Enviar enlace',
+      destructive: true,
+      icon: 'key-outline',
+    })
+    if (!approved) return
 
     try {
       await invokeAdminAction('admin-reset-password', {
@@ -501,71 +575,87 @@ export function useAdminActions(data: AdminData) {
     } catch (error: any) {
       showAlert('No se pudo restablecer', error.message)
     }
-  }, [])
+  }, [requestSensitiveConfirmation])
 
   const deleteStudentProgress = useCallback(
     async (student: ProfileRow) => {
-      confirmAction(
-        'Eliminar progreso',
-        `Se eliminarán puntuaciones, progreso por tema e intentos de ${student.alias}. Esta acción no se puede deshacer.`,
-        async () => {
-          try {
-            await invokeAdminAction('admin-delete-student-progress', {
-              studentId: student.id,
-            })
-            await data.refresh()
-            showAlert('Progreso eliminado', `El progreso de ${student.alias} se ha eliminado.`)
-          } catch (error: any) {
-            showAlert('No se pudo eliminar progreso', error.message)
-          }
-        }
-      )
+      const approved = await requestSensitiveConfirmation({
+        title: 'Eliminar progreso académico',
+        message: `Se eliminarán puntuaciones, progreso por tema e intentos de ${student.alias}. Esta acción no se puede deshacer.`,
+        confirmationText: 'ELIMINAR',
+        confirmLabel: 'Eliminar progreso',
+        destructive: true,
+        icon: 'trash-outline',
+      })
+      if (!approved) return
+
+      try {
+        await invokeAdminAction('admin-delete-student-progress', {
+          studentId: student.id,
+        })
+        await data.refresh()
+        showAlert('Progreso eliminado', `El progreso de ${student.alias} se ha eliminado.`)
+      } catch (error: any) {
+        showAlert('No se pudo eliminar progreso', error.message)
+      }
     },
-    [data]
+    [data, requestSensitiveConfirmation]
   )
 
   const toggleCourseArchive = useCallback(
     async (subject: SubjectRow) => {
       const archive = !subject.is_archived
-      confirmAction(
-        archive ? 'Archivar curso' : 'Restaurar curso',
-        `${archive ? 'Se archivará' : 'Se restaurará'} el curso ${subject.name}.`,
-        async () => {
-          try {
-            await invokeAdminAction('admin-archive-course', {
-              archive,
-              subjectId: subject.id,
-            })
-            await data.refresh()
-          } catch (error: any) {
-            showAlert('No se pudo actualizar el curso', error.message)
-          }
-        }
-      )
+      const approved = archive
+        ? await requestSensitiveConfirmation({
+            title: 'Archivar curso',
+            message: `El curso ${subject.name} dejará de estar operativo para el alumnado. El contenido y el historial se conservarán.`,
+            confirmationText: 'ARCHIVAR',
+            confirmLabel: 'Archivar curso',
+            destructive: true,
+            icon: 'archive-outline',
+          })
+        : await confirmActionAsync('Restaurar curso', `Se restaurará el curso ${subject.name}.`)
+      if (!approved) return
+
+      try {
+        await invokeAdminAction('admin-archive-course', {
+          archive,
+          subjectId: subject.id,
+        })
+        await data.refresh()
+      } catch (error: any) {
+        showAlert('No se pudo actualizar el curso', error.message)
+      }
     },
-    [data]
+    [data, requestSensitiveConfirmation]
   )
 
   const toggleClassroomActive = useCallback(
     async (classroom: ClassroomRow) => {
       const nextActive = classroom.active === false
-      confirmAction(
-        nextActive ? 'Activar clase' : 'Desactivar clase',
-        `${nextActive ? 'Se activará' : 'Se desactivará'} la clase ${classroom.name}.`,
-        async () => {
-          try {
-            await invokeAdminAction('admin-deactivate-classroom', {
-              active: nextActive,
-              classroomId: classroom.id,
-            })
-            await data.refresh()
-          } catch (error: any) {
-            showAlert('No se pudo actualizar la clase', error.message)
-          }
-        }
-      )
+      const approved = nextActive
+        ? await confirmActionAsync('Activar clase', `Se activará la clase ${classroom.name}.`)
+        : await requestSensitiveConfirmation({
+            title: 'Desactivar clase',
+            message: `La clase ${classroom.name} dejará de aceptar actividad e incorporaciones hasta que vuelva a activarse.`,
+            confirmationText: 'DESACTIVAR',
+            confirmLabel: 'Desactivar clase',
+            destructive: true,
+            icon: 'ban-outline',
+          })
+      if (!approved) return
+
+      try {
+        await invokeAdminAction('admin-deactivate-classroom', {
+          active: nextActive,
+          classroomId: classroom.id,
+        })
+        await data.refresh()
+      } catch (error: any) {
+        showAlert('No se pudo actualizar la clase', error.message)
+      }
     },
-    [data]
+    [data, requestSensitiveConfirmation]
   )
 
   const copyClassroomCode = useCallback(async (classroom: ClassroomRow) => {
@@ -583,6 +673,14 @@ export function useAdminActions(data: AdminData) {
     showAlert('Código de clase', classroom.code)
   }, [])
 
+  const viewProfileActivity = useCallback((profile: ProfileRow) => {
+    router.push(`/(admin)/user/${profile.id}/activity` as any)
+  }, [router])
+
+  const viewRelatedAudit = useCallback((targetTable: string, targetId: string | number) => {
+    router.push(`/(admin)/audit?targetTable=${encodeURIComponent(targetTable)}&targetId=${encodeURIComponent(String(targetId))}` as any)
+  }, [router])
+
   return {
     router,
     toggleProfileActive,
@@ -591,6 +689,8 @@ export function useAdminActions(data: AdminData) {
     toggleCourseArchive,
     toggleClassroomActive,
     copyClassroomCode,
+    viewProfileActivity,
+    viewRelatedAudit,
   }
 }
 
@@ -1022,7 +1122,7 @@ export function AdminListToolbar({
 }: {
   exporting: boolean
   onChangeSearch: (value: string) => void
-  onExport: () => void
+  onExport?: () => void
   placeholder: string
   search: string
 }) {
@@ -1031,17 +1131,19 @@ export function AdminListToolbar({
       <View className="min-w-[240px] flex-1">
         <AdminSearch value={search} onChangeText={onChangeSearch} placeholder={placeholder} />
       </View>
-      <Pressable
-        accessibilityLabel="Exportar listado filtrado a CSV"
-        accessibilityRole="button"
-        disabled={exporting}
-        onPress={onExport}
-        className="h-12 flex-row items-center justify-center gap-2 rounded-xl border border-[#35578A] bg-[#102A54] px-4"
-        style={({ pressed }) => ({ opacity: exporting ? 0.55 : pressed ? 0.78 : 1 })}
-      >
-        {exporting ? <ActivityIndicator color="#9FD6FF" /> : <Ionicons name="download-outline" size={18} color="#9FD6FF" />}
-        <Text className="font-black text-[#DDE7F4]">{exporting ? 'Exportando...' : 'Exportar CSV'}</Text>
-      </Pressable>
+      {onExport ? (
+        <Pressable
+          accessibilityLabel="Exportar listado filtrado a CSV"
+          accessibilityRole="button"
+          disabled={exporting}
+          onPress={onExport}
+          className="h-12 flex-row items-center justify-center gap-2 rounded-xl border border-[#35578A] bg-[#102A54] px-4"
+          style={({ pressed }) => ({ opacity: exporting ? 0.55 : pressed ? 0.78 : 1 })}
+        >
+          {exporting ? <ActivityIndicator color="#9FD6FF" /> : <Ionicons name="download-outline" size={18} color="#9FD6FF" />}
+          <Text className="font-black text-[#DDE7F4]">{exporting ? 'Exportando...' : 'Exportar CSV'}</Text>
+        </Pressable>
+      ) : null}
     </View>
   )
 }
@@ -1243,6 +1345,9 @@ export type RowAction = {
 }
 
 export function ProfileRowCard({ actions, meta, profile }: { actions: RowAction[]; meta: string; profile: ProfileRow }) {
+  const roleLabel = profile.role_id === 'teacher' ? 'Profesor' : profile.role_id === 'admin' ? 'Administrador' : 'Alumno'
+  const activityLabel = profile.last_activity_at ? `Actividad ${formatAuditDate(profile.last_activity_at)}` : 'Sin actividad registrada'
+
   return (
     <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
       <View className="flex-row flex-wrap items-center gap-4">
@@ -1254,7 +1359,11 @@ export function ProfileRowCard({ actions, meta, profile }: { actions: RowAction[
           <Text className="mt-1 text-[12px] text-[#8FA7C7]">{profile.email || 'Sin correo guardado'}</Text>
         </View>
         <StatusPill active={profile.active !== false} />
-        <Text className="text-[12px] font-semibold text-[#AFC2DB]">{meta}</Text>
+      </View>
+      <View className="mt-3 flex-row flex-wrap gap-2">
+        <MiniPill icon={profile.role_id === 'teacher' ? 'school-outline' : 'person-outline'} label={roleLabel} />
+        <MiniPill icon="layers-outline" label={meta} />
+        <MiniPill icon="time-outline" label={activityLabel} />
       </View>
       <RowActions actions={actions} />
     </View>
@@ -1274,19 +1383,34 @@ export function CourseRowCard({
   subject: SubjectRow
   teacher?: ProfileRow
 }) {
+  const incidentCount = subject.incidents_count ?? 0
+  const statusLabel = subject.is_archived ? 'Archivado' : subject.active === false ? 'Inactivo' : 'Activo'
+
   return (
     <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
-      <View className="flex-row flex-wrap items-center justify-between gap-3">
+      <View className="flex-row flex-wrap items-start justify-between gap-3">
         <View className="min-w-[240px] flex-1">
           <Text className="font-black text-white">{subject.name}</Text>
-          <Text className="mt-1 text-[12px] text-[#8FA7C7]">Profesor: {teacher?.alias || 'Sin asignar'}</Text>
+          <Text className="mt-1 text-[12px] text-[#8FA7C7]">
+            Profesor propietario: {teacher?.alias || subject.teacher_alias || 'Sin asignar'}
+          </Text>
+          {teacher?.email || subject.teacher_email ? (
+            <Text className="mt-1 text-[11px] text-[#6F86A8]">{teacher?.email || subject.teacher_email}</Text>
+          ) : null}
         </View>
-        <StatusPill active={subject.active !== false && !subject.is_archived} label={subject.is_archived ? 'Archivado' : undefined} />
+        <StatusPill active={subject.active !== false && !subject.is_archived} label={statusLabel} />
       </View>
       <View className="mt-3 flex-row flex-wrap gap-2">
         <MiniPill icon="albums-outline" label={`${classesCount} clase(s)`} />
-        <MiniPill icon="people-outline" label={`${enrollmentsCount} inscripción(es)`} />
+        <MiniPill icon="people-outline" label={`${enrollmentsCount} alumno(s)`} />
+        <MiniPill icon="time-outline" label={subject.last_activity_at ? `Última actividad ${formatAuditDate(subject.last_activity_at)}` : 'Sin actividad'} />
+        <MiniPill icon={incidentCount > 0 ? 'warning-outline' : 'checkmark-circle-outline'} label={`${incidentCount} incidencia(s)`} />
       </View>
+      {incidentCount > 0 ? (
+        <Text className="mt-3 text-[11px] leading-4 text-[#FBBF24]">
+          {subject.pending_reviews_count || 0} revisiones pendientes · {subject.inactive_classrooms_count || 0} clases inactivas · {subject.missing_code_count || 0} clases sin código
+        </Text>
+      ) : null}
       <RowActions actions={actions} />
     </View>
   )
@@ -1303,6 +1427,8 @@ export function ClassroomRowCard({
   enrollmentsCount: number
   subject?: SubjectRow
 }) {
+  const incidentCount = classroom.incidents_count ?? 0
+
   return (
     <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
       <View className="flex-row flex-wrap items-center gap-4">
@@ -1311,12 +1437,22 @@ export function ClassroomRowCard({
         </View>
         <View className="min-w-[240px] flex-1">
           <Text className="font-black text-white">{classroom.name}</Text>
-          <Text className="mt-1 text-[12px] text-[#8FA7C7]">{subject?.name || 'Curso no disponible'}</Text>
+          <Text className="mt-1 text-[12px] text-[#8FA7C7]">{subject?.name || classroom.subject_name || 'Curso no disponible'}</Text>
+          <Text className="mt-1 text-[11px] text-[#6F86A8]">Profesor propietario: {classroom.teacher_alias || 'Sin asignar'}</Text>
         </View>
         {classroom.code ? <Text className="rounded-lg bg-[#102A54] px-3 py-2 font-mono text-[12px] font-black text-[#9FD6FF]">{classroom.code}</Text> : null}
-        <MiniPill icon="people-outline" label={`${enrollmentsCount} alumno(s)`} />
         <StatusPill active={classroom.active !== false} />
       </View>
+      <View className="mt-3 flex-row flex-wrap gap-2">
+        <MiniPill icon="people-outline" label={`${enrollmentsCount} alumno(s)`} />
+        <MiniPill icon="time-outline" label={classroom.last_activity_at ? `Última actividad ${formatAuditDate(classroom.last_activity_at)}` : 'Sin actividad'} />
+        <MiniPill icon={incidentCount > 0 ? 'warning-outline' : 'checkmark-circle-outline'} label={`${incidentCount} incidencia(s)`} />
+      </View>
+      {incidentCount > 0 ? (
+        <Text className="mt-3 text-[11px] leading-4 text-[#FBBF24]">
+          {classroom.pending_reviews_count || 0} revisiones pendientes{classroom.code ? '' : ' · clase sin código'}{classroom.active === false ? ' · clase inactiva' : ''}
+        </Text>
+      ) : null}
       <RowActions actions={actions} />
     </View>
   )
@@ -1341,6 +1477,9 @@ export function RecentAuditPanel({ data }: { data: AdminData }) {
 export function AuditLogCard({ compact, data, log }: { compact?: boolean; data: AdminData; log: AdminAuditLogRow }) {
   const admin = data.profiles.find((profile) => profile.id === log.admin_id)
   const targetLabel = getAuditTargetLabel(log)
+  const actorLabel = log.actor_alias || admin?.alias || 'Admin desconocido'
+  const severity = log.severity || getAdminAuditSeverity(log.action)
+  const severityMeta = getAdminAuditSeverityMeta(severity)
 
   return (
     <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
@@ -1348,10 +1487,15 @@ export function AuditLogCard({ compact, data, log }: { compact?: boolean; data: 
         <View className="min-w-[220px] flex-1">
           <Text className="font-black text-white">{getAuditActionLabel(log.action)}</Text>
           <Text className="mt-1 text-[12px] text-[#8FA7C7]">
-            {admin?.alias || 'Admin desconocido'} · {formatAuditDate(log.created_at)}
+            {actorLabel} · {formatAuditDate(log.created_at)}
           </Text>
         </View>
-        <MiniPill icon="shield-checkmark-outline" label={log.target_table || 'sistema'} />
+        <View className="flex-row flex-wrap items-center gap-2">
+          <View className="rounded-full px-3 py-1" style={{ backgroundColor: severityMeta.background }}>
+            <Text className="text-[10px] font-black uppercase" style={{ color: severityMeta.color }}>{severityMeta.label}</Text>
+          </View>
+          <MiniPill icon="shield-checkmark-outline" label={log.target_table || 'sistema'} />
+        </View>
       </View>
 
       <Text className="mt-3 text-[13px] text-[#DDE7F4]">{targetLabel}</Text>
@@ -1364,6 +1508,19 @@ export function AuditLogCard({ compact, data, log }: { compact?: boolean; data: 
     </View>
   )
 }
+
+export function getAdminAuditSeverity(action: string) {
+  if (/delete|remove|critical/i.test(action) || action === 'admin.student.delete_progress') return 'critical'
+  if (/deactivate|archive|reset/i.test(action)) return 'warning'
+  return 'info'
+}
+
+export function getAdminAuditSeverityMeta(severity: string) {
+  if (severity === 'critical') return { label: 'Crítica', color: '#FB7185', background: '#3B1D2A' }
+  if (severity === 'warning') return { label: 'Advertencia', color: '#FBBF24', background: '#3A2A0B' }
+  return { label: 'Información', color: '#9FD6FF', background: '#102A54' }
+}
+
 
 export function getAuditActionLabel(action: string) {
   const labels: Record<string, string> = {

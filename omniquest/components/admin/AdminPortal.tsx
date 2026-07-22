@@ -5,3 +5,5 @@ export { AdminCoursesScreen, AdminCoursesSection } from './portal/AdminCoursesSe
 export { AdminClassroomsScreen, AdminClassroomsSection } from './portal/AdminClassroomsSection'
 export { AdminSupportScreen, AdminSupportSection } from './portal/AdminSupportSection'
 export { AdminAuditScreen, AdminAuditSection } from './portal/AdminAuditSection'
+
+export { default as AdminProfileActivityScreen } from './portal/AdminProfileActivityScreen'

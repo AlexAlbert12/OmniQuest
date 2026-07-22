@@ -20,7 +20,7 @@ export default function AdminSearchBar({
       onChangeSearch={onChangeSearch}
       placeholder={placeholder}
       exporting={exporting}
-      onExport={onExport || (() => undefined)}
+      onExport={onExport}
     />
   )
 }

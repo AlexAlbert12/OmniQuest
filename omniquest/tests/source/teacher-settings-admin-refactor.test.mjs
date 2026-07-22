@@ -10,7 +10,7 @@ test('teacher settings separate personal and teaching preferences', () => {
   const route = read('app/(student)/settings.tsx')
   const sections = read('components/settings/TeacherSettingsSections.tsx')
   const hook = read('hooks/useSettingsData.ts')
-  const migration = read('supabase/migrations/20260722100000_teacher_preferences.sql')
+  const migration = read('supabase/migrations/20260722200000_teacher_preferences.sql')
 
   assert.match(route, /Ajustes personales/)
   assert.match(route, /Preferencias docentes/)
