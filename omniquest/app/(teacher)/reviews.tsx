@@ -93,7 +93,7 @@ export default function TeacherReviewsScreen() {
       if (!teacherId) throw new Error('No se ha encontrado la sesión del profesor.')
 
       const [queueResult, subjectsResult, classroomsResult] = await Promise.all([
-        (supabase.rpc as any)('get_teacher_manual_review_queue', {
+        supabase.rpc('get_teacher_manual_review_queue', {
           p_subject_id: subjectId,
           p_classroom_id: classroomId,
           p_status: status === 'all' ? null : status,
@@ -144,7 +144,7 @@ export default function TeacherReviewsScreen() {
     let nextRow = row
     if (row.status === 'pending' || row.status === 'needs_changes') {
       try {
-        const { error } = await (supabase.rpc as any)('claim_open_answer_attempt', { p_attempt_history_id: row.id })
+        const { error } = await supabase.rpc('claim_open_answer_attempt', { p_attempt_history_id: row.id })
         if (!error) nextRow = { ...row, status: 'in_review' }
       } catch {
         // The detail can still be opened if another teacher/admin already claimed it.
@@ -307,7 +307,7 @@ function ReviewDetailModal({ row, visible, onClose, onChanged }: { row: ReviewRo
     setLoading(true)
     setErrorMessage(null)
     try {
-      const { data, error } = await (supabase.rpc as any)('get_manual_review_thread', { p_attempt_history_id: row.id })
+      const { data, error } = await supabase.rpc('get_manual_review_thread', { p_attempt_history_id: row.id })
       if (error) throw error
       setComments((data || []) as ReviewComment[])
     } catch (error: any) {
@@ -326,7 +326,7 @@ function ReviewDetailModal({ row, visible, onClose, onChanged }: { row: ReviewRo
     if (!row || !comment.trim()) return
     setBusyAction('comment')
     try {
-      const { error } = await (supabase.rpc as any)('add_manual_review_comment', {
+      const { error } = await supabase.rpc('add_manual_review_comment', {
         p_attempt_history_id: row.id,
         p_body: comment.trim(),
         p_audience: audience,
@@ -346,7 +346,7 @@ function ReviewDetailModal({ row, visible, onClose, onChanged }: { row: ReviewRo
     setBusyAction(status)
     setErrorMessage(null)
     try {
-      const { error } = await (supabase.rpc as any)('review_open_answer_attempt_v2', {
+      const { error } = await supabase.rpc('review_open_answer_attempt_v2', {
         p_attempt_history_id: row.id,
         p_status: status,
         p_notes: comment.trim() || null,

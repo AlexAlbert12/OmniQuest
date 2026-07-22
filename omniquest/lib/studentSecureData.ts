@@ -157,7 +157,7 @@ export async function fetchStudentAttemptHistoryPage({
 }: StudentAttemptHistoryPageFilters = {}): Promise<StudentAttemptHistoryPage> {
   const safePageSize = Math.min(Math.max(pageSize, 1), 100)
   const safePage = Math.max(page, 0)
-  const { data, error } = await (supabase.rpc as any)('get_student_attempt_history_page', {
+  const { data, error } = await supabase.rpc('get_student_attempt_history_page', {
     p_status: status,
     p_search: search.trim() || null,
     p_subject_id: subjectId,

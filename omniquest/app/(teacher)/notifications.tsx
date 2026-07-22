@@ -98,7 +98,7 @@ export default function TeacherNotificationsScreen() {
       const subjectIds = (subjectsResult.data || []).map((subject) => Number(subject.id))
 
       const [reviewResult, auditResult, enrollmentsResult, scoresResult] = await Promise.all([
-        (supabase.rpc as any)('get_teacher_manual_review_queue', {
+        supabase.rpc('get_teacher_manual_review_queue', {
           p_subject_id: null,
           p_classroom_id: null,
           p_status: 'pending',
@@ -106,7 +106,7 @@ export default function TeacherNotificationsScreen() {
           p_limit: 1,
           p_offset: 0,
         }),
-        (supabase.rpc as any)('get_teacher_audit_logs_page', {
+        supabase.rpc('get_teacher_audit_logs_page', {
           p_category: 'all',
           p_search: null,
           p_limit: 1,

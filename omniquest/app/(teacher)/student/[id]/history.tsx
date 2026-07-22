@@ -303,7 +303,7 @@ export default function TeacherStudentHistoryScreen() {
       }
 
       const [attemptsResult, subjectScoresResult, topicScoresResult, questionsResult] = await Promise.all([
-        (supabase.rpc as any)('get_teacher_student_attempts_page', {
+        supabase.rpc('get_teacher_student_attempts_page', {
           p_student_id: studentId,
           p_subject_id: Number.isFinite(selectedSubjectId) ? selectedSubjectId : null,
           p_classroom_id: Number.isFinite(selectedClassroomId) ? selectedClassroomId : null,

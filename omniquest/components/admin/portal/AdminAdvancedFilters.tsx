@@ -39,7 +39,7 @@ export function useAdminDirectoryFilters() {
     let cancelled = false
     const load = async () => {
       setLoading(true)
-      const { data, error } = await (supabase.rpc as any)('get_admin_directory_filters')
+      const { data, error } = await supabase.rpc('get_admin_directory_filters')
       if (!cancelled) {
         if (error) {
           console.warn('[admin filters] No se pudieron cargar las opciones:', error.message)

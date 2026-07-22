@@ -79,7 +79,7 @@ export async function registerCurrentDeviceForPush(): Promise<PushRegistrationRe
     const appVersion = Constants.expoConfig?.version || null
     const deviceName = Device.deviceName || Device.modelName || null
 
-    const { error } = await (supabase.rpc as any)('register_push_token', {
+    const { error } = await supabase.rpc('register_push_token', {
       p_expo_push_token: token,
       p_platform: Platform.OS,
       p_device_name: deviceName,
@@ -101,7 +101,7 @@ export async function deactivateCurrentDevicePushToken() {
   const token = await AsyncStorage.getItem(PUSH_TOKEN_STORAGE_KEY)
   if (!token) return
 
-  const { error } = await (supabase.rpc as any)('deactivate_push_token', {
+  const { error } = await supabase.rpc('deactivate_push_token', {
     p_expo_push_token: token,
   })
   if (error) throw error

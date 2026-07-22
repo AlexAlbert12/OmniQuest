@@ -80,7 +80,7 @@ function normalizeFrame(row: RpcFrame | null | undefined): AvatarFrame | null {
 }
 
 export async function fetchAvatarCustomizationOptions(): Promise<AvatarCustomizationOptions> {
-  const { data, error } = await (supabase.rpc as any)('get_avatar_customization_options')
+  const { data, error } = await supabase.rpc('get_avatar_customization_options')
   if (error) throw error
 
   const payload = data && typeof data === 'object' && !Array.isArray(data)
@@ -115,7 +115,7 @@ export async function equipProfileCosmetics({
   frameKey: string | null
   featuredBadgeId: string | null
 }): Promise<ProfileCosmetics> {
-  const { data, error } = await (supabase.rpc as any)('equip_profile_cosmetics', {
+  const { data, error } = await supabase.rpc('equip_profile_cosmetics', {
     p_frame_key: frameKey,
     p_featured_badge_id: featuredBadgeId,
   })
@@ -135,7 +135,7 @@ export async function fetchProfileCosmeticsForUsers(userIds: string[]): Promise<
   const uniqueUserIds = Array.from(new Set(userIds.filter(Boolean)))
   if (uniqueUserIds.length === 0) return new Map()
 
-  const { data, error } = await (supabase.rpc as any)('get_profile_cosmetics', {
+  const { data, error } = await supabase.rpc('get_profile_cosmetics', {
     p_user_ids: uniqueUserIds,
   })
 

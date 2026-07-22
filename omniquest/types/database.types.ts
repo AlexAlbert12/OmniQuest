@@ -90,6 +90,244 @@ export type Database = {
           },
         ]
       }
+      analytics_events: {
+        Row: {
+          attempt_id: string | null
+          classroom_id: number | null
+          event_name: string
+          id: number
+          occurred_at: string
+          properties: Json
+          role: string | null
+          session_id: string | null
+          subject_id: number | null
+          topic_id: number | null
+          user_id: string | null
+        }
+        Insert: {
+          attempt_id?: string | null
+          classroom_id?: number | null
+          event_name: string
+          id?: number
+          occurred_at?: string
+          properties?: Json
+          role?: string | null
+          session_id?: string | null
+          subject_id?: number | null
+          topic_id?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          attempt_id?: string | null
+          classroom_id?: number | null
+          event_name?: string
+          id?: number
+          occurred_at?: string
+          properties?: Json
+          role?: string | null
+          session_id?: string | null
+          subject_id?: number | null
+          topic_id?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "game_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_events_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_events_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_events_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "subject_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      avatar_frames: {
+        Row: {
+          created_at: string
+          description: string | null
+          frame_key: string
+          is_active: boolean
+          minimum_level: number
+          name: string
+          primary_color: string
+          rarity: string
+          required_badge_id: string | null
+          secondary_color: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          frame_key: string
+          is_active?: boolean
+          minimum_level?: number
+          name: string
+          primary_color: string
+          rarity?: string
+          required_badge_id?: string | null
+          secondary_color: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          frame_key?: string
+          is_active?: boolean
+          minimum_level?: number
+          name?: string
+          primary_color?: string
+          rarity?: string
+          required_badge_id?: string | null
+          secondary_color?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      game_answer_submission_receipts: {
+        Row: {
+          created_at: string
+          result: Json
+          student_id: string
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          result: Json
+          student_id: string
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          result?: Json
+          student_id?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_answer_submission_receipts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_cosmetics: {
+        Row: {
+          created_at: string
+          equipped_frame_key: string | null
+          featured_badge_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          equipped_frame_key?: string | null
+          featured_badge_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          equipped_frame_key?: string | null
+          featured_badge_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_cosmetics_equipped_frame_key_fkey"
+            columns: ["equipped_frame_key"]
+            isOneToOne: false
+            referencedRelation: "avatar_frames"
+            referencedColumns: ["frame_key"]
+          },
+          {
+            foreignKeyName: "profile_cosmetics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_tokens: {
+        Row: {
+          active: boolean
+          app_version: string | null
+          created_at: string
+          device_name: string | null
+          expo_push_token: string
+          id: number
+          last_seen_at: string
+          platform: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          app_version?: string | null
+          created_at?: string
+          device_name?: string | null
+          expo_push_token: string
+          id?: number
+          last_seen_at?: string
+          platform: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          app_version?: string | null
+          created_at?: string
+          device_name?: string | null
+          expo_push_token?: string
+          id?: number
+          last_seen_at?: string
+          platform?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       answers: {
         Row: {
           id: number
@@ -961,6 +1199,7 @@ export type Database = {
           date_format: string | null
           time_format: string | null
           week_start: string | null
+          haptics_enabled: boolean
           created_at: string
           updated_at: string
         }
@@ -971,6 +1210,7 @@ export type Database = {
           date_format?: string | null
           time_format?: string | null
           week_start?: string | null
+          haptics_enabled?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -981,6 +1221,7 @@ export type Database = {
           date_format?: string | null
           time_format?: string | null
           week_start?: string | null
+          haptics_enabled?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -1246,6 +1487,192 @@ export type Database = {
       get_admin_enrollments_summary: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      admin_update_support_ticket: {
+        Args: {
+          p_admin_response?: string | null
+          p_priority?: string | null
+          p_status: string
+          p_ticket_id: number
+        }
+        Returns: Json
+      }
+      create_teacher_notification: {
+        Args: {
+          p_classroom_id?: number | null
+          p_message?: string | null
+          p_student_id: string
+          p_subject_id: number
+          p_type: string
+        }
+        Returns: Json
+      }
+      deactivate_push_token: {
+        Args: { p_expo_push_token?: string | null }
+        Returns: number
+      }
+      equip_profile_cosmetics: {
+        Args: {
+          p_featured_badge_id?: string | null
+          p_frame_key?: string | null
+        }
+        Returns: Json
+      }
+      get_admin_support_tickets_page: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_priority?: string | null
+          p_role?: string | null
+          p_search?: string | null
+          p_status?: string | null
+        }
+        Returns: {
+          admin_response: string | null
+          assigned_admin_id: string | null
+          category: string
+          contact_email: string | null
+          created_at: string
+          id: number
+          last_response_at: string | null
+          message: string
+          priority: string
+          resolved_at: string | null
+          role: string
+          status: string
+          subject: string
+          total_count: number
+          updated_at: string
+          user_alias: string | null
+          user_email: string | null
+          user_id: string
+        }[]
+      }
+      get_admin_usage_analytics: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
+      get_avatar_customization_options: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_profile_cosmetics: {
+        Args: { p_user_ids?: string[] | null }
+        Returns: {
+          description: string | null
+          featured_badge_id: string | null
+          frame_key: string
+          minimum_level: number
+          name: string
+          primary_color: string
+          rarity: string
+          required_badge_id: string | null
+          secondary_color: string
+          user_id: string
+        }[]
+      }
+      get_ranking_profiles_page: {
+        Args: {
+          p_classroom_id?: number | null
+          p_limit?: number
+          p_max_points?: number | null
+          p_min_points?: number | null
+          p_offset?: number
+          p_scope?: string
+        }
+        Returns: Json
+      }
+      get_student_attempt_history_page: {
+        Args: {
+          p_classroom_id?: number | null
+          p_difficulty?: number | null
+          p_limit?: number
+          p_offset?: number
+          p_search?: string | null
+          p_status?: string
+          p_subject_id?: number | null
+          p_topic_id?: number | null
+        }
+        Returns: Json
+      }
+      get_teacher_audit_logs_page: {
+        Args: {
+          p_category?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string | null
+        }
+        Returns: {
+          action: string
+          created_at: string
+          id: number
+          metadata: Json
+          target_id: string | null
+          target_table: string | null
+          teacher_id: string
+          total_count: number
+        }[]
+      }
+      get_teacher_student_attempts_page: {
+        Args: {
+          p_classroom_id?: number | null
+          p_limit?: number
+          p_offset?: number
+          p_student_id: string
+          p_subject_id?: number | null
+        }
+        Returns: Json
+      }
+      register_push_token: {
+        Args: {
+          p_app_version?: string | null
+          p_device_name?: string | null
+          p_expo_push_token: string
+          p_platform: string
+        }
+        Returns: Json
+      }
+      search_app_entities: {
+        Args: {
+          p_limit?: number
+          p_query: string
+        }
+        Returns: {
+          classroom_id: number | null
+          entity_id: string
+          entity_type: string
+          relevance: number
+          role_id: string | null
+          subject_id: number | null
+          subtitle: string | null
+          title: string
+        }[]
+      }
+      submit_answer_resumable: {
+        Args: {
+          p_answer_id?: number | null
+          p_answer_payload?: Json | null
+          p_answer_text?: string | null
+          p_attempt_id?: string | null
+          p_hint_used?: boolean
+          p_question_id: number
+          p_skipped?: boolean
+          p_submission_id: string
+          p_time_taken_seconds?: number | null
+        }
+        Returns: Json
+      }
+      track_usage_event: {
+        Args: {
+          p_attempt_id?: string | null
+          p_classroom_id?: number | null
+          p_event_name: string
+          p_properties?: Json
+          p_session_id?: string | null
+          p_subject_id?: number | null
+          p_topic_id?: number | null
+        }
+        Returns: number
       }
       create_notification: {
         Args: {

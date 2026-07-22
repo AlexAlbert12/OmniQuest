@@ -167,7 +167,7 @@ export default function TeacherHomeScreen() {
       const nextSubjects = (data || []) as Subject[];
       setSubjects(nextSubjects);
 
-      const pendingReviewsResult = await (supabase.rpc as any)('get_teacher_manual_review_queue', {
+      const pendingReviewsResult = await supabase.rpc('get_teacher_manual_review_queue', {
         p_subject_id: null,
         p_classroom_id: null,
         p_status: 'pending',
@@ -176,7 +176,14 @@ export default function TeacherHomeScreen() {
         p_offset: 0,
       });
       if (!pendingReviewsResult.error) {
-        setOpenReviewCount(Number(pendingReviewsResult.data?.total || 0));
+        const pendingReviewsPayload =
+          pendingReviewsResult.data &&
+          typeof pendingReviewsResult.data === 'object' &&
+          !Array.isArray(pendingReviewsResult.data)
+            ? (pendingReviewsResult.data as { total?: number | null })
+            : {};
+
+        setOpenReviewCount(Number(pendingReviewsPayload.total || 0));
       }
 
       const subjectIds = nextSubjects.map((subject) => subject.id);

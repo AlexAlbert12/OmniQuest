@@ -94,7 +94,7 @@ export function AdminSupportSection() {
 
     setSaving(true)
     try {
-      const { error } = await (supabase.rpc as any)('admin_update_support_ticket', {
+      const { error } = await supabase.rpc('admin_update_support_ticket', {
         p_ticket_id: selectedTicket.id,
         p_status: editStatus,
         p_priority: editPriority,

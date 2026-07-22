@@ -70,7 +70,7 @@ export default function GlobalSearchButton({ role, compact = false }: GlobalSear
       setLoading(true)
       setError(null)
       try {
-        const { data, error: searchError } = await (supabase.rpc as any)('search_app_entities', {
+        const { data, error: searchError } = await supabase.rpc('search_app_entities', {
           p_query: normalized,
           p_limit: 18,
         })

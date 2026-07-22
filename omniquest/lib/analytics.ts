@@ -23,7 +23,7 @@ export async function trackUsageEvent(eventName: UsageEventName, context: UsageE
   try {
     const sessionId = await getAnalyticsSessionId()
     const properties = compactProperties(context.properties)
-    const { error } = await (supabase.rpc as any)('track_usage_event', {
+    const { error } = await supabase.rpc('track_usage_event', {
       p_event_name: eventName,
       p_properties: properties,
       p_subject_id: context.subjectId ?? null,

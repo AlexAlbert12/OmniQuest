@@ -1262,7 +1262,7 @@ export function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVersion: n
     let cancelled = false
     const load = async () => {
       setLoading(true)
-      const { data, error } = await (supabase.rpc as any)('get_admin_usage_analytics', { p_days: 30 })
+      const { data, error } = await supabase.rpc('get_admin_usage_analytics', { p_days: 30 })
       if (!cancelled) {
         if (error) {
           console.warn('[admin] No se pudo cargar la analítica de uso:', error.message)

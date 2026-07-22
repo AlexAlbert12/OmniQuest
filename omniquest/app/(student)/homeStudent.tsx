@@ -220,22 +220,12 @@ export default function StudentHome() {
     ]
   }, [enrolledSubjects, hasCourses, hasPlayedFirstQuestion, router, subjectProgressRows])
 
-  const displayedRanking = useMemo(() => {
-    if (ranking.length > 0) return ranking.slice(0, 5)
-    const isGuest = profile?.role_id === 'guest'
-
-    return [
-      { id: 'demo-1', alias: 'Sofia_R', avatar: null, points: 4250 },
-      { id: 'demo-2', alias: 'Mateo09', avatar: null, points: 3890 },
-      isGuest
-        ? { id: 'demo-3', alias: 'CamilaStar', avatar: null, points: 3450 }
-        : { id: currentUserId || 'demo-me', alias, avatar: null, points: Math.max(points, 3210) },
-      { id: 'demo-4', alias: 'Lucho94', avatar: null, points: 2980 },
-    ]
-  }, [alias, currentUserId, points, profile?.role_id, ranking])
+  const displayedRanking = useMemo(() => ranking.slice(0, 5), [ranking])
 
   const rankingSummary = useMemo(
-    () => getRankingSummary(displayedRanking, currentUserId, points),
+    () => displayedRanking.length > 0
+      ? getRankingSummary(displayedRanking, currentUserId, points)
+      : null,
     [currentUserId, displayedRanking, points]
   )
 
@@ -513,7 +503,17 @@ export default function StudentHome() {
             </StudentDashboardCard>
 
             <StudentDashboardCard title="Tu posición" className={isDesktop ? 'flex-1' : ''} compact>
-              <RankingSummaryCard summary={rankingSummary} />
+              {rankingSummary ? (
+                <RankingSummaryCard summary={rankingSummary} />
+              ) : (
+                <StudentEmptyState
+                  icon="trophy-outline"
+                  omniState="thinking"
+                  omniSize={82}
+                  title="Aún no hay clasificación"
+                  message="Completa una actividad para aparecer en el ranking."
+                />
+              )}
               <CardLink label="Ver ranking" onPress={() => router.push('/(student)/ranking' as any)} />
             </StudentDashboardCard>
           </View>

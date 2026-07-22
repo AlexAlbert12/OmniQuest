@@ -359,7 +359,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     try {
       const timeLimit = currentQ.time_limit_seconds ?? 30;
       const timeTaken = timedOut ? timeLimit : Math.max(0, timeLimit - timeLeft);
-      const { data, error } = await (supabase.rpc as any)('submit_answer_resumable', {
+      const { data, error } = await supabase.rpc('submit_answer_resumable', {
         p_submission_id: pendingSubmission.submissionId,
         p_question_id: currentQ.id,
         p_answer_id: answerId ?? null,

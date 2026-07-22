@@ -1,28 +1,46 @@
 import { exportCsvFile, formatExportDateTime, slugifyFilename, type CsvValue } from './reportExports'
 import { supabase } from './supabase'
+import type { Database } from '../types/database.types'
 
 type PageRow = { total_count?: number | null }
 
-type ExportFilters = Record<string, unknown>
+type PublicFunctions = Database['public']['Functions']
+type AdminPagedRpcName =
+  | 'get_admin_profiles_page'
+  | 'get_admin_subjects_page'
+  | 'get_admin_classrooms_page'
+  | 'get_admin_audit_logs_page'
+  | 'get_admin_support_tickets_page'
+
+type AdminPagedRpcArgs<Name extends AdminPagedRpcName> = Omit<
+  PublicFunctions[Name]['Args'],
+  'p_limit' | 'p_offset'
+>
+type AdminPagedRpcRow<Name extends AdminPagedRpcName> =
+  PublicFunctions[Name]['Returns'] extends Array<infer Row> ? Row & PageRow : never
 
 const EXPORT_PAGE_SIZE = 100
 const MAX_EXPORT_ROWS = 10000
 
-async function fetchAllRpcRows<T extends PageRow>(functionName: string, filters: ExportFilters): Promise<T[]> {
-  const rows: T[] = []
+async function fetchAllRpcRows<Name extends AdminPagedRpcName>(
+  functionName: Name,
+  filters: AdminPagedRpcArgs<Name>,
+): Promise<AdminPagedRpcRow<Name>[]> {
+  const rows: AdminPagedRpcRow<Name>[] = []
   let offset = 0
   let total = Number.POSITIVE_INFINITY
 
   while (offset < total && rows.length < MAX_EXPORT_ROWS) {
-    const { data, error } = await (supabase.rpc as any)(functionName, {
+    const args = {
       ...filters,
       p_limit: EXPORT_PAGE_SIZE,
       p_offset: offset,
-    })
+    } as PublicFunctions[Name]['Args']
+    const { data, error } = await supabase.rpc(functionName, args)
 
     if (error) throw error
 
-    const page = (data || []) as T[]
+    const page = (data || []) as AdminPagedRpcRow<Name>[]
     if (page.length === 0) break
 
     rows.push(...page)
@@ -60,7 +78,7 @@ export async function exportAdminProfiles({
   createdFrom?: string | null
   createdTo?: string | null
 }) {
-  const rows = await fetchAllRpcRows<any>('get_admin_profiles_page', {
+  const rows = await fetchAllRpcRows('get_admin_profiles_page', {
     p_role: role,
     p_search: search.trim(),
     p_subject_id: subjectId,
@@ -105,7 +123,7 @@ export async function exportAdminSubjects({
   createdFrom?: string | null
   createdTo?: string | null
 }) {
-  const rows = await fetchAllRpcRows<any>('get_admin_subjects_page', {
+  const rows = await fetchAllRpcRows('get_admin_subjects_page', {
     p_search: search.trim(),
     p_teacher_id: teacherId,
     p_archived: archived,
@@ -153,7 +171,7 @@ export async function exportAdminClassrooms({
   createdFrom?: string | null
   createdTo?: string | null
 }) {
-  const rows = await fetchAllRpcRows<any>('get_admin_classrooms_page', {
+  const rows = await fetchAllRpcRows('get_admin_classrooms_page', {
     p_search: search.trim(),
     p_subject_id: subjectId,
     p_student_id: studentId,
@@ -193,7 +211,7 @@ export async function exportAdminAudit(filters: {
   to?: string | null
   severity?: string | null
 }) {
-  const rows = await fetchAllRpcRows<any>('get_admin_audit_logs_page', {
+  const rows = await fetchAllRpcRows('get_admin_audit_logs_page', {
     p_search: filters.search.trim() || null,
     p_actor_id: filters.actorId || null,
     p_action: filters.action || null,
@@ -227,7 +245,7 @@ export async function exportAdminSupport(filters: {
   priority?: string | null
   role?: string | null
 }) {
-  const rows = await fetchAllRpcRows<any>('get_admin_support_tickets_page', {
+  const rows = await fetchAllRpcRows('get_admin_support_tickets_page', {
     p_search: filters.search.trim() || null,
     p_status: filters.status || null,
     p_priority: filters.priority || null,

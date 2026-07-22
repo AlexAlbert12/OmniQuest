@@ -1,22 +1,51 @@
 # Regenerar tipos de Supabase
 
-El proyecto incluye `supabase/config.toml`, así que puedes levantar una base local reproducible desde la raíz del proyecto:
+El proyecto incluye `supabase/config.toml`, por lo que puedes levantar una base local reproducible desde la raíz:
 
 ```bash
-supabase start
-supabase db reset
+npx supabase start
+npx supabase db reset
 ```
 
-Después de aplicar todas las migraciones en local, regenera los tipos con:
+Después de aplicar todas las migraciones, regenera siempre los tipos desde el esquema real:
 
 ```bash
-npx supabase gen types typescript --local > types/database.types.ts
+npm run types:supabase
 ```
 
-Si trabajas contra una base remota:
+El script enlazado ejecuta:
 
 ```bash
-npx supabase gen types typescript --project-id TU_PROJECT_ID > types/database.types.ts
+supabase gen types typescript --linked --schema public > types/database.types.ts
 ```
 
-Este ZIP ya incluye `types/database.types.ts` actualizado manualmente según las migraciones actuales del proyecto, incluyendo `public.notifications`, `public.admin_audit_logs` y la RPC `create_notification`.
+Para una base local también puedes usar:
+
+```bash
+npx supabase gen types typescript --local --schema public > types/database.types.ts
+```
+
+El archivo incluido en este ZIP se ha actualizado con las tablas y RPC recientes, entre ellas:
+
+- `analytics_events`
+- `avatar_frames`
+- `game_answer_submission_receipts`
+- `profile_cosmetics`
+- `push_tokens`
+- `submit_answer_resumable`
+- `get_ranking_profiles_page`
+- `register_push_token`
+- `get_teacher_audit_logs_page`
+- `search_app_entities`
+- `get_admin_usage_analytics`
+- `get_profile_cosmetics`
+- `create_teacher_notification`
+
+`create_notification` es una función interna. Aunque aparezca en el tipo generado por pertenecer al esquema `public`, los roles `anon` y `authenticated` no tienen permiso para ejecutarla. El cliente debe usar RPC específicas y validadas, como `create_teacher_notification`.
+
+Después de regenerar, ejecuta:
+
+```bash
+npm run typecheck
+npm run test:source
+```

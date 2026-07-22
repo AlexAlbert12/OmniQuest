@@ -486,7 +486,7 @@ async function fetchRankingPage({
   minPoints: number | null
   maxPoints: number | null
 }): Promise<RankingPagePayload> {
-  const { data, error } = await (supabase.rpc as any)('get_ranking_profiles_page', {
+  const { data, error } = await supabase.rpc('get_ranking_profiles_page', {
     p_scope: scope,
     p_classroom_id: scope === 'class' ? classroomId : null,
     p_min_points: minPoints,
