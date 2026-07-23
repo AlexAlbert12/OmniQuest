@@ -1,6 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { errorResponse, methodNotAllowedResponse, publicError, publicErrorResponse, json } from '../_shared/errors.ts'
-import { sendExpoPushToUser } from '../_shared/push.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +12,7 @@ type RequestBody = {
   body?: string
   url?: string
   data?: Record<string, unknown>
+  priority?: 'low' | 'normal' | 'high'
 }
 
 Deno.serve(async (req) => {
@@ -30,8 +30,12 @@ Deno.serve(async (req) => {
     const authorization = req.headers.get('Authorization')
     if (!authorization) return publicErrorResponse('Necesitas iniciar sesión.', 401, 'unauthorized')
 
-    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authorization } } })
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } })
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authorization } },
+    })
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
     const { data: authData, error: authError } = await userClient.auth.getUser()
     if (authError || !authData.user) return publicErrorResponse('La sesión no es válida.', 401, 'unauthorized')
 
@@ -39,42 +43,80 @@ Deno.serve(async (req) => {
     const targetUserId = String(request.userId || '').trim()
     const title = String(request.title || '').trim()
     const body = String(request.body || '').trim()
-    if (!targetUserId || !title || !body) throw publicError('Faltan destinatario, título o mensaje.', 400, 'bad_request')
-
-    const callerId = authData.user.id
-    const { data: callerProfile } = await adminClient
-      .from('profiles')
-      .select('role_id')
-      .eq('id', callerId)
-      .maybeSingle()
-
-    const role = callerProfile?.role_id
-    let allowed = targetUserId === callerId || role === 'admin'
-
-    if (!allowed && role === 'teacher') {
-      const { data: enrollment } = await adminClient
-        .from('enrollments')
-        .select('subject_id, subjects!inner(teacher_id)')
-        .eq('student_id', targetUserId)
-        .eq('subjects.teacher_id', callerId)
-        .limit(1)
-        .maybeSingle()
-      allowed = Boolean(enrollment)
+    if (!targetUserId || !title || !body) {
+      throw publicError('Faltan destinatario, título o mensaje.', 400, 'bad_request')
+    }
+    if (title.length > 100 || body.length > 500) {
+      throw publicError('El título o el mensaje superan el límite permitido.', 400, 'bad_request')
     }
 
-    if (!allowed) throw publicError('No tienes permiso para avisar a este usuario.', 403, 'forbidden')
+    const callerId = authData.user.id
+    const { data: callerProfile, error: callerProfileError } = await adminClient
+      .from('profiles')
+      .select('role_id, active')
+      .eq('id', callerId)
+      .maybeSingle()
+    if (callerProfileError) throw callerProfileError
+    if (!callerProfile || callerProfile.active === false) {
+      throw publicError('La cuenta no está activa.', 403, 'forbidden')
+    }
 
-    const result = await sendExpoPushToUser(adminClient, targetUserId, {
-      title,
-      body,
-      data: {
+    // Teachers must use create_teacher_notification, which validates the course,
+    // classroom, enrolment and permitted message type. This generic endpoint is
+    // intentionally limited to administrators and self-notifications.
+    const isAdmin = callerProfile.role_id === 'admin'
+    if (!isAdmin && targetUserId !== callerId) {
+      throw publicError(
+        'Los profesores deben usar el aviso docente seguro asociado a un curso.',
+        403,
+        'forbidden',
+      )
+    }
+
+    const { data: targetProfile, error: targetError } = await adminClient
+      .from('profiles')
+      .select('role_id, active')
+      .eq('id', targetUserId)
+      .maybeSingle()
+    if (targetError) throw targetError
+    if (!targetProfile || targetProfile.active === false) {
+      throw publicError('El destinatario no existe o está inactivo.', 404, 'not_found')
+    }
+
+    const priority = request.priority === 'high' || request.priority === 'low'
+      ? request.priority
+      : 'normal'
+    const audience = targetProfile.role_id === 'teacher' ? 'teacher' : 'student'
+
+    const { data: notificationId, error: notificationError } = await adminClient.rpc('create_notification', {
+      p_user_id: targetUserId,
+      p_audience: audience,
+      p_type: 'announcement',
+      p_title: title,
+      p_description: body,
+      p_icon: 'notifications-outline',
+      p_color: '#8B5CF6',
+      p_action_url: request.url || null,
+      p_related_table: 'profiles',
+      p_related_id: targetUserId,
+      p_metadata: {
         ...(request.data || {}),
-        ...(request.url ? { url: request.url } : {}),
+        requested_by: callerId,
+        preference_category: 'system',
+        push_priority: priority,
       },
+      p_fingerprint: `explicit-push:${callerId}:${crypto.randomUUID()}`,
     })
+    if (notificationError) throw notificationError
 
-    return json(result)
+    return json({
+      queued: Boolean(notificationId),
+      notificationId,
+      delivery: 'notification_delivery_queue',
+    })
   } catch (error) {
-    return errorResponse(error, 'No se pudo enviar la notificación push.', { functionName: 'send-push-notification' })
+    return errorResponse(error, 'No se pudo poner en cola la notificación push.', {
+      functionName: 'send-push-notification',
+    })
   }
 })

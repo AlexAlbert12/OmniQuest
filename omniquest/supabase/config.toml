@@ -60,28 +60,31 @@ site_url = "http://localhost:8081"
 additional_redirect_urls = [
   "http://localhost:8081",
   "http://127.0.0.1:8081",
+  "http://localhost:8081/update-password",
+  "http://127.0.0.1:8081/update-password",
   "http://localhost:19006",
   "http://127.0.0.1:19006",
   "exp://localhost:8081",
-  "omniquest://"
+  "omniquest://",
+  "omniquest://update-password"
 ]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 enable_signup = true
-enable_anonymous_sign_ins = false
+enable_anonymous_sign_ins = true
 enable_manual_linking = false
-minimum_password_length = 6
-password_requirements = ""
+minimum_password_length = 8
+password_requirements = "lower_upper_letters_digits_symbols"
 
 [auth.email]
 enable_signup = true
 double_confirm_changes = true
-enable_confirmations = false
-secure_password_change = false
-max_frequency = "1s"
+enable_confirmations = true
+secure_password_change = true
+max_frequency = "1m"
 otp_length = 6
-otp_expiry = 3600
+otp_expiry = 1800
 
 [auth.sms]
 enable_signup = false
@@ -98,3 +101,6 @@ inspector_port = 8083
 enabled = true
 port = 54327
 backend = "postgres"
+
+[functions.process-notification-delivery]
+verify_jwt = false

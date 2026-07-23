@@ -8,7 +8,6 @@ import { formatDate, formatRelativeDate, getStatusMeta } from './studentUtils';
 export function StudentActionsModal({
   student,
   visible,
-  temporaryPassword,
   reminderBusy,
   onClose,
   onViewDetails,
@@ -16,13 +15,11 @@ export function StudentActionsModal({
   onRemoveFromClass,
   onResetProgress,
   onSendReminder,
-  onResendCredentials,
-  onCopyTemporaryPassword,
+  onRequestPasswordRecovery,
   onAssignActivity,
 }: {
   student: StudentRow | null
   visible: boolean
-  temporaryPassword: string | null
   reminderBusy: boolean
   onClose: () => void
   onViewDetails: (student: StudentRow) => void
@@ -30,8 +27,7 @@ export function StudentActionsModal({
   onRemoveFromClass: (student: StudentRow) => void
   onResetProgress: (student: StudentRow) => void
   onSendReminder: (student: StudentRow) => void
-  onResendCredentials: (student: StudentRow) => void
-  onCopyTemporaryPassword: (student: StudentRow) => void
+  onRequestPasswordRecovery: (student: StudentRow) => void
   onAssignActivity: (student: StudentRow) => void
 }) {
   const { width } = useWindowDimensions();
@@ -78,18 +74,10 @@ export function StudentActionsModal({
                 />
                 <ModalActionButton
                   icon="key-outline"
-                  title={reminderBusy ? 'Reenviando credenciales...' : 'Reenviar credenciales'}
-                  detail="Genera una nueva contraseña temporal y la envía por email"
-                  onPress={() => onResendCredentials(student)}
+                  title={reminderBusy ? 'Enviando enlace...' : 'Recuperar acceso'}
+                  detail="Envía un enlace de un solo uso que caduca en 30 minutos"
+                  onPress={() => onRequestPasswordRecovery(student)}
                 />
-                {temporaryPassword ? (
-                  <ModalActionButton
-                    icon="copy-outline"
-                    title="Copiar contraseña temporal"
-                    detail="Disponible solo después de reenviar credenciales"
-                    onPress={() => onCopyTemporaryPassword(student)}
-                  />
-                ) : null}
               </>
             ) : null}
             <ModalActionButton
@@ -122,27 +110,23 @@ export function StudentActionsModal({
 export function StudentDetailModal({
   student,
   visible,
-  temporaryPassword,
   reminderBusy,
   onClose,
   onAssignActivity,
   onViewHistory,
   onRemoveFromClass,
   onSendReminder,
-  onResendCredentials,
-  onCopyTemporaryPassword,
+  onRequestPasswordRecovery,
 }: {
   student: StudentRow | null
   visible: boolean
-  temporaryPassword: string | null
   reminderBusy: boolean
   onClose: () => void
   onAssignActivity: (student: StudentRow) => void
   onViewHistory: (student: StudentRow) => void
   onRemoveFromClass: (student: StudentRow) => void
   onSendReminder: (student: StudentRow) => void
-  onResendCredentials: (student: StudentRow) => void
-  onCopyTemporaryPassword: (student: StudentRow) => void
+  onRequestPasswordRecovery: (student: StudentRow) => void
 }) {
   const { width } = useWindowDimensions();
   const isPhone = width < 640;
@@ -261,10 +245,11 @@ export function StudentDetailModal({
                 <DetailSection title="Acciones de primer acceso">
                   <View className="flex-row flex-wrap gap-3">
                     <DetailActionButton icon="mail-outline" label={reminderBusy ? 'Enviando...' : 'Enviar recordatorio'} onPress={() => onSendReminder(student)} />
-                    <DetailActionButton icon="key-outline" label={reminderBusy ? 'Reenviando...' : 'Reenviar credenciales'} onPress={() => onResendCredentials(student)} />
-                    {temporaryPassword ? (
-                      <DetailActionButton icon="copy-outline" label="Copiar contraseña" onPress={() => onCopyTemporaryPassword(student)} />
-                    ) : null}
+                    <DetailActionButton
+                      icon="key-outline"
+                      label={reminderBusy ? 'Enviando enlace...' : 'Recuperar acceso'}
+                      onPress={() => onRequestPasswordRecovery(student)}
+                    />
                   </View>
                 </DetailSection>
               ) : null}

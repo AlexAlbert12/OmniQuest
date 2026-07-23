@@ -15,7 +15,7 @@
     "test:db": "supabase test db",
     "test:security": "npm run test:source && npm run test:db",
     "types:supabase": "supabase gen types typescript --linked --schema public > types/database.types.ts",
-    "deploy:push": "supabase functions deploy send-push-notification && supabase functions deploy teacher-student-reminder"
+    "deploy:push": "supabase functions deploy send-push-notification && supabase functions deploy teacher-student-reminder && supabase functions deploy process-notification-delivery --no-verify-jwt"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",

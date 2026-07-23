@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams } from 'expo-router'
 import { supabase } from '../../../lib/supabase'
 import AdminAlerts from './AdminAlerts'
+import AdminPushDeliveryPanel from './AdminPushDeliveryPanel'
 import {
   exportAdminAudit,
   exportAdminClassrooms,
@@ -79,6 +80,10 @@ export function AdminDashboard() {
 
       <View className="mt-5">
         <AdminUsageAnalyticsPanel refreshVersion={data.version} />
+      </View>
+
+      <View className="mt-5">
+        <AdminPushDeliveryPanel refreshVersion={data.version} />
       </View>
 
       <View className="mt-5">

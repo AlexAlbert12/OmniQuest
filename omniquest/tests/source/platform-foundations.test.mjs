@@ -32,13 +32,15 @@ test('push registration and server delivery are implemented', () => {
   const client = read('lib/pushNotifications.ts')
   const migration = read('supabase/migrations/20260720102000_push_notifications.sql')
   const sender = read('supabase/functions/_shared/push.ts')
+  const worker = read('supabase/functions/process-notification-delivery/index.ts')
 
   assert.match(client, /getExpoPushTokenAsync\(\{ projectId \}\)/)
   assert.match(client, /register_push_token/)
   assert.match(migration, /create table if not exists public\.push_tokens/)
   assert.match(migration, /auth\.uid\(\)/)
   assert.match(sender, /https:\/\/exp\.host\/--\/api\/v2\/push\/send/)
-  assert.match(sender, /DeviceNotRegistered/)
+  assert.match(worker, /DeviceNotRegistered/)
+  assert.match(worker, /getExpoPushReceipts/)
 })
 
 test('game answers are resumable, idempotent and retried after connectivity returns', () => {

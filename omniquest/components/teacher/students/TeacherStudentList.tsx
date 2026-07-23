@@ -121,25 +121,21 @@ export function CycleSelectButton({
 export function StudentCard({
   student,
   isWide,
-  temporaryPassword,
   reminderBusy,
   onViewDetails,
   onAssignActivity,
   onOpenActions,
   onSendReminder,
-  onResendCredentials,
-  onCopyTemporaryPassword,
+  onRequestPasswordRecovery,
 }: {
   student: StudentRow
   isWide: boolean
-  temporaryPassword: string | null
   reminderBusy: boolean
   onViewDetails: (student: StudentRow) => void
   onAssignActivity: (student: StudentRow) => void
   onOpenActions: (student: StudentRow) => void
   onSendReminder: (student: StudentRow) => void
-  onResendCredentials: (student: StudentRow) => void
-  onCopyTemporaryPassword: (student: StudentRow) => void
+  onRequestPasswordRecovery: (student: StudentRow) => void
 }) {
   const status = getStatusMeta(student.status);
   const mainContext = student.courseContexts[0];
@@ -175,11 +171,9 @@ export function StudentCard({
       {student.status === 'no_activity' ? (
         <NoActivityQuickActions
           student={student}
-          temporaryPassword={temporaryPassword}
           reminderBusy={reminderBusy}
           onSendReminder={onSendReminder}
-          onResendCredentials={onResendCredentials}
-          onCopyTemporaryPassword={onCopyTemporaryPassword}
+          onRequestPasswordRecovery={onRequestPasswordRecovery}
         />
       ) : null}
 
@@ -207,18 +201,14 @@ export function StudentCard({
 
 export function NoActivityQuickActions({
   student,
-  temporaryPassword,
   reminderBusy,
   onSendReminder,
-  onResendCredentials,
-  onCopyTemporaryPassword,
+  onRequestPasswordRecovery,
 }: {
   student: StudentRow
-  temporaryPassword: string | null
   reminderBusy: boolean
   onSendReminder: (student: StudentRow) => void
-  onResendCredentials: (student: StudentRow) => void
-  onCopyTemporaryPassword: (student: StudentRow) => void
+  onRequestPasswordRecovery: (student: StudentRow) => void
 }) {
   return (
     <View className="mt-4 rounded-xl border border-[#2B3F70] bg-[#101B3A] p-3">
@@ -235,17 +225,10 @@ export function NoActivityQuickActions({
         />
         <QuickStudentAction
           icon="key-outline"
-          label={reminderBusy ? 'Reenviando...' : 'Credenciales'}
+          label={reminderBusy ? 'Enviando...' : 'Recuperar acceso'}
           disabled={reminderBusy}
-          onPress={() => onResendCredentials(student)}
+          onPress={() => onRequestPasswordRecovery(student)}
         />
-        {temporaryPassword ? (
-          <QuickStudentAction
-            icon="copy-outline"
-            label="Copiar clave"
-            onPress={() => onCopyTemporaryPassword(student)}
-          />
-        ) : null}
       </View>
     </View>
   );

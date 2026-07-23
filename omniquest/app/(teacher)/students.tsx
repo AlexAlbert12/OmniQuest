@@ -84,7 +84,6 @@ export default function TeacherStudentsScreen() {
   const [actionStudent, setActionStudent] = useState<StudentRow | null>(null);
   const [detailStudent, setDetailStudent] = useState<StudentRow | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null);
-  const [temporaryPasswordsByStudent, setTemporaryPasswordsByStudent] = useState<Record<string, string>>({});
   const [reminderStudentIds, setReminderStudentIds] = useState<Record<string, boolean>>({});
   const [sendingBulkReminders, setSendingBulkReminders] = useState(false);
 
@@ -555,7 +554,7 @@ export default function TeacherStudentsScreen() {
     }
   };
 
-  const handleResendStudentCredentials = async (student: StudentRow) => {
+  const handleRequestPasswordRecovery = async (student: StudentRow) => {
     if (reminderStudentIds[student.id]) return;
 
     try {
@@ -565,53 +564,24 @@ export default function TeacherStudentsScreen() {
         body: {
           studentIds: [student.id],
           subjectIds: student.subjectIds,
-          mode: 'credentials',
+          mode: 'recovery',
         },
       });
 
-      if (error) throw new Error(error.message || 'No se pudieron reenviar las credenciales.');
+      if (error) throw new Error(error.message || 'No se pudo enviar el enlace de recuperación.');
       const result = (data as any)?.results?.[0];
-      const temporaryPassword = result?.temporaryPassword;
-
-      if (temporaryPassword) {
-        setTemporaryPasswordsByStudent((prev) => ({ ...prev, [student.id]: temporaryPassword }));
-      }
-
       if (result && result.sent === false) {
-        showAlert(
-          'Contraseña generada',
-          `Se generó una nueva contraseña temporal para ${student.alias}, pero no se pudo enviar el email: ${result.error || 'error desconocido'}. Puedes copiarla desde sus acciones rápidas.`
-        );
-        return;
+        throw new Error(result.error || 'No se pudo enviar el enlace de recuperación.');
       }
 
-      showAlert('Credenciales reenviadas', `${student.alias} recibirá un email con una nueva contraseña temporal.`);
+      showAlert(
+        'Enlace seguro enviado',
+        `${student.alias} recibirá un enlace de un solo uso para crear una contraseña nueva. Caduca en 30 minutos.`,
+      );
     } catch (error: any) {
-      showAlert('Error', error.message || 'No se pudieron reenviar las credenciales.');
+      showAlert('Error', error.message || 'No se pudo enviar el enlace de recuperación.');
     } finally {
       setReminderStudentIds((prev) => ({ ...prev, [student.id]: false }));
-    }
-  };
-
-  const handleCopyTemporaryPassword = async (student: StudentRow) => {
-    const temporaryPassword = temporaryPasswordsByStudent[student.id];
-    if (!temporaryPassword) {
-      showAlert('Sin contraseña temporal', 'Primero reenvía las credenciales para generar una nueva contraseña temporal.');
-      return;
-    }
-
-    const text = `Usuario: ${student.alias}\nContraseña temporal: ${temporaryPassword}`;
-
-    try {
-      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(text);
-        showAlert('Copiado', 'Contraseña temporal copiada al portapapeles.');
-        return;
-      }
-
-      showAlert('Contraseña temporal', temporaryPassword);
-    } catch {
-      showAlert('Contraseña temporal', temporaryPassword);
     }
   };
 
@@ -745,7 +715,6 @@ export default function TeacherStudentsScreen() {
           pendingStudents={pendingStudents}
           refreshing={refreshing}
           sendingBulkReminders={sendingBulkReminders}
-          temporaryPasswordsByStudent={temporaryPasswordsByStudent}
           reminderStudentIds={reminderStudentIds}
           onRefresh={onRefresh}
           onSelectSubject={(value) => {
@@ -762,14 +731,12 @@ export default function TeacherStudentsScreen() {
           onAssignActivity={handleAssignActivity}
           onOpenActions={openStudentActions}
           onSendStudentReminder={handleSendStudentReminder}
-          onResendCredentials={handleResendStudentCredentials}
-          onCopyTemporaryPassword={handleCopyTemporaryPassword}
+          onRequestPasswordRecovery={handleRequestPasswordRecovery}
           onNotifications={() => router.push('/(teacher)/notifications' as any)}
         />
         <StudentActionsModal
           student={actionStudent}
           visible={Boolean(actionStudent)}
-          temporaryPassword={actionStudent ? temporaryPasswordsByStudent[actionStudent.id] ?? null : null}
           reminderBusy={actionStudent ? Boolean(reminderStudentIds[actionStudent.id]) : false}
           onClose={() => setActionStudent(null)}
           onViewDetails={handleViewStudentDetails}
@@ -777,8 +744,7 @@ export default function TeacherStudentsScreen() {
           onRemoveFromClass={requestRemoveFromClass}
           onResetProgress={requestResetProgress}
           onSendReminder={handleSendStudentReminder}
-          onResendCredentials={handleResendStudentCredentials}
-          onCopyTemporaryPassword={handleCopyTemporaryPassword}
+          onRequestPasswordRecovery={handleRequestPasswordRecovery}
           onAssignActivity={(student) => {
             setActionStudent(null);
             handleAssignActivity(student);
@@ -787,7 +753,6 @@ export default function TeacherStudentsScreen() {
         <StudentDetailModal
           student={detailStudent}
           visible={Boolean(detailStudent)}
-          temporaryPassword={detailStudent ? temporaryPasswordsByStudent[detailStudent.id] ?? null : null}
           reminderBusy={detailStudent ? Boolean(reminderStudentIds[detailStudent.id]) : false}
           onClose={() => setDetailStudent(null)}
           onAssignActivity={(student) => {
@@ -797,8 +762,7 @@ export default function TeacherStudentsScreen() {
           onViewHistory={handleViewHistory}
           onRemoveFromClass={requestRemoveFromClass}
           onSendReminder={handleSendStudentReminder}
-          onResendCredentials={handleResendStudentCredentials}
-          onCopyTemporaryPassword={handleCopyTemporaryPassword}
+          onRequestPasswordRecovery={handleRequestPasswordRecovery}
         />
         <ConfirmModal
           dialog={confirmDialog}
@@ -977,7 +941,6 @@ export default function TeacherStudentsScreen() {
       <StudentActionsModal
         student={actionStudent}
         visible={Boolean(actionStudent)}
-        temporaryPassword={actionStudent ? temporaryPasswordsByStudent[actionStudent.id] ?? null : null}
         reminderBusy={actionStudent ? Boolean(reminderStudentIds[actionStudent.id]) : false}
         onClose={() => setActionStudent(null)}
         onViewDetails={handleViewStudentDetails}
@@ -985,8 +948,7 @@ export default function TeacherStudentsScreen() {
         onRemoveFromClass={requestRemoveFromClass}
         onResetProgress={requestResetProgress}
         onSendReminder={handleSendStudentReminder}
-        onResendCredentials={handleResendStudentCredentials}
-        onCopyTemporaryPassword={handleCopyTemporaryPassword}
+        onRequestPasswordRecovery={handleRequestPasswordRecovery}
         onAssignActivity={(student) => {
           setActionStudent(null);
           handleAssignActivity(student);
@@ -995,7 +957,6 @@ export default function TeacherStudentsScreen() {
       <StudentDetailModal
         student={detailStudent}
         visible={Boolean(detailStudent)}
-        temporaryPassword={detailStudent ? temporaryPasswordsByStudent[detailStudent.id] ?? null : null}
         reminderBusy={detailStudent ? Boolean(reminderStudentIds[detailStudent.id]) : false}
         onClose={() => setDetailStudent(null)}
         onAssignActivity={(student) => {
@@ -1005,8 +966,7 @@ export default function TeacherStudentsScreen() {
         onViewHistory={handleViewHistory}
         onRemoveFromClass={requestRemoveFromClass}
         onSendReminder={handleSendStudentReminder}
-        onResendCredentials={handleResendStudentCredentials}
-        onCopyTemporaryPassword={handleCopyTemporaryPassword}
+        onRequestPasswordRecovery={handleRequestPasswordRecovery}
       />
       <ConfirmModal
         dialog={confirmDialog}

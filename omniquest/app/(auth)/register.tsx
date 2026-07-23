@@ -51,7 +51,7 @@ export default function RegisterScreen() {
   }
   const validatePassword = (value = password) => {
     const strength = getPasswordStrength(value)
-    const error = strength.isAcceptable ? undefined : 'Usa 8 caracteres y combina mayúsculas, minúsculas, números o símbolos.'
+    const error = strength.isAcceptable ? undefined : 'Usa 8 caracteres e incluye mayúscula, minúscula, número y símbolo.'
     setFieldErrors((current) => ({ ...current, password: error }))
     return !error
   }

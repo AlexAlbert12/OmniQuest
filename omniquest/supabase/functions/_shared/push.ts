@@ -1,112 +1,127 @@
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+export const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send'
+export const EXPO_RECEIPTS_ENDPOINT = 'https://exp.host/--/api/v2/push/getReceipts'
+export const MAX_EXPO_BATCH = 100
+export const MAX_EXPO_RECEIPTS_BATCH = 1000
 
-const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send'
-const MAX_EXPO_BATCH = 100
-
-export type PushContent = {
+export type ExpoPushMessage = {
+  to: string
   title: string
   body: string
   data?: Record<string, unknown>
   sound?: 'default' | null
   channelId?: string
+  priority?: 'default' | 'normal' | 'high'
+  ttl?: number
 }
 
-export type PushDeliveryResult = {
-  attempted: number
-  sent: number
-  failed: number
-  skipped: boolean
-  reason?: string
+export type ExpoPushTicket = {
+  status?: 'ok' | 'error'
+  id?: string
+  message?: string
+  details?: { error?: string; [key: string]: unknown }
 }
 
-type PushTokenRow = {
-  id: number
-  expo_push_token: string
+export type ExpoPushReceipt = {
+  status?: 'ok' | 'error'
+  message?: string
+  details?: { error?: string; [key: string]: unknown }
 }
 
-export async function sendExpoPushToUser(
-  adminClient: SupabaseClient,
-  userId: string,
-  content: PushContent,
-): Promise<PushDeliveryResult> {
-  const { data: preference, error: preferenceError } = await adminClient
-    .from('user_notification_preferences')
-    .select('push_enabled')
-    .eq('user_id', userId)
-    .maybeSingle()
+export type ExpoPushBatchResult = {
+  ok: boolean
+  status: number
+  tickets: ExpoPushTicket[]
+  requestErrors: Array<{ code?: string; message?: string }>
+  retryable: boolean
+  errorMessage?: string
+}
 
-  if (preferenceError) throw preferenceError
-  if (!preference?.push_enabled) {
-    return { attempted: 0, sent: 0, failed: 0, skipped: true, reason: 'push_disabled' }
+export type ExpoReceiptBatchResult = {
+  ok: boolean
+  status: number
+  receipts: Record<string, ExpoPushReceipt>
+  requestErrors: Array<{ code?: string; message?: string }>
+  retryable: boolean
+  errorMessage?: string
+}
+
+export function isValidExpoPushToken(value: string) {
+  return /^(Expo|Exponent)PushToken\[[A-Za-z0-9_-]+\]$/.test(value)
+}
+
+export function isRetryableExpoStatus(status: number) {
+  return status === 429 || status >= 500
+}
+
+function expoHeaders() {
+  const accessToken = Deno.env.get('EXPO_ACCESS_TOKEN')?.trim()
+  return {
+    Accept: 'application/json',
+    'Accept-Encoding': 'gzip, deflate',
+    'Content-Type': 'application/json',
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  }
+}
+
+export async function sendExpoPushBatch(messages: ExpoPushMessage[]): Promise<ExpoPushBatchResult> {
+  if (messages.length === 0) {
+    return { ok: true, status: 200, tickets: [], requestErrors: [], retryable: false }
   }
 
-  const { data: tokenRows, error: tokenError } = await adminClient
-    .from('push_tokens')
-    .select('id, expo_push_token')
-    .eq('user_id', userId)
-    .eq('active', true)
-    .order('last_seen_at', { ascending: false })
+  const response = await fetch(EXPO_PUSH_ENDPOINT, {
+    method: 'POST',
+    headers: expoHeaders(),
+    body: JSON.stringify(messages.slice(0, MAX_EXPO_BATCH)),
+  })
 
-  if (tokenError) throw tokenError
+  const payload = await response.json().catch(() => ({})) as {
+    data?: ExpoPushTicket[] | ExpoPushTicket
+    errors?: Array<{ code?: string; message?: string }>
+  }
+  const tickets = Array.isArray(payload.data)
+    ? payload.data
+    : payload.data
+      ? [payload.data]
+      : []
+  const requestErrors = Array.isArray(payload.errors) ? payload.errors : []
+  const errorMessage = requestErrors.map((error) => error.message).filter(Boolean).join(' · ')
 
-  const tokens = ((tokenRows || []) as PushTokenRow[])
-    .filter((row) => /^(Expo|Exponent)PushToken\[[A-Za-z0-9_-]+\]$/.test(row.expo_push_token))
+  return {
+    ok: response.ok,
+    status: response.status,
+    tickets,
+    requestErrors,
+    retryable: isRetryableExpoStatus(response.status)
+      || requestErrors.some((error) => error.code === 'TOO_MANY_REQUESTS'),
+    errorMessage: errorMessage || (response.ok ? undefined : `Expo Push devolvió HTTP ${response.status}.`),
+  }
+}
 
-  if (tokens.length === 0) {
-    return { attempted: 0, sent: 0, failed: 0, skipped: true, reason: 'no_active_tokens' }
+export async function getExpoPushReceipts(ticketIds: string[]): Promise<ExpoReceiptBatchResult> {
+  if (ticketIds.length === 0) {
+    return { ok: true, status: 200, receipts: {}, requestErrors: [], retryable: false }
   }
 
-  let sent = 0
-  let failed = 0
+  const response = await fetch(EXPO_RECEIPTS_ENDPOINT, {
+    method: 'POST',
+    headers: expoHeaders(),
+    body: JSON.stringify({ ids: ticketIds.slice(0, MAX_EXPO_RECEIPTS_BATCH) }),
+  })
 
-  for (let index = 0; index < tokens.length; index += MAX_EXPO_BATCH) {
-    const batch = tokens.slice(index, index + MAX_EXPO_BATCH)
-    const messages = batch.map((row) => ({
-      to: row.expo_push_token,
-      title: content.title.slice(0, 100),
-      body: content.body.slice(0, 500),
-      sound: content.sound ?? 'default',
-      channelId: content.channelId ?? 'default',
-      data: content.data ?? {},
-    }))
-
-    const response = await fetch(EXPO_PUSH_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Accept-Encoding': 'gzip, deflate',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(messages),
-    })
-
-    if (!response.ok) {
-      failed += batch.length
-      continue
-    }
-
-    const payload = await response.json().catch(() => ({})) as {
-      data?: Array<{ status?: string; details?: { error?: string } }>
-    }
-    const tickets = Array.isArray(payload.data) ? payload.data : []
-
-    for (let ticketIndex = 0; ticketIndex < batch.length; ticketIndex += 1) {
-      const ticket = tickets[ticketIndex]
-      const tokenRow = batch[ticketIndex]
-      if (ticket?.status === 'ok') {
-        sent += 1
-        continue
-      }
-
-      failed += 1
-      if (ticket?.details?.error === 'DeviceNotRegistered') {
-        await adminClient
-          .from('push_tokens')
-          .update({ active: false, updated_at: new Date().toISOString() })
-          .eq('id', tokenRow.id)
-      }
-    }
+  const payload = await response.json().catch(() => ({})) as {
+    data?: Record<string, ExpoPushReceipt>
+    errors?: Array<{ code?: string; message?: string }>
   }
+  const requestErrors = Array.isArray(payload.errors) ? payload.errors : []
+  const errorMessage = requestErrors.map((error) => error.message).filter(Boolean).join(' · ')
 
-  return { attempted: tokens.length, sent, failed, skipped: false }
+  return {
+    ok: response.ok,
+    status: response.status,
+    receipts: payload.data && typeof payload.data === 'object' ? payload.data : {},
+    requestErrors,
+    retryable: isRetryableExpoStatus(response.status)
+      || requestErrors.some((error) => error.code === 'TOO_MANY_REQUESTS'),
+    errorMessage: errorMessage || (response.ok ? undefined : `Expo Receipts devolvió HTTP ${response.status}.`),
+  }
 }

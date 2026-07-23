@@ -36,7 +36,6 @@ export default function MobileTeacherStudents({
   pendingStudents,
   refreshing,
   sendingBulkReminders,
-  temporaryPasswordsByStudent,
   reminderStudentIds,
   onRefresh,
   onSelectSubject,
@@ -50,8 +49,7 @@ export default function MobileTeacherStudents({
   onAssignActivity,
   onOpenActions,
   onSendStudentReminder,
-  onResendCredentials,
-  onCopyTemporaryPassword,
+  onRequestPasswordRecovery,
   onNotifications,
 }: {
   subjects: Subject[]
@@ -67,7 +65,6 @@ export default function MobileTeacherStudents({
   pendingStudents: StudentRow[]
   refreshing: boolean
   sendingBulkReminders: boolean
-  temporaryPasswordsByStudent: Record<string, string>
   reminderStudentIds: Record<string, boolean>
   onRefresh: () => void
   onSelectSubject: (value: number | 'all') => void
@@ -81,8 +78,7 @@ export default function MobileTeacherStudents({
   onAssignActivity: (student: StudentRow) => void
   onOpenActions: (student: StudentRow) => void
   onSendStudentReminder: (student: StudentRow) => void
-  onResendCredentials: (student: StudentRow) => void
-  onCopyTemporaryPassword: (student: StudentRow) => void
+  onRequestPasswordRecovery: (student: StudentRow) => void
   onNotifications: () => void
 }) {
   const [page, setPage] = useState(0);
@@ -277,14 +273,12 @@ export default function MobileTeacherStudents({
           <MobileTeacherStudentCard
             key={student.id}
             student={student}
-            temporaryPassword={temporaryPasswordsByStudent[student.id] ?? null}
             reminderBusy={Boolean(reminderStudentIds[student.id])}
             onViewDetails={onViewDetails}
             onAssignActivity={onAssignActivity}
             onOpenActions={onOpenActions}
             onSendReminder={onSendStudentReminder}
-            onResendCredentials={onResendCredentials}
-            onCopyTemporaryPassword={onCopyTemporaryPassword}
+            onRequestPasswordRecovery={onRequestPasswordRecovery}
           />
         ))}
       </View>
@@ -469,24 +463,20 @@ function MobileAttentionStudentCard({
 
 function MobileTeacherStudentCard({
   student,
-  temporaryPassword,
   reminderBusy,
   onViewDetails,
   onAssignActivity,
   onOpenActions,
   onSendReminder,
-  onResendCredentials,
-  onCopyTemporaryPassword,
+  onRequestPasswordRecovery,
 }: {
   student: StudentRow
-  temporaryPassword: string | null
   reminderBusy: boolean
   onViewDetails: (student: StudentRow) => void
   onAssignActivity: (student: StudentRow) => void
   onOpenActions: (student: StudentRow) => void
   onSendReminder: (student: StudentRow) => void
-  onResendCredentials: (student: StudentRow) => void
-  onCopyTemporaryPassword: (student: StudentRow) => void
+  onRequestPasswordRecovery: (student: StudentRow) => void
 }) {
   const status = getStatusMeta(student.status);
   const context = student.courseContexts[0];
@@ -534,11 +524,9 @@ function MobileTeacherStudentCard({
       {student.status === 'no_activity' ? (
         <NoActivityQuickActions
           student={student}
-          temporaryPassword={temporaryPassword}
           reminderBusy={reminderBusy}
           onSendReminder={onSendReminder}
-          onResendCredentials={onResendCredentials}
-          onCopyTemporaryPassword={onCopyTemporaryPassword}
+          onRequestPasswordRecovery={onRequestPasswordRecovery}
         />
       ) : null}
 

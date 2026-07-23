@@ -9,7 +9,7 @@ type AuthErrorLike = {
 export type PasswordStrengthResult = {
   hasValue: boolean
   score: number
-  label: 'Muy débil' | 'Débil' | 'Aceptable' | 'Segura'
+  label: 'Muy débil' | 'Débil' | 'Casi segura' | 'Segura'
   color: string
   checks: Array<{ label: string; met: boolean }>
   isAcceptable: boolean
@@ -39,7 +39,7 @@ export function getPasswordStrength(password: string): PasswordStrengthResult {
     return { hasValue: true, score, label: 'Débil', color: '#F59E0B', checks, isAcceptable: false }
   }
   if (score === 3) {
-    return { hasValue: true, score, label: 'Aceptable', color: '#38BDF8', checks, isAcceptable: true }
+    return { hasValue: true, score, label: 'Casi segura', color: '#38BDF8', checks, isAcceptable: false }
   }
   return { hasValue: true, score, label: 'Segura', color: '#34D399', checks, isAcceptable: true }
 }
