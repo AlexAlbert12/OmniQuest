@@ -1,16 +1,22 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { withAlpha } from '../../../lib/color'
+import { useAppTheme } from '../../../lib/appTheme'
+import { useResponsiveLayout } from '../../../lib/responsive'
+import AppButton from '../../ui/AppButton'
+import AppIconButton from '../../ui/AppIconButton'
+import AppPressable from '../../ui/AppPressable'
+import AppTabs from '../../ui/AppTabs'
 
 export type GalaxyCourseItem = {
   key: string
@@ -116,6 +122,49 @@ export function GalaxyScreenBackground({ height = 2800 }: { height?: number }) {
   )
 }
 
+type GalaxyViewMode = 'galaxy' | 'list'
+
+const GALAXY_VIEW_OPTIONS = [
+  { key: 'galaxy' as const, label: 'Vista galáctica', icon: 'planet-outline' as const, activeIcon: 'planet' as const },
+  { key: 'list' as const, label: 'Vista lista', icon: 'list-outline' as const, activeIcon: 'list' as const },
+]
+
+function useAccessibleGalaxyViewMode() {
+  const [viewMode, setViewMode] = useState<GalaxyViewMode>('galaxy')
+
+  useEffect(() => {
+    let mounted = true
+    void AccessibilityInfo.isScreenReaderEnabled().then((enabled) => {
+      if (mounted && enabled) setViewMode('list')
+    })
+    const subscription = AccessibilityInfo.addEventListener('screenReaderChanged', (enabled) => {
+      if (enabled) setViewMode('list')
+    })
+    return () => {
+      mounted = false
+      subscription.remove()
+    }
+  }, [])
+
+  return [viewMode, setViewMode] as const
+}
+
+function GalaxyViewModeToggle({ value, onChange }: { value: GalaxyViewMode; onChange: (value: GalaxyViewMode) => void }) {
+  return (
+    <View style={styles.viewModeToggle}>
+      <AppTabs
+        accessibilityLabel="Modo de visualización de la galaxia"
+        compact
+        fill
+        items={GALAXY_VIEW_OPTIONS}
+        role="student"
+        value={value}
+        onChange={onChange}
+      />
+    </View>
+  )
+}
+
 export function CourseGalaxyMap({
   items,
   inviteCode,
@@ -131,230 +180,360 @@ export function CourseGalaxyMap({
   onJoin: () => void
   emptyMessage?: string
 }) {
-  const { width } = useWindowDimensions()
-  const isDesktop = width >= 1024
-  const mapWidth = Math.max(320, Math.min(isDesktop ? width - 330 : width - 30, isDesktop ? 1440 : 430))
+  const responsive = useResponsiveLayout()
+  const { tokens } = useAppTheme()
+  const isDesktop = responsive.isDesktop
+  const mapWidth = Math.max(320, Math.min(isDesktop ? responsive.width - 330 : responsive.width - 30, isDesktop ? 1440 : 430))
   const planetSize = isDesktop ? 228 : 188
   const rowHeight = isDesktop ? 318 : 352
   const addRowHeight = 430
   const [joinOpen, setJoinOpen] = useState(false)
+  const [viewMode, setViewMode] = useAccessibleGalaxyViewMode()
 
   const addTop = items.length === 0 ? 250 : items.length * rowHeight + 24
   const mapHeight = addTop + addRowHeight
 
   return (
-    <View style={{ width: mapWidth, minHeight: mapHeight, alignSelf: 'center', position: 'relative' }}>
-      {items.length === 0 ? (
-        <View style={{ minHeight: 210, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }}>
-          <Ionicons name="planet-outline" size={56} color="#8294B2" />
-          <Text style={styles.emptyTitle}>No encontramos cursos</Text>
-          <Text style={styles.emptyText}>{emptyMessage}</Text>
-        </View>
-      ) : null}
+    <View style={{ width: '100%', maxWidth: isDesktop ? 1440 : 560, alignSelf: 'center' }}>
+      <GalaxyViewModeToggle value={viewMode} onChange={setViewMode} />
 
-      {items.map((item, index) => {
-        const side = index % 2 === 0 ? 'right' : 'left'
-        const nextSide = (index + 1) % 2 === 0 ? 'right' : 'left'
-        const palette = getCoursePalette(item.color, index)
-        const x = side === 'left' ? 12 : mapWidth - planetSize - 24
-        const nextX = nextSide === 'left' ? 12 : mapWidth - planetSize - 24
-        const labelWidth = Math.min(isDesktop ? 280 : 286, mapWidth - 20)
-        const labelX = side === 'left' ? 8 : mapWidth - labelWidth - 8
-        const connectToAdd = index === items.length - 1
-        const addSide = items.length % 2 === 0 ? 'right' : 'left'
-        const addSize = isDesktop ? 190 : 156
-        const addX = addSide === 'left' ? 24 : mapWidth - addSize - 24
-        const targetX = connectToAdd ? addX + addSize / 2 : nextX + planetSize / 2
-
-        return (
-          <View key={item.key} style={{ height: rowHeight, position: 'relative' }}>
-            <GalaxyDottedConnector
-              color="#58BFFF"
-              x1={x + planetSize / 2}
-              y1={planetSize - 4}
-              x2={targetX}
-              y2={rowHeight + 34}
-              bend={side === 'left' ? 1 : -1}
-            />
-
-            <View style={{ position: 'absolute', top: 0, left: x }}>
-              <GalaxyPlanet
-                size={planetSize}
-                palette={palette}
-                icon={item.icon}
-                label={item.title}
-                badgeLabel={item.badgeLabel}
-                badgeColor={item.badgeColor}
-                onPress={item.onPress}
-              />
+      {viewMode === 'list' ? (
+        <View accessibilityLabel="Cursos disponibles en formato lista" style={styles.accessibleList}>
+          {items.length === 0 ? (
+            <View style={[styles.listEmpty, { backgroundColor: tokens.surface.default, borderColor: tokens.border.default }]}>
+              <Ionicons name="planet-outline" size={40} color={tokens.text.muted} />
+              <Text style={[styles.listTitle, { color: tokens.text.primary }]}>No encontramos cursos</Text>
+              <Text style={[styles.listDescription, { color: tokens.text.secondary }]}>{emptyMessage}</Text>
             </View>
-
-            <View
-              style={[
-                styles.courseLabelCard,
-                {
-                  width: labelWidth,
-                  left: labelX,
-                  top: planetSize + (isDesktop ? 10 : 18),
-                  minHeight: isDesktop ? 76 : 92,
-                  borderRadius: isDesktop ? 20 : 24,
-                  paddingHorizontal: isDesktop ? 16 : 20,
-                  paddingVertical: isDesktop ? 10 : 16,
-                },
-              ]}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Abrir curso ${item.title}`}
+          ) : items.map((item) => (
+            <View key={item.key} style={[styles.listCard, { backgroundColor: tokens.surface.default, borderColor: tokens.border.default }]}>
+              <AppPressable
+                accessibilityLabel={`${item.title}. ${item.progress}% completado. ${item.subtitle}`}
+                accessibilityHint="Abre el curso y muestra sus temas"
                 onPress={item.onPress}
-                style={({ pressed }) => ({ flex: 1, justifyContent: 'center', opacity: pressed ? 0.82 : 1, paddingRight: item.onMore ? 30 : 0 })}
+                style={({ pressed }) => [styles.listMainAction, { opacity: pressed ? 0.78 : 1 }]}
               >
-                <Text
-                  style={[
-                    styles.courseTitle,
-                    isDesktop ? styles.courseTitleDesktop : null,
-                    { textAlign: side === 'left' ? 'left' : 'right' },
-                  ]}
-                  numberOfLines={2}
-                >
-                  {item.title}
-                </Text>
-                <Text
-                  style={[
-                    styles.courseSubtitle,
-                    isDesktop ? styles.courseSubtitleDesktop : null,
-                    { textAlign: side === 'left' ? 'left' : 'right' },
-                  ]}
-                  numberOfLines={2}
-                >
-                  <Text style={{ color: item.detailColor, fontWeight: '900' }}>{item.progress}%</Text>
-                  {' · '}{item.subtitle}
-                </Text>
-              </Pressable>
+                <View style={[styles.listIcon, { backgroundColor: withAlpha(item.color || tokens.brand.student, '24') }]}>
+                  <Ionicons name={getValidIoniconName(item.icon) || 'book-outline'} size={23} color={item.color || tokens.brand.student} />
+                </View>
+                <View style={styles.listCopy}>
+                  <Text maxFontSizeMultiplier={2} style={[styles.listTitle, { color: tokens.text.primary }]}>{item.title}</Text>
+                  <Text maxFontSizeMultiplier={2} style={[styles.listDescription, { color: tokens.text.secondary }]}>{item.subtitle}</Text>
+                  <Text maxFontSizeMultiplier={2} style={[styles.listMeta, { color: item.detailColor }]}>{item.progress}% completado · {item.badgeLabel}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={tokens.text.muted} />
+              </AppPressable>
               {item.onMore ? (
-                <Pressable
-                  accessibilityRole="button"
+                <AppIconButton
                   accessibilityLabel={`Más opciones de ${item.title}`}
+                  accessibilityHint="Abre las acciones disponibles para este curso"
+                  icon="ellipsis-horizontal"
+                  size="sm"
                   onPress={item.onMore}
-                  hitSlop={8}
-                  style={({ pressed }) => ({
-                    position: 'absolute',
-                    right: 10,
-                    top: 10,
-                    width: 34,
-                    height: 34,
-                    borderRadius: 17,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: 'rgba(8,13,27,0.7)',
-                    opacity: pressed ? 0.72 : 1,
-                  })}
-                >
-                  <Ionicons name="ellipsis-horizontal" size={18} color="#AAB8D0" />
-                </Pressable>
+                />
               ) : null}
             </View>
-          </View>
-        )
-      })}
+          ))}
 
-      <AddCourseGalaxyNode
-        top={addTop}
-        mapWidth={mapWidth}
-        side={items.length % 2 === 0 ? 'right' : 'left'}
-        inviteCode={inviteCode}
-        joining={joining}
-        open={joinOpen}
-        onToggle={() => setJoinOpen((current) => !current)}
-        onChangeInviteCode={onChangeInviteCode}
-        onJoin={onJoin}
-      />
+          <View style={[styles.joinListCard, { backgroundColor: tokens.surface.raised, borderColor: tokens.border.default }]}>
+            <View style={styles.listCopy}>
+              <Text maxFontSizeMultiplier={2} style={[styles.listTitle, { color: tokens.text.primary }]}>Unirse a otro curso</Text>
+              <Text maxFontSizeMultiplier={2} style={[styles.listDescription, { color: tokens.text.secondary }]}>Introduce el código facilitado por tu profesor.</Text>
+            </View>
+            <TextInput
+              accessibilityLabel="Código de invitación del curso"
+              accessibilityHint="Escribe el código de seis caracteres"
+              autoCapitalize="characters"
+              maxLength={6}
+              placeholder="Código"
+              placeholderTextColor={tokens.text.disabled}
+              value={inviteCode}
+              onChangeText={onChangeInviteCode}
+              style={[styles.joinInput, { color: tokens.text.primary, backgroundColor: tokens.surface.default, borderColor: tokens.border.default }]}
+            />
+            <AppButton
+              label="Unirse al curso"
+              accessibilityHint="Envía el código y solicita la inscripción"
+              role="student"
+              loading={joining}
+              disabled={joining || inviteCode.trim().length === 0}
+              onPress={onJoin}
+              fullWidth
+            />
+          </View>
+        </View>
+      ) : (
+        <View
+          accessibilityLabel="Mapa visual de cursos. Cambia a Vista lista para una alternativa lineal."
+          style={{ width: mapWidth, minHeight: mapHeight, alignSelf: 'center', position: 'relative' }}
+        >
+          {items.length === 0 ? (
+            <View style={{ minHeight: 210, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }}>
+              <Ionicons name="planet-outline" size={56} color="#8294B2" />
+              <Text style={styles.emptyTitle}>No encontramos cursos</Text>
+              <Text style={styles.emptyText}>{emptyMessage}</Text>
+            </View>
+          ) : null}
+
+          {items.map((item, index) => {
+            const side = index % 2 === 0 ? 'right' : 'left'
+            const nextSide = (index + 1) % 2 === 0 ? 'right' : 'left'
+            const palette = getCoursePalette(item.color, index)
+            const x = side === 'left' ? 12 : mapWidth - planetSize - 24
+            const nextX = nextSide === 'left' ? 12 : mapWidth - planetSize - 24
+            const labelWidth = Math.min(isDesktop ? 280 : 286, mapWidth - 20)
+            const labelX = side === 'left' ? 8 : mapWidth - labelWidth - 8
+            const connectToAdd = index === items.length - 1
+            const addSide = items.length % 2 === 0 ? 'right' : 'left'
+            const addSize = isDesktop ? 190 : 156
+            const addX = addSide === 'left' ? 24 : mapWidth - addSize - 24
+            const targetX = connectToAdd ? addX + addSize / 2 : nextX + planetSize / 2
+
+            return (
+              <View key={item.key} style={{ height: rowHeight, position: 'relative' }}>
+                <GalaxyDottedConnector
+                  color="#58BFFF"
+                  x1={x + planetSize / 2}
+                  y1={planetSize - 4}
+                  x2={targetX}
+                  y2={rowHeight + 34}
+                  bend={side === 'left' ? 1 : -1}
+                />
+
+                <View style={{ position: 'absolute', top: 0, left: x }}>
+                  <GalaxyPlanet
+                    size={planetSize}
+                    palette={palette}
+                    icon={item.icon}
+                    label={item.title}
+                    badgeLabel={item.badgeLabel}
+                    badgeColor={item.badgeColor}
+                    onPress={item.onPress}
+                  />
+                </View>
+
+                <View
+                  style={[
+                    styles.courseLabelCard,
+                    {
+                      width: labelWidth,
+                      left: labelX,
+                      top: planetSize + (isDesktop ? 10 : 18),
+                      minHeight: isDesktop ? 76 : 92,
+                      borderRadius: isDesktop ? 20 : 24,
+                      paddingHorizontal: isDesktop ? 16 : 20,
+                      paddingVertical: isDesktop ? 10 : 16,
+                    },
+                  ]}
+                >
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Abrir curso ${item.title}`}
+                    accessibilityHint={`${item.progress}% completado. ${item.subtitle}`}
+                    onPress={item.onPress}
+                    style={({ pressed }) => ({ flex: 1, justifyContent: 'center', opacity: pressed ? 0.82 : 1, paddingRight: item.onMore ? 30 : 0 })}
+                  >
+                    <Text
+                      maxFontSizeMultiplier={2}
+                      style={[
+                        styles.courseTitle,
+                        isDesktop ? styles.courseTitleDesktop : null,
+                        { textAlign: side === 'left' ? 'left' : 'right' },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {item.title}
+                    </Text>
+                    <Text
+                      maxFontSizeMultiplier={2}
+                      style={[
+                        styles.courseSubtitle,
+                        isDesktop ? styles.courseSubtitleDesktop : null,
+                        { textAlign: side === 'left' ? 'left' : 'right' },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      <Text style={{ color: item.detailColor, fontWeight: '900' }}>{item.progress}%</Text>
+                      {' · '}{item.subtitle}
+                    </Text>
+                  </Pressable>
+                  {item.onMore ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Más opciones de ${item.title}`}
+                      accessibilityHint="Abre el menú de acciones del curso"
+                      onPress={item.onMore}
+                      hitSlop={8}
+                      style={({ pressed }) => ({
+                        position: 'absolute',
+                        right: 10,
+                        top: 10,
+                        width: 34,
+                        height: 34,
+                        borderRadius: 17,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'rgba(8,13,27,0.7)',
+                        opacity: pressed ? 0.72 : 1,
+                      })}
+                    >
+                      <Ionicons name="ellipsis-horizontal" size={18} color="#AAB8D0" />
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+            )
+          })}
+
+          <AddCourseGalaxyNode
+            top={addTop}
+            mapWidth={mapWidth}
+            side={items.length % 2 === 0 ? 'right' : 'left'}
+            inviteCode={inviteCode}
+            joining={joining}
+            open={joinOpen}
+            onToggle={() => setJoinOpen((current) => !current)}
+            onChangeInviteCode={onChangeInviteCode}
+            onJoin={onJoin}
+          />
+        </View>
+      )}
     </View>
   )
 }
 
 export function TopicGalaxyMap({ items }: { items: GalaxyTopicItem[] }) {
-  const { width } = useWindowDimensions()
-  const isDesktop = width >= 1024
-  const mapWidth = Math.max(320, Math.min(isDesktop ? width - 330 : width - 24, isDesktop ? 1360 : 430))
+  const responsive = useResponsiveLayout()
+  const { tokens } = useAppTheme()
+  const isDesktop = responsive.isDesktop
+  const mapWidth = Math.max(320, Math.min(isDesktop ? responsive.width - 330 : responsive.width - 24, isDesktop ? 1360 : 430))
   const nodeSize = isDesktop ? 178 : 152
   const rowHeight = isDesktop ? 300 : 280
   const mapHeight = Math.max(400, items.length * rowHeight + 80)
-
-  if (items.length === 0) {
-    return (
-      <View style={{ minHeight: 320, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
-        <Ionicons name="planet-outline" size={62} color="#7F91AD" />
-        <Text style={styles.emptyTitle}>Aún no hay planetas</Text>
-        <Text style={styles.emptyText}>Tu profesor añadirá temas con preguntas para esta galaxia.</Text>
-      </View>
-    )
-  }
+  const [viewMode, setViewMode] = useAccessibleGalaxyViewMode()
 
   return (
-    <View style={{ width: mapWidth, minHeight: mapHeight + 68, paddingTop: 68, alignSelf: 'center', position: 'relative' }}>
-      {items.map((item, index) => {
-        const side = index % 2 === 0 ? 'center-left' : 'center-right'
-        const nextSide = (index + 1) % 2 === 0 ? 'center-left' : 'center-right'
-        const x = getTopicNodeX(side, mapWidth, nodeSize, isDesktop)
-        const nextX = getTopicNodeX(nextSide, mapWidth, nodeSize, isDesktop)
-        const palette = getTopicPalette(item, index)
+    <View style={{ width: '100%', maxWidth: isDesktop ? 1360 : 560, alignSelf: 'center' }}>
+      <GalaxyViewModeToggle value={viewMode} onChange={setViewMode} />
 
-        return (
-          <View key={item.key} style={{ height: rowHeight, position: 'relative' }}>
-            {index < items.length - 1 ? (
-              <GalaxyDottedConnector
-                color="#9F741E"
-                x1={x + nodeSize / 2}
-                y1={nodeSize - 2}
-                x2={nextX + nodeSize / 2}
-                y2={rowHeight + 30}
-                bend={side === 'center-left' ? 1 : -1}
-                dotSize={4}
-              />
-            ) : null}
-
-            <View style={{ position: 'absolute', left: x, top: 0, alignItems: 'center', width: nodeSize }}>
-              {item.state === 'active' ? (
-                <View style={styles.startBubble}>
-                  <Text style={styles.startBubbleText}>{item.actionLabel.toUpperCase()}</Text>
-                  <View style={styles.startBubbleTail} />
-                </View>
-              ) : null}
-
-              <TopicPlanetButton item={item} palette={palette} size={nodeSize} />
-
-              <View style={{ marginTop: 12, flexDirection: 'row', gap: 5, minHeight: 22 }}>
-                {item.state !== 'locked' && item.state !== 'empty'
-                  ? [0, 1, 2].map((starIndex) => {
-                      const earnedStars = getEarnedStars(item.progress)
-                      return (
-                        <Ionicons
-                          key={starIndex}
-                          name="star"
-                          size={18}
-                          color={starIndex < earnedStars ? palette.rim : '#314250'}
-                        />
-                      )
-                    })
-                  : <Ionicons name={item.state === 'locked' ? 'lock-closed' : 'remove-circle'} size={19} color="#60748E" />}
-              </View>
-
-              <Text style={styles.topicTitle} numberOfLines={2}>{item.title}</Text>
-              {item.failedQuestions > 0 ? (
-                <View style={styles.reviewPill}>
-                  <Ionicons name="flame" size={13} color="#FFFFFF" />
-                  <Text style={styles.reviewPillText}>{item.failedQuestions} para repasar</Text>
-                </View>
-              ) : typeof item.bestScore === 'number' ? (
-                <Text style={styles.topicMeta}>Mejor: {item.bestScore} XP</Text>
-              ) : (
-                <Text style={styles.topicMeta}>{item.questionsCount} pregunta{item.questionsCount === 1 ? '' : 's'}</Text>
-              )}
+      {viewMode === 'list' ? (
+        <View accessibilityLabel="Temas del curso en formato lista" style={styles.accessibleList}>
+          {items.length === 0 ? (
+            <View style={[styles.listEmpty, { backgroundColor: tokens.surface.default, borderColor: tokens.border.default }]}>
+              <Ionicons name="planet-outline" size={42} color={tokens.text.muted} />
+              <Text style={[styles.listTitle, { color: tokens.text.primary }]}>Aún no hay temas</Text>
+              <Text style={[styles.listDescription, { color: tokens.text.secondary }]}>Tu profesor añadirá temas con preguntas para esta galaxia.</Text>
             </View>
-          </View>
-        )
-      })}
+          ) : items.map((item, index) => {
+            const disabled = item.state === 'locked' || item.state === 'empty'
+            const palette = getTopicPalette(item, index)
+            return (
+              <AppPressable
+                key={item.key}
+                accessibilityLabel={`${item.title}. ${getTopicStateLabel(item.state)}. ${item.progress}% completado. ${item.questionsCount} preguntas.`}
+                accessibilityHint={disabled ? 'Este tema todavía no está disponible' : item.actionLabel}
+                accessibilityState={{ disabled }}
+                disabled={disabled}
+                onPress={item.onPress}
+                style={({ pressed }) => [
+                  styles.listCard,
+                  {
+                    backgroundColor: tokens.surface.default,
+                    borderColor: item.state === 'active' ? tokens.border.active : tokens.border.default,
+                    opacity: disabled ? 0.56 : pressed ? 0.78 : 1,
+                  },
+                ]}
+              >
+                <View style={[styles.listIcon, { backgroundColor: withAlpha(palette.rim, '24') }]}>
+                  <Ionicons name={getValidIoniconName(item.icon) || (disabled ? 'lock-closed-outline' : 'play-outline')} size={23} color={palette.rim} />
+                </View>
+                <View style={styles.listCopy}>
+                  <Text maxFontSizeMultiplier={2} style={[styles.listTitle, { color: tokens.text.primary }]}>{item.title}</Text>
+                  <Text maxFontSizeMultiplier={2} style={[styles.listDescription, { color: tokens.text.secondary }]}>{getTopicStateLabel(item.state)} · {item.questionsCount} pregunta{item.questionsCount === 1 ? '' : 's'}</Text>
+                  <Text maxFontSizeMultiplier={2} style={[styles.listMeta, { color: item.failedQuestions > 0 ? tokens.semantic.warning : palette.rim }]}>
+                    {item.failedQuestions > 0 ? `${item.failedQuestions} para repasar` : `${item.progress}% completado`}
+                  </Text>
+                </View>
+                <Ionicons name={disabled ? 'lock-closed' : 'chevron-forward'} size={20} color={tokens.text.muted} />
+              </AppPressable>
+            )
+          })}
+        </View>
+      ) : items.length === 0 ? (
+        <View style={{ minHeight: 320, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+          <Ionicons name="planet-outline" size={62} color="#7F91AD" />
+          <Text style={styles.emptyTitle}>Aún no hay planetas</Text>
+          <Text style={styles.emptyText}>Tu profesor añadirá temas con preguntas para esta galaxia.</Text>
+        </View>
+      ) : (
+        <View
+          accessibilityLabel="Mapa visual de temas. Cambia a Vista lista para una alternativa lineal."
+          style={{ width: mapWidth, minHeight: mapHeight + 68, paddingTop: 68, alignSelf: 'center', position: 'relative' }}
+        >
+          {items.map((item, index) => {
+            const side = index % 2 === 0 ? 'center-left' : 'center-right'
+            const nextSide = (index + 1) % 2 === 0 ? 'center-left' : 'center-right'
+            const x = getTopicNodeX(side, mapWidth, nodeSize, isDesktop)
+            const nextX = getTopicNodeX(nextSide, mapWidth, nodeSize, isDesktop)
+            const palette = getTopicPalette(item, index)
+
+            return (
+              <View key={item.key} style={{ height: rowHeight, position: 'relative' }}>
+                {index < items.length - 1 ? (
+                  <GalaxyDottedConnector
+                    color="#9F741E"
+                    x1={x + nodeSize / 2}
+                    y1={nodeSize - 2}
+                    x2={nextX + nodeSize / 2}
+                    y2={rowHeight + 30}
+                    bend={side === 'center-left' ? 1 : -1}
+                    dotSize={4}
+                  />
+                ) : null}
+
+                <View style={{ position: 'absolute', left: x, top: 0, alignItems: 'center', width: nodeSize }}>
+                  {item.state === 'active' ? (
+                    <View style={styles.startBubble}>
+                      <Text maxFontSizeMultiplier={2} style={styles.startBubbleText}>{item.actionLabel.toUpperCase()}</Text>
+                      <View style={styles.startBubbleTail} />
+                    </View>
+                  ) : null}
+
+                  <TopicPlanetButton item={item} palette={palette} size={nodeSize} />
+
+                  <View style={{ marginTop: 12, flexDirection: 'row', gap: 5, minHeight: 22 }}>
+                    {item.state !== 'locked' && item.state !== 'empty'
+                      ? [0, 1, 2].map((starIndex) => {
+                          const earnedStars = getEarnedStars(item.progress)
+                          return (
+                            <Ionicons
+                              key={starIndex}
+                              name="star"
+                              size={18}
+                              color={starIndex < earnedStars ? palette.rim : '#314250'}
+                            />
+                          )
+                        })
+                      : <Ionicons name={item.state === 'locked' ? 'lock-closed' : 'remove-circle'} size={19} color="#60748E" />}
+                  </View>
+
+                  <Text maxFontSizeMultiplier={2} style={styles.topicTitle} numberOfLines={2}>{item.title}</Text>
+                  {item.failedQuestions > 0 ? (
+                    <View style={styles.reviewPill}>
+                      <Ionicons name="flame" size={13} color="#FFFFFF" />
+                      <Text maxFontSizeMultiplier={2} style={styles.reviewPillText}>{item.failedQuestions} para repasar</Text>
+                    </View>
+                  ) : typeof item.bestScore === 'number' ? (
+                    <Text maxFontSizeMultiplier={2} style={styles.topicMeta}>Mejor: {item.bestScore} XP</Text>
+                  ) : (
+                    <Text maxFontSizeMultiplier={2} style={styles.topicMeta}>{item.questionsCount} pregunta{item.questionsCount === 1 ? '' : 's'}</Text>
+                  )}
+                </View>
+              </View>
+            )
+          })}
+        </View>
+      )}
     </View>
   )
 }
@@ -380,8 +559,8 @@ function AddCourseGalaxyNode({
   onChangeInviteCode: (value: string) => void
   onJoin: () => void
 }) {
-  const { width } = useWindowDimensions()
-  const isDesktop = width >= 1024
+  const responsive = useResponsiveLayout()
+  const isDesktop = responsive.isDesktop
   const size = isDesktop ? 190 : 156
   const x = side === 'left' ? 24 : mapWidth - size - 24
   const formWidth = Math.min(isDesktop ? 420 : 306, mapWidth - 24)
@@ -392,6 +571,8 @@ function AddCourseGalaxyNode({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={open ? 'Cerrar formulario para añadir curso' : 'Añadir un curso con código'}
+        accessibilityHint={open ? 'Oculta el campo de código de clase' : 'Muestra un campo para introducir el código de clase'}
+        accessibilityState={{ expanded: open }}
         onPress={onToggle}
         style={({ pressed }) => ({ position: 'absolute', left: x, top: 0, width: size, alignItems: 'center', opacity: pressed ? 0.82 : 1 })}
       >
@@ -415,10 +596,12 @@ function AddCourseGalaxyNode({
               placeholderTextColor="#647896"
               style={styles.joinInput}
               accessibilityLabel="Código de clase"
+              accessibilityHint="Introduce el código de seis caracteres facilitado por tu profesor"
             />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Unirme al curso"
+              accessibilityHint="Envía el código para unirte al curso"
               onPress={onJoin}
               disabled={joining || inviteCode.trim().length === 0}
               style={({ pressed }) => [
@@ -667,6 +850,89 @@ function getValidIoniconName(icon: string | null | undefined): keyof typeof Ioni
 }
 
 const styles = StyleSheet.create({
+  viewModeToggle: {
+    width: '100%',
+    maxWidth: 460,
+    alignSelf: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  accessibleList: {
+    width: '100%',
+    alignSelf: 'center',
+    gap: 12,
+    paddingHorizontal: 8,
+    paddingBottom: 24,
+  },
+  listCard: {
+    width: '100%',
+    minHeight: 78,
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  listMainAction: {
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  listIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  listCopy: {
+    minWidth: 0,
+    flex: 1,
+  },
+  listTitle: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '900',
+  },
+  listDescription: {
+    marginTop: 3,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  listMeta: {
+    marginTop: 5,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '800',
+  },
+  listEmpty: {
+    minHeight: 180,
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  joinListCard: {
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 16,
+    gap: 12,
+  },
+  joinInput: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: 13,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
   nebula: {
     position: 'absolute',
     borderRadius: 999,

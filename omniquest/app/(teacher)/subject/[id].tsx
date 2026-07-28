@@ -3,15 +3,12 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MobileMetricCard from '../../../components/ui/mobile/MobileMetricCard'
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout';
 import { useAppTheme } from '../../../lib/appTheme';
 import type { SemanticIconKey } from '../../../lib/designTokens';
 import { exportCsvFile, exportMarkdownFile, formatExportDateTime, slugifyFilename } from '../../../lib/reportExports';
@@ -22,6 +19,8 @@ import {
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav';
 import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader';
+import TeacherScreenLayout from '../../../components/layouts/TeacherScreenLayout';
+import { useResponsiveLayout } from '../../../lib/responsive';
 import TeacherStudentImportModal from '../../../components/teacher/TeacherStudentImportModal';
 import AppButton from '../../../components/ui/AppButton';
 import AppTabs from '../../../components/ui/AppTabs';
@@ -46,11 +45,11 @@ const INSUFFICIENT_TREND_DATA = 'Datos disponibles cuando haya actividad suficie
 export default function SubjectDetailScreen() {
   const { id, tab, importStudents } = useLocalSearchParams<{ id: string; tab?: string; importStudents?: string }>();
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const responsive = useResponsiveLayout();
   const { tokens } = useAppTheme();
 
-  const isDesktop = width >= 1080;
-  const isWide = width >= 900;
+  const isDesktop = responsive.isDesktop;
+  const isWide = !responsive.isMobile;
   const subjectId = Array.isArray(id) ? id[0] : id;
   const {
     activeTab,
@@ -394,6 +393,8 @@ export default function SubjectDetailScreen() {
         <View className="gap-5">
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel="Abrir cola avanzada de revisión"
+            accessibilityHint="Abre la pantalla con respuestas pendientes y herramientas de corrección"
             onPress={() => router.push('/(teacher)/reviews' as any)}
             className="flex-row items-center justify-between rounded-2xl border border-border-active bg-surface-selected p-4"
           >
@@ -466,18 +467,27 @@ export default function SubjectDetailScreen() {
             <Panel title="Recursos del curso">
               <View className="gap-3">
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Editar información del curso"
+                  accessibilityHint="Abre el formulario de edición del curso"
                   onPress={() => router.push(`/(teacher)/edit-subject?id=${currentSubject.id}` as any)}
                   className="rounded-xl border border-border-default bg-surface-default px-4 py-3"
                 >
                   <Text className="font-bold text-text-primary">Editar información del curso</Text>
                 </Pressable>
                 <Pressable
+                  accessibilityRole="tab"
+                  accessibilityLabel="Gestionar alumnos"
+                  accessibilityHint="Cambia a la sección de estudiantes del curso"
                   onPress={() => setActiveTab('students')}
                   className="rounded-xl border border-border-default bg-surface-default px-4 py-3"
                 >
                   <Text className="font-bold text-text-primary">Gestionar alumnos</Text>
                 </Pressable>
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Mostrar código del curso"
+                  accessibilityHint="Muestra el código que deben usar los alumnos"
                   onPress={() => showAlert('Código del curso', currentSubject.code)}
                   className="rounded-xl border border-border-active bg-surface-selected px-4 py-3"
                 >
@@ -512,18 +522,27 @@ export default function SubjectDetailScreen() {
             <Panel title="Configuración del curso">
               <View className="gap-3">
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Editar información del curso"
+                  accessibilityHint="Abre el formulario de edición del curso"
                   onPress={() => router.push(`/(teacher)/edit-subject?id=${currentSubject.id}` as any)}
                   className="rounded-xl bg-brand-teacher px-4 py-3"
                 >
                   <Text className="text-center font-bold text-text-inverse">Editar curso</Text>
                 </Pressable>
                 <Pressable
+                  accessibilityRole="tab"
+                  accessibilityLabel="Gestionar alumnos"
+                  accessibilityHint="Cambia a la sección de estudiantes del curso"
                   onPress={() => setActiveTab('students')}
                   className="rounded-xl border border-border-default bg-surface-default px-4 py-3"
                 >
                   <Text className="text-center font-bold text-text-primary">Gestionar estudiantes</Text>
                 </Pressable>
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Compartir código del curso"
+                  accessibilityHint="Muestra el código de acceso para compartirlo"
                   onPress={() => showAlert('Código del curso', `Comparte este código con tus alumnos: ${currentSubject.code}`)}
                   className="rounded-xl border border-border-active bg-surface-selected px-4 py-3"
                 >
@@ -564,7 +583,12 @@ export default function SubjectDetailScreen() {
                 href={`/(teacher)/subject/add-question?subjectId=${currentSubject.id}${selectedClassroom?.id ? `&classroomId=${selectedClassroom.id}` : ''}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`}
                 asChild
               >
-                <Pressable className="rounded-xl bg-surface-selected px-5 py-3">
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel="Crear una nueva pregunta"
+                  accessibilityHint="Abre el formulario para añadir una pregunta al curso"
+                  className="min-h-11 rounded-xl bg-surface-selected px-5 py-3"
+                >
                   <Text className="text-[12px] font-bold text-text-primary">Nueva pregunta</Text>
                 </Pressable>
               </Link>
@@ -607,6 +631,9 @@ export default function SubjectDetailScreen() {
                 <Text className="font-mono font-black text-brand-teacher">{currentSubject.code}</Text>
               </View>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Mostrar código del curso"
+                accessibilityHint="Muestra el código de acceso del curso"
                 onPress={() => showAlert('Código del curso', currentSubject.code)}
                 className="flex-row items-center gap-2 rounded-lg border border-border-active px-4 py-3"
               >
@@ -634,7 +661,13 @@ export default function SubjectDetailScreen() {
       <View className="flex-1 items-center justify-center bg-background-primary px-6">
         <Ionicons name="alert-circle-outline" size={52} color={tokens.semantic.danger} />
         <Text className="mt-4 text-center text-xl font-black text-text-primary">No se encontró este curso</Text>
-        <Pressable onPress={() => router.replace('/(teacher)/classes' as any)} className="mt-5 rounded-xl bg-brand-teacher px-5 py-3">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver a cursos"
+          accessibilityHint="Regresa al listado de cursos"
+          onPress={() => router.replace('/(teacher)/classes' as any)}
+          className="mt-5 min-h-11 rounded-xl bg-brand-teacher px-5 py-3"
+        >
           <Text className="font-bold text-text-inverse">Volver a Cursos</Text>
         </Pressable>
       </View>
@@ -645,25 +678,21 @@ export default function SubjectDetailScreen() {
   const addQuestionHref = `/(teacher)/subject/add-question?subjectId=${currentSubject.id}${selectedClassroom?.id ? `&classroomId=${selectedClassroom.id}` : ''}${typeof selectedTopicId === 'number' ? `&topicId=${selectedTopicId}` : ''}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`;
   return (
     <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
-      <View className="flex-1 flex-row">
-        {isDesktop ? (
+      <TeacherScreenLayout
+        contentLabel={`Curso ${currentSubject.name}`}
+        desktopSidebar={(
           <TeacherSidebar
             activeSection="classes"
             subjectsCount={subjectsCount}
             onSignOut={handleSignOut}
           />
-        ) : null}
-
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 28 : 14,
-            paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER + 84,
-          }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.brand.teacher} />}
-          showsVerticalScrollIndicator={false}
-        >
+        )}
+        mobileBottomNavigation={<TeacherBottomNav active="classes" />}
+        isDesktop={isDesktop}
+        horizontalPadding={isDesktop ? undefined : 14}
+        bottomPadding={isDesktop ? 36 : 166}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.brand.teacher} />}
+      >
           <TeacherPageHeader
             backAction={{ label: 'Cursos', onPress: () => router.push('/(teacher)/classes' as any) }}
             isDesktop={isDesktop}
@@ -771,10 +800,8 @@ export default function SubjectDetailScreen() {
             />
           ) : null}
 
-          {renderTabContent(currentSubject)}
-        </ScrollView>
-      </View>
-      {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
+        {renderTabContent(currentSubject)}
+      </TeacherScreenLayout>
       {!isDesktop ? <SubjectAddQuestionCTA href={addQuestionHref} sticky /> : null}
       <TeacherStudentImportModal
         visible={showStudentImportModal}
@@ -840,6 +867,9 @@ function ReportExportActions({
       </View>
       <View className="flex-row flex-wrap gap-3">
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Exportar ranking de la clase"
+          accessibilityHint="Descarga un archivo con el ranking y las métricas del alumnado"
           onPress={onExportRanking}
           className="flex-row items-center gap-2 rounded-xl bg-brand-teacher px-4 py-3"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
@@ -848,6 +878,9 @@ function ReportExportActions({
           <Text className="text-[12px] font-black text-text-inverse">Exportar ranking/clase</Text>
         </Pressable>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Generar resumen semanal"
+          accessibilityHint="Descarga un resumen semanal del curso"
           onPress={onExportWeeklySummary}
           className="flex-row items-center gap-2 rounded-xl border border-semantic-info bg-semantic-surface-info px-4 py-3"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
@@ -940,7 +973,7 @@ function StudentReportRow({ student, index }: { student: StudentReport; index: n
         <Text className="font-black text-brand-teacher">{index + 1}</Text>
       </View>
       <View className="min-w-[180px] flex-1">
-        <Text className="font-black text-text-primary" numberOfLines={1}>{student.name}</Text>
+        <Text className="font-black text-text-primary" numberOfLines={2} maxFontSizeMultiplier={2}>{student.name}</Text>
         <Text className="mt-1 text-[11px] text-text-muted">
           {student.lastActivity ? `Última actividad: ${formatDate(student.lastActivity)}` : 'Sin actividad registrada'}
         </Text>
@@ -973,7 +1006,7 @@ function FailedQuestionRow({ question }: { question: FailedQuestionReport }) {
         </View>
         <View className="min-w-0 flex-1">
           <Text className="font-bold text-text-primary" numberOfLines={2}>{question.text}</Text>
-          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>{question.topic}</Text>
+          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>{question.topic}</Text>
         </View>
         <View className="items-end">
           <Text className="text-[18px] font-black text-semantic-danger">{question.actualFailures}</Text>
@@ -1055,6 +1088,10 @@ function ManualReviewRowCard({
 
         <View className="flex-row flex-wrap gap-2">
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Marcar como correcta la respuesta de ${row.studentName}`}
+            accessibilityHint="Aprueba la respuesta abierta del alumno"
+            accessibilityState={{ disabled: !pending || busy, busy }}
             onPress={onApprove}
             disabled={!pending || busy}
             className="flex-row items-center gap-2 rounded-lg px-3 py-2"
@@ -1064,6 +1101,10 @@ function ManualReviewRowCard({
             <Text className="text-[12px] font-bold text-text-primary">Correcta</Text>
           </Pressable>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Marcar como fallida la respuesta de ${row.studentName}`}
+            accessibilityHint="Rechaza la respuesta abierta del alumno"
+            accessibilityState={{ disabled: !pending || busy, busy }}
             onPress={onReject}
             disabled={!pending || busy}
             className="flex-row items-center gap-2 rounded-lg px-3 py-2"

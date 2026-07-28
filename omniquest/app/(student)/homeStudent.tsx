@@ -1,12 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View, } from 'react-native'
+import { Pressable, Text, TextInput, View } from 'react-native'
 import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
 import { getStudentLevel, getNextLevelProgress } from '../../lib/studentLevel'
 import { getTimeAgo } from '../../lib/time'
-import StudentSidebar from '../../components/student/StudentSidebar'
 import { fetchStudentProgressSummary, type StudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
@@ -21,10 +20,10 @@ import { calculateStreakDays } from '../../lib/studentBadges'
 import { fetchStudentAttemptHistory } from '../../lib/studentSecureData'
 import { getStartOfWeekMonday, getTimeUntilSundayLabel } from '../../lib/weeklyGoal'
 import { MobileEmptyState, MobileMetricCard, MobileScreen, MobileSectionHeader } from '../../components/ui/mobile'
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import AppButton from '../../components/ui/AppButton'
-import { useAppModal } from '../../components/AppModalProvider'
 import { withAlpha } from '../../lib/color'
+import StudentLayout from '../../components/student/StudentLayout'
+import { useResponsiveLayout } from '../../lib/responsive'
 
 type Subject = {
   id: number
@@ -145,7 +144,8 @@ function getSubjectProgressRows(subjects: Subject[], progressRows: StudentProgre
 }
 
 export default function StudentHome() {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
+  const { isDesktop } = responsive
   const [inviteCode, setInviteCode] = useState('')
   const [enrolledSubjects, setEnrolledSubjects] = useState<Subject[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -160,10 +160,8 @@ export default function StudentHome() {
   const [progressSummary, setProgressSummary] = useState<StudentProgressSummary | null>(null)
   const router = useRouter()
   const { accentColor, tokens } = useAppTheme()
-  const { showModal } = useAppModal()
 
-  const isDesktop = width >= 1024
-  const isWide = width >= 760
+  const isWide = !responsive.isMobile
   const points = profile?.points ?? 0
   const alias = profile?.alias || 'Alex'
   const level = getStudentLevel(points)
@@ -400,29 +398,17 @@ export default function StudentHome() {
   }
 
   return (
-    <View className="flex-1 bg-background-primary">
-      <View className="flex-1 flex-row">
-        {isDesktop ? (
-          <StudentSidebar
-            activeSection="home"
-            alias={alias}
-            avatar={profile?.avatar}
-            level={level}
-            points={points}
-            nextLevelProgress={nextLevelProgress}
-            onSignOut={() => supabase.auth.signOut()}
-          />
-        ) : null}
-
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 34 : 18,
-            paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 28 : MOBILE_BOTTOM_NAV_SPACER,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
+    <StudentLayout
+      activeSection="home"
+      alias={alias}
+      avatar={profile?.avatar}
+      bottomNavActive="home"
+      isDesktop={isDesktop}
+      level={level}
+      nextLevelProgress={nextLevelProgress}
+      onSignOut={() => supabase.auth.signOut()}
+      points={points}
+    >
           <StudentPageHeader
             icon="home"
             isDesktop={isDesktop}
@@ -533,6 +519,8 @@ export default function StudentHome() {
                   <Ionicons name="keypad-outline" size={20} color={tokens.text.muted} />
                 </View>
                 <TextInput
+                  accessibilityLabel="Código para unirse a un curso"
+                  accessibilityHint="Introduce el código de seis caracteres facilitado por tu profesor"
                   className="min-w-0 flex-1 px-4 py-3 text-white"
                   placeholder="Introduce el código"
                   placeholderTextColor={tokens.text.disabled}
@@ -560,11 +548,7 @@ export default function StudentHome() {
               ) : null}
             </View>
           </View>
-        </ScrollView>
-      </View>
-
-      {!isDesktop ? <StudentBottomNav active="home" /> : null}
-    </View>
+    </StudentLayout>
   )
 }
 
@@ -730,7 +714,12 @@ function MobileReviewCard({
 
   return (
     <Link href={action.href as any} asChild>
-      <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={`${title}. ${subtitle}`}
+        accessibilityHint={`Abre la acción ${action.buttonLabel}`}
+        style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
+      >
         <View className={`overflow-hidden rounded-[26px] border border-border-active p-5 ${className}`}>
           <LinearGradient
             colors={[tokens.surface.selected, tokens.surface.raised]}
@@ -756,7 +745,7 @@ function MobileReviewCard({
             <View className="mt-5 flex-row items-center justify-between gap-3">
               <View className="min-w-0 flex-1 rounded-2xl px-4 py-3" style={{ backgroundColor: withAlpha(tokens.text.primary, '1A') }}>
                 <Text className="text-[12px] font-bold text-brand-student">Siguiente paso</Text>
-                <Text className="mt-1 text-[13px] font-semibold text-white" numberOfLines={1}>
+                <Text className="mt-1 text-[13px] font-semibold text-white" numberOfLines={2} maxFontSizeMultiplier={2}>
                   {showFailures ? 'Reforzar preguntas falladas' : action.buttonLabel}
                 </Text>
               </View>
@@ -845,7 +834,7 @@ function MobileWeeklyGoalCard({
         </View>
         <View className="flex-row items-center gap-2 rounded-2xl bg-surface-selected px-3 py-2">
           <Ionicons name="calendar" size={16} color={tokens.brand.student} />
-          <Text className="text-[12px] font-black text-brand-student" numberOfLines={1}>{getTimeUntilSundayLabel()}</Text>
+          <Text className="text-[12px] font-black text-brand-student" numberOfLines={2} maxFontSizeMultiplier={2}>{getTimeUntilSundayLabel()}</Text>
         </View>
       </View>
 
@@ -892,7 +881,12 @@ function MobileCoursesSection({ rows, className = '' }: { rows: SubjectProgressR
           <MobileEmptyCourseCard />
         )}
         <Link href="/(student)/classes" asChild>
-          <Pressable className="w-[150px] justify-center rounded-[22px] border border-border-subtle bg-surface-raised p-4">
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="Ver todos los cursos y unirse a un curso nuevo"
+            accessibilityHint="Abre la pantalla de cursos"
+            className="w-[150px] justify-center rounded-[22px] border border-border-subtle bg-surface-raised p-4"
+          >
             <View style={{ width: 48, height: 48, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: withAlpha(tokens.text.primary, '14') }}>
               <Ionicons name="add" size={30} color={tokens.text.secondary} />
             </View>
@@ -912,7 +906,13 @@ function MobileCourseCard({ row, index }: { row: SubjectProgressRow; index: numb
 
   return (
     <Link href={buildClassHref(row.subject) as any} asChild>
-      <Pressable className="w-[162px] overflow-hidden rounded-[22px] border border-border-subtle bg-surface-raised p-4" style={({ pressed }) => ({ opacity: pressed ? 0.86 : 1 })}>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={`Abrir curso ${row.subject.name}`}
+        accessibilityHint={`${percent}% completado`}
+        className="w-[162px] overflow-hidden rounded-[22px] border border-border-subtle bg-surface-raised p-4"
+        style={({ pressed }) => ({ opacity: pressed ? 0.86 : 1 })}
+      >
         <View className="absolute -right-8 -top-8 h-24 w-24 rounded-full" style={{ backgroundColor: `${color}20` }} />
         <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: `${color}26` }}>
           {row.subject.icon ? (
@@ -921,7 +921,7 @@ function MobileCourseCard({ row, index }: { row: SubjectProgressRow; index: numb
             <Ionicons name="book" size={28} color={color} />
           )}
         </View>
-        <Text className="mt-4 text-[17px] font-black text-white" numberOfLines={1}>{row.subject.name}</Text>
+        <Text className="mt-4 text-[17px] font-black text-white" numberOfLines={2} maxFontSizeMultiplier={2}>{row.subject.name}</Text>
         <View className="mt-3 h-2 overflow-hidden rounded-full bg-surface-interactive">
           <View className="h-full rounded-full" style={{ width: `${Math.max(5, percent)}%`, backgroundColor: color }} />
         </View>
@@ -1056,6 +1056,10 @@ function StudentMobileOnboardingCard({
                   <Text className="mt-1 text-[12px] leading-5 text-text-secondary">{step.description}</Text>
                 </View>
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${step.actionLabel}: ${step.title}`}
+                  accessibilityHint={step.description}
+                  accessibilityState={{ disabled: step.done }}
                   onPress={step.onPress}
                   className="rounded-xl px-3 py-2"
                   style={({ pressed }) => ({
@@ -1129,7 +1133,13 @@ function HeroCard({ isWide, action }: { isWide: boolean; action: HomeHeroAction 
           {action.description}
         </Text>
         <Link href={action.href as any} asChild>
-          <Pressable className="mt-5 w-[184px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: tokens.brand.student }}>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={action.buttonLabel}
+            accessibilityHint={action.description}
+            className="mt-5 min-h-12 w-[184px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-3"
+            style={{ backgroundColor: tokens.brand.student }}
+          >
             <Ionicons name={action.icon} size={18} color={tokens.text.inverse} />
             <Text className="font-bold text-white">{action.buttonLabel}</Text>
           </Pressable>
@@ -1163,7 +1173,12 @@ function SubjectRow({
       }}
       asChild
     >
-      <Pressable className="flex-row flex-wrap items-center gap-3 rounded-xl bg-surface-raised p-3">
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={`Abrir ${subject.name}`}
+        accessibilityHint={progress ? `${progressPercent}% completado` : 'Sin progreso registrado'}
+        className="flex-row flex-wrap items-center gap-3 rounded-xl bg-surface-raised p-3"
+      >
         <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}33` }}>
           {subject.icon ? (
             <Text className="text-[22px]">{subject.icon}</Text>
@@ -1173,7 +1188,7 @@ function SubjectRow({
         </View>
         <View className="min-w-[210px] flex-1">
           <Text className="font-black text-white">{subject.name}</Text>
-          <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={1}>
+          <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={2} maxFontSizeMultiplier={2}>
             {subject.classroom_name ? `${subject.classroom_name} · ` : ''}
             {progress ? `${progressPercent}% completado` : 'Sin progreso registrado'}
           </Text>

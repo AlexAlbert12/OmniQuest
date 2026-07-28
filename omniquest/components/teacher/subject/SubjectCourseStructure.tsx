@@ -214,7 +214,12 @@ export function SubjectAddQuestionCTA({ href, sticky = false }: { href: string; 
       style={sticky ? { shadowColor: '#000', shadowOpacity: 0.34, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 12 } : undefined}
     >
       <Link href={href as any} asChild>
-        <Pressable className="h-14 flex-row items-center justify-center gap-2 rounded-2xl border border-border-active bg-brand-teacher px-5">
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="Añadir pregunta"
+          accessibilityHint="Abre el formulario para crear una pregunta en este curso"
+          className="min-h-14 flex-row items-center justify-center gap-2 rounded-2xl border border-border-active bg-brand-teacher px-5 py-3"
+        >
           <Ionicons name="add" size={21} color="#FFFFFF" />
           <Text className="text-[15px] font-black text-white">Añadir pregunta</Text>
         </Pressable>

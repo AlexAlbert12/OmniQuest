@@ -8,7 +8,6 @@ import {
   ScrollView,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -17,9 +16,10 @@ import BrandLogo from '../../BrandLogo'
 import AdminBottomNav from '../AdminBottomNav'
 import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import { supabase } from '../../../lib/supabase'
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { useAppTheme } from '../../../lib/appTheme'
 import { AppButton, AppDropdown, AppIconButton, AppMenu } from '../../ui'
+import AdminScreenLayout from '../../layouts/AdminScreenLayout'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import type { DesignColorTokens } from '../../../lib/designTokens'
 import type { AdminConfirmationRequester } from './AdminTypedConfirmation'
 import GlobalSearchButton from '../../search/GlobalSearchButton'
@@ -722,10 +722,10 @@ export function AdminScaffold({
   subtitle: string
   title: string
 }) {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const router = useRouter()
-  const { colors, tokens } = useAppTheme()
-  const isDesktop = width >= 1040
+  const { tokens } = useAppTheme()
+  const isDesktop = responsive.isDesktop
   const activeIcon = activeSection === 'home' ? 'shield-checkmark' : getAdminSectionIcon(activeSection)
 
   const handleSignOut = async () => {
@@ -733,97 +733,84 @@ export function AdminScaffold({
     router.replace('/(auth)/login' as any)
   }
 
-  if (data.loading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={tokens.brand.admin} />
-        <Text className="mt-4" style={{ color: colors.textMuted }}>Cargando portal de administrador...</Text>
-      </View>
-    )
-  }
-
   return (
-    <View className="flex-1" style={{ backgroundColor: colors.background }}>
-      <View className="flex-1 flex-row">
-        {isDesktop ? <AdminSidebar activeSection={activeSection} onSignOut={handleSignOut} /> : null}
-
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 28 : 20,
-            paddingTop: isDesktop ? 24 : 20,
-            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER,
-          }}
-          refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={data.onRefresh} tintColor={tokens.brand.admin} />}
-          showsVerticalScrollIndicator={false}
-        >
-          {isDesktop ? (
-            <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
-              <View className="min-w-[260px] flex-1">
-                <View className="flex-row items-center gap-3">
-                  <Ionicons name={activeIcon} size={42} color={tokens.semantic.info} />
-                  <Text className="text-[36px] font-black text-text-primary">{title}</Text>
-                </View>
-                <Text className="mt-2 text-[14px] text-text-secondary">{subtitle}</Text>
-              </View>
-              <GlobalSearchButton role="admin" />
+    <AdminScreenLayout
+      contentLabel={`Portal de administración: ${title}`}
+      desktopSidebar={<AdminSidebar activeSection={activeSection} onSignOut={handleSignOut} />}
+      mobileBottomNavigation={<AdminBottomNav active={activeSection} />}
+      isDesktop={isDesktop}
+      loading={data.loading}
+      loadingLabel="Cargando portal de administrador..."
+      refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={data.onRefresh} tintColor={tokens.brand.admin} />}
+    >
+      {isDesktop ? (
+        <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
+          <View className="min-w-[260px] flex-1">
+            <View className="flex-row items-center gap-3">
+              <Ionicons name={activeIcon} size={42} color={tokens.semantic.info} />
+              <Text accessibilityRole="header" maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[36px] font-black text-text-primary">{title}</Text>
             </View>
-          ) : (
-            <View className="mb-6">
-              <View className="mb-6 flex-row items-center justify-between">
-                <View className="min-w-0 flex-1 flex-row items-center gap-3">
-                  <View className="h-12 w-12 items-center justify-center rounded-2xl bg-surface-selected">
-                    <Ionicons name={activeIcon} size={25} color={tokens.brand.admin} />
-                  </View>
-                  <Text className="min-w-0 text-[28px] font-black text-text-primary" numberOfLines={1}>{title}</Text>
-                </View>
-                <View className="flex-row items-center gap-2">
-                  <GlobalSearchButton role="admin" compact />
-                  <AppIconButton
-                    accessibilityLabel="Cerrar sesión"
-                    icon="log-out-outline"
-                    variant="danger"
-                    onPress={handleSignOut}
-                  />
-                </View>
+            <Text maxFontSizeMultiplier={2} className="mt-2 text-[14px] leading-5 text-text-secondary">{subtitle}</Text>
+          </View>
+          <GlobalSearchButton role="admin" />
+        </View>
+      ) : (
+        <View className="mb-6">
+          <View className="mb-6 flex-row items-center justify-between gap-3">
+            <View className="min-w-0 flex-1 flex-row items-center gap-3">
+              <View className="h-12 w-12 items-center justify-center rounded-2xl bg-surface-selected">
+                <Ionicons name={activeIcon} size={25} color={tokens.brand.admin} />
               </View>
+              <Text accessibilityRole="header" maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[28px] font-black text-text-primary" numberOfLines={2}>{title}</Text>
+            </View>
+            <View className="flex-row items-center gap-2">
+              <GlobalSearchButton role="admin" compact />
+              <AppIconButton
+                accessibilityLabel="Cerrar sesión"
+                accessibilityHint="Cierra la sesión administrativa y vuelve al acceso"
+                icon="log-out-outline"
+                variant="danger"
+                onPress={handleSignOut}
+              />
+            </View>
+          </View>
 
-              <View className="rounded-[28px] border border-border-default bg-surface-default p-5">
-                <View className="flex-row items-start gap-4">
-                  <View className="h-16 w-16 items-center justify-center rounded-3xl bg-surface-selected">
-                    <Ionicons name={activeIcon} size={34} color={tokens.brand.admin} />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-[34px] font-black leading-[38px] text-text-primary" numberOfLines={2}>{title}</Text>
-                    <Text className="mt-2 text-[14px] leading-5 text-text-secondary" numberOfLines={3}>{subtitle}</Text>
-                  </View>
-                </View>
-                <View className="mt-5 flex-row items-center justify-between rounded-2xl border border-border-default bg-surface-default px-4 py-3">
-                  <View className="flex-row items-center gap-2">
-                    <Ionicons name="lock-closed-outline" size={15} color={tokens.brand.admin} />
-                    <Text className="text-[12px] font-black uppercase tracking-[0.8px] text-brand-admin">Portal privado</Text>
-                  </View>
-                  <Pressable onPress={data.onRefresh} className="flex-row items-center gap-2" hitSlop={8}>
-                    <Ionicons name="refresh-outline" size={16} color={tokens.text.secondary} />
-                    <Text className="text-[12px] font-bold text-text-secondary">Actualizar</Text>
-                  </Pressable>
-                </View>
+          <View className="rounded-[28px] border border-border-default bg-surface-default p-5">
+            <View className="flex-row items-start gap-4">
+              <View className="h-16 w-16 items-center justify-center rounded-3xl bg-surface-selected">
+                <Ionicons name={activeIcon} size={34} color={tokens.brand.admin} />
+              </View>
+              <View className="min-w-0 flex-1">
+                <Text maxFontSizeMultiplier={2} className="text-[34px] font-black leading-[42px] text-text-primary" numberOfLines={2}>{title}</Text>
+                <Text maxFontSizeMultiplier={2} className="mt-2 text-[14px] leading-5 text-text-secondary" numberOfLines={4}>{subtitle}</Text>
               </View>
             </View>
-          )}
-
-          {!isDesktop && activeSection !== 'home' && activeSection !== 'support' ? (
-            <View className="mb-4">
-              <AdminMobileSectionTabs activeSection={activeSection} />
+            <View className="mt-5 flex-row items-center justify-between gap-3 rounded-2xl border border-border-default bg-surface-default px-4 py-3">
+              <View className="min-w-0 flex-1 flex-row items-center gap-2">
+                <Ionicons name="lock-closed-outline" size={15} color={tokens.brand.admin} />
+                <Text maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[12px] font-black uppercase tracking-[0.8px] text-brand-admin">Portal privado</Text>
+              </View>
+              <AppButton
+                accessibilityHint="Actualiza los datos del portal"
+                icon="refresh-outline"
+                label="Actualizar"
+                size="sm"
+                variant="ghost"
+                onPress={data.onRefresh}
+              />
             </View>
-          ) : null}
+          </View>
+        </View>
+      )}
 
-          {children}
-        </ScrollView>
-      </View>
+      {!isDesktop && activeSection !== 'home' && activeSection !== 'support' ? (
+        <View className="mb-4">
+          <AdminMobileSectionTabs activeSection={activeSection} />
+        </View>
+      ) : null}
 
-      {!isDesktop ? <AdminBottomNav active={activeSection} /> : null}
-    </View>
+      {children}
+    </AdminScreenLayout>
   )
 }
 
@@ -870,6 +857,10 @@ export function AdminNavButton({ active, item }: { active: boolean; item: { labe
 
   return (
     <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`Abrir ${item.label}`}
+      accessibilityHint="Navega a esta sección del portal"
+      accessibilityState={{ selected: active }}
       onPress={() => router.push(item.href as any)}
       className="flex-row items-center gap-3 rounded-xl px-4 py-3"
       style={({ pressed }) => ({
@@ -887,9 +878,9 @@ export function AdminNavButton({ active, item }: { active: boolean; item: { labe
 
 export function AdminMetrics({ activeSection, data }: { activeSection: AdminSection; data: AdminData }) {
   const { tokens } = useAppTheme()
-  const { width } = useWindowDimensions()
-  const isDesktop = width >= 1040
-  const metricWidth = Math.max(136, Math.floor((width - 52) / 2))
+  const responsive = useResponsiveLayout()
+  const isDesktop = responsive.isDesktop
+  const metricWidth = Math.max(136, Math.floor((responsive.width - 52) / 2))
   const metrics = [
     { icon: 'school' as IconName, label: 'Profesores', value: String(data.metrics.teachersCount), color: tokens.brand.admin },
     { icon: 'people' as IconName, label: 'Alumnos', value: String(data.metrics.studentsCount), color: tokens.semantic.success },
@@ -963,7 +954,7 @@ export function AdminMobileCriticalAlerts({ data }: { data: AdminData }) {
               <View className="h-10 w-10 items-center justify-center rounded-2xl" style={{ backgroundColor: `${alert.color}24` }}>
                 <Ionicons name={alert.icon} size={18} color={alert.color} />
               </View>
-              <Text className="ml-3 min-w-0 flex-1 text-[13px] font-bold text-text-secondary" numberOfLines={1}>{alert.label}</Text>
+              <Text className="ml-3 min-w-0 flex-1 text-[13px] font-bold text-text-secondary" numberOfLines={2} maxFontSizeMultiplier={2}>{alert.label}</Text>
               <Text className="text-[18px] font-black text-text-primary">{alert.value}</Text>
             </View>
           ))
@@ -998,8 +989,12 @@ export function AdminMobileSectionTabs({ activeSection }: { activeSection: Admin
           return (
             <Pressable
               key={item.section}
+              accessibilityRole="tab"
+              accessibilityLabel={`Sección ${item.label}`}
+              accessibilityHint="Cambia la sección administrativa visible"
+              accessibilityState={{ selected: active }}
               onPress={() => router.push(item.href as any)}
-              className="h-11 flex-row items-center gap-2 rounded-2xl border px-4"
+              className="min-h-11 flex-row items-center gap-2 rounded-2xl border px-4 py-2"
               style={({ pressed }) => ({
                 opacity: pressed ? 0.82 : 1,
                 borderColor: active ? tokens.border.active : tokens.border.default,
@@ -1007,7 +1002,7 @@ export function AdminMobileSectionTabs({ activeSection }: { activeSection: Admin
               })}
             >
               <Ionicons name={active ? filledIconFor(item.icon) : item.icon} size={17} color={active ? tokens.text.inverse : tokens.text.secondary} />
-              <Text className="text-[13px] font-black" style={{ color: active ? tokens.text.inverse : tokens.text.primary }} numberOfLines={1}>
+              <Text className="text-[13px] font-black" style={{ color: active ? tokens.text.inverse : tokens.text.primary }} numberOfLines={2} maxFontSizeMultiplier={2}>
                 {item.label}
               </Text>
             </Pressable>
@@ -1022,6 +1017,9 @@ export function HomeShortcut({ icon, label, onPress }: { icon: IconName; label: 
   const { tokens } = useAppTheme()
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint="Abre esta acción rápida"
       onPress={onPress}
       className="min-w-[185px] flex-1 flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-default p-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
@@ -1183,9 +1181,11 @@ export function AdminChoiceChip({ active, label, onPress }: { active: boolean; l
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint="Aplica este filtro"
       accessibilityState={{ selected: active }}
       onPress={onPress}
-      className="h-10 items-center justify-center rounded-xl border px-3"
+      className="min-h-10 items-center justify-center rounded-xl border px-3 py-2"
       style={({ pressed }) => ({
         borderColor: active ? tokens.border.active : tokens.border.default,
         backgroundColor: active ? tokens.surface.selected : tokens.surface.default,
@@ -1214,6 +1214,7 @@ export function SupportTicketCard({ ticket, onManage }: { ticket: AdminSupportTi
         </View>
         <Pressable
           accessibilityLabel={`Gestionar ticket ${ticket.subject}`}
+          accessibilityHint="Abre las opciones de respuesta y estado del ticket"
           accessibilityRole="button"
           onPress={onManage}
           className="h-10 flex-row items-center gap-2 rounded-xl bg-brand-admin px-4"
@@ -1265,8 +1266,8 @@ export function SupportPriorityPill({ priority }: { priority: AdminSupportTicket
 
 export function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVersion: number }) {
   const { tokens } = useAppTheme()
-  const { width } = useWindowDimensions()
-  const isDesktop = width >= 1040
+  const responsive = useResponsiveLayout()
+  const isDesktop = responsive.isDesktop
   const [analytics, setAnalytics] = useState<AdminUsageAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -1731,6 +1732,10 @@ export function AdminPaginationControls({
       </Text>
       <View className="flex-row items-center gap-2">
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Página anterior"
+          accessibilityHint="Muestra los resultados anteriores"
+          accessibilityState={{ disabled: !hasPrevious }}
           onPress={onPrevious}
           disabled={!hasPrevious}
           className="h-10 flex-row items-center gap-1 rounded-xl border border-border-default bg-surface-default px-3"
@@ -1740,6 +1745,10 @@ export function AdminPaginationControls({
           <Text className="text-[12px] font-black text-text-secondary">Anterior</Text>
         </Pressable>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Página siguiente"
+          accessibilityHint="Muestra los siguientes resultados"
+          accessibilityState={{ disabled: !hasNext }}
           onPress={onNext}
           disabled={!hasNext}
           className="h-10 flex-row items-center gap-1 rounded-xl bg-brand-admin px-3"

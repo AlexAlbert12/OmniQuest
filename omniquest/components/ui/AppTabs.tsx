@@ -54,6 +54,7 @@ export default function AppTabs<Key extends string | number>({
             <AppPressable
               key={String(item.key)}
               accessibilityLabel={item.label}
+              accessibilityHint={`Cambia a la sección ${item.label}`}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
               onPress={() => onChange(item.key)}
@@ -76,7 +77,8 @@ export default function AppTabs<Key extends string | number>({
                 />
               ) : null}
               <Text
-                numberOfLines={1}
+                numberOfLines={2}
+                maxFontSizeMultiplier={2}
                 style={[
                   styles.label,
                   compact ? styles.compactLabel : styles.regularLabel,
@@ -87,7 +89,7 @@ export default function AppTabs<Key extends string | number>({
               </Text>
               {item.badge !== undefined ? (
                 <View style={[styles.badge, { backgroundColor: selected ? withAlpha(activeColor, '35') : tokens.surface.interactive }]}>
-                  <Text style={[styles.badgeText, { color: selected ? activeColor : tokens.text.muted }]}>{item.badge}</Text>
+                  <Text maxFontSizeMultiplier={2} style={[styles.badgeText, { color: selected ? activeColor : tokens.text.muted }]}>{item.badge}</Text>
                 </View>
               ) : null}
             </AppPressable>
@@ -137,6 +139,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   label: {
+    flexShrink: 1,
+    textAlign: 'center',
     fontWeight: '900',
   },
   regularLabel: {

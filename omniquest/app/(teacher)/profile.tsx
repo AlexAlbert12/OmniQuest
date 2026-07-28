@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native'
 import { useFocusEffect, useRouter, type Href } from 'expo-router'
@@ -18,6 +17,8 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
+import TeacherScreenLayout from '../../components/layouts/TeacherScreenLayout'
+import { useResponsiveLayout } from '../../lib/responsive'
 import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
 import { useAppModal } from '../../components/AppModalProvider'
@@ -73,7 +74,7 @@ function teacherSubjectRoute(subjectId: number) {
 }
 
 export default function TeacherProfileScreen() {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const router = useRouter()
   const { tokens } = useAppTheme()
   const { showModal } = useAppModal()
@@ -88,7 +89,7 @@ export default function TeacherProfileScreen() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
 
-  const isDesktop = width >= 1024
+  const isDesktop = responsive.isDesktop
 
   const stats = useMemo(() => {
     const enrollmentPairs = new Set(
@@ -310,27 +311,19 @@ export default function TeacherProfileScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background-primary">
-      <View className="flex-1 flex-row">
-        {isDesktop ? (
-          <TeacherSidebar
-            activeSection="profile"
-            subjectsCount={stats.activeClasses}
-            alias={profile?.alias}
-            avatar={profile?.avatar}
-            onSignOut={handleSignOut}
-          />
-        ) : null}
-
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 28 : 18,
-            paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
+    <TeacherScreenLayout
+      contentLabel="Perfil del profesor"
+      desktopSidebar={(
+        <TeacherSidebar
+          activeSection="profile"
+          subjectsCount={stats.activeClasses}
+          alias={profile?.alias}
+          avatar={profile?.avatar}
+          onSignOut={handleSignOut}
+        />
+      )}
+      isDesktop={isDesktop}
+    >
           <TeacherPageHeader
             icon="person"
             isDesktop={isDesktop}
@@ -371,6 +364,9 @@ export default function TeacherProfileScreen() {
               <InfoRow icon="calendar-outline" label="Miembro desde" value={memberSince} />
 
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Editar perfil"
+                accessibilityHint="Abre la configuración de datos personales"
                 onPress={() => router.push(TEACHER_ROUTES.settingsProfile)}
                 className="mt-4 flex-row items-center gap-2 border-t border-border-subtle pt-4"
               >
@@ -380,6 +376,9 @@ export default function TeacherProfileScreen() {
               </Pressable>
 
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Gestionar seguridad"
+                accessibilityHint="Abre las sesiones, contraseña y códigos de respaldo"
                 onPress={() => router.push(TEACHER_ROUTES.security)}
                 className="mt-3 flex-row items-center gap-2"
               >
@@ -395,6 +394,9 @@ export default function TeacherProfileScreen() {
                   recentSubjects.map((subject) => (
                     <Pressable
                       key={subject.id}
+                      accessibilityRole="link"
+                      accessibilityLabel={`Abrir curso ${subject.name}`}
+                      accessibilityHint={`Código ${subject.code}. Abre el detalle del curso`}
                       onPress={() => router.push(teacherSubjectRoute(subject.id))}
                       className="flex-row items-center gap-3 rounded-xl bg-surface-raised p-3"
                     >
@@ -403,7 +405,7 @@ export default function TeacherProfileScreen() {
                       </View>
 
                       <View className="min-w-0 flex-1">
-                        <Text className="font-black text-text-primary" numberOfLines={1}>
+                        <Text className="font-black text-text-primary" numberOfLines={2} maxFontSizeMultiplier={2}>
                           {subject.name}
                         </Text>
                         <Text className="mt-1 text-[12px] text-text-muted">
@@ -432,10 +434,10 @@ export default function TeacherProfileScreen() {
                       </View>
 
                       <View className="min-w-0 flex-1">
-                        <Text className="font-bold text-text-primary" numberOfLines={1}>
+                        <Text className="font-bold text-text-primary" numberOfLines={2} maxFontSizeMultiplier={2}>
                           {question.text}
                         </Text>
-                        <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={1}>
+                        <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>
                           {getSubjectName(question.subjects)}
                         </Text>
                       </View>
@@ -451,10 +453,7 @@ export default function TeacherProfileScreen() {
               </View>
             </ProfileCard>
           </View>
-        </ScrollView>
-      </View>
-      {!isDesktop ? <TeacherBottomNav active="profile" /> : null}
-    </View>
+    </TeacherScreenLayout>
   )
 }
 
@@ -614,6 +613,10 @@ function MobileTeacherProfileHero({
 
       <View className="relative flex-row items-center gap-5">
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={uploading ? 'Subiendo imagen de perfil' : 'Cambiar imagen de perfil'}
+          accessibilityHint="Abre el selector de imágenes"
+          accessibilityState={{ disabled: uploading, busy: uploading }}
           onPress={onPickImage}
           disabled={uploading}
           className="h-28 w-28 items-center justify-center rounded-full border-[6px] border-border-active bg-white"
@@ -631,7 +634,7 @@ function MobileTeacherProfileHero({
         </Pressable>
 
         <View className="min-w-0 flex-1">
-          <Text className="text-[31px] font-black text-text-primary" numberOfLines={1}>{alias}</Text>
+          <Text className="text-[31px] font-black text-text-primary" numberOfLines={2} maxFontSizeMultiplier={2}>{alias}</Text>
           <Text className="mt-2 text-[18px] font-black text-brand-teacher">Profesor</Text>
           <Text className="mt-2 text-[16px] leading-6 text-text-secondary" numberOfLines={2}>{email || 'Sin correo'}</Text>
 
@@ -678,6 +681,7 @@ function TeacherQuickAccessPanel({
             key={action.label}
             accessibilityRole="button"
             accessibilityLabel={action.label}
+            accessibilityHint={action.detail}
             onPress={action.onPress}
             className={`${mobile ? 'min-w-[145px]' : 'min-w-[220px]'} flex-1 flex-row items-center gap-3 rounded-xl border border-border-default bg-surface-raised p-3`}
             style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
@@ -686,7 +690,7 @@ function TeacherQuickAccessPanel({
               <Ionicons name={action.icon} size={21} color={action.color} />
             </View>
             <View className="min-w-0 flex-1">
-              <Text className="text-[13px] font-black text-text-primary" numberOfLines={1}>{action.label}</Text>
+              <Text className="text-[13px] font-black text-text-primary" numberOfLines={2} maxFontSizeMultiplier={2}>{action.label}</Text>
               <Text className="mt-1 text-[11px] leading-4 text-text-muted" numberOfLines={2}>{action.detail}</Text>
             </View>
             <Ionicons name="chevron-forward" size={17} color={tokens.text.muted} />
@@ -720,8 +724,11 @@ function TeacherImpactPanel({
           </Text>
         </View>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Ver alumnos"
+          accessibilityHint="Abre el listado de alumnos"
           onPress={onStudents}
-          className="h-11 flex-row items-center gap-2 rounded-xl bg-brand-teacher px-4"
+          className="min-h-11 flex-row items-center gap-2 rounded-xl bg-brand-teacher px-4"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
           <Ionicons name="people-outline" size={17} color={tokens.text.inverse} />
@@ -786,15 +793,18 @@ function MobileTeacherImpactCard({
         <View className="min-w-0 flex-1">
           <View className="flex-row items-center gap-3">
             <Ionicons name="analytics-outline" size={27} color={tokens.brand.teacher} />
-            <Text className="min-w-0 flex-1 text-[23px] font-black text-text-primary" numberOfLines={1}>Impacto docente</Text>
+            <Text className="min-w-0 flex-1 text-[23px] font-black text-text-primary" numberOfLines={2} maxFontSizeMultiplier={2}>Impacto docente</Text>
           </View>
           <Text className="mt-2 text-[14px] leading-5 text-text-secondary">
             Tus métricas principales como profesor.
           </Text>
         </View>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Ver alumnos"
+          accessibilityHint="Abre el listado de alumnos"
           onPress={onStudents}
-          className="h-11 flex-row items-center rounded-2xl bg-brand-teacher px-4"
+          className="min-h-11 flex-row items-center rounded-2xl bg-brand-teacher px-4"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
           <Text className="text-[13px] font-black text-text-inverse">Alumnos</Text>
@@ -916,7 +926,7 @@ function MobileInfoRow({
     <View className="flex-row items-center gap-4 border-t border-border-default px-2 py-4">
       <Ionicons name={icon} size={24} color={tokens.text.secondary} />
       <Text className="min-w-0 flex-1 text-[16px] text-text-secondary">{label}</Text>
-      <Text className="max-w-[52%] text-right text-[16px] text-text-primary" numberOfLines={1}>{value}</Text>
+      <Text className="max-w-[52%] text-right text-[16px] text-text-primary" numberOfLines={2} maxFontSizeMultiplier={2}>{value}</Text>
     </View>
   )
 }
@@ -933,12 +943,15 @@ function MobileProfileAction({
   const { tokens } = useAppTheme()
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint="Abre esta acción del perfil"
       onPress={onPress}
-      className="h-16 min-w-0 flex-1 flex-row items-center rounded-2xl border border-border-default bg-surface-default px-4"
+      className="min-h-16 min-w-0 flex-1 flex-row items-center rounded-2xl border border-border-default bg-surface-default px-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       <Ionicons name={icon} size={25} color={tokens.brand.teacher} />
-      <Text className="ml-3 min-w-0 flex-1 text-[16px] font-black text-text-primary" numberOfLines={1}>{label}</Text>
+      <Text className="ml-3 min-w-0 flex-1 text-[16px] font-black text-text-primary" numberOfLines={2} maxFontSizeMultiplier={2}>{label}</Text>
       <Ionicons name="chevron-forward" size={22} color={tokens.text.secondary} />
     </Pressable>
   )
@@ -966,6 +979,9 @@ function MobileRecentSubjectsCard({
           subjects.slice(0, 3).map((subject) => (
             <Pressable
               key={subject.id}
+              accessibilityRole="link"
+              accessibilityLabel={`Abrir curso ${subject.name}`}
+              accessibilityHint={`Código ${subject.code}. Abre el detalle del curso`}
               onPress={() => onOpenSubject(subject.id)}
               className="min-h-[68px] flex-row items-center rounded-2xl bg-surface-raised px-3 py-3"
               style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
@@ -974,8 +990,8 @@ function MobileRecentSubjectsCard({
                 <Text className="text-[22px]">{subject.icon || '📘'}</Text>
               </View>
               <View className="ml-3 min-w-0 flex-1">
-                <Text className="text-[15px] font-black text-text-primary" numberOfLines={1}>{subject.name}</Text>
-                <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={1}>Código: {subject.code}</Text>
+                <Text className="text-[15px] font-black text-text-primary" numberOfLines={2} maxFontSizeMultiplier={2}>{subject.name}</Text>
+                <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={2} maxFontSizeMultiplier={2}>Código: {subject.code}</Text>
               </View>
               <Text className="mr-2 text-[12px] text-text-secondary">{formatRelativeDate(subject.created_at)}</Text>
               <Ionicons name="chevron-forward" size={22} color={tokens.text.secondary} />
@@ -1012,8 +1028,8 @@ function MobileRecentQuestionsCard({
                 <Ionicons name="help-circle-outline" size={24} color={tokens.brand.teacher} />
               </View>
               <View className="ml-3 min-w-0 flex-1">
-                <Text className="text-[15px] font-black text-text-primary" numberOfLines={1}>{question.text}</Text>
-                <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={1}>{getSubjectName(question.subjects)}</Text>
+                <Text className="text-[15px] font-black text-text-primary" numberOfLines={2} maxFontSizeMultiplier={2}>{question.text}</Text>
+                <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={2} maxFontSizeMultiplier={2}>{getSubjectName(question.subjects)}</Text>
               </View>
               <Text className="mr-2 text-[12px] text-text-secondary">{formatRelativeDate(question.created_at)}</Text>
               <Ionicons name="chevron-forward" size={22} color={tokens.text.secondary} />
@@ -1047,6 +1063,9 @@ function MobileProfileSection({
         <Ionicons name={icon} size={29} color={tokens.brand.teacher} />
         <Text className="min-w-0 flex-1 text-[22px] font-black text-text-primary">{title}</Text>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${actionLabel}: ${title}`}
+          accessibilityHint="Abre la lista completa"
           onPress={onAction}
           className="flex-row items-center gap-2"
           style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
@@ -1086,6 +1105,10 @@ function TeacherHero({
 
       <View className="relative flex-row items-center gap-6">
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={uploading ? 'Subiendo imagen de perfil' : 'Cambiar imagen de perfil'}
+          accessibilityHint="Abre el selector de imágenes"
+          accessibilityState={{ disabled: uploading, busy: uploading }}
           onPress={onPickImage}
           disabled={uploading}
           className="h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-border-active bg-surface-selected"
@@ -1106,7 +1129,7 @@ function TeacherHero({
         </Pressable>
 
         <View className="min-w-0 flex-1">
-          <Text className="text-[28px] font-black text-text-primary" numberOfLines={1}>
+          <Text className="text-[28px] font-black text-text-primary" numberOfLines={2} maxFontSizeMultiplier={2}>
             {alias}
           </Text>
 
@@ -1114,7 +1137,7 @@ function TeacherHero({
             Profesor
           </Text>
 
-          <Text className="mt-2 text-[13px] text-text-muted" numberOfLines={1}>
+          <Text className="mt-2 text-[13px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>
             {email}
           </Text>
 
@@ -1198,7 +1221,7 @@ function InfoRow({
           {label}
         </Text>
 
-        <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={1}>
+        <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={2} maxFontSizeMultiplier={2}>
           {value}
         </Text>
       </View>

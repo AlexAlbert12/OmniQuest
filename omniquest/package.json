@@ -19,7 +19,8 @@
     "deploy:operations": "supabase functions deploy process-notification-delivery --no-verify-jwt && supabase functions deploy process-teacher-digests --no-verify-jwt",
     "deploy:security": "supabase functions deploy manage-account-security",
     "deploy:media": "supabase functions deploy process-question-media && supabase functions deploy cleanup-question-media --no-verify-jwt",
-    "audit:design-system": "node scripts/audit-design-system.mjs"
+    "audit:design-system": "node scripts/audit-design-system.mjs",
+    "audit:accessibility": "node scripts/audit-accessibility-responsive.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",

@@ -1,9 +1,11 @@
 import React from 'react';
-import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import type { ConfirmDialog, IconName, StudentRow } from './types';
 import { formatDate, formatRelativeDate, getStatusMeta } from './studentUtils';
+import AppConfirmModal from '../../AppConfirmModal';
+import { useResponsiveLayout } from '../../../lib/responsive';
 
 export function StudentActionsModal({
   student,
@@ -30,23 +32,23 @@ export function StudentActionsModal({
   onRequestPasswordRecovery: (student: StudentRow) => void
   onAssignActivity: (student: StudentRow) => void
 }) {
-  const { width } = useWindowDimensions();
-  const isPhone = width < 640;
+  const responsive = useResponsiveLayout();
+  const isPhone = responsive.isMobile;
 
   if (!student) return null;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View className={`flex-1 ${isPhone ? 'justify-end' : 'justify-center p-4 md:items-center'}`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
-        <Pressable className="absolute inset-0" onPress={onClose} />
-        <View className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[420px] rounded-2xl p-5'} border border-border-default bg-surface-default`}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Cerrar acciones del estudiante" accessibilityHint="Cierra el diálogo" className="absolute inset-0" onPress={onClose} />
+        <View accessibilityViewIsModal accessibilityLabel={`Acciones de ${student.alias}`} className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[420px] rounded-2xl p-5'} border border-border-default bg-surface-default`}>
           <View className="flex-row items-start justify-between gap-4">
             <View className="min-w-0 flex-1">
               <Text className="text-[13px] font-semibold text-semantic-info">Acciones del estudiante</Text>
-              <Text className="mt-1 text-[24px] font-black text-white" numberOfLines={1}>{student.alias}</Text>
-              <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={1}>{student.handle}</Text>
+              <Text accessibilityRole="header" className="mt-1 text-[24px] font-black text-white" numberOfLines={2} maxFontSizeMultiplier={2}>{student.alias}</Text>
+              <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>{student.handle}</Text>
             </View>
-            <Pressable onPress={onClose} className="h-10 w-10 items-center justify-center rounded-xl border border-border-default bg-surface-raised">
+            <Pressable accessibilityRole="button" accessibilityLabel="Cerrar acciones" accessibilityHint="Cierra el diálogo" onPress={onClose} className="min-h-10 min-w-10 items-center justify-center rounded-xl border border-border-default bg-surface-raised">
               <Ionicons name="close" size={18} color="#DDE7F4" />
             </Pressable>
           </View>
@@ -128,8 +130,8 @@ export function StudentDetailModal({
   onSendReminder: (student: StudentRow) => void
   onRequestPasswordRecovery: (student: StudentRow) => void
 }) {
-  const { width } = useWindowDimensions();
-  const isPhone = width < 640;
+  const responsive = useResponsiveLayout();
+  const isPhone = responsive.isMobile;
 
   if (!student) return null;
 
@@ -138,15 +140,15 @@ export function StudentDetailModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View className={`flex-1 ${isPhone ? 'justify-end' : 'justify-center p-4 md:items-center'}`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
-        <Pressable className="absolute inset-0" onPress={onClose} />
-        <View className={`${isPhone ? 'max-h-[94%] w-full rounded-t-3xl p-5' : 'max-h-[92%] w-full max-w-[620px] rounded-2xl p-5'} border border-border-default bg-surface-default`}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Cerrar detalle del estudiante" accessibilityHint="Cierra el diálogo" className="absolute inset-0" onPress={onClose} />
+        <View accessibilityViewIsModal accessibilityLabel={`Detalle de ${student.alias}`} className={`${isPhone ? 'max-h-[94%] w-full rounded-t-3xl p-5' : 'max-h-[92%] w-full max-w-[620px] rounded-2xl p-5'} border border-border-default bg-surface-default`}>
           <View className="flex-row items-start justify-between gap-4">
             <View className="min-w-0 flex-1">
               <Text className="text-[13px] font-semibold text-semantic-info">Detalle del estudiante</Text>
-              <Text className="mt-1 text-[24px] font-black text-white" numberOfLines={1}>{student.alias}</Text>
-              <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={1}>{student.handle}</Text>
+              <Text accessibilityRole="header" className="mt-1 text-[24px] font-black text-white" numberOfLines={2} maxFontSizeMultiplier={2}>{student.alias}</Text>
+              <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>{student.handle}</Text>
             </View>
-            <Pressable onPress={onClose} className="h-10 w-10 items-center justify-center rounded-xl border border-border-default bg-surface-raised">
+            <Pressable accessibilityRole="button" accessibilityLabel="Cerrar detalle" accessibilityHint="Cierra el diálogo" onPress={onClose} className="min-h-10 min-w-10 items-center justify-center rounded-xl border border-border-default bg-surface-raised">
               <Ionicons name="close" size={18} color="#DDE7F4" />
             </Pressable>
           </View>
@@ -228,7 +230,7 @@ export function StudentDetailModal({
                         </View>
                         <View className="min-w-0 flex-1">
                           <Text className="text-[13px] font-bold text-white" numberOfLines={2}>{attempt.questionText}</Text>
-                          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>
+                          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>
                             {attempt.subjectName} · {attempt.topicTitle} · {formatDate(attempt.attemptedAt)}
                           </Text>
                         </View>
@@ -276,9 +278,6 @@ export function ConfirmModal({
   visible: boolean
   onClose: () => void
 }) {
-  const { width } = useWindowDimensions();
-  const isPhone = width < 640;
-
   if (!dialog) return null;
 
   const handleConfirm = () => {
@@ -288,31 +287,15 @@ export function ConfirmModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className={`flex-1 ${isPhone ? 'justify-end' : 'justify-center p-4 md:items-center'}`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
-        <Pressable className="absolute inset-0" onPress={onClose} />
-        <View className={`${isPhone ? 'w-full rounded-t-3xl p-5' : 'w-full max-w-[420px] rounded-2xl p-5'} border border-border-default bg-surface-default`}>
-          <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: dialog.destructive ? '#EF444433' : '#8B5CF633' }}>
-            <Ionicons name={dialog.destructive ? 'warning-outline' : 'information-circle-outline'} size={24} color={dialog.destructive ? '#FF8A8A' : '#B9A7FF'} />
-          </View>
-          <Text className="mt-4 text-[24px] font-black text-white">{dialog.title}</Text>
-          <Text className="mt-2 text-[14px] leading-6 text-text-secondary">{dialog.message}</Text>
-
-          <View className={`mt-6 gap-3 ${isPhone ? '' : 'flex-row'}`}>
-            <Pressable onPress={onClose} className="flex-1 items-center justify-center rounded-xl border border-border-default bg-surface-raised px-4 py-3">
-              <Text className="font-bold text-text-secondary">Cancelar</Text>
-            </Pressable>
-            <Pressable
-              onPress={handleConfirm}
-              className="flex-1 items-center justify-center rounded-xl px-4 py-3"
-              style={{ backgroundColor: dialog.destructive ? '#DC2626' : '#5A46D8' }}
-            >
-              <Text className="font-black text-white">{dialog.confirmLabel}</Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
+    <AppConfirmModal
+      confirmLabel={dialog.confirmLabel}
+      message={dialog.message}
+      onCancel={onClose}
+      onConfirm={handleConfirm}
+      title={dialog.title}
+      variant={dialog.destructive ? 'danger' : 'warning'}
+      visible={visible}
+    />
   );
 }
 
@@ -331,8 +314,11 @@ export function ModalActionButton({
 }) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={detail}
       onPress={onPress}
-      className="flex-row items-center gap-3 rounded-xl border border-border-default bg-surface-default px-4 py-3"
+      className="min-h-12 flex-row items-center gap-3 rounded-xl border border-border-default bg-surface-default px-4 py-3"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: destructive ? '#EF444433' : '#8B5CF633' }}>
@@ -382,8 +368,11 @@ export function DetailActionButton({
 }) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={destructive ? 'Esta acción puede eliminar datos del alumno' : 'Ejecuta esta acción para el alumno'}
       onPress={onPress}
-      className="flex-row items-center gap-2 rounded-xl px-4 py-3"
+      className="min-h-12 flex-row items-center gap-2 rounded-xl px-4 py-3"
       style={({ pressed }) => ({
         opacity: pressed ? 0.82 : 1,
         backgroundColor: destructive ? '#7F1D1D66' : '#5A46D8',

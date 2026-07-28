@@ -1,9 +1,7 @@
 import { ReactNode } from 'react'
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
 import StudentSidebar, { StudentSection } from './StudentSidebar'
 import StudentBottomNav, { StudentBottomNavKey } from './StudentBottomNav'
-import { useAppTheme } from '../../lib/appTheme'
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import StudentScreenLayout from '../layouts/StudentScreenLayout'
 
 type StudentLayoutProps = {
   activeSection: StudentSection
@@ -20,6 +18,7 @@ type StudentLayoutProps = {
   level: number
 }
 
+/** Backwards-compatible student shell backed by the shared responsive layout. */
 export default function StudentLayout({
   activeSection,
   alias,
@@ -34,46 +33,26 @@ export default function StudentLayout({
   onSignOut,
   points,
 }: StudentLayoutProps) {
-  const { accentColor } = useAppTheme()
-
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background-primary">
-        <ActivityIndicator size="large" color={accentColor} />
-        <Text className="mt-4 text-text-muted">{loadingLabel}</Text>
-      </View>
-    )
-  }
-
   return (
-    <View className="flex-1 bg-background-primary">
-      <View className="flex-1 flex-row">
-        {isDesktop ? (
-          <StudentSidebar
-            activeSection={activeSection}
-            alias={alias}
-            avatar={avatar}
-            level={level}
-            points={points}
-            nextLevelProgress={nextLevelProgress}
-            onSignOut={onSignOut}
-          />
-        ) : null}
-
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 28 : 18,
-            paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 28 : MOBILE_BOTTOM_NAV_SPACER,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          {children}
-        </ScrollView>
-      </View>
-
-      {!isDesktop ? <StudentBottomNav active={bottomNavActive} /> : null}
-    </View>
+    <StudentScreenLayout
+      contentLabel={`Pantalla de estudiante: ${activeSection}`}
+      desktopSidebar={(
+        <StudentSidebar
+          activeSection={activeSection}
+          alias={alias}
+          avatar={avatar}
+          level={level}
+          points={points}
+          nextLevelProgress={nextLevelProgress}
+          onSignOut={onSignOut}
+        />
+      )}
+      mobileBottomNavigation={<StudentBottomNav active={bottomNavActive} />}
+      isDesktop={isDesktop}
+      loading={loading}
+      loadingLabel={loadingLabel}
+    >
+      {children}
+    </StudentScreenLayout>
   )
 }

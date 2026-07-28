@@ -4,7 +4,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
   type StyleProp,
   type ViewStyle,
@@ -12,6 +11,7 @@ import {
 import AppIconButton from './AppIconButton'
 import AppPressable from './AppPressable'
 import { useAppTheme } from '../../lib/appTheme'
+import { useResponsiveLayout } from '../../lib/responsive'
 
 export type AppBottomSheetProps = {
   visible: boolean
@@ -38,12 +38,12 @@ export default function AppBottomSheet({
   contentStyle,
   testID,
 }: AppBottomSheetProps) {
-  const { width, height } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
-  const isCompact = width < 700
+  const isCompact = responsive.isMobile || responsive.isTablet
   const content = scrollable ? (
     <ScrollView
-      style={{ maxHeight: Math.max(240, height * 0.62) }}
+      style={{ maxHeight: Math.max(240, responsive.height * 0.62) }}
       contentContainerStyle={[styles.content, contentStyle]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -66,12 +66,16 @@ export default function AppBottomSheet({
       >
         <AppPressable
           accessibilityLabel="Cerrar panel"
+          accessibilityHint="Cierra este diálogo sin guardar cambios"
           onPress={closeOnBackdropPress ? onClose : () => undefined}
           disabled={!closeOnBackdropPress}
           style={StyleSheet.absoluteFill}
         />
         <View
           accessibilityRole="summary"
+          accessibilityViewIsModal
+          accessibilityLabel={title || 'Diálogo'}
+          importantForAccessibility="yes"
           style={[
             styles.sheet,
             isCompact ? styles.compactSheet : styles.desktopSheet,
@@ -85,8 +89,8 @@ export default function AppBottomSheet({
           {title || description ? (
             <View style={[styles.header, { borderBottomColor: tokens.border.subtle }]}>
               <View style={styles.headerCopy}>
-                {title ? <Text style={[styles.title, { color: tokens.text.primary }]}>{title}</Text> : null}
-                {description ? <Text style={[styles.description, { color: tokens.text.secondary }]}>{description}</Text> : null}
+                {title ? <Text accessibilityRole="header" maxFontSizeMultiplier={2} style={[styles.title, { color: tokens.text.primary }]}>{title}</Text> : null}
+                {description ? <Text maxFontSizeMultiplier={2} style={[styles.description, { color: tokens.text.secondary }]}>{description}</Text> : null}
               </View>
               <AppIconButton accessibilityLabel="Cerrar" icon="close" size="sm" onPress={onClose} />
             </View>

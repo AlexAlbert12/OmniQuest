@@ -2,6 +2,7 @@ import React from 'react'
 import {
   Pressable,
   type PressableProps,
+  type View,
 } from 'react-native'
 
 type AppPressableProps = Omit<PressableProps, 'accessibilityLabel' | 'style'> & {
@@ -11,23 +12,36 @@ type AppPressableProps = Omit<PressableProps, 'accessibilityLabel' | 'style'> & 
   hitSlopSize?: number
 }
 
-export default function AppPressable({
+/**
+ * Accessible interactive primitive. Labels are mandatory, disabled state is
+ * announced and the forwarded ref keeps it compatible with Expo Router Link.
+ */
+const AppPressable = React.forwardRef<View, AppPressableProps>(function AppPressable({
   accessibilityHint,
   accessibilityLabel,
   accessibilityRole = 'button',
+  accessibilityState,
+  disabled,
+  focusable,
   hitSlopSize = 6,
   style,
   ...props
-}: AppPressableProps) {
+}, ref) {
   return (
     <Pressable
       {...props}
+      ref={ref}
       accessible
       accessibilityHint={accessibilityHint}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole={accessibilityRole}
+      accessibilityState={{ ...accessibilityState, disabled: disabled || accessibilityState?.disabled }}
+      disabled={disabled}
+      focusable={focusable ?? !disabled}
       hitSlop={props.hitSlop ?? hitSlopSize}
       style={style}
     />
   )
-}
+})
+
+export default AppPressable

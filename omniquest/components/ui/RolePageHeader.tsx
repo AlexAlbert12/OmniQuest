@@ -71,9 +71,9 @@ export default function RolePageHeader({
   showNotifications = true,
   showStreak = false,
   subtitle,
-  subtitleNumberOfLines = 2,
+  subtitleNumberOfLines = 3,
   title,
-  titleNumberOfLines = 1,
+  titleNumberOfLines = 2,
 }: RolePageHeaderProps) {
   const { colors, tokens } = useAppTheme()
   const { t } = useI18n()
@@ -91,7 +91,9 @@ export default function RolePageHeader({
           {backAction ? (
             <Pressable
               accessibilityLabel={backAction.label || t('common.back')}
+              accessibilityHint="Vuelve a la pantalla anterior"
               accessibilityRole="button"
+              focusable
               hitSlop={8}
               onPress={backAction.onPress}
               className="mb-3 flex-row items-center gap-2 self-start rounded-xl px-3 py-2"
@@ -103,7 +105,7 @@ export default function RolePageHeader({
               })}
             >
               <Ionicons name="arrow-back" size={16} color={colors.text} />
-              <Text className="text-[12px] font-bold" style={{ color: colors.text }}>
+              <Text allowFontScaling maxFontSizeMultiplier={2} className="text-[12px] font-bold" style={{ color: colors.text, lineHeight: 18 }}>
                 {backAction.label || t('common.back')}
               </Text>
             </Pressable>
@@ -122,6 +124,8 @@ export default function RolePageHeader({
 
             <Text
               accessibilityRole="header"
+              allowFontScaling
+              maxFontSizeMultiplier={2}
               className={`${isDesktop ? 'text-[40px]' : 'text-[30px]'} min-w-0 flex-1 font-black`}
               style={{
                 color: colors.text,
@@ -138,6 +142,8 @@ export default function RolePageHeader({
 
           {subtitle ? (
             <Text
+              allowFontScaling
+              maxFontSizeMultiplier={2}
               className="mt-1 max-w-[780px] text-[13px] leading-5"
               style={{ color: colors.textMuted }}
               numberOfLines={subtitleNumberOfLines}

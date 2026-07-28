@@ -162,3 +162,33 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Consistent keyboard focus, including high-contrast and browser zoom modes. */
+[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+@media (forced-colors: active) {
+  button:focus-visible,
+  a[href]:focus-visible,
+  [role='button']:focus-visible,
+  [role='tab']:focus-visible,
+  [role='radio']:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 3px solid CanvasText !important;
+  }
+}
+
+@media (min-width: 600px) {
+  :root { --omni-responsive-tier: tablet; }
+}
+
+@media (min-width: 1024px) {
+  :root { --omni-responsive-tier: desktop; }
+}
+
+@media (min-width: 1440px) {
+  :root { --omni-responsive-tier: wide; }
+}

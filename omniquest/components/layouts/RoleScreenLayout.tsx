@@ -1,0 +1,129 @@
+import React from 'react'
+import {
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  View,
+  type RefreshControlProps,
+  type ScrollViewProps,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { useAppTheme } from '../../lib/appTheme'
+import type { AppRole } from '../../lib/designTokens'
+import { useResponsiveLayout } from '../../lib/responsive'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+
+type RoleScreenLayoutProps = {
+  role: AppRole
+  children: React.ReactNode
+  desktopSidebar?: React.ReactNode
+  mobileBottomNavigation?: React.ReactNode
+  scroll?: boolean
+  loading?: boolean
+  loadingLabel?: string
+  contentLabel?: string
+  refreshControl?: React.ReactElement<RefreshControlProps>
+  contentContainerStyle?: StyleProp<ViewStyle>
+  style?: StyleProp<ViewStyle>
+  isDesktop?: boolean
+  maxContentWidth?: number
+  horizontalPadding?: number
+  topPadding?: number
+  bottomPadding?: number
+  showsVerticalScrollIndicator?: boolean
+  scrollViewProps?: Omit<ScrollViewProps, 'children' | 'contentContainerStyle' | 'refreshControl' | 'showsVerticalScrollIndicator'>
+}
+
+/**
+ * Shared responsive shell for student, teacher and admin screens.
+ * Sidebar, main content and bottom navigation are rendered in a stable focus order.
+ */
+export default function RoleScreenLayout({
+  role,
+  children,
+  desktopSidebar,
+  mobileBottomNavigation,
+  scroll = true,
+  loading = false,
+  loadingLabel = 'Cargando...',
+  contentLabel,
+  refreshControl,
+  contentContainerStyle,
+  style,
+  isDesktop: isDesktopOverride,
+  maxContentWidth,
+  horizontalPadding,
+  topPadding,
+  bottomPadding,
+  showsVerticalScrollIndicator = false,
+  scrollViewProps,
+}: RoleScreenLayoutProps) {
+  const responsive = useResponsiveLayout()
+  const { tokens } = useAppTheme()
+  const isDesktop = isDesktopOverride ?? responsive.isDesktop
+  const resolvedHorizontalPadding = horizontalPadding ?? responsive.horizontalPadding
+  const resolvedTopPadding = topPadding ?? responsive.verticalPadding
+  const resolvedBottomPadding = bottomPadding ?? (isDesktop ? 36 : mobileBottomNavigation ? MOBILE_BOTTOM_NAV_SPACER : 32)
+  const resolvedMaxWidth = maxContentWidth ?? responsive.contentMaxWidth
+  const loadingColor = tokens.brand[role]
+
+  const content = loading ? (
+    <View style={styles.loading} accessibilityRole="progressbar" accessibilityLabel={loadingLabel}>
+      <ActivityIndicator size="large" color={loadingColor} />
+      <Text maxFontSizeMultiplier={2} style={[styles.loadingLabel, { color: tokens.text.muted }]}>{loadingLabel}</Text>
+    </View>
+  ) : (
+    children
+  )
+
+  const mainContentStyle: StyleProp<ViewStyle> = [
+    styles.content,
+    {
+      maxWidth: resolvedMaxWidth,
+      paddingHorizontal: resolvedHorizontalPadding,
+      paddingTop: resolvedTopPadding,
+      paddingBottom: resolvedBottomPadding,
+    },
+    contentContainerStyle,
+  ]
+
+  return (
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      style={[styles.root, { backgroundColor: tokens.background.primary }, style]}
+    >
+      <View style={styles.row}>
+        {isDesktop ? desktopSidebar : null}
+        <View style={styles.main} accessibilityLabel={contentLabel || `Contenido ${role}`}>
+          {scroll ? (
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={mainContentStyle}
+              refreshControl={refreshControl}
+              showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+              keyboardShouldPersistTaps="handled"
+              {...scrollViewProps}
+            >
+              {content}
+            </ScrollView>
+          ) : (
+            <View style={mainContentStyle}>{content}</View>
+          )}
+        </View>
+      </View>
+      {!isDesktop ? mobileBottomNavigation : null}
+    </SafeAreaView>
+  )
+}
+
+const styles = {
+  root: { flex: 1 } satisfies ViewStyle,
+  row: { flex: 1, flexDirection: 'row' } satisfies ViewStyle,
+  main: { flex: 1, minWidth: 0 } satisfies ViewStyle,
+  scroll: { flex: 1 } satisfies ViewStyle,
+  content: { width: '100%', alignSelf: 'center' } satisfies ViewStyle,
+  loading: { flex: 1, minHeight: 260, alignItems: 'center', justifyContent: 'center' } satisfies ViewStyle,
+  loadingLabel: { marginTop: 16, fontSize: 14, lineHeight: 20 } as const,
+}

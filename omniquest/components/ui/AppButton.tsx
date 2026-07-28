@@ -27,10 +27,10 @@ export type AppButtonProps = {
   style?: StyleProp<ViewStyle>
 }
 
-const SIZE_STYLES: Record<AppButtonSize, { height: number; paddingHorizontal: number; radius: number; fontSize: number; iconSize: number }> = {
-  sm: { height: 38, paddingHorizontal: 13, radius: 11, fontSize: 12, iconSize: 16 },
-  md: { height: 46, paddingHorizontal: 17, radius: 13, fontSize: 13, iconSize: 18 },
-  lg: { height: 54, paddingHorizontal: 21, radius: 15, fontSize: 15, iconSize: 21 },
+const SIZE_STYLES: Record<AppButtonSize, { minHeight: number; paddingHorizontal: number; paddingVertical: number; radius: number; fontSize: number; lineHeight: number; iconSize: number }> = {
+  sm: { minHeight: 38, paddingHorizontal: 13, paddingVertical: 8, radius: 11, fontSize: 12, lineHeight: 16, iconSize: 16 },
+  md: { minHeight: 46, paddingHorizontal: 17, paddingVertical: 10, radius: 13, fontSize: 13, lineHeight: 18, iconSize: 18 },
+  lg: { minHeight: 54, paddingHorizontal: 21, paddingVertical: 12, radius: 15, fontSize: 15, lineHeight: 21, iconSize: 21 },
 }
 
 export default function AppButton({
@@ -70,9 +70,10 @@ export default function AppButton({
       style={({ pressed }) => [
         styles.base,
         {
-          minHeight: dimensions.height,
-          minWidth: iconOnly ? dimensions.height : undefined,
+          minHeight: dimensions.minHeight,
+          minWidth: iconOnly ? dimensions.minHeight : undefined,
           paddingHorizontal: iconOnly ? 0 : dimensions.paddingHorizontal,
+          paddingVertical: iconOnly ? 0 : dimensions.paddingVertical,
           borderRadius: dimensions.radius,
           backgroundColor: palette.background,
           borderColor: palette.border,
@@ -90,7 +91,11 @@ export default function AppButton({
         <View style={styles.content}>
           {icon && iconPosition === 'left' ? <Ionicons name={icon} size={dimensions.iconSize} color={palette.foreground} /> : null}
           {!iconOnly && label ? (
-            <Text numberOfLines={1} style={[styles.label, { color: palette.foreground, fontSize: dimensions.fontSize }]}>
+            <Text
+              maxFontSizeMultiplier={2}
+              numberOfLines={2}
+              style={[styles.label, { color: palette.foreground, fontSize: dimensions.fontSize, lineHeight: dimensions.lineHeight }]}
+            >
               {label}
             </Text>
           ) : null}
@@ -152,11 +157,14 @@ const styles = StyleSheet.create({
   content: {
     minWidth: 0,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   label: {
+    flexShrink: 1,
+    textAlign: 'center',
     fontWeight: '900',
   },
 })

@@ -3,9 +3,7 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
@@ -15,8 +13,9 @@ import TeacherSidebar from '../../components/teacher/TeacherSidebar';
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav';
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader';
 import { withAlpha } from '../../lib/color';
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout';
 import OmniGuide from '../../components/OmniGuide';
+import TeacherScreenLayout from '../../components/layouts/TeacherScreenLayout';
+import { useResponsiveLayout } from '../../lib/responsive';
 import {
   TeacherPriorityOverview,
   TeacherTodayFocus,
@@ -107,7 +106,7 @@ type PendingActionItem = {
 }
 
 export default function TeacherHomeScreen() {
-  const { width } = useWindowDimensions();
+  const responsive = useResponsiveLayout();
   const router = useRouter();
   const [teacherAlias, setTeacherAlias] = useState('Profesor');
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -121,7 +120,7 @@ export default function TeacherHomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const isDesktop = width >= 1080;
+  const { isDesktop } = responsive;
 
   const totals = useMemo(() => {
     const analytics = Object.values(analyticsBySubject);
@@ -332,26 +331,18 @@ export default function TeacherHomeScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background-primary">
-      <View className="flex-1 flex-row">
-        {isDesktop ? (
-          <TeacherSidebar
-            activeSection="home"
-            subjectsCount={subjects.length}
-            onSignOut={() => supabase.auth.signOut()}
-          />
-        ) : null}
-
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 28 : 18,
-            paddingTop: isDesktop ? 28 : 18,
-            paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER,
-          }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
-          showsVerticalScrollIndicator={false}
-        >
+    <TeacherScreenLayout
+      contentLabel="Inicio del profesor"
+      desktopSidebar={(
+        <TeacherSidebar
+          activeSection="home"
+          subjectsCount={subjects.length}
+          onSignOut={() => supabase.auth.signOut()}
+        />
+      )}
+      isDesktop={isDesktop}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
+    >
           <TeacherPageHeader
             icon="home"
             isDesktop={isDesktop}
@@ -390,7 +381,7 @@ export default function TeacherHomeScreen() {
               <View className="mb-4 flex-row items-center justify-between">
                 <Text className="text-[24px] font-black text-white">Cursos recientes</Text>
                 <Link href="/(teacher)/classes" asChild>
-                  <Pressable className="flex-row items-center gap-2">
+                  <Pressable accessibilityRole="link" accessibilityLabel="Ver todos los cursos" accessibilityHint="Abre la gestión de cursos" className="flex-row items-center gap-2">
                     <Text className="font-bold text-brand-teacher">Ver todas</Text>
                     <Ionicons name="arrow-forward" size={15} color="#B9A7FF" />
                   </Pressable>
@@ -413,6 +404,9 @@ export default function TeacherHomeScreen() {
 
               {subjects.length === 0 ? (
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Crear el primer curso"
+                  accessibilityHint="Abre el formulario de creación de curso"
                   onPress={() => router.push('/(teacher)/create-subject' as any)}
                   className="items-center justify-center rounded-2xl border border-dashed border-brand-student bg-surface-default p-8"
                 >
@@ -462,10 +456,7 @@ export default function TeacherHomeScreen() {
               </Panel>
             </View>
           </View>
-        </ScrollView>
-      </View>
-      {!isDesktop ? <TeacherBottomNav active="home" /> : null}
-    </View>
+    </TeacherScreenLayout>
   );
 }
 
@@ -504,13 +495,14 @@ function MobileTeacherHome({
   onRefresh: () => void
 }) {
   return (
-    <View className="flex-1 bg-background-primary">
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 6 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
-        showsVerticalScrollIndicator={false}
-      >
+    <TeacherScreenLayout
+      contentLabel="Inicio del profesor"
+      isDesktop={false}
+      horizontalPadding={20}
+      topPadding={24}
+      mobileBottomNavigation={<TeacherBottomNav active="home" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
+    >
         <TeacherPageHeader
           icon="home"
           isDesktop={false}
@@ -520,13 +512,13 @@ function MobileTeacherHome({
           actions={(
             <>
               <Link href="/(teacher)/create-subject" asChild>
-                <Pressable accessibilityRole="button" accessibilityLabel="Crear curso" className="h-11 flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-raised px-3">
+                <Pressable accessibilityRole="button" accessibilityLabel="Crear curso" accessibilityHint="Abre el formulario de creación de curso" className="min-h-11 flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-raised px-3">
                   <Ionicons name="add-circle-outline" size={19} color="#60A5FA" />
                   <Text className="text-[12px] font-black text-text-secondary">Crear</Text>
                 </Pressable>
               </Link>
               <Link href="/(teacher)/reviews" asChild>
-                <Pressable accessibilityRole="button" className="h-11 flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-raised px-3">
+                <Pressable accessibilityRole="link" accessibilityLabel="Revisar respuestas pendientes" accessibilityHint="Abre la cola de revisión" className="min-h-11 flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-raised px-3 py-2">
                   <Ionicons name="create-outline" size={19} color="#A78BFA" />
                   <Text className="text-[12px] font-black text-text-secondary">Revisar</Text>
                 </Pressable>
@@ -562,10 +554,7 @@ function MobileTeacherHome({
           onCreateSubject={onCreateSubject}
           onViewAll={onOpenClasses}
         />
-      </ScrollView>
-
-      <TeacherBottomNav active="home" />
-    </View>
+    </TeacherScreenLayout>
   )
 }
 
@@ -586,7 +575,7 @@ function MobileRecentCourses({
     <View className="mt-5 rounded-2xl border border-border-default bg-surface-default p-4">
       <View className="mb-4 flex-row items-center justify-between gap-3">
         <Text className="text-[24px] font-black text-white">Cursos recientes</Text>
-        <Pressable onPress={onViewAll} className="flex-row items-center gap-1">
+        <Pressable accessibilityRole="button" accessibilityLabel="Ver todos los cursos" accessibilityHint="Abre la lista completa de cursos" onPress={onViewAll} className="flex-row items-center gap-1">
           <Text className="text-[14px] font-black text-brand-admin">Ver todos</Text>
           <Ionicons name="arrow-forward" size={18} color="#A970FF" />
         </Pressable>
@@ -609,6 +598,9 @@ function MobileRecentCourses({
           ))
         ) : (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Crear el primer curso"
+            accessibilityHint="Abre el formulario de creación de curso"
             onPress={onCreateSubject}
             className="items-center rounded-2xl border border-dashed border-brand-student bg-surface-raised px-5 py-8"
           >
@@ -631,7 +623,7 @@ function MobileSubjectPreview({ subject, analytics }: { subject: Subject; analyt
         </View>
         <View className="min-w-0 flex-1">
           <View className="flex-row items-center gap-2">
-            <Text className="min-w-0 flex-1 text-[22px] font-black text-white" numberOfLines={1}>{subject.name}</Text>
+            <Text className="min-w-0 flex-1 text-[22px] font-black text-white" numberOfLines={2} maxFontSizeMultiplier={2}>{subject.name}</Text>
             <View className="rounded-lg bg-surface-selected px-2.5 py-1">
               <Text className="text-[12px] font-black text-brand-teacher">Activo</Text>
             </View>
@@ -639,26 +631,26 @@ function MobileSubjectPreview({ subject, analytics }: { subject: Subject; analyt
           <Text className="mt-2 text-[14px] leading-5 text-text-secondary" numberOfLines={2}>
             {analytics.classroomCount} {analytics.classroomCount === 1 ? 'clase' : 'clases'} · {analytics.enrolledCount} alumnos · {analytics.questionsCount} preguntas
           </Text>
-          <Text className="mt-1 text-[13px] text-text-muted" numberOfLines={1}>Código del curso: {subject.code}</Text>
+          <Text className="mt-1 text-[13px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>Código del curso: {subject.code}</Text>
         </View>
         <Ionicons name="ellipsis-horizontal" size={23} color="#AFC2DB" />
       </View>
 
       <View className="mt-4 flex-row flex-wrap gap-2">
         <Link href={`/(teacher)/subject/${subject.id}`} asChild>
-          <Pressable className="min-w-[120px] flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-brand-student px-3 py-3">
+          <Pressable accessibilityRole="link" accessibilityLabel={`Gestionar ${subject.name}`} accessibilityHint="Abre la configuración del curso" className="min-w-[120px] flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-brand-student px-3 py-3">
             <Ionicons name="settings-outline" size={16} color="#FFFFFF" />
             <Text className="font-black text-white">Gestionar</Text>
           </Pressable>
         </Link>
         <Link href={`/(teacher)/subject/add-question?subjectId=${subject.id}`} asChild>
-          <Pressable className="min-w-[130px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-default px-3 py-3">
+          <Pressable accessibilityRole="link" accessibilityLabel={`Crear pregunta en ${subject.name}`} accessibilityHint="Abre el formulario de nueva pregunta" className="min-w-[130px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-default px-3 py-3">
             <Ionicons name="add-circle-outline" size={16} color="#DDE7F4" />
             <Text className="font-black text-text-secondary">Crear pregunta</Text>
           </Pressable>
         </Link>
         <Link href={`/(teacher)/subject/${subject.id}?tab=students`} asChild>
-          <Pressable className="min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-default px-3 py-3">
+          <Pressable accessibilityRole="link" accessibilityLabel={`Importar alumnos en ${subject.name}`} accessibilityHint="Abre la gestión de alumnos del curso" className="min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-default px-3 py-3">
             <Ionicons name="person-add-outline" size={16} color="#DDE7F4" />
             <Text className="font-black text-text-secondary">Importar alumnos</Text>
           </Pressable>
@@ -676,29 +668,29 @@ function SubjectPreview({ subject, analytics }: { subject: Subject; analytics: S
           {subject.icon ? <Text className="text-2xl">{subject.icon}</Text> : <Ionicons name="book-outline" size={26} color="#9B8CFF" />}
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="text-lg font-black text-white" numberOfLines={1}>{subject.name}</Text>
-          <Text className="mt-1 text-[12px] text-text-secondary" numberOfLines={1}>
+          <Text className="text-lg font-black text-white" numberOfLines={2} maxFontSizeMultiplier={2}>{subject.name}</Text>
+          <Text className="mt-1 text-[12px] text-text-secondary" numberOfLines={2} maxFontSizeMultiplier={2}>
             {analytics.classroomCount} {analytics.classroomCount === 1 ? 'clase' : 'clases'} · {analytics.enrolledCount} alumnos · {analytics.questionsCount} preguntas
           </Text>
-          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>Código del curso: {subject.code}</Text>
+          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>Código del curso: {subject.code}</Text>
         </View>
       </View>
 
       <View className="mt-4 flex-row flex-wrap gap-2">
         <Link href={`/(teacher)/subject/${subject.id}`} asChild>
-          <Pressable className="flex-row items-center gap-2 rounded-xl bg-brand-teacher px-4 py-3">
+          <Pressable accessibilityRole="link" accessibilityLabel={`Gestionar ${subject.name}`} accessibilityHint="Abre la configuración del curso" className="flex-row items-center gap-2 rounded-xl bg-brand-teacher px-4 py-3">
             <Ionicons name="settings-outline" size={15} color="#FFFFFF" />
             <Text className="text-[12px] font-black text-white">Gestionar</Text>
           </Pressable>
         </Link>
         <Link href={`/(teacher)/subject/add-question?subjectId=${subject.id}`} asChild>
-          <Pressable className="flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-default px-4 py-3">
+          <Pressable accessibilityRole="link" accessibilityLabel={`Crear pregunta en ${subject.name}`} accessibilityHint="Abre el formulario de nueva pregunta" className="flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-default px-4 py-3">
             <Ionicons name="help-circle-outline" size={15} color="#DDE7F4" />
             <Text className="text-[12px] font-black text-text-secondary">Crear pregunta</Text>
           </Pressable>
         </Link>
         <Link href={`/(teacher)/subject/${subject.id}?tab=students`} asChild>
-          <Pressable className="flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-default px-4 py-3">
+          <Pressable accessibilityRole="link" accessibilityLabel={`Importar alumnos en ${subject.name}`} accessibilityHint="Abre la gestión de alumnos del curso" className="flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-default px-4 py-3">
             <Ionicons name="person-add-outline" size={15} color="#DDE7F4" />
             <Text className="text-[12px] font-black text-text-secondary">Importar alumnos</Text>
           </Pressable>
@@ -724,7 +716,7 @@ function Panel({
       <View className="mb-4 flex-row items-center justify-between">
         <Text className="font-black text-white">{title}</Text>
         {action && onAction ? (
-          <Pressable onPress={onAction} className="flex-row items-center gap-1">
+          <Pressable accessibilityRole="button" accessibilityLabel={`${action}: ${title}`} accessibilityHint="Abre la sección relacionada" onPress={onAction} className="flex-row items-center gap-1">
             <Text className="text-[12px] font-semibold text-brand-teacher">{action}</Text>
             <Ionicons name="arrow-forward" size={13} color="#B9A7FF" />
           </Pressable>
@@ -770,10 +762,10 @@ function ProblematicQuestionRow({
         </View>
       </View>
       <View className="mt-3 flex-row flex-wrap gap-2">
-        <Pressable onPress={onEdit} className="rounded-lg bg-semantic-surface-danger px-3 py-2">
+        <Pressable accessibilityRole="button" accessibilityLabel={`Editar pregunta ${item.text}`} accessibilityHint="Abre el editor de la pregunta" onPress={onEdit} className="rounded-lg bg-semantic-surface-danger px-3 py-2">
           <Text className="text-[11px] font-black text-white">Editar pregunta</Text>
         </Pressable>
-        <Pressable onPress={onReport} className="rounded-lg border border-semantic-danger bg-semantic-surface-danger px-3 py-2">
+        <Pressable accessibilityRole="button" accessibilityLabel={`Ver intentos de ${item.text}`} accessibilityHint="Abre el informe de respuestas" onPress={onReport} className="rounded-lg border border-semantic-danger bg-semantic-surface-danger px-3 py-2">
           <Text className="text-[11px] font-black text-semantic-danger">Ver intentos</Text>
         </Pressable>
       </View>

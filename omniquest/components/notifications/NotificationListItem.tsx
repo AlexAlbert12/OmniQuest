@@ -117,6 +117,7 @@ export default function NotificationListItem({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${notification.title}. ${notification.description}`}
+            accessibilityHint={swipeEnabled ? 'Abre la notificación. También puedes usar los botones para marcarla como leída o eliminarla.' : 'Abre la notificación.'}
             onPress={() => void onPress()}
             className="min-w-0 flex-1"
             style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
@@ -127,7 +128,8 @@ export default function NotificationListItem({
                   <Text
                     className={`${compact ? 'text-[13px]' : 'text-[14px]'} font-black`}
                     style={{ color: notification.isRead ? tokens.text.secondary : tokens.text.primary }}
-                    numberOfLines={1}
+                    numberOfLines={2}
+                    maxFontSizeMultiplier={2}
                   >
                     {notification.title}
                   </Text>
@@ -140,7 +142,8 @@ export default function NotificationListItem({
                 <Text
                   className="mt-1 text-[12px] leading-5"
                   style={{ color: tokens.text.muted }}
-                  numberOfLines={2}
+                  numberOfLines={3}
+                  maxFontSizeMultiplier={2}
                 >
                   {notification.description}
                 </Text>
@@ -157,32 +160,32 @@ export default function NotificationListItem({
                 </View>
               </View>
 
-              {!swipeEnabled ? (
-                <View className="flex-row gap-2">
-                  {!notification.isRead ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Marcar como leída"
-                      hitSlop={6}
-                      onPress={() => void onMarkAsRead()}
-                      className="h-9 w-9 items-center justify-center rounded-xl"
-                      style={({ pressed }) => ({ backgroundColor: withAlpha(tokens.semantic.success, '22'), opacity: pressed ? 0.7 : 1 })}
-                    >
-                      <Ionicons name="checkmark" size={17} color={tokens.semantic.success} />
-                    </Pressable>
-                  ) : null}
+              <View className="flex-row gap-2" accessibilityLabel="Acciones de notificación">
+                {!notification.isRead ? (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Eliminar notificación"
+                    accessibilityLabel="Marcar como leída"
+                    accessibilityHint="Alternativa al gesto de deslizar hacia la derecha"
                     hitSlop={6}
-                    onPress={() => void onDelete()}
-                    className="h-9 w-9 items-center justify-center rounded-xl"
-                    style={({ pressed }) => ({ backgroundColor: withAlpha(tokens.semantic.danger, '22'), opacity: pressed ? 0.7 : 1 })}
+                    onPress={() => void onMarkAsRead()}
+                    className="min-h-9 min-w-9 items-center justify-center rounded-xl"
+                    style={({ pressed }) => ({ backgroundColor: withAlpha(tokens.semantic.success, '22'), opacity: pressed ? 0.7 : 1 })}
                   >
-                    <Ionicons name="trash-outline" size={17} color={tokens.semantic.danger} />
+                    <Ionicons name="checkmark" size={17} color={tokens.semantic.success} />
                   </Pressable>
-                </View>
-              ) : null}
+                ) : null}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Eliminar notificación"
+                  accessibilityHint="Alternativa al gesto de deslizar hacia la izquierda"
+                  hitSlop={6}
+                  onPress={() => void onDelete()}
+                  className="min-h-9 min-w-9 items-center justify-center rounded-xl"
+                  style={({ pressed }) => ({ backgroundColor: withAlpha(tokens.semantic.danger, '22'), opacity: pressed ? 0.7 : 1 })}
+                >
+                  <Ionicons name="trash-outline" size={17} color={tokens.semantic.danger} />
+                </Pressable>
+              </View>
             </View>
           </Pressable>
         </View>

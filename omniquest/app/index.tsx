@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Link, useRouter } from 'expo-router'
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { useState } from 'react'
 import BrandLogo from '../components/BrandLogo'
 import OmniGuide from '../components/OmniGuide'
 import HomeVisualBackground from '../components/HomeVisualBackground'
 import { supabase } from '../lib/supabase'
 import { createShadowStyle } from '../lib/platformShadow'
+import { useResponsiveLayout } from '../lib/responsive'
 
 type PathKind = 'student' | 'teacher'
 
@@ -78,14 +79,15 @@ const features: Feature[] = [
 ]
 
 export default function IndexScreen() {
-  const { width, height } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
+  const { width, height } = responsive
   const router = useRouter()
   const [guestLoading, setGuestLoading] = useState(false)
 
-  const isDesktop = width >= 1100
-  const isTablet = width >= 760
+  const isDesktop = responsive.isDesktop
+  const isTablet = responsive.isTablet || responsive.isDesktop
   const isWeb = Platform.OS === 'web'
-  const useDesktopFeatureLayout = isDesktop || (isWeb && width >= 700)
+  const useDesktopFeatureLayout = !responsive.isMobile || (isWeb && responsive.isTablet)
   const availableFeatureWidth = Math.min(1120, width - (isDesktop ? 104 : 36))
   const featureCardWidth = useDesktopFeatureLayout
     ? Math.min(isDesktop ? 350 : 220, Math.floor((availableFeatureWidth - 36) / 3))
@@ -203,6 +205,7 @@ function LandingPanel({
     >
       <BrandLogo center size={isDesktop ? 92 : isTablet ? 76 : 66} />
       <Text
+        maxFontSizeMultiplier={2}
         style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 28 : isTablet ? 24 : 20 }}
         className="text-center mt-4 text-semantic-info">
         Tu viaje de aprendizaje comienza aquí.
@@ -249,7 +252,13 @@ function LandingPanel({
       <View className="mt-6 flex-row flex-wrap items-center justify-center gap-2">
         <Text className="text-[16px] font-semibold text-text-secondary">¿No tienes cuenta?</Text>
         <Link href="/register" asChild>
-          <Pressable className="flex-row items-center gap-2" style={({ pressed }) => ({ opacity: pressed ? 0.74 : 1 })}>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="Crear una cuenta"
+            accessibilityHint="Abre el formulario de registro"
+            className="flex-row items-center gap-2"
+            style={({ pressed }) => ({ opacity: pressed ? 0.74 : 1 })}
+          >
             <Text className="text-[16px] font-extrabold text-semantic-info">Regístrate aquí</Text>
             <Ionicons name="arrow-forward" size={18} color="#42B9FF" />
           </Pressable>
@@ -315,6 +324,10 @@ function LandingAction({
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={subtitle}
+      accessibilityState={{ disabled: loading, busy: loading }}
       onPress={onPress}
       disabled={loading}
       style={({ pressed }) => ({
@@ -447,6 +460,10 @@ function PathSelector({
         return (
           <Pressable
             key={option.kind}
+            accessibilityRole="tab"
+            accessibilityLabel={option.tabLabel}
+            accessibilityHint={`Muestra las funciones para ${option.tabLabel?.toLowerCase()}`}
+            accessibilityState={{ selected: isSelected }}
             onPress={() => onSelect(option.kind)}
             style={({ pressed }) => ({
               flex: 1,
@@ -637,6 +654,10 @@ function FeatureCard({
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${feature.title} ${feature.titleAccent}`}
+      accessibilityHint={expanded ? 'Oculta los detalles de esta función' : 'Muestra los detalles de esta función'}
+      accessibilityState={{ expanded }}
       onPress={() => setExpanded((current) => !current)}
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, width: '100%' })}
     >
@@ -667,15 +688,15 @@ function LandingFooter({ isDesktop }: { isDesktop: boolean }) {
         </View>
 
         <View className="flex-row items-center gap-8">
-          <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+          <View accessibilityRole="image" accessibilityLabel="Proyecto alojado en GitHub">
             <Ionicons name="logo-github" size={25} color="#8BA6D3" />
-          </Pressable>
-          <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+          </View>
+          <View accessibilityRole="image" accessibilityLabel="Trabajo Fin de Máster universitario">
             <Ionicons name="school-outline" size={27} color="#8BA6D3" />
-          </Pressable>
-          <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+          </View>
+          <View accessibilityRole="image" accessibilityLabel="Contacto del proyecto">
             <Ionicons name="mail-outline" size={27} color="#8BA6D3" />
-          </Pressable>
+          </View>
         </View>
       </View>
     </View>

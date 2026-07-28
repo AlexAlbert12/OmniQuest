@@ -46,7 +46,7 @@ export default function AppDropdown<T extends string | number>({
 
   return (
     <View style={style}>
-      {label ? <Text style={[styles.fieldLabel, { color: tokens.text.secondary }]}>{label}</Text> : null}
+      {label ? <Text maxFontSizeMultiplier={2} style={[styles.fieldLabel, { color: tokens.text.secondary }]}>{label}</Text> : null}
       <AppPressable
         accessibilityLabel={resolvedLabel}
         accessibilityHint="Abre una lista de opciones"
@@ -64,7 +64,8 @@ export default function AppDropdown<T extends string | number>({
       >
         {selected?.icon ? <Ionicons name={selected.icon} size={18} color={tokens.text.secondary} /> : null}
         <Text
-          numberOfLines={1}
+          numberOfLines={2}
+          maxFontSizeMultiplier={2}
           style={[styles.triggerText, { color: selected ? tokens.text.primary : tokens.text.muted }]}
         >
           {selected?.label || placeholder}
@@ -96,9 +97,9 @@ export default function AppDropdown<T extends string | number>({
               >
                 {option.icon ? <Ionicons name={option.icon} size={19} color={active ? tokens.border.active : tokens.text.secondary} /> : null}
                 <View style={styles.optionCopy}>
-                  <Text style={[styles.optionLabel, { color: tokens.text.primary }]}>{option.label}</Text>
+                  <Text maxFontSizeMultiplier={2} style={[styles.optionLabel, { color: tokens.text.primary }]}>{option.label}</Text>
                   {option.description ? (
-                    <Text style={[styles.optionDescription, { color: tokens.text.secondary }]}>{option.description}</Text>
+                    <Text maxFontSizeMultiplier={2} style={[styles.optionDescription, { color: tokens.text.secondary }]}>{option.description}</Text>
                   ) : null}
                 </View>
                 <Ionicons
