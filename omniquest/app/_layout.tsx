@@ -14,6 +14,13 @@ import OmniGuide from '../components/OmniGuide'
 import { AppHapticsProvider } from '../lib/haptics'
 import { registerCurrentSession } from '../lib/sessionSecurity'
 import { syncAnalyticsConsentFromServer, trackScreenView } from '../lib/analytics'
+import { OfflineSyncProvider } from '../hooks/useOfflineSync'
+import OfflineSyncBanner from '../components/OfflineSyncBanner'
+import { getNetworkAvailability } from '../lib/gameOffline'
+import { readOfflineCache, writeOfflineCache } from '../lib/offlineCache'
+import { isRetriableOfflineError } from '../lib/offlineMutations'
+
+type CachedAuthProfile = { role_id: string | null; active: boolean | null }
 
 const AUTH_ROUTE_ALIASES: Record<string, string> = {
   '/login': '/(auth)/login',
@@ -49,9 +56,11 @@ export default function RootLayout() {
       <AppThemeProvider>
         <AppHapticsProvider>
           <AppModalProvider>
-            <NotificationProvider>
-              <RootNavigator />
-            </NotificationProvider>
+            <OfflineSyncProvider>
+              <NotificationProvider>
+                <RootNavigator />
+              </NotificationProvider>
+            </OfflineSyncProvider>
           </AppModalProvider>
         </AppHapticsProvider>
       </AppThemeProvider>
@@ -118,30 +127,49 @@ function RootNavigator() {
         return
       }
 
-      const { data: userData, error: userError } = await supabase.auth.getUser()
+      const networkAvailable = await getNetworkAvailability()
+      const cachedAuth = await readOfflineCache<CachedAuthProfile>(session.user.id, 'auth:profile')
+      let verifiedUser = session.user
 
-      if (userError || !userData.user) {
-        console.warn('[auth] invalid persisted session detected', userError)
-        await clearInvalidSession()
-        if (isMounted) {
-          redirectToLogin()
-          setIsInitialized(true)
+      if (networkAvailable) {
+        const { data: userData, error: userError } = await supabase.auth.getUser()
+        if (userError || !userData.user) {
+          if (cachedAuth && isRetriableOfflineError(userError)) {
+            console.warn('[auth] using cached role while auth service is unavailable')
+          } else {
+            console.warn('[auth] invalid persisted session detected', userError)
+            await clearInvalidSession()
+            if (isMounted) {
+              redirectToLogin()
+              setIsInitialized(true)
+            }
+            return
+          }
+        } else {
+          verifiedUser = userData.user
         }
-        return
       }
 
-      let { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role_id, active')
-        .eq('id', session.user.id)
-        .maybeSingle()
+      let profile: CachedAuthProfile | null = null
+      let profileError: unknown = null
+      if (networkAvailable) {
+        const profileResult = await supabase
+          .from('profiles')
+          .select('role_id, active')
+          .eq('id', session.user.id)
+          .maybeSingle()
+        profile = profileResult.data
+        profileError = profileResult.error
+      } else {
+        profile = cachedAuth?.data || null
+      }
 
-      if (!profile && userData.user.is_anonymous) {
+      if (networkAvailable && !profile && verifiedUser.is_anonymous) {
         const { data: guestProfile, error: guestProfileError } = await supabase
           .from('profiles')
           .upsert({
             id: session.user.id,
-            alias: session.user.user_metadata?.alias || 'Invitado',
+            alias: verifiedUser.user_metadata?.alias || 'Invitado',
             role_id: 'guest',
             points: 0,
             active: true,
@@ -153,11 +181,18 @@ function RootNavigator() {
         profileError = guestProfileError
       }
 
+      if (!networkAvailable && !profile) {
+        profile = {
+          role_id: verifiedUser.is_anonymous ? 'guest' : String(verifiedUser.user_metadata?.role_id || 'student'),
+          active: true,
+        }
+      }
+
       if (!isMounted) {
         return
       }
 
-      if (profileError || !profile) {
+      if ((profileError && !cachedAuth) || !profile) {
         console.error('[auth] failed to fetch profile or profile not found', profileError)
         await clearInvalidSession()
         redirectToLogin()
@@ -165,12 +200,19 @@ function RootNavigator() {
         return
       }
 
+      if (profileError && cachedAuth) profile = cachedAuth.data
+
       if (profile.active === false) {
         console.warn('[auth] inactive user blocked')
         await clearInvalidSession()
         redirectToLogin()
         setIsInitialized(true)
         return
+      }
+
+
+      if (networkAvailable) {
+        void writeOfflineCache(session.user.id, 'auth:profile', profile)
       }
 
       void syncAnalyticsConsentFromServer(session.user.id)
@@ -253,6 +295,7 @@ function RootNavigator() {
         contentStyle: { backgroundColor: colors.background },
       }}
       />
+      <OfflineSyncBanner />
     </>
   )
 }

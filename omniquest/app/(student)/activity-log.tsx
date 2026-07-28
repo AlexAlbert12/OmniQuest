@@ -21,6 +21,7 @@ import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { fetchActivityAttemptDetail, fetchStudentAttemptHistoryPage } from '../../lib/studentSecureData'
 import { useAppTheme } from '../../lib/appTheme'
+import { readThroughCache } from '../../lib/offlineCache'
 
 type ActivityFilter = 'all' | 'correct' | 'incorrect'
 
@@ -93,6 +94,12 @@ type ActivityListItem =
   | { kind: 'date'; key: string; label: string; count: number }
   | { kind: 'attempt'; key: string; attempt: AttemptRow }
 
+type ActivityCacheSnapshot = {
+  profile: any
+  attempts: AttemptRow[]
+  totalAttempts: number
+}
+
 export default function ActivityLogScreen() {
   const { width } = useWindowDimensions()
   const { colors } = useAppTheme()
@@ -119,21 +126,44 @@ export default function ActivityLogScreen() {
       const userId = session.session?.user.id
       if (!userId) return
 
-      const [profileResult, historyResult] = await Promise.all([
-        supabase.from('profiles').select('id, alias, avatar, points').eq('id', userId).single(),
-        fetchStudentAttemptHistoryPage({
-          page,
-          pageSize: ACTIVITY_PAGE_SIZE,
-          status: statusFilter,
-          search: searchQuery,
-          subjectId: selectedSubjectId === 'all' ? null : Number(selectedSubjectId),
-          topicId: selectedTopicId === 'all' ? null : Number(selectedTopicId),
-        }),
-      ])
-
-      if (profileResult.data) setProfile(profileResult.data)
-      setAttempts((historyResult.rows || []) as unknown as AttemptRow[])
-      setTotalAttempts(historyResult.total)
+      const resource = [
+        'student:history',
+        page,
+        statusFilter,
+        selectedSubjectId,
+        selectedTopicId,
+        searchQuery.trim().slice(0, 64),
+      ].join(':')
+      await readThroughCache<ActivityCacheSnapshot>({
+        userId,
+        resource,
+        fetcher: async () => {
+          const [profileResult, historyResult] = await Promise.all([
+            supabase.from('profiles').select('id, alias, avatar, points').eq('id', userId).single(),
+            fetchStudentAttemptHistoryPage({
+              page,
+              pageSize: ACTIVITY_PAGE_SIZE,
+              status: statusFilter,
+              search: searchQuery,
+              subjectId: selectedSubjectId === 'all' ? null : Number(selectedSubjectId),
+              topicId: selectedTopicId === 'all' ? null : Number(selectedTopicId),
+            }),
+          ])
+          if (profileResult.error) throw profileResult.error
+          return {
+            profile: profileResult.data,
+            attempts: (historyResult.rows || []) as unknown as AttemptRow[],
+            totalAttempts: historyResult.total,
+          }
+        },
+        onData: (snapshot) => {
+          setProfile(snapshot.profile)
+          setAttempts(snapshot.attempts)
+          setTotalAttempts(snapshot.totalAttempts)
+          setLoading(false)
+          setRefreshing(false)
+        },
+      })
     } catch (error) {
       console.error('Error al cargar el historial de actividad:', error)
     } finally {
@@ -193,8 +223,18 @@ export default function ActivityLogScreen() {
 
     setLoadingAttemptId(attemptId)
     try {
-      const detail = await fetchActivityAttemptDetail(attemptId)
-      setAttemptDetails((current) => ({ ...current, [attemptId]: detail as unknown as AttemptRow }))
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+      if (!userId) return
+      await readThroughCache<AttemptRow>({
+        userId,
+        resource: `student:history:detail:${attemptId}`,
+        fetcher: async () => await fetchActivityAttemptDetail(attemptId) as unknown as AttemptRow,
+        onData: (detail) => {
+          setAttemptDetails((current) => ({ ...current, [attemptId]: detail }))
+          setLoadingAttemptId((current) => (current === attemptId ? null : current))
+        },
+      })
     } catch (error) {
       console.error('No se pudo cargar el detalle seguro del intento:', error)
     } finally {

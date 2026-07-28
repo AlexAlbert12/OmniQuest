@@ -14,6 +14,7 @@ import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { supabase } from '../../lib/supabase'
+import { readThroughCache } from '../../lib/offlineCache'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
 type Profile = { alias: string; avatar: string | null; points: number | null }
@@ -80,9 +81,19 @@ export default function StudentNotificationsScreen() {
       const { data: session } = await supabase.auth.getSession()
       const userId = session.session?.user.id
       if (!userId) return
-      const { data, error: profileError } = await supabase.from('profiles').select('alias, avatar, points').eq('id', userId).single()
-      if (profileError) throw profileError
-      setProfile(data as Profile)
+      await readThroughCache<Profile>({
+        userId,
+        resource: 'student:notifications:profile',
+        fetcher: async () => {
+          const { data, error: profileError } = await supabase.from('profiles').select('alias, avatar, points').eq('id', userId).single()
+          if (profileError) throw profileError
+          return data as Profile
+        },
+        onData: (snapshot) => {
+          setProfile(snapshot)
+          setProfileLoading(false)
+        },
+      })
     } catch (profileError: any) {
       console.error('Error cargando perfil para notificaciones:', profileError?.message)
     } finally {

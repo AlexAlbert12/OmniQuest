@@ -43,6 +43,7 @@ test('avatar cosmetics are validated on the server and reused across profile and
   const migration = read(migrationPath)
   const profile = read('app/(student)/profile.tsx')
   const ranking = read('app/(student)/ranking.tsx')
+  const offlineMutations = read('lib/offlineMutations.ts')
   const header = read('components/ui/RoleHeaderAvatar.tsx')
   const sidebar = read('components/student/StudentSidebar.tsx')
 
@@ -51,7 +52,8 @@ test('avatar cosmetics are validated on the server and reused across profile and
   assert.match(migration, /create or replace function public\.equip_profile_cosmetics/)
   assert.match(migration, /Required badge is not unlocked/)
   assert.match(profile, /AvatarCustomizationModal/)
-  assert.match(profile, /equipProfileCosmetics/)
+  assert.match(profile, /kind: 'profile\.cosmetics'/)
+  assert.match(offlineMutations, /equipProfileCosmetics/)
   assert.match(ranking, /fetchProfileCosmeticsForUsers/)
   assert.match(ranking, /GamifiedAvatar/)
   assert.match(header, /GamifiedAvatar/)

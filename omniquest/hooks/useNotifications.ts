@@ -4,15 +4,14 @@ import { fetchStudentNotifications } from '../lib/notifications/derivedStudent'
 import { fetchTeacherNotifications } from '../lib/notifications/derivedTeacher'
 import {
   fetchPersistentNotificationSource,
-  getDatabaseNotificationId,
   loadNotificationStateFromDB,
   mergeNotificationSources,
   shouldLoadDerivedNotifications,
-  persistNotificationStateToDb,
-  updatePersistentNotificationState,
 } from '../lib/notifications/persistent'
 import { filterNotificationsByPreferences, loadNotificationPreferences } from '../lib/notifications/preferences'
 import { supabase } from '../lib/supabase'
+import { readThroughCache, updateOfflineCache } from '../lib/offlineCache'
+import { enqueueOfflineMutation } from '../lib/offlineMutations'
 
 export type { AppNotification, NotificationAudience, NotificationType }
 
@@ -32,6 +31,12 @@ const emptyAudienceState: AudienceState = {
 }
 
 const NotificationContext = createContext<NotificationContextValue | null>(null)
+
+type NotificationCacheSnapshot = {
+  notifications: AppNotification[]
+  readIds: string[]
+  deletedIds: string[]
+}
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [audienceState, setAudienceState] = useState<Record<NotificationAudience, AudienceState>>({
@@ -140,27 +145,39 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      const { read: latestRead, deleted: latestDeleted } = await loadNotificationStateFromDB(userId)
-      setReadIds(latestRead)
-      setDeletedIds(latestDeleted)
-
-      const preferences = await loadNotificationPreferences(userId)
-      const persistentSource = await fetchPersistentNotificationSource({ userId, audience })
-      const persistentNotifications = filterNotificationsByPreferences(
-        persistentSource.notifications,
-        preferences
-      )
-
-      const derivedNotifications = shouldLoadDerivedNotifications(persistentSource.available)
-        ? filterNotificationsByPreferences(
-            audience === 'student'
-              ? await fetchStudentNotifications({ userId, readIds: latestRead, deletedIds: latestDeleted })
-              : await fetchTeacherNotifications({ userId, readIds: latestRead, deletedIds: latestDeleted }),
+      await readThroughCache<NotificationCacheSnapshot>({
+        userId,
+        resource: `notifications:${audience}`,
+        fetcher: async () => {
+          const { read: latestRead, deleted: latestDeleted } = await loadNotificationStateFromDB(userId)
+          const preferences = await loadNotificationPreferences(userId)
+          const persistentSource = await fetchPersistentNotificationSource({ userId, audience })
+          const persistentNotifications = filterNotificationsByPreferences(
+            persistentSource.notifications,
             preferences
           )
-        : []
 
-      setAudienceNotifications(audience, mergeNotificationSources(persistentNotifications, derivedNotifications))
+          const derivedNotifications = shouldLoadDerivedNotifications(persistentSource.available)
+            ? filterNotificationsByPreferences(
+                audience === 'student'
+                  ? await fetchStudentNotifications({ userId, readIds: latestRead, deletedIds: latestDeleted })
+                  : await fetchTeacherNotifications({ userId, readIds: latestRead, deletedIds: latestDeleted }),
+                preferences
+              )
+            : []
+
+          return {
+            notifications: mergeNotificationSources(persistentNotifications, derivedNotifications),
+            readIds: [...latestRead],
+            deletedIds: [...latestDeleted],
+          }
+        },
+        onData: (snapshot) => {
+          setReadIds(new Set(snapshot.readIds))
+          setDeletedIds(new Set(snapshot.deletedIds))
+          setAudienceNotifications(audience, snapshot.notifications)
+        },
+      })
     } catch (error: any) {
       console.error('Error cargando notificaciones:', error.message)
       setAudienceError(
@@ -177,7 +194,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [fetchNotifications, userId])
 
   const markAsRead = useCallback(
-    async (_audience: NotificationAudience, id: string) => {
+    async (audience: NotificationAudience, id: string) => {
       if (!userId) return
 
       setReadIds((current) => {
@@ -187,16 +204,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       })
 
       setAudienceState((current) => markNotificationReadInState(current, id))
-      try {
-        const dbNotificationId = getDatabaseNotificationId(id)
-        if (dbNotificationId) {
-          await updatePersistentNotificationState(dbNotificationId, { read: true })
-        } else {
-          await persistNotificationStateToDb(userId, id, { isRead: true, isDeleted: deletedIds.has(id) })
-        }
-      } catch (error) {
-        console.error('Error marcando notificación como leída:', error)
-      }
+      await patchNotificationCache(userId, audience, id, { read: true })
+      await enqueueOfflineMutation({
+        userId,
+        kind: 'notification.state',
+        entityKey: `notification:${id}`,
+        conflictPolicy: 'merge',
+        payload: { notificationId: id, isRead: true, isDeleted: deletedIds.has(id) },
+      })
     },
     [deletedIds, userId]
   )
@@ -216,25 +231,24 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     setAudienceState((current) => markAllAudienceNotificationsReadInState(current, audience))
 
-    try {
-      for (const notification of unreadNotifications) {
-        const dbNotificationId = getDatabaseNotificationId(notification.id)
-        if (dbNotificationId) {
-          await updatePersistentNotificationState(dbNotificationId, { read: true })
-        } else {
-          await persistNotificationStateToDb(userId, notification.id, {
-            isRead: true,
-            isDeleted: deletedIds.has(notification.id),
-          })
-        }
-      }
-    } catch (error) {
-      console.error('Error marcando todas las notificaciones como leídas:', error)
+    for (const notification of unreadNotifications) {
+      await patchNotificationCache(userId, audience, notification.id, { read: true })
+      await enqueueOfflineMutation({
+        userId,
+        kind: 'notification.state',
+        entityKey: `notification:${notification.id}`,
+        conflictPolicy: 'merge',
+        payload: {
+          notificationId: notification.id,
+          isRead: true,
+          isDeleted: deletedIds.has(notification.id),
+        },
+      })
     }
   }, [audienceState, deletedIds, userId])
 
   const deleteNotification = useCallback(
-    async (_audience: NotificationAudience, id: string) => {
+    async (audience: NotificationAudience, id: string) => {
       if (!userId) return
 
       setDeletedIds((current) => {
@@ -244,16 +258,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       })
 
       setAudienceState((current) => deleteNotificationFromState(current, id))
-      try {
-        const dbNotificationId = getDatabaseNotificationId(id)
-        if (dbNotificationId) {
-          await updatePersistentNotificationState(dbNotificationId, { deleted: true })
-        } else {
-          await persistNotificationStateToDb(userId, id, { isRead: readIds.has(id), isDeleted: true })
-        }
-      } catch (error) {
-        console.error('Error eliminando notificación:', error)
-      }
+      await patchNotificationCache(userId, audience, id, { deleted: true })
+      await enqueueOfflineMutation({
+        userId,
+        kind: 'notification.state',
+        entityKey: `notification:${id}`,
+        conflictPolicy: 'merge',
+        payload: { notificationId: id, isRead: readIds.has(id), isDeleted: true },
+      })
     },
     [readIds, userId]
   )
@@ -282,6 +294,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }), [audienceState, clearError, deleteNotification, markAllAsRead, markAsRead, refresh])
 
   return createElement(NotificationContext.Provider, { value }, children)
+}
+
+async function patchNotificationCache(
+  userId: string,
+  audience: NotificationAudience,
+  notificationId: string,
+  state: { read?: boolean; deleted?: boolean },
+) {
+  await updateOfflineCache<NotificationCacheSnapshot>(userId, `notifications:${audience}`, (snapshot) => ({
+    notifications: state.deleted
+      ? snapshot.notifications.filter((notification) => notification.id !== notificationId)
+      : snapshot.notifications.map((notification) => notification.id === notificationId
+        ? { ...notification, isRead: state.read ? true : notification.isRead }
+        : notification),
+    readIds: state.read
+      ? [...new Set([...snapshot.readIds, notificationId])]
+      : snapshot.readIds,
+    deletedIds: state.deleted
+      ? [...new Set([...snapshot.deletedIds, notificationId])]
+      : snapshot.deletedIds,
+  }))
 }
 
 export function useNotifications(audience: NotificationAudience = 'teacher') {

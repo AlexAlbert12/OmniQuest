@@ -30,6 +30,7 @@ import StudentListRow from '../../components/student/StudentListRow'
 import StudentPrimaryLearningCTA from '../../components/student/StudentPrimaryLearningCTA'
 import { formatShortDate } from '../../lib/dateFormat'
 import { useAppTheme } from '../../lib/appTheme'
+import { readThroughCache } from '../../lib/offlineCache'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { fetchStudentAttemptHistory } from '../../lib/studentSecureData'
 
@@ -106,6 +107,15 @@ type ReinforcementArea = {
   actionLabel: string
 }
 
+type ProgressCacheSnapshot = {
+  profile: Profile
+  weeklyAttemptsCount: number
+  subjectProgress: SubjectProgress[]
+  recentScores: RecentScore[]
+  scores: ScoreRow[]
+  reinforcementAreas: ReinforcementArea[]
+}
+
 export default function ProgressScreen() {
   const { width } = useWindowDimensions()
   const router = useRouter()
@@ -161,38 +171,49 @@ export default function ProgressScreen() {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
       const thirtyDaysAgoIso = thirtyDaysAgo.toISOString()
 
-      const [profileResult, scoresResult, weeklyAttemptsResult, progressResult, reinforcementResult] = await Promise.all([
-        supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
-        supabase
-          .from('subject_scores')
-          .select('subject_id, classroom_id, max_score, played_at, played_days, correct_answers, subjects(name)')
-          .eq('student_id', userId)
-          .order('played_at', { ascending: false }),
-        supabase
-          .from('attempt_history')
-          .select('id', { count: 'exact', head: true })
-          .eq('student_id', userId)
-          .gte('attempted_at', weekStartIso)
-          .lte('attempted_at', nowIso),
-        fetchStudentProgressSummary(userId),
-        fetchStudentAttemptHistory({
-          limit: 1000,
-          since: thirtyDaysAgoIso,
-        }),
-      ])
-
-      if (profileResult.error) throw profileResult.error
-      if (scoresResult.error) throw scoresResult.error
-      if (weeklyAttemptsResult.error) throw weeklyAttemptsResult.error
-
-      setProfile(profileResult.data)
-      setWeeklyAttemptsCount(weeklyAttemptsResult.count || 0)
-      const scores = (scoresResult.data || []) as ScoreRow[]
-
-      setSubjectProgress(buildSubjectRows(progressResult.subjects, scores))
-      setRecentScores(buildRecentScores(scores))
-      setScores(scores)
-      setReinforcementAreas(buildReinforcementAreas((reinforcementResult || []) as ReinforcementAttemptRow[]))
+      await readThroughCache<ProgressCacheSnapshot>({
+        userId,
+        resource: 'student:progress',
+        fetcher: async () => {
+          const [profileResult, scoresResult, weeklyAttemptsResult, progressResult, reinforcementResult] = await Promise.all([
+            supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
+            supabase
+              .from('subject_scores')
+              .select('subject_id, classroom_id, max_score, played_at, played_days, correct_answers, subjects(name)')
+              .eq('student_id', userId)
+              .order('played_at', { ascending: false }),
+            supabase
+              .from('attempt_history')
+              .select('id', { count: 'exact', head: true })
+              .eq('student_id', userId)
+              .gte('attempted_at', weekStartIso)
+              .lte('attempted_at', nowIso),
+            fetchStudentProgressSummary(userId),
+            fetchStudentAttemptHistory({ limit: 1000, since: thirtyDaysAgoIso }),
+          ])
+          if (profileResult.error) throw profileResult.error
+          if (scoresResult.error) throw scoresResult.error
+          if (weeklyAttemptsResult.error) throw weeklyAttemptsResult.error
+          const nextScores = (scoresResult.data || []) as ScoreRow[]
+          return {
+            profile: profileResult.data,
+            weeklyAttemptsCount: weeklyAttemptsResult.count || 0,
+            subjectProgress: buildSubjectRows(progressResult.subjects, nextScores),
+            recentScores: buildRecentScores(nextScores),
+            scores: nextScores,
+            reinforcementAreas: buildReinforcementAreas((reinforcementResult || []) as ReinforcementAttemptRow[]),
+          }
+        },
+        onData: (snapshot) => {
+          setProfile(snapshot.profile)
+          setWeeklyAttemptsCount(snapshot.weeklyAttemptsCount)
+          setSubjectProgress(snapshot.subjectProgress)
+          setRecentScores(snapshot.recentScores)
+          setScores(snapshot.scores)
+          setReinforcementAreas(snapshot.reinforcementAreas)
+          setLoading(false)
+        },
+      })
     } catch (error) {
       console.error('Error fetching progress:', error)
     } finally {

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -23,8 +23,11 @@ import StudentPageHeader from '../../components/student/StudentPageHeader'
 import HomeVisualBackground from '../../components/HomeVisualBackground'
 import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
-import { joinClassByInviteCode } from '../../lib/studentClassJoin'
 import { CourseGalaxyMap } from '../../components/student/galaxy/StudentGalaxyMap'
+import { readThroughCache, updateOfflineCache } from '../../lib/offlineCache'
+import { enqueueOfflineMutation } from '../../lib/offlineMutations'
+import { useOfflineSync } from '../../hooks/useOfflineSync'
+import { isValidInviteCode, normalizeInviteCode } from '../../lib/classCode'
 
 type Profile = {
   id: string
@@ -48,6 +51,11 @@ type Subject = {
 
 type ClassFilter = 'all' | 'review' | 'in_progress' | 'completed'
 type ClassSort = 'recent' | 'name' | 'progress'
+type ClassesCacheSnapshot = {
+  profile: Profile
+  subjects: Subject[]
+  progressBySubject: Record<string, StudentProgressSubject>
+}
 
 const studentClassFilters: { id: ClassFilter; label: string }[] = [
   { id: 'all', label: 'Todas' },
@@ -81,6 +89,7 @@ export default function ClassesScreen() {
 
   const isDesktop = width >= 1024
   const { accentColor } = useAppTheme()
+  const { lastSyncedAt } = useOfflineSync()
   const classRows = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase()
     let rows = subjects
@@ -148,45 +157,50 @@ export default function ClassesScreen() {
 
       if (!userId) return
 
-      const [profileResult, enrollmentsResult, progressResult] = await Promise.all([
-        supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
-        supabase
-          .from('enrollments')
-          .select('id, student_id, subject_id, classroom_id, joined_at, subjects(id, name, description, icon, theme_color, teacher_id), classrooms(id, name, code)')
-          .eq('student_id', userId)
-          .order('joined_at', { ascending: false }),
-        fetchStudentProgressSummary(userId),
-      ])
+      await readThroughCache<ClassesCacheSnapshot>({
+        userId,
+        resource: 'student:classes',
+        fetcher: async () => {
+          const [profileResult, enrollmentsResult, progressResult] = await Promise.all([
+            supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
+            supabase
+              .from('enrollments')
+              .select('id, student_id, subject_id, classroom_id, joined_at, subjects(id, name, description, icon, theme_color, teacher_id), classrooms(id, name, code)')
+              .eq('student_id', userId)
+              .order('joined_at', { ascending: false }),
+            fetchStudentProgressSummary(userId),
+          ])
+          if (profileResult.error) throw profileResult.error
+          if (enrollmentsResult.error) throw enrollmentsResult.error
 
-      if (profileResult.error) throw profileResult.error
-      if (enrollmentsResult.error) throw enrollmentsResult.error
-
-      setProfile(profileResult.data)
-      setProgressBySubject(
-        progressResult.subjects.reduce<Record<string, StudentProgressSubject>>((acc, subject) => {
-          acc[getProgressRowKey(subject)] = subject
-          return acc
-        }, {})
-      )
-      const nextSubjects = enrollmentsResult.data
-        ?.map((enrollment: any) => {
-          const subject = normalizeRelation(enrollment.subjects)
-          const classroom = normalizeRelation(enrollment.classrooms)
-          return subject
-            ? {
-                ...subject,
-                classroom_id: Number(enrollment.classroom_id ?? classroom?.id ?? 0) || null,
-                classroom_name: classroom?.name ?? null,
-                classroom_code: classroom?.code ?? null,
-                joined_at: enrollment.joined_at ?? null,
-              }
-            : null
-        })
-        .filter(Boolean) as Subject[] || []
-
-      setSubjects(nextSubjects)
-
-
+          const nextProgress = progressResult.subjects.reduce<Record<string, StudentProgressSubject>>((acc, subject) => {
+            acc[getProgressRowKey(subject)] = subject
+            return acc
+          }, {})
+          const nextSubjects = enrollmentsResult.data
+            ?.map((enrollment: any) => {
+              const subject = normalizeRelation(enrollment.subjects)
+              const classroom = normalizeRelation(enrollment.classrooms)
+              return subject
+                ? {
+                    ...subject,
+                    classroom_id: Number(enrollment.classroom_id ?? classroom?.id ?? 0) || null,
+                    classroom_name: classroom?.name ?? null,
+                    classroom_code: classroom?.code ?? null,
+                    joined_at: enrollment.joined_at ?? null,
+                  }
+                : null
+            })
+            .filter(Boolean) as Subject[] || []
+          return { profile: profileResult.data, subjects: nextSubjects, progressBySubject: nextProgress }
+        },
+        onData: (snapshot) => {
+          setProfile(snapshot.profile)
+          setProgressBySubject(snapshot.progressBySubject)
+          setSubjects(snapshot.subjects)
+          setLoading(false)
+        },
+      })
     } catch (error) {
       console.error('Error fetching classes:', error)
     } finally {
@@ -200,6 +214,10 @@ export default function ClassesScreen() {
     }, [fetchClasses])
   )
 
+  useEffect(() => {
+    if (lastSyncedAt) void fetchClasses()
+  }, [fetchClasses, lastSyncedAt])
+
   const showAlert = (title: string, message: string) => {
     if (Platform.OS === 'web') {
       window.alert(`${title}\n${message}`)
@@ -212,10 +230,20 @@ export default function ClassesScreen() {
   const handleJoinClass = async () => {
     setJoining(true)
     try {
-      const { subjectName, classroomName } = await joinClassByInviteCode(inviteCode)
-      showAlert('¡Éxito!', `Te has unido a ${subjectName}${classroomName ? ` · ${classroomName}` : ''}`)
+      const normalizedCode = normalizeInviteCode(inviteCode)
+      if (!isValidInviteCode(normalizedCode)) throw new Error('El código debe tener 6 caracteres alfanuméricos.')
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+      if (!userId) throw new Error('No hay sesión activa.')
+      await enqueueOfflineMutation({
+        userId,
+        kind: 'class.join',
+        entityKey: `class:join:${normalizedCode}`,
+        conflictPolicy: 'server_wins',
+        payload: { code: normalizedCode },
+      })
+      showAlert('Solicitud guardada', 'La unión al curso se sincronizará automáticamente cuando haya conexión.')
       setInviteCode('')
-      fetchClasses()
     } catch (error: any) {
       showAlert('Error', error.message)
     } finally {
@@ -234,22 +262,19 @@ export default function ClassesScreen() {
         throw new Error('No hay sesión activa.')
       }
 
-      let deleteQuery = supabase
-        .from('enrollments')
-        .delete()
-        .eq('student_id', userId)
-        .eq('subject_id', subject.id)
-
-      deleteQuery = typeof subject.classroom_id === 'number'
-        ? deleteQuery.eq('classroom_id', subject.classroom_id)
-        : deleteQuery.is('classroom_id', null)
-
-      const { error } = await deleteQuery
-
-      if (error) throw error
-
-      showAlert('Clase abandonada', `Has salido de ${subject.name}${subject.classroom_name ? ` · ${subject.classroom_name}` : ''}.`)
-      fetchClasses()
+      await enqueueOfflineMutation({
+        userId,
+        kind: 'class.leave',
+        entityKey: `class:${subject.id}:${subject.classroom_id ?? 'default'}`,
+        conflictPolicy: 'client_wins',
+        payload: { subjectId: subject.id, classroomId: subject.classroom_id },
+      })
+      setSubjects((current) => current.filter((row) => getCourseRowKey(row) !== getCourseRowKey(subject)))
+      await updateOfflineCache<ClassesCacheSnapshot>(userId, 'student:classes', (snapshot) => ({
+        ...snapshot,
+        subjects: snapshot.subjects.filter((row) => getCourseRowKey(row) !== getCourseRowKey(subject)),
+      }))
+      showAlert('Cambio pendiente', `Has salido de ${subject.name}. El cambio se confirmará al sincronizar.`)
     } catch (error: any) {
       showAlert('Error', error.message || 'No se pudo abandonar la clase.')
     } finally {

@@ -614,18 +614,65 @@ set
   ]
 where id = 'question-media';
 
+-- Backfill the private object path while the previous constraint still allows
+-- media_url. Signed/public Storage URLs may contain query strings or fragments,
+-- which must never become part of the persisted object path.
 update public.questions
-set media_path = split_part(media_url, '/question-media/', 2)
+set media_path = split_part(
+  split_part(
+    split_part(media_url, '/question-media/', 2),
+    '?',
+    1
+  ),
+  '#',
+  1
+)
 where media_type is not null
   and nullif(trim(coalesce(media_path, '')), '') is null
   and media_url like '%/question-media/%';
 
+-- The old constraint requires media_url whenever media_type is present. Drop it
+-- before clearing legacy URLs; otherwise the backfill update violates the old
+-- invariant before the new private-media invariant can be installed.
+alter table public.questions
+  drop constraint if exists questions_media_consistency_check;
+
+update public.questions
+set media_path = nullif(trim(media_path), '')
+where media_path is not null;
+
+-- Fail with an actionable message instead of a generic CHECK violation if a
+-- legacy row points outside question-media and therefore has no private path.
+do $$
+declare
+  v_unresolved_ids text;
+begin
+  select string_agg(id::text, ', ' order by id)
+  into v_unresolved_ids
+  from (
+    select id
+    from public.questions
+    where media_type is not null
+      and nullif(trim(coalesce(media_path, '')), '') is null
+    order by id
+    limit 20
+  ) unresolved;
+
+  if v_unresolved_ids is not null then
+    raise exception using
+      errcode = '23514',
+      message = format(
+        'No se puede privatizar el multimedia de las preguntas [%s]: no se pudo obtener media_path desde media_url.',
+        v_unresolved_ids
+      ),
+      hint = 'Mueve esos archivos al bucket question-media y guarda su ruta en media_path, o elimina el multimedia de esas preguntas antes de repetir la migración.';
+  end if;
+end;
+$$;
+
 update public.questions
 set media_url = null
 where media_path is not null;
-
-alter table public.questions
-  drop constraint if exists questions_media_consistency_check;
 
 alter table public.questions
   add constraint questions_media_consistency_check

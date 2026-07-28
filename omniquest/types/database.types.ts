@@ -206,6 +206,53 @@ export type Database = {
           },
         ]
       }
+      analytics_reporting_identities: {
+        Row: {
+          created_at: string
+          reporting_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          reporting_id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          reporting_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_reporting_identities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_retention_policy: {
+        Row: {
+          anonymize_after_days: number
+          retention_days: number
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          anonymize_after_days?: number
+          retention_days?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          anonymize_after_days?: number
+          retention_days?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       answers: {
         Row: {
           id: number
@@ -988,6 +1035,91 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_media_assets: {
+        Row: {
+          attached_question_id: number | null
+          created_at: string
+          duration_seconds: number | null
+          media_type: string
+          mime_type: string
+          orphaned_at: string | null
+          owner_id: string
+          path: string
+          processed_at: string | null
+          processed_path: string | null
+          processing_error: string | null
+          processing_status: string
+          scan_status: string
+          size_bytes: number
+          subject_id: number
+          subtitles_vtt: string | null
+          thumbnail_path: string | null
+          transcript: string | null
+        }
+        Insert: {
+          attached_question_id?: number | null
+          created_at?: string
+          duration_seconds?: number | null
+          media_type: string
+          mime_type: string
+          orphaned_at?: string | null
+          owner_id: string
+          path: string
+          processed_at?: string | null
+          processed_path?: string | null
+          processing_error?: string | null
+          processing_status?: string
+          scan_status?: string
+          size_bytes: number
+          subject_id: number
+          subtitles_vtt?: string | null
+          thumbnail_path?: string | null
+          transcript?: string | null
+        }
+        Update: {
+          attached_question_id?: number | null
+          created_at?: string
+          duration_seconds?: number | null
+          media_type?: string
+          mime_type?: string
+          orphaned_at?: string | null
+          owner_id?: string
+          path?: string
+          processed_at?: string | null
+          processed_path?: string | null
+          processing_error?: string | null
+          processing_status?: string
+          scan_status?: string
+          size_bytes?: number
+          subject_id?: number
+          subtitles_vtt?: string | null
+          thumbnail_path?: string | null
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_media_assets_attached_question_id_fkey"
+            columns: ["attached_question_id"]
+            isOneToOne: true
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_media_assets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_media_assets_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
@@ -1801,9 +1933,15 @@ export type Database = {
         }
         Returns: Json
       }
+      analytics_allowed: { Args: { p_user_id: string }; Returns: boolean }
+      apply_analytics_retention: { Args: never; Returns: Json }
       assert_topic_playable: {
         Args: { p_topic_id: number }
         Returns: undefined
+      }
+      can_access_question_media: {
+        Args: { p_classroom_id?: number; p_subject_id: number }
+        Returns: boolean
       }
       can_read_profile: { Args: { p_profile_id: string }; Returns: boolean }
       claim_notification_delivery_batch: {
@@ -1916,6 +2054,10 @@ export type Database = {
         Returns: Json
       }
       enqueue_due_teacher_digests: { Args: { p_now?: string }; Returns: number }
+      ensure_analytics_reporting_id: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
       ensure_default_classroom: {
         Args: { p_subject_id: number }
         Returns: number
@@ -2175,6 +2317,19 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_question_media_manifest: {
+        Args: { p_question_ids: number[] }
+        Returns: {
+          duration_seconds: number
+          media_path: string
+          media_type: string
+          processing_status: string
+          question_id: number
+          subtitles_vtt: string
+          thumbnail_path: string
+          transcript: string
+        }[]
+      }
       get_ranking_profiles: {
         Args: { p_limit?: number }
         Returns: {
@@ -2359,18 +2514,9 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: undefined
       }
-      get_question_media_manifest: {
-        Args: { p_question_ids: number[] }
-        Returns: {
-          duration_seconds: number | null
-          media_path: string
-          media_type: string
-          processing_status: string | null
-          question_id: number
-          subtitles_vtt: string | null
-          thumbnail_path: string | null
-          transcript: string | null
-        }[]
+      sanitize_analytics_properties: {
+        Args: { p_properties: Json }
+        Returns: Json
       }
       save_teacher_question: {
         Args: {
@@ -2396,10 +2542,6 @@ export type Database = {
         }
         Returns: number
       }
-      set_analytics_consent: {
-        Args: { p_enabled: boolean }
-        Returns: boolean
-      }
       search_app_entities: {
         Args: { p_limit?: number; p_query: string }
         Returns: {
@@ -2413,6 +2555,7 @@ export type Database = {
           title: string
         }[]
       }
+      set_analytics_consent: { Args: { p_enabled: boolean }; Returns: boolean }
       start_game_attempt: {
         Args: {
           p_classroom_id?: number

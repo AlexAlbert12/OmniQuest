@@ -60,7 +60,7 @@ export async function fetchPersistentNotificationSource({
     }
 
     console.error('Error cargando notificaciones persistentes:', error)
-    return { notifications: [], available: true }
+    throw error
   }
 }
 

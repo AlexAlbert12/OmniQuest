@@ -1,7 +1,8 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -35,11 +36,14 @@ import GamifiedAvatar from '../../components/gamification/GamifiedAvatar'
 import AvatarCustomizationModal from '../../components/gamification/AvatarCustomizationModal'
 import {
   DEFAULT_AVATAR_FRAME,
-  equipProfileCosmetics,
   fetchAvatarCustomizationOptions,
   type AvatarCustomizationOptions,
   type ProfileCosmetics,
 } from '../../lib/avatarCosmetics'
+import { readThroughCache, updateOfflineCache } from '../../lib/offlineCache'
+import { enqueueOfflineMutation, stageAvatarForOffline } from '../../lib/offlineMutations'
+import { useOfflineSync } from '../../hooks/useOfflineSync'
+import { getNetworkAvailability } from '../../lib/gameOffline'
 
 type Profile = {
   id: string
@@ -61,6 +65,14 @@ type SubjectScore = {
   played_days: string[] | null
   correct_answers: number | null
   subjects?: { name: string } | { name: string }[] | null
+}
+
+type ProfileCacheSnapshot = {
+  profile: Profile
+  email: string
+  subjects: Subject[]
+  scores: SubjectScore[]
+  customizationOptions: AvatarCustomizationOptions | null
 }
 
 const STUDENT_ROUTES = {
@@ -87,6 +99,7 @@ export default function ProfileScreen() {
   const [customizationOptions, setCustomizationOptions] = useState<AvatarCustomizationOptions | null>(null)
   const [savingCosmetics, setSavingCosmetics] = useState(false)
   const { accentColor } = useAppTheme()
+  const { lastSyncedAt } = useOfflineSync()
 
   const isDesktop = width >= 1024
   const points = profile?.points ?? 0
@@ -118,39 +131,47 @@ export default function ProfileScreen() {
       const { data: session } = await supabase.auth.getSession()
       const userId = session.session?.user.id
 
-      setEmail(session.session?.user.email || 'alex@example.com')
+      const nextEmail = session.session?.user.email || 'alex@example.com'
 
       if (!userId) return
 
-      const [profileResult, enrollmentsResult, scoresResult, nextCustomizationOptions] = await Promise.all([
-        supabase.from('profiles').select('id, alias, avatar, created_at, points').eq('id', userId).single(),
-        supabase
-          .from('enrollments')
-          .select('subjects(id, name)')
-          .eq('student_id', userId),
-        supabase
-          .from('subject_scores')
-          .select('subject_id, max_score, played_at, played_days, correct_answers, subjects(name)')
-          .eq('student_id', userId)
-          .order('played_at', { ascending: false }),
-        fetchAvatarCustomizationOptions().catch((error) => {
-          console.warn('No se pudieron cargar los cosméticos del avatar:', error)
-          return null
-        }),
-      ])
-
-      if (profileResult.error) throw profileResult.error
-      if (enrollmentsResult.error) throw enrollmentsResult.error
-      if (scoresResult.error) throw scoresResult.error
-
-      setProfile(profileResult.data)
-      setSubjects(
-        enrollmentsResult.data
-          ?.map((enrollment: any) => enrollment.subjects)
-          .filter(Boolean) || []
-      )
-      setScores((scoresResult.data || []) as SubjectScore[])
-      if (nextCustomizationOptions) setCustomizationOptions(nextCustomizationOptions)
+      await readThroughCache<ProfileCacheSnapshot>({
+        userId,
+        resource: 'student:profile',
+        fetcher: async () => {
+          const [profileResult, enrollmentsResult, scoresResult, nextCustomizationOptions] = await Promise.all([
+            supabase.from('profiles').select('id, alias, avatar, created_at, points').eq('id', userId).single(),
+            supabase.from('enrollments').select('subjects(id, name)').eq('student_id', userId),
+            supabase
+              .from('subject_scores')
+              .select('subject_id, max_score, played_at, played_days, correct_answers, subjects(name)')
+              .eq('student_id', userId)
+              .order('played_at', { ascending: false }),
+            fetchAvatarCustomizationOptions().catch((error) => {
+              console.warn('No se pudieron cargar los cosméticos del avatar:', error)
+              return null
+            }),
+          ])
+          if (profileResult.error) throw profileResult.error
+          if (enrollmentsResult.error) throw enrollmentsResult.error
+          if (scoresResult.error) throw scoresResult.error
+          return {
+            profile: profileResult.data,
+            email: nextEmail,
+            subjects: enrollmentsResult.data?.map((enrollment: any) => enrollment.subjects).filter(Boolean) || [],
+            scores: (scoresResult.data || []) as SubjectScore[],
+            customizationOptions: nextCustomizationOptions,
+          }
+        },
+        onData: (snapshot) => {
+          setProfile(snapshot.profile)
+          setEmail(snapshot.email)
+          setSubjects(snapshot.subjects)
+          setScores(snapshot.scores)
+          if (snapshot.customizationOptions) setCustomizationOptions(snapshot.customizationOptions)
+          setLoading(false)
+        },
+      })
     } catch (error) {
       console.error('Error fetching profile:', error)
     } finally {
@@ -163,6 +184,10 @@ export default function ProfileScreen() {
       fetchProfile()
     }, [fetchProfile])
   )
+
+  useEffect(() => {
+    if (lastSyncedAt) void fetchProfile()
+  }, [fetchProfile, lastSyncedAt])
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -188,6 +213,31 @@ export default function ProfileScreen() {
 
     setUploading(true)
     try {
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+      if (!userId) throw new Error('No hay sesión activa.')
+
+      if (Platform.OS !== 'web') {
+        const localUri = await stageAvatarForOffline(userId, uri)
+        await enqueueOfflineMutation({
+          userId,
+          kind: 'profile.avatar',
+          entityKey: 'profile:avatar',
+          conflictPolicy: 'client_wins',
+          payload: { localUri },
+        })
+        setProfile((current) => current ? { ...current, avatar: localUri } : current)
+        await updateOfflineCache<ProfileCacheSnapshot>(userId, 'student:profile', (snapshot) => ({
+          ...snapshot,
+          profile: { ...snapshot.profile, avatar: localUri },
+        }))
+        Alert.alert('Foto guardada', 'La imagen se subirá automáticamente cuando haya conexión.')
+        return
+      }
+
+      if (!await getNetworkAvailability()) {
+        throw new Error('En web necesitas conexión para subir una foto nueva.')
+      }
       const response = await fetch(uri)
       const blob = await response.blob()
       const fileName = `${profile.id}.jpg`
@@ -206,7 +256,12 @@ export default function ProfileScreen() {
       const result = (data || {}) as { avatar?: string | null; error?: string }
       if (result.error) throw new Error(result.error)
 
-      setProfile({ ...profile, avatar: result.avatar || null })
+      const nextAvatar = result.avatar || null
+      setProfile({ ...profile, avatar: nextAvatar })
+      await updateOfflineCache<ProfileCacheSnapshot>(userId, 'student:profile', (snapshot) => ({
+        ...snapshot,
+        profile: { ...snapshot.profile, avatar: nextAvatar },
+      }))
       Alert.alert('Éxito', 'Foto de perfil actualizada.')
     } catch (error: any) {
       console.error('Error uploading image:', error)
@@ -234,7 +289,20 @@ export default function ProfileScreen() {
   }) => {
     setSavingCosmetics(true)
     try {
-      const nextCosmetics = await equipProfileCosmetics({ frameKey, featuredBadgeId })
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+      if (!userId) throw new Error('No hay sesión activa.')
+      const selectedFrame = customizationOptions?.frames.find((frame) => frame.key === frameKey)
+        || customizationOptions?.cosmetics.frame
+        || DEFAULT_AVATAR_FRAME
+      const nextCosmetics: ProfileCosmetics = { frame: selectedFrame, featuredBadgeId }
+      await enqueueOfflineMutation({
+        userId,
+        kind: 'profile.cosmetics',
+        entityKey: 'profile:cosmetics',
+        conflictPolicy: 'client_wins',
+        payload: { frameKey, featuredBadgeId },
+      })
       setCustomizationOptions((current) => current
         ? { ...current, cosmetics: nextCosmetics }
         : {
@@ -244,6 +312,12 @@ export default function ProfileScreen() {
             cosmetics: nextCosmetics,
           })
       setCustomizationVisible(false)
+      await updateOfflineCache<ProfileCacheSnapshot>(userId, 'student:profile', (snapshot) => ({
+        ...snapshot,
+        customizationOptions: snapshot.customizationOptions
+          ? { ...snapshot.customizationOptions, cosmetics: nextCosmetics }
+          : snapshot.customizationOptions,
+      }))
     } catch (error: any) {
       Alert.alert('No se pudo guardar', error?.message || 'Revisa los requisitos del marco e inténtalo de nuevo.')
     } finally {

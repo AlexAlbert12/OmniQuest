@@ -27,6 +27,8 @@ import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { useAppTheme } from '../../lib/appTheme'
+import { readThroughCache } from '../../lib/offlineCache'
+import { enqueueOfflineMutation, isRetriableOfflineError } from '../../lib/offlineMutations'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { withAlpha } from '../../lib/color'
 import { useNotifications } from '../../hooks/useNotifications'
@@ -43,6 +45,14 @@ type Profile = {
 
 type BadgeFilter = 'all' | 'unlocked' | 'locked'
 type BadgeCategoryFilter = 'all' | StudentBadgeCategory
+type BadgesCacheSnapshot = {
+  profile: Profile
+  attempts: StudentBadgeAttempt[]
+  subjectsCount: number
+  badges: StudentBadge[]
+  awardedXp: number
+  newlyAwardedBadges: StudentBadge[]
+}
 
 const badgeCategoryTabs: { key: BadgeCategoryFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'all', label: 'Todos', icon: 'apps-outline' },
@@ -104,57 +114,71 @@ export default function BadgesScreen() {
 
       if (!userId) return
 
-      const [profileResult, enrollmentsResult, attemptsResult] = await Promise.all([
-        supabase.from('profiles').select('id, alias, avatar, points').eq('id', userId).single(),
-        supabase.from('enrollments').select('subject_id').eq('student_id', userId),
-        fetchStudentAttemptHistory({ limit: 5000 }),
-      ])
+      await readThroughCache<BadgesCacheSnapshot>({
+        userId,
+        resource: 'student:badges',
+        fetcher: async () => {
+          const [profileResult, enrollmentsResult, attemptsResult] = await Promise.all([
+            supabase.from('profiles').select('id, alias, avatar, points').eq('id', userId).single(),
+            supabase.from('enrollments').select('subject_id').eq('student_id', userId),
+            fetchStudentAttemptHistory({ limit: 5000 }),
+          ])
+          if (profileResult.error) throw profileResult.error
+          if (enrollmentsResult.error) throw enrollmentsResult.error
 
-      if (profileResult.error) throw profileResult.error
-      if (enrollmentsResult.error) throw enrollmentsResult.error
+          const nextAttempts = (attemptsResult || []) as StudentBadgeAttempt[]
+          const nextSubjectsCount = enrollmentsResult.data?.length || 0
+          const nextPoints = profileResult.data?.points ?? 0
+          const nextBadges = buildStudentBadges(getStudentBadgeMetrics({
+            attempts: nextAttempts,
+            totalPoints: nextPoints,
+            subjectsCount: nextSubjectsCount,
+          }))
 
-      setProfile(profileResult.data)
-      setSubjectsCount(enrollmentsResult.data?.length || 0)
-      const nextAttempts = (attemptsResult || []) as StudentBadgeAttempt[]
-      setAttempts(nextAttempts)
-
-      const nextSubjectsCount = enrollmentsResult.data?.length || 0
-      const nextPoints = profileResult.data?.points ?? 0
-      const nextMetrics = getStudentBadgeMetrics({
-        attempts: nextAttempts,
-        totalPoints: nextPoints,
-        subjectsCount: nextSubjectsCount,
-      })
-      const nextBadges = buildStudentBadges(nextMetrics)
-
-      try {
-        const syncResult = await syncStudentBadgeAwards({
-          userId,
-          badges: nextBadges,
-          currentPoints: nextPoints,
-        })
-        setSyncedBadges(syncResult.badges)
-
-        if (syncResult.awardedXp > 0) {
-          void refreshStudentNotifications()
-
-          setProfile((current) =>
-            current ? { ...current, points: (current.points ?? 0) + syncResult.awardedXp } : current
-          )
-
-          if (syncResult.newlyAwardedBadges.length > 0) {
-            setCelebrationBadges(syncResult.newlyAwardedBadges)
-          } else {
-            showAlert(
-              '¡Logro desbloqueado!',
-              `Has ganado ${syncResult.awardedXp.toLocaleString()} XP en recompensas.`
-            )
+          try {
+            const syncResult = await syncStudentBadgeAwards({ userId, badges: nextBadges, currentPoints: nextPoints })
+            return {
+              profile: { ...profileResult.data, points: nextPoints + syncResult.awardedXp },
+              attempts: nextAttempts,
+              subjectsCount: nextSubjectsCount,
+              badges: syncResult.badges,
+              awardedXp: syncResult.awardedXp,
+              newlyAwardedBadges: syncResult.newlyAwardedBadges,
+            }
+          } catch (error) {
+            if (isRetriableOfflineError(error)) {
+              await enqueueOfflineMutation({
+                userId,
+                kind: 'badges.sync',
+                entityKey: 'badges:sync',
+                conflictPolicy: 'server_wins',
+                payload: {},
+              })
+            }
+            console.error('Error sincronizando logros:', error)
+            return {
+              profile: profileResult.data,
+              attempts: nextAttempts,
+              subjectsCount: nextSubjectsCount,
+              badges: nextBadges,
+              awardedXp: 0,
+              newlyAwardedBadges: [],
+            }
           }
-        }
-      } catch (error) {
-        console.error('Error sincronizando logros:', error)
-        setSyncedBadges(nextBadges)
-      }
+        },
+        onData: (snapshot, metadata) => {
+          setProfile(snapshot.profile)
+          setSubjectsCount(snapshot.subjectsCount)
+          setAttempts(snapshot.attempts)
+          setSyncedBadges(snapshot.badges)
+          setLoading(false)
+          if (metadata.source === 'network' && snapshot.awardedXp > 0) {
+            void refreshStudentNotifications()
+            if (snapshot.newlyAwardedBadges.length > 0) setCelebrationBadges(snapshot.newlyAwardedBadges)
+            else showAlert('¡Logro desbloqueado!', `Has ganado ${snapshot.awardedXp.toLocaleString()} XP en recompensas.`)
+          }
+        },
+      })
     } catch (error) {
       console.error('Error fetching badges:', error)
     } finally {
