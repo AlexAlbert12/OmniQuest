@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { normalizeDifficulty } from '../lib/difficulty';
 import type { Json } from '../types/database.types';
 import { fetchAttemptFeedback, type AttemptFeedback } from '../lib/studentSecureData';
-import { toSafeAnalyticsError, trackUsageEvent } from '../lib/analytics';
+import { measureRpc, toSafeAnalyticsError, trackUsageEvent } from '../lib/analytics';
 import { useAppHaptics } from '../lib/haptics';
 import { getStudentBadgePresentation, type StudentBadge } from '../lib/studentBadges';
 import {
@@ -92,6 +92,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   const scoreRef = useRef(0);
   const attemptIdRef = useRef<string | null>(null);
   const finalizedAttemptIdsRef = useRef(new Set<string>());
+  const viewedQuestionsRef = useRef(new Set<string>());
   const hintUsedRef = useRef(false);
   const isSubmittingRef = useRef(false);
   const [lives, setLives] = useState(3);
@@ -156,14 +157,18 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
         return;
       }
 
-      const { data: questionsData, error: questionsError } = await supabase.rpc('get_safe_game_questions', {
-        p_subject_id: numericSubjectId,
-        p_classroom_id: numericClassroomId,
-        p_topic_id: numericTopicId,
-        p_general_topic: isGeneralTopic,
-        p_difficulty: numericDifficulty,
-        p_review_failed: isFailedReview,
-      });
+      const { data: questionsData, error: questionsError } = await measureRpc(
+        'get_safe_game_questions',
+        async () => supabase.rpc('get_safe_game_questions', {
+          p_subject_id: numericSubjectId,
+          p_classroom_id: numericClassroomId ?? undefined,
+          p_topic_id: numericTopicId ?? undefined,
+          p_general_topic: isGeneralTopic,
+          p_difficulty: numericDifficulty ?? undefined,
+          p_review_failed: isFailedReview,
+        }),
+        { subjectId: numericSubjectId, classroomId: numericClassroomId, topicId: numericTopicId },
+      );
 
       if (questionsError) throw questionsError;
 
@@ -175,18 +180,23 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
         return;
       }
 
-      const { data: attemptId, error: attemptError } = await supabase.rpc('start_game_attempt', {
-        p_subject_id: numericSubjectId,
-        p_classroom_id: numericClassroomId,
-        p_topic_id: numericTopicId,
-        p_general_topic: isGeneralTopic,
-        p_difficulty: numericDifficulty,
-      });
+      const { data: attemptId, error: attemptError } = await measureRpc(
+        'start_game_attempt',
+        async () => supabase.rpc('start_game_attempt', {
+          p_subject_id: numericSubjectId,
+          p_classroom_id: numericClassroomId ?? undefined,
+          p_topic_id: numericTopicId ?? undefined,
+          p_general_topic: isGeneralTopic,
+          p_difficulty: numericDifficulty ?? undefined,
+        }),
+        { subjectId: numericSubjectId, classroomId: numericClassroomId, topicId: numericTopicId },
+      );
 
       if (attemptError) throw attemptError;
 
       attemptIdRef.current = attemptId ?? null;
       finalizedAttemptIdsRef.current.clear();
+      viewedQuestionsRef.current.clear();
       scoreRef.current = 0;
       hintUsedRef.current = false;
       setScore(0);
@@ -235,10 +245,19 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     finalizedAttemptIdsRef.current.add(attemptId);
 
     try {
-      const { data, error } = await supabase.rpc('finish_game_attempt', {
-        p_attempt_id: attemptId,
-        p_status: nextStatus === 'gameOver' ? 'abandoned' : 'finished',
-      });
+      const { data, error } = await measureRpc(
+        'finish_game_attempt',
+        async () => supabase.rpc('finish_game_attempt', {
+          p_attempt_id: attemptId,
+          p_status: nextStatus === 'gameOver' ? 'abandoned' : 'finished',
+        }),
+        {
+          subjectId: numericSubjectId,
+          classroomId: numericClassroomId,
+          topicId: numericTopicId,
+          attemptId,
+        },
+      );
 
       if (error) throw error;
 
@@ -290,6 +309,27 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     void clearGameSnapshot(gameSnapshotKey);
     void finalizeGameAttempt(nextStatus);
   }, [finalizeGameAttempt, gameSnapshotKey]);
+
+  useEffect(() => {
+    if (status !== 'playing') return
+    const question = questions[currentIndex]
+    if (!question?.id) return
+
+    const viewKey = `${attemptIdRef.current || 'pending'}:${currentIndex}:${question.id}`
+    if (viewedQuestionsRef.current.has(viewKey)) return
+    viewedQuestionsRef.current.add(viewKey)
+
+    void trackUsageEvent('question_viewed', {
+      subjectId: numericSubjectId,
+      classroomId: numericClassroomId,
+      topicId: numericTopicId,
+      attemptId: attemptIdRef.current,
+      properties: {
+        question_type: String(question.type || 'unknown'),
+        question_index: currentIndex,
+      },
+    })
+  }, [currentIndex, numericClassroomId, numericSubjectId, numericTopicId, questions, status])
 
   const abandonGame = useCallback(async () => {
     setPendingAnswer(null);
@@ -359,17 +399,27 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     try {
       const timeLimit = currentQ.time_limit_seconds ?? 30;
       const timeTaken = timedOut ? timeLimit : Math.max(0, timeLimit - timeLeft);
-      const { data, error } = await supabase.rpc('submit_answer_resumable', {
-        p_submission_id: pendingSubmission.submissionId,
-        p_question_id: currentQ.id,
-        p_answer_id: answerId ?? null,
-        p_answer_text: answerText ?? null,
-        p_answer_payload: payload ?? null,
-        p_time_taken_seconds: timeTaken,
-        p_hint_used: hintUsedRef.current,
-        p_skipped: skipped,
-        p_attempt_id: attemptIdRef.current,
-      });
+      const { data, error } = await measureRpc(
+        'submit_answer_resumable',
+        async () => supabase.rpc('submit_answer_resumable', {
+          p_submission_id: pendingSubmission.submissionId,
+          p_question_id: currentQ.id,
+          p_answer_id: answerId ?? undefined,
+          p_answer_text: answerText ?? undefined,
+          p_answer_payload: payload ?? undefined,
+          p_time_taken_seconds: timeTaken,
+          p_hint_used: hintUsedRef.current,
+          p_skipped: skipped,
+          p_attempt_id: attemptIdRef.current ?? undefined,
+        }),
+        {
+          subjectId: numericSubjectId,
+          classroomId: numericClassroomId,
+          topicId: numericTopicId,
+          attemptId: attemptIdRef.current,
+          properties: { question_type: String(currentQ.type || 'unknown') },
+        },
+      );
 
       if (error) throw error;
       setPendingAnswer(null);

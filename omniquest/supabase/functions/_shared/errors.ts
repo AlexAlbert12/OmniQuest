@@ -73,6 +73,7 @@ export function logInternalError(
     metadata: context.metadata || {},
     error: serializeError(error),
   })
+  scheduleOperationalErrorWrite(functionName, requestId, error)
   return requestId
 }
 
@@ -122,4 +123,42 @@ export function serializeError(error: unknown) {
 
 export function isMissingSchemaError(errorCode?: string) {
   return errorCode === '42P01' || errorCode === '42703' || errorCode === 'PGRST204'
+}
+
+function scheduleOperationalErrorWrite(functionName: string, requestId: string, error: unknown) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_ROLE_KEY')
+  if (!supabaseUrl || !serviceRoleKey) return
+
+  const serialized = serializeError(error)
+  const write = fetch(`${supabaseUrl}/rest/v1/analytics_events`, {
+    method: 'POST',
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({
+      role: 'system',
+      event_name: 'edge_function_error',
+      purpose: 'operational',
+      properties: {
+        function_name: functionName.slice(0, 120),
+        request_id: requestId,
+        error_name: typeof serialized.name === 'string' ? serialized.name.slice(0, 80) : undefined,
+        error_code: typeof serialized.code === 'string' ? serialized.code.slice(0, 80) : undefined,
+        message: typeof serialized.message === 'string'
+          ? serialized.message.replace(/[\r\n\t]+/g, ' ').slice(0, 240)
+          : undefined,
+      },
+    }),
+  }).catch((writeError) => {
+    console.error(`[${functionName}] could not persist operational error`, writeError)
+  })
+
+  const runtime = (globalThis as typeof globalThis & {
+    EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void }
+  }).EdgeRuntime
+  runtime?.waitUntil?.(write)
 }

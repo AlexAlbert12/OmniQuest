@@ -187,6 +187,8 @@ export function getQuestionValidationIssues({
   points,
   mediaType,
   mediaAltText,
+  mediaTranscript,
+  mediaSubtitlesVtt,
   visibleAnswers,
   openExpectedAnswer,
   fillAnswersText,
@@ -200,6 +202,8 @@ export function getQuestionValidationIssues({
   points: string
   mediaType: string | null
   mediaAltText: string
+  mediaTranscript: string
+  mediaSubtitlesVtt: string
   visibleAnswers: AnswerItem[]
   openExpectedAnswer: string
   fillAnswersText: string
@@ -219,6 +223,12 @@ export function getQuestionValidationIssues({
   }
   if (mediaType === 'image' && !mediaAltText.trim()) {
     issues.push({ step: 2, field: 'Contenido multimedia', message: 'Añade texto alternativo para la imagen.' })
+  }
+  if (mediaType === 'audio' && !mediaTranscript.trim()) {
+    issues.push({ step: 2, field: 'Contenido multimedia', message: 'Añade una transcripción para el audio.' })
+  }
+  if (mediaType === 'video' && !isValidWebVtt(mediaSubtitlesVtt)) {
+    issues.push({ step: 2, field: 'Contenido multimedia', message: 'Añade subtítulos WebVTT válidos para el vídeo.' })
   }
 
   if ((selectedType === 'multiple' || selectedType === 'boolean') && visibleAnswers.some((answer) => !answer.text.trim())) {
@@ -243,6 +253,12 @@ export function getQuestionValidationIssues({
   if (timeError) issues.push({ step: 4, field: 'Tiempo', message: timeError })
   if (pointsError) issues.push({ step: 4, field: 'Puntos', message: pointsError })
   return issues
+}
+
+function isValidWebVtt(value: string) {
+  const normalized = value.trim()
+  return /^WEBVTT(?:\s|$)/i.test(normalized)
+    && /(?:\d{2}:)?\d{2}:\d{2}[.,]\d{3}\s+-->\s+(?:\d{2}:)?\d{2}:\d{2}[.,]\d{3}/.test(normalized)
 }
 
 export function getFirstInvalidStep(issues: QuestionValidationIssue[]): QuestionWizardStep | null {

@@ -21,7 +21,7 @@ import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader'
 import { exportCsvFile, formatExportDateTime, slugifyFilename } from '../../../lib/reportExports'
 import QuestionMedia from '../../../components/questions/QuestionMedia'
-import { cloneQuestionMedia, removeQuestionMedia } from '../../../lib/questionMedia'
+import { cloneQuestionMedia, getQuestionMediaManifest, removeQuestionMedia } from '../../../lib/questionMedia'
 import type { SemanticIconKey } from '../../../lib/designTokens'
 import AppButton from '../../../components/ui/AppButton'
 import AppTabs from '../../../components/ui/AppTabs'
@@ -389,12 +389,16 @@ export default function TeacherQuestionReportScreen() {
         ? [question.explanation, 'Pregunta creada desde el informe para reforzar una pregunta con fallos.'].filter(Boolean).join('\n\n')
         : question.explanation
 
-      const clonedMedia = question.media_type && question.media_url
+      const sourceManifest = question.media_type && question.media_path
+        ? await getQuestionMediaManifest(question.id)
+        : null
+      const clonedMedia = question.media_type && question.media_path && sourceManifest?.url
         ? await cloneQuestionMedia({
             type: question.media_type,
-            url: question.media_url,
+            url: sourceManifest.url,
             sourcePath: question.media_path,
             subjectId: question.subject_id,
+            durationSeconds: sourceManifest.durationSeconds,
           })
         : null
       clonedMediaPath = clonedMedia?.path ?? null
@@ -412,11 +416,14 @@ export default function TeacherQuestionReportScreen() {
         p_explanation: nextExplanation || null,
         p_answers: answerPayload as any,
         p_media_type: clonedMedia?.type ?? null,
-        p_media_url: clonedMedia?.url ?? null,
+        p_media_url: null,
         p_media_path: clonedMedia?.path ?? null,
         p_media_alt_text: question.media_alt_text,
         p_media_caption: question.media_caption,
-      })
+        p_media_duration_seconds: clonedMedia?.durationSeconds ?? null,
+        p_media_transcript: clonedMedia?.type === 'audio' ? sourceManifest?.transcript ?? null : null,
+        p_media_subtitles_vtt: clonedMedia?.type === 'video' ? sourceManifest?.subtitlesVtt ?? null : null,
+      } as any)
 
       if (error) throw error
 
@@ -772,8 +779,9 @@ function QuestionInsightHero({
           </View>
           <Text className={`${isPhone ? 'text-[22px] leading-7' : 'text-[28px] leading-9'} font-black text-white`}>{question.text}</Text>
           <QuestionMedia
+            questionId={question.id}
             type={question.media_type}
-            url={question.media_url}
+            path={question.media_path}
             altText={question.media_alt_text}
             caption={question.media_caption}
             compact={isPhone}

@@ -8,6 +8,7 @@ import { useI18n, type AppLocale } from '../lib/i18n'
 import { useAppHaptics } from '../lib/haptics'
 import { deactivateCurrentDevicePushToken, registerCurrentDeviceForPush } from '../lib/pushNotifications'
 import { getNextLevelProgress, getStudentLevel } from '../lib/studentLevel'
+import { updateAnalyticsConsent } from '../lib/analytics'
 import type { Database } from '../types/database.types'
 import {
   REQUIRED_DESTRUCTIVE_CONFIRMATION,
@@ -62,6 +63,7 @@ const DEFAULT_PREFERENCES: UserPreferencesState = {
   timeFormat: '24h',
   weekStart: 'monday',
   hapticsEnabled: true,
+  analyticsEnabled: false,
 }
 
 const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsState = {
@@ -162,6 +164,7 @@ function toPreferenceState(row: UserPreferencesRow | null): UserPreferencesState
     timeFormat: row?.time_format || DEFAULT_PREFERENCES.timeFormat,
     weekStart: row?.week_start || DEFAULT_PREFERENCES.weekStart,
     hapticsEnabled: row?.haptics_enabled ?? DEFAULT_PREFERENCES.hapticsEnabled,
+    analyticsEnabled: row?.analytics_enabled ?? DEFAULT_PREFERENCES.analyticsEnabled,
   }
 }
 
@@ -240,6 +243,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   const [preferences, setPreferences] = useState<UserPreferencesState>(DEFAULT_PREFERENCES)
   const [savingPreference, setSavingPreference] = useState<PreferenceKey | null>(null)
   const [savingHaptics, setSavingHaptics] = useState(false)
+  const [savingAnalytics, setSavingAnalytics] = useState(false)
   const [openPreferenceKey, setOpenPreferenceKey] = useState<PreferenceKey | null>(null)
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettingsState>(DEFAULT_NOTIFICATION_SETTINGS)
   const [teacherNotificationSettings, setTeacherNotificationSettings] = useState<TeacherNotificationSettingsState>(DEFAULT_TEACHER_NOTIFICATION_SETTINGS)
@@ -574,6 +578,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
         time_format: next.timeFormat,
         week_start: next.weekStart,
         haptics_enabled: next.hapticsEnabled,
+        analytics_enabled: next.analyticsEnabled,
       },
       { onConflict: 'user_id' }
     )
@@ -626,7 +631,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
         fetchProfileWithOptionalVisibility(session.user.id),
         supabase
           .from('user_preferences')
-          .select('language, timezone, date_format, time_format, week_start, haptics_enabled')
+          .select('language, timezone, date_format, time_format, week_start, haptics_enabled, analytics_enabled, analytics_consent_updated_at')
           .eq('user_id', session.user.id)
           .maybeSingle(),
         supabase.from('subjects').select('id').eq('teacher_id', session.user.id).eq('is_archived', false),
@@ -1027,6 +1032,24 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     }
   }
 
+  const updateAnalyticsEnabled = async (enabled: boolean) => {
+    if (!userId || savingAnalytics) return
+
+    const previousPreferences = preferences
+    setPreferences({ ...previousPreferences, analyticsEnabled: enabled })
+    setSavingAnalytics(true)
+
+    try {
+      const saved = await updateAnalyticsConsent(enabled)
+      setPreferences((current) => ({ ...current, analyticsEnabled: saved }))
+    } catch (error: unknown) {
+      setPreferences(previousPreferences)
+      showAlert('No se pudo guardar', getErrorMessage(error) || 'No se pudo actualizar el consentimiento de analítica.')
+    } finally {
+      setSavingAnalytics(false)
+    }
+  }
+
   return {
     accentColors,
     alias,
@@ -1078,6 +1101,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     savingTeacherNotificationKey,
     savingPreference,
     savingHaptics,
+    savingAnalytics,
     selectNotificationFrequency,
     selectPreference,
     setConfirmPassword,
@@ -1101,6 +1125,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     updateNotificationToggle,
     updateTeacherNotificationPreference,
     updateHapticsEnabled,
+    updateAnalyticsEnabled,
     userInitials,
   }
 }

@@ -596,10 +596,10 @@ function AttemptCard({
           ) : (
             <View className="gap-3">
               <DetailBlock icon="help-circle" label="Pregunta" value={questionText} />
-              {question?.media_type && question.media_url ? (
+              {question?.media_type ? (
                 <QuestionMedia
+                  questionId={question.id}
                   type={question.media_type}
-                  url={question.media_url}
                   altText={question.media_alt_text}
                   caption={question.media_caption}
                   compact

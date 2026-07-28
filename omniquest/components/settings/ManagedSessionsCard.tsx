@@ -1,0 +1,23 @@
+import { Ionicons } from '@expo/vector-icons'
+import React, { useCallback, useEffect, useState } from 'react'
+import { ActivityIndicator, Alert, Platform, Pressable, Text, View } from 'react-native'
+import { supabase } from '../../lib/supabase'
+import { getOrCreateDeviceId } from '../../lib/sessionSecurity'
+
+type SessionRow={id:string;device_id:string;device_name:string;platform:string;first_seen_at:string;last_seen_at:string;revoked_at:string|null}
+export default function ManagedSessionsCard(){
+  const [sessions,setSessions]=useState<SessionRow[]>([]),[loading,setLoading]=useState(true),[busy,setBusy]=useState<string|null>(null),[currentDevice,setCurrentDevice]=useState(''),[codesRemaining,setCodesRemaining]=useState(0)
+  const invoke=useCallback(async(body:Record<string,unknown>)=>{const {data,error}=await supabase.functions.invoke('manage-account-security',{body}); if(error) throw error; if(data?.error) throw new Error(data.error); return data},[])
+  const load=useCallback(async()=>{setLoading(true);try{setCurrentDevice(await getOrCreateDeviceId());const data=await invoke({action:'list_sessions'});setSessions(data.sessions||[]);setCodesRemaining(data.backupCodesRemaining||0)}finally{setLoading(false)}},[invoke])
+  useEffect(()=>{void load()},[load])
+  const show=(title:string,message:string)=>Platform.OS==='web'?window.alert(`${title}\n\n${message}`):Alert.alert(title,message)
+  const revoke=async(row:SessionRow)=>{setBusy(row.id);try{await invoke({action:'revoke_session',sessionId:row.id});await load()}catch(e){show('Error',e instanceof Error?e.message:'No se pudo cerrar la sesión.')}finally{setBusy(null)}}
+  const revokeOthers=async()=>{setBusy('others');try{await invoke({action:'revoke_others',currentDeviceId:currentDevice});await load();show('Sesiones cerradas','Los demás dispositivos se cerrarán al volver a validar su sesión.')}catch(e){show('Error',e instanceof Error?e.message:'No se pudieron cerrar las sesiones.')}finally{setBusy(null)}}
+  const generate=async()=>{setBusy('codes');try{const data=await invoke({action:'generate_backup_codes'});show('Códigos de respaldo',`Guárdalos ahora; solo se muestran una vez:\n\n${(data.codes||[]).join('\n')}`);await load()}catch(e){show('Error',e instanceof Error?e.message:'No se pudieron generar los códigos.')}finally{setBusy(null)}}
+  return <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+    <View className="mb-4 flex-row items-start gap-3"><View className="h-11 w-11 items-center justify-center rounded-full bg-[#10233F]"><Ionicons name="desktop-outline" size={21} color="#9FD6FF"/></View><View className="min-w-0 flex-1"><Text className="text-[16px] font-black text-white">Dispositivos y recuperación</Text><Text className="mt-1 text-[12px] leading-5 text-[#AFC2DB]">Revisa sesiones activas, cierra accesos remotos y conserva códigos de respaldo.</Text></View></View>
+    {loading?<ActivityIndicator color="#9FD6FF"/>:<View className="gap-3">{sessions.map(row=><View key={row.id} className="rounded-xl border border-[#183052] bg-[#071A32] p-3"><View className="flex-row items-start gap-3"><Ionicons name={row.platform==='web'?'globe-outline':'phone-portrait-outline'} size={19} color={row.revoked_at?'#64748B':'#22C55E'}/><View className="min-w-0 flex-1"><Text className="font-black text-white">{row.device_name}{row.device_id===currentDevice?' · Este dispositivo':''}</Text><Text className="mt-1 text-[12px] text-[#8FA7C7]">Última actividad: {new Date(row.last_seen_at).toLocaleString('es-ES')}</Text><Text className="mt-1 text-[12px]" style={{color:row.revoked_at?'#F87171':'#86EFAC'}}>{row.revoked_at?'Sesión revocada':'Sesión activa'}</Text></View>{!row.revoked_at&&row.device_id!==currentDevice?<Pressable disabled={busy===row.id} onPress={()=>void revoke(row)} className="rounded-lg border border-[#7F1D1D] px-3 py-2"><Text className="text-[11px] font-black text-[#FCA5A5]">Cerrar</Text></Pressable>:null}</View></View>)}</View>}
+    <Pressable disabled={Boolean(busy)} onPress={()=>void revokeOthers()} className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-[#334155] bg-[#071A32] px-4 py-3"><Ionicons name="log-out-outline" size={17} color="#FCA5A5"/><Text className="font-black text-[#FCA5A5]">Cerrar las demás sesiones</Text></Pressable>
+    <Pressable disabled={Boolean(busy)} onPress={()=>void generate()} className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-[#334155] bg-[#071A32] px-4 py-3"><Ionicons name="key-outline" size={17} color="#9FD6FF"/><Text className="font-black text-[#9FD6FF]">Generar códigos de respaldo ({codesRemaining})</Text></Pressable>
+  </View>
+}

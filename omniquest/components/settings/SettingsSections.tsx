@@ -13,6 +13,7 @@ import {
   PreferenceRow,
   SelectPill,
 } from './SettingsUi'
+import ManagedSessionsCard from './ManagedSessionsCard'
 import {
   SecurityAccountStatusCard,
   SecurityDangerCard,
@@ -452,15 +453,21 @@ export function SettingsPrivacyPanel({
   isTeacher,
   profileVisibility,
   profileVisibilityAvailable,
+  analyticsEnabled,
+  savingAnalytics,
   accentColor,
   onProfileVisibilityChange,
+  onAnalyticsEnabledChange,
   onShowPrivacyCenter,
 }: {
   isTeacher: boolean
   profileVisibility: ProfileVisibility | null
   profileVisibilityAvailable: boolean
+  analyticsEnabled: boolean
+  savingAnalytics: boolean
   accentColor: string
   onProfileVisibilityChange: (visibility: ProfileVisibility) => void
+  onAnalyticsEnabledChange: (enabled: boolean) => void
   onShowPrivacyCenter: () => void
 }) {
   return (
@@ -501,6 +508,21 @@ export function SettingsPrivacyPanel({
             Esta preferencia no se guardará hasta aplicar la migración y regenerar types/database.types.ts.
           </Text>
         ) : null}
+      </View>
+
+      <View className="mb-4 overflow-hidden rounded-xl border border-[#183052] bg-[#071A32]">
+        <NotificationRow
+          icon="analytics-outline"
+          title="Analítica de producto"
+          description="Permite enviar métricas pseudonimizadas de navegación, formularios y rendimiento para mejorar OmniQuest. Puedes retirarlo cuando quieras."
+          enabled={analyticsEnabled}
+          onPress={() => onAnalyticsEnabledChange(!analyticsEnabled)}
+          disabled={savingAnalytics}
+          loading={savingAnalytics}
+        />
+        <Text className="px-4 pb-4 text-[11px] leading-4 text-[#8FA7C7]">
+          Los eventos se anonimizan a los 90 días y se eliminan como máximo a los 395 días. Los errores operativos esenciales no incluyen contenido académico ni credenciales.
+        </Text>
       </View>
 
       <View className="rounded-xl border border-[#4733B7] bg-[#151A47] p-4">
@@ -744,6 +766,8 @@ export function SettingsSecurityPanel({
             lastSignInAt={lastSignInAt}
             onSignOut={onSignOut}
           />
+
+          <ManagedSessionsCard />
 
           <SecurityDangerCard
             deletingAccount={deletingAccount}

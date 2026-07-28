@@ -329,10 +329,10 @@ export default function PlayScreen() {
                 <Text className={`${isDesktop ? 'text-[30px] leading-10' : 'text-[24px] leading-8'} mt-4 max-w-[720px] text-center font-black text-white`}>
                   {currentQuestion?.text}
                 </Text>
-                {currentQuestion?.media_type && currentQuestion.media_url ? (
+                {currentQuestion?.media_type ? (
                   <QuestionMedia
+                    questionId={currentQuestion.id}
                     type={currentQuestion.media_type}
-                    url={currentQuestion.media_url}
                     altText={currentQuestion.media_alt_text}
                     caption={currentQuestion.media_caption}
                     compact={!isDesktop}

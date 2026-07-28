@@ -124,8 +124,11 @@ export default function TeacherSettingsSections({
             isTeacher
             profileVisibility={data.profileVisibility}
             profileVisibilityAvailable={data.profileVisibilityAvailable}
+            analyticsEnabled={data.preferences.analyticsEnabled}
+            savingAnalytics={data.savingAnalytics}
             accentColor={accentColor}
             onProfileVisibilityChange={data.handleProfileVisibilityChange}
+            onAnalyticsEnabledChange={(enabled) => void data.updateAnalyticsEnabled(enabled)}
             onShowPrivacyCenter={data.showPrivacyCenter}
           />
         </>

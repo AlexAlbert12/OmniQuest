@@ -73,10 +73,13 @@ export default function QuestionPreview({
           {questionText.trim() || 'Escribe el enunciado para completar la vista previa.'}
         </Text>
 
-        {media.type && (media.pendingAsset?.uri || media.url) ? (
+        {media.type && (media.pendingAsset?.uri || media.url || media.path) ? (
           <QuestionMedia
             type={media.type}
             url={media.pendingAsset?.uri || media.url}
+            path={media.path}
+            transcript={media.transcript}
+            subtitlesVtt={media.subtitlesVtt}
             altText={media.altText}
             caption={media.caption}
             compact

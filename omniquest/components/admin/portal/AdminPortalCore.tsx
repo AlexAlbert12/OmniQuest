@@ -134,13 +134,26 @@ export type AdminSupportTicketRow = {
 
 export type AdminUsageAnalytics = {
   days: number
+  screen_views: number
+  form_abandoned: number
+  course_joins: number
   game_started: number
   game_finished: number
   game_abandoned: number
   game_errors: number
+  edge_function_errors: number
   badges_unlocked: number
   active_users: number
   completion_rate: number
+  funnel?: {
+    screen_view?: number
+    course_joined?: number
+    game_started?: number
+    game_finished?: number
+  }
+  retention?: { d1?: number; d7?: number; d30?: number }
+  question_types?: Record<string, number>
+  rpc_latency_ms?: { p50?: number; p95?: number }
 }
 
 export type EnrollmentRow = {
@@ -1287,10 +1300,39 @@ export function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVersion: n
       ) : analytics ? (
         <>
           <View className="flex-row flex-wrap gap-3">
+            <AdminMetric color="#A78BFA" icon="eye" label="Visitas de pantalla" value={String(analytics.screen_views || 0)} />
+            <AdminMetric color="#F59E0B" icon="document-text" label="Formularios abandonados" value={String(analytics.form_abandoned || 0)} />
+            <AdminMetric color="#60A5FA" icon="enter" label="Uniones a cursos" value={String(analytics.course_joins || 0)} />
             <AdminMetric color="#38BDF8" icon="play" label="Partidas iniciadas" value={String(analytics.game_started || 0)} />
             <AdminMetric color="#34D399" icon="checkmark-circle" label="Completadas" value={String(analytics.game_finished || 0)} />
             <AdminMetric color="#F59E0B" icon="exit" label="Abandonadas" value={String(analytics.game_abandoned || 0)} />
             <AdminMetric color="#FB7185" icon="warning" label="Errores" value={String(analytics.game_errors || 0)} />
+            <AdminMetric color="#F472B6" icon="cloud-offline" label="Errores Edge" value={String(analytics.edge_function_errors || 0)} />
+          </View>
+          <View className={isDesktop ? 'mt-4 flex-row gap-4' : 'mt-4 gap-3'}>
+            <View className="flex-1 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+              <Text className="text-[12px] font-bold text-[#8FA7C7]">Retención</Text>
+              <Text className="mt-2 text-[13px] font-black text-white">
+                D1 {Number(analytics.retention?.d1 || 0).toFixed(1)}% · D7 {Number(analytics.retention?.d7 || 0).toFixed(1)}% · D30 {Number(analytics.retention?.d30 || 0).toFixed(1)}%
+              </Text>
+            </View>
+            <View className="flex-1 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+              <Text className="text-[12px] font-bold text-[#8FA7C7]">Latencia RPC</Text>
+              <Text className="mt-2 text-[13px] font-black text-white">
+                p50 {Number(analytics.rpc_latency_ms?.p50 || 0).toFixed(0)} ms · p95 {Number(analytics.rpc_latency_ms?.p95 || 0).toFixed(0)} ms
+              </Text>
+            </View>
+          </View>
+          <View className="mt-4 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+            <Text className="text-[12px] font-bold text-[#8FA7C7]">Embudo de aprendizaje</Text>
+            <Text className="mt-2 text-[13px] font-black text-white">
+              Pantalla {analytics.funnel?.screen_view || 0} → Curso {analytics.funnel?.course_joined || 0} → Partida {analytics.funnel?.game_started || 0} → Final {analytics.funnel?.game_finished || 0}
+            </Text>
+            {Object.keys(analytics.question_types || {}).length > 0 ? (
+              <Text className="mt-2 text-[12px] text-[#AFC2DB]">
+                Tipos de pregunta: {Object.entries(analytics.question_types || {}).map(([type, total]) => `${type} ${total}`).join(' · ')}
+              </Text>
+            ) : null}
           </View>
           <View className={isDesktop ? 'mt-4 flex-row gap-4' : 'mt-4 gap-3'}>
             <View className="flex-1 rounded-xl border border-[#20375E] bg-[#09162C] p-4">

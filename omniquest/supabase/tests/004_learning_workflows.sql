@@ -32,10 +32,10 @@ select ok(exists(select 1 from information_schema.columns where table_schema = '
 select ok(exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'questions' and column_name = 'media_path'), 'question media path column exists');
 select ok(exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'questions' and column_name = 'media_alt_text'), 'question media alternative text column exists');
 select ok(exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'questions' and column_name = 'media_caption'), 'question media caption column exists');
-select ok(exists(select 1 from storage.buckets where id = 'question-media' and public), 'public question media bucket exists');
+select ok(exists(select 1 from storage.buckets where id = 'question-media' and not public), 'private question media bucket exists');
 select ok(exists(select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'question_media_insert_owner'), 'question media insert policy exists');
 select ok(exists(select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'question_media_delete_owner'), 'question media delete policy exists');
-select ok(to_regprocedure('public.save_teacher_question(bigint,bigint,bigint,bigint,text,text,integer,integer,integer,text,jsonb,text,text,text,text,text)') is not null, 'teacher question RPC accepts media metadata');
+select ok(to_regprocedure('public.save_teacher_question(bigint,bigint,bigint,bigint,text,text,integer,integer,integer,text,jsonb,text,text,text,text,text,numeric,text,text)') is not null, 'teacher question RPC accepts private media and accessibility metadata');
 select ok(to_regprocedure('public.get_safe_game_questions(bigint,bigint,bigint,boolean,integer,boolean)') is not null, 'safe game questions RPC still exists');
 select ok(has_function_privilege('authenticated', 'public.get_safe_game_questions(bigint,bigint,bigint,boolean,integer,boolean)', 'EXECUTE'), 'students can fetch safe rich-media questions');
 

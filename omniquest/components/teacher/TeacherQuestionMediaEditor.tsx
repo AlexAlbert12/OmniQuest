@@ -13,8 +13,11 @@ export type TeacherQuestionMediaValue = {
   type: QuestionMediaType | null
   url: string | null
   path: string | null
+  durationSeconds: number | null
   altText: string
   caption: string
+  transcript: string
+  subtitlesVtt: string
   pendingAsset: PickedQuestionMedia | null
   removeExisting: boolean
 }
@@ -55,6 +58,9 @@ export default function TeacherQuestionMediaEditor({ value, onChange, disabled =
         type,
         url: null,
         path: null,
+        durationSeconds: asset.durationSeconds,
+        transcript: type === 'audio' ? value.transcript : '',
+        subtitlesVtt: type === 'video' ? value.subtitlesVtt : '',
         pendingAsset: asset,
         removeExisting: value.removeExisting || Boolean(value.path),
       })
@@ -70,8 +76,11 @@ export default function TeacherQuestionMediaEditor({ value, onChange, disabled =
       type: null,
       url: null,
       path: null,
+      durationSeconds: null,
       altText: '',
       caption: '',
+      transcript: '',
+      subtitlesVtt: '',
       pendingAsset: null,
       removeExisting: value.removeExisting || Boolean(value.path),
     })
@@ -132,11 +141,14 @@ export default function TeacherQuestionMediaEditor({ value, onChange, disabled =
         })}
       </View>
 
-      {value.type && previewUrl ? (
+      {value.type && (previewUrl || value.path) ? (
         <View style={styles.previewArea}>
           <QuestionMedia
             type={value.type}
             url={previewUrl}
+            path={value.path}
+            transcript={value.transcript}
+            subtitlesVtt={value.subtitlesVtt}
             altText={value.altText}
             caption={value.caption}
             compact
@@ -153,6 +165,41 @@ export default function TeacherQuestionMediaEditor({ value, onChange, disabled =
                 placeholderTextColor="#7085A5"
                 style={styles.input}
                 maxLength={300}
+              />
+            </View>
+          ) : null}
+
+          {value.type === 'audio' ? (
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Transcripción obligatoria</Text>
+              <TextInput
+                accessibilityLabel="Transcripción del audio"
+                value={value.transcript}
+                onChangeText={(transcript) => onChange({ ...value, transcript })}
+                placeholder="Escribe el contenido hablado para que también pueda leerse"
+                placeholderTextColor="#7085A5"
+                style={[styles.input, styles.multilineInput]}
+                multiline
+                textAlignVertical="top"
+                maxLength={20000}
+              />
+            </View>
+          ) : null}
+
+          {value.type === 'video' ? (
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Subtítulos WebVTT obligatorios</Text>
+              <TextInput
+                accessibilityLabel="Subtítulos WebVTT del vídeo"
+                value={value.subtitlesVtt}
+                onChangeText={(subtitlesVtt) => onChange({ ...value, subtitlesVtt })}
+                placeholder={'WEBVTT\n\n00:00.000 --> 00:03.000\nTexto del subtítulo'}
+                placeholderTextColor="#7085A5"
+                style={[styles.input, styles.multilineInput]}
+                multiline
+                textAlignVertical="top"
+                autoCapitalize="none"
+                maxLength={40000}
               />
             </View>
           ) : null}
@@ -174,6 +221,7 @@ export default function TeacherQuestionMediaEditor({ value, onChange, disabled =
             <Ionicons name="cloud-upload-outline" size={15} color="#60A5FA" />
             <Text style={styles.fileInfoText} numberOfLines={1}>
               {value.pendingAsset?.fileName || 'Archivo guardado'} · máximo 25 MB
+              {value.durationSeconds ? ` · ${formatDuration(value.durationSeconds)}` : ''}
             </Text>
           </View>
         </View>
@@ -300,6 +348,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  multilineInput: {
+    minHeight: 112,
+    paddingTop: 12,
+  },
   fileInfo: {
     marginTop: 10,
     flexDirection: 'row',
@@ -336,3 +388,8 @@ const styles = StyleSheet.create({
     opacity: 0.72,
   },
 })
+
+function formatDuration(value: number) {
+  const seconds = Math.max(0, Math.round(value))
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+}

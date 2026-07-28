@@ -12,6 +12,8 @@ import { NotificationProvider } from '../hooks/useNotifications'
 import { AppModalProvider } from '../components/AppModalProvider'
 import OmniGuide from '../components/OmniGuide'
 import { AppHapticsProvider } from '../lib/haptics'
+import { registerCurrentSession } from '../lib/sessionSecurity'
+import { syncAnalyticsConsentFromServer, trackScreenView } from '../lib/analytics'
 
 const AUTH_ROUTE_ALIASES: Record<string, string> = {
   '/login': '/(auth)/login',
@@ -171,6 +173,22 @@ function RootNavigator() {
         return
       }
 
+      void syncAnalyticsConsentFromServer(session.user.id)
+
+      if (profile.role_id === 'teacher' || profile.role_id === 'admin') {
+        try {
+          const managedSession = await registerCurrentSession()
+          if (managedSession.revoked) {
+            await clearInvalidSession()
+            redirectToLogin()
+            setIsInitialized(true)
+            return
+          }
+        } catch (sessionError) {
+          console.warn('[security] could not register managed session', sessionError)
+        }
+      }
+
       if (isAuthRoute) {
         router.replace(getHomeRouteForRole(profile.role_id) as any)
         setIsInitialized(true)
@@ -203,6 +221,14 @@ function RootNavigator() {
       authListener.subscription.unsubscribe()
     }
   }, [pathname, rootSegment, router])
+
+  useEffect(() => {
+    if (!isInitialized) return
+    const normalizedPath = normalizeAuthPath(pathname)
+    const routeGroup = getRouteGroup(rootSegment, normalizedPath)
+    if (routeGroup === 'auth' || normalizedPath === '/') return
+    void trackScreenView(normalizedPath, routeGroup)
+  }, [isInitialized, pathname, rootSegment])
 
   if (!isInitialized || (!fontsLoaded && !fontError) || !ready || !localeReady) {
     return (

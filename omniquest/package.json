@@ -15,7 +15,10 @@
     "test:db": "supabase test db",
     "test:security": "npm run test:source && npm run test:db",
     "types:supabase": "supabase gen types typescript --linked --schema public > types/database.types.ts",
-    "deploy:push": "supabase functions deploy send-push-notification && supabase functions deploy teacher-student-reminder && supabase functions deploy process-notification-delivery --no-verify-jwt"
+    "deploy:push": "supabase functions deploy send-push-notification && supabase functions deploy teacher-student-reminder && supabase functions deploy process-notification-delivery --no-verify-jwt",
+    "deploy:operations": "supabase functions deploy process-notification-delivery --no-verify-jwt && supabase functions deploy process-teacher-digests --no-verify-jwt",
+    "deploy:security": "supabase functions deploy manage-account-security",
+    "deploy:media": "supabase functions deploy process-question-media && supabase functions deploy cleanup-question-media --no-verify-jwt"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",
@@ -66,6 +69,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "supabase": "^2.109.1",
     "tailwindcss": "^3.4.19",
     "typescript": "~5.9.2"
   },

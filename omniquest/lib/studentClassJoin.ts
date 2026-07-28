@@ -1,5 +1,6 @@
 import { isValidInviteCode, normalizeInviteCode } from './classCode'
 import { supabase } from './supabase'
+import { measureRpc } from './analytics'
 
 export async function joinClassByInviteCode(inviteCode: string) {
   const normalizedCode = normalizeInviteCode(inviteCode)
@@ -25,9 +26,10 @@ export async function joinClassByInviteCode(inviteCode: string) {
     throw new Error('Solo los alumnos pueden unirse a clases.')
   }
 
-  const { data: subject, error: joinError } = await supabase.rpc('join_subject_by_code', {
-    p_code: normalizedCode,
-  })
+  const { data: subject, error: joinError } = await measureRpc(
+    'join_subject_by_code',
+    async () => supabase.rpc('join_subject_by_code', { p_code: normalizedCode }),
+  )
 
   if (joinError) throw joinError
 

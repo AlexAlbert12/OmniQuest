@@ -104,3 +104,9 @@ backend = "postgres"
 
 [functions.process-notification-delivery]
 verify_jwt = false
+
+[functions.process-teacher-digests]
+verify_jwt = false
+
+[functions.cleanup-question-media]
+verify_jwt = false
