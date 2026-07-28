@@ -73,9 +73,9 @@ export function SubjectStudentsTab({
           <StudentMetricCard icon="trophy" label="Mejor alumno" value={`${bestStudent?.score ?? 0} XP`} detail={bestStudent?.name || 'Sin actividad'} color="#F59E0B" />
         </View>
 
-        <View className="rounded-xl border border-[#183052] bg-[#07162D] p-4">
+        <View className="rounded-xl border border-border-default bg-surface-default p-4">
           <View className="mb-4 flex-row flex-wrap items-center gap-3">
-            <View className="h-11 min-w-[220px] flex-1 flex-row items-center rounded-lg border border-[#20375E] bg-[#09162C] px-3">
+            <View className="h-11 min-w-[220px] flex-1 flex-row items-center rounded-lg border border-border-default bg-surface-default px-3">
               <TextInput
                 className="min-w-0 flex-1 text-[13px] text-white"
                 placeholder="Buscar alumno..."
@@ -106,11 +106,11 @@ export function SubjectStudentsTab({
               })}
             >
               <Ionicons name="person-add-outline" size={17} color="#C4B5FD" />
-              <Text className="text-[12px] font-black text-[#C4B5FD]">Importar alumnos</Text>
+              <Text className="text-[12px] font-black text-brand-teacher">Importar alumnos</Text>
             </Pressable>
           </View>
 
-          <View className="hidden flex-row border-b border-[#183052] px-2 pb-3 md:flex">
+          <View className="hidden flex-row border-b border-border-default px-2 pb-3 md:flex">
             <StudentTableHeader label="Pos." flex={0.35} />
             <StudentTableHeader label="Alumno" flex={1.4} />
             <StudentTableHeader label="Progreso" flex={1} />
@@ -126,14 +126,14 @@ export function SubjectStudentsTab({
               <StudentClassRow key={student.id} student={student} index={index} mobile={!isWide} />
             ))
           ) : (
-            <View className="items-center justify-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
+            <View className="items-center justify-center rounded-xl border border-dashed border-border-default bg-surface-default p-8">
               <Ionicons name="people-outline" size={44} color="#64748B" />
               <Text className="mt-3 text-center font-bold text-white">No hay alumnos para mostrar</Text>
-              <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Comparte el código de la clase o cambia los filtros.</Text>
+              <Text className="mt-1 text-center text-[12px] text-text-muted">Comparte el código de la clase o cambia los filtros.</Text>
             </View>
           )}
 
-          <Text className="mt-4 text-right text-[11px] text-[#8FA7C7]">
+          <Text className="mt-4 text-right text-[11px] text-text-muted">
             Mostrando {studentListRows.length} de {studentReportRows.length} alumnos
           </Text>
         </View>
@@ -156,19 +156,19 @@ export function SubjectStudentsTab({
               <StudentAttentionItem key={student.id} student={student} />
             ))}
             {studentsNeedingAttention.length === 0 ? (
-              <Text className="text-[12px] text-[#8FA7C7]">No hay alumnos en riesgo ahora mismo.</Text>
+              <Text className="text-[12px] text-text-muted">No hay alumnos en riesgo ahora mismo.</Text>
             ) : null}
           </View>
         </SubjectPanel>
 
-        <View className="rounded-xl border border-[#20375E] bg-[#111B3D] p-5">
+        <View className="rounded-xl border border-border-default bg-surface-raised p-5">
           <View className="flex-row gap-3">
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-[#5A46D8]">
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-brand-teacher">
               <Ionicons name="bulb-outline" size={19} color="#FFFFFF" />
             </View>
             <View className="min-w-0 flex-1">
               <Text className="font-black text-white">Consejo para profesores</Text>
-              <Text className="mt-2 text-[12px] leading-5 text-[#B7C4D7]">
+              <Text className="mt-2 text-[12px] leading-5 text-text-secondary">
                 Revisa alumnos con baja participación y anímalos a completar retos pendientes.
               </Text>
             </View>
@@ -202,10 +202,10 @@ function InlineSelect({ label, icon, onPress }: { label: string; icon: IconName;
   return (
     <Pressable
       onPress={onPress}
-      className="h-11 flex-row items-center gap-2 rounded-lg border border-[#20375E] bg-[#09162C] px-4"
+      className="h-11 flex-row items-center gap-2 rounded-lg border border-border-default bg-surface-default px-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
-      <Text className="text-[12px] font-semibold text-[#DDE7F4]">{label}</Text>
+      <Text className="text-[12px] font-semibold text-text-secondary">{label}</Text>
       <Ionicons name={icon} size={15} color="#8FA7C7" />
     </Pressable>
   );
@@ -213,7 +213,7 @@ function InlineSelect({ label, icon, onPress }: { label: string; icon: IconName;
 
 function StudentTableHeader({ label, flex }: { label: string; flex: number }) {
   return (
-    <Text className="text-[10px] font-black uppercase text-[#8FA7C7]" style={{ flex }}>
+    <Text className="text-[10px] font-black uppercase text-text-muted" style={{ flex }}>
       {label}
     </Text>
   );
@@ -226,22 +226,22 @@ function StudentClassRow({ student, index, mobile = false }: { student: StudentR
 
   if (mobile) {
     return (
-      <View className="rounded-2xl border border-[#183052] bg-[#09162C] p-4">
+      <View className="rounded-2xl border border-border-default bg-surface-default p-4">
         <View className="flex-row items-start gap-3">
           <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? '#F59E0B' : '#1E3356' }}>
             <Text className="text-[12px] font-black text-white">{index + 1}</Text>
           </View>
           <View className="min-w-0 flex-1">
             <Text className="font-black text-white" numberOfLines={1}>{student.name}</Text>
-            <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>@{slugifyStudentName(student.name)} · {formatRelative(student.lastActivity, index)}</Text>
+            <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>@{slugifyStudentName(student.name)} · {formatRelative(student.lastActivity, index)}</Text>
           </View>
           <View className="rounded-full px-3 py-1" style={{ backgroundColor: `${statusMeta.color}24` }}>
             <Text className="text-[11px] font-black" style={{ color: statusMeta.color }}>{statusMeta.label}</Text>
           </View>
         </View>
 
-        <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full bg-[#7C5CFF]" style={{ width: `${student.participation}%` }} />
+        <View className="mt-4 h-2 overflow-hidden rounded-full bg-surface-interactive">
+          <View className="h-full rounded-full bg-brand-teacher" style={{ width: `${student.participation}%` }} />
         </View>
 
         <View className="mt-4 flex-row flex-wrap gap-2">
@@ -255,24 +255,24 @@ function StudentClassRow({ student, index, mobile = false }: { student: StudentR
   }
 
   return (
-    <View className="flex-row flex-wrap items-center gap-y-3 border-b border-[#13284A] px-2 py-4">
+    <View className="flex-row flex-wrap items-center gap-y-3 border-b border-border-subtle px-2 py-4">
       <View className="min-w-[45px] flex-[0.35]">
         <View className="h-7 w-7 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? '#F59E0B' : '#1E3356' }}>
           <Text className="text-[11px] font-black text-white">{index + 1}</Text>
         </View>
       </View>
       <View className="min-w-[180px] flex-[1.4] flex-row items-center gap-3">
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-[#17315E]">
-          <Text className="font-black text-[#9FD6FF]">{getInitials(student.name)}</Text>
+        <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-selected">
+          <Text className="font-black text-semantic-info">{getInitials(student.name)}</Text>
         </View>
         <View className="min-w-0 flex-1">
           <Text className="font-black text-white" numberOfLines={1}>{student.name}</Text>
-          <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>@{slugifyStudentName(student.name)}</Text>
+          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>@{slugifyStudentName(student.name)}</Text>
         </View>
       </View>
       <View className="min-w-[130px] flex-[1] flex-row items-center gap-3">
-        <View className="h-2 flex-1 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full bg-[#7C5CFF]" style={{ width: `${student.participation}%` }} />
+        <View className="h-2 flex-1 overflow-hidden rounded-full bg-surface-interactive">
+          <View className="h-full rounded-full bg-brand-teacher" style={{ width: `${student.participation}%` }} />
         </View>
         <Text className="w-10 text-right text-[12px] font-bold text-white">{student.participation}%</Text>
       </View>
@@ -291,7 +291,7 @@ function StudentClassRow({ student, index, mobile = false }: { student: StudentR
         <View className="h-2 w-2 rounded-full" style={{ backgroundColor: statusMeta.color }} />
         <Text className="text-[12px] font-semibold" style={{ color: statusMeta.color }}>{statusMeta.label}</Text>
       </View>
-      <Text className="min-w-[110px] flex-[0.9] text-[12px] text-[#B7C4D7]">
+      <Text className="min-w-[110px] flex-[0.9] text-[12px] text-text-secondary">
         {formatRelative(student.lastActivity, index)}
       </Text>
     </View>
@@ -300,8 +300,8 @@ function StudentClassRow({ student, index, mobile = false }: { student: StudentR
 
 function StudentMobileStat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <View className="min-w-[92px] flex-1 rounded-xl border border-[#20375E] bg-[#07162D] p-3">
-      <Text className="text-[11px] font-semibold text-[#8FA7C7]">{label}</Text>
+    <View className="min-w-[92px] flex-1 rounded-xl border border-border-default bg-surface-default p-3">
+      <Text className="text-[11px] font-semibold text-text-muted">{label}</Text>
       <Text className="mt-1 text-[15px] font-black" style={{ color }} numberOfLines={1}>{value}</Text>
     </View>
   );
@@ -314,9 +314,9 @@ function ProgressLine({ label, value, total, color }: { label: string; value: nu
     <View className="mb-4">
       <View className="mb-2 flex-row items-center justify-between gap-3">
         <Text className="text-[12px] font-semibold text-white">{label}</Text>
-        <Text className="text-[12px] text-[#DDE7F4]">{value.toLocaleString('es-ES')}</Text>
+        <Text className="text-[12px] text-text-secondary">{value.toLocaleString('es-ES')}</Text>
       </View>
-      <View className="h-2 overflow-hidden rounded-full bg-[#13294C]">
+      <View className="h-2 overflow-hidden rounded-full bg-surface-interactive">
         <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: color }} />
       </View>
     </View>
@@ -326,15 +326,15 @@ function ProgressLine({ label, value, total, color }: { label: string; value: nu
 function StudentAttentionItem({ student }: { student: StudentReport }) {
   return (
     <View className="flex-row items-center gap-3">
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-[#17315E]">
-        <Text className="text-[12px] font-black text-[#9FD6FF]">{getInitials(student.name)}</Text>
+      <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-selected">
+        <Text className="text-[12px] font-black text-semantic-info">{getInitials(student.name)}</Text>
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[13px] font-bold text-white" numberOfLines={1}>{student.name}</Text>
-        <Text className="text-[11px] text-[#B7C4D7]">{student.hasActivity ? 'Baja nota media' : 'Sin actividad'}</Text>
+        <Text className="text-[11px] text-text-secondary">{student.hasActivity ? 'Baja nota media' : 'Sin actividad'}</Text>
       </View>
-      <View className="rounded-md border border-[#F43F5E] px-2 py-1">
-        <Text className="text-[11px] font-black text-[#F43F5E]">{student.hasActivity ? student.grade.toFixed(1) : '0%'}</Text>
+      <View className="rounded-md border border-semantic-danger px-2 py-1">
+        <Text className="text-[11px] font-black text-semantic-danger">{student.hasActivity ? student.grade.toFixed(1) : '0%'}</Text>
       </View>
     </View>
   );

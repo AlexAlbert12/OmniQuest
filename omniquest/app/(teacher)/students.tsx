@@ -693,14 +693,14 @@ export default function TeacherStudentsScreen() {
     return (
       <View className="flex-1 items-center justify-center" style={{ backgroundColor: tokens.background.primary }}>
         <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando estudiantes...</Text>
+        <Text className="mt-4 text-text-muted">Cargando estudiantes...</Text>
       </View>
     );
   }
 
   if (!isDesktop) {
     return (
-      <View className="flex-1 bg-[#020B1B]">
+      <View className="flex-1 bg-background-secondary">
         <MobileTeacherStudents
           subjects={subjects}
           classroomOptions={classroomOptions}

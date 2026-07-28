@@ -13,14 +13,14 @@ export default function TeacherCoursesList({ analyticsByCourse, courses, isDeskt
   }
 
   return (
-    <View className={isDesktop ? 'overflow-hidden rounded-2xl border border-[#183052] bg-[#07162D]' : 'gap-3'}>
+    <View className={isDesktop ? 'overflow-hidden rounded-2xl border border-border-default bg-surface-default' : 'gap-3'}>
       {isDesktop ? (
-        <View className="flex-row items-center gap-4 border-b border-[#29466F] bg-[#0B1D38] px-4 py-3">
-          <Text className="w-10 text-[11px] font-black uppercase text-[#8FA7C7]">Curso</Text>
-          <Text className="flex-[1.5] text-[11px] font-black uppercase text-[#8FA7C7]">Nombre</Text>
-          <Text className="w-20 text-center text-[11px] font-black uppercase text-[#8FA7C7]">Alumnos</Text>
-          <Text className="w-20 text-center text-[11px] font-black uppercase text-[#8FA7C7]">Preguntas</Text>
-          <Text className="w-28 text-center text-[11px] font-black uppercase text-[#8FA7C7]">Estado</Text>
+        <View className="flex-row items-center gap-4 border-b border-border-default bg-surface-raised px-4 py-3">
+          <Text className="w-10 text-[11px] font-black uppercase text-text-muted">Curso</Text>
+          <Text className="flex-[1.5] text-[11px] font-black uppercase text-text-muted">Nombre</Text>
+          <Text className="w-20 text-center text-[11px] font-black uppercase text-text-muted">Alumnos</Text>
+          <Text className="w-20 text-center text-[11px] font-black uppercase text-text-muted">Preguntas</Text>
+          <Text className="w-28 text-center text-[11px] font-black uppercase text-text-muted">Estado</Text>
           <View className="w-[18px]" />
         </View>
       ) : null}
@@ -33,9 +33,9 @@ export default function TeacherCoursesList({ analyticsByCourse, courses, isDeskt
 
 function EmptyCatalog({ detail, title }: { detail: string; title: string }) {
   return (
-    <View className="items-center rounded-2xl border border-dashed border-[#29466F] bg-[#07162D] px-5 py-10">
+    <View className="items-center rounded-2xl border border-dashed border-border-default bg-surface-default px-5 py-10">
       <Text className="font-black text-white">{title}</Text>
-      <Text className="mt-2 text-center text-[13px] text-[#8FA7C7]">{detail}</Text>
+      <Text className="mt-2 text-center text-[13px] text-text-muted">{detail}</Text>
     </View>
   )
 }

@@ -244,19 +244,19 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
 
   if (loadingInitial) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center bg-background-primary">
         <ActivityIndicator size="large" color="#6574FF" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando curso...</Text>
+        <Text className="mt-4 text-text-muted">Cargando curso...</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-[#040E25]">
-      <View className="absolute inset-0 bg-[#061126]" />
+    <View className="flex-1 bg-background-primary">
+      <View className="absolute inset-0 bg-background-primary" />
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isWide ? 20 : MOBILE_BOTTOM_NAV_SPACER }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pb-5 pt-4 md:px-6 lg:px-8">
-          <View className="rounded-[18px] border border-[#0E4A8B] bg-[#061735] p-4 md:p-6">
+          <View className="rounded-[18px] border border-border-default bg-surface-default p-4 md:p-6">
             <TeacherPageHeader
               backAction={{ label: 'Volver', onPress: () => router.back() }}
               icon={isEdit ? 'create-outline' : 'add-circle-outline'}
@@ -281,7 +281,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
                             <View key={emoji} style={{ width: '25%', paddingHorizontal: 6, paddingBottom: 10 }}>
                               <Pressable
                                 onPress={() => setIcon(emoji)}
-                                className={`h-20 items-center justify-center rounded-xl border ${active ? 'border-[#8B5CF6] bg-[#271F67]' : 'border-[#28456B] bg-[#0A2042]'}`}
+                                className={`h-20 items-center justify-center rounded-xl border ${active ? 'border-border-active bg-surface-selected' : 'border-border-default bg-surface-raised'}`}
                               >
                                 <Text className="text-[32px]">{emoji}</Text>
                               </Pressable>
@@ -294,18 +294,18 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
                     <View className={`${width >= 760 ? 'flex-1' : ''}`}>
                       <Label text="Nombre del curso" />
                       <TextInput
-                        className="mt-3 rounded-xl border border-[#28456B] bg-[#0A2042] px-4 py-3 text-[16px] text-white"
+                        className="mt-3 rounded-xl border border-border-default bg-surface-raised px-4 py-3 text-[16px] text-white"
                         placeholder="Ej. Matemáticas Avanzadas"
                         placeholderTextColor="#7F95B7"
                         value={name}
                         onChangeText={setName}
                         maxLength={50}
                       />
-                      <Text className="mt-2 text-right text-[12px] text-[#8FA7C7]">{nameCounter}</Text>
+                      <Text className="mt-2 text-right text-[12px] text-text-muted">{nameCounter}</Text>
 
                       <Label text="Breve descripción (opcional)" className="mt-3" />
                       <TextInput
-                        className="mt-3 min-h-[86px] rounded-xl border border-[#28456B] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
+                        className="mt-3 min-h-[86px] rounded-xl border border-border-default bg-surface-raised px-4 py-3 text-[15px] text-white"
                         placeholder="Describe brevemente de qué trata este curso..."
                         placeholderTextColor="#7F95B7"
                         value={description}
@@ -314,7 +314,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
                         textAlignVertical="top"
                         maxLength={120}
                       />
-                      <Text className="mt-2 text-right text-[12px] text-[#8FA7C7]">{descriptionCounter}</Text>
+                      <Text className="mt-2 text-right text-[12px] text-text-muted">{descriptionCounter}</Text>
                     </View>
                   </View>
                 </SectionCard>
@@ -372,15 +372,15 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
                   {isEdit ? (
                     <View className={`gap-4 ${width >= 840 ? 'flex-row items-center justify-between' : ''}`}>
                       <View className={`${width >= 840 ? 'flex-1' : ''}`}>
-                        <Text className="font-bold text-[#B9A7FF]">Código actual del curso</Text>
-                        <Text className="mt-1 text-[13px] text-[#AFC2DB]">
+                        <Text className="font-bold text-brand-teacher">Código actual del curso</Text>
+                        <Text className="mt-1 text-[13px] text-text-secondary">
                           Este código ya está en uso por tus alumnos y se mantiene sin cambios.
                         </Text>
                       </View>
                       <View className={`${width >= 840 ? 'w-[320px]' : ''}`}>
-                        <View className="rounded-2xl border border-dashed border-[#4C4CC6] bg-[#0A2042] p-4">
-                          <Text className="text-center text-[17px] text-[#AFC2DB]">Código de invitación</Text>
-                          <Text className="mt-3 text-center text-[52px] font-black tracking-[8px] text-[#9B8CFF]">
+                        <View className="rounded-2xl border border-dashed border-border-active bg-surface-raised p-4">
+                          <Text className="text-center text-[17px] text-text-secondary">Código de invitación</Text>
+                          <Text className="mt-3 text-center text-[52px] font-black tracking-[8px] text-brand-teacher">
                             {existingCode || '------'}
                           </Text>
                         </View>
@@ -405,13 +405,13 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
                       </View>
 
                       <View className={`${width >= 840 ? 'w-[320px]' : ''}`}>
-                        <View className="rounded-2xl border border-dashed border-[#4C4CC6] bg-[#0A2042] p-4">
-                          <Text className="text-center text-[17px] text-[#AFC2DB]">
+                        <View className="rounded-2xl border border-dashed border-border-active bg-surface-raised p-4">
+                          <Text className="text-center text-[17px] text-text-secondary">
                             {inviteMode === 'auto' ? 'Código generado' : 'Código personalizado'}
                           </Text>
                           {inviteMode === 'custom' ? (
                             <TextInput
-                              className="mt-3 rounded-xl border border-[#2A456A] bg-[#081A37] px-4 py-3 text-center text-[42px] font-black tracking-[8px] text-[#9B8CFF]"
+                              className="mt-3 rounded-xl border border-border-default bg-surface-default px-4 py-3 text-center text-[42px] font-black tracking-[8px] text-brand-teacher"
                               value={normalizeInviteCode(customCode)}
                               onChangeText={(text) => setCustomCode(normalizeInviteCode(text))}
                               placeholder="ABC123"
@@ -419,7 +419,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
                               autoCapitalize="characters"
                             />
                           ) : (
-                            <Text className="mt-3 text-center text-[52px] font-black tracking-[8px] text-[#9B8CFF]">
+                            <Text className="mt-3 text-center text-[52px] font-black tracking-[8px] text-brand-teacher">
                               {codeLoading ? '------' : generatedCode}
                             </Text>
                           )}
@@ -427,7 +427,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
                         <Pressable
                           onPress={handleRegenerateCode}
                           disabled={codeLoading || inviteMode !== 'auto'}
-                          className="mt-3 self-end rounded-xl border border-[#2A456A] bg-[#0A2042] p-3"
+                          className="mt-3 self-end rounded-xl border border-border-default bg-surface-raised p-3"
                           style={({ pressed }) => ({ opacity: codeLoading || inviteMode !== 'auto' ? 0.5 : pressed ? 0.82 : 1 })}
                         >
                           <Ionicons name="refresh" size={18} color="#AFC2DB" />
@@ -439,20 +439,20 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
               </View>
 
               <View className={`${isWide ? 'w-[30%]' : ''}`}>
-                <View className="rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
+                <View className="rounded-2xl border border-border-default bg-surface-default p-4">
                   <Text className="text-[20px] font-black text-white">Vista previa</Text>
-                  <Text className="mt-1 text-[14px] text-[#AFC2DB]">Así es como verán tus alumnos el curso.</Text>
-                  <View className="mt-4 rounded-2xl border border-[#5A46D8] bg-[#4F46B8] p-5">
-                    <View className="mx-auto h-20 w-20 items-center justify-center rounded-full bg-[#3A3398]">
+                  <Text className="mt-1 text-[14px] text-text-secondary">Así es como verán tus alumnos el curso.</Text>
+                  <View className="mt-4 rounded-2xl border border-border-active bg-brand-student p-5">
+                    <View className="mx-auto h-20 w-20 items-center justify-center rounded-full bg-surface-selected">
                       <Text className="text-[36px]">{icon}</Text>
                     </View>
                     <Text className="mt-4 text-center text-[28px] font-black text-white">{previewTitle}</Text>
-                    <Text className="mt-2 text-center text-[15px] text-[#D9D8FF]">{previewMeta}</Text>
-                    <Text className="mt-5 text-center text-[15px] text-[#D9D8FF]">{studentsHint}</Text>
+                    <Text className="mt-2 text-center text-[15px] text-text-secondary">{previewMeta}</Text>
+                    <Text className="mt-5 text-center text-[15px] text-text-secondary">{studentsHint}</Text>
                   </View>
                 </View>
 
-                <View className="mt-4 rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
+                <View className="mt-4 rounded-2xl border border-border-default bg-surface-default p-4">
                   <FeatureRow icon="shield-checkmark-outline" tint="#8B5CF6" title="Entorno seguro" detail="Solo los alumnos con el código podrán unirse." />
                   <FeatureRow icon="trophy-outline" tint="#F6A64A" title="Progreso del alumnado" detail="Los alumnos recibirán puntuación y podrán completar retos." className="mt-4" />
                   <FeatureRow icon="bar-chart-outline" tint="#FBBF24" title="Seguimiento" detail="Podrás ver el progreso y rendimiento de tus alumnos." className="mt-4" />
@@ -460,16 +460,16 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
               </View>
             </View>
 
-            <View className={`mt-4 rounded-2xl border border-[#1A3155] bg-[#071B3D] p-4 ${isWide ? 'flex-row items-center justify-between' : 'gap-3'}`}>
-              <Pressable onPress={() => router.back()} className="flex-row items-center gap-2 rounded-xl border border-[#2A456A] bg-[#091A39] px-6 py-3">
+            <View className={`mt-4 rounded-2xl border border-border-default bg-surface-default p-4 ${isWide ? 'flex-row items-center justify-between' : 'gap-3'}`}>
+              <Pressable onPress={() => router.back()} className="flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-raised px-6 py-3">
                 <Ionicons name="close" size={16} color="#DDE7F4" />
-                <Text className="text-[15px] font-bold text-[#DDE7F4]">Cancelar</Text>
+                <Text className="text-[15px] font-bold text-text-secondary">Cancelar</Text>
               </Pressable>
 
               <Pressable
                 onPress={handleSave}
                 disabled={!canSave}
-                className={`${isWide ? 'min-w-[320px]' : ''} flex-row items-center justify-center gap-2 rounded-xl bg-[#5A46D8] px-10 py-3`}
+                className={`${isWide ? 'min-w-[320px]' : ''} flex-row items-center justify-center gap-2 rounded-xl bg-brand-teacher px-10 py-3`}
                 style={({ pressed }) => ({ opacity: !canSave ? 0.7 : pressed ? 0.86 : 1 })}
               >
                 {saving ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="sparkles-outline" size={16} color="#FFFFFF" />}
@@ -500,14 +500,14 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <View className={`rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4 ${className}`}>
+    <View className={`rounded-2xl border border-border-default bg-surface-default p-4 ${className}`}>
       <View className="flex-row items-start gap-3">
-        <View className="mt-1 h-8 w-8 items-center justify-center rounded-full bg-[#5A46D8]">
+        <View className="mt-1 h-8 w-8 items-center justify-center rounded-full bg-brand-teacher">
           <Text className="font-black text-white">{step}</Text>
         </View>
         <View className="min-w-0 flex-1">
           <Text className="text-[22px] font-black text-white">{title}</Text>
-          <Text className="mt-1 text-[14px] text-[#AFC2DB]">{description}</Text>
+          <Text className="mt-1 text-[14px] text-text-secondary">{description}</Text>
         </View>
       </View>
       <View className="mt-4">{children}</View>
@@ -533,14 +533,14 @@ function SelectBox({
   onPress: () => void;
 }) {
   return (
-    <View className="min-w-[220px] flex-1 rounded-xl border border-[#28456B] bg-[#0A2042] p-3">
+    <View className="min-w-[220px] flex-1 rounded-xl border border-border-default bg-surface-raised p-3">
       <View className="flex-row items-center gap-2">
         <View className="h-11 w-11 items-center justify-center rounded-lg" style={{ backgroundColor: `${tint}2A` }}>
           <Ionicons name={icon} size={19} color={tint} />
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="text-[13px] font-semibold text-[#AFC2DB]">{label}</Text>
-          <Pressable onPress={onPress} className="mt-2 flex-row items-center justify-between rounded-lg border border-[#35567D] bg-[#0B2348] px-3 py-2">
+          <Text className="text-[13px] font-semibold text-text-secondary">{label}</Text>
+          <Pressable onPress={onPress} className="mt-2 flex-row items-center justify-between rounded-lg border border-border-active bg-semantic-surface-info px-3 py-2">
             <Text className="font-semibold text-white">{value}</Text>
             <Ionicons name="chevron-down" size={15} color="#AFC2DB" />
           </Pressable>
@@ -565,12 +565,12 @@ function RadioOption({
 }) {
   return (
     <Pressable onPress={onPress} className={`flex-row items-start gap-3 ${className}`}>
-      <View className={`mt-0.5 h-6 w-6 items-center justify-center rounded-full border ${active ? 'border-[#8B5CF6]' : 'border-[#5F7395]'}`}>
-        {active ? <View className="h-3 w-3 rounded-full bg-[#8B5CF6]" /> : null}
+      <View className={`mt-0.5 h-6 w-6 items-center justify-center rounded-full border ${active ? 'border-border-active' : 'border-border-active'}`}>
+        {active ? <View className="h-3 w-3 rounded-full bg-brand-teacher" /> : null}
       </View>
       <View className="min-w-0 flex-1">
-        <Text className={`font-bold ${active ? 'text-[#B9A7FF]' : 'text-white'}`}>{title}</Text>
-        <Text className="mt-1 text-[13px] text-[#AFC2DB]">{detail}</Text>
+        <Text className={`font-bold ${active ? 'text-brand-teacher' : 'text-white'}`}>{title}</Text>
+        <Text className="mt-1 text-[13px] text-text-secondary">{detail}</Text>
       </View>
     </Pressable>
   );
@@ -596,7 +596,7 @@ function FeatureRow({
       </View>
       <View className="min-w-0 flex-1">
         <Text className="font-black text-white">{title}</Text>
-        <Text className="mt-1 text-[13px] text-[#AFC2DB]">{detail}</Text>
+        <Text className="mt-1 text-[13px] text-text-secondary">{detail}</Text>
       </View>
     </View>
   );

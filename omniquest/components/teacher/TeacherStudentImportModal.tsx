@@ -203,17 +203,17 @@ export default function TeacherStudentImportModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={resetAndClose}>
       <View className={`flex-1 bg-black/70 ${isPhone ? 'justify-end' : 'items-center justify-center px-4 py-8'}`}>
-        <View className={`${isPhone ? 'h-[94%] w-full rounded-t-3xl' : 'max-h-full w-full max-w-[800px] rounded-3xl'} overflow-hidden border border-[#1A3155] bg-[#07162D]`}>
-          <View className="flex-row items-start justify-between gap-4 border-b border-[#1A3155] px-5 py-4">
+        <View className={`${isPhone ? 'h-[94%] w-full rounded-t-3xl' : 'max-h-full w-full max-w-[800px] rounded-3xl'} overflow-hidden border border-border-default bg-surface-default`}>
+          <View className="flex-row items-start justify-between gap-4 border-b border-border-default px-5 py-4">
             <View className="min-w-0 flex-1">
               <Text className="text-[22px] font-black text-white">Importar alumnos</Text>
-              <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">
+              <Text className="mt-1 text-[13px] leading-5 text-text-secondary">
                 Inscribe alumnos en {classroomName || 'la clase activa'} del curso {subjectName}. Puedes pegar correos separados por saltos, comas o copiar una columna desde Excel.
               </Text>
             </View>
             <Pressable
               onPress={resetAndClose}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-[#0D1D3B]"
+              className="h-10 w-10 items-center justify-center rounded-xl bg-surface-raised"
               style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
             >
               <Ionicons name="close" size={21} color="#DDE7F4" />
@@ -221,11 +221,11 @@ export default function TeacherStudentImportModal({
           </View>
 
           <ScrollView className={isPhone ? 'flex-1' : 'max-h-[720px]'} contentContainerStyle={{ padding: isPhone ? 16 : 20, paddingBottom: isPhone ? 28 : 20 }} showsVerticalScrollIndicator={false}>
-            <View className="rounded-2xl border border-[#20375E] bg-[#09162C] p-4">
+            <View className="rounded-2xl border border-border-default bg-surface-default p-4">
               <View className="flex-row flex-wrap items-center justify-between gap-3">
                 <View className="min-w-0 flex-1">
                   <Text className="font-black text-white">Correos de alumnos</Text>
-                  <Text className="mt-1 text-[12px] text-[#8FA7C7]">Ejemplo: aalbertc@uah.es, mlopez@uah.es</Text>
+                  <Text className="mt-1 text-[12px] text-text-muted">Ejemplo: aalbertc@uah.es, mlopez@uah.es</Text>
                 </View>
                 <Pressable
                   onPress={handlePickTextFile}
@@ -238,7 +238,7 @@ export default function TeacherStudentImportModal({
                   })}
                 >
                   <Ionicons name="document-attach-outline" size={17} color="#C4B5FD" />
-                  <Text className="text-[12px] font-black text-[#C4B5FD]">CSV/TXT</Text>
+                  <Text className="text-[12px] font-black text-brand-teacher">CSV/TXT</Text>
                 </Pressable>
               </View>
 
@@ -249,10 +249,10 @@ export default function TeacherStudentImportModal({
                 textAlignVertical="top"
                 placeholder="Pega aquí los correos o una columna copiada desde Excel"
                 placeholderTextColor="#60799C"
-                className="mt-4 min-h-[180px] rounded-2xl border border-[#2A456A] bg-[#061426] px-4 py-3 text-[14px] text-white"
+                className="mt-4 min-h-[180px] rounded-2xl border border-border-default bg-background-primary px-4 py-3 text-[14px] text-white"
               />
 
-              {fileMessage ? <Text className="mt-2 text-[12px] text-[#AFC2DB]">{fileMessage}</Text> : null}
+              {fileMessage ? <Text className="mt-2 text-[12px] text-text-secondary">{fileMessage}</Text> : null}
 
               <View className="mt-4 flex-row flex-wrap gap-3">
                 <ImportCounter icon="checkmark-circle-outline" label="Válidos" value={validEmails.length} color="#34D399" />
@@ -261,9 +261,9 @@ export default function TeacherStudentImportModal({
               </View>
 
               {invalidEmails.length > 0 ? (
-                <View className="mt-4 rounded-xl border border-[#3B1D2A] bg-[#1F1020] p-3">
-                  <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#FB7185]">Correos ignorados</Text>
-                  <Text className="mt-2 text-[12px] leading-5 text-[#FCA5A5]">{invalidEmails.slice(0, 8).join(', ')}</Text>
+                <View className="mt-4 rounded-xl border border-border-subtle bg-semantic-surface-danger p-3">
+                  <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-semantic-danger">Correos ignorados</Text>
+                  <Text className="mt-2 text-[12px] leading-5 text-semantic-danger">{invalidEmails.slice(0, 8).join(', ')}</Text>
                 </View>
               ) : null}
             </View>
@@ -292,7 +292,7 @@ export default function TeacherStudentImportModal({
                   opacity: pressed ? 0.82 : 1,
                 })}
               >
-                <Text className="font-bold text-[#B7C4D7]">Cerrar</Text>
+                <Text className="font-bold text-text-secondary">Cerrar</Text>
               </Pressable>
               <Pressable
                 onPress={() => void importStudents()}
@@ -316,9 +316,9 @@ export default function TeacherStudentImportModal({
 
 function ImportCounter({ icon, label, value, color }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: number; color: string }) {
   return (
-    <View className="flex-row items-center gap-2 rounded-xl bg-[#0D1D3B] px-3 py-2">
+    <View className="flex-row items-center gap-2 rounded-xl bg-surface-raised px-3 py-2">
       <Ionicons name={icon} size={16} color={color} />
-      <Text className="text-[12px] font-bold text-[#DDE7F4]">{label}</Text>
+      <Text className="text-[12px] font-bold text-text-secondary">{label}</Text>
       <Text className="text-[12px] font-black" style={{ color }}>{value}</Text>
     </View>
   )
@@ -347,15 +347,15 @@ function ImportResultPanel({
   const errorsCount = result.failed.length + result.invalid.length
 
   return (
-    <View className="mt-5 overflow-hidden rounded-2xl border border-[#2A456A] bg-[#081A34]">
-      <View className="border-b border-[#1A3155] bg-[#0D1D3B] p-5">
+    <View className="mt-5 overflow-hidden rounded-2xl border border-border-default bg-surface-default">
+      <View className="border-b border-border-default bg-surface-raised p-5">
         <View className="flex-row items-start gap-4">
-          <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#22C55E26]">
+          <View className="h-12 w-12 items-center justify-center rounded-2xl bg-semantic-success">
             <Ionicons name="checkmark-done-outline" size={25} color="#34D399" />
           </View>
           <View className="min-w-0 flex-1">
             <Text className="text-[20px] font-black text-white">Importación completada</Text>
-            <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">
+            <Text className="mt-1 text-[13px] leading-5 text-text-secondary">
               {successful} alumno{successful === 1 ? '' : 's'} procesado{successful === 1 ? '' : 's'} correctamente para esta clase.
             </Text>
           </View>
@@ -399,50 +399,50 @@ function ImportResultPanel({
         </View>
 
         {postImportMessage ? (
-          <View className="mt-4 rounded-xl border border-[#25456E] bg-[#07162D] p-3">
-            <Text className="text-[12px] leading-5 text-[#DDE7F4]">{postImportMessage}</Text>
+          <View className="mt-4 rounded-xl border border-border-default bg-surface-default p-3">
+            <Text className="text-[12px] leading-5 text-text-secondary">{postImportMessage}</Text>
           </View>
         ) : null}
 
         {createdWithPassword.length > 0 ? (
-          <View className="mt-4 rounded-xl border border-[#243B66] bg-[#07162D] p-3">
-            <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#C4B5FD]">Credenciales temporales de esta sesión</Text>
-            <Text className="mt-1 text-[12px] leading-5 text-[#8FA7C7]">
+          <View className="mt-4 rounded-xl border border-border-default bg-surface-default p-3">
+            <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-brand-teacher">Credenciales temporales de esta sesión</Text>
+            <Text className="mt-1 text-[12px] leading-5 text-text-muted">
               Solo se muestran ahora. Después conviene usar “Reenviar credenciales” desde la ficha del alumno.
             </Text>
             <View className="mt-3 gap-2">
               {createdWithPassword.slice(0, 6).map((student) => (
-                <View key={student.studentId} className="flex-row items-center gap-2 rounded-lg bg-[#0D1D3B] px-3 py-2">
+                <View key={student.studentId} className="flex-row items-center gap-2 rounded-lg bg-surface-raised px-3 py-2">
                   <View className="min-w-0 flex-1">
                     <Text className="text-[12px] font-bold text-white" numberOfLines={1}>{student.email}</Text>
-                    <Text className="mt-0.5 text-[11px] text-[#AFC2DB]" numberOfLines={1}>Contraseña: {student.temporaryPassword}</Text>
+                    <Text className="mt-0.5 text-[11px] text-text-secondary" numberOfLines={1}>Contraseña: {student.temporaryPassword}</Text>
                   </View>
-                  <Pressable onPress={() => onCopyCredential(student)} className="rounded-lg bg-[#5A46D8] px-3 py-2">
+                  <Pressable onPress={() => onCopyCredential(student)} className="rounded-lg bg-brand-teacher px-3 py-2">
                     <Text className="text-[11px] font-black text-white">Copiar</Text>
                   </Pressable>
                 </View>
               ))}
               {createdWithPassword.length > 6 ? (
-                <Text className="text-[11px] text-[#8FA7C7]">Hay {createdWithPassword.length - 6} credencial{createdWithPassword.length - 6 === 1 ? '' : 'es'} más en el CSV.</Text>
+                <Text className="text-[11px] text-text-muted">Hay {createdWithPassword.length - 6} credencial{createdWithPassword.length - 6 === 1 ? '' : 'es'} más en el CSV.</Text>
               ) : null}
             </View>
           </View>
         ) : null}
 
         {result.emailsSkipped > 0 ? (
-          <View className="mt-3 rounded-xl border border-[#4A3515] bg-[#1F1A0E] p-3">
-            <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#FBBF24]">Emails no enviados</Text>
-            <Text className="mt-1 text-[12px] leading-5 text-[#F8D7A1]">
+          <View className="mt-3 rounded-xl border border-border-default bg-semantic-surface-danger p-3">
+            <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-gamification-xp">Emails no enviados</Text>
+            <Text className="mt-1 text-[12px] leading-5 text-semantic-warning">
               Importación completada: {result.emailsSkipped} email{result.emailsSkipped === 1 ? '' : 's'} no se enviaron porque el servicio de correo no está configurado o está en modo demo incompleto. Puedes exportar las credenciales y copiarlas manualmente.
             </Text>
           </View>
         ) : null}
 
         {result.failed.length > 0 ? (
-          <View className="mt-4 rounded-xl border border-[#3B1D2A] bg-[#1F1020] p-3">
-            <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#FB7185]">Errores</Text>
+          <View className="mt-4 rounded-xl border border-border-subtle bg-semantic-surface-danger p-3">
+            <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-semantic-danger">Errores</Text>
             {result.failed.slice(0, 6).map((item) => (
-              <Text key={`${item.email}-${item.reason}`} className="mt-2 text-[12px] text-[#FCA5A5]">
+              <Text key={`${item.email}-${item.reason}`} className="mt-2 text-[12px] text-semantic-danger">
                 {item.email}: {item.reason}
               </Text>
             ))}
@@ -490,7 +490,7 @@ function PostImportAction({
       })}
     >
       <Ionicons name={icon} size={16} color="#C4B5FD" />
-      <Text className="text-[12px] font-black text-[#C4B5FD]">{label}</Text>
+      <Text className="text-[12px] font-black text-brand-teacher">{label}</Text>
     </Pressable>
   )
 }

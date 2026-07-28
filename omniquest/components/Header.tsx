@@ -21,7 +21,7 @@ export default function Header({
 
       <Pressable
         onPress={onThemePress}
-        className="flex-row items-center gap-2 rounded-full border border-[#4988C4] bg-[#4988C4]/15 px-4 py-3"
+        className="flex-row items-center gap-2 rounded-full border border-border-active bg-brand-teacher px-4 py-3"
         style={({ pressed }) => ({
           opacity: pressed ? 0.82 : 1,
           paddingHorizontal: isDesktop ? 18 : 16,

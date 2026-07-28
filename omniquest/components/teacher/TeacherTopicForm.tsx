@@ -204,19 +204,19 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
 
   if (loadingInitial) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center bg-background-primary">
         <ActivityIndicator size="large" color="#6574FF" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando tema...</Text>
+        <Text className="mt-4 text-text-muted">Cargando tema...</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-[#040E25]">
-      <View className="absolute inset-0 bg-[#061126]" />
+    <View className="flex-1 bg-background-primary">
+      <View className="absolute inset-0 bg-background-primary" />
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isWide ? 20 : MOBILE_BOTTOM_NAV_SPACER }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pb-5 pt-4 md:px-6 lg:px-8">
-          <View className="rounded-[18px] border border-[#0E4A8B] bg-[#061735] p-4 md:p-6">
+          <View className="rounded-[18px] border border-border-default bg-surface-default p-4 md:p-6">
             <TeacherPageHeader
               backAction={{ label: 'Volver', onPress: () => router.back() }}
               icon="create-outline"
@@ -241,7 +241,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
                             <View key={emoji} style={{ width: '25%', paddingHorizontal: 6, paddingBottom: 10 }}>
                               <Pressable
                                 onPress={() => setIcon(emoji)}
-                                className={`h-20 items-center justify-center rounded-xl border ${active ? 'border-[#8B5CF6] bg-[#271F67]' : 'border-[#28456B] bg-[#0A2042]'}`}
+                                className={`h-20 items-center justify-center rounded-xl border ${active ? 'border-border-active bg-surface-selected' : 'border-border-default bg-surface-raised'}`}
                               >
                                 <Text className="text-[32px]">{emoji}</Text>
                               </Pressable>
@@ -254,18 +254,18 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
                     <View className={`${width >= 760 ? 'flex-1' : ''}`}>
                       <Label text="Título del tema" />
                       <TextInput
-                        className="mt-3 rounded-xl border border-[#28456B] bg-[#0A2042] px-4 py-3 text-[16px] text-white"
+                        className="mt-3 rounded-xl border border-border-default bg-surface-raised px-4 py-3 text-[16px] text-white"
                         placeholder="Ej. Ecuaciones de primer grado"
                         placeholderTextColor="#7F95B7"
                         value={title}
                         onChangeText={setTitle}
                         maxLength={60}
                       />
-                      <Text className="mt-2 text-right text-[12px] text-[#8FA7C7]">{titleCounter}</Text>
+                      <Text className="mt-2 text-right text-[12px] text-text-muted">{titleCounter}</Text>
 
                       <Label text="Descripción (opcional)" className="mt-3" />
                       <TextInput
-                        className="mt-3 min-h-[92px] rounded-xl border border-[#28456B] bg-[#0A2042] px-4 py-3 text-[15px] text-white"
+                        className="mt-3 min-h-[92px] rounded-xl border border-border-default bg-surface-raised px-4 py-3 text-[15px] text-white"
                         placeholder="Resume qué aprenderán los alumnos en este tema..."
                         placeholderTextColor="#7F95B7"
                         value={description}
@@ -274,7 +274,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
                         textAlignVertical="top"
                         maxLength={160}
                       />
-                      <Text className="mt-2 text-right text-[12px] text-[#8FA7C7]">{descriptionCounter}</Text>
+                      <Text className="mt-2 text-right text-[12px] text-text-muted">{descriptionCounter}</Text>
                     </View>
                   </View>
                 </SectionCard>
@@ -286,15 +286,15 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
                   className="mt-4"
                 >
                   <View className={`gap-3 ${width >= 760 ? 'flex-row' : ''}`}>
-                    <View className="min-w-[220px] flex-1 rounded-xl border border-[#28456B] bg-[#0A2042] p-3">
+                    <View className="min-w-[220px] flex-1 rounded-xl border border-border-default bg-surface-raised p-3">
                       <View className="flex-row items-center gap-3">
-                        <View className="h-11 w-11 items-center justify-center rounded-lg bg-[#5A46D82A]">
+                        <View className="h-11 w-11 items-center justify-center rounded-lg bg-brand-student">
                           <Ionicons name="reorder-three-outline" size={21} color="#A78BFA" />
                         </View>
                         <View className="min-w-0 flex-1">
-                          <Text className="text-[13px] font-semibold text-[#AFC2DB]">Orden</Text>
+                          <Text className="text-[13px] font-semibold text-text-secondary">Orden</Text>
                           <TextInput
-                            className="mt-2 rounded-lg border border-[#35567D] bg-[#0B2348] px-3 py-2 text-[16px] font-bold text-white"
+                            className="mt-2 rounded-lg border border-border-active bg-semantic-surface-info px-3 py-2 text-[16px] font-bold text-white"
                             keyboardType="number-pad"
                             value={sortOrder}
                             onChangeText={(value) => setSortOrder(value.replace(/[^0-9]/g, '').slice(0, 3))}
@@ -303,19 +303,19 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
                       </View>
                     </View>
 
-                    <View className="min-w-[220px] flex-1 rounded-xl border border-[#28456B] bg-[#0A2042] p-3">
+                    <View className="min-w-[220px] flex-1 rounded-xl border border-border-default bg-surface-raised p-3">
                       <View className="flex-row items-center gap-3">
-                        <View className="h-11 w-11 items-center justify-center rounded-lg bg-[#34D39926]">
+                        <View className="h-11 w-11 items-center justify-center rounded-lg bg-semantic-success">
                           <Ionicons name="school-outline" size={20} color="#34D399" />
                         </View>
                         <View className="min-w-0 flex-1">
-                          <Text className="text-[13px] font-semibold text-[#AFC2DB]">Clase vinculada</Text>
+                          <Text className="text-[13px] font-semibold text-text-secondary">Clase vinculada</Text>
                           <Text className="mt-2 font-bold text-white">{topic?.subjects?.name || 'Clase'}</Text>
                         </View>
                       </View>
                     </View>
 
-                    <View className="min-w-[300px] flex-1 rounded-xl border border-[#28456B] bg-[#0A2042] p-3">
+                    <View className="min-w-[300px] flex-1 rounded-xl border border-border-default bg-surface-raised p-3">
                       <DateTimeCalendarField
                         value={availableUntilInput}
                         onChange={setAvailableUntilInput}
@@ -326,25 +326,25 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
               </View>
 
               <View className={`${isWide ? 'w-[30%]' : ''}`}>
-                <View className="rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
+                <View className="rounded-2xl border border-border-default bg-surface-default p-4">
                   <Text className="text-[20px] font-black text-white">Vista previa</Text>
-                  <Text className="mt-1 text-[14px] text-[#AFC2DB]">Así aparecerá dentro de la clase.</Text>
-                  <View className="mt-4 rounded-2xl border border-[#5A46D8] bg-[#4F46B8] p-5">
-                    <View className="mx-auto h-20 w-20 items-center justify-center rounded-full bg-[#3A3398]">
+                  <Text className="mt-1 text-[14px] text-text-secondary">Así aparecerá dentro de la clase.</Text>
+                  <View className="mt-4 rounded-2xl border border-border-active bg-brand-student p-5">
+                    <View className="mx-auto h-20 w-20 items-center justify-center rounded-full bg-surface-selected">
                       <Text className="text-[36px]">{icon}</Text>
                     </View>
                     <Text className="mt-4 text-center text-[28px] font-black text-white">{previewTitle}</Text>
-                    <Text className="mt-2 text-center text-[15px] text-[#D9D8FF]">{previewDescription}</Text>
-                    <Text className="mt-5 text-center text-[13px] font-bold text-[#D9D8FF]">
+                    <Text className="mt-2 text-center text-[15px] text-text-secondary">{previewDescription}</Text>
+                    <Text className="mt-5 text-center text-[13px] font-bold text-text-secondary">
                       Orden {Number.parseInt(sortOrder, 10) || 1}
                     </Text>
-                    <Text className="mt-2 text-center text-[12px] font-semibold text-[#FDE68A]">
+                    <Text className="mt-2 text-center text-[12px] font-semibold text-gamification-xp">
                       {availableUntilInput.trim() ? `Disponible hasta ${availableUntilInput.trim()}` : 'Sin fecha límite'}
                     </Text>
                   </View>
                 </View>
 
-                <View className="mt-4 rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4">
+                <View className="mt-4 rounded-2xl border border-border-default bg-surface-default p-4">
                   <FeatureRow icon="albums-outline" tint="#8B5CF6" title="Tema organizado" detail="Las preguntas asociadas mantienen su relación con este tema." />
                   <FeatureRow icon="analytics-outline" tint="#F6A64A" title="Métricas intactas" detail="Editar el tema no borra progreso ni puntuaciones." className="mt-4" />
                   <FeatureRow icon="eye-outline" tint="#38BDF8" title="Visible al alumno" detail="El título, descripción e icono se actualizan al volver a entrar." className="mt-4" />
@@ -352,7 +352,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
               </View>
             </View>
 
-            <View className={`mt-4 rounded-2xl border border-[#1A3155] bg-[#071B3D] p-4 ${isWide ? 'flex-row items-center justify-between' : 'gap-3'}`}>
+            <View className={`mt-4 rounded-2xl border border-border-default bg-surface-default p-4 ${isWide ? 'flex-row items-center justify-between' : 'gap-3'}`}>
               <AppButton label="Cancelar" variant="secondary" icon="close" size="lg" onPress={() => router.back()} />
               <AppButton
                 label="Guardar cambios"
@@ -388,14 +388,14 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <View className={`rounded-2xl border border-[#1C3962] bg-[#071B3D] p-4 ${className}`}>
+    <View className={`rounded-2xl border border-border-default bg-surface-default p-4 ${className}`}>
       <View className="flex-row items-start gap-3">
-        <View className="mt-1 h-8 w-8 items-center justify-center rounded-full bg-[#5A46D8]">
+        <View className="mt-1 h-8 w-8 items-center justify-center rounded-full bg-brand-teacher">
           <Text className="font-black text-white">{step}</Text>
         </View>
         <View className="min-w-0 flex-1">
           <Text className="text-[22px] font-black text-white">{title}</Text>
-          <Text className="mt-1 text-[14px] text-[#AFC2DB]">{description}</Text>
+          <Text className="mt-1 text-[14px] text-text-secondary">{description}</Text>
         </View>
       </View>
       <View className="mt-4">{children}</View>
@@ -427,7 +427,7 @@ function FeatureRow({
       </View>
       <View className="min-w-0 flex-1">
         <Text className="font-black text-white">{title}</Text>
-        <Text className="mt-1 text-[13px] text-[#AFC2DB]">{detail}</Text>
+        <Text className="mt-1 text-[13px] text-text-secondary">{detail}</Text>
       </View>
     </View>
   );

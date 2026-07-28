@@ -356,15 +356,15 @@ export default function TeacherClassesScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center bg-background-primary">
         <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando tus cursos...</Text>
+        <Text className="mt-4 text-text-muted">Cargando tus cursos...</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1 bg-background-primary">
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <TeacherSidebar
@@ -421,7 +421,7 @@ export default function TeacherClassesScreen() {
           </View>
 
           <View className="mb-4 gap-3">
-            <View className="h-12 flex-row items-center rounded-xl border border-[#20375E] bg-[#09162C] px-4">
+            <View className="h-12 flex-row items-center rounded-xl border border-border-default bg-surface-default px-4">
               <Ionicons name="search-outline" size={20} color="#AFC2DB" />
               <TextInput
                 accessibilityLabel={catalogTab === 'courses' ? 'Buscar curso' : 'Buscar clase'}
@@ -465,7 +465,7 @@ export default function TeacherClassesScreen() {
           </View>
 
           <View className="mb-3 flex-row items-center justify-between gap-3">
-            <Text className="text-[13px] text-[#AFC2DB]">
+            <Text className="text-[13px] text-text-secondary">
               {catalogTab === 'courses'
                 ? `${visibleTotal} cursos · ${totals.students} alumnos · ${totals.questions} preguntas`
                 : `${visibleTotal} clases activas en ${subjects.length} cursos`}
@@ -477,10 +477,10 @@ export default function TeacherClassesScreen() {
                   setSelectedSort((current) => getNextClassSort(current));
                   setPage(0);
                 }}
-                className="flex-row items-center gap-2 rounded-lg bg-[#102343] px-3 py-2"
+                className="flex-row items-center gap-2 rounded-lg bg-surface-interactive px-3 py-2"
               >
                 <Ionicons name="swap-vertical-outline" size={15} color="#B9A7FF" />
-                <Text className="text-[12px] font-black text-[#B9A7FF]">{getClassSortLabel(selectedSort)}</Text>
+                <Text className="text-[12px] font-black text-brand-teacher">{getClassSortLabel(selectedSort)}</Text>
               </Pressable>
             ) : null}
           </View>

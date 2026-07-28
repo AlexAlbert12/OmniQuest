@@ -49,7 +49,7 @@ export default function StudentPrimaryLearningCTA({
           </View>
           <View className="min-w-0 flex-1">
             <Text className="text-[18px] font-black text-white md:text-[20px]" numberOfLines={2}>{title}</Text>
-            <Text className="mt-1 text-[13px] leading-5 text-[#DDE7F4]" numberOfLines={2}>{subtitle}</Text>
+            <Text className="mt-1 text-[13px] leading-5 text-text-secondary" numberOfLines={2}>{subtitle}</Text>
             {meta ? <Text className="mt-2 text-[12px] font-black" style={{ color }}>{meta}</Text> : null}
           </View>
           <View className="min-h-[48px] flex-row items-center justify-center gap-2 rounded-2xl px-4" style={{ backgroundColor: color }}>

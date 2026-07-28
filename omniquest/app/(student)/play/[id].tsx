@@ -17,6 +17,9 @@ import { getDifficultyMeta, normalizeDifficulty } from '../../../lib/difficulty'
 import type { Json } from '../../../types/database.types'
 import { createShadowStyle } from '../../../lib/platformShadow'
 import { useI18n } from '../../../lib/i18n'
+import { useAppTheme } from '../../../lib/appTheme'
+import type { DesignColorTokens } from '../../../lib/designTokens'
+import { AppIconButton, AppStatusBanner } from '../../../components/ui'
 import GameShell from '../../../components/student/game/GameShell'
 import ResultState from '../../../components/student/game/GameResultState'
 import { BottomHud, GameStatsBar, LivesBadge, TimerPill } from '../../../components/student/game/GameHud'
@@ -70,6 +73,7 @@ export default function PlayScreen() {
   const { width } = useWindowDimensions()
   const router = useRouter()
   const { t } = useI18n()
+  const { tokens } = useAppTheme()
   const reviewMode = Array.isArray(review) ? review[0] : review
   const selectedClassroomId = Array.isArray(classroomId) ? classroomId[0] : classroomId
   const selectedDifficulty = Array.isArray(difficulty) ? difficulty[0] : difficulty
@@ -130,7 +134,7 @@ export default function PlayScreen() {
       <GameShell>
         <View className="flex-1 items-center justify-center">
           <OmniGuide state="blink" size={116} />
-          <Text className="mt-4 text-[#B8C7E0]">Omni está preparando la pregunta...</Text>
+          <Text className="mt-4 text-text-secondary">Omni está preparando la pregunta...</Text>
         </View>
       </GameShell>
     )
@@ -141,7 +145,7 @@ export default function PlayScreen() {
       <GameShell>
         <ResultState
           icon={game.isOffline ? 'cloud-offline-outline' : 'warning-outline'}
-          iconColor={game.isOffline ? '#FBBF24' : '#FB7185'}
+          iconColor={game.isOffline ? tokens.semantic.warning : tokens.semantic.danger}
           omniState="error"
           title={game.isOffline ? 'No hay conexión' : 'No se pudo cargar la partida'}
           detail={game.isOffline
@@ -161,7 +165,7 @@ export default function PlayScreen() {
       <GameShell>
         <ResultState
           icon="construct-outline"
-          iconColor="#8FA7C7"
+          iconColor={tokens.text.muted}
           omniState={reviewMode === 'failed' ? 'happy' : 'thinking'}
           title={reviewMode === 'failed' ? 'Sin fallos pendientes' : 'Todavía no hay preguntas'}
           detail={reviewMode === 'failed'
@@ -179,7 +183,7 @@ export default function PlayScreen() {
       <GameShell>
         <ResultState
           icon="skull-outline"
-          iconColor="#FB7185"
+          iconColor={tokens.semantic.danger}
           omniState="error"
           title="Partida terminada"
           detail="Te has quedado sin vidas, pero ya tienes pistas claras para mejorar."
@@ -201,7 +205,7 @@ export default function PlayScreen() {
       <GameShell>
         <ResultState
           icon="trophy"
-          iconColor="#FBBF24"
+          iconColor={tokens.gamification.xp}
           omniState="happy"
           title="¡Partida completada!"
           detail="Buen cierre. Ya tienes claro qué reforzar."
@@ -270,34 +274,32 @@ export default function PlayScreen() {
       >
         <View className="flex-1">
           <View className="flex-row items-center gap-3">
-            <Pressable
+            <AppIconButton
               accessibilityLabel={t('common.close')}
-              accessibilityRole="button"
-              hitSlop={8}
+              accessibilityHint="Abre la confirmación para salir de la partida"
+              icon="close"
+              role="student"
+              variant="secondary"
               onPress={requestExit}
-              className="h-12 w-12 items-center justify-center rounded-2xl border border-[#20375E] bg-[#08172E]"
-              style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
-            >
-              <Ionicons name="close" size={26} color="#F4F7FB" />
-            </Pressable>
+            />
 
             <View className="min-w-0 flex-1">
               <View className="flex-row items-center justify-between gap-3">
-                <Text className={`${isDesktop ? 'text-[18px]' : 'text-[16px]'} font-black text-white`}>
+                <Text className={`${isDesktop ? 'text-[18px]' : 'text-[16px]'} font-black text-text-primary`}>
                   Pregunta {game.currentIndex + 1} de {totalQuestions}
                 </Text>
                 <View className="flex-row items-center gap-2">
                   {isDesktop ? (
-                    <View className="rounded-xl border border-[#223A62] bg-[#08172E] px-3 py-2">
-                    <Text className="text-[13px] font-black text-[#A78BFA]">{game.score} pts</Text>
+                    <View className="rounded-xl border border-border-default bg-surface-default px-3 py-2">
+                    <Text className="text-[13px] font-black text-brand-student">{game.score} pts</Text>
                     </View>
                   ) : null}
                   <LivesBadge lives={game.lives} />
                 </View>
               </View>
-              <View className="mt-3 h-3 overflow-hidden rounded-full bg-[#10213E]">
+              <View className="mt-3 h-3 overflow-hidden rounded-full bg-surface-interactive">
                 <View
-                  className="h-full rounded-full bg-[#6D5AF6]"
+                  className="h-full rounded-full bg-brand-student"
                   style={{ width: `${progressPercentage}%` }}
                 />
               </View>
@@ -320,13 +322,13 @@ export default function PlayScreen() {
               <View className="items-center px-1">
                 <TimerPill timeLeft={game.timeLeft} />
                 <View className="mt-5 flex-row items-center gap-3">
-                  <Ionicons name="sparkles" size={16} color="#8B5CF6" />
-                  <Text className={`${isDesktop ? 'text-[22px]' : 'text-[19px]'} font-black text-[#A78BFA]`}>
+                  <Ionicons name="sparkles" size={16} color={tokens.brand.student} />
+                  <Text className={`${isDesktop ? 'text-[22px]' : 'text-[19px]'} font-black text-brand-student`}>
                     Pregunta {game.currentIndex + 1}
                   </Text>
-                  <Ionicons name="sparkles" size={16} color="#8B5CF6" />
+                  <Ionicons name="sparkles" size={16} color={tokens.brand.student} />
                 </View>
-                <Text className={`${isDesktop ? 'text-[30px] leading-10' : 'text-[24px] leading-8'} mt-4 max-w-[720px] text-center font-black text-white`}>
+                <Text className={`${isDesktop ? 'text-[30px] leading-10' : 'text-[24px] leading-8'} mt-4 max-w-[720px] text-center font-black text-text-primary`}>
                   {currentQuestion?.text}
                 </Text>
                 {currentQuestion?.media_type ? (
@@ -338,18 +340,18 @@ export default function PlayScreen() {
                     compact={!isDesktop}
                   />
                 ) : null}
-                <View className="mt-4 flex-row items-center gap-2 rounded-full bg-[#071426]/80 px-4 py-2">
-                  <Ionicons name="star" size={18} color="#76A7FF" />
-                  <Text className="text-[13px] font-semibold text-[#C7D6ED]">{getQuestionInstruction(questionType)}</Text>
+                <View className="mt-4 flex-row items-center gap-2 rounded-full bg-surface-default px-4 py-2">
+                  <Ionicons name="star" size={18} color={tokens.semantic.info} />
+                  <Text className="text-[13px] font-semibold text-text-secondary">{getQuestionInstruction(questionType)}</Text>
                 </View>
 
                 {game.hintedAnswerId ? (
-                  <View className="mt-3 w-full rounded-2xl border border-[#FBBF24] bg-[#2A210F]/90 p-4">
+                  <View className="mt-3 w-full rounded-2xl border border-semantic-warning bg-semantic-surface-warning p-4">
                     <View className="flex-row items-center gap-2">
-                      <Ionicons name="bulb" size={18} color="#FBBF24" />
-                      <Text className="font-black uppercase tracking-[0.04em] text-[#FBBF24]">Pista activa</Text>
+                      <Ionicons name="bulb" size={18} color={tokens.semantic.warning} />
+                      <Text className="font-black uppercase tracking-[0.04em] text-gamification-xp">Pista activa</Text>
                     </View>
-                    <Text className="mt-2 text-[13px] text-[#F4E3B8]">
+                    <Text className="mt-2 text-[13px] text-text-secondary">
                       La respuesta se validará en el servidor y tendrá penalización si aciertas.
                     </Text>
                   </View>
@@ -357,10 +359,10 @@ export default function PlayScreen() {
               </View>
 
               <View
-                className={isDesktop ? 'mt-6 rounded-[26px] border border-[#183258] bg-[#061426]/88 p-2' : 'mt-6 rounded-[24px] border border-[#244A7C] bg-[#0A1B36]/78 p-2'}
+                className={isDesktop ? 'mt-6 rounded-[26px] border border-border-default bg-surface-default p-2' : 'mt-6 rounded-[24px] border border-border-default bg-surface-default p-2'}
                 style={{
                   ...createShadowStyle({
-                    color: '#2563EB',
+                    color: tokens.brand.student,
                     opacity: isDesktop ? 0.18 : 0.12,
                     radius: isDesktop ? 28 : 18,
                     offsetY: isDesktop ? 18 : 10,
@@ -561,6 +563,7 @@ function TextAnswerQuestion({
   onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
   const [value, setValue] = useState('')
+  const { tokens } = useAppTheme()
 
   useEffect(() => {
     setValue('')
@@ -572,14 +575,14 @@ function TextAnswerQuestion({
   }
 
   return (
-    <View className="gap-4 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
+    <View className="gap-4 rounded-[22px] border border-border-default bg-surface-default p-5">
       <View className="flex-row items-center gap-3">
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-[#18275A]">
-          <Ionicons name="chatbox-ellipses-outline" size={21} color="#A78BFA" />
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-interactive">
+          <Ionicons name="chatbox-ellipses-outline" size={21} color={tokens.brand.student} />
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="font-black text-white">Escribe tu respuesta</Text>
-          <Text className="mt-1 text-[12px] text-[#AFC2DB]">
+          <Text className="font-black text-text-primary">Escribe tu respuesta</Text>
+          <Text className="mt-1 text-[12px] text-text-secondary">
             Se corregirá con las respuestas aceptadas por el profesor. No importan mayúsculas ni espacios extra.
           </Text>
         </View>
@@ -592,9 +595,9 @@ function TextAnswerQuestion({
         multiline
         textAlignVertical="top"
         placeholder="Tu respuesta"
-        placeholderTextColor="#7388A7"
-        className={`min-h-[74px] rounded-2xl border px-5 py-4 text-[18px] font-semibold text-white ${
-          hasAnswered ? 'border-[#28456B] bg-[#071426]' : 'border-[#314E78] bg-[#081A37]'
+        placeholderTextColor={tokens.text.muted}
+        className={`min-h-[74px] rounded-2xl border px-5 py-4 text-[18px] font-semibold text-text-primary ${
+          hasAnswered ? 'border-border-default bg-background-primary' : 'border-border-active bg-surface-default'
         }`}
       />
 
@@ -626,6 +629,7 @@ function FillBlankQuestion({
   onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
   const blankCount = getBlankCount(question)
+  const { tokens } = useAppTheme()
   const [values, setValues] = useState<string[]>(() => Array.from({ length: blankCount }, () => ''))
   const promptParts = splitFillPrompt(question.text)
   const markerCount = countBlankMarkers(question.text)
@@ -647,41 +651,41 @@ function FillBlankQuestion({
   }
 
   return (
-    <View className="gap-4 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
-      <View className="flex-row items-start gap-3 rounded-2xl border border-[#28456B] bg-[#081A37] p-4">
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-[#18275A]">
-          <Ionicons name="text-outline" size={21} color="#60A5FA" />
+    <View className="gap-4 rounded-[22px] border border-border-default bg-surface-default p-5">
+      <View className="flex-row items-start gap-3 rounded-2xl border border-border-default bg-surface-default p-4">
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-interactive">
+          <Ionicons name="text-outline" size={21} color={tokens.semantic.info} />
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="font-black text-white">Completa los huecos en orden</Text>
-          <Text className="mt-1 text-[12px] leading-5 text-[#AFC2DB]">
+          <Text className="font-black text-text-primary">Completa los huecos en orden</Text>
+          <Text className="mt-1 text-[12px] leading-5 text-text-secondary">
             Escribe una respuesta por hueco. El servidor corregirá mayúsculas y espacios extra automáticamente.
           </Text>
         </View>
-        <View className="rounded-full border border-[#2A456A] bg-[#0D1D3B] px-3 py-1">
-          <Text className="text-[12px] font-black text-[#A78BFA]">{completedCount}/{blankCount}</Text>
+        <View className="rounded-full border border-border-default bg-surface-raised px-3 py-1">
+          <Text className="text-[12px] font-black text-brand-student">{completedCount}/{blankCount}</Text>
         </View>
       </View>
 
-      <View className="flex-row flex-wrap items-center gap-2 rounded-2xl border border-[#243E65] bg-[#061426] p-4">
+      <View className="flex-row flex-wrap items-center gap-2 rounded-2xl border border-border-default bg-background-primary p-4">
         {markerCount > 0 ? (
           promptParts.map((part, index) => (
             <React.Fragment key={`${part}-${index}`}>
-              {part ? <Text className="text-[16px] font-semibold text-[#DDE7F4]">{part}</Text> : null}
+              {part ? <Text className="text-[16px] font-semibold text-text-secondary">{part}</Text> : null}
               {index < promptParts.length - 1 ? <BlankPlaceholder index={index} /> : null}
             </React.Fragment>
           ))
         ) : (
           <>
-            <Text className="text-[16px] font-semibold text-[#DDE7F4]">{question.text.trim()}</Text>
+            <Text className="text-[16px] font-semibold text-text-secondary">{question.text.trim()}</Text>
             <BlankPlaceholder index={0} />
           </>
         )}
       </View>
 
       {markerCount === 0 ? (
-        <View className="rounded-2xl border border-[#3A315A] bg-[#141A3E] p-4">
-          <Text className="text-[13px] font-bold text-[#D8CCFF]">
+        <View className="rounded-2xl border border-border-active bg-surface-selected p-4">
+          <Text className="text-[13px] font-bold text-text-secondary">
             Completa el hueco indicado. En próximas preguntas verás el espacio dentro del enunciado cuando esté marcado con ____.
           </Text>
         </View>
@@ -692,15 +696,15 @@ function FillBlankQuestion({
           const filled = value.trim().length > 0
           const borderColor = !hasAnswered
             ? filled
-              ? '#60A5FA'
-              : '#314E78'
+              ? tokens.semantic.info
+              : tokens.border.default
             : answerStatus === 'correct'
-              ? '#34D399'
-              : '#FB7185'
+              ? tokens.semantic.success
+              : tokens.semantic.danger
 
           return (
-            <View key={index} className="rounded-2xl border bg-[#081A37] p-4" style={{ borderColor }}>
-              <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-[#8FA7C7]">
+            <View key={index} className="rounded-2xl border bg-surface-default p-4" style={{ borderColor }}>
+              <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-text-muted">
                 Hueco {index + 1}
               </Text>
               <TextInput
@@ -708,8 +712,8 @@ function FillBlankQuestion({
                 onChangeText={(nextValue) => updateValue(index, nextValue)}
                 editable={!hasAnswered && !isSubmitting}
                 placeholder={`Respuesta del hueco ${index + 1}`}
-                placeholderTextColor="#7388A7"
-                className="mt-2 min-h-[46px] text-[18px] font-black text-white"
+                placeholderTextColor={tokens.text.muted}
+                className="mt-2 min-h-[46px] text-[18px] font-black text-text-primary"
               />
             </View>
           )
@@ -732,9 +736,9 @@ function FillBlankQuestion({
 
 function BlankPlaceholder({ index }: { index: number }) {
   return (
-    <View className="rounded-xl border border-[#3A4F83] bg-[#111E45] px-4 py-2">
-      <Text className="text-[15px] font-black tracking-[0.08em] text-[#A78BFA]">______</Text>
-      <Text className="mt-1 text-center text-[10px] font-black uppercase tracking-[0.05em] text-[#8FA7C7]">
+    <View className="rounded-xl border border-border-active bg-surface-raised px-4 py-2">
+      <Text className="text-[15px] font-black tracking-[0.08em] text-brand-student">______</Text>
+      <Text className="mt-1 text-center text-[10px] font-black uppercase tracking-[0.05em] text-text-muted">
         Hueco {index + 1}
       </Text>
     </View>
@@ -755,6 +759,7 @@ function OrderingQuestion({
   onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
   const [orderedAnswers, setOrderedAnswers] = useState<Answer[]>(question.answers)
+  const { tokens } = useAppTheme()
 
   useEffect(() => {
     setOrderedAnswers(question.answers)
@@ -778,21 +783,21 @@ function OrderingQuestion({
   }
 
   return (
-    <View className="gap-3 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
-      <Text className="text-[13px] font-bold text-[#AFC2DB]">Ordena los elementos de arriba a abajo.</Text>
+    <View className="gap-3 rounded-[22px] border border-border-default bg-surface-default p-5">
+      <Text className="text-[13px] font-bold text-text-secondary">Ordena los elementos de arriba a abajo.</Text>
       {orderedAnswers.map((answer, index) => {
-        const rowColor = !hasAnswered ? '#1E355C' : answerStatus === 'correct' ? '#34D399' : '#FB7185'
+        const rowColor = !hasAnswered ? tokens.border.default : answerStatus === 'correct' ? tokens.semantic.success : tokens.semantic.danger
 
         return (
           <View
             key={answer.id}
-            className="flex-row items-center gap-3 rounded-2xl border bg-[#081A37] p-3"
+            className="flex-row items-center gap-3 rounded-2xl border bg-surface-default p-3"
             style={{ borderColor: rowColor }}
           >
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-[#18275A]">
-              <Text className="font-black text-white">{index + 1}</Text>
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-interactive">
+              <Text className="font-black text-text-primary">{index + 1}</Text>
             </View>
-            <Text className="min-w-0 flex-1 text-[17px] font-semibold text-white">{answer.text}</Text>
+            <Text className="min-w-0 flex-1 text-[17px] font-semibold text-text-primary">{answer.text}</Text>
             <View className="flex-row gap-2">
               <MoveButton icon="chevron-up" disabled={hasAnswered || isSubmitting || index === 0} onPress={() => moveAnswer(index, -1)} />
               <MoveButton icon="chevron-down" disabled={hasAnswered || isSubmitting || index === orderedAnswers.length - 1} onPress={() => moveAnswer(index, 1)} />
@@ -824,8 +829,9 @@ function PairingQuestion({
   onSubmit: (payload: StructuredAnswerPayload) => void
 }) {
   const { width } = useWindowDimensions()
+  const { tokens } = useAppTheme()
   const isTwoColumns = width >= 820
-  const labels = getPairingLabels(questionType)
+  const labels = getPairingLabels(questionType, tokens)
   const leftAnswers = question.answers
   const options = normalizePairOptions(question.pair_options || [])
   const [selections, setSelections] = useState<Record<number, PairOptionToken>>({})
@@ -887,25 +893,25 @@ function PairingQuestion({
   }
 
   return (
-    <View className="gap-4 rounded-[22px] border border-[#1E355C] bg-[#0A1A34] p-5">
-      <View className="flex-row flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#28456B] bg-[#081A37] p-4">
+    <View className="gap-4 rounded-[22px] border border-border-default bg-surface-default p-5">
+      <View className="flex-row flex-wrap items-center justify-between gap-3 rounded-2xl border border-border-default bg-surface-default p-4">
         <View className="min-w-0 flex-1 flex-row items-start gap-3">
-          <View className="h-11 w-11 items-center justify-center rounded-full bg-[#18275A]">
+          <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-interactive">
             <Ionicons name={labels.icon} size={22} color={labels.accent} />
           </View>
           <View className="min-w-0 flex-1">
-            <Text className="font-black text-white">{labels.title}</Text>
-            <Text className="mt-1 text-[12px] leading-5 text-[#AFC2DB]">{labels.detail}</Text>
+            <Text className="font-black text-text-primary">{labels.title}</Text>
+            <Text className="mt-1 text-[12px] leading-5 text-text-secondary">{labels.detail}</Text>
           </View>
         </View>
-        <View className="rounded-full border border-[#2A456A] bg-[#0D1D3B] px-3 py-1">
-          <Text className="text-[12px] font-black text-[#A78BFA]">{completedCount}/{leftAnswers.length}</Text>
+        <View className="rounded-full border border-border-default bg-surface-raised px-3 py-1">
+          <Text className="text-[12px] font-black text-brand-student">{completedCount}/{leftAnswers.length}</Text>
         </View>
       </View>
 
       <View className="gap-4" style={{ flexDirection: isTwoColumns ? 'row' : 'column' }}>
         <View style={{ flex: 1 }}>
-          <Text className="mb-3 text-[12px] font-black uppercase tracking-[0.06em] text-[#8FA7C7]">
+          <Text className="mb-3 text-[12px] font-black uppercase tracking-[0.06em] text-text-muted">
             1. Elige {labels.leftLabel.toLowerCase()}
           </Text>
           <View className="gap-3">
@@ -914,42 +920,42 @@ function PairingQuestion({
               const active = activeIndex === index && !hasAnswered
               const borderColor = hasAnswered
                 ? answerStatus === 'correct'
-                  ? '#34D399'
-                  : '#FB7185'
+                  ? tokens.semantic.success
+                  : tokens.semantic.danger
                 : active
-                  ? '#8B5CF6'
+                  ? tokens.brand.student
                   : selected
-                    ? '#43D991'
-                    : '#28456B'
+                    ? tokens.semantic.success
+                    : tokens.border.default
 
               return (
                 <Pressable
                   key={`${answer.id}-${index}`}
                   onPress={() => !hasAnswered && !isSubmitting && setActiveIndex(index)}
                   disabled={hasAnswered || isSubmitting}
-                  className="rounded-2xl border bg-[#0D1D3B] p-4"
+                  className="rounded-2xl border bg-surface-raised p-4"
                   style={({ pressed }) => ({ borderColor, opacity: pressed ? 0.86 : 1 })}
                 >
                   <View className="flex-row items-start gap-3">
                     <View
                       className="h-10 w-10 items-center justify-center rounded-full"
-                      style={{ backgroundColor: active ? '#6D5AF6' : selected ? '#145B45' : '#18275A' }}
+                      style={{ backgroundColor: active ? tokens.brand.student : selected ? tokens.semanticSurface.success : tokens.surface.interactive }}
                     >
-                      <Text className="font-black text-white">{index + 1}</Text>
+                      <Text className="font-black text-text-primary">{index + 1}</Text>
                     </View>
                     <View className="min-w-0 flex-1">
-                      <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-[#8FA7C7]">
+                      <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-text-muted">
                         {labels.leftLabel}
                       </Text>
-                      <Text className="mt-1 text-[17px] font-black text-white">{answer.text}</Text>
+                      <Text className="mt-1 text-[17px] font-black text-text-primary">{answer.text}</Text>
                       {selected ? (
                         <PairConnectionChip left={answer.text} right={selected.text} />
                       ) : (
-                        <View className="mt-3 rounded-xl border border-[#243E65] bg-[#061426] px-3 py-2">
-                          <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-[#8FA7C7]">
+                        <View className="mt-3 rounded-xl border border-border-default bg-background-primary px-3 py-2">
+                          <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-text-muted">
                             {labels.rightLabel}
                           </Text>
-                          <Text className="mt-1 text-[15px] font-black text-[#AFC2DB]">
+                          <Text className="mt-1 text-[15px] font-black text-text-secondary">
                             Selecciona {labels.rightLabel.toLowerCase()} en la columna derecha
                           </Text>
                         </View>
@@ -958,11 +964,11 @@ function PairingQuestion({
                     {selected && !hasAnswered && !isSubmitting ? (
                       <Pressable
                         onPress={() => clearSelection(index)}
-                        className="h-9 w-9 items-center justify-center rounded-full border border-[#2A456A] bg-[#081A37]"
+                        className="h-9 w-9 items-center justify-center rounded-full border border-border-default bg-surface-default"
                         accessibilityRole="button"
                         accessibilityLabel={`Quitar selección de ${answer.text}`}
                       >
-                        <Ionicons name="close" size={17} color="#DDE7F4" />
+                        <Ionicons name="close" size={17} color={tokens.text.primary} />
                       </Pressable>
                     ) : null}
                   </View>
@@ -973,10 +979,10 @@ function PairingQuestion({
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text className="mb-3 text-[12px] font-black uppercase tracking-[0.06em] text-[#8FA7C7]">
+          <Text className="mb-3 text-[12px] font-black uppercase tracking-[0.06em] text-text-muted">
             2. Toca {labels.rightLabel.toLowerCase()}
           </Text>
-          <View className="gap-3 rounded-2xl border border-[#1E355C] bg-[#061426] p-3">
+          <View className="gap-3 rounded-2xl border border-border-default bg-background-primary p-3">
             {options.length > 0 ? options.map((option) => {
               const ownerIndex = findOptionOwner(selections, option.key)
               const usedByCurrent = ownerIndex === activeIndex
@@ -989,23 +995,23 @@ function PairingQuestion({
                   disabled={hasAnswered || isSubmitting}
                   className="rounded-2xl border px-4 py-3"
                   style={({ pressed }) => ({
-                    borderColor: usedByCurrent ? '#8B5CF6' : usedByOther ? '#145B45' : '#314E78',
-                    backgroundColor: usedByCurrent ? '#17164C' : usedByOther ? '#0F3B39' : '#111E45',
+                    borderColor: usedByCurrent ? tokens.brand.student : usedByOther ? tokens.semantic.success : tokens.border.default,
+                    backgroundColor: usedByCurrent ? tokens.surface.selected : usedByOther ? tokens.semanticSurface.success : tokens.surface.raised,
                     opacity: pressed ? 0.86 : 1,
                   })}
                 >
                   <View className="flex-row items-center gap-3">
-                    <View className="h-9 w-9 items-center justify-center rounded-full bg-[#0D1D3B]">
+                    <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-raised">
                       <Ionicons
                         name={usedByCurrent ? 'radio-button-on' : usedByOther ? 'checkmark-circle' : 'ellipse-outline'}
                         size={19}
-                        color={usedByCurrent ? '#A78BFA' : usedByOther ? '#43D991' : '#8FA7C7'}
+                        color={usedByCurrent ? tokens.brand.student : usedByOther ? tokens.semantic.success : tokens.text.muted}
                       />
                     </View>
                     <View className="min-w-0 flex-1">
-                      <Text className="text-[16px] font-black text-white">{option.text}</Text>
+                      <Text className="text-[16px] font-black text-text-primary">{option.text}</Text>
                       {usedByOther ? (
-                        <Text className="mt-1 text-[11px] font-bold text-[#A7F3D0]">
+                        <Text className="mt-1 text-[11px] font-bold text-semantic-success">
                           Usada con {labels.leftLabel.toLowerCase()} {ownerIndex + 1}. Tócala para moverla.
                         </Text>
                       ) : null}
@@ -1014,8 +1020,8 @@ function PairingQuestion({
                 </Pressable>
               )
             }) : (
-              <View className="rounded-xl border border-[#7A4A29] bg-[#3B2518] p-4">
-                <Text className="text-[13px] font-semibold text-[#F6CFAE]">
+              <View className="rounded-xl border border-semantic-warning bg-semantic-surface-warning p-4">
+                <Text className="text-[13px] font-semibold text-text-secondary">
                   Esta pregunta no tiene opciones de pareja configuradas. Revisa la pregunta desde el panel del profesor.
                 </Text>
               </View>
@@ -1025,8 +1031,8 @@ function PairingQuestion({
       </View>
 
       {selectedConnections.length > 0 ? (
-        <View className="rounded-2xl border border-[#243E65] bg-[#061426] p-4">
-          <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#8FA7C7]">Relaciones elegidas</Text>
+        <View className="rounded-2xl border border-border-default bg-background-primary p-4">
+          <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-text-muted">Relaciones elegidas</Text>
           <View className="mt-3 flex-row flex-wrap gap-2">
             {selectedConnections.map((connection) => (
               <PairConnectionChip
@@ -1041,8 +1047,8 @@ function PairingQuestion({
       ) : null}
 
       {!hasAnswered && !isSubmitting && !isReady ? (
-        <View className="rounded-2xl border border-[#2A456A] bg-[#081A37] p-4">
-          <Text className="text-[13px] font-semibold text-[#B8C7E0]">
+        <View className="rounded-2xl border border-border-default bg-surface-default p-4">
+          <Text className="text-[13px] font-semibold text-text-secondary">
             Completa todas las relaciones para activar el botón de comprobar.
           </Text>
         </View>
@@ -1074,35 +1080,22 @@ function GameConnectionBanner({
   onRetry: () => void
 }) {
   const { t } = useI18n()
-  const color = isOffline ? '#F59E0B' : pending ? '#60A5FA' : '#34D399'
+  const variant = isOffline ? 'warning' : pending ? 'info' : 'success'
   const icon = isOffline ? 'cloud-offline-outline' : pending ? 'sync-outline' : 'refresh-circle-outline'
   const title = isOffline ? t('offline.banner') : pending ? t('offline.pending') : t('offline.resumed')
-  const detail = resumed && !pending && !isOffline ? t('offline.resumed.detail') : null
+  const detail = resumed && !pending && !isOffline ? t('offline.resumed.detail') : undefined
 
   return (
-    <View
-      accessibilityRole="alert"
-      className="mt-4 flex-row items-center gap-3 rounded-2xl border px-4 py-3"
-      style={{ borderColor: color, backgroundColor: `${color}18` }}
-    >
-      <Ionicons name={icon} size={22} color={color} />
-      <View className="min-w-0 flex-1">
-        <Text className="text-[12px] font-black" style={{ color }}>{title}</Text>
-        {detail ? <Text className="mt-1 text-[11px] text-[#B8C7E0]">{detail}</Text> : null}
-      </View>
-      {pending ? (
-        <Pressable
-          accessibilityLabel={t('common.retry')}
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={onRetry}
-          className="min-h-[42px] flex-row items-center gap-2 rounded-xl px-3"
-          style={({ pressed }) => ({ backgroundColor: `${color}25`, opacity: pressed ? 0.72 : 1 })}
-        >
-          <Ionicons name="refresh" size={17} color={color} />
-          <Text className="text-[11px] font-black" style={{ color }}>{t('common.retry')}</Text>
-        </Pressable>
-      ) : null}
+    <View className="mt-4">
+      <AppStatusBanner
+        compact
+        variant={variant}
+        icon={icon}
+        title={title}
+        message={detail}
+        actionLabel={pending ? t('common.retry') : undefined}
+        onAction={pending ? onRetry : undefined}
+      />
     </View>
   )
 }
@@ -1163,7 +1156,7 @@ function findOptionOwner(selections: Record<number, PairOptionToken>, optionKey:
   return owner ? Number(owner[0]) : null
 }
 
-function getPairingLabels(type: 'match_pairs' | 'drag_drop') {
+function getPairingLabels(type: 'match_pairs' | 'drag_drop', tokens: DesignColorTokens) {
   if (type === 'drag_drop') {
     return {
       title: 'Asigna cada elemento a su destino',
@@ -1171,7 +1164,7 @@ function getPairingLabels(type: 'match_pairs' | 'drag_drop') {
       leftLabel: 'Elemento',
       rightLabel: 'Destino',
       icon: 'move' as keyof typeof Ionicons.glyphMap,
-      accent: '#A78BFA',
+      accent: tokens.brand.student,
     }
   }
 
@@ -1181,6 +1174,6 @@ function getPairingLabels(type: 'match_pairs' | 'drag_drop') {
     leftLabel: 'Origen',
     rightLabel: 'Pareja',
     icon: 'git-compare' as keyof typeof Ionicons.glyphMap,
-    accent: '#F6A64A',
+    accent: tokens.gamification.xp,
   }
 }

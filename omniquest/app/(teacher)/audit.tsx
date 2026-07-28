@@ -229,10 +229,10 @@ export default function TeacherAuditScreen() {
           />
 
           {errorMessage ? (
-            <View className="mb-5 rounded-2xl border border-[#3F2430] bg-[#160D19] p-5">
+            <View className="mb-5 rounded-2xl border border-border-default bg-background-primary p-5">
               <Ionicons name="warning-outline" size={28} color="#FB7185" />
               <Text className="mt-3 text-xl font-black text-white">No se pudo cargar la auditoría</Text>
-              <Text className="mt-2 text-[13px] leading-5 text-[#FCA5A5]">{errorMessage}</Text>
+              <Text className="mt-2 text-[13px] leading-5 text-semantic-danger">{errorMessage}</Text>
             </View>
           ) : null}
 
@@ -268,10 +268,10 @@ export default function TeacherAuditScreen() {
           {allLogsTotal === 0 ? (
             <AuditEmptyState selectedFilter="all" />
           ) : (
-            <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+            <View className="rounded-2xl border border-border-default bg-surface-default p-5">
               <View className="mb-4 flex-row items-center justify-between gap-3">
                 <Text className="text-[18px] font-black text-white">Timeline de auditoría</Text>
-                <Text className="text-[12px] font-bold text-[#B9A7FF]">{totalLogs} registros</Text>
+                <Text className="text-[12px] font-bold text-brand-teacher">{totalLogs} registros</Text>
               </View>
 
               <View className="gap-3">
@@ -406,11 +406,11 @@ function MobileTeacherAudit({
             colors={['#30111F', '#120D19']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            className="mb-5 rounded-2xl border border-[#7F1D1D] p-5"
+            className="mb-5 rounded-2xl border border-semantic-danger p-5"
           >
             <Ionicons name="warning-outline" size={30} color="#FB7185" />
             <Text className="mt-3 text-xl font-black text-white">No se pudo cargar la auditoría</Text>
-            <Text className="mt-2 text-[13px] leading-5 text-[#FCA5A5]">{errorMessage}</Text>
+            <Text className="mt-2 text-[13px] leading-5 text-semantic-danger">{errorMessage}</Text>
           </LinearGradient>
         ) : null}
 
@@ -443,12 +443,12 @@ function MobileTeacherAudit({
             colors={['#071A33', '#061326']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            className="rounded-2xl border border-[#1D3760] p-4"
+            className="rounded-2xl border border-border-default p-4"
           >
             <View className="mb-4 flex-row items-center justify-between">
               <View>
                 <Text className="text-[24px] font-black text-white">Timeline</Text>
-                <Text className="mt-1 text-[12px] font-bold text-[#8FA7C7]">{totalLogs} registros</Text>
+                <Text className="mt-1 text-[12px] font-bold text-text-muted">{totalLogs} registros</Text>
               </View>
             </View>
 
@@ -484,12 +484,12 @@ function AuditEmptyState({ selectedFilter, mobile = false }: { selectedFilter: A
   const isAll = selectedFilter === 'all'
 
   return (
-    <View className={`${mobile ? 'px-4 py-8' : 'px-6 py-10'} items-center rounded-2xl border border-dashed border-[#253C67] bg-[#0D1D3B]`}>
-      <View className="h-16 w-16 items-center justify-center rounded-full bg-[#122747]">
+    <View className={`${mobile ? 'px-4 py-8' : 'px-6 py-10'} items-center rounded-2xl border border-dashed border-border-default bg-surface-raised`}>
+      <View className="h-16 w-16 items-center justify-center rounded-full bg-semantic-surface-info">
         <Ionicons name="shield-checkmark-outline" size={34} color="#8FA7C7" />
       </View>
       <Text className="mt-4 text-center text-[17px] font-black text-white">Todavía no hay acciones sensibles</Text>
-      <Text className="mt-2 text-center text-[13px] leading-5 text-[#AFC2DB]">
+      <Text className="mt-2 text-center text-[13px] leading-5 text-text-secondary">
         {isAll
           ? 'Cuando gestiones alumnos, cursos, temas, preguntas, perfil o códigos, cada acción sensible aparecerá aquí con usuario, objeto y fecha.'
           : `No hay eventos en ${filterLabel}. Cambia el filtro o realiza una acción sensible para verla registrada.`}
@@ -548,7 +548,7 @@ function MobileAuditFilterChip({
       })}
     >
       <Ionicons name={filter.icon} size={23} color={active ? '#FFFFFF' : color} />
-      <Text className={`min-w-0 flex-1 text-[18px] font-black ${active ? 'text-white' : 'text-[#DDE7F4]'}`} numberOfLines={1}>
+      <Text className={`min-w-0 flex-1 text-[18px] font-black ${active ? 'text-white' : 'text-text-secondary'}`} numberOfLines={1}>
         {filter.label}
       </Text>
       <View className="min-w-[34px] items-center rounded-full px-2 py-1" style={{ backgroundColor: active ? '#4C2FA6' : '#152B4E' }}>
@@ -566,7 +566,7 @@ function MobileAuditLogItem({ log }: { log: TeacherAuditLogRow }) {
 
   return (
     <Pressable
-      className="rounded-2xl bg-[#0A1D37] px-4 py-4"
+      className="rounded-2xl bg-surface-raised px-4 py-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.86 : 1 })}
     >
       <View className="flex-row gap-4">
@@ -574,7 +574,7 @@ function MobileAuditLogItem({ log }: { log: TeacherAuditLogRow }) {
           <View className="items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(meta.color, '30'), height: 52, width: 52 }}>
             <Ionicons name={meta.icon} size={25} color={meta.color} />
           </View>
-          <View className="mt-2 w-[2px] flex-1 rounded-full bg-[#213A62]" />
+          <View className="mt-2 w-[2px] flex-1 rounded-full bg-surface-selected" />
         </View>
         <View className="min-w-0 flex-1">
           <View className="flex-row items-center gap-2">
@@ -583,11 +583,11 @@ function MobileAuditLogItem({ log }: { log: TeacherAuditLogRow }) {
               <Text className="text-[12px] font-black" style={{ color: meta.color }}>{meta.badge}</Text>
             </View>
           </View>
-          <Text className="mt-1 text-[14px] leading-5 text-[#B8C6DC]" numberOfLines={3}>{summary}</Text>
+          <Text className="mt-1 text-[14px] leading-5 text-text-secondary" numberOfLines={3}>{summary}</Text>
           <View className="mt-3 gap-1.5">
-            <Text className="text-[12px] text-[#8FA7C7]" numberOfLines={1}>Objeto: {object}</Text>
-            <Text className="text-[12px] text-[#8FA7C7]" numberOfLines={1}>Usuario: {actor}</Text>
-            <Text className="text-[12px] font-bold text-[#B9A7FF]">{getTimeAgo(log.created_at)}</Text>
+            <Text className="text-[12px] text-text-muted" numberOfLines={1}>Objeto: {object}</Text>
+            <Text className="text-[12px] text-text-muted" numberOfLines={1}>Usuario: {actor}</Text>
+            <Text className="text-[12px] font-bold text-brand-teacher">{getTimeAgo(log.created_at)}</Text>
           </View>
         </View>
       </View>
@@ -645,13 +645,13 @@ function AuditLogItem({ log }: { log: TeacherAuditLogRow }) {
   const object = formatAuditObject(log)
 
   return (
-    <View className="rounded-xl border border-[#172A4A] bg-[#0D1D3B] p-4">
+    <View className="rounded-xl border border-border-subtle bg-surface-raised p-4">
       <View className="flex-row items-start gap-4">
         <View className="items-center">
           <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${meta.color}24` }}>
             <Ionicons name={meta.icon} size={21} color={meta.color} />
           </View>
-          <View className="mt-2 w-[2px] flex-1 rounded-full bg-[#20375E]" />
+          <View className="mt-2 w-[2px] flex-1 rounded-full bg-surface-selected" />
         </View>
         <View className="min-w-0 flex-1">
           <View className="flex-row flex-wrap items-center gap-2">
@@ -660,14 +660,14 @@ function AuditLogItem({ log }: { log: TeacherAuditLogRow }) {
               <Text className="text-[12px] font-black" style={{ color: meta.color }}>{meta.badge}</Text>
             </View>
           </View>
-          <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">{summary}</Text>
+          <Text className="mt-1 text-[13px] leading-5 text-text-secondary">{summary}</Text>
           <View className="mt-2 flex-row flex-wrap gap-x-4 gap-y-1">
-            <Text className="text-[12px] text-[#8FA7C7]">Objeto: {object}</Text>
-            <Text className="text-[12px] text-[#8FA7C7]">Usuario: {actor}</Text>
-            <Text className="text-[12px] font-bold text-[#B9A7FF]">{getTimeAgo(log.created_at)}</Text>
+            <Text className="text-[12px] text-text-muted">Objeto: {object}</Text>
+            <Text className="text-[12px] text-text-muted">Usuario: {actor}</Text>
+            <Text className="text-[12px] font-bold text-brand-teacher">{getTimeAgo(log.created_at)}</Text>
           </View>
           {metadata.reason ? (
-            <Text className="mt-2 text-[12px] leading-5 text-[#B7C4D7]">
+            <Text className="mt-2 text-[12px] leading-5 text-text-secondary">
               Motivo: {String(metadata.reason)}
             </Text>
           ) : null}

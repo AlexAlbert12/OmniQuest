@@ -582,19 +582,19 @@ export default function TeacherStudentHistoryScreen() {
             titleNumberOfLines={2}
             notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
             leading={(
-              <View className="h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-[#17315E]">
+              <View className="h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-surface-selected">
                 <Text className="text-[18px] font-black text-white">{getInitials(studentName)}</Text>
               </View>
             )}
           />
 
           {errorMessage ? (
-            <View className="rounded-2xl border border-[#4A2B1A] bg-[#21140A] p-5">
+            <View className="rounded-2xl border border-border-default bg-semantic-surface-danger p-5">
               <View className="flex-row items-start gap-3">
                 <Ionicons name="warning-outline" size={24} color="#F59E0B" />
                 <View className="min-w-0 flex-1">
                   <Text className="text-[18px] font-black text-white">No se pudo mostrar el historial</Text>
-                  <Text className="mt-2 text-[13px] leading-5 text-[#F8D7A1]">{errorMessage}</Text>
+                  <Text className="mt-2 text-[13px] leading-5 text-semantic-warning">{errorMessage}</Text>
                 </View>
               </View>
             </View>
@@ -848,10 +848,10 @@ function MetricCard({ icon, title, value, detail, color }: {
 
 function Panel({ title, action, children }: { title: string; action?: string; children: React.ReactNode }) {
   return (
-    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+    <View className="rounded-2xl border border-border-default bg-surface-default p-5">
       <View className="mb-4 flex-row items-center justify-between gap-3">
         <Text className="text-[17px] font-black text-white">{title}</Text>
-        {action ? <Text className="text-[12px] font-semibold text-[#B9A7FF]" numberOfLines={1}>{action}</Text> : null}
+        {action ? <Text className="text-[12px] font-semibold text-brand-student" numberOfLines={1}>{action}</Text> : null}
       </View>
       {children}
     </View>
@@ -860,11 +860,11 @@ function Panel({ title, action, children }: { title: string; action?: string; ch
 
 function CourseCard({ context }: { context: CourseContext }) {
   return (
-    <View className="min-w-[230px] flex-1 rounded-xl border border-[#20375E] bg-[#071A32] p-4">
+    <View className="min-w-[230px] flex-1 rounded-xl border border-border-default bg-surface-default p-4">
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
           <Text className="text-[14px] font-black text-white" numberOfLines={2}>{context.subjectName}</Text>
-          <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>{context.classroomName}</Text>
+          <Text className="mt-1 text-[12px] text-text-secondary" numberOfLines={1}>{context.classroomName}</Text>
         </View>
         <Ionicons name="school-outline" size={20} color="#9FD6FF" />
       </View>
@@ -872,30 +872,30 @@ function CourseCard({ context }: { context: CourseContext }) {
         <Tag label={context.academicYear || 'Curso actual'} />
         {context.classroomCode ? <Tag label={`Código ${context.classroomCode}`} /> : null}
       </View>
-      <Text className="mt-3 text-[11px] text-[#8FA7C7]">Inscrito: {formatDate(context.joinedAt)}</Text>
+      <Text className="mt-3 text-[11px] text-text-muted">Inscrito: {formatDate(context.joinedAt)}</Text>
     </View>
   )
 }
 
 function Tag({ label }: { label: string }) {
   return (
-    <View className="rounded-full border border-[#28446D] bg-[#0D1D3B] px-2.5 py-1">
-      <Text className="text-[10px] font-bold text-[#B7C4D7]">{label}</Text>
+    <View className="rounded-full border border-border-default bg-surface-raised px-2.5 py-1">
+      <Text className="text-[10px] font-bold text-text-secondary">{label}</Text>
     </View>
   )
 }
 
 function EvolutionRow({ bucket }: { bucket: EvolutionBucket }) {
   return (
-    <View className="rounded-xl border border-[#20375E] bg-[#07162E] p-3">
+    <View className="rounded-xl border border-border-default bg-surface-default p-3">
       <View className="mb-2 flex-row items-center justify-between gap-3">
         <Text className="text-[12px] font-black text-white">{bucket.label}</Text>
-        <Text className="text-[12px] font-black text-[#9FD6FF]">{bucket.accuracyPercent}%</Text>
+        <Text className="text-[12px] font-black text-semantic-info">{bucket.accuracyPercent}%</Text>
       </View>
-      <View className="h-2 overflow-hidden rounded-full bg-[#13294C]">
-        <View className="h-full rounded-full bg-[#38BDF8]" style={{ width: `${bucket.accuracyPercent}%` }} />
+      <View className="h-2 overflow-hidden rounded-full bg-surface-interactive">
+        <View className="h-full rounded-full bg-semantic-info" style={{ width: `${bucket.accuracyPercent}%` }} />
       </View>
-      <Text className="mt-2 text-[11px] text-[#8FA7C7]">
+      <Text className="mt-2 text-[11px] text-text-muted">
         {bucket.correct}/{bucket.total} aciertos · {bucket.earnedPoints} XP
       </Text>
     </View>
@@ -906,7 +906,7 @@ function AttemptHistoryRow({ attempt, onOpenQuestion }: { attempt: NormalizedAtt
   return (
     <Pressable
       onPress={() => onOpenQuestion(attempt.questionId)}
-      className="rounded-xl border border-[#20375E] bg-[#071A32] p-3"
+      className="rounded-xl border border-border-default bg-surface-default p-3"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       <View className="flex-row items-start gap-3">
@@ -918,14 +918,14 @@ function AttemptHistoryRow({ attempt, onOpenQuestion }: { attempt: NormalizedAtt
             <Text className="text-[12px] font-black" style={{ color: attempt.isCorrect ? '#58E28B' : '#FB7185' }}>
               {attempt.isCorrect ? 'Correcta' : 'Fallada'}
             </Text>
-            <Text className="text-[11px] text-[#8FA7C7]">{formatDateTime(attempt.attemptedAt)}</Text>
-            <Text className="text-[11px] text-[#FBBF24]">+{attempt.earnedPoints} XP</Text>
+            <Text className="text-[11px] text-text-muted">{formatDateTime(attempt.attemptedAt)}</Text>
+            <Text className="text-[11px] text-gamification-xp">+{attempt.earnedPoints} XP</Text>
           </View>
           <Text className="mt-1 text-[13px] font-bold text-white" numberOfLines={2}>{attempt.questionText}</Text>
-          <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>
+          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>
             {attempt.subjectName} · {attempt.topicTitle} · {questionTypeLabels[attempt.questionType] || attempt.questionType}
           </Text>
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]" numberOfLines={2}>
+          <Text className="mt-1 text-[11px] text-text-secondary" numberOfLines={2}>
             Respuesta: {attempt.answerText}
           </Text>
         </View>
@@ -939,18 +939,18 @@ function WeakTopicRow({ topic }: { topic: WeakTopic }) {
   const mistakePercent = Math.min(100, Math.round((topic.mistakes / Math.max(topic.totalAttempts, 1)) * 100))
 
   return (
-    <View className="rounded-xl border border-[#4A2B1A] bg-[#21140A] p-3">
+    <View className="rounded-xl border border-border-default bg-semantic-surface-danger p-3">
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
           <Text className="text-[13px] font-black text-white" numberOfLines={2}>{topic.topicTitle}</Text>
-          <Text className="mt-1 text-[11px] text-[#F8D7A1]" numberOfLines={1}>{topic.subjectName}</Text>
+          <Text className="mt-1 text-[11px] text-semantic-warning" numberOfLines={1}>{topic.subjectName}</Text>
         </View>
-        <Text className="text-[12px] font-black text-[#F59E0B]">{topic.mistakes} errores</Text>
+        <Text className="text-[12px] font-black text-semantic-warning">{topic.mistakes} errores</Text>
       </View>
-      <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#3A2511]">
-        <View className="h-full rounded-full bg-[#F59E0B]" style={{ width: `${mistakePercent}%` }} />
+      <View className="mt-3 h-2 overflow-hidden rounded-full bg-semantic-surface-warning">
+        <View className="h-full rounded-full bg-semantic-warning" style={{ width: `${mistakePercent}%` }} />
       </View>
-      <Text className="mt-2 text-[11px] text-[#F8D7A1]">
+      <Text className="mt-2 text-[11px] text-semantic-warning">
         {topic.accuracyPercent}% de acierto · Último intento: {getTimeAgo(topic.lastAttemptAt)}
       </Text>
     </View>
@@ -961,15 +961,15 @@ function FailedQuestionRow({ attempt, onOpenQuestion }: { attempt: NormalizedAtt
   return (
     <Pressable
       onPress={() => onOpenQuestion(attempt.questionId)}
-      className="rounded-xl border border-[#3E2232] bg-[#1B1020] p-3"
+      className="rounded-xl border border-border-subtle bg-background-primary p-3"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       <View className="flex-row items-start gap-3">
         <Ionicons name="alert-circle-outline" size={18} color="#FB7185" />
         <View className="min-w-0 flex-1">
           <Text className="text-[13px] font-bold text-white" numberOfLines={2}>{attempt.questionText}</Text>
-          <Text className="mt-1 text-[11px] text-[#F8B4C4]" numberOfLines={1}>{attempt.subjectName} · {attempt.topicTitle}</Text>
-          <Text className="mt-1 text-[11px] text-[#AFC2DB]" numberOfLines={2}>Respuesta del alumno: {attempt.answerText}</Text>
+          <Text className="mt-1 text-[11px] text-text-secondary" numberOfLines={1}>{attempt.subjectName} · {attempt.topicTitle}</Text>
+          <Text className="mt-1 text-[11px] text-text-secondary" numberOfLines={2}>Respuesta del alumno: {attempt.answerText}</Text>
         </View>
       </View>
     </Pressable>
@@ -982,7 +982,7 @@ function ReviewRow({ attempt, pending = false, onOpenQuestion }: { attempt: Norm
   return (
     <Pressable
       onPress={() => onOpenQuestion(attempt.questionId)}
-      className="rounded-xl border border-[#20375E] bg-[#071A32] p-3"
+      className="rounded-xl border border-border-default bg-surface-default p-3"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       <View className="flex-row items-start gap-3">
@@ -992,10 +992,10 @@ function ReviewRow({ attempt, pending = false, onOpenQuestion }: { attempt: Norm
         <View className="min-w-0 flex-1">
           <Text className="text-[12px] font-black" style={{ color }}>{getReviewStatusLabel(attempt.manualReviewStatus)}</Text>
           <Text className="mt-1 text-[13px] font-bold text-white" numberOfLines={2}>{attempt.questionText}</Text>
-          <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>
+          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>
             {attempt.reviewedAt ? `Revisado: ${formatDateTime(attempt.reviewedAt)}` : `Intento: ${formatDateTime(attempt.attemptedAt)}`}
           </Text>
-          {attempt.reviewNotes ? <Text className="mt-1 text-[11px] text-[#AFC2DB]" numberOfLines={2}>Notas: {attempt.reviewNotes}</Text> : null}
+          {attempt.reviewNotes ? <Text className="mt-1 text-[11px] text-text-secondary" numberOfLines={2}>Notas: {attempt.reviewNotes}</Text> : null}
         </View>
       </View>
     </Pressable>
@@ -1004,21 +1004,21 @@ function ReviewRow({ attempt, pending = false, onOpenQuestion }: { attempt: Norm
 
 function TopicScoreRowView({ score }: { score: { subjectName: string; topicTitle: string; maxScore: number; playedAt: string | null } }) {
   return (
-    <View className="rounded-xl border border-[#20375E] bg-[#07162E] p-3">
+    <View className="rounded-xl border border-border-default bg-surface-default p-3">
       <View className="flex-row items-center justify-between gap-3">
         <View className="min-w-0 flex-1">
           <Text className="text-[13px] font-black text-white" numberOfLines={2}>{score.topicTitle}</Text>
-          <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>{score.subjectName}</Text>
+          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>{score.subjectName}</Text>
         </View>
-        <Text className="text-[14px] font-black text-[#FBBF24]">{score.maxScore} XP</Text>
+        <Text className="text-[14px] font-black text-gamification-xp">{score.maxScore} XP</Text>
       </View>
-      <Text className="mt-2 text-[11px] text-[#8FA7C7]">Última práctica: {formatDateTime(score.playedAt)}</Text>
+      <Text className="mt-2 text-[11px] text-text-muted">Última práctica: {formatDateTime(score.playedAt)}</Text>
     </View>
   )
 }
 
 function EmptyText({ text }: { text: string }) {
-  return <Text className="text-[13px] leading-5 text-[#8FA7C7]">{text}</Text>
+  return <Text className="text-[13px] leading-5 text-text-muted">{text}</Text>
 }
 
 function buildCourseContexts(enrollments: EnrollmentRow[]): CourseContext[] {

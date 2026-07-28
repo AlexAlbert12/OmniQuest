@@ -10,6 +10,7 @@ import { usePushNotificationObserver } from '../hooks/usePushNotificationObserve
 import { StatusBar } from 'expo-status-bar'
 import { NotificationProvider } from '../hooks/useNotifications'
 import { AppModalProvider } from '../components/AppModalProvider'
+import { AppToastProvider } from '../components/ui/AppToast'
 import OmniGuide from '../components/OmniGuide'
 import { AppHapticsProvider } from '../lib/haptics'
 import { registerCurrentSession } from '../lib/sessionSecurity'
@@ -55,13 +56,15 @@ export default function RootLayout() {
     <I18nProvider>
       <AppThemeProvider>
         <AppHapticsProvider>
-          <AppModalProvider>
-            <OfflineSyncProvider>
+          <AppToastProvider>
+            <AppModalProvider>
+              <OfflineSyncProvider>
               <NotificationProvider>
                 <RootNavigator />
               </NotificationProvider>
-            </OfflineSyncProvider>
-          </AppModalProvider>
+              </OfflineSyncProvider>
+            </AppModalProvider>
+          </AppToastProvider>
         </AppHapticsProvider>
       </AppThemeProvider>
     </I18nProvider>

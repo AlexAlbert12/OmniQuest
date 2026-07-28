@@ -5,15 +5,20 @@
 :root {
   --omni-background-primary: #061126;
   --omni-background-secondary: #020b1b;
+  --omni-background-overlay: rgba(2, 6, 23, 0.82);
   --omni-surface-default: #07162c;
   --omni-surface-raised: #0d1d3b;
   --omni-surface-interactive: #10213e;
+  --omni-surface-selected: #202e6b;
+  --omni-surface-disabled: #111d32;
   --omni-border-default: #1a3155;
+  --omni-border-subtle: #13284a;
   --omni-border-active: #7c5cff;
   --omni-text-primary: #ffffff;
   --omni-text-secondary: #c9d7ea;
   --omni-text-muted: #8fa7c7;
   --omni-text-inverse: #061126;
+  --omni-text-disabled: #60799c;
   --omni-brand-student: #7c5cff;
   --omni-brand-teacher: #38bdf8;
   --omni-brand-admin: #a78bfa;
@@ -21,9 +26,18 @@
   --omni-semantic-warning: #f59e0b;
   --omni-semantic-danger: #fb7185;
   --omni-semantic-info: #38bdf8;
+  --omni-semantic-surface-success: #0d2f29;
+  --omni-semantic-surface-warning: #332a10;
+  --omni-semantic-surface-danger: #351420;
+  --omni-semantic-surface-info: #0d2848;
   --omni-gamification-xp: #fbbf24;
   --omni-gamification-streak: #f97316;
   --omni-gamification-badge: #f6c453;
+  --omni-rank-bronze: #cd7f32;
+  --omni-rank-silver: #cbd5e1;
+  --omni-rank-gold: #fbbf24;
+  --omni-rank-platinum: #67e8f9;
+  --omni-rank-diamond: #a78bfa;
   --omni-background: var(--omni-background-primary);
   --omni-surface: var(--omni-surface-default);
   --omni-text: var(--omni-text-primary);
@@ -34,22 +48,36 @@
 html[data-theme='light'] {
   --omni-background-primary: #f4f7ff;
   --omni-background-secondary: #eaf0fc;
+  --omni-background-overlay: rgba(15, 23, 42, 0.46);
   --omni-surface-default: #ffffff;
   --omni-surface-raised: #f8faff;
   --omni-surface-interactive: #e7eefa;
+  --omni-surface-selected: #e8e4ff;
+  --omni-surface-disabled: #edf1f7;
   --omni-border-default: #ccd8ea;
+  --omni-border-subtle: #dfe7f2;
   --omni-border-active: #7e96b8;
   --omni-text-primary: #13233d;
   --omni-text-secondary: #334a68;
   --omni-text-muted: #657b98;
   --omni-text-inverse: #ffffff;
+  --omni-text-disabled: #8797ac;
   --omni-semantic-success: #178a5d;
   --omni-semantic-warning: #a86600;
   --omni-semantic-danger: #c93855;
   --omni-semantic-info: #147ca8;
+  --omni-semantic-surface-success: #e5f7ef;
+  --omni-semantic-surface-warning: #fff4d6;
+  --omni-semantic-surface-danger: #fde8ed;
+  --omni-semantic-surface-info: #e5f4fa;
   --omni-gamification-xp: #a86600;
   --omni-gamification-streak: #c4510a;
   --omni-gamification-badge: #9a6b00;
+  --omni-rank-bronze: #9a5b24;
+  --omni-rank-silver: #64748b;
+  --omni-rank-gold: #a86600;
+  --omni-rank-platinum: #147ca8;
+  --omni-rank-diamond: #6d4ddb;
   color-scheme: light;
 }
 

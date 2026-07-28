@@ -136,7 +136,7 @@ export function SettingsProfilePanel({
     <Panel title={`Información del ${isTeacher ? 'profesor' : 'alumno'}`}>
       <View className={width >= 520 ? 'flex-row gap-5' : 'gap-4'}>
         <View className="items-center">
-          <View className="h-24 w-24 items-center justify-center rounded-full bg-[#4E3CB7]">
+          <View className="h-24 w-24 items-center justify-center rounded-full bg-surface-selected">
             <Text className="text-[28px] font-black text-white">{userInitials}</Text>
           </View>
           <Pressable
@@ -156,7 +156,7 @@ export function SettingsProfilePanel({
               onChangeText={onNameChange}
               placeholder={isTeacher ? 'Profesor' : 'Alumno'}
               placeholderTextColor="#64748B"
-              className="rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3 text-[13px] text-white"
+              className="rounded-lg border border-border-default bg-surface-default px-4 py-3 text-[13px] text-white"
             />
           </Field>
           <Field label="Correo electrónico">
@@ -164,7 +164,7 @@ export function SettingsProfilePanel({
               value={email}
               editable={false}
               placeholderTextColor="#64748B"
-              className="rounded-lg border border-[#183052] bg-[#071A32] px-4 py-3 text-[13px] text-[#B7C4D7]"
+              className="rounded-lg border border-border-default bg-surface-default px-4 py-3 text-[13px] text-text-secondary"
             />
           </Field>
           <Field label="Idioma preferido">
@@ -182,7 +182,7 @@ export function SettingsProfilePanel({
           </Field>
         </View>
       </View>
-      <View className="mt-4 border-t border-[#13284A] pt-4">
+      <View className="mt-4 border-t border-border-subtle pt-4">
         <ActionRow
           icon="lock-closed-outline"
           title="Gestionar seguridad"
@@ -472,11 +472,11 @@ export function SettingsPrivacyPanel({
 }) {
   return (
     <Panel title="Privacidad">
-      <View className="mb-4 rounded-lg border border-[#183052] bg-[#071A32] p-4">
+      <View className="mb-4 rounded-lg border border-border-default bg-surface-default p-4">
         <View className="flex-row flex-wrap items-center justify-between gap-3">
           <View className="min-w-0 flex-1">
             <Text className="font-bold text-white">Visibilidad del perfil</Text>
-            <Text className="mt-1 text-[12px] text-[#AFC2DB]">
+            <Text className="mt-1 text-[12px] text-text-secondary">
               {isTeacher
                 ? 'Decide cómo se muestra tu perfil docente dentro de OmniQuest.'
                 : 'Decide si otros estudiantes pueden ver tu perfil en rankings y logros.'}
@@ -504,13 +504,13 @@ export function SettingsPrivacyPanel({
         </View>
 
         {!profileVisibilityAvailable ? (
-          <Text className="mt-3 text-[12px] leading-5 text-[#FBBF24]">
+          <Text className="mt-3 text-[12px] leading-5 text-gamification-xp">
             Esta preferencia no se guardará hasta aplicar la migración y regenerar types/database.types.ts.
           </Text>
         ) : null}
       </View>
 
-      <View className="mb-4 overflow-hidden rounded-xl border border-[#183052] bg-[#071A32]">
+      <View className="mb-4 overflow-hidden rounded-xl border border-border-default bg-surface-default">
         <NotificationRow
           icon="analytics-outline"
           title="Analítica de producto"
@@ -520,21 +520,21 @@ export function SettingsPrivacyPanel({
           disabled={savingAnalytics}
           loading={savingAnalytics}
         />
-        <Text className="px-4 pb-4 text-[11px] leading-4 text-[#8FA7C7]">
+        <Text className="px-4 pb-4 text-[11px] leading-4 text-text-muted">
           Los eventos se anonimizan a los 90 días y se eliminan como máximo a los 395 días. Los errores operativos esenciales no incluyen contenido académico ni credenciales.
         </Text>
       </View>
 
-      <View className="rounded-xl border border-[#4733B7] bg-[#151A47] p-4">
+      <View className="rounded-xl border border-border-active bg-surface-raised p-4">
         <View className="flex-row gap-3">
           <Ionicons name="shield-checkmark-outline" size={22} color={accentColor} />
           <View className="min-w-0 flex-1">
             <Text className="font-black text-white">Tu privacidad es importante</Text>
-            <Text className="mt-1 text-[12px] leading-5 text-[#B7C4D7]">
+            <Text className="mt-1 text-[12px] leading-5 text-text-secondary">
               Protegemos tu información y tu historial académico.
             </Text>
             <Pressable onPress={onShowPrivacyCenter} className="mt-2 flex-row items-center gap-1">
-              <Text className="text-[12px] font-bold text-[#A78BFA]">Centro de privacidad</Text>
+              <Text className="text-[12px] font-bold text-text-secondary">Centro de privacidad</Text>
               <Ionicons name="open-outline" size={13} color="#A78BFA" />
             </Pressable>
           </View>
@@ -602,9 +602,9 @@ export function SettingsDataPanel({
         loading={exportingData}
       />
 
-      <View className="mt-4 rounded-lg border border-[#183052] bg-[#071A32] p-4">
+      <View className="mt-4 rounded-lg border border-border-default bg-surface-default p-4">
         <Text className="font-bold text-white">Zona de datos</Text>
-        <Text className="mb-3 mt-1 text-[12px] text-[#AFC2DB]">
+        <Text className="mb-3 mt-1 text-[12px] text-text-secondary">
           {isTeacher
             ? 'Puedes limpiar progreso o reiniciar por completo tu espacio docente. Estas acciones no se pueden deshacer.'
             : 'Elimina selectivamente progreso, cursos o preferencias guardadas. Estas acciones no se pueden deshacer.'}
@@ -659,14 +659,14 @@ function DangerDataRow({
     <Pressable
       onPress={onPress}
       disabled={deletingData}
-      className="flex-row items-center justify-between rounded-lg border border-[#BE123C] bg-[#7F1D1D33] p-3"
+      className="flex-row items-center justify-between rounded-lg border border-semantic-danger bg-semantic-surface-danger p-3"
       style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
     >
       <View className="flex-row items-center gap-3">
         <Ionicons name={icon} size={16} color="#FB7185" />
         <View className="min-w-0 flex-1">
           <Text className="text-[13px] font-semibold text-white">{title}</Text>
-          {description ? <Text className="mt-1 text-[12px] text-[#FECACA]">{description}</Text> : null}
+          {description ? <Text className="mt-1 text-[12px] text-text-secondary">{description}</Text> : null}
         </View>
       </View>
 
@@ -787,12 +787,12 @@ export function SettingsAboutPanel({
   return (
     <Panel title="Acerca de OmniQuest">
       <View className="gap-4">
-        <Text className="text-[13px] leading-5 text-[#AFC2DB]">
+        <Text className="text-[13px] leading-5 text-text-secondary">
           OmniQuest es una plataforma educativa gamificada para practicar contenidos mediante cursos, clases, temas y preguntas interactivas.
         </Text>
 
-        <View className="rounded-xl border border-[#183052] bg-[#071A32] p-4">
-          <Text className="text-[12px] text-[#8FA7C7]">Versión</Text>
+        <View className="rounded-xl border border-border-default bg-surface-default p-4">
+          <Text className="text-[12px] text-text-muted">Versión</Text>
           <Text className="mt-1 font-black text-white">1.0.0</Text>
         </View>
 

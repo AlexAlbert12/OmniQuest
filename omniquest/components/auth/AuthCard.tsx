@@ -69,7 +69,7 @@ export default function AuthCard({
           </View>
           <View className="min-w-0 flex-1">
             <Text className="text-[26px] font-black text-white" numberOfLines={2}>{title}</Text>
-            <Text className="mt-1 text-[14px] font-semibold leading-5 text-[#B8C5E0]">{subtitle}</Text>
+            <Text className="mt-1 text-[14px] font-semibold leading-5 text-text-secondary">{subtitle}</Text>
           </View>
         </View>
 

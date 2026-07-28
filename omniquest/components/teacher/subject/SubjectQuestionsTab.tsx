@@ -98,7 +98,7 @@ export function SubjectQuestionsTab({
               onPress={() => router.push(addQuestionHref as any)}
             />
           </View>
-          <Text className="text-[12px] text-[#8FA7C7]">
+          <Text className="text-[12px] text-text-muted">
             Total preguntas: <Text className="font-bold text-white">{questionsCount}</Text>
           </Text>
         </SubjectPanel>
@@ -132,10 +132,10 @@ export function SubjectQuestionsPanel({
     <SubjectPanel title={`Preguntas: ${selectedTopicLabel}`}>
       <DifficultyFilterBar selected={selectedDifficulty} onChange={onDifficultyChange} />
       {filteredQuestions.length === 0 ? (
-        <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
+        <View className="items-center rounded-xl border border-dashed border-border-default bg-surface-default p-8">
           <Ionicons name="help-circle-outline" size={44} color="#64748B" />
           <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
-          <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primera pregunta para activar este tema.</Text>
+          <Text className="mt-1 text-center text-[12px] text-text-muted">Añade tu primera pregunta para activar este tema.</Text>
           <View className="mt-5">
             <AppButton
               label="Crear pregunta"
@@ -207,19 +207,19 @@ function QuestionRow({
   const editHref = `/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${question.classroom_id ? `&classroomId=${question.classroom_id}` : ''}${question.topic_id ? `&topicId=${question.topic_id}` : ''}&difficulty=${question.difficulty || 1}`;
 
   return (
-    <View className="rounded-xl border border-[#183052] bg-[#09162C] p-4">
+    <View className="rounded-xl border border-border-default bg-surface-default p-4">
       <View className="flex-row flex-wrap items-start gap-3">
-        <View className="h-9 w-9 items-center justify-center rounded-lg bg-[#1A1E55]">
-          <Text className="font-black text-[#A78BFA]">{index}</Text>
+        <View className="h-9 w-9 items-center justify-center rounded-lg bg-surface-interactive">
+          <Text className="font-black text-brand-teacher">{index}</Text>
         </View>
         <View className="min-w-[220px] flex-1">
           <Text className="font-black text-white">{question.text}</Text>
-          <Text className="mt-2 text-[12px] text-[#34D399]">✓ {answer}</Text>
-          {topicName ? <Text className="mt-1 text-[11px] font-semibold text-[#8FA7C7]">{topicName}</Text> : null}
+          <Text className="mt-2 text-[12px] text-semantic-success">✓ {answer}</Text>
+          {topicName ? <Text className="mt-1 text-[11px] font-semibold text-text-muted">{topicName}</Text> : null}
           <Text className="mt-1 text-[11px] font-black" style={{ color: difficulty.color }}>{difficulty.label}</Text>
         </View>
-        <View className="rounded-lg bg-[#13284A] px-3 py-2">
-          <Text className="text-[11px] font-black text-[#C4D0E3]">{question.points_base ?? 0} pts</Text>
+        <View className="rounded-lg bg-surface-interactive px-3 py-2">
+          <Text className="text-[11px] font-black text-text-secondary">{question.points_base ?? 0} pts</Text>
         </View>
         <AppButton
           accessibilityLabel={`Editar pregunta: ${question.text}`}

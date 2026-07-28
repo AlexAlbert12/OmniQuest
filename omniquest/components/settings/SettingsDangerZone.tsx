@@ -22,14 +22,14 @@ export function SecurityDangerCard({
   onDeleteAccount: () => void
 }) {
   return (
-    <View className="rounded-2xl border border-[#4A1E2B] bg-[#160813] p-4">
+    <View className="rounded-2xl border border-semantic-danger bg-background-secondary p-4">
       <View className="flex-row items-start gap-3">
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-[#2A0B18]">
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-semantic-surface-danger">
           <Ionicons name="warning-outline" size={21} color="#FB7185" />
         </View>
         <View className="min-w-0 flex-1">
           <Text className="text-[16px] font-black text-white">Zona sensible</Text>
-          <Text className="mt-1 text-[12px] leading-5 text-[#FCA5A5]">
+          <Text className="mt-1 text-[12px] leading-5 text-semantic-danger">
             Estas acciones afectan a tu cuenta y no deberían usarse para limpiar solo una partida.
           </Text>
         </View>
@@ -38,14 +38,14 @@ export function SecurityDangerCard({
       <Pressable
         onPress={onDeleteAccount}
         disabled={deletingAccount}
-        className="mt-4 flex-row items-center justify-between rounded-xl border border-[#BE123C] bg-[#7F1D1D33] p-4"
+        className="mt-4 flex-row items-center justify-between rounded-xl border border-semantic-danger bg-semantic-surface-danger p-4"
         style={({ pressed }) => ({ opacity: deletingAccount ? 0.65 : pressed ? 0.84 : 1 })}
       >
         <View className="min-w-0 flex-1 flex-row items-center gap-3">
           <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
           <View className="min-w-0 flex-1">
-            <Text className="font-black text-[#FF6B6B]">Borrar mi cuenta</Text>
-            <Text className="mt-1 text-[12px] text-[#FCA5A5]">Elimina tu perfil, progreso y datos asociados.</Text>
+            <Text className="font-black text-semantic-danger">Borrar mi cuenta</Text>
+            <Text className="mt-1 text-[12px] text-semantic-danger">Elimina tu perfil, progreso y datos asociados.</Text>
           </View>
         </View>
         {deletingAccount ? <ActivityIndicator color="#FF6B6B" /> : <Ionicons name="chevron-forward" size={18} color="#FF6B6B" />}
@@ -81,18 +81,18 @@ export function DestructiveConfirmModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View className={`flex-1 bg-black/70 ${isPhone ? 'justify-end' : 'items-center justify-center px-5'}`}>
-        <View className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[430px] rounded-2xl p-5'} border border-[#4A1E2B] bg-[#07162D]`}>
+        <View className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[430px] rounded-2xl p-5'} border border-semantic-danger bg-surface-default`}>
           <View className="flex-row items-center gap-3">
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-[#2A0B18]">
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-semantic-surface-danger">
               <Ionicons name="warning-outline" size={20} color="#FB7185" />
             </View>
             <View className="min-w-0 flex-1">
               <Text className="text-[16px] font-black text-white">{details.title}</Text>
-              <Text className="mt-1 text-[12px] leading-5 text-[#FCA5A5]">{details.description}</Text>
+              <Text className="mt-1 text-[12px] leading-5 text-semantic-danger">{details.description}</Text>
             </View>
           </View>
 
-          <Text className="mt-5 text-[12px] font-semibold text-[#B7C4D7]">
+          <Text className="mt-5 text-[12px] font-semibold text-text-secondary">
             Escribe {REQUIRED_DESTRUCTIVE_CONFIRMATION} para continuar.
           </Text>
           <TextInput
@@ -101,22 +101,22 @@ export function DestructiveConfirmModal({
             autoCapitalize="characters"
             placeholder={REQUIRED_DESTRUCTIVE_CONFIRMATION}
             placeholderTextColor="#64748B"
-            className="mt-2 rounded-lg border border-[#4A1E2B] bg-[#0D1D3B] px-4 py-3 text-[13px] font-bold text-white"
+            className="mt-2 rounded-lg border border-semantic-danger bg-surface-raised px-4 py-3 text-[13px] font-bold text-white"
           />
 
           <View className={`mt-5 gap-3 ${isPhone ? '' : 'flex-row justify-end'}`}>
             <Pressable
               onPress={onCancel}
               disabled={busy}
-              className={`${isPhone ? 'items-center py-4' : 'px-4 py-3'} rounded-lg border border-[#263E61]`}
+              className={`${isPhone ? 'items-center py-4' : 'px-4 py-3'} rounded-lg border border-border-default`}
               style={({ pressed }) => ({ opacity: busy ? 0.55 : pressed ? 0.8 : 1 })}
             >
-              <Text className="text-[12px] font-bold text-[#DDE7F4]">Cancelar</Text>
+              <Text className="text-[12px] font-bold text-text-secondary">Cancelar</Text>
             </Pressable>
             <Pressable
               onPress={onConfirm}
               disabled={!canConfirm}
-              className={`${isPhone ? 'items-center py-4' : 'px-4 py-3'} rounded-lg bg-[#BE123C]`}
+              className={`${isPhone ? 'items-center py-4' : 'px-4 py-3'} rounded-lg bg-semantic-surface-danger`}
               style={({ pressed }) => ({ opacity: !canConfirm ? 0.45 : pressed ? 0.82 : 1 })}
             >
               {busy ? (

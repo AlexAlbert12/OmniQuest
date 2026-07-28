@@ -39,14 +39,14 @@ export function StudentActionsModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View className={`flex-1 ${isPhone ? 'justify-end' : 'justify-center p-4 md:items-center'}`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
         <Pressable className="absolute inset-0" onPress={onClose} />
-        <View className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[420px] rounded-2xl p-5'} border border-[#1A3155] bg-[#09162C]`}>
+        <View className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[420px] rounded-2xl p-5'} border border-border-default bg-surface-default`}>
           <View className="flex-row items-start justify-between gap-4">
             <View className="min-w-0 flex-1">
-              <Text className="text-[13px] font-semibold text-[#9FD6FF]">Acciones del estudiante</Text>
+              <Text className="text-[13px] font-semibold text-semantic-info">Acciones del estudiante</Text>
               <Text className="mt-1 text-[24px] font-black text-white" numberOfLines={1}>{student.alias}</Text>
-              <Text className="mt-1 text-[12px] text-[#8FA7C7]" numberOfLines={1}>{student.handle}</Text>
+              <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={1}>{student.handle}</Text>
             </View>
-            <Pressable onPress={onClose} className="h-10 w-10 items-center justify-center rounded-xl border border-[#20375E] bg-[#111E3C]">
+            <Pressable onPress={onClose} className="h-10 w-10 items-center justify-center rounded-xl border border-border-default bg-surface-raised">
               <Ionicons name="close" size={18} color="#DDE7F4" />
             </Pressable>
           </View>
@@ -139,14 +139,14 @@ export function StudentDetailModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View className={`flex-1 ${isPhone ? 'justify-end' : 'justify-center p-4 md:items-center'}`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
         <Pressable className="absolute inset-0" onPress={onClose} />
-        <View className={`${isPhone ? 'max-h-[94%] w-full rounded-t-3xl p-5' : 'max-h-[92%] w-full max-w-[620px] rounded-2xl p-5'} border border-[#1A3155] bg-[#09162C]`}>
+        <View className={`${isPhone ? 'max-h-[94%] w-full rounded-t-3xl p-5' : 'max-h-[92%] w-full max-w-[620px] rounded-2xl p-5'} border border-border-default bg-surface-default`}>
           <View className="flex-row items-start justify-between gap-4">
             <View className="min-w-0 flex-1">
-              <Text className="text-[13px] font-semibold text-[#9FD6FF]">Detalle del estudiante</Text>
+              <Text className="text-[13px] font-semibold text-semantic-info">Detalle del estudiante</Text>
               <Text className="mt-1 text-[24px] font-black text-white" numberOfLines={1}>{student.alias}</Text>
-              <Text className="mt-1 text-[12px] text-[#8FA7C7]" numberOfLines={1}>{student.handle}</Text>
+              <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={1}>{student.handle}</Text>
             </View>
-            <Pressable onPress={onClose} className="h-10 w-10 items-center justify-center rounded-xl border border-[#20375E] bg-[#111E3C]">
+            <Pressable onPress={onClose} className="h-10 w-10 items-center justify-center rounded-xl border border-border-default bg-surface-raised">
               <Ionicons name="close" size={18} color="#DDE7F4" />
             </Pressable>
           </View>
@@ -160,18 +160,18 @@ export function StudentDetailModal({
                 <DetailMetric label="Nota media" value={student.hasActivity ? `${student.averageScore.toFixed(1)} /10` : 'Sin datos'} color="#F6A64A" />
               </View>
 
-              <View className="rounded-xl border border-[#20375E] bg-[#07162E] p-4">
+              <View className="rounded-xl border border-border-default bg-surface-default p-4">
                 <View className="flex-row flex-wrap items-center justify-between gap-3">
                   <View className="min-w-0 flex-1">
-                    <Text className="text-[12px] font-bold text-[#8FA7C7]">Estado</Text>
+                    <Text className="text-[12px] font-bold text-text-muted">Estado</Text>
                     <View className="mt-2 flex-row items-center gap-2">
                       <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: status.color }} />
                       <Text className="font-black" style={{ color: status.color }}>{status.label}</Text>
                     </View>
-                    <Text className="mt-2 text-[12px] leading-5 text-[#B7C4D7]">{status.description}</Text>
+                    <Text className="mt-2 text-[12px] leading-5 text-text-secondary">{status.description}</Text>
                   </View>
-                  <View className="rounded-xl border border-[#20375E] bg-[#0D1D3B] px-4 py-3">
-                    <Text className="text-[11px] text-[#8FA7C7]">Última actividad</Text>
+                  <View className="rounded-xl border border-border-default bg-surface-raised px-4 py-3">
+                    <Text className="text-[11px] text-text-muted">Última actividad</Text>
                     <Text className="mt-1 text-[13px] font-black text-white">{formatRelativeDate(student.lastActivityAt)}</Text>
                   </View>
                 </View>
@@ -180,14 +180,14 @@ export function StudentDetailModal({
               <DetailSection title="Cursos y clases">
                 <View className="gap-2">
                   {student.courseContexts.map((context) => (
-                    <View key={`${context.subjectId}:${context.classroomId ?? 'general'}`} className="rounded-xl border border-[#20375E] bg-[#071A32] p-3">
+                    <View key={`${context.subjectId}:${context.classroomId ?? 'general'}`} className="rounded-xl border border-border-default bg-surface-default p-3">
                       <Text className="text-[13px] font-black text-white">{context.subjectName}</Text>
-                      <Text className="mt-1 text-[12px] text-[#AFC2DB]">Clase: {context.classroomName}</Text>
-                      <Text className="mt-1 text-[11px] text-[#8FA7C7]">Inscrito: {formatDate(context.joinedAt)}</Text>
+                      <Text className="mt-1 text-[12px] text-text-secondary">Clase: {context.classroomName}</Text>
+                      <Text className="mt-1 text-[11px] text-text-muted">Inscrito: {formatDate(context.joinedAt)}</Text>
                     </View>
                   ))}
                   {student.courseContexts.length === 0 ? (
-                    <Text className="text-[13px] text-[#8FA7C7]">No hay cursos asociados.</Text>
+                    <Text className="text-[13px] text-text-muted">No hay cursos asociados.</Text>
                   ) : null}
                 </View>
               </DetailSection>
@@ -195,23 +195,23 @@ export function StudentDetailModal({
               <DetailSection title="Áreas a reforzar">
                 <View className="gap-2">
                   {student.weakAreas.map((area) => (
-                    <View key={`${area.title}:${area.detail}`} className="rounded-xl border border-[#4A2B1A] bg-[#21140A] p-3">
+                    <View key={`${area.title}:${area.detail}`} className="rounded-xl border border-border-default bg-semantic-surface-danger p-3">
                       <View className="flex-row items-start justify-between gap-3">
                         <View className="min-w-0 flex-1">
                           <Text className="text-[13px] font-black text-white" numberOfLines={2}>{area.title}</Text>
-                          <Text className="mt-1 text-[12px] text-[#FBBF24]">{area.detail}</Text>
+                          <Text className="mt-1 text-[12px] text-gamification-xp">{area.detail}</Text>
                         </View>
-                        <Text className="text-[12px] font-black text-[#F59E0B]">
+                        <Text className="text-[12px] font-black text-semantic-warning">
                           {area.mistakes} error{area.mistakes === 1 ? '' : 'es'}
                         </Text>
                       </View>
-                      <Text className="mt-2 text-[11px] text-[#F8D7A1]">
+                      <Text className="mt-2 text-[11px] text-semantic-warning">
                         {area.accuracyPercent === null ? 'Acierto pendiente de calcular' : `${area.accuracyPercent}% de acierto`}
                       </Text>
                     </View>
                   ))}
                   {student.weakAreas.length === 0 ? (
-                    <Text className="text-[13px] text-[#8FA7C7]">
+                    <Text className="text-[13px] text-text-muted">
                       {student.hasActivity ? 'No hay áreas críticas detectadas.' : 'Aparecerán cuando el alumno responda preguntas.'}
                     </Text>
                   ) : null}
@@ -221,14 +221,14 @@ export function StudentDetailModal({
               <DetailSection title="Últimos intentos">
                 <View className="gap-2">
                   {student.recentAttempts.slice(0, 5).map((attempt) => (
-                    <View key={attempt.id} className="rounded-xl border border-[#20375E] bg-[#071A32] p-3">
+                    <View key={attempt.id} className="rounded-xl border border-border-default bg-surface-default p-3">
                       <View className="flex-row items-start gap-3">
                         <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: attempt.isCorrect ? '#22C55E24' : '#EF444424' }}>
                           <Ionicons name={attempt.isCorrect ? 'checkmark' : 'close'} size={17} color={attempt.isCorrect ? '#22C55E' : '#FB7185'} />
                         </View>
                         <View className="min-w-0 flex-1">
                           <Text className="text-[13px] font-bold text-white" numberOfLines={2}>{attempt.questionText}</Text>
-                          <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>
+                          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>
                             {attempt.subjectName} · {attempt.topicTitle} · {formatDate(attempt.attemptedAt)}
                           </Text>
                         </View>
@@ -236,7 +236,7 @@ export function StudentDetailModal({
                     </View>
                   ))}
                   {student.recentAttempts.length === 0 ? (
-                    <Text className="text-[13px] text-[#8FA7C7]">Todavía no hay intentos registrados.</Text>
+                    <Text className="text-[13px] text-text-muted">Todavía no hay intentos registrados.</Text>
                   ) : null}
                 </View>
               </DetailSection>
@@ -291,16 +291,16 @@ export function ConfirmModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View className={`flex-1 ${isPhone ? 'justify-end' : 'justify-center p-4 md:items-center'}`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
         <Pressable className="absolute inset-0" onPress={onClose} />
-        <View className={`${isPhone ? 'w-full rounded-t-3xl p-5' : 'w-full max-w-[420px] rounded-2xl p-5'} border border-[#1A3155] bg-[#09162C]`}>
+        <View className={`${isPhone ? 'w-full rounded-t-3xl p-5' : 'w-full max-w-[420px] rounded-2xl p-5'} border border-border-default bg-surface-default`}>
           <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: dialog.destructive ? '#EF444433' : '#8B5CF633' }}>
             <Ionicons name={dialog.destructive ? 'warning-outline' : 'information-circle-outline'} size={24} color={dialog.destructive ? '#FF8A8A' : '#B9A7FF'} />
           </View>
           <Text className="mt-4 text-[24px] font-black text-white">{dialog.title}</Text>
-          <Text className="mt-2 text-[14px] leading-6 text-[#B7C4D7]">{dialog.message}</Text>
+          <Text className="mt-2 text-[14px] leading-6 text-text-secondary">{dialog.message}</Text>
 
           <View className={`mt-6 gap-3 ${isPhone ? '' : 'flex-row'}`}>
-            <Pressable onPress={onClose} className="flex-1 items-center justify-center rounded-xl border border-[#20375E] bg-[#111E3C] px-4 py-3">
-              <Text className="font-bold text-[#DDE7F4]">Cancelar</Text>
+            <Pressable onPress={onClose} className="flex-1 items-center justify-center rounded-xl border border-border-default bg-surface-raised px-4 py-3">
+              <Text className="font-bold text-text-secondary">Cancelar</Text>
             </Pressable>
             <Pressable
               onPress={handleConfirm}
@@ -332,15 +332,15 @@ export function ModalActionButton({
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-3 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3"
+      className="flex-row items-center gap-3 rounded-xl border border-border-default bg-surface-default px-4 py-3"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: destructive ? '#EF444433' : '#8B5CF633' }}>
         <Ionicons name={icon} size={19} color={destructive ? '#FF8A8A' : '#B9A7FF'} />
       </View>
       <View className="min-w-0 flex-1">
-        <Text className={`font-black ${destructive ? 'text-[#FFB4B4]' : 'text-white'}`}>{title}</Text>
-        <Text className="mt-1 text-[12px] text-[#8FA7C7]" numberOfLines={2}>{detail}</Text>
+        <Text className={`font-black ${destructive ? 'text-gamification-badge' : 'text-white'}`}>{title}</Text>
+        <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={2}>{detail}</Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color="#8FA7C7" />
     </Pressable>
@@ -362,7 +362,7 @@ export function DetailMetric({ label, value, color }: { label: string; value: st
 
 export function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View className="rounded-xl border border-[#20375E] bg-[#0A1830] p-4">
+    <View className="rounded-xl border border-border-default bg-surface-default p-4">
       <Text className="mb-3 font-black text-white">{title}</Text>
       {children}
     </View>

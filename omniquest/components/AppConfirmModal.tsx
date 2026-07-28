@@ -1,12 +1,16 @@
+import React from 'react'
+import { StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { ActivityIndicator, Modal, Pressable, Text, useWindowDimensions, View } from 'react-native'
 import OmniGuide, { type OmniState } from './OmniGuide'
+import AppBottomSheet from './ui/AppBottomSheet'
+import AppButton from './ui/AppButton'
 import { useAppTheme } from '../lib/appTheme'
 import { useI18n } from '../lib/i18n'
+import type { SemanticColorKey } from '../lib/designTokens'
 
-type AppConfirmModalVariant = 'danger' | 'info' | 'warning'
+export type AppConfirmModalVariant = 'danger' | 'info' | 'warning'
 
-type AppConfirmModalProps = {
+export type AppConfirmModalProps = {
   busy?: boolean
   cancelLabel?: string
   confirmLabel: string
@@ -20,10 +24,13 @@ type AppConfirmModalProps = {
   visible: boolean
 }
 
-const variantStyles: Record<AppConfirmModalVariant, { color: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  danger: { color: '#FF6B6B', icon: 'warning-outline' },
-  info: { color: '#58B5FF', icon: 'bulb-outline' },
-  warning: { color: '#FBBF24', icon: 'alert-circle-outline' },
+const variantConfig: Record<AppConfirmModalVariant, {
+  semanticKey: SemanticColorKey
+  icon: keyof typeof Ionicons.glyphMap
+}> = {
+  danger: { semanticKey: 'danger', icon: 'warning-outline' },
+  info: { semanticKey: 'info', icon: 'bulb-outline' },
+  warning: { semanticKey: 'warning', icon: 'alert-circle-outline' },
 }
 
 export default function AppConfirmModal({
@@ -39,68 +46,101 @@ export default function AppConfirmModal({
   variant = 'warning',
   visible,
 }: AppConfirmModalProps) {
-  const style = variantStyles[variant]
-  const { colors } = useAppTheme()
+  const { tokens } = useAppTheme()
   const { t } = useI18n()
   const resolvedCancelLabel = cancelLabel || t('common.cancel')
-  const { width } = useWindowDimensions()
-  const isPhone = width < 640
+  const config = variantConfig[variant]
+  const color = tokens.semantic[config.semanticKey]
+  const surface = tokens.semanticSurface[config.semanticKey]
 
   return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={onCancel}>
-      <View className={`flex-1 bg-black/70 ${isPhone ? 'justify-end' : 'items-center justify-center px-5'}`}>
-        <View
-          className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[440px] rounded-3xl p-6'} border`}
-          style={{ borderColor: `${style.color}80`, backgroundColor: colors.surface }}
-        >
-          <View className="flex-row items-start gap-4">
-            {showOmni ? (
-              <OmniGuide state={omniState} size={isPhone ? 58 : 64} autoBlink={omniState === 'normal'} />
-            ) : (
-              <View className="h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: `${style.color}24` }}>
-                <Ionicons name={style.icon} size={26} color={style.color} />
-              </View>
-            )}
-            <View className="min-w-0 flex-1">
-              <Text className="text-[21px] font-black" style={{ color: colors.text }}>{title}</Text>
-              <Text className="mt-2 text-[14px] leading-6" style={{ color: colors.textSecondary }}>{message}</Text>
-            </View>
+    <AppBottomSheet
+      visible={visible}
+      onClose={onCancel}
+      title={title}
+      description={message}
+      closeOnBackdropPress={!busy}
+      contentStyle={styles.content}
+      footer={(
+        <View style={styles.actions}>
+          <AppButton
+            label={resolvedCancelLabel}
+            variant="secondary"
+            disabled={busy}
+            onPress={onCancel}
+            style={styles.action}
+          />
+          <AppButton
+            label={confirmLabel}
+            icon={variant === 'danger' ? 'warning-outline' : 'checkmark-circle-outline'}
+            variant={variant === 'danger' ? 'danger' : variant === 'warning' ? 'secondary' : 'primary'}
+            loading={busy}
+            disabled={busy}
+            onPress={onConfirm}
+            style={styles.action}
+          />
+        </View>
+      )}
+    >
+      <View style={[styles.summary, { backgroundColor: surface, borderColor: color }]}>
+        {showOmni ? (
+          <OmniGuide state={omniState} size={64} autoBlink={omniState === 'normal'} />
+        ) : (
+          <View style={[styles.iconBox, { backgroundColor: tokens.surface.raised }]}>
+            <Ionicons name={config.icon} size={28} color={color} />
           </View>
-
-          <View className={`mt-6 gap-3 ${isPhone ? '' : 'flex-row justify-end'}`}>
-            <Pressable
-              accessibilityLabel={resolvedCancelLabel}
-              accessibilityRole="button"
-              hitSlop={6}
-              onPress={onCancel}
-              disabled={busy}
-              className={`${isPhone ? 'items-center py-4' : 'px-4 py-3'} rounded-xl border border-[#263E61]`}
-              style={({ pressed }) => ({ opacity: busy ? 0.55 : pressed ? 0.8 : 1 })}
-            >
-              <Text className="text-[13px] font-bold text-[#DDE7F4]">{resolvedCancelLabel}</Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel={confirmLabel}
-              accessibilityRole="button"
-              accessibilityState={{ busy, disabled: busy }}
-              hitSlop={6}
-              onPress={onConfirm}
-              disabled={busy}
-              className={`${isPhone ? 'py-4' : 'min-w-[132px] px-4 py-3'} items-center rounded-xl`}
-              style={({ pressed }) => ({
-                backgroundColor: style.color,
-                opacity: busy ? 0.7 : pressed ? 0.84 : 1,
-              })}
-            >
-              {busy ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text className="text-[13px] font-black text-white">{confirmLabel}</Text>
-              )}
-            </Pressable>
-          </View>
+        )}
+        <View style={styles.copy}>
+          <Text style={[styles.eyebrow, { color }]}>ACCIÓN QUE REQUIERE CONFIRMACIÓN</Text>
+          <Text style={[styles.hint, { color: tokens.text.secondary }]}>Revisa la información antes de continuar.</Text>
         </View>
       </View>
-    </Modal>
+    </AppBottomSheet>
   )
 }
+
+const styles = StyleSheet.create({
+  content: {
+    paddingTop: 14,
+  },
+  summary: {
+    minHeight: 82,
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+  },
+  iconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  copy: {
+    minWidth: 0,
+    flex: 1,
+  },
+  eyebrow: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  hint: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  action: {
+    minWidth: 128,
+  },
+})

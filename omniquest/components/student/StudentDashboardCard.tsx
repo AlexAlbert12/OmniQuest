@@ -21,7 +21,7 @@ export default function StudentDashboardCard({
   const { accentColor } = useAppTheme()
 
   return (
-    <View className={`rounded-2xl border border-[#1A3155] bg-[#09162C] ${compact ? 'p-4' : 'p-5'} ${className}`}>
+    <View className={`rounded-2xl border border-border-default bg-surface-default ${compact ? 'p-4' : 'p-5'} ${className}`}>
       <View className="mb-4 flex-row items-center justify-between gap-3">
         <Text className="min-w-0 flex-1 text-[15px] font-black text-white" numberOfLines={2}>{title}</Text>
         {actionLabel && onAction ? (
@@ -49,7 +49,7 @@ export function StudentCardLink({
   const linkColor = color || accentColor
 
   return (
-    <Pressable onPress={onPress} className="mt-4 flex-row items-center justify-center gap-2 border-t border-[#172A4A] pt-4">
+    <Pressable onPress={onPress} className="mt-4 flex-row items-center justify-center gap-2 border-t border-border-subtle pt-4">
       <Text className="text-[13px] font-bold" style={{ color: linkColor }}>{label}</Text>
       <Ionicons name="arrow-forward" size={14} color={linkColor} />
     </Pressable>

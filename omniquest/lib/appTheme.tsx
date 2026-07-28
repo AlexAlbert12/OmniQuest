@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as SystemUI from 'expo-system-ui'
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { Platform, useColorScheme } from 'react-native'
+import { Platform, StyleSheet, View, useColorScheme } from 'react-native'
+import { vars } from 'nativewind'
 import { createDesignColorTokens, type DesignColorTokens } from './designTokens'
 
 export type AppThemeMode = 'dark' | 'light'
@@ -93,6 +94,43 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     : themePreference
   const tokens = useMemo(() => createDesignColorTokens(theme, accentColor), [accentColor, theme])
   const colors = useMemo(() => createLegacyThemeColors(tokens), [tokens])
+  const nativeWindVariables = useMemo(() => vars({
+    '--omni-background-primary': tokens.background.primary,
+    '--omni-background-secondary': tokens.background.secondary,
+    '--omni-background-overlay': tokens.background.overlay,
+    '--omni-surface-default': tokens.surface.default,
+    '--omni-surface-raised': tokens.surface.raised,
+    '--omni-surface-interactive': tokens.surface.interactive,
+    '--omni-surface-selected': tokens.surface.selected,
+    '--omni-surface-disabled': tokens.surface.disabled,
+    '--omni-border-default': tokens.border.default,
+    '--omni-border-subtle': tokens.border.subtle,
+    '--omni-border-active': tokens.border.active,
+    '--omni-text-primary': tokens.text.primary,
+    '--omni-text-secondary': tokens.text.secondary,
+    '--omni-text-muted': tokens.text.muted,
+    '--omni-text-inverse': tokens.text.inverse,
+    '--omni-text-disabled': tokens.text.disabled,
+    '--omni-brand-student': tokens.brand.student,
+    '--omni-brand-teacher': tokens.brand.teacher,
+    '--omni-brand-admin': tokens.brand.admin,
+    '--omni-semantic-success': tokens.semantic.success,
+    '--omni-semantic-warning': tokens.semantic.warning,
+    '--omni-semantic-danger': tokens.semantic.danger,
+    '--omni-semantic-info': tokens.semantic.info,
+    '--omni-semantic-surface-success': tokens.semanticSurface.success,
+    '--omni-semantic-surface-warning': tokens.semanticSurface.warning,
+    '--omni-semantic-surface-danger': tokens.semanticSurface.danger,
+    '--omni-semantic-surface-info': tokens.semanticSurface.info,
+    '--omni-gamification-xp': tokens.gamification.xp,
+    '--omni-gamification-streak': tokens.gamification.streak,
+    '--omni-gamification-badge': tokens.gamification.badge,
+    '--omni-rank-bronze': tokens.gamification.rank.bronze,
+    '--omni-rank-silver': tokens.gamification.rank.silver,
+    '--omni-rank-gold': tokens.gamification.rank.gold,
+    '--omni-rank-platinum': tokens.gamification.rank.platinum,
+    '--omni-rank-diamond': tokens.gamification.rank.diamond,
+  }), [tokens])
 
   useEffect(() => {
     let mounted = true
@@ -148,7 +186,11 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     ready,
   }), [theme, themePreference, colors, tokens, accentColor, ready])
 
-  return <AppThemeContext.Provider value={value}>{children}</AppThemeContext.Provider>
+  return (
+    <AppThemeContext.Provider value={value}>
+      <View style={[styles.themeRoot, nativeWindVariables]}>{children}</View>
+    </AppThemeContext.Provider>
+  )
 }
 
 export type ResolvedAppThemeContextValue = Omit<AppThemeContextValue, 'tokens'> & {
@@ -173,3 +215,10 @@ export function useAppTheme(): ResolvedAppThemeContextValue {
     tokens,
   }
 }
+
+const styles = StyleSheet.create({
+  themeRoot: {
+    flex: 1,
+    minWidth: 0,
+  },
+})

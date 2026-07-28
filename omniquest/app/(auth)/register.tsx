@@ -116,26 +116,26 @@ export default function RegisterScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-[#010611]" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-      <View className="overflow-hidden bg-[#010611]" style={{ minHeight: Math.max(height, 860), borderRadius: isWeb ? 0 : 34 }}>
+    <ScrollView className="flex-1 bg-background-secondary" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <View className="overflow-hidden bg-background-secondary" style={{ minHeight: Math.max(height, 860), borderRadius: isWeb ? 0 : 34 }}>
         <HomeVisualBackground isDesktop={isDesktop} />
         <View className="z-10 flex-1 items-center justify-center" style={{ paddingHorizontal: isDesktop ? 32 : 22, paddingVertical: 32 }}>
           <View className="absolute left-5 top-5 z-20">
             <Link href="/" asChild>
-              <Pressable accessibilityRole="button" accessibilityLabel="Volver al inicio" className="flex-row items-center gap-2 rounded-full border border-[#3B6FA5]/40 bg-[#102A52]/85 px-4 py-3">
+              <Pressable accessibilityRole="button" accessibilityLabel="Volver al inicio" className="flex-row items-center gap-2 rounded-full border border-border-active bg-semantic-surface-info px-4 py-3">
                 <Ionicons name="home-outline" size={18} color="#8CD5FF" />
-                <Text className="font-extrabold text-[#DDE8FF]">Inicio</Text>
+                <Text className="font-extrabold text-text-secondary">Inicio</Text>
               </Pressable>
             </Link>
           </View>
 
           <View className="items-center px-2">
             <BrandLogo center size={isDesktop ? 68 : 48} />
-            <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }} className="mt-1 text-center text-[#4FB8FF]">Crea tu cuenta para empezar.</Text>
+            <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }} className="mt-1 text-center text-semantic-info">Crea tu cuenta para empezar.</Text>
             <View className="mb-5 mt-4 flex-row items-center gap-3">
-              <View className="h-px w-16 bg-[#3B6FA5]" />
+              <View className="h-px w-16 bg-brand-student" />
               <OmniGuide state={verificationEmail ? 'happy' : 'normal'} autoBlink={!verificationEmail} size={isDesktop ? 80 : isTablet ? 70 : 48} />
-              <View className="h-px w-16 bg-[#3B6FA5]" />
+              <View className="h-px w-16 bg-brand-student" />
             </View>
           </View>
 
@@ -148,8 +148,8 @@ export default function RegisterScreen() {
             maxWidth={isTablet ? 620 : 470}
             footer={!verificationEmail ? (
               <View className="flex-row flex-wrap items-center justify-center gap-1">
-                <Text className="text-[13px] font-semibold text-[#AEBBDD]">¿Ya tienes cuenta?</Text>
-                <Link href="/(auth)/login" asChild><Pressable accessibilityRole="link" hitSlop={6}><Text className="text-[13px] font-extrabold text-[#42B9FF]">Inicia sesión.</Text></Pressable></Link>
+                <Text className="text-[13px] font-semibold text-text-muted">¿Ya tienes cuenta?</Text>
+                <Link href="/(auth)/login" asChild><Pressable accessibilityRole="link" hitSlop={6}><Text className="text-[13px] font-extrabold text-semantic-info">Inicia sesión.</Text></Pressable></Link>
               </View>
             ) : undefined}
           >

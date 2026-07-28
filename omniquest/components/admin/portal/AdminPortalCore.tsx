@@ -19,6 +19,8 @@ import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import { supabase } from '../../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { useAppTheme } from '../../../lib/appTheme'
+import { AppButton, AppDropdown, AppIconButton, AppMenu } from '../../ui'
+import type { DesignColorTokens } from '../../../lib/designTokens'
 import type { AdminConfirmationRequester } from './AdminTypedConfirmation'
 import GlobalSearchButton from '../../search/GlobalSearchButton'
 import {
@@ -722,7 +724,7 @@ export function AdminScaffold({
 }) {
   const { width } = useWindowDimensions()
   const router = useRouter()
-  const { colors } = useAppTheme()
+  const { colors, tokens } = useAppTheme()
   const isDesktop = width >= 1040
   const activeIcon = activeSection === 'home' ? 'shield-checkmark' : getAdminSectionIcon(activeSection)
 
@@ -734,7 +736,7 @@ export function AdminScaffold({
   if (data.loading) {
     return (
       <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color={tokens.brand.admin} />
         <Text className="mt-4" style={{ color: colors.textMuted }}>Cargando portal de administrador...</Text>
       </View>
     )
@@ -752,17 +754,17 @@ export function AdminScaffold({
             paddingTop: isDesktop ? 24 : 20,
             paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER,
           }}
-          refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={data.onRefresh} tintColor="#8B5CF6" />}
+          refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={data.onRefresh} tintColor={tokens.brand.admin} />}
           showsVerticalScrollIndicator={false}
         >
           {isDesktop ? (
             <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4">
               <View className="min-w-[260px] flex-1">
                 <View className="flex-row items-center gap-3">
-                  <Ionicons name={activeIcon} size={42} color="#9FD6FF" />
-                  <Text className="text-[36px] font-black text-white">{title}</Text>
+                  <Ionicons name={activeIcon} size={42} color={tokens.semantic.info} />
+                  <Text className="text-[36px] font-black text-text-primary">{title}</Text>
                 </View>
-                <Text className="mt-2 text-[14px] text-[#B7C4D7]">{subtitle}</Text>
+                <Text className="mt-2 text-[14px] text-text-secondary">{subtitle}</Text>
               </View>
               <GlobalSearchButton role="admin" />
             </View>
@@ -770,43 +772,40 @@ export function AdminScaffold({
             <View className="mb-6">
               <View className="mb-6 flex-row items-center justify-between">
                 <View className="min-w-0 flex-1 flex-row items-center gap-3">
-                  <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#2D1D6B]">
-                    <Ionicons name={activeIcon} size={25} color="#C4B5FD" />
+                  <View className="h-12 w-12 items-center justify-center rounded-2xl bg-surface-selected">
+                    <Ionicons name={activeIcon} size={25} color={tokens.brand.admin} />
                   </View>
-                  <Text className="min-w-0 text-[28px] font-black text-white" numberOfLines={1}>{title}</Text>
+                  <Text className="min-w-0 text-[28px] font-black text-text-primary" numberOfLines={1}>{title}</Text>
                 </View>
                 <View className="flex-row items-center gap-2">
                   <GlobalSearchButton role="admin" compact />
-                  <Pressable
-                    onPress={handleSignOut}
-                    accessibilityRole="button"
+                  <AppIconButton
                     accessibilityLabel="Cerrar sesión"
-                    className="h-12 w-12 items-center justify-center rounded-2xl border border-[#20375E] bg-[#09162C]"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-                  >
-                    <Ionicons name="log-out-outline" size={20} color="#FB7185" />
-                  </Pressable>
+                    icon="log-out-outline"
+                    variant="danger"
+                    onPress={handleSignOut}
+                  />
                 </View>
               </View>
 
-              <View className="rounded-[28px] border border-[#1A3155] bg-[#09162C] p-5">
+              <View className="rounded-[28px] border border-border-default bg-surface-default p-5">
                 <View className="flex-row items-start gap-4">
-                  <View className="h-16 w-16 items-center justify-center rounded-3xl bg-[#2D1D6B]">
-                    <Ionicons name={activeIcon} size={34} color="#C4B5FD" />
+                  <View className="h-16 w-16 items-center justify-center rounded-3xl bg-surface-selected">
+                    <Ionicons name={activeIcon} size={34} color={tokens.brand.admin} />
                   </View>
                   <View className="min-w-0 flex-1">
-                    <Text className="text-[34px] font-black leading-[38px] text-white" numberOfLines={2}>{title}</Text>
-                    <Text className="mt-2 text-[14px] leading-5 text-[#B7C4D7]" numberOfLines={3}>{subtitle}</Text>
+                    <Text className="text-[34px] font-black leading-[38px] text-text-primary" numberOfLines={2}>{title}</Text>
+                    <Text className="mt-2 text-[14px] leading-5 text-text-secondary" numberOfLines={3}>{subtitle}</Text>
                   </View>
                 </View>
-                <View className="mt-5 flex-row items-center justify-between rounded-2xl border border-[#20375E] bg-[#07162D] px-4 py-3">
+                <View className="mt-5 flex-row items-center justify-between rounded-2xl border border-border-default bg-surface-default px-4 py-3">
                   <View className="flex-row items-center gap-2">
-                    <Ionicons name="lock-closed-outline" size={15} color="#8B5CF6" />
-                    <Text className="text-[12px] font-black uppercase tracking-[0.8px] text-[#A78BFA]">Portal privado</Text>
+                    <Ionicons name="lock-closed-outline" size={15} color={tokens.brand.admin} />
+                    <Text className="text-[12px] font-black uppercase tracking-[0.8px] text-brand-admin">Portal privado</Text>
                   </View>
                   <Pressable onPress={data.onRefresh} className="flex-row items-center gap-2" hitSlop={8}>
-                    <Ionicons name="refresh-outline" size={16} color="#AFC2DB" />
-                    <Text className="text-[12px] font-bold text-[#DDE7F4]">Actualizar</Text>
+                    <Ionicons name="refresh-outline" size={16} color={tokens.text.secondary} />
+                    <Text className="text-[12px] font-bold text-text-secondary">Actualizar</Text>
                   </Pressable>
                 </View>
               </View>
@@ -829,11 +828,12 @@ export function AdminScaffold({
 }
 
 export function AdminSidebar({ activeSection, onSignOut }: { activeSection: AdminSection; onSignOut: () => void }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className="w-[244px] border-r border-[#183052] bg-[#041024] px-4 py-7">
+    <View className="w-[244px] border-r border-border-default bg-background-secondary px-4 py-7">
       <View className="mb-5 flex-row items-center gap-2 px-2">
         <BrandLogo size={30} />
-        <Ionicons name="shield-checkmark" size={19} color="#9FD6FF" />
+        <Ionicons name="shield-checkmark" size={19} color={tokens.semantic.info} />
       </View>
 
       <View style={{ gap: 8 }}>
@@ -843,40 +843,29 @@ export function AdminSidebar({ activeSection, onSignOut }: { activeSection: Admi
       </View>
 
       <View className="mt-auto" style={{ gap: 10 }}>
-        <View className="rounded-2xl border border-[#162B50] bg-[#091A35] p-4">
-          <Text className="text-[14px] font-bold text-white">Administrador</Text>
-          <Text className="mt-1 text-[12px] text-[#9BAEC9]">Portal privado</Text>
+        <View className="rounded-2xl border border-border-subtle bg-surface-default p-4">
+          <Text className="text-[14px] font-bold text-text-primary">Administrador</Text>
+          <Text className="mt-1 text-[12px] text-text-muted">Portal privado</Text>
           <View className="mt-3 flex-row items-center gap-1">
-            <Ionicons name="lock-closed-outline" size={13} color="#8FA7C7" />
-            <Text className="text-[12px] text-[#AFC2DB]">Gestión interna</Text>
+            <Ionicons name="lock-closed-outline" size={13} color={tokens.text.muted} />
+            <Text className="text-[12px] text-text-secondary">Gestión interna</Text>
           </View>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Cerrar sesión"
+        <AppButton
+          label="Cerrar sesión"
+          icon="log-out-outline"
+          variant="danger"
+          fullWidth
           onPress={onSignOut}
-          className="items-center justify-center rounded-2xl"
-          style={({ pressed }) => ({
-            minHeight: 52,
-            paddingHorizontal: 14,
-            borderWidth: 1,
-            borderColor: pressed ? '#FB7185' : '#3B1D2A',
-            backgroundColor: pressed ? 'rgba(251,113,133,0.18)' : 'rgba(251,113,133,0.1)',
-            transform: [{ scale: pressed ? 0.985 : 1 }],
-          })}
-        >
-          <View className="flex-row items-center justify-center gap-2">
-            <Ionicons name="log-out-outline" size={18} color="#FB7185" />
-            <Text className="font-black text-[#FCA5B5]">Cerrar sesión</Text>
-          </View>
-        </Pressable>
+        />
       </View>
     </View>
   )
 }
 
 export function AdminNavButton({ active, item }: { active: boolean; item: { label: string; icon: IconName; href: string } }) {
+  const { tokens } = useAppTheme()
   const router = useRouter()
 
   return (
@@ -884,41 +873,42 @@ export function AdminNavButton({ active, item }: { active: boolean; item: { labe
       onPress={() => router.push(item.href as any)}
       className="flex-row items-center gap-3 rounded-xl px-4 py-3"
       style={({ pressed }) => ({
-        backgroundColor: active ? '#28357D' : 'transparent',
+        backgroundColor: active ? tokens.surface.selected : 'transparent',
         borderWidth: 1,
-        borderColor: active ? '#6D5AF6' : 'transparent',
+        borderColor: active ? tokens.border.active : 'transparent',
         opacity: pressed ? 0.82 : 1,
       })}
     >
-      <Ionicons name={active ? filledIconFor(item.icon) : item.icon} size={19} color={active ? '#FFFFFF' : '#AFC2DB'} />
-      <Text className={`font-black ${active ? 'text-white' : 'text-[#B7C4D7]'}`}>{item.label}</Text>
+      <Ionicons name={active ? filledIconFor(item.icon) : item.icon} size={19} color={active ? tokens.text.primary : tokens.text.secondary} />
+      <Text className={`font-black ${active ? 'text-text-primary' : 'text-text-secondary'}`}>{item.label}</Text>
     </Pressable>
   )
 }
 
 export function AdminMetrics({ activeSection, data }: { activeSection: AdminSection; data: AdminData }) {
+  const { tokens } = useAppTheme()
   const { width } = useWindowDimensions()
   const isDesktop = width >= 1040
   const metricWidth = Math.max(136, Math.floor((width - 52) / 2))
   const metrics = [
-    { icon: 'school' as IconName, label: 'Profesores', value: String(data.metrics.teachersCount), color: '#8B5CF6' },
-    { icon: 'people' as IconName, label: 'Alumnos', value: String(data.metrics.studentsCount), color: '#34D399' },
-    { icon: 'book' as IconName, label: 'Cursos', value: String(data.metrics.subjectsCount), color: '#38BDF8' },
-    { icon: 'albums' as IconName, label: 'Clases', value: String(data.metrics.classroomsCount), color: '#F59E0B' },
-    { icon: 'person-add' as IconName, label: 'Inscripciones', value: String(data.metrics.enrollmentsCount), color: '#FB7185' },
+    { icon: 'school' as IconName, label: 'Profesores', value: String(data.metrics.teachersCount), color: tokens.brand.admin },
+    { icon: 'people' as IconName, label: 'Alumnos', value: String(data.metrics.studentsCount), color: tokens.semantic.success },
+    { icon: 'book' as IconName, label: 'Cursos', value: String(data.metrics.subjectsCount), color: tokens.semantic.info },
+    { icon: 'albums' as IconName, label: 'Clases', value: String(data.metrics.classroomsCount), color: tokens.semantic.warning },
+    { icon: 'person-add' as IconName, label: 'Inscripciones', value: String(data.metrics.enrollmentsCount), color: tokens.semantic.danger },
   ]
 
   if (!isDesktop) {
     return (
       <View style={{ gap: 14 }}>
-        <View className="rounded-[26px] border border-[#1A3155] bg-[#07162D] p-4">
+        <View className="rounded-[26px] border border-border-default bg-surface-default p-4">
           <View className="flex-row items-center justify-between">
             <View className="min-w-0 flex-1">
-              <Text className="text-[19px] font-black text-white">Resumen</Text>
-              <Text className="mt-1 text-[12px] font-semibold text-[#8FA7C7]">Estado general de la plataforma.</Text>
+              <Text className="text-[19px] font-black text-text-primary">Resumen</Text>
+              <Text className="mt-1 text-[12px] font-semibold text-text-muted">Estado general de la plataforma.</Text>
             </View>
-            <View className="rounded-full bg-[#2D1D6B] px-3 py-1">
-              <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-[#C4B5FD]">Admin</Text>
+            <View className="rounded-full bg-surface-selected px-3 py-1">
+              <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-brand-admin">Admin</Text>
             </View>
           </View>
 
@@ -945,22 +935,23 @@ export function AdminMetrics({ activeSection, data }: { activeSection: AdminSect
 }
 
 export function AdminMobileCriticalAlerts({ data }: { data: AdminData }) {
+  const { tokens } = useAppTheme()
   const alerts = [
-    { icon: 'person-remove-outline' as IconName, label: 'Usuarios inactivos', value: data.metrics.inactiveUsers, color: '#FB7185' },
-    { icon: 'book-outline' as IconName, label: 'Cursos sin clases', value: data.metrics.coursesWithoutClassrooms, color: '#F59E0B' },
-    { icon: 'time-outline' as IconName, label: 'Alumnos sin actividad', value: data.metrics.studentsWithoutActivity, color: '#8FA7C7' },
-    { icon: 'key-outline' as IconName, label: 'Clases sin código', value: data.metrics.classroomsWithoutCode, color: '#38BDF8' },
+    { icon: 'person-remove-outline' as IconName, label: 'Usuarios inactivos', value: data.metrics.inactiveUsers, color: tokens.semantic.danger },
+    { icon: 'book-outline' as IconName, label: 'Cursos sin clases', value: data.metrics.coursesWithoutClassrooms, color: tokens.semantic.warning },
+    { icon: 'time-outline' as IconName, label: 'Alumnos sin actividad', value: data.metrics.studentsWithoutActivity, color: tokens.text.muted },
+    { icon: 'key-outline' as IconName, label: 'Clases sin código', value: data.metrics.classroomsWithoutCode, color: tokens.semantic.info },
   ]
   const visibleAlerts = alerts.filter((alert) => alert.value > 0)
 
   return (
-    <View className="rounded-[24px] border border-[#1A3155] bg-[#07162D] p-4">
+    <View className="rounded-[24px] border border-border-default bg-surface-default p-4">
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
-          <Ionicons name="alert-circle-outline" size={19} color="#FB7185" />
-          <Text className="text-[17px] font-black text-white">Alertas críticas</Text>
+          <Ionicons name="alert-circle-outline" size={19} color={tokens.semantic.danger} />
+          <Text className="text-[17px] font-black text-text-primary">Alertas críticas</Text>
         </View>
-        <Text className="rounded-full bg-[#102A54] px-3 py-1 text-[12px] font-black text-[#9FD6FF]">
+        <Text className="rounded-full bg-surface-interactive px-3 py-1 text-[12px] font-black text-semantic-info">
           {visibleAlerts.length}
         </Text>
       </View>
@@ -968,18 +959,18 @@ export function AdminMobileCriticalAlerts({ data }: { data: AdminData }) {
       <View className="mt-3" style={{ gap: 10 }}>
         {visibleAlerts.length > 0 ? (
           visibleAlerts.slice(0, 3).map((alert) => (
-            <View key={alert.label} className="flex-row items-center rounded-2xl border border-[#20375E] bg-[#09162C] px-3 py-3">
+            <View key={alert.label} className="flex-row items-center rounded-2xl border border-border-default bg-surface-default px-3 py-3">
               <View className="h-10 w-10 items-center justify-center rounded-2xl" style={{ backgroundColor: `${alert.color}24` }}>
                 <Ionicons name={alert.icon} size={18} color={alert.color} />
               </View>
-              <Text className="ml-3 min-w-0 flex-1 text-[13px] font-bold text-[#DDE7F4]" numberOfLines={1}>{alert.label}</Text>
-              <Text className="text-[18px] font-black text-white">{alert.value}</Text>
+              <Text className="ml-3 min-w-0 flex-1 text-[13px] font-bold text-text-secondary" numberOfLines={1}>{alert.label}</Text>
+              <Text className="text-[18px] font-black text-text-primary">{alert.value}</Text>
             </View>
           ))
         ) : (
-          <View className="items-center rounded-2xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-5">
-            <Ionicons name="checkmark-circle-outline" size={26} color="#34D399" />
-            <Text className="mt-2 text-center text-[13px] font-bold text-[#AFC2DB]">No hay alertas críticas ahora mismo.</Text>
+          <View className="items-center rounded-2xl border border-dashed border-border-default bg-surface-default px-4 py-5">
+            <Ionicons name="checkmark-circle-outline" size={26} color={tokens.semantic.success} />
+            <Text className="mt-2 text-center text-[13px] font-bold text-text-secondary">No hay alertas críticas ahora mismo.</Text>
           </View>
         )}
       </View>
@@ -988,11 +979,12 @@ export function AdminMobileCriticalAlerts({ data }: { data: AdminData }) {
 }
 
 export function AdminMobileSectionTabs({ activeSection }: { activeSection: AdminSection }) {
+  const { tokens } = useAppTheme()
   const router = useRouter()
 
   return (
-    <View className="rounded-[24px] border border-[#1A3155] bg-[#07162D] p-4">
-      <Text className="text-[17px] font-black text-white">Secciones</Text>
+    <View className="rounded-[24px] border border-border-default bg-surface-default p-4">
+      <Text className="text-[17px] font-black text-text-primary">Secciones</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -1010,12 +1002,12 @@ export function AdminMobileSectionTabs({ activeSection }: { activeSection: Admin
               className="h-11 flex-row items-center gap-2 rounded-2xl border px-4"
               style={({ pressed }) => ({
                 opacity: pressed ? 0.82 : 1,
-                borderColor: active ? '#6D5AF6' : '#20375E',
-                backgroundColor: active ? '#2D1D6B' : '#09162C',
+                borderColor: active ? tokens.border.active : tokens.border.default,
+                backgroundColor: active ? tokens.surface.selected : tokens.surface.default,
               })}
             >
-              <Ionicons name={active ? filledIconFor(item.icon) : item.icon} size={17} color={active ? '#FFFFFF' : '#AFC2DB'} />
-              <Text className="text-[13px] font-black" style={{ color: active ? '#FFFFFF' : '#DDE7F4' }} numberOfLines={1}>
+              <Ionicons name={active ? filledIconFor(item.icon) : item.icon} size={17} color={active ? tokens.text.inverse : tokens.text.secondary} />
+              <Text className="text-[13px] font-black" style={{ color: active ? tokens.text.inverse : tokens.text.primary }} numberOfLines={1}>
                 {item.label}
               </Text>
             </Pressable>
@@ -1027,17 +1019,18 @@ export function AdminMobileSectionTabs({ activeSection }: { activeSection: Admin
 }
 
 export function HomeShortcut({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+  const { tokens } = useAppTheme()
   return (
     <Pressable
       onPress={onPress}
-      className="min-w-[185px] flex-1 flex-row items-center gap-3 rounded-2xl border border-[#20375E] bg-[#09162C] p-4"
+      className="min-w-[185px] flex-1 flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-default p-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
-      <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#102A54]">
-        <Ionicons name={icon} size={20} color="#9FD6FF" />
+      <View className="h-11 w-11 items-center justify-center rounded-xl bg-surface-interactive">
+        <Ionicons name={icon} size={20} color={tokens.semantic.info} />
       </View>
-      <Text className="min-w-0 flex-1 font-black text-white">{label}</Text>
-      <Ionicons name="chevron-forward" size={16} color="#8FA7C7" />
+      <Text className="min-w-0 flex-1 font-black text-text-primary">{label}</Text>
+      <Ionicons name="chevron-forward" size={16} color={tokens.text.muted} />
     </Pressable>
   )
 }
@@ -1055,13 +1048,14 @@ export function Panel({
   icon: IconName
   title: string
 }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className={`rounded-2xl border border-[#1A3155] bg-[#07162D] ${compact ? 'p-4' : 'p-5'} ${className}`}>
+    <View className={`rounded-2xl border border-border-default bg-surface-default ${compact ? 'p-4' : 'p-5'} ${className}`}>
       <View className="mb-4 flex-row items-center gap-3">
-        <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#102A54]">
-          <Ionicons name={icon} size={20} color="#9FD6FF" />
+        <View className="h-10 w-10 items-center justify-center rounded-xl bg-surface-interactive">
+          <Ionicons name={icon} size={20} color={tokens.semantic.info} />
         </View>
-        <Text className="text-[18px] font-black text-white">{title}</Text>
+        <Text className="text-[18px] font-black text-text-primary">{title}</Text>
       </View>
       {children}
     </View>
@@ -1095,32 +1089,34 @@ export function AdminInput({
   placeholder: string
   value: string
 }) {
+  const { tokens } = useAppTheme()
   return (
     <View className="min-w-[210px] flex-1">
-      <Text className="mb-2 text-[12px] font-bold text-[#AFC2DB]">{label}</Text>
+      <Text className="mb-2 text-[12px] font-bold text-text-secondary">{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         autoCapitalize={autoCapitalize}
         placeholder={placeholder}
-        placeholderTextColor="#8FA7C7"
-        className="h-12 rounded-xl border border-[#20375E] bg-[#09162C] px-4 text-white"
+        placeholderTextColor={tokens.text.muted}
+        className="h-12 rounded-xl border border-border-default bg-surface-default px-4 text-text-primary"
       />
     </View>
   )
 }
 
 export function AdminSearch({ value, onChangeText, placeholder }: { value: string; onChangeText: (value: string) => void; placeholder: string }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className="h-12 flex-row items-center rounded-xl border border-[#20375E] bg-[#09162C] px-4">
+    <View className="h-12 flex-row items-center rounded-xl border border-border-default bg-surface-default px-4">
       <TextInput
-        className="min-w-0 flex-1 text-white"
+        className="min-w-0 flex-1 text-text-primary"
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#8FA7C7"
+        placeholderTextColor={tokens.text.muted}
       />
-      <Ionicons name="search-outline" size={19} color="#8FA7C7" />
+      <Ionicons name="search-outline" size={19} color={tokens.text.muted} />
     </View>
   )
 }
@@ -1139,23 +1135,22 @@ export function AdminListToolbar({
   placeholder: string
   search: string
 }) {
+  const { tokens } = useAppTheme()
   return (
     <View className="flex-row flex-wrap items-center gap-3">
       <View className="min-w-[240px] flex-1">
         <AdminSearch value={search} onChangeText={onChangeSearch} placeholder={placeholder} />
       </View>
       {onExport ? (
-        <Pressable
+        <AppButton
+          label={exporting ? 'Exportando...' : 'Exportar CSV'}
           accessibilityLabel="Exportar listado filtrado a CSV"
-          accessibilityRole="button"
+          icon="download-outline"
+          variant="secondary"
+          loading={exporting}
           disabled={exporting}
           onPress={onExport}
-          className="h-12 flex-row items-center justify-center gap-2 rounded-xl border border-[#35578A] bg-[#102A54] px-4"
-          style={({ pressed }) => ({ opacity: exporting ? 0.55 : pressed ? 0.78 : 1 })}
-        >
-          {exporting ? <ActivityIndicator color="#9FD6FF" /> : <Ionicons name="download-outline" size={18} color="#9FD6FF" />}
-          <Text className="font-black text-[#DDE7F4]">{exporting ? 'Exportando...' : 'Exportar CSV'}</Text>
-        </Pressable>
+        />
       ) : null}
     </View>
   )
@@ -1173,18 +1168,18 @@ export function AdminFilterRow({
   value: string
 }) {
   return (
-    <View>
-      <Text className="mb-2 text-[11px] font-black uppercase tracking-[0.7px] text-[#8FA7C7]">{label}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-        {options.map((option) => (
-          <AdminChoiceChip key={option.value} active={value === option.value} label={option.label} onPress={() => onChange(option.value)} />
-        ))}
-      </ScrollView>
-    </View>
+    <AppDropdown
+      label={label}
+      value={value}
+      options={options}
+      onChange={onChange}
+      accessibilityLabel={`Filtrar por ${label}`}
+    />
   )
 }
 
 export function AdminChoiceChip({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
+  const { tokens } = useAppTheme()
   return (
     <Pressable
       accessibilityRole="button"
@@ -1192,27 +1187,28 @@ export function AdminChoiceChip({ active, label, onPress }: { active: boolean; l
       onPress={onPress}
       className="h-10 items-center justify-center rounded-xl border px-3"
       style={({ pressed }) => ({
-        borderColor: active ? '#8B5CF6' : '#20375E',
-        backgroundColor: active ? '#2D1D6B' : '#09162C',
+        borderColor: active ? tokens.border.active : tokens.border.default,
+        backgroundColor: active ? tokens.surface.selected : tokens.surface.default,
         opacity: pressed ? 0.78 : 1,
       })}
     >
-      <Text className="text-[12px] font-black" style={{ color: active ? '#FFFFFF' : '#AFC2DB' }}>{label}</Text>
+      <Text className="text-[12px] font-black" style={{ color: active ? tokens.text.primary : tokens.text.secondary }}>{label}</Text>
     </Pressable>
   )
 }
 
 export function SupportTicketCard({ ticket, onManage }: { ticket: AdminSupportTicketRow; onManage: () => void }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+    <View className="rounded-xl border border-border-default bg-surface-default p-4">
       <View className="flex-row flex-wrap items-start justify-between gap-3">
         <View className="min-w-[220px] flex-1">
           <View className="flex-row flex-wrap items-center gap-2">
             <SupportStatusPill status={ticket.status} />
             <SupportPriorityPill priority={ticket.priority} />
           </View>
-          <Text className="mt-3 text-[16px] font-black text-white">{ticket.subject}</Text>
-          <Text className="mt-1 text-[12px] font-semibold text-[#8FA7C7]">
+          <Text className="mt-3 text-[16px] font-black text-text-primary">{ticket.subject}</Text>
+          <Text className="mt-1 text-[12px] font-semibold text-text-muted">
             {ticket.user_alias || 'Usuario'} · {ticket.role === 'teacher' ? 'Profesor' : 'Alumno'} · {formatAuditDate(ticket.created_at)}
           </Text>
         </View>
@@ -1220,18 +1216,18 @@ export function SupportTicketCard({ ticket, onManage }: { ticket: AdminSupportTi
           accessibilityLabel={`Gestionar ticket ${ticket.subject}`}
           accessibilityRole="button"
           onPress={onManage}
-          className="h-10 flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4"
+          className="h-10 flex-row items-center gap-2 rounded-xl bg-brand-admin px-4"
           style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
         >
-          <Ionicons name="create-outline" size={16} color="#FFFFFF" />
-          <Text className="text-[12px] font-black text-white">Gestionar</Text>
+          <Ionicons name="create-outline" size={16} color={tokens.text.inverse} />
+          <Text className="text-[12px] font-black text-text-inverse">Gestionar</Text>
         </Pressable>
       </View>
-      <Text className="mt-3 text-[13px] leading-5 text-[#DDE7F4]" numberOfLines={3}>{ticket.message}</Text>
+      <Text className="mt-3 text-[13px] leading-5 text-text-secondary" numberOfLines={3}>{ticket.message}</Text>
       {ticket.admin_response ? (
-        <View className="mt-3 rounded-xl border border-[#30508A] bg-[#10224A] p-3">
-          <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-[#9FD6FF]">Última respuesta</Text>
-          <Text className="mt-1 text-[12px] leading-5 text-[#DDE7F4]" numberOfLines={2}>{ticket.admin_response}</Text>
+        <View className="mt-3 rounded-xl border border-border-active bg-semantic-surface-info p-3">
+          <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-semantic-info">Última respuesta</Text>
+          <Text className="mt-1 text-[12px] leading-5 text-text-secondary" numberOfLines={2}>{ticket.admin_response}</Text>
         </View>
       ) : null}
     </View>
@@ -1239,11 +1235,12 @@ export function SupportTicketCard({ ticket, onManage }: { ticket: AdminSupportTi
 }
 
 export function SupportStatusPill({ status }: { status: AdminSupportTicketRow['status'] }) {
+  const { tokens } = useAppTheme()
   const meta = {
-    open: { bg: '#3B1D2A', color: '#FB7185' },
-    in_progress: { bg: '#3A2A0B', color: '#FBBF24' },
-    resolved: { bg: '#063D31', color: '#34D399' },
-    closed: { bg: '#1A3155', color: '#AFC2DB' },
+    open: { bg: tokens.semanticSurface.danger, color: tokens.semantic.danger },
+    in_progress: { bg: tokens.semanticSurface.warning, color: tokens.semantic.warning },
+    resolved: { bg: tokens.semanticSurface.success, color: tokens.semantic.success },
+    closed: { bg: tokens.surface.interactive, color: tokens.text.secondary },
   }[status]
   return (
     <View className="rounded-full px-3 py-1" style={{ backgroundColor: meta.bg }}>
@@ -1253,10 +1250,11 @@ export function SupportStatusPill({ status }: { status: AdminSupportTicketRow['s
 }
 
 export function SupportPriorityPill({ priority }: { priority: AdminSupportTicketRow['priority'] }) {
+  const { tokens } = useAppTheme()
   const meta = {
-    high: { bg: '#3B1D2A', color: '#FB7185' },
-    medium: { bg: '#3A2A0B', color: '#FBBF24' },
-    low: { bg: '#102A54', color: '#9FD6FF' },
+    high: { bg: tokens.semanticSurface.danger, color: tokens.semantic.danger },
+    medium: { bg: tokens.semanticSurface.warning, color: tokens.semantic.warning },
+    low: { bg: tokens.semanticSurface.info, color: tokens.semantic.info },
   }[priority]
   return (
     <View className="rounded-full px-3 py-1" style={{ backgroundColor: meta.bg }}>
@@ -1266,6 +1264,7 @@ export function SupportPriorityPill({ priority }: { priority: AdminSupportTicket
 }
 
 export function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVersion: number }) {
+  const { tokens } = useAppTheme()
   const { width } = useWindowDimensions()
   const isDesktop = width >= 1040
   const [analytics, setAnalytics] = useState<AdminUsageAnalytics | null>(null)
@@ -1294,58 +1293,58 @@ export function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVersion: n
     <Panel title="Analítica de uso · 30 días" icon="analytics-outline">
       {loading ? (
         <View className="items-center py-7">
-          <ActivityIndicator color="#8B5CF6" />
-          <Text className="mt-3 text-[13px] text-[#8FA7C7]">Calculando eventos de producto...</Text>
+          <ActivityIndicator color={tokens.brand.admin} />
+          <Text className="mt-3 text-[13px] text-text-muted">Calculando eventos de producto...</Text>
         </View>
       ) : analytics ? (
         <>
           <View className="flex-row flex-wrap gap-3">
-            <AdminMetric color="#A78BFA" icon="eye" label="Visitas de pantalla" value={String(analytics.screen_views || 0)} />
-            <AdminMetric color="#F59E0B" icon="document-text" label="Formularios abandonados" value={String(analytics.form_abandoned || 0)} />
-            <AdminMetric color="#60A5FA" icon="enter" label="Uniones a cursos" value={String(analytics.course_joins || 0)} />
-            <AdminMetric color="#38BDF8" icon="play" label="Partidas iniciadas" value={String(analytics.game_started || 0)} />
-            <AdminMetric color="#34D399" icon="checkmark-circle" label="Completadas" value={String(analytics.game_finished || 0)} />
-            <AdminMetric color="#F59E0B" icon="exit" label="Abandonadas" value={String(analytics.game_abandoned || 0)} />
-            <AdminMetric color="#FB7185" icon="warning" label="Errores" value={String(analytics.game_errors || 0)} />
-            <AdminMetric color="#F472B6" icon="cloud-offline" label="Errores Edge" value={String(analytics.edge_function_errors || 0)} />
+            <AdminMetric color={tokens.brand.admin} icon="eye" label="Visitas de pantalla" value={String(analytics.screen_views || 0)} />
+            <AdminMetric color={tokens.semantic.warning} icon="document-text" label="Formularios abandonados" value={String(analytics.form_abandoned || 0)} />
+            <AdminMetric color={tokens.semantic.info} icon="enter" label="Uniones a cursos" value={String(analytics.course_joins || 0)} />
+            <AdminMetric color={tokens.semantic.info} icon="play" label="Partidas iniciadas" value={String(analytics.game_started || 0)} />
+            <AdminMetric color={tokens.semantic.success} icon="checkmark-circle" label="Completadas" value={String(analytics.game_finished || 0)} />
+            <AdminMetric color={tokens.semantic.warning} icon="exit" label="Abandonadas" value={String(analytics.game_abandoned || 0)} />
+            <AdminMetric color={tokens.semantic.danger} icon="warning" label="Errores" value={String(analytics.game_errors || 0)} />
+            <AdminMetric color={tokens.semantic.danger} icon="cloud-offline" label="Errores Edge" value={String(analytics.edge_function_errors || 0)} />
           </View>
           <View className={isDesktop ? 'mt-4 flex-row gap-4' : 'mt-4 gap-3'}>
-            <View className="flex-1 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
-              <Text className="text-[12px] font-bold text-[#8FA7C7]">Retención</Text>
-              <Text className="mt-2 text-[13px] font-black text-white">
+            <View className="flex-1 rounded-xl border border-border-default bg-surface-default p-4">
+              <Text className="text-[12px] font-bold text-text-muted">Retención</Text>
+              <Text className="mt-2 text-[13px] font-black text-text-primary">
                 D1 {Number(analytics.retention?.d1 || 0).toFixed(1)}% · D7 {Number(analytics.retention?.d7 || 0).toFixed(1)}% · D30 {Number(analytics.retention?.d30 || 0).toFixed(1)}%
               </Text>
             </View>
-            <View className="flex-1 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
-              <Text className="text-[12px] font-bold text-[#8FA7C7]">Latencia RPC</Text>
-              <Text className="mt-2 text-[13px] font-black text-white">
+            <View className="flex-1 rounded-xl border border-border-default bg-surface-default p-4">
+              <Text className="text-[12px] font-bold text-text-muted">Latencia RPC</Text>
+              <Text className="mt-2 text-[13px] font-black text-text-primary">
                 p50 {Number(analytics.rpc_latency_ms?.p50 || 0).toFixed(0)} ms · p95 {Number(analytics.rpc_latency_ms?.p95 || 0).toFixed(0)} ms
               </Text>
             </View>
           </View>
-          <View className="mt-4 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
-            <Text className="text-[12px] font-bold text-[#8FA7C7]">Embudo de aprendizaje</Text>
-            <Text className="mt-2 text-[13px] font-black text-white">
+          <View className="mt-4 rounded-xl border border-border-default bg-surface-default p-4">
+            <Text className="text-[12px] font-bold text-text-muted">Embudo de aprendizaje</Text>
+            <Text className="mt-2 text-[13px] font-black text-text-primary">
               Pantalla {analytics.funnel?.screen_view || 0} → Curso {analytics.funnel?.course_joined || 0} → Partida {analytics.funnel?.game_started || 0} → Final {analytics.funnel?.game_finished || 0}
             </Text>
             {Object.keys(analytics.question_types || {}).length > 0 ? (
-              <Text className="mt-2 text-[12px] text-[#AFC2DB]">
+              <Text className="mt-2 text-[12px] text-text-secondary">
                 Tipos de pregunta: {Object.entries(analytics.question_types || {}).map(([type, total]) => `${type} ${total}`).join(' · ')}
               </Text>
             ) : null}
           </View>
           <View className={isDesktop ? 'mt-4 flex-row gap-4' : 'mt-4 gap-3'}>
-            <View className="flex-1 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
-              <Text className="text-[12px] font-bold text-[#8FA7C7]">Tasa de finalización</Text>
-              <Text className="mt-1 text-[26px] font-black text-white">{Number(analytics.completion_rate || 0).toFixed(1)}%</Text>
+            <View className="flex-1 rounded-xl border border-border-default bg-surface-default p-4">
+              <Text className="text-[12px] font-bold text-text-muted">Tasa de finalización</Text>
+              <Text className="mt-1 text-[26px] font-black text-text-primary">{Number(analytics.completion_rate || 0).toFixed(1)}%</Text>
             </View>
-            <View className="flex-1 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
-              <Text className="text-[12px] font-bold text-[#8FA7C7]">Usuarios activos</Text>
-              <Text className="mt-1 text-[26px] font-black text-white">{analytics.active_users || 0}</Text>
+            <View className="flex-1 rounded-xl border border-border-default bg-surface-default p-4">
+              <Text className="text-[12px] font-bold text-text-muted">Usuarios activos</Text>
+              <Text className="mt-1 text-[26px] font-black text-text-primary">{analytics.active_users || 0}</Text>
             </View>
-            <View className="flex-1 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
-              <Text className="text-[12px] font-bold text-[#8FA7C7]">Logros desbloqueados</Text>
-              <Text className="mt-1 text-[26px] font-black text-white">{analytics.badges_unlocked || 0}</Text>
+            <View className="flex-1 rounded-xl border border-border-default bg-surface-default p-4">
+              <Text className="text-[12px] font-bold text-text-muted">Logros desbloqueados</Text>
+              <Text className="mt-1 text-[26px] font-black text-text-primary">{analytics.badges_unlocked || 0}</Text>
             </View>
           </View>
         </>
@@ -1391,14 +1390,14 @@ export function ProfileRowCard({ actions, meta, profile }: { actions: RowAction[
   const activityLabel = profile.last_activity_at ? `Actividad ${formatAuditDate(profile.last_activity_at)}` : 'Sin actividad registrada'
 
   return (
-    <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+    <View className="rounded-xl border border-border-default bg-surface-default p-4">
       <View className="flex-row flex-wrap items-center gap-4">
-        <View className="h-12 w-12 items-center justify-center rounded-full bg-[#102A54]">
-          <Text className="font-black text-[#9FD6FF]">{getInitials(profile.alias)}</Text>
+        <View className="h-12 w-12 items-center justify-center rounded-full bg-surface-interactive">
+          <Text className="font-black text-semantic-info">{getInitials(profile.alias)}</Text>
         </View>
         <View className="min-w-[220px] flex-1">
-          <Text className="font-black text-white">{profile.alias}</Text>
-          <Text className="mt-1 text-[12px] text-[#8FA7C7]">{profile.email || 'Sin correo guardado'}</Text>
+          <Text className="font-black text-text-primary">{profile.alias}</Text>
+          <Text className="mt-1 text-[12px] text-text-muted">{profile.email || 'Sin correo guardado'}</Text>
         </View>
         <StatusPill active={profile.active !== false} />
       </View>
@@ -1425,19 +1424,20 @@ export function CourseRowCard({
   subject: SubjectRow
   teacher?: ProfileRow
 }) {
+  const { tokens } = useAppTheme()
   const incidentCount = subject.incidents_count ?? 0
   const statusLabel = subject.is_archived ? 'Archivado' : subject.active === false ? 'Inactivo' : 'Activo'
 
   return (
-    <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+    <View className="rounded-xl border border-border-default bg-surface-default p-4">
       <View className="flex-row flex-wrap items-start justify-between gap-3">
         <View className="min-w-[240px] flex-1">
-          <Text className="font-black text-white">{subject.name}</Text>
-          <Text className="mt-1 text-[12px] text-[#8FA7C7]">
+          <Text className="font-black text-text-primary">{subject.name}</Text>
+          <Text className="mt-1 text-[12px] text-text-muted">
             Profesor propietario: {teacher?.alias || subject.teacher_alias || 'Sin asignar'}
           </Text>
           {teacher?.email || subject.teacher_email ? (
-            <Text className="mt-1 text-[11px] text-[#6F86A8]">{teacher?.email || subject.teacher_email}</Text>
+            <Text className="mt-1 text-[11px] text-text-muted">{teacher?.email || subject.teacher_email}</Text>
           ) : null}
         </View>
         <StatusPill active={subject.active !== false && !subject.is_archived} label={statusLabel} />
@@ -1449,7 +1449,7 @@ export function CourseRowCard({
         <MiniPill icon={incidentCount > 0 ? 'warning-outline' : 'checkmark-circle-outline'} label={`${incidentCount} incidencia(s)`} />
       </View>
       {incidentCount > 0 ? (
-        <Text className="mt-3 text-[11px] leading-4 text-[#FBBF24]">
+        <Text className="mt-3 text-[11px] leading-4 text-gamification-xp">
           {subject.pending_reviews_count || 0} revisiones pendientes · {subject.inactive_classrooms_count || 0} clases inactivas · {subject.missing_code_count || 0} clases sin código
         </Text>
       ) : null}
@@ -1469,20 +1469,21 @@ export function ClassroomRowCard({
   enrollmentsCount: number
   subject?: SubjectRow
 }) {
+  const { tokens } = useAppTheme()
   const incidentCount = classroom.incidents_count ?? 0
 
   return (
-    <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+    <View className="rounded-xl border border-border-default bg-surface-default p-4">
       <View className="flex-row flex-wrap items-center gap-4">
-        <View className="h-12 w-12 items-center justify-center rounded-xl bg-[#1A1E55]">
-          <Ionicons name="albums-outline" size={22} color="#C4B5FD" />
+        <View className="h-12 w-12 items-center justify-center rounded-xl bg-surface-selected">
+          <Ionicons name="albums-outline" size={22} color={tokens.brand.admin} />
         </View>
         <View className="min-w-[240px] flex-1">
-          <Text className="font-black text-white">{classroom.name}</Text>
-          <Text className="mt-1 text-[12px] text-[#8FA7C7]">{subject?.name || classroom.subject_name || 'Curso no disponible'}</Text>
-          <Text className="mt-1 text-[11px] text-[#6F86A8]">Profesor propietario: {classroom.teacher_alias || 'Sin asignar'}</Text>
+          <Text className="font-black text-text-primary">{classroom.name}</Text>
+          <Text className="mt-1 text-[12px] text-text-muted">{subject?.name || classroom.subject_name || 'Curso no disponible'}</Text>
+          <Text className="mt-1 text-[11px] text-text-muted">Profesor propietario: {classroom.teacher_alias || 'Sin asignar'}</Text>
         </View>
-        {classroom.code ? <Text className="rounded-lg bg-[#102A54] px-3 py-2 font-mono text-[12px] font-black text-[#9FD6FF]">{classroom.code}</Text> : null}
+        {classroom.code ? <Text className="rounded-lg bg-surface-interactive px-3 py-2 font-mono text-[12px] font-black text-semantic-info">{classroom.code}</Text> : null}
         <StatusPill active={classroom.active !== false} />
       </View>
       <View className="mt-3 flex-row flex-wrap gap-2">
@@ -1491,7 +1492,7 @@ export function ClassroomRowCard({
         <MiniPill icon={incidentCount > 0 ? 'warning-outline' : 'checkmark-circle-outline'} label={`${incidentCount} incidencia(s)`} />
       </View>
       {incidentCount > 0 ? (
-        <Text className="mt-3 text-[11px] leading-4 text-[#FBBF24]">
+        <Text className="mt-3 text-[11px] leading-4 text-gamification-xp">
           {classroom.pending_reviews_count || 0} revisiones pendientes{classroom.code ? '' : ' · clase sin código'}{classroom.active === false ? ' · clase inactiva' : ''}
         </Text>
       ) : null}
@@ -1517,18 +1518,19 @@ export function RecentAuditPanel({ data }: { data: AdminData }) {
 }
 
 export function AuditLogCard({ compact, data, log }: { compact?: boolean; data: AdminData; log: AdminAuditLogRow }) {
+  const { tokens } = useAppTheme()
   const admin = data.profiles.find((profile) => profile.id === log.admin_id)
   const targetLabel = getAuditTargetLabel(log)
   const actorLabel = log.actor_alias || admin?.alias || 'Admin desconocido'
   const severity = log.severity || getAdminAuditSeverity(log.action)
-  const severityMeta = getAdminAuditSeverityMeta(severity)
+  const severityMeta = getAdminAuditSeverityMeta(severity, tokens)
 
   return (
-    <View className="rounded-xl border border-[#20375E] bg-[#09162C] p-4">
+    <View className="rounded-xl border border-border-default bg-surface-default p-4">
       <View className="flex-row flex-wrap items-start justify-between gap-3">
         <View className="min-w-[220px] flex-1">
-          <Text className="font-black text-white">{getAuditActionLabel(log.action)}</Text>
-          <Text className="mt-1 text-[12px] text-[#8FA7C7]">
+          <Text className="font-black text-text-primary">{getAuditActionLabel(log.action)}</Text>
+          <Text className="mt-1 text-[12px] text-text-muted">
             {actorLabel} · {formatAuditDate(log.created_at)}
           </Text>
         </View>
@@ -1540,10 +1542,10 @@ export function AuditLogCard({ compact, data, log }: { compact?: boolean; data: 
         </View>
       </View>
 
-      <Text className="mt-3 text-[13px] text-[#DDE7F4]">{targetLabel}</Text>
+      <Text className="mt-3 text-[13px] text-text-secondary">{targetLabel}</Text>
 
       {!compact ? (
-        <Text className="mt-2 font-mono text-[12px] leading-5 text-[#AFC2DB]" numberOfLines={4}>
+        <Text className="mt-2 font-mono text-[12px] leading-5 text-text-secondary" numberOfLines={4}>
           {JSON.stringify(log.metadata || {}, null, 2)}
         </Text>
       ) : null}
@@ -1557,10 +1559,10 @@ export function getAdminAuditSeverity(action: string) {
   return 'info'
 }
 
-export function getAdminAuditSeverityMeta(severity: string) {
-  if (severity === 'critical') return { label: 'Crítica', color: '#FB7185', background: '#3B1D2A' }
-  if (severity === 'warning') return { label: 'Advertencia', color: '#FBBF24', background: '#3A2A0B' }
-  return { label: 'Información', color: '#9FD6FF', background: '#102A54' }
+export function getAdminAuditSeverityMeta(severity: string, tokens: DesignColorTokens) {
+  if (severity === 'critical') return { label: 'Crítica', color: tokens.semantic.danger, background: tokens.semanticSurface.danger }
+  if (severity === 'warning') return { label: 'Advertencia', color: tokens.semantic.warning, background: tokens.semanticSurface.warning }
+  return { label: 'Información', color: tokens.semantic.info, background: tokens.semanticSurface.info }
 }
 
 
@@ -1609,32 +1611,40 @@ export function formatAuditDate(value?: string | null) {
 }
 
 export function RowActions({ actions }: { actions: RowAction[] }) {
+  const [open, setOpen] = useState(false)
+  const menuItems = actions.map((action, index) => ({
+    key: `${action.label}-${index}`,
+    label: action.label,
+    icon: action.icon,
+    destructive: action.destructive,
+    onPress: action.onPress,
+  }))
+
   return (
-    <View className="mt-4 flex-row flex-wrap gap-2">
-      {actions.map((action) => (
-        <Pressable
-          key={action.label}
-          onPress={action.onPress}
-          className="flex-row items-center gap-2 rounded-xl border px-3 py-2"
-          style={({ pressed }) => ({
-            borderColor: action.destructive ? '#4A1E2B' : '#20375E',
-            backgroundColor: action.destructive ? '#2A0B18' : '#07162D',
-            opacity: pressed ? 0.82 : 1,
-          })}
-        >
-          <Ionicons name={action.icon} size={14} color={action.destructive ? '#FB7185' : '#AFC2DB'} />
-          <Text className="text-[12px] font-bold" style={{ color: action.destructive ? '#FCA5A5' : '#DDE7F4' }}>{action.label}</Text>
-        </Pressable>
-      ))}
+    <View className="mt-4 items-start">
+      <AppButton
+        label="Acciones"
+        icon="ellipsis-horizontal"
+        variant="secondary"
+        size="sm"
+        onPress={() => setOpen(true)}
+      />
+      <AppMenu
+        visible={open}
+        onClose={() => setOpen(false)}
+        title="Acciones disponibles"
+        items={menuItems}
+      />
     </View>
   )
 }
 
 export function StatusPill({ active, label }: { active: boolean; label?: string }) {
+  const { tokens } = useAppTheme()
   const resolvedLabel = label || (active ? 'Activo' : 'Inactivo')
   return (
-    <View className="rounded-full px-3 py-1" style={{ backgroundColor: active ? '#063D31' : '#3B1D2A' }}>
-      <Text className="text-[12px] font-black" style={{ color: active ? '#34D399' : '#FB7185' }}>
+    <View className="rounded-full px-3 py-1" style={{ backgroundColor: active ? tokens.semanticSurface.success : tokens.semanticSurface.danger }}>
+      <Text className="text-[12px] font-black" style={{ color: active ? tokens.semantic.success : tokens.semantic.danger }}>
         {resolvedLabel}
       </Text>
     </View>
@@ -1642,51 +1652,53 @@ export function StatusPill({ active, label }: { active: boolean; label?: string 
 }
 
 export function MiniPill({ icon, label }: { icon: IconName; label: string }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className="flex-row items-center gap-2 rounded-lg border border-[#20375E] bg-[#07162D] px-3 py-2">
-      <Ionicons name={icon} size={14} color="#AFC2DB" />
-      <Text className="text-[12px] font-semibold text-[#DDE7F4]">{label}</Text>
+    <View className="flex-row items-center gap-2 rounded-lg border border-border-default bg-surface-default px-3 py-2">
+      <Ionicons name={icon} size={14} color={tokens.text.secondary} />
+      <Text className="text-[12px] font-semibold text-text-secondary">{label}</Text>
     </View>
   )
 }
 
 export function SideFact({ label, value }: { label: string; value: string }) {
   return (
-    <View className="flex-row items-center justify-between border-b border-[#13284A] py-3">
-      <Text className="text-[13px] font-semibold text-[#AFC2DB]">{label}</Text>
-      <Text className="font-black text-white">{value}</Text>
+    <View className="flex-row items-center justify-between border-b border-border-subtle py-3">
+      <Text className="text-[13px] font-semibold text-text-secondary">{label}</Text>
+      <Text className="font-black text-text-primary">{value}</Text>
     </View>
   )
 }
 
 export function SystemAlertRow({ color, icon, label, value }: { color: string; icon: IconName; label: string; value: number }) {
   return (
-    <View className="flex-row items-center justify-between border-b border-[#13284A] py-3">
+    <View className="flex-row items-center justify-between border-b border-border-subtle py-3">
       <View className="min-w-0 flex-1 flex-row items-center gap-3">
         <View className="h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}24` }}>
           <Ionicons name={icon} size={17} color={color} />
         </View>
-        <Text className="min-w-0 flex-1 text-[13px] font-semibold text-[#AFC2DB]">{label}</Text>
+        <Text className="min-w-0 flex-1 text-[13px] font-semibold text-text-secondary">{label}</Text>
       </View>
-      <Text className="text-[18px] font-black text-white">{value}</Text>
+      <Text className="text-[18px] font-black text-text-primary">{value}</Text>
     </View>
   )
 }
 
 export function EmptyState({ label }: { label: string }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
-      <Ionicons name="search-outline" size={34} color="#8FA7C7" />
-      <Text className="mt-3 text-center font-bold text-[#AFC2DB]">{label}</Text>
+    <View className="items-center rounded-xl border border-dashed border-border-default bg-surface-default p-8">
+      <Ionicons name="search-outline" size={34} color={tokens.text.muted} />
+      <Text className="mt-3 text-center font-bold text-text-secondary">{label}</Text>
     </View>
   )
 }
 
 export function ListLoadingState() {
   return (
-    <View className="items-center rounded-xl border border-[#20375E] bg-[#09162C] p-5">
-      <ActivityIndicator color="#8B5CF6" />
-      <Text className="mt-3 text-[13px] font-semibold text-[#8FA7C7]">Cargando página...</Text>
+    <View className="items-center rounded-xl border border-border-default bg-surface-default p-5">
+      <ActivityIndicator color={tokens.brand.admin} />
+      <Text className="mt-3 text-[13px] font-semibold text-text-muted">Cargando página...</Text>
     </View>
   )
 }
@@ -1708,32 +1720,33 @@ export function AdminPaginationControls({
   pageSize: number
   total: number
 }) {
+  const { tokens } = useAppTheme()
   const firstItem = total === 0 ? 0 : page * pageSize + 1
   const lastItem = Math.min(total, (page + 1) * pageSize)
 
   return (
-    <View className="mt-4 flex-row flex-wrap items-center justify-between gap-3 rounded-xl border border-[#1A3155] bg-[#07162E] px-4 py-3">
-      <Text className="text-[12px] font-semibold text-[#AFC2DB]">
+    <View className="mt-4 flex-row flex-wrap items-center justify-between gap-3 rounded-xl border border-border-default bg-surface-default px-4 py-3">
+      <Text className="text-[12px] font-semibold text-text-secondary">
         {total === 0 ? 'Sin resultados' : `${firstItem}-${lastItem} de ${total}`}
       </Text>
       <View className="flex-row items-center gap-2">
         <Pressable
           onPress={onPrevious}
           disabled={!hasPrevious}
-          className="h-10 flex-row items-center gap-1 rounded-xl border border-[#20375E] bg-[#09162C] px-3"
+          className="h-10 flex-row items-center gap-1 rounded-xl border border-border-default bg-surface-default px-3"
           style={({ pressed }) => ({ opacity: !hasPrevious ? 0.45 : pressed ? 0.78 : 1 })}
         >
-          <Ionicons name="chevron-back" size={15} color="#DDE7F4" />
-          <Text className="text-[12px] font-black text-[#DDE7F4]">Anterior</Text>
+          <Ionicons name="chevron-back" size={15} color={tokens.text.primary} />
+          <Text className="text-[12px] font-black text-text-secondary">Anterior</Text>
         </Pressable>
         <Pressable
           onPress={onNext}
           disabled={!hasNext}
-          className="h-10 flex-row items-center gap-1 rounded-xl bg-[#5A46D8] px-3"
+          className="h-10 flex-row items-center gap-1 rounded-xl bg-brand-admin px-3"
           style={({ pressed }) => ({ opacity: !hasNext ? 0.45 : pressed ? 0.78 : 1 })}
         >
-          <Text className="text-[12px] font-black text-white">Siguiente</Text>
-          <Ionicons name="chevron-forward" size={15} color="#FFFFFF" />
+          <Text className="text-[12px] font-black text-text-inverse">Siguiente</Text>
+          <Ionicons name="chevron-forward" size={15} color={tokens.text.inverse} />
         </Pressable>
       </View>
     </View>

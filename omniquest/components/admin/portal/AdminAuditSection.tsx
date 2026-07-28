@@ -135,8 +135,8 @@ export function AdminAuditSection() {
         </View>
 
         {targetId ? (
-          <View className="mt-3 flex-row flex-wrap items-center justify-between gap-3 rounded-xl border border-[#31588A] bg-[#102A54] px-4 py-3">
-            <Text className="min-w-0 flex-1 text-[12px] font-bold text-[#DDE7F4]">
+          <View className="mt-3 flex-row flex-wrap items-center justify-between gap-3 rounded-xl border border-border-active bg-surface-interactive px-4 py-3">
+            <Text className="min-w-0 flex-1 text-[12px] font-bold text-text-secondary">
               Auditoría relacionada con {entity || 'entidad'} #{targetId}
             </Text>
             <AppButton label="Quitar relación" size="sm" variant="ghost" icon="close" onPress={() => setTargetId('')} />
@@ -145,7 +145,7 @@ export function AdminAuditSection() {
 
         {activeFilterCount > 0 ? (
           <View className="mt-3 flex-row items-center justify-between gap-3">
-            <Text className="text-[11px] font-bold text-[#8FA7C7]">{activeFilterCount} filtro(s) avanzado(s) activo(s)</Text>
+            <Text className="text-[11px] font-bold text-text-muted">{activeFilterCount} filtro(s) avanzado(s) activo(s)</Text>
             <AppButton label="Limpiar filtros" size="sm" variant="ghost" icon="refresh-outline" onPress={clearFilters} />
           </View>
         ) : null}

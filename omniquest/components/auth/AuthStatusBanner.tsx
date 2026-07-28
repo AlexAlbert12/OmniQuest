@@ -44,7 +44,7 @@ export default function AuthStatusBanner({
       <Ionicons name={palette.icon} size={21} color={palette.color} />
       <View className="min-w-0 flex-1">
         {title ? <Text className="font-black" style={{ color: palette.color }}>{title}</Text> : null}
-        <Text className={`${title ? 'mt-1' : ''} text-[13px] font-semibold leading-5 text-[#DDE7F4]`}>{message}</Text>
+        <Text className={`${title ? 'mt-1' : ''} text-[13px] font-semibold leading-5 text-text-secondary`}>{message}</Text>
         {actionLabel && onAction ? (
           <Pressable
             accessibilityRole="button"

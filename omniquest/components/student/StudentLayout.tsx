@@ -38,15 +38,15 @@ export default function StudentLayout({
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center bg-background-primary">
         <ActivityIndicator size="large" color={accentColor} />
-        <Text className="mt-4 text-[#8FA7C7]">{loadingLabel}</Text>
+        <Text className="mt-4 text-text-muted">{loadingLabel}</Text>
       </View>
     )
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1 bg-background-primary">
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <StudentSidebar

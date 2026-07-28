@@ -16,9 +16,9 @@ export default function Footer() {
       <View className={`flex-row items-center gap-x-4 ${!isWeb ? 'justify-center' : ''}`}>
         <BrandLogo size={20} />
         
-        <View className="h-4 w-px bg-[#355276]" />
+        <View className="h-4 w-px bg-surface-selected" />
         
-        <Text className="text-[#5176A1] text-[13px]">
+        <Text className="text-brand-student text-[13px]">
           © {new Date().getFullYear()} TFM
         </Text>
       </View>

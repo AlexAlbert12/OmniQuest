@@ -77,7 +77,7 @@ export default function StudentSidebar({
         }}
       >
         {isCompact ? (
-          <View className="h-12 w-12 items-center justify-center rounded-2xl border border-[#1A3155] bg-[#091A35]">
+          <View className="h-12 w-12 items-center justify-center rounded-2xl border border-border-default bg-surface-default">
           <OmniGuide size={24} state="happy" />
           </View>
         ) : (
@@ -118,7 +118,7 @@ export default function StudentSidebar({
             {isCompact ? (
               <View className="items-center" style={{ gap: 8 }}>
                 <GamifiedAvatar avatarUrl={avatar} alias={alias} cosmetics={cosmetics} level={level} size={44} showLevel={false} />
-                <View className="h-1.5 w-full overflow-hidden rounded-full bg-[#13294C]">
+                <View className="h-1.5 w-full overflow-hidden rounded-full bg-surface-interactive">
                   <View className="h-full rounded-full" style={{ width: `${safeProgress}%`, backgroundColor: accentColor }} />
                 </View>
               </View>
@@ -132,14 +132,14 @@ export default function StudentSidebar({
                       <View className="h-5 w-5 items-center justify-center rounded-md" style={{ backgroundColor: accentColor }}>
                         <Ionicons name="star" size={12} color="#FFFFFF" />
                       </View>
-                      <Text className="text-[12px] text-[#B9A7FF]">Nivel {level}</Text>
+                      <Text className="text-[12px] text-brand-student">Nivel {level}</Text>
                     </View>
                   </View>
                 </View>
-                <Text className="mt-4 text-[12px] text-[#B7C7DE]">
+                <Text className="mt-4 text-[12px] text-text-secondary">
                   {(points % 100).toLocaleString()} / 100 XP para Nivel {level + 1}
                 </Text>
-                <View className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#13294C]">
+                <View className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface-interactive">
                   <View className="h-full rounded-full" style={{ width: `${safeProgress}%`, backgroundColor: accentColor }} />
                 </View>
               </>

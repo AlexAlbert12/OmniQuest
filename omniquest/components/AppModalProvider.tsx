@@ -1,23 +1,26 @@
 import { Ionicons } from '@expo/vector-icons'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ActivityIndicator, Alert, Modal, Pressable, Text, View } from 'react-native'
+import { Alert, StyleSheet, View } from 'react-native'
 import OmniGuide, { type OmniState } from './OmniGuide'
+import AppBottomSheet from './ui/AppBottomSheet'
+import AppButton, { type AppButtonVariant } from './ui/AppButton'
+import AppStatusBanner, { type AppStatusBannerVariant } from './ui/AppStatusBanner'
 
-type NativeAlertButton = {
+export type NativeAlertButton = {
   text?: string
   onPress?: () => void
   style?: 'default' | 'cancel' | 'destructive'
 }
 
-type AppModalVariant = 'success' | 'warning' | 'error' | 'info'
+export type AppModalVariant = 'success' | 'warning' | 'error' | 'info'
 
-type AppModalButton = {
+export type AppModalButton = {
   label: string
   onPress?: () => void
   role: 'primary' | 'cancel' | 'danger'
 }
 
-type AppModalState = {
+export type AppModalState = {
   buttons: AppModalButton[]
   message?: string
   title: string
@@ -30,42 +33,32 @@ type AppModalContextValue = {
 
 const AppModalContext = createContext<AppModalContextValue | null>(null)
 
-const variantStyles: Record<AppModalVariant, {
-  color: string
-  background: string
-  border: string
+const variantConfig: Record<AppModalVariant, {
+  bannerVariant: AppStatusBannerVariant
   icon: keyof typeof Ionicons.glyphMap
   label: string
   omniState: OmniState
 }> = {
   success: {
-    color: '#43D991',
-    background: '#0D2F29',
-    border: '#2FBC7E',
+    bannerVariant: 'success',
     icon: 'checkmark-circle-outline',
     label: 'Confirmación',
     omniState: 'happy',
   },
   warning: {
-    color: '#FBBF24',
-    background: '#332A10',
-    border: '#F6A64A',
+    bannerVariant: 'warning',
     icon: 'alert-circle-outline',
     label: 'Aviso',
     omniState: 'thinking',
   },
   error: {
-    color: '#FB7185',
-    background: '#351420',
-    border: '#F43F5E',
+    bannerVariant: 'danger',
     icon: 'close-circle-outline',
     label: 'Error',
     omniState: 'error',
   },
   info: {
-    color: '#58B5FF',
-    background: '#0D2848',
-    border: '#3B82F6',
+    bannerVariant: 'info',
     icon: 'information-circle-outline',
     label: 'Información',
     omniState: 'thinking',
@@ -97,10 +90,7 @@ export function AppModalProvider({ children }: { children: ReactNode }) {
       })
     }) as typeof Alert.alert
 
-    const canPatchWindowAlert =
-      typeof window !== 'undefined' &&
-      typeof window.alert === 'function'
-
+    const canPatchWindowAlert = typeof window !== 'undefined' && typeof window.alert === 'function'
     if (canPatchWindowAlert) {
       previousWindowAlertRef.current = window.alert.bind(window)
       window.alert = ((message?: unknown) => {
@@ -114,10 +104,7 @@ export function AppModalProvider({ children }: { children: ReactNode }) {
     }
 
     return () => {
-      if (previousAlertRef.current) {
-        Alert.alert = previousAlertRef.current
-      }
-
+      if (previousAlertRef.current) Alert.alert = previousAlertRef.current
       if (previousWindowAlertRef.current && typeof window !== 'undefined') {
         window.alert = previousWindowAlertRef.current
       }
@@ -138,7 +125,6 @@ export function AppModalProvider({ children }: { children: ReactNode }) {
     }
 
     setBusyButtonIndex(index)
-
     try {
       button.onPress()
     } finally {
@@ -161,11 +147,7 @@ export function AppModalProvider({ children }: { children: ReactNode }) {
 
 export function useAppModal() {
   const context = useContext(AppModalContext)
-
-  if (!context) {
-    throw new Error('useAppModal debe usarse dentro de AppModalProvider')
-  }
-
+  if (!context) throw new Error('useAppModal debe usarse dentro de AppModalProvider')
   return context
 }
 
@@ -180,83 +162,76 @@ function StyledAppModal({
   onButtonPress: (button: AppModalButton, index: number) => void
   onClose: () => void
 }) {
-  if (!modal) return null
-
-  const style = variantStyles[modal.variant]
+  const config = modal ? variantConfig[modal.variant] : variantConfig.info
 
   return (
-    <Modal transparent visible animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 items-center justify-center px-5" style={{ backgroundColor: 'rgba(2, 6, 23, 0.78)' }}>
-        <Pressable className="absolute inset-0" onPress={onClose} />
-        <View
-          className="w-full max-w-[460px] overflow-hidden rounded-3xl border"
-          style={{
-            backgroundColor: '#08142E',
-            borderColor: `${style.border}AA`,
-            boxShadow: '0 28px 90px rgba(0, 0, 0, 0.55)',
-          } as any}
-        >
-          <View className="absolute right-[-44px] top-[-48px] h-36 w-36 rounded-full" style={{ backgroundColor: `${style.color}24` }} />
-          <View className="absolute bottom-[-64px] left-[-48px] h-36 w-48 rounded-full" style={{ backgroundColor: `${style.color}12` }} />
-
-          <View className="border-b px-6 py-5" style={{ borderColor: '#203864', backgroundColor: '#0B1B38' }}>
-            <View className="flex-row items-center gap-3">
-              <View className="relative">
-                <OmniGuide state={style.omniState} size={64} autoBlink={style.omniState === 'normal'} />
-                <View className="absolute -bottom-1 -right-1 h-7 w-7 items-center justify-center rounded-full border" style={{ backgroundColor: style.background, borderColor: style.border }}>
-                  <Ionicons name={style.icon} size={16} color={style.color} />
-                </View>
-              </View>
-              <View className="min-w-0 flex-1">
-                <Text className="text-[11px] font-black uppercase tracking-[0.12em]" style={{ color: style.color }}>
-                  {style.label}
-                </Text>
-                <Text className="mt-1 text-[22px] font-black text-white">{modal.title}</Text>
-              </View>
-            </View>
-          </View>
-
-          <View className="px-6 pb-6 pt-5">
-            {modal.message ? (
-              <Text className="text-[15px] leading-6 text-[#D8E3F3]">{modal.message}</Text>
-            ) : null}
-
-            <View className="mt-6 flex-row flex-wrap justify-end gap-3">
-              {modal.buttons.map((button, index) => {
-                const isPrimary = button.role === 'primary'
-                const isDanger = button.role === 'danger'
-                const buttonColor = isDanger ? variantStyles.error.color : style.color
-
-                return (
-                  <Pressable
-                    key={`${button.label}-${index}`}
-                    onPress={() => onButtonPress(button, index)}
-                    className="min-w-[120px] items-center justify-center rounded-2xl px-5 py-3"
-                    style={({ pressed }) => ({
-                      opacity: pressed ? 0.84 : 1,
-                      backgroundColor: isPrimary || isDanger ? buttonColor : '#0D1D3B',
-                      borderColor: isPrimary || isDanger ? buttonColor : '#263E61',
-                      borderWidth: 1,
-                    })}
-                  >
-                    {busyButtonIndex === index ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text className="text-[14px] font-black" style={{ color: isPrimary || isDanger ? '#FFFFFF' : '#DDE7F4' }}>
-                        {button.label}
-                      </Text>
-                    )}
-                  </Pressable>
-                )
-              })}
-            </View>
+    <AppBottomSheet
+      visible={Boolean(modal)}
+      onClose={onClose}
+      title={modal?.title}
+      closeOnBackdropPress={busyButtonIndex === null}
+      footer={modal ? (
+        <View style={styles.actions}>
+          {modal.buttons.map((button, index) => {
+            const variant: AppButtonVariant = button.role === 'danger'
+              ? 'danger'
+              : button.role === 'cancel'
+                ? 'secondary'
+                : modal.variant === 'success'
+                  ? 'success'
+                  : 'primary'
+            return (
+              <AppButton
+                key={`${button.label}-${index}`}
+                label={button.label}
+                variant={variant}
+                loading={busyButtonIndex === index}
+                disabled={busyButtonIndex !== null && busyButtonIndex !== index}
+                onPress={() => onButtonPress(button, index)}
+                style={styles.action}
+              />
+            )
+          })}
+        </View>
+      ) : null}
+    >
+      {modal ? (
+        <View style={styles.body}>
+          <View style={styles.omniRow}>
+            <OmniGuide state={config.omniState} size={62} autoBlink={config.omniState === 'normal'} />
+            <AppStatusBanner
+              compact
+              variant={config.bannerVariant}
+              icon={config.icon}
+              title={config.label}
+              message={modal.message || 'Revisa la información antes de continuar.'}
+            />
           </View>
         </View>
-      </View>
-    </Modal>
+      ) : null}
+    </AppBottomSheet>
   )
 }
 
+const styles = StyleSheet.create({
+  body: {
+    gap: 14,
+  },
+  omniRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  action: {
+    minWidth: 120,
+  },
+})
 function normalizeButtons(buttons?: NativeAlertButton[]): AppModalButton[] {
   if (!buttons || buttons.length === 0) {
     return [{ label: 'Aceptar', role: 'primary' }]

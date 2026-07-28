@@ -23,8 +23,8 @@ export default function TeacherTopicOverview({
   const [showSecondaryMetrics, setShowSecondaryMetrics] = useState(false)
 
   return (
-    <View className="mb-5 rounded-2xl border border-[#183052] bg-[#07162D] p-4">
-      <Text className="mb-3 text-[12px] font-black uppercase tracking-wide text-[#8FA7C7]">Tema en un vistazo</Text>
+    <View className="mb-5 rounded-2xl border border-border-default bg-surface-default p-4">
+      <Text className="mb-3 text-[12px] font-black uppercase tracking-wide text-text-muted">Tema en un vistazo</Text>
       <View className="flex-row flex-wrap gap-3">
         <TopicFact icon="help-circle-outline" label="Preguntas" value={String(questionsCount)} color="#A78BFA" />
         <TopicFact icon="speedometer-outline" label="Dificultad" value={difficulty} color="#F59E0B" />
@@ -36,9 +36,9 @@ export default function TeacherTopicOverview({
         accessibilityRole="button"
         accessibilityState={{ expanded: showSecondaryMetrics }}
         onPress={() => setShowSecondaryMetrics((visible) => !visible)}
-        className="mt-4 flex-row items-center justify-between border-t border-[#183052] pt-4"
+        className="mt-4 flex-row items-center justify-between border-t border-border-default pt-4"
       >
-        <Text className="text-[13px] font-black text-[#B9A7FF]">Métricas secundarias</Text>
+        <Text className="text-[13px] font-black text-brand-teacher">Métricas secundarias</Text>
         <Ionicons name={showSecondaryMetrics ? 'chevron-up' : 'chevron-down'} size={18} color="#B9A7FF" />
       </Pressable>
 
@@ -62,7 +62,7 @@ export function TeacherTopicAddQuestionCTA({ href, isDesktop }: { href: string; 
         <Pressable
           accessibilityLabel="Añadir pregunta al tema"
           accessibilityRole="button"
-          className={`${isDesktop ? 'h-12 rounded-xl px-4' : 'h-14 rounded-2xl px-5'} flex-row items-center justify-center gap-2 border border-[#8B7AF8] bg-[#5A46D8]`}
+          className={`${isDesktop ? 'h-12 rounded-xl px-4' : 'h-14 rounded-2xl px-5'} flex-row items-center justify-center gap-2 border border-border-active bg-brand-teacher`}
         >
           <Ionicons name="add" size={20} color="#FFFFFF" />
           <Text className="text-[13px] font-black text-white">Añadir pregunta al tema</Text>
@@ -74,10 +74,10 @@ export function TeacherTopicAddQuestionCTA({ href, isDesktop }: { href: string; 
 
 function TopicFact({ color, icon, label, value }: { color: string; icon: IconName; label: string; value: string }) {
   return (
-    <View className="min-w-[145px] flex-1 rounded-xl border border-[#183052] bg-[#09162C] p-3">
+    <View className="min-w-[145px] flex-1 rounded-xl border border-border-default bg-surface-default p-3">
       <View className="flex-row items-center gap-2">
         <Ionicons name={icon} size={16} color={color} />
-        <Text className="text-[11px] font-bold uppercase text-[#8FA7C7]">{label}</Text>
+        <Text className="text-[11px] font-bold uppercase text-text-muted">{label}</Text>
       </View>
       <Text className="mt-2 text-[15px] font-black text-white" numberOfLines={2}>{value}</Text>
     </View>
@@ -86,8 +86,8 @@ function TopicFact({ color, icon, label, value }: { color: string; icon: IconNam
 
 function SecondaryMetric({ label, value }: { label: string; value: string }) {
   return (
-    <View className="flex-1 rounded-xl bg-[#0D1D3B] p-3">
-      <Text className="text-[11px] text-[#8FA7C7]">{label}</Text>
+    <View className="flex-1 rounded-xl bg-surface-raised p-3">
+      <Text className="text-[11px] text-text-muted">{label}</Text>
       <Text className="mt-1 text-[20px] font-black text-white">{value}</Text>
     </View>
   )

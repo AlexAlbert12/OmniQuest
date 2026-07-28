@@ -29,7 +29,7 @@ export default function MobileEmptyState({
   omniState,
 }: MobileEmptyStateProps) {
   return (
-    <View className={`items-center rounded-[24px] border border-dashed border-[#28446F] bg-[#07162C] px-5 py-8 ${className}`}>
+    <View className={`items-center rounded-[24px] border border-dashed border-border-default bg-surface-default px-5 py-8 ${className}`}>
       {omniState ? (
         <OmniGuide state={omniState} size={omniSize} autoBlink={omniState === 'normal'} />
       ) : (
@@ -39,7 +39,7 @@ export default function MobileEmptyState({
       )}
       <Text className="mt-4 text-center text-[19px] font-black text-white">{title}</Text>
       {description ? (
-        <Text className="mt-2 max-w-[280px] text-center text-[13px] leading-5 text-[#AFC2DB]">{description}</Text>
+        <Text className="mt-2 max-w-[280px] text-center text-[13px] leading-5 text-text-secondary">{description}</Text>
       ) : null}
       {actionLabel && onAction ? (
         <Pressable

@@ -12,9 +12,9 @@ export default function PasswordStrength({ result, compact = false }: PasswordSt
   if (!result.hasValue) return null
 
   return (
-    <View className="rounded-2xl border border-[#1D3760] bg-[#07162C]/80 p-3">
+    <View className="rounded-2xl border border-border-default bg-surface-default p-3">
       <View className="flex-row items-center justify-between gap-3">
-        <Text className="text-[12px] font-bold text-[#AFC2DB]">Seguridad de la contraseña</Text>
+        <Text className="text-[12px] font-bold text-text-secondary">Seguridad de la contraseña</Text>
         <Text className="text-[12px] font-black" style={{ color: result.color }}>{result.label}</Text>
       </View>
       <View className="mt-2 flex-row gap-1.5">

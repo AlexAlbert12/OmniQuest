@@ -41,17 +41,17 @@ export function SubjectClassroomsSection({
           value={selectedClassroomId ?? classrooms[0].id}
         />
       ) : (
-        <View className="rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-4">
-          <Text className="text-[12px] text-[#8FA7C7]">Todavía no hay clases en este curso.</Text>
+        <View className="rounded-xl border border-dashed border-border-default bg-surface-default p-4">
+          <Text className="text-[12px] text-text-muted">Todavía no hay clases en este curso.</Text>
         </View>
       )}
 
-      <View className="mt-4 flex-row flex-wrap items-end gap-3 border-t border-[#13284A] pt-4">
+      <View className="mt-4 flex-row flex-wrap items-end gap-3 border-t border-border-subtle pt-4">
         <View className="min-w-[240px] flex-1">
-          <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Nueva clase dentro del curso</Text>
+          <Text className="mb-2 text-[12px] font-semibold text-text-secondary">Nueva clase dentro del curso</Text>
           <TextInput
             accessibilityLabel="Nombre de la nueva clase"
-            className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3 text-white"
+            className="rounded-xl border border-border-default bg-surface-default px-4 py-3 text-white"
             placeholder="Ej. Grupo A, 1º DAM tarde..."
             placeholderTextColor="#60799C"
             value={newClassroomName}
@@ -127,23 +127,23 @@ export function SubjectTopicsSection({
 
       <View className="gap-3">
         {topicRows.length === 0 ? (
-          <View className="rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-5">
+          <View className="rounded-xl border border-dashed border-border-default bg-surface-default p-5">
             <Text className="font-bold text-white">Todavía no hay temas</Text>
-            <Text className="mt-1 text-[12px] text-[#8FA7C7]">Crea el primer tema para agrupar las preguntas de esta clase.</Text>
+            <Text className="mt-1 text-[12px] text-text-muted">Crea el primer tema para agrupar las preguntas de esta clase.</Text>
           </View>
         ) : topicRows.map((topic) => (
           <Pressable
             key={String(topic.id)}
             accessibilityRole="button"
             onPress={() => typeof topic.id === 'number' ? onOpenTopic(topic.id) : onSelectTopic(topic.id)}
-            className="flex-row items-center gap-3 rounded-xl border border-[#183052] bg-[#09162C] p-4"
+            className="flex-row items-center gap-3 rounded-xl border border-border-default bg-surface-default p-4"
           >
-            <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#2A1C61]">
+            <View className="h-11 w-11 items-center justify-center rounded-xl bg-surface-selected">
               <Ionicons name="book-outline" size={21} color="#D8B4FE" />
             </View>
             <View className="min-w-0 flex-1">
               <Text className="font-black text-white" numberOfLines={1}>{topic.title}</Text>
-              <Text className="mt-1 text-[12px] text-[#8FA7C7]">
+              <Text className="mt-1 text-[12px] text-text-muted">
                 {topic.questionsCount} preguntas · {topic.playedCount} resultados · {topic.averageScore} XP media
               </Text>
             </View>
@@ -152,13 +152,13 @@ export function SubjectTopicsSection({
         ))}
       </View>
 
-      <View className="mt-5 gap-3 border-t border-[#13284A] pt-4">
-        <Text className="text-[12px] font-black uppercase tracking-wide text-[#B7C4D7]">Crear tema</Text>
+      <View className="mt-5 gap-3 border-t border-border-subtle pt-4">
+        <Text className="text-[12px] font-black uppercase tracking-wide text-text-secondary">Crear tema</Text>
         <View className="flex-row flex-wrap items-end gap-3">
           <View className="min-w-[220px] flex-1">
             <TextInput
               accessibilityLabel="Título del nuevo tema"
-              className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3 text-white"
+              className="rounded-xl border border-border-default bg-surface-default px-4 py-3 text-white"
               placeholder="Ej. Ecuaciones de primer grado"
               placeholderTextColor="#60799C"
               value={newTopicTitle}
@@ -168,7 +168,7 @@ export function SubjectTopicsSection({
           <View className="min-w-[220px] flex-1">
             <TextInput
               accessibilityLabel="Descripción del nuevo tema"
-              className="rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3 text-white"
+              className="rounded-xl border border-border-default bg-surface-default px-4 py-3 text-white"
               placeholder="Descripción opcional"
               placeholderTextColor="#60799C"
               value={newTopicDescription}
@@ -181,7 +181,7 @@ export function SubjectTopicsSection({
             <DateTimeCalendarField value={newTopicAvailableUntil} onChange={onAvailableUntilChange} />
           </View>
           <View className="min-w-[240px] flex-1">
-            <Text className="mb-2 text-[12px] font-semibold text-[#B7C4D7]">Dificultad inicial</Text>
+            <Text className="mb-2 text-[12px] font-semibold text-text-secondary">Dificultad inicial</Text>
             <AppTabs
               accessibilityLabel="Dificultad inicial"
               compact
@@ -214,7 +214,7 @@ export function SubjectAddQuestionCTA({ href, sticky = false }: { href: string; 
       style={sticky ? { shadowColor: '#000', shadowOpacity: 0.34, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 12 } : undefined}
     >
       <Link href={href as any} asChild>
-        <Pressable className="h-14 flex-row items-center justify-center gap-2 rounded-2xl border border-[#8B7AF8] bg-[#5A46D8] px-5">
+        <Pressable className="h-14 flex-row items-center justify-center gap-2 rounded-2xl border border-border-active bg-brand-teacher px-5">
           <Ionicons name="add" size={21} color="#FFFFFF" />
           <Text className="text-[15px] font-black text-white">Añadir pregunta</Text>
         </Pressable>

@@ -18,7 +18,8 @@
     "deploy:push": "supabase functions deploy send-push-notification && supabase functions deploy teacher-student-reminder && supabase functions deploy process-notification-delivery --no-verify-jwt",
     "deploy:operations": "supabase functions deploy process-notification-delivery --no-verify-jwt && supabase functions deploy process-teacher-digests --no-verify-jwt",
     "deploy:security": "supabase functions deploy manage-account-security",
-    "deploy:media": "supabase functions deploy process-question-media && supabase functions deploy cleanup-question-media --no-verify-jwt"
+    "deploy:media": "supabase functions deploy process-question-media && supabase functions deploy cleanup-question-media --no-verify-jwt",
+    "audit:design-system": "node scripts/audit-design-system.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",

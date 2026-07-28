@@ -301,9 +301,9 @@ export default function TeacherHomeScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center bg-background-primary">
         <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando inicio del profesor...</Text>
+        <Text className="mt-4 text-text-muted">Cargando inicio del profesor...</Text>
       </View>
     );
   }
@@ -332,7 +332,7 @@ export default function TeacherHomeScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1 bg-background-primary">
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <TeacherSidebar
@@ -391,7 +391,7 @@ export default function TeacherHomeScreen() {
                 <Text className="text-[24px] font-black text-white">Cursos recientes</Text>
                 <Link href="/(teacher)/classes" asChild>
                   <Pressable className="flex-row items-center gap-2">
-                    <Text className="font-bold text-[#B9A7FF]">Ver todas</Text>
+                    <Text className="font-bold text-brand-teacher">Ver todas</Text>
                     <Ionicons name="arrow-forward" size={15} color="#B9A7FF" />
                   </Pressable>
                 </Link>
@@ -414,11 +414,11 @@ export default function TeacherHomeScreen() {
               {subjects.length === 0 ? (
                 <Pressable
                   onPress={() => router.push('/(teacher)/create-subject' as any)}
-                  className="items-center justify-center rounded-2xl border border-dashed border-[#5364F5] bg-[#07162E] p-8"
+                  className="items-center justify-center rounded-2xl border border-dashed border-brand-student bg-surface-default p-8"
                 >
                   <OmniGuide state="normal" autoBlink size={72} />
                   <Text className="mt-4 text-lg font-black text-white">Crea tu primer curso</Text>
-                  <Text className="mt-2 text-center text-[#B7C4D7]">
+                  <Text className="mt-2 text-center text-text-secondary">
                     Añade un curso para empezar a gestionar clases, alumnos y preguntas.
                   </Text>
                 </Pressable>
@@ -433,9 +433,9 @@ export default function TeacherHomeScreen() {
                       <ActivityRow key={item.id} item={item} />
                     ))
                   ) : (
-                    <View className="items-center rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
+                    <View className="items-center rounded-xl border border-dashed border-border-default bg-surface-raised px-4 py-5">
                       <OmniGuide state="normal" autoBlink size={58} />
-                      <Text className="mt-2 text-center text-[12px] text-[#8FA7C7]">Aún no hay actividad reciente en tus cursos.</Text>
+                      <Text className="mt-2 text-center text-[12px] text-text-muted">Aún no hay actividad reciente en tus cursos.</Text>
                     </View>
                   )}
                 </View>
@@ -453,9 +453,9 @@ export default function TeacherHomeScreen() {
                       />
                     ))
                   ) : (
-                    <View className="items-center rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
+                    <View className="items-center rounded-xl border border-dashed border-border-default bg-surface-raised px-4 py-5">
                       <OmniGuide state="thinking" size={58} />
-                      <Text className="mt-2 text-center text-[12px] text-[#8FA7C7]">Todavía no hay preguntas problemáticas detectadas.</Text>
+                      <Text className="mt-2 text-center text-[12px] text-text-muted">Todavía no hay preguntas problemáticas detectadas.</Text>
                     </View>
                   )}
                 </View>
@@ -504,7 +504,7 @@ function MobileTeacherHome({
   onRefresh: () => void
 }) {
   return (
-    <View className="flex-1 bg-[#031022]">
+    <View className="flex-1 bg-background-primary">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 6 }}
@@ -520,15 +520,15 @@ function MobileTeacherHome({
           actions={(
             <>
               <Link href="/(teacher)/create-subject" asChild>
-                <Pressable accessibilityRole="button" accessibilityLabel="Crear curso" className="h-11 flex-row items-center gap-2 rounded-xl border border-[#25466E] bg-[#0A1D3B] px-3">
+                <Pressable accessibilityRole="button" accessibilityLabel="Crear curso" className="h-11 flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-raised px-3">
                   <Ionicons name="add-circle-outline" size={19} color="#60A5FA" />
-                  <Text className="text-[12px] font-black text-[#D7E2F4]">Crear</Text>
+                  <Text className="text-[12px] font-black text-text-secondary">Crear</Text>
                 </Pressable>
               </Link>
               <Link href="/(teacher)/reviews" asChild>
-                <Pressable accessibilityRole="button" className="h-11 flex-row items-center gap-2 rounded-xl border border-[#25466E] bg-[#0A1D3B] px-3">
+                <Pressable accessibilityRole="button" className="h-11 flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-raised px-3">
                   <Ionicons name="create-outline" size={19} color="#A78BFA" />
-                  <Text className="text-[12px] font-black text-[#D7E2F4]">Revisar</Text>
+                  <Text className="text-[12px] font-black text-text-secondary">Revisar</Text>
                 </Pressable>
               </Link>
             </>
@@ -583,11 +583,11 @@ function MobileRecentCourses({
   onViewAll: () => void
 }) {
   return (
-    <View className="mt-5 rounded-2xl border border-[#17345B] bg-[#071832] p-4">
+    <View className="mt-5 rounded-2xl border border-border-default bg-surface-default p-4">
       <View className="mb-4 flex-row items-center justify-between gap-3">
         <Text className="text-[24px] font-black text-white">Cursos recientes</Text>
         <Pressable onPress={onViewAll} className="flex-row items-center gap-1">
-          <Text className="text-[14px] font-black text-[#A970FF]">Ver todos</Text>
+          <Text className="text-[14px] font-black text-brand-admin">Ver todos</Text>
           <Ionicons name="arrow-forward" size={18} color="#A970FF" />
         </Pressable>
       </View>
@@ -610,11 +610,11 @@ function MobileRecentCourses({
         ) : (
           <Pressable
             onPress={onCreateSubject}
-            className="items-center rounded-2xl border border-dashed border-[#5364F5] bg-[#0A1D3B] px-5 py-8"
+            className="items-center rounded-2xl border border-dashed border-brand-student bg-surface-raised px-5 py-8"
           >
             <OmniGuide state="normal" autoBlink size={66} />
             <Text className="mt-3 text-[18px] font-black text-white">Crea tu primer curso</Text>
-            <Text className="mt-1 text-center text-[13px] leading-5 text-[#C7D3E5]">Empieza a organizar clases, alumnos y preguntas.</Text>
+            <Text className="mt-1 text-center text-[13px] leading-5 text-text-secondary">Empieza a organizar clases, alumnos y preguntas.</Text>
           </Pressable>
         )}
       </View>
@@ -624,7 +624,7 @@ function MobileRecentCourses({
 
 function MobileSubjectPreview({ subject, analytics }: { subject: Subject; analytics: SubjectAnalytics }) {
   return (
-    <View className="rounded-2xl border border-[#17345B] bg-[#0A1D3B] p-4">
+    <View className="rounded-2xl border border-border-default bg-surface-raised p-4">
       <View className="flex-row items-start gap-4">
         <View className="h-[74px] w-[74px] items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(subject.theme_color || '#8B5CF6', '28') }}>
           {subject.icon ? <Text className="text-[34px]">{subject.icon}</Text> : <Ionicons name="book-outline" size={34} color="#9B8CFF" />}
@@ -632,35 +632,35 @@ function MobileSubjectPreview({ subject, analytics }: { subject: Subject; analyt
         <View className="min-w-0 flex-1">
           <View className="flex-row items-center gap-2">
             <Text className="min-w-0 flex-1 text-[22px] font-black text-white" numberOfLines={1}>{subject.name}</Text>
-            <View className="rounded-lg bg-[#6D4AFF]/35 px-2.5 py-1">
-              <Text className="text-[12px] font-black text-[#C4B5FD]">Activo</Text>
+            <View className="rounded-lg bg-surface-selected px-2.5 py-1">
+              <Text className="text-[12px] font-black text-brand-teacher">Activo</Text>
             </View>
           </View>
-          <Text className="mt-2 text-[14px] leading-5 text-[#D7E2F4]" numberOfLines={2}>
+          <Text className="mt-2 text-[14px] leading-5 text-text-secondary" numberOfLines={2}>
             {analytics.classroomCount} {analytics.classroomCount === 1 ? 'clase' : 'clases'} · {analytics.enrolledCount} alumnos · {analytics.questionsCount} preguntas
           </Text>
-          <Text className="mt-1 text-[13px] text-[#8FA7C7]" numberOfLines={1}>Código del curso: {subject.code}</Text>
+          <Text className="mt-1 text-[13px] text-text-muted" numberOfLines={1}>Código del curso: {subject.code}</Text>
         </View>
         <Ionicons name="ellipsis-horizontal" size={23} color="#AFC2DB" />
       </View>
 
       <View className="mt-4 flex-row flex-wrap gap-2">
         <Link href={`/(teacher)/subject/${subject.id}`} asChild>
-          <Pressable className="min-w-[120px] flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-[#6D4AFF] px-3 py-3">
+          <Pressable className="min-w-[120px] flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-brand-student px-3 py-3">
             <Ionicons name="settings-outline" size={16} color="#FFFFFF" />
             <Text className="font-black text-white">Gestionar</Text>
           </Pressable>
         </Link>
         <Link href={`/(teacher)/subject/add-question?subjectId=${subject.id}`} asChild>
-          <Pressable className="min-w-[130px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-[#20375E] bg-[#071832] px-3 py-3">
+          <Pressable className="min-w-[130px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-default px-3 py-3">
             <Ionicons name="add-circle-outline" size={16} color="#DDE7F4" />
-            <Text className="font-black text-[#DDE7F4]">Crear pregunta</Text>
+            <Text className="font-black text-text-secondary">Crear pregunta</Text>
           </Pressable>
         </Link>
         <Link href={`/(teacher)/subject/${subject.id}?tab=students`} asChild>
-          <Pressable className="min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-[#20375E] bg-[#071832] px-3 py-3">
+          <Pressable className="min-w-[150px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-default px-3 py-3">
             <Ionicons name="person-add-outline" size={16} color="#DDE7F4" />
-            <Text className="font-black text-[#DDE7F4]">Importar alumnos</Text>
+            <Text className="font-black text-text-secondary">Importar alumnos</Text>
           </Pressable>
         </Link>
       </View>
@@ -670,37 +670,37 @@ function MobileSubjectPreview({ subject, analytics }: { subject: Subject; analyt
 
 function SubjectPreview({ subject, analytics }: { subject: Subject; analytics: SubjectAnalytics }) {
   return (
-    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+    <View className="rounded-2xl border border-border-default bg-surface-default p-4">
       <View className="flex-row items-start gap-4">
-        <View className="h-14 w-14 items-center justify-center rounded-xl bg-[#172554]">
+        <View className="h-14 w-14 items-center justify-center rounded-xl bg-semantic-surface-info">
           {subject.icon ? <Text className="text-2xl">{subject.icon}</Text> : <Ionicons name="book-outline" size={26} color="#9B8CFF" />}
         </View>
         <View className="min-w-0 flex-1">
           <Text className="text-lg font-black text-white" numberOfLines={1}>{subject.name}</Text>
-          <Text className="mt-1 text-[12px] text-[#B7C4D7]" numberOfLines={1}>
+          <Text className="mt-1 text-[12px] text-text-secondary" numberOfLines={1}>
             {analytics.classroomCount} {analytics.classroomCount === 1 ? 'clase' : 'clases'} · {analytics.enrolledCount} alumnos · {analytics.questionsCount} preguntas
           </Text>
-          <Text className="mt-1 text-[11px] text-[#8FA7C7]" numberOfLines={1}>Código del curso: {subject.code}</Text>
+          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>Código del curso: {subject.code}</Text>
         </View>
       </View>
 
       <View className="mt-4 flex-row flex-wrap gap-2">
         <Link href={`/(teacher)/subject/${subject.id}`} asChild>
-          <Pressable className="flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3">
+          <Pressable className="flex-row items-center gap-2 rounded-xl bg-brand-teacher px-4 py-3">
             <Ionicons name="settings-outline" size={15} color="#FFFFFF" />
             <Text className="text-[12px] font-black text-white">Gestionar</Text>
           </Pressable>
         </Link>
         <Link href={`/(teacher)/subject/add-question?subjectId=${subject.id}`} asChild>
-          <Pressable className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3">
+          <Pressable className="flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-default px-4 py-3">
             <Ionicons name="help-circle-outline" size={15} color="#DDE7F4" />
-            <Text className="text-[12px] font-black text-[#DDE7F4]">Crear pregunta</Text>
+            <Text className="text-[12px] font-black text-text-secondary">Crear pregunta</Text>
           </Pressable>
         </Link>
         <Link href={`/(teacher)/subject/${subject.id}?tab=students`} asChild>
-          <Pressable className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3">
+          <Pressable className="flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-default px-4 py-3">
             <Ionicons name="person-add-outline" size={15} color="#DDE7F4" />
-            <Text className="text-[12px] font-black text-[#DDE7F4]">Importar alumnos</Text>
+            <Text className="text-[12px] font-black text-text-secondary">Importar alumnos</Text>
           </Pressable>
         </Link>
       </View>
@@ -720,16 +720,16 @@ function Panel({
   children: React.ReactNode
 }) {
   return (
-    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+    <View className="rounded-2xl border border-border-default bg-surface-default p-5">
       <View className="mb-4 flex-row items-center justify-between">
         <Text className="font-black text-white">{title}</Text>
         {action && onAction ? (
           <Pressable onPress={onAction} className="flex-row items-center gap-1">
-            <Text className="text-[12px] font-semibold text-[#B9A7FF]">{action}</Text>
+            <Text className="text-[12px] font-semibold text-brand-teacher">{action}</Text>
             <Ionicons name="arrow-forward" size={13} color="#B9A7FF" />
           </Pressable>
         ) : action ? (
-          <Text className="text-[12px] font-semibold text-[#B9A7FF]">{action}</Text>
+          <Text className="text-[12px] font-semibold text-brand-teacher">{action}</Text>
         ) : null}
       </View>
       {children}
@@ -744,7 +744,7 @@ function ActivityRow({ item }: { item: RecentActivityItem }) {
         <Ionicons name={item.icon} size={18} color={item.color} />
       </View>
       <Text className="min-w-0 flex-1 text-[13px] font-bold text-white">{item.title}</Text>
-      <Text className="text-[11px] text-[#8FA7C7]">{item.time}</Text>
+      <Text className="text-[11px] text-text-muted">{item.time}</Text>
     </View>
   );
 }
@@ -759,22 +759,22 @@ function ProblematicQuestionRow({
   onReport: () => void
 }) {
   return (
-    <View className="rounded-xl border border-[#3F2430] bg-[#160D19] px-4 py-3">
+    <View className="rounded-xl border border-border-default bg-background-primary px-4 py-3">
       <View className="flex-row items-start gap-3">
-        <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#F43F5E29]">
+        <View className="h-10 w-10 items-center justify-center rounded-xl bg-semantic-danger">
           <Ionicons name="warning-outline" size={18} color="#F43F5E" />
         </View>
         <View className="min-w-0 flex-1">
           <Text className="font-bold text-white" numberOfLines={2}>{item.text}</Text>
-          <Text className="mt-1 text-[11px] text-[#FCA5A5]">{item.failures} fallos · {item.subjectName}</Text>
+          <Text className="mt-1 text-[11px] text-semantic-danger">{item.failures} fallos · {item.subjectName}</Text>
         </View>
       </View>
       <View className="mt-3 flex-row flex-wrap gap-2">
-        <Pressable onPress={onEdit} className="rounded-lg bg-[#BE123C] px-3 py-2">
+        <Pressable onPress={onEdit} className="rounded-lg bg-semantic-surface-danger px-3 py-2">
           <Text className="text-[11px] font-black text-white">Editar pregunta</Text>
         </Pressable>
-        <Pressable onPress={onReport} className="rounded-lg border border-[#4A1E2B] bg-[#2A0B18] px-3 py-2">
-          <Text className="text-[11px] font-black text-[#FCA5A5]">Ver intentos</Text>
+        <Pressable onPress={onReport} className="rounded-lg border border-semantic-danger bg-semantic-surface-danger px-3 py-2">
+          <Text className="text-[11px] font-black text-semantic-danger">Ver intentos</Text>
         </Pressable>
       </View>
     </View>

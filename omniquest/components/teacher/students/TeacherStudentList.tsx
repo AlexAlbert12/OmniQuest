@@ -42,15 +42,15 @@ export function PendingFirstAccessCard({
   onExport: () => void
 }) {
   return (
-    <View className="mt-5 rounded-2xl border border-[#263E61] bg-[#0B1930] p-5">
+    <View className="mt-5 rounded-2xl border border-border-default bg-surface-raised p-5">
       <View className="flex-row flex-wrap items-center justify-between gap-4">
         <View className="min-w-[250px] flex-1 flex-row items-center gap-4">
-          <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#13284A]">
+          <View className="h-14 w-14 items-center justify-center rounded-2xl bg-surface-interactive">
             <Ionicons name="mail-unread-outline" size={25} color="#9FD6FF" />
           </View>
           <View className="min-w-0 flex-1">
             <Text className="text-[18px] font-black text-white">Pendientes de primer acceso</Text>
-            <Text className="mt-1 text-[13px] leading-5 text-[#B7C4D7]">
+            <Text className="mt-1 text-[13px] leading-5 text-text-secondary">
               {count} alumno{count === 1 ? '' : 's'} importado{count === 1 ? '' : 's'} todavía no han iniciado actividad.
             </Text>
           </View>
@@ -141,9 +141,9 @@ export function StudentCard({
   const mainContext = student.courseContexts[0];
 
   return (
-    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5" style={{ width: isWide ? '48.5%' : '100%' }}>
+    <View className="rounded-2xl border border-border-default bg-surface-default p-5" style={{ width: isWide ? '48.5%' : '100%' }}>
       <View className="flex-row items-start gap-3">
-        <View className="h-12 w-12 items-center justify-center rounded-full bg-[#17315E]">
+        <View className="h-12 w-12 items-center justify-center rounded-full bg-surface-selected">
           <Text className="text-[15px] font-black text-white">{getInitials(student.alias)}</Text>
         </View>
         <View className="min-w-0 flex-1">
@@ -153,12 +153,12 @@ export function StudentCard({
               <Text className="text-[11px] font-black" style={{ color: status.color }} numberOfLines={1}>{status.label}</Text>
             </View>
           </View>
-          <Text className="mt-2 text-[12px] leading-5 text-[#AFC2DB]" numberOfLines={2}>
+          <Text className="mt-2 text-[12px] leading-5 text-text-secondary" numberOfLines={2}>
             {mainContext ? `${mainContext.subjectName} · ${mainContext.classroomName}` : 'Sin curso asignado'}
           </Text>
-          <Text className="mt-1 text-[11px] text-[#8FA7C7]">Última actividad: {formatRelativeDate(student.lastActivityAt)}</Text>
+          <Text className="mt-1 text-[11px] text-text-muted">Última actividad: {formatRelativeDate(student.lastActivityAt)}</Text>
           {!student.hasActivity ? (
-            <Text className="mt-1 text-[11px] font-semibold text-[#9FD6FF]">Pendiente de iniciar actividad</Text>
+            <Text className="mt-1 text-[11px] font-semibold text-semantic-info">Pendiente de iniciar actividad</Text>
           ) : null}
         </View>
       </View>
@@ -177,20 +177,20 @@ export function StudentCard({
         />
       ) : null}
 
-      <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#13294C]">
+      <View className="mt-4 h-2 overflow-hidden rounded-full bg-surface-interactive">
         <View className="h-full rounded-full" style={{ width: `${Math.max(4, student.progress)}%`, backgroundColor: status.color }} />
       </View>
 
       <View className="mt-4 flex-row flex-wrap gap-2">
-        <Pressable onPress={() => onViewDetails(student)} className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-[#5A46D8] px-4 py-3">
+        <Pressable onPress={() => onViewDetails(student)} className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-brand-teacher px-4 py-3">
           <Ionicons name="document-text-outline" size={15} color="#FFFFFF" />
           <Text className="text-[12px] font-black text-white">Ver detalle</Text>
         </Pressable>
-        <Pressable onPress={() => onAssignActivity(student)} className="flex-row items-center justify-center gap-2 rounded-xl border border-[#20375E] bg-[#07162E] px-4 py-3">
+        <Pressable onPress={() => onAssignActivity(student)} className="flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-default px-4 py-3">
           <Ionicons name="locate-outline" size={15} color="#DDE7F4" />
-          <Text className="text-[12px] font-black text-[#DDE7F4]">Repaso</Text>
+          <Text className="text-[12px] font-black text-text-secondary">Repaso</Text>
         </Pressable>
-        <Pressable onPress={() => onOpenActions(student)} className="h-11 w-11 items-center justify-center rounded-xl border border-[#20375E] bg-[#07162E]">
+        <Pressable onPress={() => onOpenActions(student)} className="h-11 w-11 items-center justify-center rounded-xl border border-border-default bg-surface-default">
           <Ionicons name="ellipsis-horizontal" size={17} color="#AFC2DB" />
         </Pressable>
       </View>
@@ -211,7 +211,7 @@ export function NoActivityQuickActions({
   onRequestPasswordRecovery: (student: StudentRow) => void
 }) {
   return (
-    <View className="mt-4 rounded-xl border border-[#2B3F70] bg-[#101B3A] p-3">
+    <View className="mt-4 rounded-xl border border-border-default bg-surface-raised p-3">
       <View className="mb-3 flex-row items-center gap-2">
         <Ionicons name="mail-unread-outline" size={16} color="#C4B5FD" />
         <Text className="text-[12px] font-black text-white">Acciones de primer acceso</Text>
@@ -249,19 +249,19 @@ export function QuickStudentAction({
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      className="flex-row items-center gap-2 rounded-lg border border-[#4B3FA8] bg-[#191C4C] px-3 py-2"
+      className="flex-row items-center gap-2 rounded-lg border border-border-active bg-surface-interactive px-3 py-2"
       style={({ pressed }) => ({ opacity: disabled ? 0.55 : pressed ? 0.82 : 1 })}
     >
       {disabled ? <ActivityIndicator size="small" color="#C4B5FD" /> : <Ionicons name={icon} size={14} color="#C4B5FD" />}
-      <Text className="text-[11px] font-black text-[#C4B5FD]">{label}</Text>
+      <Text className="text-[11px] font-black text-brand-teacher">{label}</Text>
     </Pressable>
   );
 }
 
 export function StudentMiniStat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <View className="min-w-[86px] flex-1 rounded-xl border border-[#20375E] bg-[#07162E] p-3">
-      <Text className="text-[11px] text-[#8FA7C7]">{label}</Text>
+    <View className="min-w-[86px] flex-1 rounded-xl border border-border-default bg-surface-default p-3">
+      <Text className="text-[11px] text-text-muted">{label}</Text>
       <Text className="mt-1 text-[15px] font-black" style={{ color }}>{value}</Text>
     </View>
   );
@@ -288,11 +288,11 @@ export function StudentPaginationControls({
   const end = Math.min(total, (page + 1) * pageSize)
 
   return (
-    <View className="mt-4 flex-row items-center justify-between gap-3 rounded-2xl border border-[#1A3155] bg-[#07162E] p-3">
+    <View className="mt-4 flex-row items-center justify-between gap-3 rounded-2xl border border-border-default bg-surface-default p-3">
       <Pressable
         onPress={onPrevious}
         disabled={page === 0}
-        className="h-11 w-11 items-center justify-center rounded-xl border border-[#20375E] bg-[#09162C]"
+        className="h-11 w-11 items-center justify-center rounded-xl border border-border-default bg-surface-default"
         style={({ pressed }) => ({ opacity: page === 0 ? 0.45 : pressed ? 0.82 : 1 })}
       >
         <Ionicons name="chevron-back" size={20} color="#DDE7F4" />
@@ -300,13 +300,13 @@ export function StudentPaginationControls({
 
       <View className="min-w-0 flex-1 items-center">
         <Text className="text-[13px] font-black text-white">{start}-{end} de {total}</Text>
-        <Text className="mt-0.5 text-[11px] text-[#8FA7C7]">Página {page + 1} de {pageCount}</Text>
+        <Text className="mt-0.5 text-[11px] text-text-muted">Página {page + 1} de {pageCount}</Text>
       </View>
 
       <Pressable
         onPress={onNext}
         disabled={page >= pageCount - 1}
-        className="h-11 w-11 items-center justify-center rounded-xl border border-[#20375E] bg-[#09162C]"
+        className="h-11 w-11 items-center justify-center rounded-xl border border-border-default bg-surface-default"
         style={({ pressed }) => ({ opacity: page >= pageCount - 1 ? 0.45 : pressed ? 0.82 : 1 })}
       >
         <Ionicons name="chevron-forward" size={20} color="#DDE7F4" />
@@ -317,10 +317,10 @@ export function StudentPaginationControls({
 
 export function Panel({ title, action, children }: { title: string; action?: string; children: React.ReactNode }) {
   return (
-    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5">
+    <View className="rounded-2xl border border-border-default bg-surface-default p-5">
       <View className="mb-4 flex-row items-center justify-between">
         <Text className="font-black text-white">{title}</Text>
-        {action ? <Text className="text-[12px] font-semibold text-[#B9A7FF]">{action}</Text> : null}
+        {action ? <Text className="text-[12px] font-semibold text-brand-teacher">{action}</Text> : null}
       </View>
       {children}
     </View>
@@ -333,7 +333,7 @@ export function LegendRow({ color, label, value, total }: { color: string; label
   return (
     <View className="flex-row items-center gap-2">
       <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-      <Text className="min-w-0 flex-1 text-[12px] text-[#DDE7F4]">{label}</Text>
+      <Text className="min-w-0 flex-1 text-[12px] text-text-secondary">{label}</Text>
       <Text className="text-[12px] text-white">{value} ({percent}%)</Text>
     </View>
   );
@@ -346,9 +346,9 @@ export function ProgressStat({ label, value, total, color }: { label: string; va
     <View className="mb-4">
       <View className="mb-2 flex-row items-center justify-between">
         <Text className="text-[12px] font-semibold text-white">{label}</Text>
-        <Text className="text-[12px] text-[#DDE7F4]">{value.toLocaleString()}</Text>
+        <Text className="text-[12px] text-text-secondary">{value.toLocaleString()}</Text>
       </View>
-      <View className="h-2 overflow-hidden rounded-full bg-[#13294C]">
+      <View className="h-2 overflow-hidden rounded-full bg-surface-interactive">
         <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: color }} />
       </View>
     </View>
@@ -365,12 +365,12 @@ export function AttentionRow({ student, onPress }: { student: StudentRow; onPres
 
   return (
     <Pressable onPress={() => onPress(student)} className="flex-row items-center gap-3" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}>
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-[#17315E]">
+      <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-selected">
         <Text className="text-[12px] font-black text-white">{getInitials(student.alias)}</Text>
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[13px] font-bold text-white" numberOfLines={1}>{student.alias}</Text>
-        <Text className="text-[11px] text-[#B7C4D7]">{reason}</Text>
+        <Text className="text-[11px] text-text-secondary">{reason}</Text>
       </View>
       <View className="rounded-md border px-2 py-1" style={{ borderColor: status.color }}>
         <Text className="text-[11px] font-black" style={{ color: status.color }}>{student.hasActivity ? `${student.accuracyPercent}%` : '—'}</Text>

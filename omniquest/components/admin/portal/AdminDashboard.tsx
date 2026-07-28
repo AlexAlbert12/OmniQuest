@@ -92,10 +92,10 @@ export function AdminDashboard() {
 
       <View className="mt-5">
         <Panel title="Modelo de acceso" icon="lock-closed-outline" compact>
-          <Text className="text-[13px] leading-5 text-[#B7C4D7]">
+          <Text className="text-[13px] leading-5 text-text-secondary">
             Los alumnos se registran desde la app o se importan por clase. Los profesores se crean desde el portal de administración.
           </Text>
-          <Text className="mt-2 text-[12px] leading-5 text-[#8FA7C7]">
+          <Text className="mt-2 text-[12px] leading-5 text-text-muted">
             Para activar el primer administrador, asigna role_id = admin al perfil correspondiente en Supabase.
           </Text>
         </Panel>

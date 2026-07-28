@@ -137,7 +137,7 @@ export function AdminTeachersSection() {
                 accessibilityLabel="Crear profesor"
                 onPress={handleCreateTeacher}
                 disabled={creatingTeacher}
-                className="h-12 flex-row items-center justify-center gap-2 rounded-xl bg-[#5A46D8] px-5"
+                className="h-12 flex-row items-center justify-center gap-2 rounded-xl bg-brand-admin px-5"
                 style={({ pressed }) => ({ opacity: creatingTeacher ? 0.6 : pressed ? 0.82 : 1 })}
               >
                 {creatingTeacher ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="add" size={18} color="#FFFFFF" />}
@@ -146,12 +146,12 @@ export function AdminTeachersSection() {
             </View>
 
             {createdTeacher ? (
-              <View className="mt-4 rounded-xl border border-[#1E3A8A] bg-[#10224A] p-4">
+              <View className="mt-4 rounded-xl border border-border-default bg-surface-interactive p-4">
                 <Text className="font-black text-white">{createdTeacher.status === 'created' ? 'Profesor creado' : 'Profesor actualizado'}</Text>
-                <Text className="mt-1 text-[13px] text-[#B7C4D7]">{createdTeacher.teacher.alias} · {createdTeacher.teacher.email}</Text>
+                <Text className="mt-1 text-[13px] text-text-secondary">{createdTeacher.teacher.alias} · {createdTeacher.teacher.email}</Text>
                 {createdTeacher.temporaryPassword ? (
-                  <Text className="mt-2 text-[13px] text-[#DDE7F4]">
-                    Contraseña temporal: <Text className="font-mono font-black text-[#9FD6FF]">{createdTeacher.temporaryPassword}</Text>
+                  <Text className="mt-2 text-[13px] text-text-secondary">
+                    Contraseña temporal: <Text className="font-mono font-black text-semantic-info">{createdTeacher.temporaryPassword}</Text>
                   </Text>
                 ) : null}
               </View>

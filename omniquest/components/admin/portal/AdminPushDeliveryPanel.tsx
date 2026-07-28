@@ -88,7 +88,7 @@ export default function AdminPushDeliveryPanel({ refreshVersion }: { refreshVers
       {loading ? (
         <View className="items-center py-7">
           <ActivityIndicator color="#8B5CF6" />
-          <Text className="mt-3 text-[13px] text-[#8FA7C7]">Revisando cola, reintentos y recibos...</Text>
+          <Text className="mt-3 text-[13px] text-text-muted">Revisando cola, reintentos y recibos...</Text>
         </View>
       ) : metrics ? (
         <>
@@ -105,7 +105,7 @@ export default function AdminPushDeliveryPanel({ refreshVersion }: { refreshVers
             <MetricSummary label="Omitidas por preferencias/token" value={String(metrics.skipped)} />
           </View>
 
-          <Text className="mt-4 text-[12px] leading-5 text-[#8FA7C7]">
+          <Text className="mt-4 text-[12px] leading-5 text-text-muted">
             Las notificaciones persistentes entran en una cola central. El sistema respeta las preferencias push,
             reintenta errores temporales y desactiva tokens que Expo marca como no registrados.
           </Text>
@@ -119,8 +119,8 @@ export default function AdminPushDeliveryPanel({ refreshVersion }: { refreshVers
 
 function MetricSummary({ label, value }: { label: string; value: string }) {
   return (
-    <View className="flex-1 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
-      <Text className="text-[12px] font-bold text-[#8FA7C7]">{label}</Text>
+    <View className="flex-1 rounded-xl border border-border-default bg-surface-default p-4">
+      <Text className="text-[12px] font-bold text-text-muted">{label}</Text>
       <Text className="mt-1 text-[26px] font-black text-white">{value}</Text>
     </View>
   )

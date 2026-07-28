@@ -48,12 +48,12 @@ export function DestructiveConfirmModal({
       <View className="flex-1 items-center justify-center bg-black/70 px-5">
         <View className="w-full max-w-[430px] rounded-2xl border p-5" style={{ borderColor: colors.danger, backgroundColor: colors.surface }}>
           <View className="flex-row items-center gap-3">
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-[#2A0B18]">
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-semantic-surface-danger">
               <Ionicons name="warning-outline" size={20} color="#FB7185" />
             </View>
             <View className="min-w-0 flex-1">
               <Text className="text-[16px] font-black" style={{ color: colors.text }}>{details.title}</Text>
-              <Text className="mt-1 text-[12px] leading-5 text-[#FCA5A5]">{details.description}</Text>
+              <Text className="mt-1 text-[12px] leading-5 text-semantic-danger">{details.description}</Text>
             </View>
           </View>
 
@@ -89,7 +89,7 @@ export function DestructiveConfirmModal({
               hitSlop={6}
               onPress={onConfirm}
               disabled={!canConfirm}
-              className="rounded-lg bg-[#BE123C] px-4 py-3"
+              className="rounded-lg bg-semantic-surface-danger px-4 py-3"
               style={({ pressed }) => ({ opacity: !canConfirm ? 0.45 : pressed ? 0.82 : 1 })}
             >
               {busy ? (
@@ -228,7 +228,7 @@ export function SettingsMenu({
           style={({ pressed }) => ({ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceRaised, opacity: pressed ? 0.82 : 1 })}
         >
           <Ionicons name="log-out-outline" size={15} color="#F87171" />
-          <Text className="text-[12px] font-bold text-[#F87171]">Cerrar sesión</Text>
+          <Text className="text-[12px] font-bold text-semantic-danger">Cerrar sesión</Text>
         </Pressable>
       </View>
     )

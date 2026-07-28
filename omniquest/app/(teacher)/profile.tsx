@@ -1,9 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Image,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -21,6 +19,9 @@ import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
 import { formatLongDate, formatRelativeDate } from '../../lib/dateFormat'
+import { useAppTheme } from '../../lib/appTheme'
+import { useAppModal } from '../../components/AppModalProvider'
+import { AppIconButton, useAppToast } from '../../components/ui'
 
 type TeacherProfile = {
   id: string
@@ -74,6 +75,9 @@ function teacherSubjectRoute(subjectId: number) {
 export default function TeacherProfileScreen() {
   const { width } = useWindowDimensions()
   const router = useRouter()
+  const { tokens } = useAppTheme()
+  const { showModal } = useAppModal()
+  const { showToast } = useAppToast()
 
   const [profile, setProfile] = useState<TeacherProfile | null>(null)
   const [email, setEmail] = useState('')
@@ -206,7 +210,11 @@ export default function TeacherProfileScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
 
     if (status !== 'granted') {
-      Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para subir una foto de perfil.')
+      showModal({
+        title: 'Permiso requerido',
+        message: 'Necesitamos acceso a tu galería para subir una foto de perfil.',
+        variant: 'warning',
+      })
       return
     }
 
@@ -248,19 +256,11 @@ export default function TeacherProfileScreen() {
 
       setProfile({ ...profile, avatar: result.avatar || null })
 
-      if (Platform.OS === 'web') {
-        window.alert('Foto de perfil actualizada.')
-      } else {
-        Alert.alert('Éxito', 'Foto de perfil actualizada.')
-      }
+      showToast({ title: 'Foto actualizada', message: 'Tu nueva imagen de perfil ya está disponible.', variant: 'success' })
     } catch (error: any) {
       console.error('Error subiendo avatar:', error.message)
 
-      if (Platform.OS === 'web') {
-        window.alert('No se pudo subir la imagen.')
-      } else {
-        Alert.alert('Error', 'No se pudo subir la imagen.')
-      }
+      showToast({ title: 'No se pudo subir la imagen', message: 'Revisa el archivo e inténtalo de nuevo.', variant: 'danger' })
     } finally {
       setUploading(false)
     }
@@ -273,9 +273,9 @@ export default function TeacherProfileScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
-        <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando perfil del profesor...</Text>
+      <View className="flex-1 items-center justify-center bg-background-primary">
+        <ActivityIndicator size="large" color={tokens.brand.teacher} />
+        <Text className="mt-4 text-text-muted">Cargando perfil del profesor...</Text>
       </View>
     )
   }
@@ -310,7 +310,7 @@ export default function TeacherProfileScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1 bg-background-primary">
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <TeacherSidebar
@@ -372,20 +372,20 @@ export default function TeacherProfileScreen() {
 
               <Pressable
                 onPress={() => router.push(TEACHER_ROUTES.settingsProfile)}
-                className="mt-4 flex-row items-center gap-2 border-t border-[#172A4A] pt-4"
+                className="mt-4 flex-row items-center gap-2 border-t border-border-subtle pt-4"
               >
-                <Ionicons name="create-outline" size={18} color="#9B6CFF" />
-                <Text className="font-bold text-[#9B6CFF]">Editar perfil</Text>
-                <Ionicons name="arrow-forward" size={16} color="#9B6CFF" />
+                <Ionicons name="create-outline" size={18} color={tokens.brand.teacher} />
+                <Text className="font-bold text-brand-teacher">Editar perfil</Text>
+                <Ionicons name="arrow-forward" size={16} color={tokens.brand.teacher} />
               </Pressable>
 
               <Pressable
                 onPress={() => router.push(TEACHER_ROUTES.security)}
                 className="mt-3 flex-row items-center gap-2"
               >
-                <Ionicons name="lock-closed-outline" size={18} color="#9B6CFF" />
-                <Text className="font-bold text-[#9B6CFF]">Gestionar seguridad</Text>
-                <Ionicons name="arrow-forward" size={16} color="#9B6CFF" />
+                <Ionicons name="lock-closed-outline" size={18} color={tokens.brand.teacher} />
+                <Text className="font-bold text-brand-teacher">Gestionar seguridad</Text>
+                <Ionicons name="arrow-forward" size={16} color={tokens.brand.teacher} />
               </Pressable>
             </ProfileCard>
 
@@ -396,22 +396,22 @@ export default function TeacherProfileScreen() {
                     <Pressable
                       key={subject.id}
                       onPress={() => router.push(teacherSubjectRoute(subject.id))}
-                      className="flex-row items-center gap-3 rounded-xl bg-[#0D1D3B] p-3"
+                      className="flex-row items-center gap-3 rounded-xl bg-surface-raised p-3"
                     >
-                      <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#1B2460]">
+                      <View className="h-11 w-11 items-center justify-center rounded-xl bg-surface-selected">
                         <Text className="text-[24px]">{subject.icon || '📘'}</Text>
                       </View>
 
                       <View className="min-w-0 flex-1">
-                        <Text className="font-black text-white" numberOfLines={1}>
+                        <Text className="font-black text-text-primary" numberOfLines={1}>
                           {subject.name}
                         </Text>
-                        <Text className="mt-1 text-[12px] text-[#8FA7C7]">
+                        <Text className="mt-1 text-[12px] text-text-muted">
                           Código: {subject.code}
                         </Text>
                       </View>
 
-                      <Text className="text-[12px] text-[#8FA7C7]">
+                      <Text className="text-[12px] text-text-muted">
                         {formatRelativeDate(subject.created_at)}
                       </Text>
                     </Pressable>
@@ -426,21 +426,21 @@ export default function TeacherProfileScreen() {
               <View style={{ gap: 12 }}>
                 {recentQuestions.length > 0 ? (
                   recentQuestions.map((question) => (
-                    <View key={question.id} className="flex-row items-center gap-3 rounded-xl bg-[#0D1D3B] p-3">
-                      <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#162B50]">
-                        <Ionicons name="help-circle-outline" size={22} color="#9B6CFF" />
+                    <View key={question.id} className="flex-row items-center gap-3 rounded-xl bg-surface-raised p-3">
+                      <View className="h-10 w-10 items-center justify-center rounded-xl bg-surface-interactive">
+                        <Ionicons name="help-circle-outline" size={22} color={tokens.brand.teacher} />
                       </View>
 
                       <View className="min-w-0 flex-1">
-                        <Text className="font-bold text-white" numberOfLines={1}>
+                        <Text className="font-bold text-text-primary" numberOfLines={1}>
                           {question.text}
                         </Text>
-                        <Text className="mt-1 text-[12px] text-[#8FA7C7]" numberOfLines={1}>
+                        <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={1}>
                           {getSubjectName(question.subjects)}
                         </Text>
                       </View>
 
-                      <Text className="text-[12px] text-[#8FA7C7]">
+                      <Text className="text-[12px] text-text-muted">
                         {formatRelativeDate(question.created_at)}
                       </Text>
                     </View>
@@ -510,8 +510,10 @@ function MobileTeacherProfile({
   onOpenSubject: (subjectId: number) => void
   onOpenSettings: () => void
 }) {
+  const { tokens } = useAppTheme()
+
   return (
-    <View className="flex-1 bg-[#020B1B]">
+    <View className="flex-1 bg-background-secondary">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 22, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 8 }}
@@ -526,15 +528,13 @@ function MobileTeacherProfile({
           showAvatar={false}
           actionsPosition="top"
           actions={(
-            <Pressable
-              accessibilityRole="button"
+            <AppIconButton
               accessibilityLabel="Abrir configuración"
+              icon="settings-outline"
+              role="teacher"
+              variant="secondary"
               onPress={onOpenSettings}
-              className="h-11 w-11 items-center justify-center rounded-2xl border border-[#1A3155] bg-[#091A35]"
-              style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-            >
-              <Ionicons name="settings-outline" size={22} color="#AFC2DB" />
-            </Pressable>
+            />
           )}
           className="mb-7"
         />
@@ -600,42 +600,44 @@ function MobileTeacherProfileHero({
   uploading: boolean
   onPickImage: () => void
 }) {
+  const { tokens } = useAppTheme()
+
   return (
     <LinearGradient
-      colors={['#1F1A68', '#0B1D46']}
+      colors={[tokens.surface.selected, tokens.background.primary]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      className="overflow-hidden rounded-2xl border border-[#2F47A0] p-6"
+      className="overflow-hidden rounded-2xl border border-border-active p-6"
     >
-      <View className="absolute right-[-30px] top-[-34px] h-40 w-44 rotate-12 rounded-[36px] bg-[#6D47F6]/35" />
-      <View className="absolute bottom-[-46px] left-[-24px] h-28 w-52 -rotate-12 rounded-[28px] bg-[#061B43]/70" />
+      <View className="absolute right-[-30px] top-[-34px] h-40 w-44 rotate-12 rounded-[36px] bg-surface-selected" />
+      <View className="absolute bottom-[-46px] left-[-24px] h-28 w-52 -rotate-12 rounded-[28px] bg-background-secondary" />
 
       <View className="relative flex-row items-center gap-5">
         <Pressable
           onPress={onPickImage}
           disabled={uploading}
-          className="h-28 w-28 items-center justify-center rounded-full border-[6px] border-[#7C5CFF] bg-white"
+          className="h-28 w-28 items-center justify-center rounded-full border-[6px] border-border-active bg-white"
           style={({ pressed }) => ({ opacity: uploading ? 0.7 : pressed ? 0.86 : 1 })}
         >
-          <View className="h-[90px] w-[90px] overflow-hidden rounded-full bg-[#EDF4FF]">
+          <View className="h-[90px] w-[90px] overflow-hidden rounded-full bg-surface-raised">
             {avatar && avatar.startsWith('http') ? (
               <Image source={{ uri: avatar }} className="h-full w-full" />
             ) : (
               <View className="h-full w-full items-center justify-center">
-                <Text className="text-[38px] font-black text-[#061126]">{getInitials(alias)}</Text>
+                <Text className="text-[38px] font-black text-text-primary">{getInitials(alias)}</Text>
               </View>
             )}
           </View>
         </Pressable>
 
         <View className="min-w-0 flex-1">
-          <Text className="text-[31px] font-black text-white" numberOfLines={1}>{alias}</Text>
-          <Text className="mt-2 text-[18px] font-black text-[#B175FF]">Profesor</Text>
-          <Text className="mt-2 text-[16px] leading-6 text-[#D7E3F7]" numberOfLines={2}>{email || 'Sin correo'}</Text>
+          <Text className="text-[31px] font-black text-text-primary" numberOfLines={1}>{alias}</Text>
+          <Text className="mt-2 text-[18px] font-black text-brand-teacher">Profesor</Text>
+          <Text className="mt-2 text-[16px] leading-6 text-text-secondary" numberOfLines={2}>{email || 'Sin correo'}</Text>
 
-          <View className="mt-5 self-start flex-row items-center gap-2 rounded-xl bg-[#8B5CF6] px-4 py-3">
-            <Ionicons name="shield-checkmark-outline" size={19} color="#FFFFFF" />
-            <Text className="text-[16px] font-black text-white">Docente</Text>
+          <View className="mt-5 self-start flex-row items-center gap-2 rounded-xl bg-brand-teacher px-4 py-3">
+            <Ionicons name="shield-checkmark-outline" size={19} color={tokens.text.inverse} />
+            <Text className="text-[16px] font-black text-text-inverse">Docente</Text>
           </View>
         </View>
       </View>
@@ -658,17 +660,18 @@ function TeacherQuickAccessPanel({
   className?: string
   mobile?: boolean
 }) {
+  const { tokens } = useAppTheme()
   const actions = [
-    { label: 'Crear pregunta', detail: 'Añade contenido al banco docente', icon: 'add-circle-outline' as const, color: '#8B5CF6', onPress: onCreateQuestion },
-    { label: 'Importar alumnos', detail: 'Incorpora una clase desde CSV', icon: 'cloud-upload-outline' as const, color: '#38BDF8', onPress: onImportStudents },
-    { label: 'Revisar alumnos', detail: 'Prioriza quién necesita apoyo', icon: 'people-outline' as const, color: '#34D399', onPress: onReviewStudents },
-    { label: 'Configurar perfil', detail: 'Actualiza datos y preferencias', icon: 'settings-outline' as const, color: '#F59E0B', onPress: onConfigureProfile },
+    { label: 'Crear pregunta', detail: 'Añade contenido al banco docente', icon: 'add-circle-outline' as const, color: tokens.brand.teacher, onPress: onCreateQuestion },
+    { label: 'Importar alumnos', detail: 'Incorpora una clase desde CSV', icon: 'cloud-upload-outline' as const, color: tokens.semantic.info, onPress: onImportStudents },
+    { label: 'Revisar alumnos', detail: 'Prioriza quién necesita apoyo', icon: 'people-outline' as const, color: tokens.semantic.success, onPress: onReviewStudents },
+    { label: 'Configurar perfil', detail: 'Actualiza datos y preferencias', icon: 'settings-outline' as const, color: tokens.semantic.warning, onPress: onConfigureProfile },
   ]
 
   return (
-    <View className={`rounded-2xl border border-[#1C3762] bg-[#08182F] ${mobile ? 'p-4' : 'p-5'} ${className}`}>
-      <Text className={`${mobile ? 'text-[20px]' : 'text-[22px]'} font-black text-white`}>Accesos docentes</Text>
-      <Text className="mt-1 text-[13px] leading-5 text-[#8FA7C7]">Acciones frecuentes para preparar contenido y acompañar al alumnado.</Text>
+    <View className={`rounded-2xl border border-border-default bg-surface-default ${mobile ? 'p-4' : 'p-5'} ${className}`}>
+      <Text className={`${mobile ? 'text-[20px]' : 'text-[22px]'} font-black text-text-primary`}>Accesos docentes</Text>
+      <Text className="mt-1 text-[13px] leading-5 text-text-muted">Acciones frecuentes para preparar contenido y acompañar al alumnado.</Text>
       <View className="mt-4 flex-row flex-wrap gap-3">
         {actions.map((action) => (
           <Pressable
@@ -676,17 +679,17 @@ function TeacherQuickAccessPanel({
             accessibilityRole="button"
             accessibilityLabel={action.label}
             onPress={action.onPress}
-            className={`${mobile ? 'min-w-[145px]' : 'min-w-[220px]'} flex-1 flex-row items-center gap-3 rounded-xl border border-[#20375E] bg-[#0D1D3B] p-3`}
+            className={`${mobile ? 'min-w-[145px]' : 'min-w-[220px]'} flex-1 flex-row items-center gap-3 rounded-xl border border-border-default bg-surface-raised p-3`}
             style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
           >
             <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${action.color}24` }}>
               <Ionicons name={action.icon} size={21} color={action.color} />
             </View>
             <View className="min-w-0 flex-1">
-              <Text className="text-[13px] font-black text-white" numberOfLines={1}>{action.label}</Text>
-              <Text className="mt-1 text-[11px] leading-4 text-[#8FA7C7]" numberOfLines={2}>{action.detail}</Text>
+              <Text className="text-[13px] font-black text-text-primary" numberOfLines={1}>{action.label}</Text>
+              <Text className="mt-1 text-[11px] leading-4 text-text-muted" numberOfLines={2}>{action.detail}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={17} color="#8FA7C7" />
+            <Ionicons name="chevron-forward" size={17} color={tokens.text.muted} />
           </Pressable>
         ))}
       </View>
@@ -705,22 +708,24 @@ function TeacherImpactPanel({
   onStudents: () => void
   onQuestions: () => void
 }) {
+  const { tokens } = useAppTheme()
+
   return (
-    <View className="flex-[1.5] rounded-2xl border border-[#1C3762] bg-[#08182F] p-5">
+    <View className="flex-[1.5] rounded-2xl border border-border-default bg-surface-default p-5">
       <View className="mb-4 flex-row items-start justify-between gap-4">
         <View className="min-w-0 flex-1">
-          <Text className="text-[22px] font-black text-white">Impacto docente</Text>
-          <Text className="mt-1 text-[13px] leading-5 text-[#8FA7C7]">
+          <Text className="text-[22px] font-black text-text-primary">Impacto docente</Text>
+          <Text className="mt-1 text-[13px] leading-5 text-text-muted">
             Indicadores clave sobre alcance, contenido y participación de tus clases.
           </Text>
         </View>
         <Pressable
           onPress={onStudents}
-          className="h-11 flex-row items-center gap-2 rounded-xl bg-[#5A46D8] px-4"
+          className="h-11 flex-row items-center gap-2 rounded-xl bg-brand-teacher px-4"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
-          <Ionicons name="people-outline" size={17} color="#FFFFFF" />
-          <Text className="text-[13px] font-black text-white">Ver alumnos</Text>
+          <Ionicons name="people-outline" size={17} color={tokens.text.inverse} />
+          <Text className="text-[13px] font-black text-text-inverse">Ver alumnos</Text>
         </Pressable>
       </View>
 
@@ -730,7 +735,7 @@ function TeacherImpactPanel({
           value={String(stats.activeStudents)}
           detail="Con inscripción"
           icon="people"
-          color="#43D991"
+          color={tokens.semantic.success}
           onPress={onStudents}
         />
         <MetricTile
@@ -738,7 +743,7 @@ function TeacherImpactPanel({
           value={String(stats.activeClasses)}
           detail="En marcha"
           icon="book"
-          color="#8B5CF6"
+          color={tokens.brand.teacher}
           onPress={onClasses}
         />
         <MetricTile
@@ -746,7 +751,7 @@ function TeacherImpactPanel({
           value={String(stats.questionsCreated)}
           detail="Banco docente"
           icon="clipboard"
-          color="#3B82F6"
+          color={tokens.semantic.info}
           onPress={onQuestions}
         />
         <MetricTile
@@ -754,7 +759,7 @@ function TeacherImpactPanel({
           value={`${stats.averageParticipation}%`}
           detail="Alumnos con progreso"
           icon="analytics"
-          color="#F6A64A"
+          color={tokens.gamification.xp}
           onPress={onStudents}
         />
       </View>
@@ -773,24 +778,26 @@ function MobileTeacherImpactCard({
   onStudents: () => void
   onQuestions: () => void
 }) {
+  const { tokens } = useAppTheme()
+
   return (
-    <View className="mt-5 rounded-2xl border border-[#1D3760] bg-[#07162C] p-5">
+    <View className="mt-5 rounded-2xl border border-border-default bg-surface-default p-5">
       <View className="mb-4 flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
           <View className="flex-row items-center gap-3">
-            <Ionicons name="analytics-outline" size={27} color="#9B6CFF" />
-            <Text className="min-w-0 flex-1 text-[23px] font-black text-white" numberOfLines={1}>Impacto docente</Text>
+            <Ionicons name="analytics-outline" size={27} color={tokens.brand.teacher} />
+            <Text className="min-w-0 flex-1 text-[23px] font-black text-text-primary" numberOfLines={1}>Impacto docente</Text>
           </View>
-          <Text className="mt-2 text-[14px] leading-5 text-[#B8C6DC]">
+          <Text className="mt-2 text-[14px] leading-5 text-text-secondary">
             Tus métricas principales como profesor.
           </Text>
         </View>
         <Pressable
           onPress={onStudents}
-          className="h-11 flex-row items-center rounded-2xl bg-[#5A46D8] px-4"
+          className="h-11 flex-row items-center rounded-2xl bg-brand-teacher px-4"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
-          <Text className="text-[13px] font-black text-white">Alumnos</Text>
+          <Text className="text-[13px] font-black text-text-inverse">Alumnos</Text>
         </Pressable>
       </View>
 
@@ -800,7 +807,7 @@ function MobileTeacherImpactCard({
           value={String(stats.activeStudents)}
           detail="Con inscripción"
           icon="people"
-          color="#43D991"
+          color={tokens.semantic.success}
           onPress={onStudents}
         />
         <MobileTeacherProfileMetric
@@ -808,7 +815,7 @@ function MobileTeacherImpactCard({
           value={String(stats.activeClasses)}
           detail="En marcha"
           icon="book"
-          color="#8B5CF6"
+          color={tokens.brand.teacher}
           onPress={onClasses}
         />
         <MobileTeacherProfileMetric
@@ -816,7 +823,7 @@ function MobileTeacherImpactCard({
           value={String(stats.questionsCreated)}
           detail="Creadas"
           icon="clipboard"
-          color="#3B82F6"
+          color={tokens.semantic.info}
           onPress={onQuestions}
         />
         <MobileTeacherProfileMetric
@@ -824,7 +831,7 @@ function MobileTeacherImpactCard({
           value={`${stats.averageParticipation}%`}
           detail="Media"
           icon="analytics"
-          color="#F6A64A"
+          color={tokens.gamification.xp}
           onPress={onStudents}
         />
       </View>
@@ -873,11 +880,12 @@ function MobileTeacherInfoCard({
   onEditProfile: () => void
   onSecurity: () => void
 }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className="mt-5 rounded-2xl border border-[#1D3760] bg-[#07162C] p-5">
+    <View className="mt-5 rounded-2xl border border-border-default bg-surface-default p-5">
       <View className="mb-4 flex-row items-center gap-3">
-        <Ionicons name="person-outline" size={24} color="#9B6CFF" />
-        <Text className="text-[22px] font-black text-white">Información del profesor</Text>
+        <Ionicons name="person-outline" size={24} color={tokens.brand.teacher} />
+        <Text className="text-[22px] font-black text-text-primary">Información del profesor</Text>
       </View>
 
       <View className="gap-0">
@@ -903,11 +911,12 @@ function MobileInfoRow({
   label: string
   value: string
 }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className="flex-row items-center gap-4 border-t border-[#17345C] px-2 py-4">
-      <Ionicons name={icon} size={24} color="#C4D2E8" />
-      <Text className="min-w-0 flex-1 text-[16px] text-[#DDE7F4]">{label}</Text>
-      <Text className="max-w-[52%] text-right text-[16px] text-white" numberOfLines={1}>{value}</Text>
+    <View className="flex-row items-center gap-4 border-t border-border-default px-2 py-4">
+      <Ionicons name={icon} size={24} color={tokens.text.secondary} />
+      <Text className="min-w-0 flex-1 text-[16px] text-text-secondary">{label}</Text>
+      <Text className="max-w-[52%] text-right text-[16px] text-text-primary" numberOfLines={1}>{value}</Text>
     </View>
   )
 }
@@ -921,15 +930,16 @@ function MobileProfileAction({
   label: string
   onPress: () => void
 }) {
+  const { tokens } = useAppTheme()
   return (
     <Pressable
       onPress={onPress}
-      className="h-16 min-w-0 flex-1 flex-row items-center rounded-2xl border border-[#25446F] bg-[#07162C] px-4"
+      className="h-16 min-w-0 flex-1 flex-row items-center rounded-2xl border border-border-default bg-surface-default px-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
-      <Ionicons name={icon} size={25} color="#9B6CFF" />
-      <Text className="ml-3 min-w-0 flex-1 text-[16px] font-black text-white" numberOfLines={1}>{label}</Text>
-      <Ionicons name="chevron-forward" size={22} color="#C4D2E8" />
+      <Ionicons name={icon} size={25} color={tokens.brand.teacher} />
+      <Text className="ml-3 min-w-0 flex-1 text-[16px] font-black text-text-primary" numberOfLines={1}>{label}</Text>
+      <Ionicons name="chevron-forward" size={22} color={tokens.text.secondary} />
     </Pressable>
   )
 }
@@ -943,6 +953,7 @@ function MobileRecentSubjectsCard({
   onOpenSubject: (subjectId: number) => void
   onViewAll: () => void
 }) {
+  const { tokens } = useAppTheme()
   return (
     <MobileProfileSection
       icon="school-outline"
@@ -956,18 +967,18 @@ function MobileRecentSubjectsCard({
             <Pressable
               key={subject.id}
               onPress={() => onOpenSubject(subject.id)}
-              className="min-h-[68px] flex-row items-center rounded-2xl bg-[#0A1D37] px-3 py-3"
+              className="min-h-[68px] flex-row items-center rounded-2xl bg-surface-raised px-3 py-3"
               style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
             >
-              <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#102B53]">
+              <View className="h-11 w-11 items-center justify-center rounded-xl bg-surface-interactive">
                 <Text className="text-[22px]">{subject.icon || '📘'}</Text>
               </View>
               <View className="ml-3 min-w-0 flex-1">
-                <Text className="text-[15px] font-black text-white" numberOfLines={1}>{subject.name}</Text>
-                <Text className="mt-1 text-[13px] text-[#B8C6DC]" numberOfLines={1}>Código: {subject.code}</Text>
+                <Text className="text-[15px] font-black text-text-primary" numberOfLines={1}>{subject.name}</Text>
+                <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={1}>Código: {subject.code}</Text>
               </View>
-              <Text className="mr-2 text-[12px] text-[#C4D2E8]">{formatRelativeDate(subject.created_at)}</Text>
-              <Ionicons name="chevron-forward" size={22} color="#C4D2E8" />
+              <Text className="mr-2 text-[12px] text-text-secondary">{formatRelativeDate(subject.created_at)}</Text>
+              <Ionicons name="chevron-forward" size={22} color={tokens.text.secondary} />
             </Pressable>
           ))
         ) : (
@@ -985,6 +996,7 @@ function MobileRecentQuestionsCard({
   questions: Question[]
   onViewAll: () => void
 }) {
+  const { tokens } = useAppTheme()
   return (
     <MobileProfileSection
       icon="help-circle-outline"
@@ -995,16 +1007,16 @@ function MobileRecentQuestionsCard({
       <View style={{ gap: 8 }}>
         {questions.length > 0 ? (
           questions.slice(0, 3).map((question) => (
-            <View key={question.id} className="min-h-[68px] flex-row items-center rounded-2xl bg-[#0A1D37] px-3 py-3">
-              <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#2B1F62]">
-                <Ionicons name="help-circle-outline" size={24} color="#9B6CFF" />
+            <View key={question.id} className="min-h-[68px] flex-row items-center rounded-2xl bg-surface-raised px-3 py-3">
+              <View className="h-11 w-11 items-center justify-center rounded-xl bg-surface-selected">
+                <Ionicons name="help-circle-outline" size={24} color={tokens.brand.teacher} />
               </View>
               <View className="ml-3 min-w-0 flex-1">
-                <Text className="text-[15px] font-black text-white" numberOfLines={1}>{question.text}</Text>
-                <Text className="mt-1 text-[13px] text-[#B8C6DC]" numberOfLines={1}>{getSubjectName(question.subjects)}</Text>
+                <Text className="text-[15px] font-black text-text-primary" numberOfLines={1}>{question.text}</Text>
+                <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={1}>{getSubjectName(question.subjects)}</Text>
               </View>
-              <Text className="mr-2 text-[12px] text-[#C4D2E8]">{formatRelativeDate(question.created_at)}</Text>
-              <Ionicons name="chevron-forward" size={22} color="#C4D2E8" />
+              <Text className="mr-2 text-[12px] text-text-secondary">{formatRelativeDate(question.created_at)}</Text>
+              <Ionicons name="chevron-forward" size={22} color={tokens.text.secondary} />
             </View>
           ))
         ) : (
@@ -1028,18 +1040,19 @@ function MobileProfileSection({
   onAction: () => void
   children: React.ReactNode
 }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className="mt-5 rounded-2xl border border-[#1D3760] bg-[#07162C] p-5">
+    <View className="mt-5 rounded-2xl border border-border-default bg-surface-default p-5">
       <View className="mb-4 flex-row items-center gap-3">
-        <Ionicons name={icon} size={29} color="#9B6CFF" />
-        <Text className="min-w-0 flex-1 text-[22px] font-black text-white">{title}</Text>
+        <Ionicons name={icon} size={29} color={tokens.brand.teacher} />
+        <Text className="min-w-0 flex-1 text-[22px] font-black text-text-primary">{title}</Text>
         <Pressable
           onPress={onAction}
           className="flex-row items-center gap-2"
           style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
         >
-          <Text className="text-[16px] font-black text-[#B175FF]">{actionLabel}</Text>
-          <Ionicons name="arrow-forward" size={21} color="#B175FF" />
+          <Text className="text-[16px] font-black text-brand-teacher">{actionLabel}</Text>
+          <Ionicons name="arrow-forward" size={21} color={tokens.brand.teacher} />
         </Pressable>
       </View>
       {children}
@@ -1060,13 +1073,14 @@ function TeacherHero({
   uploading: boolean
   onPickImage: () => void
 }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className="flex-1 overflow-hidden rounded-2xl border border-[#1C3762] bg-[#0B1B48] p-7">
-      <View className="absolute inset-0 bg-[#0D1C55]" />
-      <View className="absolute bottom-[-28px] left-0 h-28 w-44 rounded-full bg-[#061B43]" />
-      <View className="absolute right-6 top-6 h-20 w-20 rounded-full bg-[#5135D8]/50" />
+    <View className="flex-1 overflow-hidden rounded-2xl border border-border-default bg-surface-default p-7">
+      <View className="absolute inset-0 bg-surface-default" />
+      <View className="absolute bottom-[-28px] left-0 h-28 w-44 rounded-full bg-background-secondary" />
+      <View className="absolute right-6 top-6 h-20 w-20 rounded-full bg-surface-selected" />
       <View
-        className="absolute right-2 top-10 h-8 w-28 rounded-full border border-[#7B68FF]/45"
+        className="absolute right-2 top-10 h-8 w-28 rounded-full border border-border-active"
         style={{ transform: [{ rotate: '-18deg' }] }}
       />
 
@@ -1074,39 +1088,39 @@ function TeacherHero({
         <Pressable
           onPress={onPickImage}
           disabled={uploading}
-          className="h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-[#91B8FF] bg-[#192C62]"
+          className="h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-border-active bg-surface-selected"
         >
           {avatar && avatar.startsWith('http') ? (
             <Image source={{ uri: avatar }} className="h-full w-full" />
           ) : (
-            <Text className="text-[34px] font-black text-white">{getInitials(alias)}</Text>
+            <Text className="text-[34px] font-black text-text-primary">{getInitials(alias)}</Text>
           )}
 
-          <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-[#7C5CFF]">
+          <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full bg-brand-teacher">
             {uploading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={tokens.text.inverse} />
             ) : (
-              <Ionicons name="camera" size={16} color="#FFFFFF" />
+              <Ionicons name="camera" size={16} color={tokens.text.inverse} />
             )}
           </View>
         </Pressable>
 
         <View className="min-w-0 flex-1">
-          <Text className="text-[28px] font-black text-white" numberOfLines={1}>
+          <Text className="text-[28px] font-black text-text-primary" numberOfLines={1}>
             {alias}
           </Text>
 
-          <Text className="mt-1 text-[14px] text-[#D4E2F6]">
+          <Text className="mt-1 text-[14px] text-text-secondary">
             Profesor
           </Text>
 
-          <Text className="mt-2 text-[13px] text-[#9BAEC9]" numberOfLines={1}>
+          <Text className="mt-2 text-[13px] text-text-muted" numberOfLines={1}>
             {email}
           </Text>
 
-          <View className="mt-4 w-[112px] flex-row items-center justify-center gap-1 rounded-md bg-[#6D4DDB] px-3 py-1.5">
-            <Ionicons name="school-outline" size={13} color="#FFFFFF" />
-            <Text className="text-[13px] font-bold text-white">Docente</Text>
+          <View className="mt-4 w-[112px] flex-row items-center justify-center gap-1 rounded-md bg-brand-teacher px-3 py-1.5">
+            <Ionicons name="school-outline" size={13} color={tokens.text.inverse} />
+            <Text className="text-[13px] font-bold text-text-inverse">Docente</Text>
           </View>
         </View>
       </View>
@@ -1151,9 +1165,10 @@ function ProfileCard({
   children: React.ReactNode
   className?: string
 }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className={`rounded-2xl border border-[#1C3762] bg-[#08182F] p-5 ${className}`}>
-      <Text className="mb-4 text-[17px] font-black text-white">
+    <View className={`rounded-2xl border border-border-default bg-surface-default p-5 ${className}`}>
+      <Text className="mb-4 text-[17px] font-black text-text-primary">
         {title}
       </Text>
 
@@ -1171,18 +1186,19 @@ function InfoRow({
   label: string
   value: string
 }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className="flex-row items-center gap-4 border-b border-[#172A4A] py-3">
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-[#10213E]">
-        <Ionicons name={icon} size={18} color="#9BAEC9" />
+    <View className="flex-row items-center gap-4 border-b border-border-subtle py-3">
+      <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-interactive">
+        <Ionicons name={icon} size={18} color={tokens.text.muted} />
       </View>
 
       <View className="min-w-0 flex-1">
-        <Text className="text-[13px] text-[#8FA7C7]">
+        <Text className="text-[13px] text-text-muted">
           {label}
         </Text>
 
-        <Text className="mt-1 text-[13px] text-[#DDE7F4]" numberOfLines={1}>
+        <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={1}>
           {value}
         </Text>
       </View>
@@ -1197,10 +1213,11 @@ function EmptyState({
   icon: keyof typeof Ionicons.glyphMap
   message: string
 }) {
+  const { tokens } = useAppTheme()
   return (
-    <View className="items-center rounded-xl border border-dashed border-[#1A3155] bg-[#0D1D3B] px-4 py-6">
-      <Ionicons name={icon} size={24} color="#8FA7C7" />
-      <Text className="mt-2 text-center text-[13px] text-[#8FA7C7]">
+    <View className="items-center rounded-xl border border-dashed border-border-default bg-surface-raised px-4 py-6">
+      <Ionicons name={icon} size={24} color={tokens.text.muted} />
+      <Text className="mt-2 text-center text-[13px] text-text-muted">
         {message}
       </Text>
     </View>

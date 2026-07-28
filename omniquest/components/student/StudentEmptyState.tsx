@@ -21,14 +21,14 @@ export default function StudentEmptyState({
   title,
 }: StudentEmptyStateProps) {
   return (
-    <View className={`items-center rounded-xl border border-dashed border-[#20375E] bg-[#0D1D3B] px-4 py-6 ${className}`}>
+    <View className={`items-center rounded-xl border border-dashed border-border-default bg-surface-raised px-4 py-6 ${className}`}>
       {omniState ? (
         <OmniGuide state={omniState} size={omniSize} autoBlink={omniState === 'normal'} />
       ) : icon ? (
         <Ionicons name={icon} size={34} color="#60799C" />
       ) : null}
       <Text className="mt-3 text-center font-black text-white">{title}</Text>
-      {message ? <Text className="mt-1 text-center text-[13px] leading-5 text-[#8FA7C7]">{message}</Text> : null}
+      {message ? <Text className="mt-1 text-center text-[13px] leading-5 text-text-muted">{message}</Text> : null}
     </View>
   )
 }

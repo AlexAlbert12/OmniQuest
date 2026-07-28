@@ -137,7 +137,7 @@ export default function MobileTeacherStudents({
         />
         <Pressable
           onPress={() => onSelectStatus(getNextStringOption(statusFilterOptions, selectedStatus))}
-          className="h-[74px] w-[68px] items-center justify-center rounded-2xl border border-[#213A62] bg-[#07162C]"
+          className="h-[74px] w-[68px] items-center justify-center rounded-2xl border border-border-default bg-surface-default"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
           accessibilityLabel={`Filtro actual: ${selectedStatusLabel}`}
         >
@@ -194,9 +194,9 @@ export default function MobileTeacherStudents({
           />
         ))}
         {attentionStudents.length === 0 ? (
-          <View className="rounded-2xl border border-[#17345C] bg-[#07162C] p-4">
+          <View className="rounded-2xl border border-border-default bg-surface-default p-4">
             <Text className="text-[16px] font-black text-white">Todo bajo control</Text>
-            <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">
+            <Text className="mt-1 text-[13px] leading-5 text-text-secondary">
               No hay alumnos marcados como prioritarios con los filtros actuales.
             </Text>
           </View>
@@ -213,7 +213,7 @@ export default function MobileTeacherStudents({
       ) : null}
 
       <View className="mt-6 flex-row gap-3">
-        <View className="h-14 min-w-0 flex-1 flex-row items-center rounded-2xl border border-[#213A62] bg-[#07162C] px-4">
+        <View className="h-14 min-w-0 flex-1 flex-row items-center rounded-2xl border border-border-default bg-surface-default px-4">
           <Ionicons name="search-outline" size={24} color="#C4D2E8" />
           <TextInput
             className="min-w-0 flex-1 px-3 text-[16px] text-white"
@@ -225,11 +225,11 @@ export default function MobileTeacherStudents({
         </View>
         <Pressable
           onPress={() => onSelectStatus(getNextStringOption(statusFilterOptions, selectedStatus))}
-          className="h-14 flex-row items-center gap-2 rounded-2xl border border-[#213A62] bg-[#07162C] px-4"
+          className="h-14 flex-row items-center gap-2 rounded-2xl border border-border-default bg-surface-default px-4"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
           <Ionicons name="filter-outline" size={22} color="#DDE7F4" />
-          <Text className="font-black text-[#DDE7F4]">Filtros</Text>
+          <Text className="font-black text-text-secondary">Filtros</Text>
         </Pressable>
       </View>
 
@@ -249,15 +249,15 @@ export default function MobileTeacherStudents({
       <View className="mb-3 mt-4 flex-row items-center justify-between gap-3">
         <Pressable
           onPress={() => onSelectSort(getNextStringOption(sortOptions, selectedSort))}
-          className="min-w-0 flex-1 flex-row items-center rounded-2xl border border-[#163055] bg-[#07162C] px-4 py-3"
+          className="min-w-0 flex-1 flex-row items-center rounded-2xl border border-border-default bg-surface-default px-4 py-3"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
-          <Text className="text-[15px] text-[#AFC2DB]">Ordenar: </Text>
+          <Text className="text-[15px] text-text-secondary">Ordenar: </Text>
           <Text className="min-w-0 flex-1 text-[15px] font-black text-white" numberOfLines={1}>{selectedSortLabel}</Text>
           <Ionicons name="chevron-down" size={17} color="#AFC2DB" />
         </Pressable>
-        <View className="rounded-2xl border border-[#163055] bg-[#07162C] px-4 py-3">
-          <Text className="text-[13px] font-black text-[#B9A7FF]">{visibleStudents.length} de {students.length}</Text>
+        <View className="rounded-2xl border border-border-default bg-surface-default px-4 py-3">
+          <Text className="text-[13px] font-black text-brand-teacher">{visibleStudents.length} de {students.length}</Text>
         </View>
       </View>
 
@@ -318,12 +318,12 @@ function MobileSelectBox({
   return (
     <Pressable
       onPress={() => onChange(nextValue)}
-      className="h-[74px] min-w-0 flex-1 justify-center rounded-2xl border border-[#213A62] bg-[#07162C] px-4"
+      className="h-[74px] min-w-0 flex-1 justify-center rounded-2xl border border-border-default bg-surface-default px-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       <View className="flex-row items-center justify-between gap-2">
         <View className="min-w-0 flex-1">
-          <Text className="text-[12px] font-semibold text-[#9FB2CE]">{label}</Text>
+          <Text className="text-[12px] font-semibold text-text-muted">{label}</Text>
           <Text className="mt-1 text-[16px] font-bold text-white" numberOfLines={1}>{selectedLabel}</Text>
         </View>
         <Ionicons name="chevron-down" size={18} color="#C4D2E8" />
@@ -348,15 +348,15 @@ function MobilePendingAccessBanner({
       colors={['#0D223F', '#07162C']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      className="mt-6 rounded-2xl border border-[#1D3760] p-4"
+      className="mt-6 rounded-2xl border border-border-default p-4"
     >
       <View className="flex-row items-center gap-3">
-        <View className="h-12 w-12 items-center justify-center rounded-full bg-[#12325B]">
+        <View className="h-12 w-12 items-center justify-center rounded-full bg-surface-selected">
           <Ionicons name="mail-unread-outline" size={24} color="#9FD6FF" />
         </View>
         <View className="min-w-0 flex-1">
           <Text className="text-[17px] font-black text-white">Sin actividad</Text>
-          <Text className="mt-1 text-[13px] leading-5 text-[#B8C6DC]">
+          <Text className="mt-1 text-[13px] leading-5 text-text-secondary">
             {count} alumno{count === 1 ? '' : 's'} importado{count === 1 ? '' : 's'} todavía no han iniciado actividad.
           </Text>
         </View>
@@ -364,16 +364,16 @@ function MobilePendingAccessBanner({
       <View className="mt-4 flex-row gap-3">
         <Pressable
           onPress={onExport}
-          className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-[#29476F] bg-[#07162C]"
+          className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-default"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
           <Ionicons name="download-outline" size={18} color="#DDE7F4" />
-          <Text className="font-black text-[#DDE7F4]">Exportar</Text>
+          <Text className="font-black text-text-secondary">Exportar</Text>
         </Pressable>
         <Pressable
           onPress={onSendReminder}
           disabled={sendingReminder}
-          className="h-12 flex-[1.4] flex-row items-center justify-center gap-2 rounded-xl bg-[#6D47F6]"
+          className="h-12 flex-[1.4] flex-row items-center justify-center gap-2 rounded-xl bg-brand-student"
           style={({ pressed }) => ({ opacity: sendingReminder ? 0.62 : pressed ? 0.82 : 1 })}
         >
           {sendingReminder ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="send-outline" size={18} color="#FFFFFF" />}
@@ -408,7 +408,7 @@ function MobileStudentFilterChip({
       })}
     >
       <Ionicons name={icon} size={17} color={active ? '#FFFFFF' : color} />
-      <Text className={`text-[13px] font-black ${active ? 'text-white' : 'text-[#DDE7F4]'}`} numberOfLines={1}>{label}</Text>
+      <Text className={`text-[13px] font-black ${active ? 'text-white' : 'text-text-secondary'}`} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -428,7 +428,7 @@ function MobileAttentionStudentCard({
   return (
     <Pressable
       onPress={() => onViewDetails(student)}
-      className="rounded-2xl border border-[#1D3760] bg-[#07162C] p-4"
+      className="rounded-2xl border border-border-default bg-surface-default p-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
     >
       <View className="flex-row items-center gap-3">
@@ -440,21 +440,21 @@ function MobileAttentionStudentCard({
             <Text className="min-w-0 flex-1 text-[17px] font-black text-white" numberOfLines={1}>{student.alias}</Text>
             <Text className="text-[12px] font-black" style={{ color: status.color }} numberOfLines={1}>{status.label}</Text>
           </View>
-          <Text className="mt-1 text-[13px] text-[#AFC2DB]" numberOfLines={1}>
+          <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={1}>
             {context ? context.subjectName : 'Sin curso asignado'}
           </Text>
         </View>
       </View>
       <View className="mt-3 flex-row items-center justify-between gap-3">
-        <Text className="text-[13px] text-[#B8C6DC]">
+        <Text className="text-[13px] text-text-secondary">
           Precisión {student.hasActivity ? `${student.accuracyPercent}%` : '—'} · Participación {student.progress}%
         </Text>
         <Pressable
           onPress={() => onAssignActivity(student)}
-          className="rounded-xl border border-[#3B2F78] bg-[#171B43] px-3 py-2"
+          className="rounded-xl border border-border-default bg-surface-interactive px-3 py-2"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
-          <Text className="text-[12px] font-black text-[#C4B5FD]">Repasar</Text>
+          <Text className="text-[12px] font-black text-brand-teacher">Repasar</Text>
         </Pressable>
       </View>
     </Pressable>
@@ -487,7 +487,7 @@ function MobileTeacherStudentCard({
       colors={['#0B1E38', '#06162C']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      className="rounded-2xl border border-[#17345C] p-4"
+      className="rounded-2xl border border-border-default p-4"
     >
       <View className="flex-row items-start gap-3">
         <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(progressColor, '47') }}>
@@ -497,7 +497,7 @@ function MobileTeacherStudentCard({
           <View className="flex-row items-start gap-2">
             <View className="min-w-0 flex-1">
               <Text className="text-[20px] font-black text-white" numberOfLines={1}>{student.alias}</Text>
-              <Text className="mt-1 text-[14px] leading-5 text-[#B8C6DC]" numberOfLines={2}>
+              <Text className="mt-1 text-[14px] leading-5 text-text-secondary" numberOfLines={2}>
                 {context ? `${context.subjectName} · ${context.classroomName}` : student.handle}
               </Text>
             </View>
@@ -513,10 +513,10 @@ function MobileTeacherStudentCard({
         <MobileStudentMiniMetric label="Participación" value={`${student.progress}%`} color={progressColor} icon="trending-up" />
       </View>
 
-      <View className="mt-4 flex-row items-center justify-between gap-3 rounded-2xl border border-[#17345C] bg-[#06162C] p-3">
+      <View className="mt-4 flex-row items-center justify-between gap-3 rounded-2xl border border-border-default bg-surface-default p-3">
         <View className="min-w-0 flex-1 flex-row items-center gap-2">
           <Ionicons name="calendar-outline" size={15} color="#9FB2CE" />
-          <Text className="text-[13px] text-[#9FB2CE]" numberOfLines={1}>Última actividad: {formatRelativeDate(student.lastActivityAt)}</Text>
+          <Text className="text-[13px] text-text-muted" numberOfLines={1}>Última actividad: {formatRelativeDate(student.lastActivityAt)}</Text>
         </View>
         <Text className="text-[13px] font-black" style={{ color: progressColor }}>{student.progress}%</Text>
       </View>
@@ -533,7 +533,7 @@ function MobileTeacherStudentCard({
       <View className="mt-4 flex-row gap-2">
         <Pressable
           onPress={() => onViewDetails(student)}
-          className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-[#6D47F6] px-4"
+          className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-brand-student px-4"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
           <Ionicons name="eye-outline" size={17} color="#FFFFFF" />
@@ -541,7 +541,7 @@ function MobileTeacherStudentCard({
         </Pressable>
         <Pressable
           onPress={() => onAssignActivity(student)}
-          className="h-12 w-12 items-center justify-center rounded-xl border border-[#29476F] bg-[#07162C]"
+          className="h-12 w-12 items-center justify-center rounded-xl border border-border-default bg-surface-default"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
           accessibilityLabel={`Asignar repaso a ${student.alias}`}
         >
@@ -549,7 +549,7 @@ function MobileTeacherStudentCard({
         </Pressable>
         <Pressable
           onPress={() => onOpenActions(student)}
-          className="h-12 w-12 items-center justify-center rounded-xl border border-[#29476F] bg-[#07162C]"
+          className="h-12 w-12 items-center justify-center rounded-xl border border-border-default bg-surface-default"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
           <Ionicons name="ellipsis-horizontal" size={20} color="#DDE7F4" />
@@ -591,23 +591,23 @@ function MobileStudentsPagination({
   const end = Math.min(total, (page + 1) * MOBILE_STUDENTS_PAGE_SIZE);
 
   return (
-    <View className="mt-4 flex-row items-center justify-between gap-3 rounded-2xl border border-[#1D3760] bg-[#07162C] p-3">
+    <View className="mt-4 flex-row items-center justify-between gap-3 rounded-2xl border border-border-default bg-surface-default p-3">
       <Pressable
         onPress={onPrevious}
         disabled={page === 0}
-        className="h-11 w-11 items-center justify-center rounded-xl border border-[#29476F] bg-[#06162C]"
+        className="h-11 w-11 items-center justify-center rounded-xl border border-border-default bg-surface-default"
         style={({ pressed }) => ({ opacity: page === 0 ? 0.45 : pressed ? 0.82 : 1 })}
       >
         <Ionicons name="chevron-back" size={20} color="#DDE7F4" />
       </Pressable>
       <View className="min-w-0 flex-1 items-center">
         <Text className="text-[14px] font-black text-white">{start}-{end} de {total}</Text>
-        <Text className="mt-0.5 text-[12px] text-[#8FA7C7]">Página {page + 1} de {pageCount}</Text>
+        <Text className="mt-0.5 text-[12px] text-text-muted">Página {page + 1} de {pageCount}</Text>
       </View>
       <Pressable
         onPress={onNext}
         disabled={page >= pageCount - 1}
-        className="h-11 w-11 items-center justify-center rounded-xl border border-[#29476F] bg-[#06162C]"
+        className="h-11 w-11 items-center justify-center rounded-xl border border-border-default bg-surface-default"
         style={({ pressed }) => ({ opacity: page >= pageCount - 1 ? 0.45 : pressed ? 0.82 : 1 })}
       >
         <Ionicons name="chevron-forward" size={20} color="#DDE7F4" />

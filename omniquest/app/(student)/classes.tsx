@@ -288,7 +288,7 @@ export default function ClassesScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-[#010611]">
+      <View className="flex-1 bg-background-secondary">
         <HomeVisualBackground isDesktop={isDesktop} />
         <View className="z-10 flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={accentColor} />
@@ -299,7 +299,7 @@ export default function ClassesScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#010611]">
+    <View className="flex-1 bg-background-secondary">
       <HomeVisualBackground isDesktop={isDesktop} />
       <View className="z-10 flex-1 flex-row">
         {isDesktop ? (
@@ -338,7 +338,7 @@ export default function ClassesScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={showMobileFilters ? 'Ocultar filtros de cursos' : 'Mostrar filtros de cursos'}
                     onPress={() => setShowMobileFilters((value) => !value)}
-                    className="h-12 w-12 items-center justify-center rounded-2xl border border-[#33405A] bg-[#1A2335]"
+                    className="h-12 w-12 items-center justify-center rounded-2xl border border-border-default bg-surface-interactive"
                     style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
                   >
                     <Ionicons name={showMobileFilters ? 'close' : 'options'} size={24} color="#C7D5F2" />
@@ -385,8 +385,8 @@ export default function ClassesScreen() {
             </View>
 
             {showMobileFilters ? (
-              <View className="mb-8 rounded-[24px] border border-[#2A3855] bg-[#11182B]/95 p-4">
-                <View className="flex-row items-center rounded-2xl border border-[#2B3C5C] bg-[#0A1224] px-4">
+              <View className="mb-8 rounded-[24px] border border-border-default bg-surface-disabled p-4">
+                <View className="flex-row items-center rounded-2xl border border-border-default bg-background-primary px-4">
                   <Ionicons name="search-outline" size={20} color="#93A5C2" />
                   <TextInput
                     className="min-w-0 flex-1 px-3 py-4 text-white"
@@ -475,10 +475,10 @@ export default function ClassesScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Abrir filtros activos"
                 onPress={() => setShowMobileFilters(true)}
-                className="mb-4 self-start flex-row items-center gap-2 rounded-full border border-[#3A4260] bg-[#131A2E] px-4 py-2"
+                className="mb-4 self-start flex-row items-center gap-2 rounded-full border border-border-default bg-surface-disabled px-4 py-2"
               >
                 <Ionicons name="funnel" size={14} color="#A96CFF" />
-                <Text className="text-[12px] font-black text-[#C4B3FF]">{getFilterLabel(selectedFilter)}</Text>
+                <Text className="text-[12px] font-black text-text-secondary">{getFilterLabel(selectedFilter)}</Text>
               </Pressable>
             ) : null}
 
@@ -552,23 +552,23 @@ function CompactSelect({
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${value}`}
         onPress={onToggle}
-        className="flex-row items-center justify-between rounded-2xl border border-[#2B3C5C] bg-[#0A1224] px-4 py-3"
+        className="flex-row items-center justify-between rounded-2xl border border-border-default bg-background-primary px-4 py-3"
       >
         <View className="min-w-0 flex-1">
-          <Text className="text-[10px] font-black uppercase tracking-[1px] text-[#8294B2]">{label}</Text>
+          <Text className="text-[10px] font-black uppercase tracking-[1px] text-text-muted">{label}</Text>
           <Text className="mt-1 font-black text-white" numberOfLines={1}>{value}</Text>
         </View>
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color="#B8C4DC" />
       </Pressable>
 
       {open ? (
-        <View className="absolute left-0 right-0 top-[68px] z-30 overflow-hidden rounded-2xl border border-[#354866] bg-[#0A1224]">
+        <View className="absolute left-0 right-0 top-[68px] z-30 overflow-hidden rounded-2xl border border-border-active bg-background-primary">
           {options.map((option) => (
             <Pressable
               key={option.key}
               accessibilityRole="button"
               onPress={option.onPress}
-              className="flex-row items-center justify-between border-b border-[#1E2C45] px-4 py-3 last:border-b-0"
+              className="flex-row items-center justify-between border-b border-border-default px-4 py-3 last:border-b-0"
               style={{ backgroundColor: option.active ? `${accentColor}24` : 'transparent' }}
             >
               <Text className="font-bold" style={{ color: option.active ? '#FFFFFF' : '#CAD5E7' }}>

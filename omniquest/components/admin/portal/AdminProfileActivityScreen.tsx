@@ -76,13 +76,13 @@ export default function AdminProfileActivityScreen() {
     >
       <Panel title="Resumen del usuario" icon="person-circle-outline" className="mt-5">
         <View className="flex-row flex-wrap items-center gap-4">
-          <View className="h-14 w-14 items-center justify-center rounded-full bg-[#102A54]">
-            <Text className="text-[18px] font-black text-[#9FD6FF]">{getInitial(profile?.alias)}</Text>
+          <View className="h-14 w-14 items-center justify-center rounded-full bg-surface-interactive">
+            <Text className="text-[18px] font-black text-semantic-info">{getInitial(profile?.alias)}</Text>
           </View>
           <View className="min-w-[220px] flex-1">
             <Text className="text-[18px] font-black text-white">{profile?.alias || 'Cargando usuario...'}</Text>
-            <Text className="mt-1 text-[12px] text-[#8FA7C7]">{profile?.email || 'Sin correo guardado'}</Text>
-            <Text className="mt-1 text-[11px] font-bold text-[#AFC2DB]">
+            <Text className="mt-1 text-[12px] text-text-muted">{profile?.email || 'Sin correo guardado'}</Text>
+            <Text className="mt-1 text-[11px] font-bold text-text-secondary">
               {profile?.role_id === 'teacher' ? 'Profesor' : 'Alumno'} · {profile?.active === false ? 'Cuenta inactiva' : 'Cuenta activa'}
             </Text>
           </View>
@@ -137,10 +137,10 @@ export default function AdminProfileActivityScreen() {
               <View className="min-w-0 flex-1">
                 <View className="flex-row flex-wrap items-start justify-between gap-2">
                   <Text className="min-w-[180px] flex-1 text-[14px] font-black text-white">{event.title}</Text>
-                  <Text className="text-[10px] font-bold text-[#8FA7C7]">{formatAuditDate(event.occurred_at)}</Text>
+                  <Text className="text-[10px] font-bold text-text-muted">{formatAuditDate(event.occurred_at)}</Text>
                 </View>
-                {event.description ? <Text className="mt-1 text-[12px] leading-5 text-[#B7C4D7]">{event.description}</Text> : null}
-                <Text className="mt-2 text-[10px] font-mono text-[#6F86A8]" numberOfLines={1}>
+                {event.description ? <Text className="mt-1 text-[12px] leading-5 text-text-secondary">{event.description}</Text> : null}
+                <Text className="mt-2 text-[10px] font-mono text-text-muted" numberOfLines={1}>
                   {event.entity_table || 'sistema'}{event.entity_id ? ` #${event.entity_id}` : ''}
                 </Text>
               </View>

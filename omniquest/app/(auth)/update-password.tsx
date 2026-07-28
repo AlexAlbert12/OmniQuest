@@ -58,8 +58,8 @@ export default function UpdatePasswordScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-[#010611]" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-      <View className="overflow-hidden bg-[#010611]" style={{ minHeight: Math.max(height, 720) }}>
+    <ScrollView className="flex-1 bg-background-secondary" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <View className="overflow-hidden bg-background-secondary" style={{ minHeight: Math.max(height, 720) }}>
         <HomeVisualBackground isDesktop={isDesktop} />
         <View className="z-10 flex-1 items-center justify-center" style={{ paddingHorizontal: isDesktop ? 32 : 22, paddingVertical: 34 }}>
           <BrandLogo center size={isDesktop ? 64 : 48} />

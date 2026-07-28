@@ -348,9 +348,9 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center bg-background-primary">
         <ActivityIndicator size="large" color={accentColor} />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando perfil...</Text>
+        <Text className="mt-4 text-text-muted">Cargando perfil...</Text>
       </View>
     )
   }
@@ -384,7 +384,7 @@ export default function ProfileScreen() {
 
   return (
     <>
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1 bg-background-primary">
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <StudentSidebar
@@ -466,7 +466,7 @@ export default function ProfileScreen() {
               <InfoRow icon="calendar-outline" label="Miembro desde" value={memberSince} />
               <Pressable
                 onPress={() => router.push(STUDENT_ROUTES.settingsProfile)}
-                className="mt-4 flex-row items-center gap-2 border-t border-[#172A4A] pt-4"
+                className="mt-4 flex-row items-center gap-2 border-t border-border-subtle pt-4"
               >
                 <Ionicons name="create-outline" size={18} color={accentColor} />
                 <Text className="font-bold" style={{ color: accentColor }}>Editar perfil</Text>
@@ -579,7 +579,7 @@ function MobileStudentProfile({
   const { accentColor } = useAppTheme()
 
   return (
-    <View className="flex-1 bg-[#031022]">
+    <View className="flex-1 bg-background-primary">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER + 2 }}
@@ -696,8 +696,8 @@ function MobileProfileHero({
       style={{ borderRadius: 24, borderWidth: 1, borderColor: '#263B72', overflow: 'hidden' }}
     >
       <View className="relative min-h-[226px] p-5">
-        <View className="absolute -right-10 top-7 h-24 w-40 rounded-3xl bg-[#7C3AED]/20" style={{ transform: [{ rotate: '-28deg' }] }} />
-        <View className="absolute bottom-4 right-3 h-28 w-44 rounded-3xl bg-[#2563EB]/10" style={{ transform: [{ rotate: '-20deg' }] }} />
+        <View className="absolute -right-10 top-7 h-24 w-40 rounded-3xl bg-surface-selected" style={{ transform: [{ rotate: '-28deg' }] }} />
+        <View className="absolute bottom-4 right-3 h-28 w-44 rounded-3xl bg-surface-selected" style={{ transform: [{ rotate: '-20deg' }] }} />
 
         <View className="flex-row items-center gap-4 pr-[76px]">
           <GamifiedAvatar
@@ -720,7 +720,7 @@ function MobileProfileHero({
         </View>
 
         <View className="mt-5">
-          <View className="h-3 overflow-hidden rounded-full bg-[#172A55]">
+          <View className="h-3 overflow-hidden rounded-full bg-semantic-surface-info">
             <LinearGradient
               colors={[accentColor, '#B86BFF']}
               start={{ x: 0, y: 0 }}
@@ -728,10 +728,10 @@ function MobileProfileHero({
               style={{ width: `${progressWidth}%`, height: '100%', borderRadius: 999 }}
             />
           </View>
-          <Text className="mt-3 text-[14px] text-[#D4E2F6]">
+          <Text className="mt-3 text-[14px] text-text-secondary">
             {xpToNextLevel} XP para Nivel {level + 1}
           </Text>
-          <Text className="mt-1 text-[12px] text-[#8FA7C7]">{points.toLocaleString()} XP acumulados</Text>
+          <Text className="mt-1 text-[12px] text-text-muted">{points.toLocaleString()} XP acumulados</Text>
         </View>
       </View>
     </LinearGradient>
@@ -784,7 +784,7 @@ function MobileQuickAction({
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-3 rounded-2xl border border-[#17345C] bg-[#091C3A] p-3"
+      className="flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-raised p-3"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       <View className="h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(color, '26') }}>
@@ -792,7 +792,7 @@ function MobileQuickAction({
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[15px] font-black text-white" numberOfLines={1}>{title}</Text>
-        <Text className="mt-1 text-[13px] leading-5 text-[#B7C4D7]" numberOfLines={2}>{subtitle}</Text>
+        <Text className="mt-1 text-[13px] leading-5 text-text-secondary" numberOfLines={2}>{subtitle}</Text>
       </View>
       <Ionicons name="chevron-forward" size={19} color="#8FA7C7" />
     </Pressable>
@@ -811,12 +811,12 @@ function MobileSectionPanel({
   title: string
 }) {
   return (
-    <View className="mt-5 overflow-hidden rounded-2xl border border-[#142B4F] bg-[#071832] p-4">
+    <View className="mt-5 overflow-hidden rounded-2xl border border-border-subtle bg-surface-default p-4">
       <View className="mb-4 flex-row items-center justify-between gap-3">
         <Text className="min-w-0 flex-1 text-[24px] font-black text-white" numberOfLines={1}>{title}</Text>
         {actionLabel && onAction ? (
           <Pressable onPress={onAction} className="flex-row items-center gap-1">
-            <Text className="text-[15px] font-black text-[#A970FF]">{actionLabel}</Text>
+            <Text className="text-[15px] font-black text-brand-admin">{actionLabel}</Text>
             <Ionicons name="chevron-forward" size={18} color="#A970FF" />
           </Pressable>
         ) : null}
@@ -830,7 +830,7 @@ function MobileBadgeCard({ badge, onPress }: { badge: StudentBadge; onPress: () 
   return (
     <Pressable
       onPress={onPress}
-      className="min-h-[132px] w-[252px] flex-row items-center gap-4 rounded-2xl border border-[#19345B] bg-[#091C3A] p-4"
+      className="min-h-[132px] w-[252px] flex-row items-center gap-4 rounded-2xl border border-border-default bg-surface-raised p-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       <View
@@ -841,9 +841,9 @@ function MobileBadgeCard({ badge, onPress }: { badge: StudentBadge; onPress: () 
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[15px] font-black text-white" numberOfLines={2}>{badge.title}</Text>
-        <Text className="mt-2 text-[13px] leading-5 text-[#C7D3E5]" numberOfLines={2}>{badge.requirement}</Text>
+        <Text className="mt-2 text-[13px] leading-5 text-text-secondary" numberOfLines={2}>{badge.requirement}</Text>
         <View className="mt-3 flex-row items-center gap-2">
-          <Text className="text-[13px] font-bold text-[#22D3A5]">Completado</Text>
+          <Text className="text-[13px] font-bold text-semantic-success">Completado</Text>
           <Ionicons name="checkmark-circle-outline" size={16} color="#22D3A5" />
         </View>
       </View>
@@ -861,10 +861,10 @@ function MobileCompactEmpty({
   title: string
 }) {
   return (
-    <View className="items-center rounded-2xl border border-dashed border-[#1E3A63] bg-[#081B37] px-4 py-7">
+    <View className="items-center rounded-2xl border border-dashed border-border-default bg-surface-raised px-4 py-7">
       <Ionicons name={icon} size={28} color="#8FA7C7" />
       <Text className="mt-3 text-center text-[15px] font-black text-white">{title}</Text>
-      <Text className="mt-1 text-center text-[13px] leading-5 text-[#8FA7C7]">{subtitle}</Text>
+      <Text className="mt-1 text-center text-[13px] leading-5 text-text-muted">{subtitle}</Text>
     </View>
   )
 }
@@ -887,12 +887,12 @@ function ProfileHero({
   const { accentColor } = useAppTheme()
 
   return (
-    <View className="flex-1 overflow-hidden rounded-2xl border border-[#1C3762] bg-[#0B1B48] p-7">
-      <View className="absolute inset-0 bg-[#0D1C55]" />
-      <View className="absolute bottom-[-28px] left-0 h-28 w-44 rounded-full bg-[#061B43]" />
-      <View className="absolute bottom-[-42px] right-7 h-32 w-44 rounded-full bg-[#081F55]" />
-      <View className="absolute right-6 top-6 h-20 w-20 rounded-full bg-[#5135D8]/50" />
-      <View className="absolute right-2 top-10 h-8 w-28 rounded-full border border-[#7B68FF]/45" style={{ transform: [{ rotate: '-18deg' }] }} />
+    <View className="flex-1 overflow-hidden rounded-2xl border border-border-default bg-surface-raised p-7">
+      <View className="absolute inset-0 bg-surface-raised" />
+      <View className="absolute bottom-[-28px] left-0 h-28 w-44 rounded-full bg-surface-raised" />
+      <View className="absolute bottom-[-42px] right-7 h-32 w-44 rounded-full bg-semantic-surface-info" />
+      <View className="absolute right-6 top-6 h-20 w-20 rounded-full bg-surface-selected" />
+      <View className="absolute right-2 top-10 h-8 w-28 rounded-full border border-brand-student" style={{ transform: [{ rotate: '-18deg' }] }} />
 
       <View className="relative flex-row items-center gap-6">
         <GamifiedAvatar
@@ -907,15 +907,15 @@ function ProfileHero({
 
         <View className="min-w-0 flex-1">
           <Text className="text-[28px] font-black text-white">{alias}</Text>
-          <Text className="mt-1 text-[14px] text-[#D4E2F6]">Estudiante aventurero</Text>
+          <Text className="mt-1 text-[14px] text-text-secondary">Estudiante aventurero</Text>
           <View className="mt-3 w-[96px] flex-row items-center justify-center gap-1 rounded-md px-3 py-1.5" style={{ backgroundColor: withAlpha(accentColor, 'CC') }}>
             <Ionicons name="school" size={13} color="#FFFFFF" />
             <Text className="text-[13px] font-bold text-white">Nivel {level}</Text>
           </View>
-          <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#27396B]">
+          <View className="mt-4 h-2 overflow-hidden rounded-full bg-surface-selected">
             <View className="h-full rounded-full" style={{ width: `${nextLevelProgress}%`, backgroundColor: accentColor }} />
           </View>
-          <Text className="mt-2 text-[13px] text-[#D4E2F6]">
+          <Text className="mt-2 text-[13px] text-text-secondary">
             {nextLevelProgress.toLocaleString()} / 100 XP para Nivel {level + 1}
           </Text>
         </View>
@@ -935,13 +935,13 @@ function InfoRow({
   value: string
 }) {
   return (
-    <View className="flex-row items-center gap-4 border-b border-[#172A4A] py-3">
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-[#10213E]">
+    <View className="flex-row items-center gap-4 border-b border-border-subtle py-3">
+      <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-interactive">
         <Ionicons name={icon} size={18} color="#9BAEC9" />
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="text-[13px] text-[#8FA7C7]">{label}</Text>
-        <Text className="mt-1 text-[13px] text-[#DDE7F4]" numberOfLines={1}>{value}</Text>
+        <Text className="text-[13px] text-text-muted">{label}</Text>
+        <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={1}>{value}</Text>
       </View>
     </View>
   )
@@ -963,7 +963,7 @@ function ProfileShortcut({
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-3 rounded-2xl border border-[#172A4A] bg-[#0D1D3B] p-3"
+      className="flex-row items-center gap-3 rounded-2xl border border-border-subtle bg-surface-raised p-3"
       style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
     >
       <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(color, '24') }}>
@@ -971,7 +971,7 @@ function ProfileShortcut({
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[14px] font-black text-white">{label}</Text>
-        <Text className="mt-0.5 text-[12px] text-[#8FA7C7]">{description}</Text>
+        <Text className="mt-0.5 text-[12px] text-text-muted">{description}</Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color="#8FA7C7" />
     </Pressable>
@@ -980,7 +980,7 @@ function ProfileShortcut({
 
 function BadgeRow({ badge, onPress }: { badge: StudentBadge; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} className={`flex-row items-center gap-4 rounded-xl bg-[#0D1D3B] p-3 ${badge.unlocked ? '' : 'opacity-70'}`}>
+    <Pressable onPress={onPress} className={`flex-row items-center gap-4 rounded-xl bg-surface-raised p-3 ${badge.unlocked ? '' : 'opacity-70'}`}>
       <View
         className="h-14 w-14 items-center justify-center rounded-2xl border-2"
         style={{ backgroundColor: `${badge.color}20`, borderColor: badge.color }}
@@ -989,18 +989,18 @@ function BadgeRow({ badge, onPress }: { badge: StudentBadge; onPress: () => void
       </View>
       <View className="min-w-0 flex-1">
         <Text className="font-black text-white">{badge.title}</Text>
-        <Text className="mt-1 text-[13px] text-[#AFC2DB]">{badge.requirement}</Text>
+        <Text className="mt-1 text-[13px] text-text-secondary">{badge.requirement}</Text>
       </View>
-      <Text className="text-[13px] text-[#8FA7C7]">{badge.statusLabel}</Text>
+      <Text className="text-[13px] text-text-muted">{badge.statusLabel}</Text>
     </Pressable>
   )
 }
 
 function EmptyState({ icon, message }: { icon: keyof typeof Ionicons.glyphMap; message: string }) {
   return (
-    <View className="items-center rounded-xl border border-dashed border-[#1A3155] bg-[#0D1D3B] px-4 py-6">
+    <View className="items-center rounded-xl border border-dashed border-border-default bg-surface-raised px-4 py-6">
       <Ionicons name={icon} size={24} color="#8FA7C7" />
-      <Text className="mt-2 text-center text-[13px] text-[#8FA7C7]">{message}</Text>
+      <Text className="mt-2 text-center text-[13px] text-text-muted">{message}</Text>
     </View>
   )
 }

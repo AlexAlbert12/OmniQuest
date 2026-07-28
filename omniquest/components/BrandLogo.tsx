@@ -32,7 +32,7 @@ export default function BrandLogo({ center = false, size = 30, style }: BrandLog
         Omni
       </Text>
       <Text
-        className="text-[#42B9FF]"
+        className="text-semantic-info"
         style={{
           fontFamily: 'Pacifico_400Regular',
           fontSize: size,

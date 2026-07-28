@@ -22,7 +22,7 @@ export function SubmitAnswerButton({ disabled, onPress }: { disabled: boolean; o
       hitSlop={6}
       onPress={onPress}
       disabled={disabled}
-      className="mt-2 flex-row items-center justify-center gap-2 rounded-2xl bg-[#6D5AF6] px-6 py-4"
+      className="mt-2 flex-row items-center justify-center gap-2 rounded-2xl bg-brand-student px-6 py-4"
       style={({ pressed }) => ({ opacity: disabled ? 0.52 : pressed ? 0.84 : 1 })}
     >
       <Text className="text-[16px] font-black text-white">Comprobar</Text>
@@ -42,7 +42,7 @@ export function PairConnectionChip({
 }) {
   return (
     <View
-      className={`flex-row items-center rounded-xl border border-[#145B45] bg-[#082B2B] ${
+      className={`flex-row items-center rounded-xl border border-border-active bg-semantic-surface-success ${
         compact ? 'px-3 py-2' : 'mt-3 px-4 py-3'
       }`}
       style={{ gap: compact ? 7 : 10 }}
@@ -51,7 +51,7 @@ export function PairConnectionChip({
         {left}
       </Text>
       <Ionicons name="arrow-forward" size={compact ? 14 : 17} color="#43D991" />
-      <Text className={`${compact ? 'text-[13px]' : 'text-[15px]'} font-black text-[#A7F3D0]`} numberOfLines={1}>
+      <Text className={`${compact ? 'text-[13px]' : 'text-[15px]'} font-black text-text-secondary`} numberOfLines={1}>
         {right}
       </Text>
     </View>
@@ -109,7 +109,7 @@ export function QuestionFeedbackCard({
 
   return (
     <AnswerFeedbackMotion status={feedback.status} style={{ marginTop: 20 }}>
-      <View className="overflow-hidden rounded-[28px] border bg-[#09162C] p-5" style={{ borderColor: `${color}88` }}>
+      <View className="overflow-hidden rounded-[28px] border bg-surface-default p-5" style={{ borderColor: `${color}88` }}>
         <View className="absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ backgroundColor: `${color}18` }} />
         {isCorrect ? <CelebrationParticles color={color} /> : null}
         {isCorrect && feedback.earnedPoints > 0 ? (
@@ -120,9 +120,9 @@ export function QuestionFeedbackCard({
           <OmniGuide state={isPending ? 'thinking' : isCorrect ? 'happy' : 'error'} size={96} />
         </Animated.View>
         <Text className="mt-4 text-center text-[28px] font-black text-white">{title}</Text>
-        <Text className="mt-2 text-center text-[14px] leading-6 text-[#C9D7EA]">{subtitle}</Text>
+        <Text className="mt-2 text-center text-[14px] leading-6 text-text-secondary">{subtitle}</Text>
 
-        <View className="mt-5 w-full rounded-2xl border border-[#173055] bg-[#071426] p-4">
+        <View className="mt-5 w-full rounded-2xl border border-border-default bg-background-primary p-4">
           <View className="flex-row items-center justify-center gap-2">
             <Ionicons name={isPending ? 'hourglass-outline' : isCorrect ? 'flash' : 'refresh'} size={24} color={color} />
             <Text className="text-[26px] font-black text-white">
@@ -138,19 +138,19 @@ export function QuestionFeedbackCard({
       </View>
 
       {!isCorrect && !isPending && feedback.correctAnswerText ? (
-        <View className="mt-4 rounded-2xl border border-[#243E65] bg-[#061426] p-4">
-          <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#8FA7C7]">Respuesta correcta</Text>
+        <View className="mt-4 rounded-2xl border border-border-default bg-background-primary p-4">
+          <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-text-muted">Respuesta correcta</Text>
           <Text className="mt-2 text-[15px] font-bold leading-6 text-white">{feedback.correctAnswerText}</Text>
         </View>
       ) : null}
 
       {feedback.explanation ? (
-        <View className="mt-4 rounded-2xl border border-[#243E65] bg-[#0D1D3B] p-4">
+        <View className="mt-4 rounded-2xl border border-border-default bg-surface-raised p-4">
           <View className="flex-row items-center gap-2">
             <Ionicons name="bulb" size={17} color="#FBBF24" />
-            <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-[#FBBF24]">Explicación</Text>
+            <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-gamification-xp">Explicación</Text>
           </View>
-          <Text className="mt-2 text-[14px] leading-6 text-[#DDE7F4]">{feedback.explanation}</Text>
+          <Text className="mt-2 text-[14px] leading-6 text-text-secondary">{feedback.explanation}</Text>
         </View>
       ) : null}
 
@@ -187,7 +187,7 @@ export function MoveButton({
       hitSlop={8}
       onPress={onPress}
       disabled={disabled}
-      className="h-10 w-10 items-center justify-center rounded-xl border border-[#28456B] bg-[#0D1D3B]"
+      className="h-10 w-10 items-center justify-center rounded-xl border border-border-default bg-surface-raised"
       style={({ pressed }) => ({ opacity: disabled ? 0.35 : pressed ? 0.78 : 1 })}
     >
       <Ionicons name={icon} size={18} color="#DDE7F4" />
@@ -321,7 +321,7 @@ export function AnswerFeedback({
           {isCorrect ? correctTitle : incorrectTitle}
         </Text>
       </View>
-      {!isCorrect ? <Text className="mt-1 text-[13px] text-[#DDE7F4]">{incorrectDetail}</Text> : null}
+      {!isCorrect ? <Text className="mt-1 text-[13px] text-text-secondary">{incorrectDetail}</Text> : null}
     </View>
   )
 }

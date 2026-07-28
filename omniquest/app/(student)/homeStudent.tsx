@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View, } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View, } from 'react-native'
 import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -22,6 +22,9 @@ import { fetchStudentAttemptHistory } from '../../lib/studentSecureData'
 import { getStartOfWeekMonday, getTimeUntilSundayLabel } from '../../lib/weeklyGoal'
 import { MobileEmptyState, MobileMetricCard, MobileScreen, MobileSectionHeader } from '../../components/ui/mobile'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import AppButton from '../../components/ui/AppButton'
+import { useAppModal } from '../../components/AppModalProvider'
+import { withAlpha } from '../../lib/color'
 
 type Subject = {
   id: number
@@ -46,7 +49,7 @@ type Profile = {
 type ActivityItem = {
   id: string
   icon: keyof typeof Ionicons.glyphMap
-  color: string
+  tone: 'success' | 'danger' | 'info'
   title: string
   course: string
   detail: string
@@ -156,7 +159,8 @@ export default function StudentHome() {
   const [streakDays, setStreakDays] = useState(0)
   const [progressSummary, setProgressSummary] = useState<StudentProgressSummary | null>(null)
   const router = useRouter()
-  const { accentColor } = useAppTheme()
+  const { accentColor, tokens } = useAppTheme()
+  const { showModal } = useAppModal()
 
   const isDesktop = width >= 1024
   const isWide = width >= 760
@@ -310,7 +314,7 @@ export default function StudentHome() {
         return {
           id: String(attempt.id),
           icon: isCorrect ? 'checkmark' : 'close',
-          color: isCorrect ? '#70E0A5' : '#FB7185',
+          tone: isCorrect ? 'success' : 'danger',
           title: isCorrect ? 'Acertaste una pregunta' : 'Fallaste una pregunta',
           course: courseName || topicTitle || 'Práctica',
           detail: questionText || (topicTitle ? `Tema: ${topicTitle}` : 'Sin pregunta registrada'),
@@ -321,7 +325,7 @@ export default function StudentHome() {
       setActivityItems(activities.length > 0 ? activities : [{
         id: 'empty-activity',
         icon: 'rocket',
-        color: '#3B82F6',
+        tone: 'info',
         title: '¡Tu aventura comienza aquí!',
         course: 'OmniQuest',
         detail: 'Juega tu primera partida para ver tu historial.',
@@ -365,9 +369,9 @@ export default function StudentHome() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center bg-background-primary">
         <OmniGuide state="blink" size={116} />
-        <Text className="mt-4 text-[#8FA7C7]">Omni está preparando tu aventura...</Text>
+        <Text className="mt-4 text-text-muted">Omni está preparando tu aventura...</Text>
       </View>
     )
   }
@@ -396,7 +400,7 @@ export default function StudentHome() {
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1 bg-background-primary">
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <StudentSidebar
@@ -438,7 +442,7 @@ export default function StudentHome() {
                 title="Contenido visto"
                 value={`${progressPercent}%`}
                 icon="analytics-outline"
-                color="#43D991"
+                color={tokens.semantic.success}
                 onPress={() => router.push('/(student)/progress')}
               />
               <StudentMetricCard
@@ -452,14 +456,14 @@ export default function StudentHome() {
                 title="Fallos para repasar"
                 value={String(failedQuestions)}
                 icon="refresh-circle"
-                color="#FB7185"
+                color={tokens.semantic.danger}
                 onPress={() => router.push('/(student)/progress')}
               />
               <StudentMetricCard
                 title="Precisión"
                 value={`${progressSummary?.accuracyPercent ?? 0}%`}
                 icon="speedometer-outline"
-                color="#FF7B45"
+                color={tokens.gamification.streak}
                 onPress={() => router.push('/(student)/progress')}
               />
             </View>
@@ -518,45 +522,40 @@ export default function StudentHome() {
             </StudentDashboardCard>
           </View>
 
-          <View className="mt-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+          <View className="mt-5 rounded-2xl border border-border-default bg-surface-default p-4">
             <View className={isWide ? 'flex-row items-center gap-5' : 'gap-3'}>
               <View className="min-w-[220px] flex-1">
                 <Text className="text-[16px] font-black text-white">Unirse a un curso</Text>
-                <Text className="mt-1 text-[13px] text-[#AFC2DB]">Introduce el código que te haya dado tu profesor.</Text>
+                <Text className="mt-1 text-[13px] text-text-secondary">Introduce el código que te haya dado tu profesor.</Text>
               </View>
-              <View className={isWide ? 'min-w-[420px] flex-row gap-0 overflow-hidden rounded-xl border border-[#20375E] bg-[#091A35]' : 'flex-row gap-0 overflow-hidden rounded-xl border border-[#20375E] bg-[#091A35]'}>
+              <View className={isWide ? 'min-w-[420px] flex-row gap-0 overflow-hidden rounded-xl border border-border-default bg-surface-default' : 'flex-row gap-0 overflow-hidden rounded-xl border border-border-default bg-surface-default'}>
                 <View className="items-center justify-center px-4">
-                  <Ionicons name="keypad-outline" size={20} color="#8FA7C7" />
+                  <Ionicons name="keypad-outline" size={20} color={tokens.text.muted} />
                 </View>
                 <TextInput
                   className="min-w-0 flex-1 px-4 py-3 text-white"
                   placeholder="Introduce el código"
-                  placeholderTextColor="#60799C"
+                  placeholderTextColor={tokens.text.disabled}
                   value={inviteCode}
                   onChangeText={(value) => setInviteCode(value.trim().toUpperCase())}
                   maxLength={6}
                   autoCapitalize="characters"
                 />
-                <Pressable
-                  onPress={handleJoinClass}
+                <AppButton
+                  label="Unirse"
+                  icon="arrow-forward"
+                  iconPosition="right"
+                  role="student"
+                  loading={joining}
                   disabled={joining}
-                  className="items-center justify-center px-6"
-                  style={({ pressed }) => ({ backgroundColor: accentColor, opacity: joining ? 0.7 : pressed ? 0.82 : 1 })}
-                >
-                  {joining ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <View className="flex-row items-center gap-2">
-                      <Text className="font-bold text-white">Unirse</Text>
-                      <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-                    </View>
-                  )}
-                </Pressable>
+                  onPress={handleJoinClass}
+                  style={{ alignSelf: 'stretch', borderRadius: 0, paddingHorizontal: 24 }}
+                />
               </View>
               {isWide ? (
-                <View className="hidden min-w-[230px] border-l border-[#172A4A] pl-5 lg:flex">
-                  <Text className="text-[13px] font-bold text-[#DDE7F4]">¿No tienes un código?</Text>
-                  <Text className="mt-1 text-[12px] leading-5 text-[#8FA7C7]">Pide a tu profesor uno nuevo.</Text>
+                <View className="hidden min-w-[230px] border-l border-border-subtle pl-5 lg:flex">
+                  <Text className="text-[13px] font-bold text-text-secondary">¿No tienes un código?</Text>
+                  <Text className="mt-1 text-[12px] leading-5 text-text-muted">Pide a tu profesor uno nuevo.</Text>
                 </View>
               ) : null}
             </View>
@@ -607,9 +606,11 @@ function MobileStudentHome({
   joining,
   onJoinClass,
 }: MobileStudentHomeProps) {
+  const { tokens } = useAppTheme()
+
   return (
     <MobileScreen
-      backgroundColor="#061126"
+      backgroundColor={tokens.background.primary}
       horizontalPadding={20}
       bottomPadding={152}
       bottomNav={<StudentBottomNav active="home" />}
@@ -668,39 +669,40 @@ function MobileLevelCard({
   nextLevelProgress: number
   className?: string
 }) {
+  const { tokens } = useAppTheme()
   const percent = Math.max(4, Math.min(100, nextLevelProgress))
   const remaining = Math.max(0, 100 - nextLevelProgress)
 
   return (
-    <View className={`overflow-hidden rounded-[24px] border border-[#243869] p-5 ${className}`}>
+    <View className={`overflow-hidden rounded-[24px] border border-border-default p-5 ${className}`}>
       <LinearGradient
-        colors={['#131A4A', '#0B1734']}
+        colors={[tokens.surface.selected, tokens.surface.default]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
-      <View className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-[#5A46D8]/20" />
+      <View style={{ position: 'absolute', right: -40, top: -40, height: 144, width: 144, borderRadius: 999, backgroundColor: withAlpha(tokens.brand.student, '33') }} />
       <View className="absolute top-2 right-7">
         <OmniGuide state="normal" autoBlink size={88} />
       </View>
 
       <View className="relative flex-row items-center gap-4">
-        <View className="h-16 w-16 items-center justify-center rounded-[18px] bg-[#7C5CFF]">
+        <View className="h-16 w-16 items-center justify-center rounded-[18px] bg-brand-student">
           <Text className="text-[30px] font-black text-white">{level}</Text>
         </View>
         <View className="min-w-0 flex-1 pr-16">
           <Text className="text-[22px] font-black text-white">Nivel {level}</Text>
-          <Text className="mt-1 text-[16px] text-[#B9C7DA]">Estudiante</Text>
+          <Text className="mt-1 text-[16px] text-text-secondary">Estudiante</Text>
         </View>
       </View>
 
-      <View className="relative mt-5 h-3 overflow-hidden rounded-full bg-[#1D2B4E]">
-        <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${percent}%` }} />
+      <View className="relative mt-5 h-3 overflow-hidden rounded-full bg-surface-interactive">
+        <View className="h-full rounded-full bg-brand-student" style={{ width: `${percent}%` }} />
       </View>
 
       <View className="relative mt-4 flex-row items-center justify-between">
-        <Text className="text-[16px] text-[#C6D4E8]">{points.toLocaleString()} XP</Text>
-        <Text className="text-[16px] text-[#C6D4E8]">{remaining} XP más</Text>
+        <Text className="text-[16px] text-text-secondary">{points.toLocaleString()} XP</Text>
+        <Text className="text-[16px] text-text-secondary">{remaining} XP más</Text>
       </View>
     </View>
   )
@@ -715,6 +717,7 @@ function MobileReviewCard({
   failedQuestions: number
   className?: string
 }) {
+  const { tokens } = useAppTheme()
   const showFailures = failedQuestions > 0
   const title = showFailures
     ? 'Repasar fallos'
@@ -728,38 +731,38 @@ function MobileReviewCard({
   return (
     <Link href={action.href as any} asChild>
       <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
-        <View className={`overflow-hidden rounded-[26px] border border-[#5B3FDA] p-5 ${className}`}>
+        <View className={`overflow-hidden rounded-[26px] border border-border-active p-5 ${className}`}>
           <LinearGradient
-            colors={['#35168D', '#141D55']}
+            colors={[tokens.surface.selected, tokens.surface.raised]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
           />
-          <View className="absolute -left-10 top-5 h-32 w-32 rounded-full bg-[#8B5CF6]/18" />
-          <View className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#FFFFFF]/8" />
+          <View style={{ position: 'absolute', left: -40, top: 20, height: 128, width: 128, borderRadius: 999, backgroundColor: withAlpha(tokens.brand.student, '2E') }} />
+          <View style={{ position: 'absolute', right: -32, top: -32, height: 128, width: 128, borderRadius: 999, backgroundColor: withAlpha(tokens.text.primary, '14') }} />
 
           <View className="relative">
             <View className="flex-row items-start gap-4">
-              <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#5B33D6]">
-                <Ionicons name={showFailures ? 'locate' : action.icon} size={32} color="#F8FAFC" />
+              <View className="h-16 w-16 items-center justify-center rounded-2xl bg-brand-student">
+                <Ionicons name={showFailures ? 'locate' : action.icon} size={32} color={tokens.text.inverse} />
               </View>
 
               <View className="min-w-0 flex-1">
                 <Text className="text-[26px] font-black leading-8 text-white" numberOfLines={2}>{title}</Text>
-                <Text className="mt-2 text-[14px] leading-5 text-[#D7DFF0]">{subtitle}</Text>
+                <Text className="mt-2 text-[14px] leading-5 text-text-secondary">{subtitle}</Text>
               </View>
             </View>
 
             <View className="mt-5 flex-row items-center justify-between gap-3">
-              <View className="min-w-0 flex-1 rounded-2xl bg-[#FFFFFF]/10 px-4 py-3">
-                <Text className="text-[12px] font-bold text-[#CABDFF]">Siguiente paso</Text>
+              <View className="min-w-0 flex-1 rounded-2xl px-4 py-3" style={{ backgroundColor: withAlpha(tokens.text.primary, '1A') }}>
+                <Text className="text-[12px] font-bold text-brand-student">Siguiente paso</Text>
                 <Text className="mt-1 text-[13px] font-semibold text-white" numberOfLines={1}>
                   {showFailures ? 'Reforzar preguntas falladas' : action.buttonLabel}
                 </Text>
               </View>
-              <View className="min-w-[132px] flex-row items-center justify-center gap-2 rounded-2xl bg-[#8B5CF6] px-4 py-4">
+              <View className="min-w-[132px] flex-row items-center justify-center gap-2 rounded-2xl bg-brand-student px-4 py-4">
                 <Text className="text-[15px] font-black text-white">{showFailures ? 'Repasar ahora' : action.buttonLabel}</Text>
-                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                <Ionicons name="arrow-forward" size={18} color={tokens.text.inverse} />
               </View>
             </View>
           </View>
@@ -780,11 +783,13 @@ function MobileMetricGrid({
   streakDays: number
   className?: string
 }) {
+  const { tokens } = useAppTheme()
+
   return (
     <View className={`flex-row gap-3 ${className}`}>
-      <MobileMetricTile icon="locate" value={failedQuestions.toString()} label="Fallos" color="#FB7185" />
-      <MobileMetricTile icon="speedometer-outline" value={`${accuracyPercent}%`} label="Precisión" color="#F97316" />
-      <MobileMetricTile icon="flame" value={streakDays.toString()} label="Racha" color="#FDBA74" />
+      <MobileMetricTile icon="locate" value={failedQuestions.toString()} label="Fallos" color={tokens.semantic.danger} />
+      <MobileMetricTile icon="speedometer-outline" value={`${accuracyPercent}%`} label="Precisión" color={tokens.gamification.streak} />
+      <MobileMetricTile icon="flame" value={streakDays.toString()} label="Racha" color={tokens.gamification.streak} />
     </View>
   )
 }
@@ -820,43 +825,45 @@ function MobileWeeklyGoalCard({
   streakDays: number
   className?: string
 }) {
+  const { tokens } = useAppTheme()
+
   return (
-    <View className={`overflow-hidden rounded-[24px] border border-[#293D71] p-5 ${className}`}>
+    <View className={`overflow-hidden rounded-[24px] border border-border-default p-5 ${className}`}>
       <LinearGradient
-        colors={['#141C4F', '#0B1734']}
+        colors={[tokens.surface.selected, tokens.surface.default]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
-      <View className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#8B5CF6]/14" />
+      <View style={{ position: 'absolute', right: -32, top: -32, height: 112, width: 112, borderRadius: 999, backgroundColor: withAlpha(tokens.brand.student, '24') }} />
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
-          <Text className="text-[12px] font-black uppercase tracking-[0.08em] text-[#B9A7FF]">Meta semanal</Text>
-          <Text className="mt-2 text-[16px] font-semibold leading-5 text-[#D7DFF0]">
+          <Text className="text-[12px] font-black uppercase tracking-[0.08em] text-brand-student">Meta semanal</Text>
+          <Text className="mt-2 text-[16px] font-semibold leading-5 text-text-secondary">
             Completa preguntas esta semana y mantén el ritmo.
           </Text>
         </View>
-        <View className="flex-row items-center gap-2 rounded-2xl bg-[#24165D] px-3 py-2">
-          <Ionicons name="calendar" size={16} color="#B9A7FF" />
-          <Text className="text-[12px] font-black text-[#B9A7FF]" numberOfLines={1}>{getTimeUntilSundayLabel()}</Text>
+        <View className="flex-row items-center gap-2 rounded-2xl bg-surface-selected px-3 py-2">
+          <Ionicons name="calendar" size={16} color={tokens.brand.student} />
+          <Text className="text-[12px] font-black text-brand-student" numberOfLines={1}>{getTimeUntilSundayLabel()}</Text>
         </View>
       </View>
 
       <View className="mt-5 flex-row items-end justify-between gap-4">
         <View className="flex-row items-end gap-2">
           <Text className="text-[34px] font-black leading-[38px] text-white">{count}</Text>
-          <Text className="pb-1 text-[18px] font-black text-[#B9C7DA]">/ {target}</Text>
+          <Text className="pb-1 text-[18px] font-black text-text-secondary">/ {target}</Text>
         </View>
-        <Text className="pb-1 text-[14px] font-bold text-[#AFC2DB]">preguntas</Text>
+        <Text className="pb-1 text-[14px] font-bold text-text-secondary">preguntas</Text>
       </View>
 
-      <View className="mt-4 h-3 overflow-hidden rounded-full bg-[#1D2B4E]">
-        <View className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${Math.max(4, percent)}%` }} />
+      <View className="mt-4 h-3 overflow-hidden rounded-full bg-surface-interactive">
+        <View className="h-full rounded-full bg-brand-student" style={{ width: `${Math.max(4, percent)}%` }} />
       </View>
 
       {streakDays > 0 ? (
-        <View className="mt-4 self-start rounded-full bg-[#F97316]/15 px-3 py-1.5">
-          <Text className="text-[12px] font-black text-[#FDBA74]">🔥 {streakDays} día{streakDays === 1 ? '' : 's'} de racha</Text>
+        <View className="mt-4 self-start rounded-full px-3 py-1.5" style={{ backgroundColor: withAlpha(tokens.gamification.streak, '26') }}>
+          <Text className="text-[12px] font-black text-gamification-streak">🔥 {streakDays} día{streakDays === 1 ? '' : 's'} de racha</Text>
         </View>
       ) : null}
     </View>
@@ -865,6 +872,7 @@ function MobileWeeklyGoalCard({
 
 function MobileCoursesSection({ rows, className = '' }: { rows: SubjectProgressRow[]; className?: string }) {
   const router = useRouter()
+  const { tokens } = useAppTheme()
 
   return (
     <View className={className}>
@@ -884,11 +892,11 @@ function MobileCoursesSection({ rows, className = '' }: { rows: SubjectProgressR
           <MobileEmptyCourseCard />
         )}
         <Link href="/(student)/classes" asChild>
-          <Pressable className="w-[150px] justify-center rounded-[22px] border border-[#1B2E56] bg-[#0B1930] p-4">
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-[#FFFFFF]/8">
-              <Ionicons name="add" size={30} color="#C6D4E8" />
+          <Pressable className="w-[150px] justify-center rounded-[22px] border border-border-subtle bg-surface-raised p-4">
+            <View style={{ width: 48, height: 48, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: withAlpha(tokens.text.primary, '14') }}>
+              <Ionicons name="add" size={30} color={tokens.text.secondary} />
             </View>
-            <Text className="mt-4 text-[17px] font-bold text-[#D7DFF0]">Añadir curso</Text>
+            <Text className="mt-4 text-[17px] font-bold text-text-secondary">Añadir curso</Text>
           </Pressable>
         </Link>
       </ScrollView>
@@ -897,13 +905,14 @@ function MobileCoursesSection({ rows, className = '' }: { rows: SubjectProgressR
 }
 
 function MobileCourseCard({ row, index }: { row: SubjectProgressRow; index: number }) {
-  const palette = ['#8B5CF6', '#F97316', '#34D399', '#3B82F6']
-  const color = row.subject.theme_color || palette[index] || '#8B5CF6'
+  const { tokens } = useAppTheme()
+  const palette = [tokens.brand.student, tokens.gamification.streak, tokens.semantic.success, tokens.semantic.info]
+  const color = row.subject.theme_color || palette[index % palette.length] || tokens.brand.student
   const percent = row.progress?.percent ?? 0
 
   return (
     <Link href={buildClassHref(row.subject) as any} asChild>
-      <Pressable className="w-[162px] overflow-hidden rounded-[22px] border border-[#1B2E56] bg-[#0B1930] p-4" style={({ pressed }) => ({ opacity: pressed ? 0.86 : 1 })}>
+      <Pressable className="w-[162px] overflow-hidden rounded-[22px] border border-border-subtle bg-surface-raised p-4" style={({ pressed }) => ({ opacity: pressed ? 0.86 : 1 })}>
         <View className="absolute -right-8 -top-8 h-24 w-24 rounded-full" style={{ backgroundColor: `${color}20` }} />
         <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: `${color}26` }}>
           {row.subject.icon ? (
@@ -913,7 +922,7 @@ function MobileCourseCard({ row, index }: { row: SubjectProgressRow; index: numb
           )}
         </View>
         <Text className="mt-4 text-[17px] font-black text-white" numberOfLines={1}>{row.subject.name}</Text>
-        <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#1D2B4E]">
+        <View className="mt-3 h-2 overflow-hidden rounded-full bg-surface-interactive">
           <View className="h-full rounded-full" style={{ width: `${Math.max(5, percent)}%`, backgroundColor: color }} />
         </View>
         <Text className="mt-2 text-[13px] font-bold" style={{ color }}>{percent}%</Text>
@@ -923,6 +932,7 @@ function MobileCourseCard({ row, index }: { row: SubjectProgressRow; index: numb
 }
 
 function MobileEmptyCourseCard() {
+  const { tokens } = useAppTheme()
   return (
     <View className="w-[190px]">
       <MobileEmptyState
@@ -931,7 +941,7 @@ function MobileEmptyCourseCard() {
         omniSize={78}
         title="Tu primer curso"
         description="Introduce un código y Omni te acompaña."
-        color="#9FD6FF"
+        color={tokens.semantic.info}
         className="h-full px-4 py-5"
       />
     </View>
@@ -951,34 +961,34 @@ function MobileJoinClassCard({
   onJoinClass: () => void
   className?: string
 }) {
+  const { tokens } = useAppTheme()
+
   return (
-    <View className={`rounded-[22px] border border-[#1B2E56] bg-[#07162E] p-4 ${className}`}>
+    <View className={`rounded-[22px] border border-border-subtle bg-surface-default p-4 ${className}`}>
       <Text className="text-[16px] font-black text-white">¿Tienes un código?</Text>
-      <View className="mt-3 flex-row overflow-hidden rounded-2xl border border-[#20375E] bg-[#0B1930]">
+      <View className="mt-3 flex-row overflow-hidden rounded-2xl border border-border-default bg-surface-raised">
         <View className="items-center justify-center px-4">
-          <Ionicons name="keypad-outline" size={20} color="#8FA7C7" />
+          <Ionicons name="keypad-outline" size={20} color={tokens.text.muted} />
         </View>
         <TextInput
           className="min-w-0 flex-1 py-4 pr-3 text-white"
           placeholder="Código de clase"
-          placeholderTextColor="#60799C"
+          placeholderTextColor={tokens.text.disabled}
           value={inviteCode}
           onChangeText={(value) => setInviteCode(value.trim().toUpperCase())}
           maxLength={6}
           autoCapitalize="characters"
         />
-        <Pressable
-          onPress={onJoinClass}
+        <AppButton
+          accessibilityLabel="Unirse a la clase"
+          icon="arrow-forward"
+          iconOnly
+          role="student"
+          loading={joining}
           disabled={joining}
-          className="items-center justify-center px-5"
-          style={({ pressed }) => ({ backgroundColor: '#8B5CF6', opacity: joining ? 0.7 : pressed ? 0.82 : 1 })}
-        >
-          {joining ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-          )}
-        </Pressable>
+          onPress={onJoinClass}
+          style={{ alignSelf: 'stretch', borderRadius: 0, paddingHorizontal: 20 }}
+        />
       </View>
     </View>
   )
@@ -992,24 +1002,25 @@ function StudentMobileOnboardingCard({
   steps: OnboardingStep[]
   className?: string
 }) {
+  const { tokens } = useAppTheme()
   const completed = steps.filter((step) => step.done).length
   const progressPercent = Math.round((completed / Math.max(steps.length, 1)) * 100)
 
   return (
-    <View className={`overflow-hidden rounded-2xl border border-[#2B3F7A] bg-[#101D4A] p-4 ${className}`}>
-      <View className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#7C5CFF]/20" />
-      <View className="absolute -bottom-10 left-8 h-24 w-24 rounded-full bg-[#58B5FF]/10" />
+    <View className={`overflow-hidden rounded-2xl border border-border-active bg-surface-raised p-4 ${className}`}>
+      <View style={{ position: 'absolute', right: -32, top: -32, height: 112, width: 112, borderRadius: 999, backgroundColor: withAlpha(tokens.brand.student, '33') }} />
+      <View style={{ position: 'absolute', left: 32, bottom: -40, height: 96, width: 96, borderRadius: 999, backgroundColor: withAlpha(tokens.semantic.info, '1A') }} />
       <View className="relative">
         <View className="flex-row items-start justify-between gap-3">
           <View className="min-w-0 flex-1">
-            <Text className="text-[12px] font-black uppercase tracking-[0.08em] text-[#9FD6FF]">
+            <Text className="text-[12px] font-black uppercase tracking-[0.08em] text-semantic-info">
               Empieza con Omni
             </Text>
             <View className="mt-2 flex-row items-center gap-2">
               <OmniGuide state="happy" size={72} />
               <View className="min-w-0 flex-1">
                 <Text className="mt-2 text-[20px] font-black text-white">Tu primera aventura</Text>
-                <Text className="mt-1 text-[13px] leading-5 text-[#D8E3F3]">
+                <Text className="mt-1 text-[13px] leading-5 text-text-secondary">
                   ¡Hola, soy Omni! Te guiaré para unirte a un curso, responder tu primera pregunta y revisar tu progreso.
                 </Text>
               </View>
@@ -1017,38 +1028,38 @@ function StudentMobileOnboardingCard({
           </View>
         </View>
 
-        <View className="mt-4 h-2 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full bg-[#7C5CFF]" style={{ width: `${progressPercent}%` }} />
+        <View className="mt-4 h-2 overflow-hidden rounded-full bg-surface-interactive">
+          <View className="h-full rounded-full bg-brand-student" style={{ width: `${progressPercent}%` }} />
         </View>
-        <Text className="mt-2 text-[12px] font-bold text-[#AFC2DB]">
+        <Text className="mt-2 text-[12px] font-bold text-text-secondary">
           {completed} de {steps.length} pasos completados
         </Text>
 
         <View className="mt-4 gap-3">
           {steps.map((step, index) => (
-            <View key={step.title} className="rounded-xl border border-[#1A3155] bg-[#0D1D3B] p-3">
+            <View key={step.title} className="rounded-xl border border-border-default bg-surface-raised p-3">
               <View className="flex-row items-center gap-3">
                 <View
                   className="h-10 w-10 items-center justify-center rounded-xl"
-                  style={{ backgroundColor: step.done ? '#123D35' : '#142A51' }}
+                  style={{ backgroundColor: step.done ? tokens.semanticSurface.success : tokens.surface.interactive }}
                 >
                   <Ionicons
                     name={step.done ? 'checkmark-circle' : step.icon}
                     size={21}
-                    color={step.done ? '#43D991' : '#9FD6FF'}
+                    color={step.done ? tokens.semantic.success : tokens.semantic.info}
                   />
                 </View>
                 <View className="min-w-0 flex-1">
                   <Text className="text-[13px] font-black text-white">
                     {index + 1}. {step.title}
                   </Text>
-                  <Text className="mt-1 text-[12px] leading-5 text-[#AFC2DB]">{step.description}</Text>
+                  <Text className="mt-1 text-[12px] leading-5 text-text-secondary">{step.description}</Text>
                 </View>
                 <Pressable
                   onPress={step.onPress}
                   className="rounded-xl px-3 py-2"
                   style={({ pressed }) => ({
-                    backgroundColor: step.done ? '#102846' : '#5A46D8',
+                    backgroundColor: step.done ? tokens.surface.interactive : tokens.brand.student,
                     opacity: pressed ? 0.82 : 1,
                   })}
                 >
@@ -1076,13 +1087,14 @@ function WeeklyGoalCard({
   streakDays: number
   className?: string
 }) {
+  const { tokens } = useAppTheme()
   const completed = count >= target
   const remaining = Math.max(0, target - count)
 
   return (
     <StudentActionBanner
       className={className}
-      color={completed ? '#43D991' : '#8B5CF6'}
+      color={completed ? tokens.semantic.success : tokens.brand.student}
       icon={completed ? 'checkmark-done' : 'flag'}
       kicker="Objetivo semanal"
       title={`${count} / ${target} preguntas`}
@@ -1091,11 +1103,11 @@ function WeeklyGoalCard({
         : `Te faltan ${remaining} para cumplir tu meta. Racha: ${streakDays} día${streakDays === 1 ? '' : 's'}.`}
     >
       <View className="flex-row items-center gap-3">
-        <View className="h-2 flex-1 overflow-hidden rounded-full bg-[#13294C]">
-          <View className="h-full rounded-full bg-[#7C5CFF]" style={{ width: `${percent}%` }} />
+        <View className="h-2 flex-1 overflow-hidden rounded-full bg-surface-interactive">
+          <View className="h-full rounded-full bg-brand-student" style={{ width: `${percent}%` }} />
         </View>
-        <View className="rounded-full bg-[#13284A] px-3 py-1">
-          <Text className="text-[11px] font-black text-[#9FD6FF]">{getTimeUntilSundayLabel()}</Text>
+        <View className="rounded-full bg-surface-interactive px-3 py-1">
+          <Text className="text-[11px] font-black text-semantic-info">{getTimeUntilSundayLabel()}</Text>
         </View>
       </View>
     </StudentActionBanner>
@@ -1103,22 +1115,22 @@ function WeeklyGoalCard({
 }
 
 function HeroCard({ isWide, action }: { isWide: boolean; action: HomeHeroAction }) {
-  const { accentColor } = useAppTheme()
+  const { tokens } = useAppTheme()
 
   return (
     <View
-      className="overflow-hidden rounded-2xl border border-[#1C3762] bg-[#0B1B48] flex-row items-center justify-between p-6"
+      className="overflow-hidden rounded-2xl border border-border-default bg-surface-raised flex-row items-center justify-between p-6"
       style={{ flex: isWide ? 1.55 : undefined, minHeight: 100 }}
     >
-      <View className="absolute inset-0 bg-[#0D1C55]" />
+      <View className="absolute inset-0 bg-surface-selected" />
       <View className="relative flex-1 justify-center">
         <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: 32 }} className="max-w-[420px] text-[24px] leading-10 text-white">{action.title}</Text>
-        <Text className="mt-3 max-w-[300px] text-[14px] leading-6 text-[#B4C4DA]">
+        <Text className="mt-3 max-w-[300px] text-[14px] leading-6 text-text-secondary">
           {action.description}
         </Text>
         <Link href={action.href as any} asChild>
-          <Pressable className="mt-5 w-[184px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: accentColor }}>
-            <Ionicons name={action.icon} size={18} color="#FFFFFF" />
+          <Pressable className="mt-5 w-[184px] flex-row items-center justify-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: tokens.brand.student }}>
+            <Ionicons name={action.icon} size={18} color={tokens.text.inverse} />
             <Text className="font-bold text-white">{action.buttonLabel}</Text>
           </Pressable>
         </Link>
@@ -1138,9 +1150,10 @@ function SubjectRow({
   index: number
   progress?: StudentProgressSubject
 }) {
-  const colors = ['#4ADE80', '#8B5CF6', '#3B82F6']
+  const { tokens } = useAppTheme()
+  const colors = [tokens.semantic.success, tokens.brand.student, tokens.semantic.info]
   const progressPercent = progress?.percent ?? 0
-  const color = subject.theme_color || colors[index] || '#58B5FF'
+  const color = subject.theme_color || colors[index % colors.length] || tokens.semantic.info
 
   return (
     <Link
@@ -1150,7 +1163,7 @@ function SubjectRow({
       }}
       asChild
     >
-      <Pressable className="flex-row flex-wrap items-center gap-3 rounded-xl bg-[#0D1D3B] p-3">
+      <Pressable className="flex-row flex-wrap items-center gap-3 rounded-xl bg-surface-raised p-3">
         <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}33` }}>
           {subject.icon ? (
             <Text className="text-[22px]">{subject.icon}</Text>
@@ -1160,7 +1173,7 @@ function SubjectRow({
         </View>
         <View className="min-w-[210px] flex-1">
           <Text className="font-black text-white">{subject.name}</Text>
-          <Text className="mt-1 text-[13px] text-[#AFC2DB]" numberOfLines={1}>
+          <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={1}>
             {subject.classroom_name ? `${subject.classroom_name} · ` : ''}
             {progress ? `${progressPercent}% completado` : 'Sin progreso registrado'}
           </Text>
@@ -1183,25 +1196,27 @@ function RankingSummaryCard({
     rivalGap: number
   }
 }) {
+  const { tokens } = useAppTheme()
+
   return (
-    <View className="rounded-xl border border-[#4F46E5]/70 bg-[#1A1450] p-4">
+    <View style={{ borderColor: withAlpha(tokens.brand.student, 'B3'), backgroundColor: tokens.surface.selected }} className="rounded-xl border p-4">
       <View className="flex-row items-center gap-4">
-        <View className="h-14 w-14 items-center justify-center rounded-xl bg-[#2B1D73]">
-          <Ionicons name="trophy" size={30} color="#B9A7FF" />
+        <View className="h-14 w-14 items-center justify-center rounded-xl bg-surface-interactive">
+          <Ionicons name="trophy" size={30} color={tokens.gamification.xp} />
         </View>
         <View className="min-w-0 flex-1">
           <View className="flex-row flex-wrap items-center gap-2">
             <Text className="text-[24px] font-black text-white">{summary.position}º · {summary.points.toLocaleString()} XP</Text>
-            <View className="rounded-full bg-[#2D256B] px-2 py-1">
-              <Text className="text-[11px] font-bold text-[#B9A7FF]">Global</Text>
+            <View className="rounded-full bg-surface-interactive px-2 py-1">
+              <Text className="text-[11px] font-bold text-brand-student">Global</Text>
             </View>
           </View>
-          <Text className="mt-1 text-[13px] text-[#AFC2DB]">Tu posición actual en el ranking</Text>
+          <Text className="mt-1 text-[13px] text-text-secondary">Tu posición actual en el ranking</Text>
         </View>
       </View>
-      <View className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-[#263E61] bg-[#0D1D3B] px-3 py-3">
-        <Ionicons name="trending-up" size={18} color="#43D991" />
-        <Text className="text-[13px] font-bold text-[#DDE7F4]">
+      <View className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-raised px-3 py-3">
+        <Ionicons name="trending-up" size={18} color={tokens.semantic.success} />
+        <Text className="text-[13px] font-bold text-text-secondary">
           {summary.rivalAlias
             ? `${summary.rivalAlias} está a ${summary.rivalGap.toLocaleString()} XP`
             : 'Vas primero en el ranking'}
@@ -1274,18 +1289,21 @@ function EmptyClasses() {
 }
 
 function ActivityRow({ item }: { item: ActivityItem }) {
+  const { tokens } = useAppTheme()
+  const color = tokens.semantic[item.tone]
+
   return (
     <View className="flex-row items-start gap-3">
-      <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: `${item.color}29` }}>
-        <Ionicons name={item.icon} size={18} color={item.color} />
+      <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '29') }}>
+        <Ionicons name={item.icon} size={18} color={color} />
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[13px] font-bold text-white">{item.title}</Text>
-        <Text className="mt-1 text-[13px] text-[#AFC2DB]" numberOfLines={2}>
+        <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={2}>
           {item.course} · {item.detail}
         </Text>
       </View>
-      <Text className="text-[13px] text-[#8FA7C7]">{item.time}</Text>
+      <Text className="text-[13px] text-text-muted">{item.time}</Text>
     </View>
   )
 }

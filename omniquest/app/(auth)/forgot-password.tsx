@@ -53,13 +53,13 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-[#010611]" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-      <View className="overflow-hidden bg-[#010611]" style={{ minHeight: Math.max(height, 760) }}>
+    <ScrollView className="flex-1 bg-background-secondary" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <View className="overflow-hidden bg-background-secondary" style={{ minHeight: Math.max(height, 760) }}>
         <HomeVisualBackground isDesktop={isDesktop} />
         <View className="z-10 flex-1 items-center justify-center" style={{ paddingHorizontal: isDesktop ? 32 : 22, paddingVertical: 34 }}>
           <View className="items-center px-2">
             <BrandLogo center size={isDesktop ? 68 : 48} />
-            <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }} className="mt-1 text-center text-[#4FB8FF]">Recupera el acceso a tu aventura.</Text>
+            <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }} className="mt-1 text-center text-semantic-info">Recupera el acceso a tu aventura.</Text>
             <OmniGuide state={sent ? 'happy' : 'thinking'} size={isDesktop ? 88 : 72} style={{ marginTop: 12 }} />
           </View>
 
@@ -73,7 +73,7 @@ export default function ForgotPasswordScreen() {
             footer={(
               <Link href="/login" asChild>
                 <Pressable accessibilityRole="link" className="flex-row items-center justify-center gap-2" hitSlop={6}>
-                  <Text className="font-extrabold text-[#42B9FF]">Volver a iniciar sesión</Text>
+                  <Text className="font-extrabold text-semantic-info">Volver a iniciar sesión</Text>
                 </Pressable>
               </Link>
             )}

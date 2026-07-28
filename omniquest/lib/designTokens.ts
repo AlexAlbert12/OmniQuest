@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons'
 export type AppRole = 'student' | 'teacher' | 'admin'
 export type SemanticColorKey = 'success' | 'warning' | 'danger' | 'info'
 export type GamificationColorKey = 'xp' | 'streak' | 'badge'
+export type RankingTierKey = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond'
 export type SemanticIconKey =
   | 'xp'
   | 'streak'
@@ -18,14 +19,18 @@ export type DesignColorTokens = {
   background: {
     primary: string
     secondary: string
+    overlay: string
   }
   surface: {
     default: string
     raised: string
     interactive: string
+    selected: string
+    disabled: string
   }
   border: {
     default: string
+    subtle: string
     active: string
   }
   text: {
@@ -33,10 +38,14 @@ export type DesignColorTokens = {
     secondary: string
     muted: string
     inverse: string
+    disabled: string
   }
   brand: Record<AppRole, string>
   semantic: Record<SemanticColorKey, string>
-  gamification: Record<GamificationColorKey, string>
+  semanticSurface: Record<SemanticColorKey, string>
+  gamification: Record<GamificationColorKey, string> & {
+    rank: Record<RankingTierKey, string>
+  }
 }
 
 export type SemanticIconDefinition = {
@@ -55,14 +64,18 @@ const DARK_BASE = {
   background: {
     primary: '#061126',
     secondary: '#020B1B',
+    overlay: 'rgba(2, 6, 23, 0.82)',
   },
   surface: {
     default: '#07162C',
     raised: '#0D1D3B',
     interactive: '#10213E',
+    selected: '#202E6B',
+    disabled: '#111D32',
   },
   border: {
     default: '#1A3155',
+    subtle: '#13284A',
     active: '#3A5F91',
   },
   text: {
@@ -70,6 +83,7 @@ const DARK_BASE = {
     secondary: '#C9D7EA',
     muted: '#8FA7C7',
     inverse: '#061126',
+    disabled: '#60799C',
   },
   semantic: {
     success: '#34D399',
@@ -77,10 +91,23 @@ const DARK_BASE = {
     danger: '#FB7185',
     info: '#38BDF8',
   },
+  semanticSurface: {
+    success: '#0D2F29',
+    warning: '#332A10',
+    danger: '#351420',
+    info: '#0D2848',
+  },
   gamification: {
     xp: '#FBBF24',
     streak: '#F97316',
     badge: '#F6C453',
+    rank: {
+      bronze: '#CD7F32',
+      silver: '#CBD5E1',
+      gold: '#FBBF24',
+      platinum: '#67E8F9',
+      diamond: '#A78BFA',
+    },
   },
 } as const
 
@@ -88,14 +115,18 @@ const LIGHT_BASE = {
   background: {
     primary: '#F4F7FF',
     secondary: '#EAF0FC',
+    overlay: 'rgba(15, 23, 42, 0.46)',
   },
   surface: {
     default: '#FFFFFF',
     raised: '#F8FAFF',
     interactive: '#E7EEFA',
+    selected: '#E8E4FF',
+    disabled: '#EDF1F7',
   },
   border: {
     default: '#CCD8EA',
+    subtle: '#DFE7F2',
     active: '#7E96B8',
   },
   text: {
@@ -103,6 +134,7 @@ const LIGHT_BASE = {
     secondary: '#334A68',
     muted: '#657B98',
     inverse: '#FFFFFF',
+    disabled: '#8797AC',
   },
   semantic: {
     success: '#178A5D',
@@ -110,16 +142,29 @@ const LIGHT_BASE = {
     danger: '#C93855',
     info: '#147CA8',
   },
+  semanticSurface: {
+    success: '#E5F7EF',
+    warning: '#FFF4D6',
+    danger: '#FDE8ED',
+    info: '#E5F4FA',
+  },
   gamification: {
     xp: '#A86600',
     streak: '#C4510A',
     badge: '#9A6B00',
+    rank: {
+      bronze: '#9A5B24',
+      silver: '#64748B',
+      gold: '#A86600',
+      platinum: '#147CA8',
+      diamond: '#6D4DDB',
+    },
   },
 } as const
 
 /**
- * Creates the canonical UI palette. Existing screens can migrate gradually by
- * consuming `tokens` from `useAppTheme()` without breaking legacy aliases.
+ * Canonical semantic palette for OmniQuest. Components consume purpose-based
+ * names so a physical colour can change without changing application code.
  */
 export function createDesignColorTokens(
   theme: 'dark' | 'light',
@@ -137,6 +182,7 @@ export function createDesignColorTokens(
     text: { ...base.text },
     brand: { ...BRAND_COLORS },
     semantic: { ...base.semantic },
+    semanticSurface: { ...base.semanticSurface },
     gamification: { ...base.gamification },
   }
 }

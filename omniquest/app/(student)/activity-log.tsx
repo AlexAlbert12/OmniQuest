@@ -319,12 +319,12 @@ export default function ActivityLogScreen() {
                 />
               }
               ListEmptyComponent={
-                <View className="mt-8 items-center justify-center rounded-2xl border border-dashed border-[#1A3155] bg-[#09162C] p-8">
+                <View className="mt-8 items-center justify-center rounded-2xl border border-dashed border-border-default bg-surface-default p-8">
                   <OmniGuide state="normal" autoBlink size={88} />
                   <Text className="mt-4 text-center text-[16px] font-bold text-white">
                     {attempts.length === 0 ? 'No hay actividad registrada' : 'No hay resultados con estos filtros'}
                   </Text>
-                  <Text className="mt-1 text-center text-[13px] text-[#8FA7C7]">
+                  <Text className="mt-1 text-center text-[13px] text-text-muted">
                     {attempts.length === 0
                       ? 'Tus respuestas aparecerán aquí en cuanto empieces a completar retos.'
                       : 'Prueba a cambiar la búsqueda, la clase, el tema o el estado de la respuesta.'}
@@ -353,15 +353,15 @@ export default function ActivityLogScreen() {
 function ActivityDateHeader({ label, count }: { label: string; count: number }) {
   return (
     <View className="mb-3 mt-2 flex-row items-center gap-3">
-      <View className="h-px flex-1 bg-[#173056]" />
-      <View className="flex-row items-center gap-2 rounded-full border border-[#244269] bg-[#081A34] px-3 py-2">
+      <View className="h-px flex-1 bg-surface-interactive" />
+      <View className="flex-row items-center gap-2 rounded-full border border-border-default bg-surface-default px-3 py-2">
         <Ionicons name="calendar" size={14} color="#9F7AEA" />
-        <Text className="text-[12px] font-black text-[#DDE7F4]">{label}</Text>
-        <View className="rounded-full bg-[#172A4A] px-2 py-0.5">
-          <Text className="text-[10px] font-black text-[#9FB2CC]">{count}</Text>
+        <Text className="text-[12px] font-black text-text-secondary">{label}</Text>
+        <View className="rounded-full bg-surface-interactive px-2 py-0.5">
+          <Text className="text-[10px] font-black text-text-muted">{count}</Text>
         </View>
       </View>
-      <View className="h-px flex-1 bg-[#173056]" />
+      <View className="h-px flex-1 bg-surface-interactive" />
     </View>
   )
 }
@@ -444,17 +444,17 @@ function ActivityFilters({
   totalCount: number
 }) {
   return (
-    <View className="mb-5 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+    <View className="mb-5 rounded-2xl border border-border-default bg-surface-default p-4">
       <View className="flex-row flex-wrap items-center justify-between gap-3">
         <View className="min-w-0 flex-1">
           <Text className="text-[16px] font-black text-white">Filtra tu actividad</Text>
-          <Text className="mt-1 text-[12px] text-[#8FA7C7]">
+          <Text className="mt-1 text-[12px] text-text-muted">
             Mostrando {visibleCount} de {totalCount} intentos guardados.
           </Text>
         </View>
       </View>
 
-      <View className="mt-4 flex-row items-center gap-3 rounded-xl border border-[#1A3155] bg-[#071A33] px-4 py-3">
+      <View className="mt-4 flex-row items-center gap-3 rounded-xl border border-border-default bg-surface-default px-4 py-3">
         <Ionicons name="search" size={18} color="#8FA7C7" />
         <TextInput
           value={searchQuery}
@@ -466,7 +466,7 @@ function ActivityFilters({
           autoCapitalize="none"
         />
         {searchQuery.trim() ? (
-          <Pressable onPress={() => onSearchChange('')} className="h-8 w-8 items-center justify-center rounded-full bg-[#13284A]">
+          <Pressable onPress={() => onSearchChange('')} className="h-8 w-8 items-center justify-center rounded-full bg-surface-interactive">
             <Ionicons name="close" size={16} color="#DDE7F4" />
           </Pressable>
         ) : null}
@@ -487,7 +487,7 @@ function ActivityFilters({
 
       <View className="mt-4 gap-3">
         <View>
-          <Text className="mb-2 text-[12px] font-black uppercase tracking-wide text-[#8FA7C7]">Por clase</Text>
+          <Text className="mb-2 text-[12px] font-black uppercase tracking-wide text-text-muted">Por clase</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
             {subjectOptions.map((option) => (
               <FilterChip
@@ -503,7 +503,7 @@ function ActivityFilters({
         </View>
 
         <View>
-          <Text className="mb-2 text-[12px] font-black uppercase tracking-wide text-[#8FA7C7]">Por tema</Text>
+          <Text className="mb-2 text-[12px] font-black uppercase tracking-wide text-text-muted">Por tema</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
             {topicOptions.map((option) => (
               <FilterChip
@@ -587,7 +587,7 @@ function AttemptCard({
   return (
     <Pressable
       onPress={onToggle}
-      className="mb-3 rounded-2xl border border-[#1A3155] bg-[#09162C] p-4"
+      className="mb-3 rounded-2xl border border-border-default bg-surface-default p-4"
       style={{ borderColor: isExpanded ? '#4A64A8' : '#1A3155' }}
     >
       <View className="flex-row items-center gap-4">
@@ -603,20 +603,20 @@ function AttemptCard({
             <Text className="text-[15px] font-black text-white" numberOfLines={1}>
               {reviewStatus.label}
             </Text>
-            <View className="rounded-full bg-[#13284A] px-2 py-0.5">
-              <Text className="text-[11px] font-black text-[#9FD6FF]">{getQuestionTypeLabel(question?.type)}</Text>
+            <View className="rounded-full bg-surface-interactive px-2 py-0.5">
+              <Text className="text-[11px] font-black text-semantic-info">{getQuestionTypeLabel(question?.type)}</Text>
             </View>
           </View>
-          <Text className="text-[13px] text-[#DDE7F4]" numberOfLines={1}>
+          <Text className="text-[13px] text-text-secondary" numberOfLines={1}>
             {questionText}
           </Text>
-          <Text className="mt-1 text-[12px] font-semibold text-[#8FA7C7]" numberOfLines={1}>
+          <Text className="mt-1 text-[12px] font-semibold text-text-muted" numberOfLines={1}>
             {subjectName} · {topicTitle}
           </Text>
         </View>
 
         <View className="items-end gap-1">
-          <Text className="text-[12px] text-[#8FA7C7]">{formattedTime}</Text>
+          <Text className="text-[12px] text-text-muted">{formattedTime}</Text>
           <View className="rounded-md px-2 py-0.5" style={{ backgroundColor: `${resultColor}20` }}>
             <Text className="text-[12px] font-black" style={{ color: resultColor }}>
               {earnedPoints > 0 ? `+${earnedPoints} XP` : '0 XP'}
@@ -627,11 +627,11 @@ function AttemptCard({
       </View>
 
       {isExpanded ? (
-        <View className="mt-4 border-t border-[#1A3155] pt-4">
+        <View className="mt-4 border-t border-border-default pt-4">
           {isDetailLoading ? (
             <View className="items-center py-5">
               <ActivityIndicator color="#8B5CF6" />
-              <Text className="mt-2 text-[12px] font-semibold text-[#8FA7C7]">Cargando feedback seguro...</Text>
+              <Text className="mt-2 text-[12px] font-semibold text-text-muted">Cargando feedback seguro...</Text>
             </View>
           ) : (
             <View className="gap-3">
@@ -653,7 +653,7 @@ function AttemptCard({
                     <Ionicons name={reviewStatus.icon} size={20} color={resultColor} />
                     <Text className="text-[13px] font-black" style={{ color: resultColor }}>{reviewStatus.label}</Text>
                   </View>
-                  <Text className="mt-2 text-[12px] leading-5 text-[#AFC2DB]">{reviewStatus.description}</Text>
+                  <Text className="mt-2 text-[12px] leading-5 text-text-secondary">{reviewStatus.description}</Text>
                 </View>
               ) : (
                 <>
@@ -663,9 +663,9 @@ function AttemptCard({
                     value={explanation}
                     highlightColor={isCorrect ? '#70E0A5' : '#FBBF24'}
                   />
-                  <View className="flex-row items-start gap-3 rounded-xl border border-[#234166] bg-[#081B36] p-3">
+                  <View className="flex-row items-start gap-3 rounded-xl border border-border-default bg-surface-raised p-3">
                     <Ionicons name="shield-checkmark" size={18} color="#67C7FF" />
-                    <Text className="min-w-0 flex-1 text-[12px] leading-5 text-[#AFC2DB]">
+                    <Text className="min-w-0 flex-1 text-[12px] leading-5 text-text-secondary">
                       Para proteger el contenido del curso, el historial no muestra una plantilla completa de soluciones. Puedes volver a practicar el tema para comprobar la respuesta.
                     </Text>
                   </View>
@@ -673,19 +673,19 @@ function AttemptCard({
               )}
 
               {reviewComments.length > 0 ? (
-                <View className="rounded-2xl border border-[#3A315E] bg-[#17152C] p-4">
+                <View className="rounded-2xl border border-border-default bg-surface-disabled p-4">
                   <View className="mb-3 flex-row items-center gap-2">
                     <Ionicons name="chatbubble-ellipses" size={18} color="#A78BFA" />
-                    <Text className="text-[13px] font-black text-[#D8CCFF]">Comentarios del profesor</Text>
+                    <Text className="text-[13px] font-black text-text-secondary">Comentarios del profesor</Text>
                   </View>
                   <View className="gap-3">
                     {reviewComments.map((comment) => (
-                      <View key={comment.id} className="rounded-xl bg-[#211E3A] p-3">
+                      <View key={comment.id} className="rounded-xl bg-surface-disabled p-3">
                         <View className="flex-row items-center justify-between gap-3">
-                          <Text className="min-w-0 flex-1 text-[11px] font-black text-[#C4B5FD]" numberOfLines={1}>{comment.author_name || 'Profesor'}</Text>
-                          <Text className="text-[10px] text-[#8FA7C7]">{formatAttemptDate(comment.created_at)}</Text>
+                          <Text className="min-w-0 flex-1 text-[11px] font-black text-brand-student" numberOfLines={1}>{comment.author_name || 'Profesor'}</Text>
+                          <Text className="text-[10px] text-text-muted">{formatAttemptDate(comment.created_at)}</Text>
                         </View>
-                        <Text className="mt-2 text-[12px] leading-5 text-[#E7E2FF]">{comment.body}</Text>
+                        <Text className="mt-2 text-[12px] leading-5 text-text-secondary">{comment.body}</Text>
                       </View>
                     ))}
                   </View>
@@ -744,10 +744,10 @@ function DetailBlock({
   highlightColor?: string
 }) {
   return (
-    <View className="rounded-xl border border-[#1A3155] bg-[#071A33] p-3">
+    <View className="rounded-xl border border-border-default bg-surface-default p-3">
       <View className="mb-2 flex-row items-center gap-2">
         <Ionicons name={icon} size={15} color={highlightColor || '#8FA7C7'} />
-        <Text className="text-[11px] font-black uppercase tracking-wide text-[#8FA7C7]">{label}</Text>
+        <Text className="text-[11px] font-black uppercase tracking-wide text-text-muted">{label}</Text>
       </View>
       <Text className="text-[13px] leading-5" style={{ color: highlightColor || '#DDE7F4' }}>
         {value || 'Sin información'}

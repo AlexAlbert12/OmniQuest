@@ -130,7 +130,7 @@ export default function TeacherSidebar({
           }}
         >
           <View className="flex-row items-center gap-3">
-            <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#192C62]">
+            <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-surface-selected">
               {localAvatar && localAvatar.startsWith('http') ? (
                 <Image source={{ uri: localAvatar }} className="h-full w-full" />
               ) : (
@@ -141,12 +141,12 @@ export default function TeacherSidebar({
               <Text className="text-[14px] font-bold text-white" numberOfLines={1}>
                 {displayAlias}
               </Text>
-              <Text className="text-[12px] text-[#9BAEC9]">
+              <Text className="text-[12px] text-text-muted">
                 Profesor
               </Text>
               <View className="mt-2 flex-row items-center gap-1">
                 <Ionicons name="book-outline" size={13} color="#8FA7C7" />
-                <Text className="text-[11px] text-[#8FA7C7]">
+                <Text className="text-[11px] text-text-muted">
                   {classesLabel}
                 </Text>
               </View>

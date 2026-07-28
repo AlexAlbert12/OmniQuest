@@ -235,19 +235,19 @@ export default function TopicDetailScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center bg-background-primary">
         <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando tema...</Text>
+        <Text className="mt-4 text-text-muted">Cargando tema...</Text>
       </View>
     );
   }
 
   if (!topic || !subject) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126] px-6">
+      <View className="flex-1 items-center justify-center bg-background-primary px-6">
         <Ionicons name="alert-circle-outline" size={52} color="#F87171" />
         <Text className="mt-4 text-center text-xl font-black text-white">No se encontró este tema</Text>
-        <Pressable onPress={() => router.replace('/(teacher)/classes' as any)} className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
+        <Pressable onPress={() => router.replace('/(teacher)/classes' as any)} className="mt-5 rounded-xl bg-brand-teacher px-5 py-3">
           <Text className="font-bold text-white">Volver a Cursos</Text>
         </Pressable>
       </View>
@@ -258,7 +258,7 @@ export default function TopicDetailScreen() {
   const availabilityLabel = formatTopicDeadline(topic.available_until);
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1 bg-background-primary">
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <TeacherSidebar
@@ -286,7 +286,7 @@ export default function TopicDetailScreen() {
             titleNumberOfLines={2}
             subtitleNumberOfLines={3}
             leading={(
-              <View className="h-20 w-20 items-center justify-center rounded-2xl border border-[#6D5AF6] bg-[#2A1C61]">
+              <View className="h-20 w-20 items-center justify-center rounded-2xl border border-border-active bg-surface-selected">
                 {topic.icon && !topic.icon.includes('-outline') ? (
                   <Text className="text-[42px]">{topic.icon}</Text>
                 ) : (
@@ -300,10 +300,10 @@ export default function TopicDetailScreen() {
                   accessibilityLabel="Editar tema"
                   accessibilityRole="button"
                   onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}` as any)}
-                  className="flex-row items-center gap-2 rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3"
+                  className="flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-default px-4 py-3"
                 >
                   <Ionicons name="create-outline" size={16} color="#AFC2DB" />
-                  {isDesktop ? <Text className="text-[12px] font-bold text-[#DCE7F8]">Editar tema</Text> : null}
+                  {isDesktop ? <Text className="text-[12px] font-bold text-text-secondary">Editar tema</Text> : null}
                 </Pressable>
                 {isDesktop ? <TeacherTopicAddQuestionCTA href={addQuestionHref} isDesktop /> : null}
               </>
@@ -322,15 +322,15 @@ export default function TopicDetailScreen() {
           <Panel title={`Preguntas del tema: ${topic.title}`}>
             <DifficultyFilterBar selected={selectedDifficulty} onChange={setSelectedDifficulty} />
             {topicQuestions.length === 0 ? (
-              <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] p-8">
+              <View className="items-center rounded-xl border border-dashed border-border-default bg-surface-default p-8">
                 <Ionicons name="help-circle-outline" size={44} color="#64748B" />
                 <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
-                <Text className="mt-1 text-center text-[12px] text-[#8FA7C7]">Añade tu primera pregunta para activar este tema.</Text>
+                <Text className="mt-1 text-center text-[12px] text-text-muted">Añade tu primera pregunta para activar este tema.</Text>
                 <Link
                   href={addQuestionHref as any}
                   asChild
                 >
-                  <Pressable className="mt-5 rounded-xl bg-[#5A46D8] px-5 py-3">
+                  <Pressable className="mt-5 rounded-xl bg-brand-teacher px-5 py-3">
                     <Text className="font-bold text-white">Crear pregunta</Text>
                   </Pressable>
                 </Link>
@@ -387,12 +387,12 @@ function Panel({ title, children, actionLabel, onAction }: {
   onAction?: () => void
 }) {
   return (
-    <View className="mb-5 rounded-xl border border-[#183052] bg-[#07162D] p-5">
+    <View className="mb-5 rounded-xl border border-border-default bg-surface-default p-5">
       <View className="mb-4 flex-row items-center justify-between">
         <Text className="text-[18px] font-black text-white">{title}</Text>
         {actionLabel && onAction && (
           <Pressable onPress={onAction} className="flex-row items-center gap-1">
-            <Text className="text-[12px] font-semibold text-[#8B5CF6]">{actionLabel}</Text>
+            <Text className="text-[12px] font-semibold text-brand-teacher">{actionLabel}</Text>
             <Ionicons name="chevron-forward" size={14} color="#8B5CF6" />
           </Pressable>
         )}
@@ -463,27 +463,27 @@ function QuestionRow({ question, index, subjectId, classroomId, topicId, onDelet
   const difficulty = getDifficultyMeta(question.difficulty || 1);
 
   return (
-    <View className="flex-row flex-wrap items-center gap-4 rounded-xl border border-[#183052] bg-[#09162C] p-4">
-      <View className="h-10 w-10 items-center justify-center rounded-lg bg-[#13284A]">
-        <Text className="font-bold text-[#A78BFA]">#{index + 1}</Text>
+    <View className="flex-row flex-wrap items-center gap-4 rounded-xl border border-border-default bg-surface-default p-4">
+      <View className="h-10 w-10 items-center justify-center rounded-lg bg-surface-interactive">
+        <Text className="font-bold text-brand-teacher">#{index + 1}</Text>
       </View>
       <View className="min-w-[300px] flex-1">
         <Text className="font-semibold text-white" numberOfLines={2}>{question.text}</Text>
-        <Text className="mt-1 text-[12px] text-[#8FA7C7]">
+        <Text className="mt-1 text-[12px] text-text-muted">
           {question.points_base} puntos · {question.answers?.length || 0} opciones · Respuesta correcta: {correctAnswer?.text || 'N/A'}
         </Text>
         <Text className="mt-1 text-[11px] font-black" style={{ color: difficulty.color }}>{difficulty.label}</Text>
       </View>
       <View className="flex-row gap-2">
         <Link href={`/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${classroomId ? `&classroomId=${classroomId}` : ''}${topicId ? `&topicId=${topicId}` : ''}&difficulty=${question.difficulty || 1}`} asChild>
-          <Pressable className="flex-row items-center gap-2 rounded-lg bg-[#3B82F6] px-3 py-2">
+          <Pressable className="flex-row items-center gap-2 rounded-lg bg-semantic-info px-3 py-2">
             <Ionicons name="create-outline" size={14} color="#FFFFFF" />
             <Text className="text-[12px] font-semibold text-white">Editar</Text>
           </Pressable>
         </Link>
         <Pressable
           onPress={onDelete}
-          className="flex-row items-center gap-2 rounded-lg bg-[#F43F5E] px-3 py-2"
+          className="flex-row items-center gap-2 rounded-lg bg-semantic-danger px-3 py-2"
           style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
         >
           <Ionicons name="trash-outline" size={14} color="#FFFFFF" />

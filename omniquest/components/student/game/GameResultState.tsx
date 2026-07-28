@@ -60,9 +60,9 @@ export default function ResultState({
       }}
       showsVerticalScrollIndicator={false}
     >
-      <View className="w-full max-w-[540px] overflow-hidden rounded-[32px] border border-[#244A7C] bg-[#09162C]/95 p-5">
-        <View className="absolute -right-14 -top-14 h-40 w-40 rounded-full bg-[#7C3AED]/20" />
-        <View className="absolute left-[-60px] top-20 h-40 w-40 rounded-full bg-[#0EA5E9]/10" />
+      <View className="w-full max-w-[540px] overflow-hidden rounded-[32px] border border-border-default bg-surface-default p-5">
+        <View className="absolute -right-14 -top-14 h-40 w-40 rounded-full bg-surface-selected" />
+        <View className="absolute left-[-60px] top-20 h-40 w-40 rounded-full bg-semantic-surface-info" />
 
         <View className="items-center">
           {omniState ? (
@@ -73,15 +73,15 @@ export default function ResultState({
             </View>
           )}
           <Text className="mt-5 text-center text-[34px] font-black leading-[40px] text-white">{title}</Text>
-          <Text className="mt-2 max-w-[360px] text-center text-[15px] leading-6 text-[#C9D7EA]">{detail}</Text>
+          <Text className="mt-2 max-w-[360px] text-center text-[15px] leading-6 text-text-secondary">{detail}</Text>
         </View>
 
         {summary ? (
           <GameSummaryPanel summary={summary} fallbackScore={score} />
         ) : typeof score === 'number' ? (
-          <View className="my-6 rounded-[26px] border border-[#172A4A] bg-[#0D1D3B] p-5">
-            <Text className="text-center text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Puntuación final</Text>
-            <Text className="mt-2 text-center text-[48px] font-black text-[#9B6CFF]">{score}</Text>
+          <View className="my-6 rounded-[26px] border border-border-subtle bg-surface-raised p-5">
+            <Text className="text-center text-[12px] font-black uppercase tracking-[0.08em] text-text-muted">Puntuación final</Text>
+            <Text className="mt-2 text-center text-[48px] font-black text-brand-student">{score}</Text>
           </View>
         ) : null}
 
@@ -89,7 +89,7 @@ export default function ResultState({
           {secondaryAction && onSecondaryPress ? (
             <Pressable
               onPress={onSecondaryPress}
-              className="flex-row items-center justify-center gap-2 rounded-2xl bg-[#6D5AF6] px-7 py-4"
+              className="flex-row items-center justify-center gap-2 rounded-2xl bg-brand-student px-7 py-4"
               style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
             >
               <Ionicons name="refresh" size={18} color="#FFFFFF" />
@@ -98,7 +98,7 @@ export default function ResultState({
           ) : null}
           <Pressable
             onPress={onPress}
-            className="flex-row items-center justify-center gap-2 rounded-2xl border border-[#243E65] bg-[#0D1D3B] px-7 py-4"
+            className="flex-row items-center justify-center gap-2 rounded-2xl border border-border-default bg-surface-raised px-7 py-4"
             style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
           >
             <Ionicons name="home" size={17} color="#FFFFFF" />
@@ -132,12 +132,12 @@ function GameSummaryPanel({
 
   return (
     <View className="my-6">
-      <View className="rounded-[28px] border border-[#244A7C] bg-[#0D1D3B] p-5">
-        <Text className="text-center text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Resultado principal</Text>
+      <View className="rounded-[28px] border border-border-default bg-surface-raised p-5">
+        <Text className="text-center text-[12px] font-black uppercase tracking-[0.08em] text-text-muted">Resultado principal</Text>
         <View className="mt-5 items-center">
-          <View className="h-36 w-36 items-center justify-center rounded-full border-[10px] bg-[#070F26]" style={{ borderColor: circleColor }}>
+          <View className="h-36 w-36 items-center justify-center rounded-full border-[10px] bg-background-primary" style={{ borderColor: circleColor }}>
             <Text className="text-[38px] font-black text-white">{summary.correct}/{totalQuestions}</Text>
-            <Text className="text-[14px] font-bold text-[#C9D7EA]">correctas</Text>
+            <Text className="text-[14px] font-bold text-text-secondary">correctas</Text>
           </View>
           <AnimatedXpCounter
             value={xp}
@@ -170,9 +170,9 @@ function SummaryRow({
   value: string
 }) {
   return (
-    <View className="flex-row items-center gap-3 rounded-2xl border border-[#2B4B7B] bg-[#081A37] px-4 py-3">
+    <View className="flex-row items-center gap-3 rounded-2xl border border-border-active bg-surface-default px-4 py-3">
       <Ionicons name={icon} size={17} color={color} />
-      <Text className="min-w-0 flex-1 text-[12px] font-black uppercase tracking-[0.04em] text-[#AFC2DB]">{label}</Text>
+      <Text className="min-w-0 flex-1 text-[12px] font-black uppercase tracking-[0.04em] text-text-secondary">{label}</Text>
       <Text className="text-[16px] font-black text-white">{value}</Text>
     </View>
   )

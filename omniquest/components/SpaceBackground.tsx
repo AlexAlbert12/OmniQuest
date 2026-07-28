@@ -4,11 +4,11 @@ import { View, type ViewStyle } from 'react-native'
 export default function SpaceBackdrop({ isDesktop = false }: { isDesktop?: boolean }) {
   return (
     <View className="absolute inset-0 overflow-hidden rounded-[34px] md:rounded-none">
-      <View className="absolute inset-0 bg-[#020D22]" />
-      <View className="absolute inset-0 bg-[#061A3B]/72" />
+      <View className="absolute inset-0 bg-background-secondary" />
+      <View className="absolute inset-0 bg-surface-raised" />
 
       <View
-        className="absolute rounded-full bg-[#0B2D76]/70"
+        className="absolute rounded-full bg-surface-selected"
         style={{
           width: isDesktop ? 340 : 180,
           height: isDesktop ? 340 : 180,
@@ -19,7 +19,7 @@ export default function SpaceBackdrop({ isDesktop = false }: { isDesktop?: boole
         }}
       />
       <View
-        className="absolute rounded-full border border-[#1A65D8]/65"
+        className="absolute rounded-full border border-border-active"
         style={{
           width: isDesktop ? 420 : 230,
           height: isDesktop ? 82 : 48,
@@ -30,7 +30,7 @@ export default function SpaceBackdrop({ isDesktop = false }: { isDesktop?: boole
       />
 
       <View
-        className="absolute rounded-full bg-[#0C3D86]/80"
+        className="absolute rounded-full bg-surface-selected"
         style={{
           width: isDesktop ? 88 : 58,
           height: isDesktop ? 88 : 58,
@@ -39,7 +39,7 @@ export default function SpaceBackdrop({ isDesktop = false }: { isDesktop?: boole
         }}
       />
       <View
-        className="absolute rounded-full border border-[#1E68C7]/60"
+        className="absolute rounded-full border border-border-active"
         style={{
           width: isDesktop ? 144 : 92,
           height: isDesktop ? 42 : 28,
@@ -50,7 +50,7 @@ export default function SpaceBackdrop({ isDesktop = false }: { isDesktop?: boole
       />
 
       <View
-        className="absolute rounded-full bg-[#041B4A]/80"
+        className="absolute rounded-full bg-surface-raised"
         style={{
           width: isDesktop ? 460 : 240,
           height: isDesktop ? 460 : 240,
@@ -60,7 +60,7 @@ export default function SpaceBackdrop({ isDesktop = false }: { isDesktop?: boole
         }}
       />
       <View
-        className="absolute rounded-full bg-[#061D55]/70"
+        className="absolute rounded-full bg-surface-raised"
         style={{
           width: isDesktop ? 360 : 200,
           height: isDesktop ? 360 : 200,

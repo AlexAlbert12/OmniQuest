@@ -7,7 +7,7 @@ export default function GameShell({ children }: { children: React.ReactNode }) {
   const isDesktop = width >= 1024
 
   return (
-    <View className="flex-1 overflow-hidden bg-[#010611]">
+    <View className="flex-1 overflow-hidden bg-background-secondary">
       <View className="absolute inset-0" pointerEvents="none">
         <HomeVisualBackground isDesktop={isDesktop} />
       </View>

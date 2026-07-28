@@ -357,19 +357,19 @@ export default function StudentClassDetailScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center bg-background-primary">
         <ActivityIndicator size="large" color="#6574FF" />
-        <Text className="mt-4 text-[#8FA7C7]">Cargando temas...</Text>
+        <Text className="mt-4 text-text-muted">Cargando temas...</Text>
       </View>
     )
   }
 
   if (!subject) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126] px-6">
+      <View className="flex-1 items-center justify-center bg-background-primary px-6">
         <Ionicons name="alert-circle-outline" size={52} color="#FB7185" />
         <Text className="mt-4 text-center text-xl font-black text-white">No se encontró esta clase</Text>
-        <Pressable onPress={() => router.replace('/(student)/classes' as any)} className="mt-5 rounded-xl bg-[#5865F2] px-5 py-3">
+        <Pressable onPress={() => router.replace('/(student)/classes' as any)} className="mt-5 rounded-xl bg-brand-student px-5 py-3">
           <Text className="font-bold text-white">Volver a clases</Text>
         </Pressable>
       </View>
@@ -412,7 +412,7 @@ export default function StudentClassDetailScreen() {
     : null
 
   return (
-    <View className="flex-1 bg-[#030713]">
+    <View className="flex-1 bg-background-secondary">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
@@ -434,7 +434,7 @@ export default function StudentClassDetailScreen() {
             showAvatar={isDesktop}
             leading={(
               <View className={isDesktop ? 'h-20 w-20' : 'h-16 w-16'}>
-                <View className="absolute -inset-1 rounded-full bg-[#17132E]/70" />
+                <View className="absolute -inset-1 rounded-full bg-surface-disabled" />
                 <LinearGradient
                   colors={[withAlpha(color, 'FF'), '#F59E0B', '#8A3518']}
                   start={{ x: 0, y: 0 }}
@@ -468,36 +468,36 @@ export default function StudentClassDetailScreen() {
             )}
           />
 
-          <View className="mb-9 flex-row items-center gap-4 rounded-[28px] border border-[#34384E] bg-[#171A2A]/90 px-5 py-5">
+          <View className="mb-9 flex-row items-center gap-4 rounded-[28px] border border-border-default bg-surface-disabled px-5 py-5">
             <View className="min-w-0 flex-1">
-              <Text className="text-[12px] font-black uppercase tracking-[1.6px] text-[#A96CFF]">Ruta de aprendizaje</Text>
+              <Text className="text-[12px] font-black uppercase tracking-[1.6px] text-brand-admin">Ruta de aprendizaje</Text>
               <Text className={isDesktop ? 'mt-2 text-[26px] font-black text-white' : 'mt-2 text-[23px] font-black leading-7 text-white'} numberOfLines={2}>
                 {recommendedTopic ? `Tema ${recommendedTopicPosition} · ${recommendedTopic.title}` : topics.length > 0 ? 'Has completado la galaxia' : 'Aún no hay temas disponibles'}
               </Text>
-              <Text className="mt-2 text-[15px] leading-6 text-[#B8C4DC]" numberOfLines={2}>
+              <Text className="mt-2 text-[15px] leading-6 text-text-secondary" numberOfLines={2}>
                 {recommendedTopic?.description || subject.description || 'Selecciona un planeta para empezar una misión.'}
               </Text>
             </View>
-            <View className="h-16 w-16 items-center justify-center rounded-[20px] border border-[#7144AC] bg-[#2A174D]">
+            <View className="h-16 w-16 items-center justify-center rounded-[20px] border border-brand-student bg-semantic-surface-danger">
               <Ionicons name="book-outline" size={30} color="#A96CFF" />
             </View>
           </View>
 
           <TopicGalaxyMap items={topicGalaxyItems} />
 
-          <View className="mt-6 rounded-[28px] border border-[#263550] bg-[#0C1426]/92 p-5">
+          <View className="mt-6 rounded-[28px] border border-border-default bg-surface-default p-5">
             <View className="mb-5 flex-row items-center justify-between gap-3">
               <View>
                 <Text className="text-[24px] font-black text-white">Resumen de la galaxia</Text>
-                <Text className="mt-1 text-[14px] text-[#98A9C4]">Tu progreso, tus retos y la clasificación de la clase.</Text>
+                <Text className="mt-1 text-[14px] text-text-muted">Tu progreso, tus retos y la clasificación de la clase.</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Ver toda mi actividad"
                 onPress={() => router.push('/(student)/activity-log' as any)}
-                className="rounded-full border border-[#503477] bg-[#24143F] px-4 py-2"
+                className="rounded-full border border-border-default bg-surface-disabled px-4 py-2"
               >
-                <Text className="font-black text-[#C09BFF]">Actividad</Text>
+                <Text className="font-black text-brand-admin">Actividad</Text>
               </Pressable>
             </View>
 
@@ -559,7 +559,7 @@ export default function StudentClassDetailScreen() {
 
               <View className={isDesktop ? 'flex-1' : ''}>
                 <MobileSectionHeading title="Ranking de la clase" />
-                <View className="gap-2 rounded-2xl border border-[#243654] bg-[#09162B] p-3">
+                <View className="gap-2 rounded-2xl border border-border-default bg-surface-default p-3">
                   {classRanking.length > 0 ? (
                     classRanking.slice(0, 3).map((row, index) => (
                       <MobileRankingRow key={row.studentId} row={row} index={index} />
@@ -567,15 +567,15 @@ export default function StudentClassDetailScreen() {
                   ) : (
                     <MobileEmptyBlock icon="trophy-outline" omniState="normal" title="Sin ranking todavía" subtitle="Completa una misión para aparecer en la clasificación." />
                   )}
-                  <View className="mt-1 rounded-xl bg-[#171A35] px-3 py-2">
-                    <Text className="text-center text-[12px] font-black text-[#B9A7FF]">{rankingLabel}</Text>
+                  <View className="mt-1 rounded-xl bg-surface-disabled px-3 py-2">
+                    <Text className="text-center text-[12px] font-black text-brand-student">{rankingLabel}</Text>
                   </View>
                 </View>
               </View>
             </View>
 
             <MobileSectionHeading title="Últimos intentos" actionLabel="Ver todo" onAction={() => router.push('/(student)/activity-log' as any)} />
-            <View className="overflow-hidden rounded-2xl border border-[#243654] bg-[#09162B]">
+            <View className="overflow-hidden rounded-2xl border border-border-default bg-surface-default">
               {recentAttempts.length > 0 ? (
                 recentAttempts.slice(0, 3).map((attempt, index) => (
                   <MobileRecentAttemptRow
@@ -607,16 +607,16 @@ function MobileRankingRow({ row, index }: { row: ClassRankingItem; index: number
   const medalColors = ['#FBBF24', '#CBD5E1', '#F97316']
 
   return (
-    <View className="flex-row items-center gap-3 rounded-xl bg-[#0D1D3B] px-3 py-3">
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-[#142B52]">
+    <View className="flex-row items-center gap-3 rounded-xl bg-surface-raised px-3 py-3">
+      <View className="h-9 w-9 items-center justify-center rounded-full bg-semantic-surface-info">
         {index < 3 ? (
           <Ionicons name="medal" size={18} color={medalColors[index]} />
         ) : (
-          <Text className="text-[13px] font-black text-[#AFC2DB]">{index + 1}</Text>
+          <Text className="text-[13px] font-black text-text-secondary">{index + 1}</Text>
         )}
       </View>
       <Text className="min-w-0 flex-1 text-[14px] font-black text-white" numberOfLines={1}>{row.alias}</Text>
-      <Text className="text-[13px] font-black text-[#B9A7FF]">{row.points.toLocaleString()} XP</Text>
+      <Text className="text-[13px] font-black text-brand-student">{row.points.toLocaleString()} XP</Text>
     </View>
   )
 }
@@ -635,7 +635,7 @@ function MobileSectionHeading({
       <Text className="text-[22px] font-black text-white">{title}</Text>
       {actionLabel && onAction ? (
         <Pressable onPress={onAction}>
-          <Text className="text-[15px] font-black text-[#A970FF]">{actionLabel}</Text>
+          <Text className="text-[15px] font-black text-brand-admin">{actionLabel}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -646,7 +646,7 @@ function MobileRecentAttemptRow({ attempt, isLast }: { attempt: RecentAttempt; i
   const color = attempt.isCorrect ? '#22C55E' : '#FB7185'
 
   return (
-    <View className={`flex-row items-center gap-3 p-4 ${isLast ? '' : 'border-b border-[#11294A]'}`}>
+    <View className={`flex-row items-center gap-3 p-4 ${isLast ? '' : 'border-b border-border-subtle'}`}>
       <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '26') }}>
         <Ionicons name={attempt.isCorrect ? 'checkmark' : 'close'} size={26} color={color} />
       </View>
@@ -654,12 +654,12 @@ function MobileRecentAttemptRow({ attempt, isLast }: { attempt: RecentAttempt; i
         <Text className="text-[15px] font-black text-white" numberOfLines={1}>
           {attempt.isCorrect ? 'Respuesta correcta' : 'Respuesta incorrecta'}
         </Text>
-        <Text className="mt-1 text-[13px] text-[#C7D3E5]" numberOfLines={1}>{attempt.topicTitle} · {attempt.questionText}</Text>
+        <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={1}>{attempt.topicTitle} · {attempt.questionText}</Text>
       </View>
       <View className="items-end gap-2">
-        <Text className="text-[13px] text-[#B7C4D7]">{formatRecentAttemptDate(attempt.attemptedAt)}</Text>
-        <View className="rounded-xl bg-[#2D2365] px-3 py-1.5">
-          <Text className="text-[13px] font-black text-[#D8CCFF]">{attempt.isCorrect ? '+10 XP' : '+5 XP'}</Text>
+        <Text className="text-[13px] text-text-secondary">{formatRecentAttemptDate(attempt.attemptedAt)}</Text>
+        <View className="rounded-xl bg-surface-selected px-3 py-1.5">
+          <Text className="text-[13px] font-black text-text-secondary">{attempt.isCorrect ? '+10 XP' : '+5 XP'}</Text>
         </View>
       </View>
     </View>
@@ -670,15 +670,15 @@ function MobileFailedQuestionCard({ question, onPress }: { question: FailedQuest
   return (
     <Pressable
       onPress={onPress}
-      className="min-h-[78px] flex-row items-center gap-3 rounded-2xl border border-[#7F1D3A] bg-[#2A0E1F] p-4"
+      className="min-h-[78px] flex-row items-center gap-3 rounded-2xl border border-border-default bg-semantic-surface-danger p-4"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
-      <View className="h-11 w-11 items-center justify-center rounded-full bg-[#7F1D3A]/45">
+      <View className="h-11 w-11 items-center justify-center rounded-full bg-semantic-surface-danger">
         <Ionicons name="close" size={24} color="#FB7185" />
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[14px] font-black text-white" numberOfLines={2}>{question.text}</Text>
-        <Text className="mt-1 text-[13px] font-bold text-[#FB7185]" numberOfLines={1}>{question.topicTitle}</Text>
+        <Text className="mt-1 text-[13px] font-bold text-semantic-danger" numberOfLines={1}>{question.topicTitle}</Text>
       </View>
       <Ionicons name="chevron-forward" size={22} color="#E9D5FF" />
     </Pressable>
@@ -697,10 +697,10 @@ function MobileEmptyBlock({
   title: string
 }) {
   return (
-    <View className="items-center rounded-2xl border border-dashed border-[#1E3A63] bg-[#081B37] px-4 py-7">
+    <View className="items-center rounded-2xl border border-dashed border-border-default bg-surface-raised px-4 py-7">
       {omniState ? <OmniGuide state={omniState} size={78} autoBlink={omniState === 'normal'} /> : <Ionicons name={icon} size={30} color="#8FA7C7" />}
       <Text className="mt-3 text-center text-[15px] font-black text-white">{title}</Text>
-      <Text className="mt-1 text-center text-[13px] leading-5 text-[#8FA7C7]">{subtitle}</Text>
+      <Text className="mt-1 text-center text-[13px] leading-5 text-text-muted">{subtitle}</Text>
     </View>
   )
 }
@@ -751,7 +751,7 @@ function DifficultyChooser({
                   <View className="min-w-0 flex-1">
                     <Text className="text-[12px] font-black uppercase tracking-[0.08em]" style={{ color }}>Elige dificultad</Text>
                     <Text className="mt-2 text-[24px] font-black text-white">{topic.title}</Text>
-                    <Text className="mt-1 text-[13px] leading-5 text-[#AFC2DB]">
+                    <Text className="mt-1 text-[13px] leading-5 text-text-secondary">
                       Este tema tiene varias versiones. Jugarás solo las preguntas de la dificultad seleccionada.
                     </Text>
                   </View>
@@ -760,7 +760,7 @@ function DifficultyChooser({
                     accessibilityLabel="Cerrar selector de dificultad"
                     onPress={onClose}
                     hitSlop={8}
-                    className="h-10 w-10 items-center justify-center rounded-xl border border-[#20375E] bg-[#0D1D3B]"
+                    className="h-10 w-10 items-center justify-center rounded-xl border border-border-default bg-surface-raised"
                     style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
                   >
                     <Ionicons name="close" size={18} color="#AFC2DB" />
@@ -790,7 +790,7 @@ function DifficultyChooser({
                         </View>
                         <View className="min-w-[180px] flex-1">
                           <Text className="text-[16px] font-black text-white">{meta.label}</Text>
-                          <Text className="mt-1 text-[12px] text-[#AFC2DB]">
+                          <Text className="mt-1 text-[12px] text-text-secondary">
                             {stats.questionsCount} preguntas · {stats.answeredQuestions} respondidas · {stats.failedQuestions} falladas
                           </Text>
                         </View>
@@ -803,10 +803,10 @@ function DifficultyChooser({
                                 event.stopPropagation?.()
                                 onChoose(stats.difficulty, true)
                               }}
-                              className="rounded-lg border border-[#FB718566] bg-[#FB718514] px-4 py-2"
+                              className="rounded-lg border border-semantic-danger bg-semantic-danger px-4 py-2"
                               style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
                             >
-                              <Text className="font-black text-[#FDB4C0]">Repasar fallos</Text>
+                              <Text className="font-black text-gamification-badge">Repasar fallos</Text>
                             </Pressable>
                           ) : null}
                           <View className="rounded-lg px-4 py-2" style={{ backgroundColor: meta.color }}>

@@ -44,7 +44,7 @@ export default function MobileHeader({
       </View>
 
       {subtitle ? (
-        <Text className="mt-3 max-w-[350px] text-[15px] leading-6 text-[#B8C6DC]">
+        <Text className="mt-3 max-w-[350px] text-[15px] leading-6 text-text-secondary">
           {subtitle}
         </Text>
       ) : null}

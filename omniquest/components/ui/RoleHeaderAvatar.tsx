@@ -73,7 +73,7 @@ export default function RoleHeaderAvatar({ role }: RoleHeaderAvatarProps) {
       accessibilityLabel={`Abrir perfil de ${role === 'teacher' ? 'profesor' : 'alumno'}`}
       accessibilityRole="button"
       onPress={() => router.push(destination as any)}
-      className="h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-[#5B4BC4]"
+      className="h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-brand-student"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       {profile.avatar ? (

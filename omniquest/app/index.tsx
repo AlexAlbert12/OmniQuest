@@ -132,12 +132,12 @@ export default function IndexScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-[#020D22]"
+      className="flex-1 bg-background-secondary"
       contentContainerStyle={{ flexGrow: 1 }}
       showsVerticalScrollIndicator={false}
     >
       <View
-        className="overflow-hidden bg-[#020D22]"
+        className="overflow-hidden bg-background-secondary"
         style={{
           minHeight: isDesktop ? Math.max(height, 900) : Math.max(height, 980),
           borderRadius: isWeb ? 0 : 34,
@@ -204,14 +204,14 @@ function LandingPanel({
       <BrandLogo center size={isDesktop ? 92 : isTablet ? 76 : 66} />
       <Text
         style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 28 : isTablet ? 24 : 20 }}
-        className="text-center mt-4 text-[#4FB8FF]">
+        className="text-center mt-4 text-semantic-info">
         Tu viaje de aprendizaje comienza aquí.
       </Text>
 
       <View className="mt-2 flex-row items-center gap-3">
-        <View className="h-px w-10 bg-[#3B6FA5]" />
+        <View className="h-px w-10 bg-brand-student" />
         <OmniGuide state="normal" autoBlink size={isDesktop ? 80 : isTablet ? 80 : 40} />
-        <View className="h-px w-10 bg-[#3B6FA5]" />
+        <View className="h-px w-10 bg-brand-student" />
       </View>
 
       <View
@@ -247,10 +247,10 @@ function LandingPanel({
       </View>
 
       <View className="mt-6 flex-row flex-wrap items-center justify-center gap-2">
-        <Text className="text-[16px] font-semibold text-[#B8C5E0]">¿No tienes cuenta?</Text>
+        <Text className="text-[16px] font-semibold text-text-secondary">¿No tienes cuenta?</Text>
         <Link href="/register" asChild>
           <Pressable className="flex-row items-center gap-2" style={({ pressed }) => ({ opacity: pressed ? 0.74 : 1 })}>
-            <Text className="text-[16px] font-extrabold text-[#42B9FF]">Regístrate aquí</Text>
+            <Text className="text-[16px] font-extrabold text-semantic-info">Regístrate aquí</Text>
             <Ionicons name="arrow-forward" size={18} color="#42B9FF" />
           </Pressable>
         </Link>
@@ -367,7 +367,7 @@ function LandingAction({
           </View>
           <View className="flex-1">
             <Text className="text-[20px] font-extrabold text-white">{title}</Text>
-            <Text className="mt-1 text-[17px] font-medium text-[#D8E1FA]">{subtitle}</Text>
+            <Text className="mt-1 text-[17px] font-medium text-text-secondary">{subtitle}</Text>
           </View>
         </View>
         {!loading ? (
@@ -392,14 +392,14 @@ function LandingAction({
 function SectionDivider() {
   return (
     <View className="mt-8 w-full flex-row items-center gap-4">
-      <View className="h-px flex-1 bg-[#42B9FF]" />
+      <View className="h-px flex-1 bg-brand-teacher" />
       <Text
         className="text-center text-[14px] font-extrabold text-white"
         style={{ letterSpacing: 5 }}
       >
         ELIGE TU CAMINO
       </Text>
-      <View className="h-px flex-1 bg-[#42B9FF]" />
+      <View className="h-px flex-1 bg-brand-teacher" />
     </View>
   )
 }
@@ -513,7 +513,7 @@ function PathFeatureCard({ feature, featured = false }: { feature: Feature; feat
           <Text className="text-[26px] font-extrabold text-white">
             {feature.title} <Text style={{ color: feature.accent }}>{feature.titleAccent}</Text>
           </Text>
-          <Text className="mt-2 text-[18px] leading-7 text-[#B8C5E0]">{feature.description}</Text>
+          <Text className="mt-2 text-[18px] leading-7 text-text-secondary">{feature.description}</Text>
         </View>
       </View>
 
@@ -541,7 +541,7 @@ function PathFeatureCard({ feature, featured = false }: { feature: Feature; feat
             >
               <Ionicons name={bullet.icon} size={26} color={feature.accent} />
             </View>
-            <Text className="flex-1 text-[18px] font-bold leading-6 text-[#F5F7FF]">{bullet.label}</Text>
+            <Text className="flex-1 text-[18px] font-bold leading-6 text-text-primary">{bullet.label}</Text>
           </View>
         ))}
       </View>
@@ -568,7 +568,7 @@ function FeatureCard({
 
   const card = (
     <View
-      className="items-center rounded-[22px] border bg-[#071B3A]/72"
+      className="items-center rounded-[22px] border bg-surface-raised"
       style={{
         borderColor: 'rgba(74, 129, 198, 0.42)',
         maxWidth: isMobile ? 340 : undefined,
@@ -601,7 +601,7 @@ function FeatureCard({
         {feature.title} <Text style={{ color: feature.accent }}>{feature.titleAccent}</Text>
       </Text>
 
-      <Text className="mt-3 text-center text-[14px] leading-6 text-[#DCE9F7]">
+      <Text className="mt-3 text-center text-[14px] leading-6 text-text-secondary">
         {isCompact && !expanded ? previewText : feature.description}
       </Text>
 
@@ -610,7 +610,7 @@ function FeatureCard({
           {feature.bullets.map((bullet) => (
             <View key={bullet.label} className="flex-row items-center gap-4">
               <Ionicons name={bullet.icon} size={18} color={feature.accent} />
-              <Text className="flex-1 text-[15px] text-[#EDF6FF]">{bullet.label}</Text>
+              <Text className="flex-1 text-[15px] text-text-primary">{bullet.label}</Text>
             </View>
           ))}
         </View>
@@ -623,7 +623,7 @@ function FeatureCard({
             size={18}
             color={feature.accent}
           />
-          <Text className="text-[14px] font-medium text-[#B8C9E9]">
+          <Text className="text-[14px] font-medium text-text-secondary">
             {expanded ? 'Ocultar detalles' : 'Toca para ver más'}
           </Text>
         </View>
@@ -648,7 +648,7 @@ function FeatureCard({
 function LandingFooter({ isDesktop }: { isDesktop: boolean }) {
   return (
     <View
-      className="z-10 border-t border-[#16345E] bg-[#020A19]/80"
+      className="z-10 border-t border-border-default bg-background-secondary"
       style={{
         paddingHorizontal: isDesktop ? 36 : 22,
         paddingVertical: isDesktop ? 24 : 22,
@@ -662,8 +662,8 @@ function LandingFooter({ isDesktop }: { isDesktop: boolean }) {
       >
         <View className="flex-row items-center gap-5">
           <BrandLogo size={24} />
-          <View className="h-6 w-px bg-[#254A78]" />
-          <Text className="text-[15px] text-[#8398BD]">© 2026 TFM</Text>
+          <View className="h-6 w-px bg-surface-selected" />
+          <Text className="text-[15px] text-text-muted">© 2026 TFM</Text>
         </View>
 
         <View className="flex-row items-center gap-8">

@@ -11,23 +11,23 @@ export default function TeacherClassroomsList({ analyticsByClassroom, classrooms
 }) {
   if (classrooms.length === 0) {
     return (
-      <View className="items-center rounded-2xl border border-dashed border-[#29466F] bg-[#07162D] px-5 py-10">
+      <View className="items-center rounded-2xl border border-dashed border-border-default bg-surface-default px-5 py-10">
         <Text className="font-black text-white">No hay clases que coincidan</Text>
-        <Text className="mt-2 text-center text-[13px] text-[#8FA7C7]">Crea una clase dentro de uno de tus cursos o cambia la búsqueda.</Text>
+        <Text className="mt-2 text-center text-[13px] text-text-muted">Crea una clase dentro de uno de tus cursos o cambia la búsqueda.</Text>
       </View>
     )
   }
 
   return (
-    <View className={isDesktop ? 'overflow-hidden rounded-2xl border border-[#183052] bg-[#07162D]' : 'gap-3'}>
+    <View className={isDesktop ? 'overflow-hidden rounded-2xl border border-border-default bg-surface-default' : 'gap-3'}>
       {isDesktop ? (
-        <View className="flex-row items-center gap-4 border-b border-[#29466F] bg-[#0B1D38] px-4 py-3">
-          <Text className="w-10 text-[11px] font-black uppercase text-[#8FA7C7]">Clase</Text>
-          <Text className="flex-[1.4] text-[11px] font-black uppercase text-[#8FA7C7]">Nombre / curso</Text>
-          <Text className="min-w-24 flex-1 text-[11px] font-black uppercase text-[#8FA7C7]">Año</Text>
-          <Text className="w-20 text-center text-[11px] font-black uppercase text-[#8FA7C7]">Alumnos</Text>
-          <Text className="w-20 text-center text-[11px] font-black uppercase text-[#8FA7C7]">Preguntas</Text>
-          <Text className="w-20 text-center text-[11px] font-black uppercase text-[#8FA7C7]">Temas</Text>
+        <View className="flex-row items-center gap-4 border-b border-border-default bg-surface-raised px-4 py-3">
+          <Text className="w-10 text-[11px] font-black uppercase text-text-muted">Clase</Text>
+          <Text className="flex-[1.4] text-[11px] font-black uppercase text-text-muted">Nombre / curso</Text>
+          <Text className="min-w-24 flex-1 text-[11px] font-black uppercase text-text-muted">Año</Text>
+          <Text className="w-20 text-center text-[11px] font-black uppercase text-text-muted">Alumnos</Text>
+          <Text className="w-20 text-center text-[11px] font-black uppercase text-text-muted">Preguntas</Text>
+          <Text className="w-20 text-center text-[11px] font-black uppercase text-text-muted">Temas</Text>
           <View className="w-[18px]" />
         </View>
       ) : null}

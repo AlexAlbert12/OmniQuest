@@ -127,34 +127,34 @@ export function AdminSupportSection() {
                 <MiniPill icon={selectedTicket.role === 'teacher' ? 'school-outline' : 'person-outline'} label={selectedTicket.role === 'teacher' ? 'Profesor' : 'Alumno'} />
               </View>
               <Text className="mt-4 text-[18px] font-black text-white">{selectedTicket.subject}</Text>
-              <Text className="mt-1 text-[12px] font-semibold text-[#8FA7C7]">
+              <Text className="mt-1 text-[12px] font-semibold text-text-muted">
                 {selectedTicket.user_alias || 'Usuario'} · {selectedTicket.user_email || selectedTicket.contact_email || 'Sin correo'} · {formatAuditDate(selectedTicket.created_at)}
               </Text>
-              <View className="mt-4 rounded-xl border border-[#20375E] bg-[#09162C] p-4">
-                <Text className="text-[12px] font-black uppercase tracking-[0.7px] text-[#8FA7C7]">Mensaje</Text>
-                <Text className="mt-2 text-[14px] leading-6 text-[#DDE7F4]">{selectedTicket.message}</Text>
+              <View className="mt-4 rounded-xl border border-border-default bg-surface-default p-4">
+                <Text className="text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Mensaje</Text>
+                <Text className="mt-2 text-[14px] leading-6 text-text-secondary">{selectedTicket.message}</Text>
               </View>
             </View>
 
             <View className={isDesktop ? 'w-[420px]' : ''}>
-              <Text className="text-[12px] font-black uppercase tracking-[0.7px] text-[#8FA7C7]">Estado</Text>
+              <Text className="text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Estado</Text>
               <View className="mt-2 flex-row flex-wrap gap-2">
                 {(['open', 'in_progress', 'resolved', 'closed'] as const).map((status) => (
                   <AdminChoiceChip key={status} active={editStatus === status} label={getSupportStatusLabel(status)} onPress={() => setEditStatus(status)} />
                 ))}
               </View>
 
-              <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-[#8FA7C7]">Prioridad</Text>
+              <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Prioridad</Text>
               <View className="mt-2 flex-row flex-wrap gap-2">
                 {(['low', 'medium', 'high'] as const).map((priority) => (
                   <AdminChoiceChip key={priority} active={editPriority === priority} label={getSupportPriorityLabel(priority)} onPress={() => setEditPriority(priority)} />
                 ))}
               </View>
 
-              <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-[#8FA7C7]">Respuesta al usuario</Text>
+              <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Respuesta al usuario</Text>
               <TextInput
                 accessibilityLabel="Respuesta del administrador"
-                className="mt-2 min-h-[130px] rounded-xl border border-[#20375E] bg-[#09162C] px-4 py-3 text-[14px] leading-5 text-white"
+                className="mt-2 min-h-[130px] rounded-xl border border-border-default bg-surface-default px-4 py-3 text-[14px] leading-5 text-white"
                 multiline
                 onChangeText={setAdminResponse}
                 placeholder="Explica la solución o los siguientes pasos..."
@@ -168,16 +168,16 @@ export function AdminSupportSection() {
                   accessibilityLabel="Cancelar edición del ticket"
                   accessibilityRole="button"
                   onPress={() => setSelectedTicket(null)}
-                  className="h-11 items-center justify-center rounded-xl border border-[#20375E] bg-[#09162C] px-4"
+                  className="h-11 items-center justify-center rounded-xl border border-border-default bg-surface-default px-4"
                 >
-                  <Text className="font-black text-[#DDE7F4]">Cancelar</Text>
+                  <Text className="font-black text-text-secondary">Cancelar</Text>
                 </Pressable>
                 <Pressable
                   accessibilityLabel="Guardar respuesta del ticket"
                   accessibilityRole="button"
                   disabled={saving}
                   onPress={() => void saveTicket()}
-                  className="h-11 flex-row items-center justify-center gap-2 rounded-xl bg-[#5A46D8] px-5"
+                  className="h-11 flex-row items-center justify-center gap-2 rounded-xl bg-brand-admin px-5"
                   style={({ pressed }) => ({ opacity: saving ? 0.55 : pressed ? 0.8 : 1 })}
                 >
                   {saving ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="send-outline" size={17} color="#FFFFFF" />}

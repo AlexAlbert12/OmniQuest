@@ -50,14 +50,14 @@ export function SecurityPasswordCard({
   onSubmit: () => void
 }) {
   return (
-    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+    <View className="rounded-2xl border border-border-default bg-surface-default p-4">
       <View className="mb-4 flex-row items-start gap-3">
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-[#10233F]">
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-raised">
           <Ionicons name="key-outline" size={20} color="#9FD6FF" />
         </View>
         <View className="min-w-0 flex-1">
           <Text className="text-[16px] font-black text-white">Cambiar contraseña</Text>
-          <Text className="mt-1 text-[12px] leading-5 text-[#AFC2DB]">
+          <Text className="mt-1 text-[12px] leading-5 text-text-secondary">
             Verificaremos tu contraseña actual antes de guardar la nueva.
           </Text>
         </View>
@@ -93,8 +93,8 @@ export function SecurityPasswordCard({
         />
       </View>
 
-      <View className="mt-4 rounded-xl border border-[#183052] bg-[#071A32] p-3">
-        <Text className="mb-3 text-[12px] font-black uppercase tracking-[1px] text-[#8FA7C7]">
+      <View className="mt-4 rounded-xl border border-border-default bg-surface-default p-3">
+        <Text className="mb-3 text-[12px] font-black uppercase tracking-[1px] text-text-muted">
           Requisitos
         </Text>
         <PasswordRuleRow valid={checks.hasCurrentPassword} label="Contraseña actual indicada" />
@@ -143,7 +143,7 @@ function PasswordInput({
   textContentType?: any
 }) {
   return (
-    <View className="flex-row items-center rounded-xl border border-[#183052] bg-[#071A32] px-4">
+    <View className="flex-row items-center rounded-xl border border-border-default bg-surface-default px-4">
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -156,7 +156,7 @@ function PasswordInput({
         textContentType={textContentType}
         className="min-w-0 flex-1 py-3 text-[13px] text-white"
       />
-      <Pressable onPress={onToggleVisible} className="ml-3 h-9 w-9 items-center justify-center rounded-full bg-[#10233F]">
+      <Pressable onPress={onToggleVisible} className="ml-3 h-9 w-9 items-center justify-center rounded-full bg-surface-raised">
         <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={18} color="#AFC2DB" />
       </Pressable>
     </View>
@@ -172,7 +172,7 @@ function PasswordRuleRow({ valid, label }: { valid: boolean; label: string }) {
       >
         <Ionicons name={valid ? 'checkmark' : 'ellipse-outline'} size={13} color={valid ? '#22C55E' : '#8FA7C7'} />
       </View>
-      <Text className={`text-[12px] font-semibold ${valid ? 'text-[#BBF7D0]' : 'text-[#8FA7C7]'}`}>
+      <Text className={`text-[12px] font-semibold ${valid ? 'text-text-secondary' : 'text-text-muted'}`}>
         {label}
       </Text>
     </View>
@@ -193,14 +193,14 @@ export function SecurityAccountStatusCard({
   const verified = Boolean(emailConfirmedAt)
 
   return (
-    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-4">
+    <View className="rounded-2xl border border-border-default bg-surface-default p-4">
       <View className="mb-4 flex-row items-start gap-3">
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-[#10233F]">
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-raised">
           <Ionicons name="shield-checkmark-outline" size={21} color={verified ? '#22C55E' : '#F6A64A'} />
         </View>
         <View className="min-w-0 flex-1">
           <Text className="text-[16px] font-black text-white">Estado de la cuenta</Text>
-          <Text className="mt-1 text-[12px] leading-5 text-[#AFC2DB]">
+          <Text className="mt-1 text-[12px] leading-5 text-text-secondary">
             Información útil para revisar el acceso y la verificación de tu cuenta.
           </Text>
         </View>
@@ -225,11 +225,11 @@ export function SecurityAccountStatusCard({
 
       <Pressable
         onPress={onSignOut}
-        className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-[#334155] bg-[#071A32] px-5 py-4"
+        className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-default px-5 py-4"
         style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
       >
         <Ionicons name="log-out-outline" size={18} color="#F87171" />
-        <Text className="text-[13px] font-black text-[#F87171]">Cerrar sesión en este dispositivo</Text>
+        <Text className="text-[13px] font-black text-semantic-danger">Cerrar sesión en este dispositivo</Text>
       </Pressable>
     </View>
   )
@@ -249,14 +249,14 @@ function SecurityStatusRow({
   color: string
 }) {
   return (
-    <View className="flex-row items-center gap-3 rounded-xl border border-[#183052] bg-[#071A32] p-3">
+    <View className="flex-row items-center gap-3 rounded-xl border border-border-default bg-surface-default p-3">
       <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '22') }}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="text-[12px] font-bold text-[#8FA7C7]">{title}</Text>
+        <Text className="text-[12px] font-bold text-text-muted">{title}</Text>
         <Text className="mt-1 text-[13px] font-black text-white">{value}</Text>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={1}>{description}</Text>
+        <Text className="mt-1 text-[12px] text-text-secondary" numberOfLines={1}>{description}</Text>
       </View>
     </View>
   )

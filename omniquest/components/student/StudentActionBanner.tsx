@@ -33,10 +33,10 @@ export default function StudentActionBanner({
   const tint = color || accentColor
 
   return (
-    <View className={`overflow-hidden rounded-2xl border border-[#2B3F7A] bg-[#101D4A] p-5 ${className}`}>
-      <View className="absolute inset-0 bg-[#17135A]" />
+    <View className={`overflow-hidden rounded-2xl border border-border-default bg-surface-interactive p-5 ${className}`}>
+      <View className="absolute inset-0 bg-surface-raised" />
       <View className="absolute -right-8 top-4 h-28 w-28 rounded-full" style={{ backgroundColor: withAlpha(tint, '24') }} />
-      <View className="absolute right-12 top-8 h-10 w-28 rounded-full border border-[#7B68FF]/35" style={{ transform: [{ rotate: '-18deg' }] }} />
+      <View className="absolute right-12 top-8 h-10 w-28 rounded-full border border-brand-student" style={{ transform: [{ rotate: '-18deg' }] }} />
       <Ionicons
         name={icon}
         size={72}
@@ -52,7 +52,7 @@ export default function StudentActionBanner({
             </Text>
           ) : null}
           <Text className={kicker ? 'mt-3 text-[24px] font-black text-white' : 'text-[22px] font-black text-white'}>{title}</Text>
-          <Text className="mt-2 text-[13px] leading-5 text-[#D8E3F3]">{detail}</Text>
+          <Text className="mt-2 text-[13px] leading-5 text-text-secondary">{detail}</Text>
         </View>
 
         {actionLabel && onPress ? (

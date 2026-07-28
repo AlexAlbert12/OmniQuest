@@ -29,7 +29,7 @@ export default function AuthInput({
 
   return (
     <View style={{ gap: 8 }}>
-      <Text className="ml-1 text-[13px] font-extrabold text-[#DDE8FF]">{label}</Text>
+      <Text className="ml-1 text-[13px] font-extrabold text-text-secondary">{label}</Text>
       <View
         className="flex-row items-center border"
         style={{
@@ -57,7 +57,7 @@ export default function AuthInput({
         <TextInput
           accessibilityLabel={label}
           accessibilityHint={error || helper}
-          className="flex-1 px-3 py-4 text-[15px] font-semibold text-[#F5FBFF]"
+          className="flex-1 px-3 py-4 text-[15px] font-semibold text-text-primary"
           placeholderTextColor="#93A8C8"
           style={style}
           {...inputProps}
@@ -82,10 +82,10 @@ export default function AuthInput({
       {error ? (
         <View className="ml-1 flex-row items-start gap-1.5">
           <Ionicons name="alert-circle" size={14} color="#FDA4AF" />
-          <Text className="min-w-0 flex-1 text-[12px] font-semibold text-[#FDA4AF]">{error}</Text>
+          <Text className="min-w-0 flex-1 text-[12px] font-semibold text-semantic-danger">{error}</Text>
         </View>
       ) : helper ? (
-        <Text className="ml-1 text-[12px] font-semibold text-[#AEBBDD]">{helper}</Text>
+        <Text className="ml-1 text-[12px] font-semibold text-text-muted">{helper}</Text>
       ) : null}
     </View>
   )

@@ -557,15 +557,15 @@ export default function TeacherQuestionReportScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center bg-background-primary">
         <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-[#8FA7C7]">Preparando informe...</Text>
+        <Text className="mt-4 text-text-muted">Preparando informe...</Text>
       </View>
     )
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1 bg-background-primary">
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <TeacherSidebar activeSection="classes" subjectsCount={subjectsCount} onSignOut={handleSignOut} />
@@ -591,10 +591,10 @@ export default function TeacherQuestionReportScreen() {
           />
 
           {errorMessage ? (
-            <View className="rounded-2xl border border-[#3F2430] bg-[#160D19] p-5">
+            <View className="rounded-2xl border border-border-default bg-background-primary p-5">
               <Ionicons name="warning-outline" size={28} color="#FB7185" />
               <Text className="mt-3 text-xl font-black text-white">No se pudo abrir el informe</Text>
-              <Text className="mt-2 text-[13px] leading-5 text-[#FCA5A5]">{errorMessage}</Text>
+              <Text className="mt-2 text-[13px] leading-5 text-semantic-danger">{errorMessage}</Text>
             </View>
           ) : null}
 
@@ -622,7 +622,7 @@ export default function TeacherQuestionReportScreen() {
               <Panel title="Filtros del informe" action={`${filteredAttempts.length} de ${attempts.length} intentos`} className="mt-5">
                 <View className="gap-4">
                   <View>
-                    <Text className="mb-2 text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Clase</Text>
+                    <Text className="mb-2 text-[12px] font-black uppercase tracking-[0.08em] text-text-muted">Clase</Text>
                     <AppTabs<number | 'all'>
                       accessibilityLabel="Filtrar intentos por clase"
                       compact
@@ -642,7 +642,7 @@ export default function TeacherQuestionReportScreen() {
 
                   <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
                     <View className="min-w-0 flex-1">
-                      <Text className="mb-2 text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Fecha</Text>
+                      <Text className="mb-2 text-[12px] font-black uppercase tracking-[0.08em] text-text-muted">Fecha</Text>
                       <AppTabs<AttemptDateFilter>
                         accessibilityLabel="Filtrar intentos por fecha"
                         compact
@@ -654,7 +654,7 @@ export default function TeacherQuestionReportScreen() {
                     </View>
 
                     <View className="min-w-0 flex-1">
-                      <Text className="mb-2 text-[12px] font-black uppercase tracking-[0.08em] text-[#8FA7C7]">Resultado</Text>
+                      <Text className="mb-2 text-[12px] font-black uppercase tracking-[0.08em] text-text-muted">Resultado</Text>
                       <AppTabs<AttemptStatusFilter>
                         accessibilityLabel="Filtrar intentos por resultado"
                         compact
@@ -767,7 +767,7 @@ function QuestionInsightHero({
 }) {
   const severityColor = failureRate >= 60 ? '#FB7185' : failureRate >= 35 ? '#F59E0B' : '#34D399'
   return (
-    <View className="rounded-2xl border border-[#1A3155] bg-[#09162C] p-5 md:p-6">
+    <View className="rounded-2xl border border-border-default bg-surface-default p-5 md:p-6">
       <View className={isPhone ? 'gap-5' : 'flex-row items-start gap-6'}>
         <View className="min-w-0 flex-[1.5]">
           <View className="mb-3 flex-row flex-wrap items-center gap-2">
@@ -787,7 +787,7 @@ function QuestionInsightHero({
             compact={isPhone}
           />
           {question.explanation ? (
-            <Text className="mt-3 text-[13px] leading-5 text-[#AFC2DB]">Explicación: {question.explanation}</Text>
+            <Text className="mt-3 text-[13px] leading-5 text-text-secondary">Explicación: {question.explanation}</Text>
           ) : null}
         </View>
 
@@ -796,14 +796,14 @@ function QuestionInsightHero({
             <InsightMetric label="Tasa de fallo" value={`${failureRate}%`} color={severityColor} />
             <InsightMetric label="Alumnos afectados" value={String(affectedStudents)} color="#F59E0B" />
           </View>
-          <View className="rounded-xl border border-[#2A456A] bg-[#0D1D3B] p-4">
+          <View className="rounded-xl border border-border-default bg-surface-raised p-4">
             <View className="flex-row items-center gap-2">
               <Ionicons name="bulb-outline" size={18} color="#FBBF24" />
-              <Text className="text-[11px] font-black uppercase tracking-[0.7px] text-[#FBBF24]">Recomendación</Text>
+              <Text className="text-[11px] font-black uppercase tracking-[0.7px] text-gamification-xp">Recomendación</Text>
             </View>
             <Text className="mt-2 text-[14px] font-bold leading-6 text-white">{recommendation}</Text>
             {pendingManualReviews > 0 ? (
-              <Text className="mt-2 text-[12px] text-[#F6CFAE]">{pendingManualReviews} respuesta{pendingManualReviews === 1 ? '' : 's'} pendiente{pendingManualReviews === 1 ? '' : 's'} de revisión manual.</Text>
+              <Text className="mt-2 text-[12px] text-gamification-badge">{pendingManualReviews} respuesta{pendingManualReviews === 1 ? '' : 's'} pendiente{pendingManualReviews === 1 ? '' : 's'} de revisión manual.</Text>
             ) : null}
           </View>
         </View>
@@ -821,8 +821,8 @@ function QuestionInsightHero({
 
 function InsightMetric({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <View className="min-w-[120px] flex-1 rounded-xl border border-[#20375E] bg-[#07162E] p-3">
-      <Text className="text-[10px] font-black uppercase tracking-[0.6px] text-[#8FA7C7]">{label}</Text>
+    <View className="min-w-[120px] flex-1 rounded-xl border border-border-default bg-surface-default p-3">
+      <Text className="text-[10px] font-black uppercase tracking-[0.6px] text-text-muted">{label}</Text>
       <Text className="mt-2 text-[25px] font-black" style={{ color }}>{value}</Text>
     </View>
   )
@@ -869,10 +869,10 @@ function Panel({
   children: React.ReactNode
 }) {
   return (
-    <View className={`rounded-2xl border border-[#1A3155] bg-[#09162C] p-5 ${className}`}>
+    <View className={`rounded-2xl border border-border-default bg-surface-default p-5 ${className}`}>
       <View className="mb-4 flex-row items-center justify-between gap-3">
         <Text className="font-black text-white">{title}</Text>
-        {action ? <Text className="text-[12px] font-semibold text-[#B9A7FF]">{action}</Text> : null}
+        {action ? <Text className="text-[12px] font-semibold text-brand-teacher">{action}</Text> : null}
       </View>
       {children}
     </View>
@@ -889,7 +889,7 @@ function Badge({ label, color }: { label: string; color: string }) {
 
 function AnswerDistributionRow({ item }: { item: AnswerDistributionItem }) {
   return (
-    <View className="rounded-xl border border-[#172A4A] bg-[#0D1D3B] p-3">
+    <View className="rounded-xl border border-border-subtle bg-surface-raised p-3">
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
           <Text className="text-[13px] font-bold text-white" numberOfLines={2}>{item.label}</Text>
@@ -899,10 +899,10 @@ function AnswerDistributionRow({ item }: { item: AnswerDistributionItem }) {
         </View>
         <Text className="text-[18px] font-black text-white">{item.percent}%</Text>
       </View>
-      <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
+      <View className="mt-3 h-2 overflow-hidden rounded-full bg-surface-interactive">
         <View className="h-full rounded-full" style={{ width: `${item.percent}%`, backgroundColor: item.correct ? '#43D991' : '#FB7185' }} />
       </View>
-      <Text className="mt-2 text-[11px] text-[#8FA7C7]">{item.count} intento{item.count === 1 ? '' : 's'}</Text>
+      <Text className="mt-2 text-[11px] text-text-muted">{item.count} intento{item.count === 1 ? '' : 's'}</Text>
     </View>
   )
 }
@@ -911,13 +911,13 @@ function ClassroomPerformanceRowItem({ item }: { item: ClassroomPerformanceRow }
   const color = item.failureRate >= 60 ? '#FB7185' : item.failureRate >= 35 ? '#F6A64A' : '#43D991'
 
   return (
-    <View className="rounded-xl border border-[#172A4A] bg-[#0D1D3B] p-3">
+    <View className="rounded-xl border border-border-subtle bg-surface-raised p-3">
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
           <Text className="text-[13px] font-black text-white" numberOfLines={1}>
             {item.classroomName}
           </Text>
-          <Text className="mt-1 text-[12px] text-[#AFC2DB]">
+          <Text className="mt-1 text-[12px] text-text-secondary">
             {item.failed} fallos · {item.correct} aciertos · {item.affectedStudents} alumno{item.affectedStudents === 1 ? '' : 's'} afectado{item.affectedStudents === 1 ? '' : 's'}
           </Text>
         </View>
@@ -925,10 +925,10 @@ function ClassroomPerformanceRowItem({ item }: { item: ClassroomPerformanceRow }
           {item.failureRate}%
         </Text>
       </View>
-      <View className="mt-3 h-2 overflow-hidden rounded-full bg-[#13294C]">
+      <View className="mt-3 h-2 overflow-hidden rounded-full bg-surface-interactive">
         <View className="h-full rounded-full" style={{ width: `${item.failureRate}%`, backgroundColor: color }} />
       </View>
-      <Text className="mt-2 text-[12px] text-[#AFC2DB]">
+      <Text className="mt-2 text-[12px] text-text-secondary">
         {item.attempts} intento{item.attempts === 1 ? '' : 's'} registrados
       </Text>
     </View>
@@ -950,19 +950,19 @@ function TemporalPerformanceChart({ rows }: { rows: TemporalPerformanceRow[] }) 
         const width = row.attempts > 0 ? Math.max(8, Math.round((row.attempts / maxAttempts) * 100)) : 0
 
         return (
-          <View key={row.key} className="rounded-xl border border-[#172A4A] bg-[#0D1D3B] p-3">
+          <View key={row.key} className="rounded-xl border border-border-subtle bg-surface-raised p-3">
             <View className="mb-2 flex-row items-center justify-between gap-3">
-              <Text className="text-[12px] font-black uppercase text-[#DDE7F4]">{row.label}</Text>
+              <Text className="text-[12px] font-black uppercase text-text-secondary">{row.label}</Text>
               <Text className="text-[12px] font-black" style={{ color }}>
                 {row.failureRate}% fallos
               </Text>
             </View>
-            <View className="h-2 overflow-hidden rounded-full bg-[#13294C]">
+            <View className="h-2 overflow-hidden rounded-full bg-surface-interactive">
               {width > 0 ? (
                 <View className="h-full rounded-full" style={{ width: `${width}%`, backgroundColor: color }} />
               ) : null}
             </View>
-            <Text className="mt-2 text-[12px] text-[#AFC2DB]">
+            <Text className="mt-2 text-[12px] text-text-secondary">
               {row.attempts} intento{row.attempts === 1 ? '' : 's'} · {row.failed} fallos · {row.correct} aciertos
             </Text>
           </View>
@@ -975,7 +975,7 @@ function TemporalPerformanceChart({ rows }: { rows: TemporalPerformanceRow[] }) 
 function AttemptRowItem({ attempt }: { attempt: AttemptDetail }) {
   const color = attempt.is_correct ? '#43D991' : '#FB7185'
   return (
-    <View className="flex-row items-start gap-3 rounded-xl border border-[#172A4A] bg-[#0D1D3B] p-3">
+    <View className="flex-row items-start gap-3 rounded-xl border border-border-subtle bg-surface-raised p-3">
       <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
         <Ionicons name={attempt.is_correct ? 'checkmark' : 'close'} size={18} color={color} />
       </View>
@@ -984,8 +984,8 @@ function AttemptRowItem({ attempt }: { attempt: AttemptDetail }) {
           <Text className="font-bold text-white" numberOfLines={1}>{attempt.studentAlias}</Text>
           <Text className="text-[11px] font-bold" style={{ color }}>{attempt.is_correct ? 'Correcta' : 'Incorrecta'}</Text>
         </View>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]" numberOfLines={2}>{attempt.answerLabel}</Text>
-        <Text className="mt-1 text-[12px] text-[#AFC2DB]">
+        <Text className="mt-1 text-[12px] text-text-secondary" numberOfLines={2}>{attempt.answerLabel}</Text>
+        <Text className="mt-1 text-[12px] text-text-secondary">
           {attempt.attempted_at ? getTimeAgo(attempt.attempted_at) : 'Sin fecha'} · {attempt.earned_points ?? 0} XP · {attempt.classroomName}
         </Text>
       </View>
@@ -996,25 +996,25 @@ function AttemptRowItem({ attempt }: { attempt: AttemptDetail }) {
 function AffectedStudentRow({ item }: { item: { studentId: string; alias: string; failures: number; attempts: number; lastAttemptAt: string | null } }) {
   const failureRate = item.attempts > 0 ? Math.round((item.failures / item.attempts) * 100) : 0
   return (
-    <View className="flex-row items-center gap-3 rounded-xl border border-[#172A4A] bg-[#0D1D3B] p-3">
-      <View className="h-10 w-10 items-center justify-center rounded-full bg-[#17315E]">
+    <View className="flex-row items-center gap-3 rounded-xl border border-border-subtle bg-surface-raised p-3">
+      <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-selected">
         <Ionicons name="person" size={18} color="#9FD6FF" />
       </View>
       <View className="min-w-0 flex-1">
         <Text className="font-bold text-white" numberOfLines={1}>{item.alias}</Text>
-        <Text className="mt-1 text-[11px] text-[#8FA7C7]">
+        <Text className="mt-1 text-[11px] text-text-muted">
           {item.failures} fallos de {item.attempts} intentos · {item.lastAttemptAt ? getTimeAgo(item.lastAttemptAt) : 'Sin fecha'}
         </Text>
       </View>
-      <Text className="text-[16px] font-black text-[#FB7185]">{failureRate}%</Text>
+      <Text className="text-[16px] font-black text-semantic-danger">{failureRate}%</Text>
     </View>
   )
 }
 
 function EmptyBox({ text }: { text: string }) {
   return (
-    <View className="rounded-xl border border-dashed border-[#253C67] bg-[#0D1D3B] px-4 py-5">
-      <Text className="text-center text-[12px] text-[#8FA7C7]">{text}</Text>
+    <View className="rounded-xl border border-dashed border-border-default bg-surface-raised px-4 py-5">
+      <Text className="text-center text-[12px] text-text-muted">{text}</Text>
     </View>
   )
 }

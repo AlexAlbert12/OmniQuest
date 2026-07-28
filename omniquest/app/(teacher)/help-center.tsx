@@ -208,15 +208,15 @@ export default function TeacherHelpCenterScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#061126]">
+      <View className="flex-1 items-center justify-center bg-background-primary">
         <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-3 text-[#AFC2DB]">Cargando centro de ayuda...</Text>
+        <Text className="mt-3 text-text-secondary">Cargando centro de ayuda...</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-[#061126]">
+    <View className="flex-1 bg-background-primary">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
@@ -234,9 +234,9 @@ export default function TeacherHelpCenterScreen() {
           subtitle="FAQ, contacto y tickets de soporte."
         />
 
-        <View className="mb-5 flex-row items-center gap-3 rounded-2xl border border-[#173056] bg-[#07162D] px-4 py-3">
+        <View className="mb-5 flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-default px-4 py-3">
           <OmniGuide state="normal" autoBlink size={56} />
-          <Text className="min-w-0 flex-1 text-[13px] leading-5 text-[#D8E3F3]">Omni puede ayudarte a dejar el contexto del problema listo para soporte.</Text>
+          <Text className="min-w-0 flex-1 text-[13px] leading-5 text-text-secondary">Omni puede ayudarte a dejar el contexto del problema listo para soporte.</Text>
         </View>
 
         <View className="mb-5 flex-row flex-wrap gap-3">
@@ -250,7 +250,7 @@ export default function TeacherHelpCenterScreen() {
             {faqItems.map((item, index) => {
               const open = openFaqIndex === index;
               return (
-                <View key={item.question} className={`${index < faqItems.length - 1 ? 'border-b border-[#173056]' : ''}`}>
+                <View key={item.question} className={`${index < faqItems.length - 1 ? 'border-b border-border-default' : ''}`}>
                   <Pressable
                     onPress={() => setOpenFaqIndex((current) => (current === index ? null : index))}
                     className="flex-row items-center justify-between py-4"
@@ -258,17 +258,17 @@ export default function TeacherHelpCenterScreen() {
                     <Text className="min-w-0 flex-1 pr-3 font-semibold text-white">{item.question}</Text>
                     <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color="#AFC2DB" />
                   </Pressable>
-                  {open ? <Text className="pb-4 text-[13px] leading-6 text-[#B7C4D7]">{item.answer}</Text> : null}
+                  {open ? <Text className="pb-4 text-[13px] leading-6 text-text-secondary">{item.answer}</Text> : null}
                 </View>
               );
             })}
           </Panel>
 
           <Panel title="Contacto y seguimiento" className={isDesktop ? 'w-[360px]' : ''}>
-            <View className="rounded-xl border border-[#264267] bg-[#09162C] p-3">
-              <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-[#8FA7C7]">Correo de soporte</Text>
+            <View className="rounded-xl border border-border-default bg-surface-default p-3">
+              <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-text-muted">Correo de soporte</Text>
               <Text className="mt-1 font-bold text-white">soporte@omniquest.app</Text>
-              <Text className="mt-2 text-[12px] leading-5 text-[#B7C4D7]">
+              <Text className="mt-2 text-[12px] leading-5 text-text-secondary">
                 Los tickets conservan estado, respuesta y fecha de resolución. Usa el correo para incidencias que no permitan entrar en la plataforma.
               </Text>
             </View>
@@ -276,7 +276,7 @@ export default function TeacherHelpCenterScreen() {
               accessibilityLabel="Contactar soporte por correo"
               accessibilityRole="button"
               onPress={handleContactSupport}
-              className="mt-4 flex-row items-center justify-between rounded-xl border border-[#35578A] bg-[#0A2042] px-4 py-3"
+              className="mt-4 flex-row items-center justify-between rounded-xl border border-border-active bg-surface-raised px-4 py-3"
             >
               <View className="flex-row items-center gap-2">
                 <Ionicons name="mail-outline" size={18} color="#A78BFA" />
@@ -291,7 +291,7 @@ export default function TeacherHelpCenterScreen() {
           <Panel title="Crear ticket" className={isDesktop ? 'flex-1' : ''}>
             <FieldLabel label="Asunto" />
             <TextInput
-              className="mt-2 rounded-lg border border-[#264267] bg-[#0A2042] px-4 py-3 text-[14px] text-white"
+              className="mt-2 rounded-lg border border-border-default bg-surface-raised px-4 py-3 text-[14px] text-white"
               placeholder="Ej. No se guardan preguntas en un curso"
               placeholderTextColor="#8FA7C7"
               value={subject}
@@ -324,7 +324,7 @@ export default function TeacherHelpCenterScreen() {
 
             <FieldLabel label="Descripción" />
             <TextInput
-              className="mt-2 min-h-[130px] rounded-lg border border-[#264267] bg-[#0A2042] px-4 py-3 text-[14px] text-white"
+              className="mt-2 min-h-[130px] rounded-lg border border-border-default bg-surface-raised px-4 py-3 text-[14px] text-white"
               placeholder="Cuéntanos el contexto, pasos y error observado."
               placeholderTextColor="#8FA7C7"
               multiline
@@ -336,7 +336,7 @@ export default function TeacherHelpCenterScreen() {
             <Pressable
               onPress={handleCreateTicket}
               disabled={submitting}
-              className="mt-4 flex-row items-center justify-center gap-2 rounded-xl bg-[#5A46D8] py-3"
+              className="mt-4 flex-row items-center justify-center gap-2 rounded-xl bg-brand-teacher py-3"
               style={({ pressed }) => ({ opacity: submitting ? 0.7 : pressed ? 0.86 : 1 })}
             >
               {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="send-outline" size={16} color="#FFFFFF" />}
@@ -350,25 +350,25 @@ export default function TeacherHelpCenterScreen() {
             ) : (
               <View className="gap-3">
                 {tickets.map((ticket) => (
-                  <View key={ticket.id} className="rounded-xl border border-[#173056] bg-[#0A2042] p-3">
+                  <View key={ticket.id} className="rounded-xl border border-border-default bg-surface-raised p-3">
                     <View className="flex-row items-center justify-between gap-3">
                       <Text className="min-w-0 flex-1 font-semibold text-white" numberOfLines={1}>
                         {ticket.subject}
                       </Text>
                       <StatusPill status={ticket.status} />
                     </View>
-                    <Text className="mt-2 text-[12px] text-[#AFC2DB]">
+                    <Text className="mt-2 text-[12px] text-text-secondary">
                       {formatTicketCategory(ticket.category)} • Prioridad {formatTicketPriority(ticket.priority)} •{' '}
                       {formatRelativeDate(ticket.created_at)}
                     </Text>
                     <TicketTimeline ticket={ticket} />
                     {ticket.admin_response ? (
-                      <View className="mt-3 rounded-xl border border-[#35578A] bg-[#10224A] p-3">
+                      <View className="mt-3 rounded-xl border border-border-active bg-surface-interactive p-3">
                         <View className="flex-row items-center gap-2">
                           <Ionicons name="chatbubble-ellipses-outline" size={15} color="#9FD6FF" />
-                          <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-[#9FD6FF]">Respuesta de soporte</Text>
+                          <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-semantic-info">Respuesta de soporte</Text>
                         </View>
-                        <Text className="mt-2 text-[12px] leading-5 text-[#DDE7F4]">{ticket.admin_response}</Text>
+                        <Text className="mt-2 text-[12px] leading-5 text-text-secondary">{ticket.admin_response}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -385,13 +385,13 @@ export default function TeacherHelpCenterScreen() {
 
 function TicketSummaryCard({ icon, label, value, color }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: number; color: string }) {
   return (
-    <View className="min-w-[145px] flex-1 flex-row items-center gap-3 rounded-2xl border border-[#183052] bg-[#07162D] p-4">
+    <View className="min-w-[145px] flex-1 flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-default p-4">
       <View className="h-10 w-10 items-center justify-center rounded-2xl" style={{ backgroundColor: `${color}24` }}>
         <Ionicons name={icon} size={19} color={color} />
       </View>
       <View>
         <Text className="text-[20px] font-black text-white">{value}</Text>
-        <Text className="text-[12px] font-semibold text-[#AFC2DB]">{label}</Text>
+        <Text className="text-[12px] font-semibold text-text-secondary">{label}</Text>
       </View>
     </View>
   );
@@ -427,7 +427,7 @@ function TicketTimeline({ ticket }: { ticket: SupportTicket }) {
 
 function Panel({ title, className = '', children }: { title: string; className?: string; children: React.ReactNode }) {
   return (
-    <View className={`rounded-2xl border border-[#183052] bg-[#07162D] p-5 ${className}`}>
+    <View className={`rounded-2xl border border-border-default bg-surface-default p-5 ${className}`}>
       <Text className="mb-4 text-[16px] font-black text-white">{title}</Text>
       {children}
     </View>
@@ -435,25 +435,25 @@ function Panel({ title, className = '', children }: { title: string; className?:
 }
 
 function FieldLabel({ label }: { label: string }) {
-  return <Text className="mt-3 text-[12px] font-semibold text-[#AFC2DB]">{label}</Text>;
+  return <Text className="mt-3 text-[12px] font-semibold text-text-secondary">{label}</Text>;
 }
 
 function ChoiceChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
-      className={`rounded-lg border px-3 py-2 ${active ? 'border-[#8B5CF6] bg-[#251E64]' : 'border-[#264267] bg-[#0A2042]'}`}
+      className={`rounded-lg border px-3 py-2 ${active ? 'border-border-active bg-surface-selected' : 'border-border-default bg-surface-raised'}`}
     >
-      <Text className={`text-[12px] font-semibold ${active ? 'text-white' : 'text-[#AFC2DB]'}`}>{label}</Text>
+      <Text className={`text-[12px] font-semibold ${active ? 'text-white' : 'text-text-secondary'}`}>{label}</Text>
     </Pressable>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <View className="items-center rounded-xl border border-dashed border-[#29466F] bg-[#09162C] px-4 py-6">
+    <View className="items-center rounded-xl border border-dashed border-border-default bg-surface-default px-4 py-6">
       <OmniGuide state="normal" autoBlink size={64} />
-      <Text className="mt-2 text-center text-[12px] text-[#8FA7C7]">{text}</Text>
+      <Text className="mt-2 text-center text-[12px] text-text-muted">{text}</Text>
     </View>
   );
 }

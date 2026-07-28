@@ -10,7 +10,7 @@ type IconName = keyof typeof Ionicons.glyphMap
 export type AppButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success'
 export type AppButtonSize = 'sm' | 'md' | 'lg'
 
-type AppButtonProps = {
+export type AppButtonProps = {
   label?: string
   accessibilityLabel?: string
   accessibilityHint?: string
@@ -135,7 +135,7 @@ function getVariantPalette(
       return {
         background: primary,
         border: primary,
-        foreground: '#FFFFFF',
+        foreground: tokens.text.inverse,
       }
   }
 }

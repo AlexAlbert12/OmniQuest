@@ -16,7 +16,7 @@ export default function CreateCourseCTA({ label = 'Crear curso', onPress, sticky
         accessibilityLabel={label}
         accessibilityRole="button"
         onPress={onPress}
-        className="h-14 flex-row items-center justify-center gap-2 rounded-2xl border border-[#8B7AF8] bg-[#5A46D8] px-5"
+        className="h-14 flex-row items-center justify-center gap-2 rounded-2xl border border-border-active bg-brand-teacher px-5"
         style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
       >
         <Ionicons name="add" size={21} color="#FFFFFF" />
