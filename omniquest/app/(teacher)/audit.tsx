@@ -89,7 +89,7 @@ export default function TeacherAuditScreen() {
       const [logsResult, allLogsResult, subjectsResult] = await Promise.all([
         supabase.rpc('get_teacher_audit_logs_page', {
           p_category: selectedFilter,
-          p_search: null,
+          p_search: undefined,
           p_limit: pageSize,
           p_offset: page * pageSize,
         }),
@@ -97,7 +97,7 @@ export default function TeacherAuditScreen() {
           ? Promise.resolve(null)
           : supabase.rpc('get_teacher_audit_logs_page', {
               p_category: 'all',
-              p_search: null,
+              p_search: undefined,
               p_limit: 1,
               p_offset: 0,
             }),

@@ -1,11 +1,23 @@
 import { Ionicons } from '@expo/vector-icons'
-import { Pressable, Text, TextInput, type TextInputProps, View } from 'react-native'
+import {
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  type NativeSyntheticEvent,
+  type TextInputKeyPressEventData,
+  type TextInputProps,
+  View,
+} from 'react-native'
+import { useI18n } from '../../lib/i18n'
+import { readCapsLockFromKeyEvent } from '../../lib/authSecurity'
 
 type AuthInputProps = TextInputProps & {
   error?: string
   helper?: string
   icon: keyof typeof Ionicons.glyphMap
   label: string
+  onCapsLockChange?: (active: boolean) => void
   onToggleSecureText?: () => void
   secureVisible?: boolean
   showSecureToggle?: boolean
@@ -17,6 +29,8 @@ export default function AuthInput({
   helper,
   icon,
   label,
+  onCapsLockChange,
+  onKeyPress,
   onToggleSecureText,
   secureVisible,
   showSecureToggle,
@@ -24,12 +38,22 @@ export default function AuthInput({
   style,
   ...inputProps
 }: AuthInputProps) {
+  const { t } = useI18n()
   const borderColor = error ? '#FB7185' : valid ? '#34D399' : 'rgba(148, 163, 184, 0.18)'
   const iconColor = error ? '#FDA4AF' : valid ? '#6EE7B7' : '#8CD5FF'
 
+  const handleKeyPress = (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+    onKeyPress?.(event)
+    if (Platform.OS !== 'web' || !onCapsLockChange) return
+    const capsLock = readCapsLockFromKeyEvent(event)
+    if (capsLock !== null) onCapsLockChange(capsLock)
+  }
+
+  const secureToggleLabel = secureVisible ? t('auth.password.hide') : t('auth.password.show')
+
   return (
     <View style={{ gap: 8 }}>
-      <Text className="ml-1 text-[13px] font-extrabold text-text-secondary">{label}</Text>
+      <Text maxFontSizeMultiplier={2} className="ml-1 text-[13px] font-extrabold text-text-secondary">{label}</Text>
       <View
         className="flex-row items-center border"
         style={{
@@ -58,6 +82,8 @@ export default function AuthInput({
           accessibilityLabel={label}
           accessibilityHint={error || helper}
           className="flex-1 px-3 py-4 text-[15px] font-semibold text-text-primary"
+          maxFontSizeMultiplier={2}
+          onKeyPress={handleKeyPress}
           placeholderTextColor="#93A8C8"
           style={style}
           {...inputProps}
@@ -65,9 +91,12 @@ export default function AuthInput({
         {showSecureToggle ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={secureVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            accessibilityLabel={secureToggleLabel}
+            accessibilityHint={t('auth.password.toggleHint')}
+            accessibilityState={{ selected: Boolean(secureVisible) }}
             onPress={onToggleSecureText}
             hitSlop={7}
+            focusable
             className="mr-3 items-center justify-center rounded-full p-2"
             style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
           >
@@ -80,12 +109,12 @@ export default function AuthInput({
         ) : null}
       </View>
       {error ? (
-        <View className="ml-1 flex-row items-start gap-1.5">
+        <View accessibilityRole="alert" className="ml-1 flex-row items-start gap-1.5">
           <Ionicons name="alert-circle" size={14} color="#FDA4AF" />
-          <Text className="min-w-0 flex-1 text-[12px] font-semibold text-semantic-danger">{error}</Text>
+          <Text maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[12px] font-semibold text-semantic-danger">{error}</Text>
         </View>
       ) : helper ? (
-        <Text className="ml-1 text-[12px] font-semibold text-text-muted">{helper}</Text>
+        <Text maxFontSizeMultiplier={2} className="ml-1 text-[12px] font-semibold text-text-muted">{helper}</Text>
       ) : null}
     </View>
   )

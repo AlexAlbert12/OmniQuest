@@ -9,8 +9,8 @@ const read = (path) => readFileSync(join(root, path), 'utf8')
 test('login validates fields before calling Supabase auth', () => {
   const source = read('app/(auth)/login.tsx')
 
-  assert.match(source, /isValidEmail\(normalizedEmail\)/)
-  assert.match(source, /if \(!password\)/)
+  assert.match(source, /prepareAuthSubmission\(/)
+  assert.match(source, /validateLoginForm/)
   assert.match(source, /signInWithPassword\(/)
   assert.match(source, /setLoading\(true\)/)
 })

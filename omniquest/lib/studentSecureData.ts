@@ -116,8 +116,8 @@ export async function fetchStudentQuestionCatalog({
   classroomId?: number | null
 } = {}): Promise<SafeStudentQuestion[]> {
   const { data, error } = await supabase.rpc('get_student_question_catalog', {
-    p_subject_id: subjectId,
-    p_classroom_id: classroomId,
+    p_subject_id: subjectId ?? undefined,
+    p_classroom_id: classroomId ?? undefined,
   })
 
   if (error) throw error
@@ -134,11 +134,11 @@ export async function fetchStudentAttemptHistory({
 }: StudentAttemptHistoryFilters = {}): Promise<SafeStudentAttempt[]> {
   const { data, error } = await supabase.rpc('get_student_attempt_history', {
     p_limit: limit,
-    p_since: since,
-    p_subject_id: subjectId,
-    p_classroom_id: classroomId,
-    p_topic_id: topicId,
-    p_difficulty: difficulty,
+    p_since: since ?? undefined,
+    p_subject_id: subjectId ?? undefined,
+    p_classroom_id: classroomId ?? undefined,
+    p_topic_id: topicId ?? undefined,
+    p_difficulty: difficulty ?? undefined,
   })
 
   if (error) throw error
@@ -159,11 +159,11 @@ export async function fetchStudentAttemptHistoryPage({
   const safePage = Math.max(page, 0)
   const { data, error } = await supabase.rpc('get_student_attempt_history_page', {
     p_status: status,
-    p_search: search.trim() || null,
-    p_subject_id: subjectId,
-    p_classroom_id: classroomId,
-    p_topic_id: topicId,
-    p_difficulty: difficulty,
+    p_search: search.trim() || undefined,
+    p_subject_id: subjectId ?? undefined,
+    p_classroom_id: classroomId ?? undefined,
+    p_topic_id: topicId ?? undefined,
+    p_difficulty: difficulty ?? undefined,
     p_limit: safePageSize,
     p_offset: safePage * safePageSize,
   })

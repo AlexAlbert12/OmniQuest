@@ -217,13 +217,13 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
 
       const { data: createdSubject, error: createSubjectError } = await supabase.rpc('create_subject_with_default_topic', {
         p_name: cleanName,
-        p_description: cleanDescription || null,
+        p_description: cleanDescription || undefined,
         p_icon: icon,
-        p_code: inviteMode === 'auto' ? null : code,
+        p_code: inviteMode === 'auto' ? undefined : code,
         p_education_level: educationLevel,
         p_academic_year: schoolYear,
-        p_subject_label: subjectLabel || null,
-        p_theme_color: null,
+        p_subject_label: subjectLabel || undefined,
+        p_theme_color: undefined,
       });
 
       if (createSubjectError) throw createSubjectError;

@@ -72,10 +72,10 @@ export function AdminSupportSection() {
   const [saving, setSaving] = useState(false)
 
   const supportPage = useAdminRpcPage<AdminSupportTicketRow>('get_admin_support_tickets_page', {
-    p_search: search.trim() || null,
-    p_status: statusFilter === 'all' ? null : statusFilter,
-    p_priority: priorityFilter === 'all' ? null : priorityFilter,
-    p_role: roleFilter === 'all' ? null : roleFilter,
+    p_search: search.trim() || undefined,
+    p_status: statusFilter === 'all' ? undefined : statusFilter,
+    p_priority: priorityFilter === 'all' ? undefined : priorityFilter,
+    p_role: roleFilter === 'all' ? undefined : roleFilter,
   }, data.version, pageSize)
 
   const openTicket = (ticket: AdminSupportTicketRow) => {
@@ -98,7 +98,7 @@ export function AdminSupportSection() {
         p_ticket_id: selectedTicket.id,
         p_status: editStatus,
         p_priority: editPriority,
-        p_admin_response: adminResponse.trim() || null,
+        p_admin_response: adminResponse.trim() || undefined,
       })
       if (error) throw error
 

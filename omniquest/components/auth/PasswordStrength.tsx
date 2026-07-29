@@ -2,6 +2,7 @@ import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { Text, View } from 'react-native'
 import type { PasswordStrengthResult } from '../../lib/auth'
+import { useI18n } from '../../lib/i18n'
 
 type PasswordStrengthProps = {
   result: PasswordStrengthResult
@@ -9,13 +10,16 @@ type PasswordStrengthProps = {
 }
 
 export default function PasswordStrength({ result, compact = false }: PasswordStrengthProps) {
+  const { t } = useI18n()
   if (!result.hasValue) return null
 
   return (
     <View className="rounded-2xl border border-border-default bg-surface-default p-3">
       <View className="flex-row items-center justify-between gap-3">
-        <Text className="text-[12px] font-bold text-text-secondary">Seguridad de la contraseña</Text>
-        <Text className="text-[12px] font-black" style={{ color: result.color }}>{result.label}</Text>
+        <Text maxFontSizeMultiplier={2} className="text-[12px] font-bold text-text-secondary">
+          {t('auth.password.strength.title')}
+        </Text>
+        <Text maxFontSizeMultiplier={2} className="text-[12px] font-black" style={{ color: result.color }}>{result.label}</Text>
       </View>
       <View className="mt-2 flex-row gap-1.5">
         {[0, 1, 2, 3].map((segment) => (
@@ -35,7 +39,11 @@ export default function PasswordStrength({ result, compact = false }: PasswordSt
                 size={14}
                 color={check.met ? '#34D399' : '#64748B'}
               />
-              <Text className="text-[11px] font-semibold" style={{ color: check.met ? '#C8F7DF' : '#8FA7C7' }}>
+              <Text
+                maxFontSizeMultiplier={2}
+                className="text-[11px] font-semibold"
+                style={{ color: check.met ? '#C8F7DF' : '#8FA7C7' }}
+              >
                 {check.label}
               </Text>
             </View>

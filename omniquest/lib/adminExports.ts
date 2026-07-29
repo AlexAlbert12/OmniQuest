@@ -40,7 +40,7 @@ async function fetchAllRpcRows<Name extends AdminPagedRpcName>(
 
     if (error) throw error
 
-    const page = (data || []) as AdminPagedRpcRow<Name>[]
+    const page = (Array.isArray(data) ? data : []) as unknown as AdminPagedRpcRow<Name>[]
     if (page.length === 0) break
 
     rows.push(...page)
@@ -81,13 +81,13 @@ export async function exportAdminProfiles({
   const rows = await fetchAllRpcRows('get_admin_profiles_page', {
     p_role: role,
     p_search: search.trim(),
-    p_subject_id: subjectId,
-    p_classroom_id: classroomId,
-    p_profile_id: profileId,
-    p_active: active,
-    p_activity_state: activityState,
-    p_created_from: createdFrom,
-    p_created_to: createdTo,
+    p_subject_id: subjectId ?? undefined,
+    p_classroom_id: classroomId ?? undefined,
+    p_profile_id: profileId ?? undefined,
+    p_active: active ?? undefined,
+    p_activity_state: activityState ?? undefined,
+    p_created_from: createdFrom ?? undefined,
+    p_created_to: createdTo ?? undefined,
   })
 
   return exportCsvFile(
@@ -125,11 +125,11 @@ export async function exportAdminSubjects({
 }) {
   const rows = await fetchAllRpcRows('get_admin_subjects_page', {
     p_search: search.trim(),
-    p_teacher_id: teacherId,
-    p_archived: archived,
-    p_active: active,
-    p_created_from: createdFrom,
-    p_created_to: createdTo,
+    p_teacher_id: teacherId ?? undefined,
+    p_archived: archived ?? undefined,
+    p_active: active ?? undefined,
+    p_created_from: createdFrom ?? undefined,
+    p_created_to: createdTo ?? undefined,
   })
 
   return exportCsvFile(
@@ -173,12 +173,12 @@ export async function exportAdminClassrooms({
 }) {
   const rows = await fetchAllRpcRows('get_admin_classrooms_page', {
     p_search: search.trim(),
-    p_subject_id: subjectId,
-    p_student_id: studentId,
-    p_teacher_id: teacherId,
-    p_active: active,
-    p_created_from: createdFrom,
-    p_created_to: createdTo,
+    p_subject_id: subjectId ?? undefined,
+    p_student_id: studentId ?? undefined,
+    p_teacher_id: teacherId ?? undefined,
+    p_active: active ?? undefined,
+    p_created_from: createdFrom ?? undefined,
+    p_created_to: createdTo ?? undefined,
   })
 
   return exportCsvFile(
@@ -212,14 +212,14 @@ export async function exportAdminAudit(filters: {
   severity?: string | null
 }) {
   const rows = await fetchAllRpcRows('get_admin_audit_logs_page', {
-    p_search: filters.search.trim() || null,
-    p_actor_id: filters.actorId || null,
-    p_action: filters.action || null,
-    p_target_table: filters.targetTable || null,
-    p_target_id: filters.targetId || null,
-    p_from: filters.from || null,
-    p_to: filters.to || null,
-    p_severity: filters.severity || null,
+    p_search: filters.search.trim() || undefined,
+    p_actor_id: filters.actorId || undefined,
+    p_action: filters.action || undefined,
+    p_target_table: filters.targetTable || undefined,
+    p_target_id: filters.targetId || undefined,
+    p_from: filters.from || undefined,
+    p_to: filters.to || undefined,
+    p_severity: filters.severity || undefined,
   })
 
   return exportCsvFile(
@@ -246,10 +246,10 @@ export async function exportAdminSupport(filters: {
   role?: string | null
 }) {
   const rows = await fetchAllRpcRows('get_admin_support_tickets_page', {
-    p_search: filters.search.trim() || null,
-    p_status: filters.status || null,
-    p_priority: filters.priority || null,
-    p_role: filters.role || null,
+    p_search: filters.search.trim() || undefined,
+    p_status: filters.status || undefined,
+    p_priority: filters.priority || undefined,
+    p_role: filters.role || undefined,
   })
 
   return exportCsvFile(

@@ -20,6 +20,7 @@ import OfflineSyncBanner from '../components/OfflineSyncBanner'
 import { getNetworkAvailability } from '../lib/gameOffline'
 import { readOfflineCache, writeOfflineCache } from '../lib/offlineCache'
 import { isRetriableOfflineError } from '../lib/offlineMutations'
+import { markPasswordRecoverySession } from '../lib/recoverySession'
 
 type CachedAuthProfile = { role_id: string | null; active: boolean | null }
 
@@ -104,17 +105,17 @@ function RootNavigator() {
     }
 
     const syncNavigation = async (session: any) => {
-      const isAuthRoute = 
+      const isPublicLegalRoute = normalizedPath === '/privacy' || normalizedPath === '/terms'
+      const isAuthRoute =
         normalizedPath === '/' ||
-        normalizedPath === '/(auth)/login' || 
+        normalizedPath === '/(auth)/login' ||
         normalizedPath === '/(auth)/register' ||
         normalizedPath === '/(auth)/forgot-password' ||
         normalizedPath === '/(auth)/update-password'
-      const isPasswordRecoveryRoute =
-        normalizedPath === '/(auth)/update-password'
+      const isPasswordRecoveryRoute = normalizedPath === '/(auth)/update-password'
 
       if (!session) {
-        if (!isAuthRoute) {
+        if (!isAuthRoute && !isPublicLegalRoute) {
           redirectToLogin()
         }
         if (isMounted) {
@@ -123,7 +124,7 @@ function RootNavigator() {
         return
       }
 
-      if (isPasswordRecoveryRoute) {
+      if (isPasswordRecoveryRoute || isPublicLegalRoute) {
         if (isMounted) {
           setIsInitialized(true)
         }
@@ -168,25 +169,30 @@ function RootNavigator() {
       }
 
       if (networkAvailable && !profile && verifiedUser.is_anonymous) {
-        const { data: guestProfile, error: guestProfileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: session.user.id,
-            alias: verifiedUser.user_metadata?.alias || 'Invitado',
-            role_id: 'guest',
-            points: 0,
-            active: true,
-          })
-          .select('role_id, active')
-          .single()
+        const guestAlias = String(verifiedUser.user_metadata?.alias || 'Invitado')
+        const { error: guestInitError } = await supabase.rpc('initialize_guest_profile', {
+          p_alias: guestAlias,
+        })
 
-        profile = guestProfile
-        profileError = guestProfileError
+        if (!guestInitError) {
+          const guestProfileResult = await supabase
+            .from('profiles')
+            .select('role_id, active')
+            .eq('id', session.user.id)
+            .maybeSingle()
+          profile = guestProfileResult.data
+          profileError = guestProfileResult.error
+        } else {
+          profileError = guestInitError
+        }
       }
 
       if (!networkAvailable && !profile) {
+        // Never trust public user metadata for authorization. Without a cached
+        // server role, anonymous sessions are guests and email sessions use the
+        // least-privileged registered role until connectivity returns.
         profile = {
-          role_id: verifiedUser.is_anonymous ? 'guest' : String(verifiedUser.user_metadata?.role_id || 'student'),
+          role_id: verifiedUser.is_anonymous ? 'guest' : 'student',
           active: true,
         }
       }
@@ -257,7 +263,10 @@ function RootNavigator() {
       void syncNavigation(data.session)
     })
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        void markPasswordRecoverySession()
+      }
       void syncNavigation(session)
     })
 
@@ -271,7 +280,7 @@ function RootNavigator() {
     if (!isInitialized) return
     const normalizedPath = normalizeAuthPath(pathname)
     const routeGroup = getRouteGroup(rootSegment, normalizedPath)
-    if (routeGroup === 'auth' || normalizedPath === '/') return
+    if (routeGroup === 'auth' || normalizedPath === '/' || normalizedPath === '/privacy' || normalizedPath === '/terms') return
     void trackScreenView(normalizedPath, routeGroup)
   }, [isInitialized, pathname, rootSegment])
 

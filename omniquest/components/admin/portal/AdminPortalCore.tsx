@@ -1696,6 +1696,7 @@ export function EmptyState({ label }: { label: string }) {
 }
 
 export function ListLoadingState() {
+  const { tokens } = useAppTheme()
   return (
     <View className="items-center rounded-xl border border-border-default bg-surface-default p-5">
       <ActivityIndicator color={tokens.brand.admin} />
@@ -1789,16 +1790,7 @@ export function buildSubjectFromClassroom(classroom: ClassroomRow): SubjectRow |
 }
 
 export function useAdminDashboard(data: AdminData) {
-  return useMemo(() => ({
-    activeCourses: data.metrics.activeCourses,
-    archivedCourses: data.metrics.archivedCourses,
-    activeClassrooms: data.metrics.activeClassrooms,
-    inactiveUsers: data.metrics.inactiveUsers,
-    coursesWithoutClassrooms: data.metrics.coursesWithoutClassrooms,
-    studentsWithoutActivity: data.metrics.studentsWithoutActivity,
-    classroomsWithoutCode: data.metrics.classroomsWithoutCode,
-    enrollmentsCount: data.metrics.enrollmentsCount,
-  }), [data.metrics])
+  return data.metrics
 }
 
 export function getInitials(value: string) {

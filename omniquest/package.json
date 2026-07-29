@@ -20,7 +20,9 @@
     "deploy:security": "supabase functions deploy manage-account-security",
     "deploy:media": "supabase functions deploy process-question-media && supabase functions deploy cleanup-question-media --no-verify-jwt",
     "audit:design-system": "node scripts/audit-design-system.mjs",
-    "audit:accessibility": "node scripts/audit-accessibility-responsive.mjs"
+    "audit:accessibility": "node scripts/audit-accessibility-responsive.mjs",
+    "deploy:auth": "supabase functions deploy auth-attempt-guard --no-verify-jwt",
+    "test:auth-forms": "node --test tests/source/auth-public-flows.behavior.test.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",

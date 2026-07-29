@@ -595,7 +595,7 @@ export function useTeacherSubjectDetail({
         .rpc('create_teacher_classroom', {
           p_subject_id: subject.id,
           p_name: newClassroomName.trim(),
-          p_academic_year: subject.academic_year ?? null,
+          p_academic_year: subject.academic_year ?? undefined,
         });
 
       if (error) throw error;
@@ -909,7 +909,7 @@ export function useTeacherSubjectDetail({
       const { error } = await supabase.rpc('review_open_answer_attempt', {
         p_attempt_history_id: attemptId,
         p_is_correct: isCorrect,
-        p_notes: null,
+        p_notes: undefined,
       });
 
       if (error) throw error;

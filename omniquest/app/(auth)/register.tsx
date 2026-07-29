@@ -2,8 +2,10 @@ import React, { useMemo, useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { Link, useRouter } from 'expo-router'
 import { Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import AuthCapsLockWarning from '../../components/auth/AuthCapsLockWarning'
 import AuthCard from '../../components/auth/AuthCard'
 import AuthInput from '../../components/auth/AuthInput'
+import AuthRoleNotice from '../../components/auth/AuthRoleNotice'
 import AuthStatusBanner from '../../components/auth/AuthStatusBanner'
 import AuthSubmitButton from '../../components/auth/AuthSubmitButton'
 import EmailVerificationPanel from '../../components/auth/EmailVerificationPanel'
@@ -11,7 +13,10 @@ import PasswordStrength from '../../components/auth/PasswordStrength'
 import BrandLogo from '../../components/BrandLogo'
 import HomeVisualBackground from '../../components/HomeVisualBackground'
 import OmniGuide from '../../components/OmniGuide'
-import { getAuthErrorMessage, getEmailRedirectTo, getPasswordStrength, isValidEmail, normalizeEmail } from '../../lib/auth'
+import { getAuthErrorMessage, getEmailRedirectTo, getPasswordStrength, normalizeEmail } from '../../lib/auth'
+import { checkAuthAttempt, formatRetryDelay } from '../../lib/authSecurity'
+import { buildPublicStudentSignUpOptions, prepareAuthSubmission, validateRegistrationForm } from '../../lib/authFormValidation'
+import { useI18n } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
 
 type RegisterErrors = { alias?: string; confirmPassword?: string; email?: string; password?: string }
@@ -20,12 +25,14 @@ type Status = { variant: 'info' | 'success' | 'warning' | 'error'; title?: strin
 export default function RegisterScreen() {
   const { width, height } = useWindowDimensions()
   const router = useRouter()
+  const { locale, t } = useI18n()
   const [alias, setAlias] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [capsLock, setCapsLock] = useState(false)
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null)
@@ -36,62 +43,85 @@ export default function RegisterScreen() {
   const isDesktop = width >= 1100
   const isTablet = width >= 760
   const isWeb = Platform.OS === 'web'
-  const passwordStrength = useMemo(() => getPasswordStrength(password), [password])
+  const passwordStrength = useMemo(() => getPasswordStrength(password, t), [password, t])
+  const validationMessages = {
+    aliasTooShort: t('auth.validation.aliasTooShort'),
+    aliasTooLong: t('auth.validation.aliasTooLong'),
+    invalidEmail: t('auth.validation.invalidEmail'),
+    weakPassword: t('auth.validation.weakPassword'),
+    confirmRequired: t('auth.validation.confirmRequired'),
+    passwordMismatch: t('auth.validation.passwordMismatch'),
+  }
 
-  const validateAlias = (value = alias) => {
-    const trimmed = value.trim()
-    const error = trimmed.length < 3 ? 'El alias debe tener al menos 3 caracteres.' : trimmed.length > 30 ? 'El alias no puede superar 30 caracteres.' : undefined
-    setFieldErrors((current) => ({ ...current, alias: error }))
-    return !error
+  const validateValues = (
+    nextAlias = alias,
+    nextEmail = email,
+    nextPassword = password,
+    nextConfirmation = confirmPassword,
+  ) => {
+    const errors = validateRegistrationForm({
+      alias: nextAlias,
+      email: nextEmail,
+      password: nextPassword,
+      confirmPassword: nextConfirmation,
+    }, validationMessages) as RegisterErrors
+    setFieldErrors(errors)
+    return errors
   }
-  const validateEmail = (value = email) => {
-    const error = isValidEmail(normalizeEmail(value)) ? undefined : 'Introduce un correo electrónico válido.'
-    setFieldErrors((current) => ({ ...current, email: error }))
-    return !error
-  }
-  const validatePassword = (value = password) => {
-    const strength = getPasswordStrength(value)
-    const error = strength.isAcceptable ? undefined : 'Usa 8 caracteres e incluye mayúscula, minúscula, número y símbolo.'
-    setFieldErrors((current) => ({ ...current, password: error }))
-    return !error
-  }
-  const validateConfirmation = (value = confirmPassword, sourcePassword = password) => {
-    const error = !value ? 'Repite tu contraseña.' : value !== sourcePassword ? 'Las contraseñas no coinciden.' : undefined
-    setFieldErrors((current) => ({ ...current, confirmPassword: error }))
-    return !error
+
+  const showRateLimit = (retryAfterSeconds: number) => {
+    setStatus({
+      variant: 'warning',
+      title: t('auth.rateLimit.title'),
+      message: t('auth.rateLimit.message', { delay: formatRetryDelay(retryAfterSeconds, locale) }),
+    })
   }
 
   const signUpWithEmail = async () => {
     const normalizedEmail = normalizeEmail(email)
-    const checks = [validateAlias(), validateEmail(normalizedEmail), validatePassword(), validateConfirmation(confirmPassword, password)]
-    if (checks.some((valid) => !valid)) return
+    const values = { alias, email: normalizedEmail, password, confirmPassword }
+    const prepared = await prepareAuthSubmission({
+      values,
+      validate: (candidate) => validateRegistrationForm(candidate, validationMessages),
+      guard: () => checkAuthAttempt('sign_up', normalizedEmail),
+    })
+
+    if (prepared.status === 'validation_error') {
+      setFieldErrors(prepared.errors as RegisterErrors)
+      return
+    }
+    if (prepared.status === 'rate_limited') {
+      showRateLimit(prepared.retryAfterSeconds)
+      return
+    }
 
     setLoading(true)
-    setStatus({ variant: 'info', message: 'Estamos creando tu cuenta de alumno…' })
+    setStatus({ variant: 'info', message: t('auth.register.creating') })
     try {
       const { data, error } = await supabase.auth.signUp({
         email: normalizedEmail,
         password,
-        options: {
-          emailRedirectTo: getEmailRedirectTo('/login'),
-          data: { alias: alias.trim(), role_id: 'student' },
-        },
+        options: buildPublicStudentSignUpOptions(alias, getEmailRedirectTo('/login')),
       })
       if (error) {
-        setStatus({ variant: 'error', title: 'No se pudo crear la cuenta', message: getAuthErrorMessage(error, 'signUp') })
+        setStatus({ variant: 'error', title: t('auth.register.title'), message: getAuthErrorMessage(error, 'signUp', t) })
         return
       }
+
       if (!data.session) {
         setVerificationEmail(normalizedEmail)
         setVerificationSent(false)
-        setStatus(null)
+        setStatus(data.user?.identities?.length === 0
+          ? { variant: 'info', message: t('auth.register.existingObfuscated') }
+          : null)
         return
       }
-      setStatus({ variant: 'success', message: 'Cuenta creada. Preparando tu aventura…' })
+
+      setStatus({ variant: 'success', message: t('auth.register.success') })
       router.replace('/(student)/homeStudent' as any)
     } catch (error) {
       console.error('[register] unexpected error', error)
-      setStatus({ variant: 'error', title: 'Error de conexión', message: 'No hemos podido crear la cuenta. Inténtalo de nuevo.' })
+      setStatus({ variant: 'error', title: t('auth.register.title'), message: t('auth.register.connectionError') })
     } finally {
       setLoading(false)
     }
@@ -99,6 +129,12 @@ export default function RegisterScreen() {
 
   const resendVerification = async () => {
     if (!verificationEmail) return
+    const gate = await checkAuthAttempt('resend_verification', verificationEmail)
+    if (!gate.allowed) {
+      showRateLimit(gate.retryAfterSeconds)
+      return
+    }
+
     setResending(true)
     try {
       const { error } = await supabase.auth.resend({
@@ -109,7 +145,7 @@ export default function RegisterScreen() {
       if (error) throw error
       setVerificationSent(true)
     } catch (error: any) {
-      setStatus({ variant: 'error', title: 'No se pudo reenviar', message: getAuthErrorMessage(error, 'signUp') })
+      setStatus({ variant: 'error', title: t('auth.login.resend'), message: getAuthErrorMessage(error, 'signUp', t) })
     } finally {
       setResending(false)
     }
@@ -122,16 +158,18 @@ export default function RegisterScreen() {
         <View className="z-10 flex-1 items-center justify-center" style={{ paddingHorizontal: isDesktop ? 32 : 22, paddingVertical: 32 }}>
           <View className="absolute left-5 top-5 z-20">
             <Link href="/" asChild>
-              <Pressable accessibilityRole="button" accessibilityLabel="Volver al inicio" className="flex-row items-center gap-2 rounded-full border border-border-active bg-semantic-surface-info px-4 py-3">
+              <Pressable accessibilityRole="link" accessibilityLabel={t('auth.common.home')} className="flex-row items-center gap-2 rounded-full border border-border-active bg-semantic-surface-info px-4 py-3">
                 <Ionicons name="home-outline" size={18} color="#8CD5FF" />
-                <Text className="font-extrabold text-text-secondary">Inicio</Text>
+                <Text maxFontSizeMultiplier={2} className="font-extrabold text-text-secondary">{t('auth.common.home')}</Text>
               </Pressable>
             </Link>
           </View>
 
           <View className="items-center px-2">
             <BrandLogo center size={isDesktop ? 68 : 48} />
-            <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }} className="mt-1 text-center text-semantic-info">Crea tu cuenta para empezar.</Text>
+            <Text maxFontSizeMultiplier={2} style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }} className="mt-1 text-center text-semantic-info">
+              {t('auth.register.heading')}
+            </Text>
             <View className="mb-5 mt-4 flex-row items-center gap-3">
               <View className="h-px w-16 bg-brand-student" />
               <OmniGuide state={verificationEmail ? 'happy' : 'normal'} autoBlink={!verificationEmail} size={isDesktop ? 80 : isTablet ? 70 : 48} />
@@ -142,35 +180,47 @@ export default function RegisterScreen() {
           <AuthCard
             accentColor="#A56BFF"
             icon={verificationEmail ? 'mail-open-outline' : 'game-controller-outline'}
-            title={verificationEmail ? 'Un último paso' : 'Crear cuenta'}
-            subtitle={verificationEmail ? 'Verifica tu correo para activar la cuenta' : 'Empieza tu aventura como alumno'}
+            title={verificationEmail ? t('auth.register.verificationTitle') : t('auth.register.title')}
+            subtitle={verificationEmail ? t('auth.register.verificationSubtitle') : t('auth.register.subtitle')}
             isDesktop={isDesktop}
             maxWidth={isTablet ? 620 : 470}
             footer={!verificationEmail ? (
               <View className="flex-row flex-wrap items-center justify-center gap-1">
-                <Text className="text-[13px] font-semibold text-text-muted">¿Ya tienes cuenta?</Text>
-                <Link href="/(auth)/login" asChild><Pressable accessibilityRole="link" hitSlop={6}><Text className="text-[13px] font-extrabold text-semantic-info">Inicia sesión.</Text></Pressable></Link>
+                <Text maxFontSizeMultiplier={2} className="text-[13px] font-semibold text-text-muted">{t('auth.register.haveAccount')}</Text>
+                <Link href="/(auth)/login" asChild>
+                  <Pressable accessibilityRole="link" hitSlop={6}>
+                    <Text maxFontSizeMultiplier={2} className="text-[13px] font-extrabold text-semantic-info">{t('auth.register.loginLink')}</Text>
+                  </Pressable>
+                </Link>
               </View>
             ) : undefined}
           >
             {verificationEmail ? (
-              <EmailVerificationPanel
-                email={verificationEmail}
-                loading={resending}
-                sent={verificationSent}
-                onResend={() => void resendVerification()}
-                onGoToLogin={() => router.replace('/(auth)/login' as any)}
-                onChangeEmail={() => { setVerificationEmail(null); setVerificationSent(false); setStatus(null) }}
-              />
+              <>
+                {status ? <AuthStatusBanner variant={status.variant} title={status.title} message={status.message} /> : null}
+                <EmailVerificationPanel
+                  email={verificationEmail}
+                  loading={resending}
+                  sent={verificationSent}
+                  onResend={() => void resendVerification()}
+                  onGoToLogin={() => router.replace('/(auth)/login' as any)}
+                  onChangeEmail={() => { setVerificationEmail(null); setVerificationSent(false); setStatus(null) }}
+                />
+              </>
             ) : (
               <>
+                <AuthRoleNotice />
                 <AuthInput
-                  label="Alias público"
+                  label={t('auth.common.alias')}
                   icon="person-outline"
-                  placeholder="Jugador123"
+                  placeholder={t('auth.common.aliasPlaceholder')}
                   value={alias}
-                  onChangeText={(value) => { setAlias(value); if (fieldErrors.alias) validateAlias(value); setStatus(null) }}
-                  onBlur={() => validateAlias()}
+                  onChangeText={(value) => {
+                    setAlias(value)
+                    if (fieldErrors.alias) validateValues(value, email, password, confirmPassword)
+                    setStatus(null)
+                  }}
+                  onBlur={() => validateValues(alias, email, password, confirmPassword)}
                   error={fieldErrors.alias}
                   valid={alias.trim().length >= 3 && !fieldErrors.alias}
                   autoCapitalize="none"
@@ -178,14 +228,18 @@ export default function RegisterScreen() {
                   textContentType="username"
                 />
                 <AuthInput
-                  label="Correo electrónico"
+                  label={t('auth.common.email')}
                   icon="mail-outline"
-                  placeholder="tu@email.com"
+                  placeholder={t('auth.common.emailPlaceholder')}
                   value={email}
-                  onChangeText={(value) => { setEmail(value); if (fieldErrors.email) validateEmail(value); setStatus(null) }}
-                  onBlur={() => validateEmail()}
+                  onChangeText={(value) => {
+                    setEmail(value)
+                    if (fieldErrors.email) validateValues(alias, value, password, confirmPassword)
+                    setStatus(null)
+                  }}
+                  onBlur={() => validateValues(alias, email, password, confirmPassword)}
                   error={fieldErrors.email}
-                  valid={Boolean(email) && !fieldErrors.email && isValidEmail(normalizeEmail(email))}
+                  valid={Boolean(email) && !fieldErrors.email}
                   autoCapitalize="none"
                   autoComplete="email"
                   autoCorrect={false}
@@ -194,17 +248,17 @@ export default function RegisterScreen() {
                   textContentType="emailAddress"
                 />
                 <AuthInput
-                  label="Contraseña"
+                  label={t('auth.common.password')}
                   icon="lock-closed-outline"
-                  placeholder="Crea una contraseña segura"
+                  placeholder={t('auth.register.passwordPlaceholder')}
                   value={password}
                   onChangeText={(value) => {
                     setPassword(value)
-                    if (fieldErrors.password) validatePassword(value)
-                    if (confirmPassword) validateConfirmation(confirmPassword, value)
+                    if (fieldErrors.password || confirmPassword) validateValues(alias, email, value, confirmPassword)
                     setStatus(null)
                   }}
-                  onBlur={() => validatePassword()}
+                  onBlur={() => validateValues(alias, email, password, confirmPassword)}
+                  onCapsLockChange={setCapsLock}
                   error={fieldErrors.password}
                   autoComplete="new-password"
                   secureTextEntry={!showPassword}
@@ -213,15 +267,21 @@ export default function RegisterScreen() {
                   textContentType="newPassword"
                   onToggleSecureText={() => setShowPassword((current) => !current)}
                 />
+                <AuthCapsLockWarning visible={capsLock} />
                 <PasswordStrength result={passwordStrength} />
                 <AuthInput
-                  label="Confirmar contraseña"
+                  label={t('auth.common.confirmPassword')}
                   icon="shield-checkmark-outline"
-                  placeholder="Repite tu contraseña"
+                  placeholder={t('auth.register.confirmPlaceholder')}
                   value={confirmPassword}
-                  onChangeText={(value) => { setConfirmPassword(value); if (fieldErrors.confirmPassword || value === password) validateConfirmation(value, password); setStatus(null) }}
-                  onBlur={() => validateConfirmation()}
+                  onChangeText={(value) => {
+                    setConfirmPassword(value)
+                    if (fieldErrors.confirmPassword || value === password) validateValues(alias, email, password, value)
+                    setStatus(null)
+                  }}
+                  onBlur={() => validateValues(alias, email, password, confirmPassword)}
                   onSubmitEditing={() => void signUpWithEmail()}
+                  onCapsLockChange={setCapsLock}
                   error={fieldErrors.confirmPassword}
                   valid={Boolean(confirmPassword) && confirmPassword === password && !fieldErrors.confirmPassword}
                   autoComplete="new-password"
@@ -233,7 +293,13 @@ export default function RegisterScreen() {
                   onToggleSecureText={() => setShowConfirmPassword((current) => !current)}
                 />
                 {status ? <AuthStatusBanner variant={status.variant} title={status.title} message={status.message} /> : null}
-                <AuthSubmitButton label="Crear cuenta de alumno" loadingLabel="Creando cuenta…" loading={loading} disabled={!passwordStrength.isAcceptable} onPress={() => void signUpWithEmail()} />
+                <AuthSubmitButton
+                  label={t('auth.register.submit')}
+                  loadingLabel={t('auth.register.loading')}
+                  loading={loading}
+                  disabled={!passwordStrength.isAcceptable}
+                  onPress={() => void signUpWithEmail()}
+                />
               </>
             )}
           </AuthCard>

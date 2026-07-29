@@ -45,7 +45,10 @@ export function useAdminDirectoryFilters() {
           console.warn('[admin filters] No se pudieron cargar las opciones:', error.message)
           setDirectory(EMPTY_DIRECTORY)
         } else {
-          setDirectory({ ...EMPTY_DIRECTORY, ...(data || {}) } as AdminDirectoryFilters)
+          const payload = data && typeof data === 'object' && !Array.isArray(data)
+            ? data as unknown as Partial<AdminDirectoryFilters>
+            : {}
+          setDirectory({ ...EMPTY_DIRECTORY, ...payload })
         }
         setLoading(false)
       }

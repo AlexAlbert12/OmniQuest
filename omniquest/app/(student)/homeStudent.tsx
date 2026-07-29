@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { Pressable, Text, TextInput, View } from 'react-native'
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { Link, useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -24,6 +24,7 @@ import AppButton from '../../components/ui/AppButton'
 import { withAlpha } from '../../lib/color'
 import StudentLayout from '../../components/student/StudentLayout'
 import { useResponsiveLayout } from '../../lib/responsive'
+import { useAppModal } from '../../components/AppModalProvider'
 
 type Subject = {
   id: number
@@ -160,6 +161,7 @@ export default function StudentHome() {
   const [progressSummary, setProgressSummary] = useState<StudentProgressSummary | null>(null)
   const router = useRouter()
   const { accentColor, tokens } = useAppTheme()
+  const { showModal } = useAppModal()
 
   const isWide = !responsive.isMobile
   const points = profile?.points ?? 0
@@ -343,12 +345,11 @@ export default function StudentHome() {
   );
 
   const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`)
-      return
-    }
-
-    Alert.alert(title, message)
+    showModal({
+      title,
+      message,
+      variant: title.toLowerCase().includes('error') ? 'error' : 'success',
+    })
   }
 
   const handleJoinClass = async () => {

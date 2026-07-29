@@ -20,9 +20,9 @@ export async function createTeacherNotification({
   const { data, error } = await supabase.rpc('create_teacher_notification', {
     p_student_id: studentId,
     p_subject_id: subjectId,
-    p_classroom_id: classroomId,
+    p_classroom_id: classroomId ?? undefined,
     p_type: type,
-    p_message: message,
+    p_message: message ?? undefined,
   })
 
   if (error) throw error

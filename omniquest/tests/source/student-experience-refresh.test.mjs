@@ -21,7 +21,7 @@ test('auth flows share modern cards, inline validation and verification resend',
   assert.match(register, /EmailVerificationPanel/)
   assert.match(register, /PasswordStrength/)
   assert.match(register, /getPasswordStrength/)
-  assert.match(strength, /Seguridad de la contraseña/)
+  assert.match(strength, /auth\.password\.strength\.title/)
 })
 
 test('student progress leads with an actionable daily recommendation', () => {

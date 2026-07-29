@@ -116,8 +116,8 @@ export async function equipProfileCosmetics({
   featuredBadgeId: string | null
 }): Promise<ProfileCosmetics> {
   const { data, error } = await supabase.rpc('equip_profile_cosmetics', {
-    p_frame_key: frameKey,
-    p_featured_badge_id: featuredBadgeId,
+    p_frame_key: frameKey ?? undefined,
+    p_featured_badge_id: featuredBadgeId ?? undefined,
   })
 
   if (error) throw error

@@ -25,7 +25,7 @@ export default function AdminAuditTable({ rows }: { rows: AdminAuditLogRow[] }) 
 
       {rows.map((log, index) => {
         const severity = log.severity || 'info'
-        const severityMeta = getAdminAuditSeverityMeta(severity)
+        const severityMeta = getAdminAuditSeverityMeta(severity, tokens)
         return (
           <View
             key={log.id}

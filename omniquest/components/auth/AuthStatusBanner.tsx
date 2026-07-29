@@ -1,6 +1,7 @@
 import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { Pressable, Text, View } from 'react-native'
+import { useI18n } from '../../lib/i18n'
 
 type AuthStatusVariant = 'info' | 'success' | 'warning' | 'error'
 
@@ -34,6 +35,7 @@ export default function AuthStatusBanner({
   loading = false,
 }: AuthStatusBannerProps) {
   const palette = variants[variant]
+  const { t } = useI18n()
 
   return (
     <View
@@ -43,8 +45,8 @@ export default function AuthStatusBanner({
     >
       <Ionicons name={palette.icon} size={21} color={palette.color} />
       <View className="min-w-0 flex-1">
-        {title ? <Text className="font-black" style={{ color: palette.color }}>{title}</Text> : null}
-        <Text className={`${title ? 'mt-1' : ''} text-[13px] font-semibold leading-5 text-text-secondary`}>{message}</Text>
+        {title ? <Text maxFontSizeMultiplier={2} className="font-black" style={{ color: palette.color }}>{title}</Text> : null}
+        <Text maxFontSizeMultiplier={2} className={`${title ? 'mt-1' : ''} text-[13px] font-semibold leading-5 text-text-secondary`}>{message}</Text>
         {actionLabel && onAction ? (
           <Pressable
             accessibilityRole="button"
@@ -59,8 +61,8 @@ export default function AuthStatusBanner({
               opacity: loading ? 0.55 : pressed ? 0.76 : 1,
             })}
           >
-            <Text className="text-[12px] font-black" style={{ color: palette.color }}>
-              {loading ? 'Enviando...' : actionLabel}
+            <Text maxFontSizeMultiplier={2} className="text-[12px] font-black" style={{ color: palette.color }}>
+              {loading ? t('auth.common.sending') : actionLabel}
             </Text>
           </Pressable>
         ) : null}

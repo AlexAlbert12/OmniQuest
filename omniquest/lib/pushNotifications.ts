@@ -82,8 +82,8 @@ export async function registerCurrentDeviceForPush(): Promise<PushRegistrationRe
     const { error } = await supabase.rpc('register_push_token', {
       p_expo_push_token: token,
       p_platform: Platform.OS,
-      p_device_name: deviceName,
-      p_app_version: appVersion,
+      p_device_name: deviceName ?? undefined,
+      p_app_version: appVersion ?? undefined,
     })
 
     if (error) throw error

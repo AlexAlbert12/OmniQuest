@@ -8,29 +8,51 @@ import AuthSubmitButton from '../../components/auth/AuthSubmitButton'
 import BrandLogo from '../../components/BrandLogo'
 import HomeVisualBackground from '../../components/HomeVisualBackground'
 import OmniGuide from '../../components/OmniGuide'
-import { getAuthErrorMessage, getPasswordRecoveryRedirectTo, isValidEmail, normalizeEmail } from '../../lib/auth'
+import { getAuthErrorMessage, getPasswordRecoveryRedirectTo, normalizeEmail } from '../../lib/auth'
+import { checkAuthAttempt, formatRetryDelay } from '../../lib/authSecurity'
+import { prepareAuthSubmission, validateRecoveryForm } from '../../lib/authFormValidation'
+import { useI18n } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
 
 export default function ForgotPasswordScreen() {
   const { width, height } = useWindowDimensions()
+  const { locale, t } = useI18n()
   const [email, setEmail] = useState('')
   const [emailError, setEmailError] = useState<string | undefined>()
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
-  const [status, setStatus] = useState<{ variant: 'success' | 'error'; title?: string; message: string } | null>(null)
+  const [status, setStatus] = useState<{ variant: 'success' | 'warning' | 'error'; title?: string; message: string } | null>(null)
 
   const isDesktop = width >= 1100
   const isTablet = width >= 760
+  const validationMessages = { invalidEmail: t('auth.validation.invalidEmail') }
 
   const validateEmail = (value = email) => {
-    const error = isValidEmail(normalizeEmail(value)) ? undefined : 'Introduce un correo electrónico válido.'
-    setEmailError(error)
-    return !error
+    const errors = validateRecoveryForm({ email: value }, validationMessages)
+    setEmailError(errors.email)
+    return !errors.email
   }
 
   const sendRecoveryEmail = async () => {
     const normalizedEmail = normalizeEmail(email)
-    if (!validateEmail(normalizedEmail)) return
+    const prepared = await prepareAuthSubmission({
+      values: { email: normalizedEmail },
+      validate: (values) => validateRecoveryForm(values, validationMessages),
+      guard: () => checkAuthAttempt('password_recovery', normalizedEmail),
+    })
+
+    if (prepared.status === 'validation_error') {
+      setEmailError(prepared.errors.email)
+      return
+    }
+    if (prepared.status === 'rate_limited') {
+      setStatus({
+        variant: 'warning',
+        title: t('auth.rateLimit.title'),
+        message: t('auth.rateLimit.message', { delay: formatRetryDelay(prepared.retryAfterSeconds, locale) }),
+      })
+      return
+    }
 
     setLoading(true)
     setStatus(null)
@@ -42,11 +64,11 @@ export default function ForgotPasswordScreen() {
       setSent(true)
       setStatus({
         variant: 'success',
-        title: 'Revisa tu correo',
-        message: `Hemos enviado un enlace de recuperación a ${normalizedEmail}. También puede estar en correo no deseado.`,
+        title: t('auth.forgot.sentTitle'),
+        message: t('auth.forgot.sentMessage', { email: normalizedEmail }),
       })
     } catch (error: any) {
-      setStatus({ variant: 'error', title: 'No se pudo enviar', message: getAuthErrorMessage(error, 'resetPassword') })
+      setStatus({ variant: 'error', title: t('auth.forgot.title'), message: getAuthErrorMessage(error, 'resetPassword', t) })
     } finally {
       setLoading(false)
     }
@@ -59,29 +81,31 @@ export default function ForgotPasswordScreen() {
         <View className="z-10 flex-1 items-center justify-center" style={{ paddingHorizontal: isDesktop ? 32 : 22, paddingVertical: 34 }}>
           <View className="items-center px-2">
             <BrandLogo center size={isDesktop ? 68 : 48} />
-            <Text style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }} className="mt-1 text-center text-semantic-info">Recupera el acceso a tu aventura.</Text>
+            <Text maxFontSizeMultiplier={2} style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }} className="mt-1 text-center text-semantic-info">
+              {t('auth.forgot.heading')}
+            </Text>
             <OmniGuide state={sent ? 'happy' : 'thinking'} size={isDesktop ? 88 : 72} style={{ marginTop: 12 }} />
           </View>
 
           <AuthCard
             accentColor="#38BDF8"
             icon="key-outline"
-            title="Recuperar contraseña"
-            subtitle="Te enviaremos un enlace seguro para crear una contraseña nueva"
+            title={t('auth.forgot.title')}
+            subtitle={t('auth.forgot.subtitle')}
             isDesktop={isDesktop}
             maxWidth={isTablet ? 560 : 440}
             footer={(
               <Link href="/login" asChild>
-                <Pressable accessibilityRole="link" className="flex-row items-center justify-center gap-2" hitSlop={6}>
-                  <Text className="font-extrabold text-semantic-info">Volver a iniciar sesión</Text>
+                <Pressable accessibilityRole="link" accessibilityLabel={t('auth.common.backToLogin')} className="flex-row items-center justify-center gap-2" hitSlop={6}>
+                  <Text maxFontSizeMultiplier={2} className="font-extrabold text-semantic-info">{t('auth.common.backToLogin')}</Text>
                 </Pressable>
               </Link>
             )}
           >
             <AuthInput
-              label="Correo electrónico"
+              label={t('auth.common.email')}
               icon="mail-outline"
-              placeholder="tu@email.com"
+              placeholder={t('auth.common.emailPlaceholder')}
               value={email}
               onChangeText={(value) => {
                 setEmail(value)
@@ -91,7 +115,7 @@ export default function ForgotPasswordScreen() {
               onBlur={() => validateEmail()}
               onSubmitEditing={() => void sendRecoveryEmail()}
               error={emailError}
-              valid={Boolean(email) && !emailError && isValidEmail(normalizeEmail(email))}
+              valid={Boolean(email) && !emailError}
               autoCapitalize="none"
               autoComplete="email"
               autoCorrect={false}
@@ -104,8 +128,8 @@ export default function ForgotPasswordScreen() {
             {status ? <AuthStatusBanner variant={status.variant} title={status.title} message={status.message} /> : null}
 
             <AuthSubmitButton
-              label={sent ? 'Reenviar enlace' : 'Enviar enlace de recuperación'}
-              loadingLabel="Enviando…"
+              label={sent ? t('auth.forgot.resend') : t('auth.forgot.submit')}
+              loadingLabel={t('auth.forgot.loading')}
               loading={loading}
               icon="paper-plane"
               onPress={() => void sendRecoveryEmail()}

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Link, useRouter } from 'expo-router'
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native'
+import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { useState } from 'react'
 import BrandLogo from '../components/BrandLogo'
 import OmniGuide from '../components/OmniGuide'
@@ -9,6 +9,11 @@ import HomeVisualBackground from '../components/HomeVisualBackground'
 import { supabase } from '../lib/supabase'
 import { createShadowStyle } from '../lib/platformShadow'
 import { useResponsiveLayout } from '../lib/responsive'
+import { useAppModal } from '../components/AppModalProvider'
+import { useI18n } from '../lib/i18n'
+import { checkAuthAttempt, formatRetryDelay } from '../lib/authSecurity'
+import { getOrCreateDeviceId } from '../lib/sessionSecurity'
+import AuthRoleNotice from '../components/auth/AuthRoleNotice'
 
 type PathKind = 'student' | 'teacher'
 
@@ -82,6 +87,8 @@ export default function IndexScreen() {
   const responsive = useResponsiveLayout()
   const { width, height } = responsive
   const router = useRouter()
+  const { showModal } = useAppModal()
+  const { locale, t } = useI18n()
   const [guestLoading, setGuestLoading] = useState(false)
 
   const isDesktop = responsive.isDesktop
@@ -96,37 +103,35 @@ export default function IndexScreen() {
   const enterAsGuest = async () => {
     setGuestLoading(true)
     try {
-      const guestAlias = `Invitado${Math.floor(1000 + Math.random() * 9000)}`
+      const deviceId = await getOrCreateDeviceId()
+      const gate = await checkAuthAttempt('anonymous_sign_in', deviceId)
+      if (!gate.allowed) {
+        showModal({
+          title: t('landing.guestErrorTitle'),
+          message: t('landing.guestRateLimited', { delay: formatRetryDelay(gate.retryAfterSeconds, locale) }),
+          variant: 'warning',
+        })
+        return
+      }
+
+      const guestAlias = `${t('landing.guestAliasPrefix')}${Math.floor(1000 + Math.random() * 9000)}`
       const { data, error } = await supabase.auth.signInAnonymously({
-        options: {
-          data: {
-            alias: guestAlias,
-            role_id: 'guest',
-          },
-        },
+        options: { data: { alias: guestAlias } },
       })
+      if (error || !data.user) throw error || new Error(t('landing.guestErrorTitle'))
 
-      if (error) throw error
-
-      if (data.user) {
-        await supabase
-          .from('profiles')
-          .upsert({
-            id: data.user.id,
-            alias: guestAlias,
-            role_id: 'guest',
-            points: 0,
-          })
+      const { error: profileError } = await supabase.rpc('initialize_guest_profile', {
+        p_alias: guestAlias,
+      })
+      if (profileError) {
+        await supabase.auth.signOut({ scope: 'local' })
+        throw profileError
       }
 
       router.replace('/(student)/homeStudent' as any)
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo entrar como invitado.'
-      if (Platform.OS === 'web') {
-        window.alert(`Error\n\n${message}`)
-      } else {
-        Alert.alert('Error', message)
-      }
+      const message = error instanceof Error ? error.message : t('landing.guestErrorTitle')
+      showModal({ title: t('landing.guestErrorTitle'), message, variant: 'error' })
     } finally {
       setGuestLoading(false)
     }
@@ -188,6 +193,7 @@ function LandingPanel({
   onGuestPress: () => void
   guestLoading: boolean
 }) {
+  const { t } = useI18n()
   const [selectedPath, setSelectedPath] = useState<PathKind>('student')
   const activePath = features.find((feature) => feature.kind === selectedPath) ?? features[0]
   const progressFeature = features.find((feature) => feature.kind === 'progress')
@@ -208,7 +214,7 @@ function LandingPanel({
         maxFontSizeMultiplier={2}
         style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 28 : isTablet ? 24 : 20 }}
         className="text-center mt-4 text-semantic-info">
-        Tu viaje de aprendizaje comienza aquí.
+        {t('landing.journey')}
       </Text>
 
       <View className="mt-2 flex-row items-center gap-3">
@@ -231,8 +237,8 @@ function LandingPanel({
       >
         <LandingAction
           icon="person-outline"
-          title="Iniciar sesión"
-          subtitle="Accede a tu cuenta"
+          title={t('landing.login')}
+          subtitle={t('landing.loginSubtitle')}
           onPress={onLoginPress}
           variant="primary"
           isTablet={isTablet}
@@ -240,8 +246,8 @@ function LandingPanel({
 
         <LandingAction
           icon="glasses-outline"
-          title={guestLoading ? 'Entrando...' : 'Continuar como invitado'}
-          subtitle="Explora sin registrarte"
+          title={guestLoading ? t('landing.guestLoading') : t('landing.guest')}
+          subtitle={t('landing.guestSubtitle')}
           onPress={onGuestPress}
           variant="secondary"
           isTablet={isTablet}
@@ -249,17 +255,54 @@ function LandingPanel({
         />
       </View>
 
+      <View
+        accessibilityRole="summary"
+        className="mt-5 w-full max-w-[820px] rounded-3xl border border-semantic-warning bg-semantic-surface-warning px-5 py-4"
+      >
+        <View className="flex-row items-start gap-3">
+          <Ionicons name="hourglass-outline" size={22} color="#FBBF24" />
+          <View className="min-w-0 flex-1">
+            <Text maxFontSizeMultiplier={2} className="text-[14px] font-black leading-6 text-semantic-warning">
+              {t('landing.guestTemporary')}
+            </Text>
+            <Text maxFontSizeMultiplier={2} className="mt-1 text-[12px] leading-5 text-text-secondary">
+              {t('landing.guestPrivacy')}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View className="mt-4 w-full max-w-[820px]">
+        <Text maxFontSizeMultiplier={2} className="mb-2 text-center text-[14px] font-black text-text-primary">
+          {t('landing.rolesTitle')}
+        </Text>
+        <AuthRoleNotice />
+      </View>
+
+      <View className="mt-4 flex-row flex-wrap items-center justify-center gap-5">
+        <Link href="/privacy" asChild>
+          <Pressable accessibilityRole="link" accessibilityLabel={t('landing.privacy')} accessibilityHint={t('landing.privacyHint')} hitSlop={6}>
+            <Text maxFontSizeMultiplier={2} className="font-extrabold text-semantic-info">{t('landing.privacy')}</Text>
+          </Pressable>
+        </Link>
+        <Link href="/terms" asChild>
+          <Pressable accessibilityRole="link" accessibilityLabel={t('landing.terms')} accessibilityHint={t('landing.termsHint')} hitSlop={6}>
+            <Text maxFontSizeMultiplier={2} className="font-extrabold text-semantic-info">{t('landing.terms')}</Text>
+          </Pressable>
+        </Link>
+      </View>
+
       <View className="mt-6 flex-row flex-wrap items-center justify-center gap-2">
-        <Text className="text-[16px] font-semibold text-text-secondary">¿No tienes cuenta?</Text>
+        <Text maxFontSizeMultiplier={2} className="text-[16px] font-semibold text-text-secondary">{t('landing.noAccount')}</Text>
         <Link href="/register" asChild>
           <Pressable
             accessibilityRole="link"
-            accessibilityLabel="Crear una cuenta"
-            accessibilityHint="Abre el formulario de registro"
+            accessibilityLabel={t('landing.register')}
+            accessibilityHint={t('landing.registerHint')}
             className="flex-row items-center gap-2"
             style={({ pressed }) => ({ opacity: pressed ? 0.74 : 1 })}
           >
-            <Text className="text-[16px] font-extrabold text-semantic-info">Regístrate aquí</Text>
+            <Text maxFontSizeMultiplier={2} className="text-[16px] font-extrabold text-semantic-info">{t('landing.register')}</Text>
             <Ionicons name="arrow-forward" size={18} color="#42B9FF" />
           </Pressable>
         </Link>
@@ -403,6 +446,7 @@ function LandingAction({
 }
 
 function SectionDivider() {
+  const { t } = useI18n()
   return (
     <View className="mt-8 w-full flex-row items-center gap-4">
       <View className="h-px flex-1 bg-brand-teacher" />
@@ -410,7 +454,7 @@ function SectionDivider() {
         className="text-center text-[14px] font-extrabold text-white"
         style={{ letterSpacing: 5 }}
       >
-        ELIGE TU CAMINO
+        {t('landing.choosePath')}
       </Text>
       <View className="h-px flex-1 bg-brand-teacher" />
     </View>

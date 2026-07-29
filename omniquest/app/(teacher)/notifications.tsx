@@ -99,16 +99,16 @@ export default function TeacherNotificationsScreen() {
 
       const [reviewResult, auditResult, enrollmentsResult, scoresResult] = await Promise.all([
         supabase.rpc('get_teacher_manual_review_queue', {
-          p_subject_id: null,
-          p_classroom_id: null,
+          p_subject_id: undefined,
+          p_classroom_id: undefined,
           p_status: 'pending',
-          p_search: null,
+          p_search: undefined,
           p_limit: 1,
           p_offset: 0,
         }),
         supabase.rpc('get_teacher_audit_logs_page', {
           p_category: 'all',
-          p_search: null,
+          p_search: undefined,
           p_limit: 1,
           p_offset: 0,
         }),

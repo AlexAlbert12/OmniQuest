@@ -1,14 +1,16 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { createRequire } from 'node:module'
 import test from 'node:test'
 
 const root = process.cwd()
 const read = (path) => readFileSync(join(root, path), 'utf8')
+const require = createRequire(import.meta.url)
+const authValidation = require('../../lib/authFormValidation.js')
 
 test('local Supabase auth configuration matches the public authentication UX', () => {
   const config = read('supabase/config.toml')
-  const authHelpers = read('lib/auth.ts')
 
   assert.match(config, /enable_anonymous_sign_ins\s*=\s*true/)
   assert.match(config, /minimum_password_length\s*=\s*8/)
@@ -17,8 +19,8 @@ test('local Supabase auth configuration matches the public authentication UX', (
   assert.match(config, /\[auth\.email\][\s\S]*secure_password_change\s*=\s*true/)
   assert.match(config, /\[auth\.email\][\s\S]*otp_expiry\s*=\s*1800/)
   assert.match(config, /\[functions\.process-notification-delivery\][\s\S]*verify_jwt\s*=\s*false/)
-  assert.match(authHelpers, /score, label: 'Casi segura'[\s\S]*isAcceptable: false/)
-  assert.match(authHelpers, /label: 'Segura'[\s\S]*isAcceptable: true/)
+  assert.equal(authValidation.isStrongPassword('Casi1'), false)
+  assert.equal(authValidation.isStrongPassword('Segura1!'), true)
 })
 
 test('teacher recovery creates one-time links without passwords and is rate limited', () => {

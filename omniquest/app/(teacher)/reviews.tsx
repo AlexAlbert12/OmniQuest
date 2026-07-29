@@ -94,10 +94,10 @@ export default function TeacherReviewsScreen() {
 
       const [queueResult, subjectsResult, classroomsResult] = await Promise.all([
         supabase.rpc('get_teacher_manual_review_queue', {
-          p_subject_id: subjectId,
-          p_classroom_id: classroomId,
-          p_status: status === 'all' ? null : status,
-          p_search: search.trim() || null,
+          p_subject_id: subjectId ?? undefined,
+          p_classroom_id: classroomId ?? undefined,
+          p_status: status === 'all' ? undefined : status,
+          p_search: search.trim() || undefined,
           p_limit: pageSize,
           p_offset: page * pageSize,
         }),
@@ -349,7 +349,7 @@ function ReviewDetailModal({ row, visible, onClose, onChanged }: { row: ReviewRo
       const { error } = await supabase.rpc('review_open_answer_attempt_v2', {
         p_attempt_history_id: row.id,
         p_status: status,
-        p_notes: comment.trim() || null,
+        p_notes: comment.trim() || undefined,
         p_comment_audience: audience,
       })
       if (error) throw error

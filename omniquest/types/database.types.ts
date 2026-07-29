@@ -377,6 +377,33 @@ export type Database = {
           },
         ]
       }
+      auth_rate_limits: {
+        Row: {
+          action: string
+          attempts: number
+          blocked_until: string | null
+          key_hash: string
+          updated_at: string
+          window_started_at: string
+        }
+        Insert: {
+          action: string
+          attempts?: number
+          blocked_until?: string | null
+          key_hash: string
+          updated_at?: string
+          window_started_at?: string
+        }
+        Update: {
+          action?: string
+          attempts?: number
+          blocked_until?: string | null
+          key_hash?: string
+          updated_at?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
       avatar_frames: {
         Row: {
           created_at: string
@@ -1991,7 +2018,18 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      cleanup_auth_rate_limits: { Args: never; Returns: number }
       cleanup_expired_guests: { Args: { p_limit?: number }; Returns: number }
+      consume_auth_rate_limit: {
+        Args: {
+          p_action: string
+          p_block_seconds: number
+          p_key_hash: string
+          p_limit: number
+          p_window_seconds: number
+        }
+        Returns: Json
+      }
       convert_current_guest_to_student: {
         Args: { p_alias?: string }
         Returns: Json
@@ -2429,6 +2467,7 @@ export type Database = {
         }
         Returns: Json
       }
+      initialize_guest_profile: { Args: { p_alias: string }; Returns: Json }
       invoke_notification_delivery_worker: { Args: never; Returns: number }
       invoke_teacher_digest_processor: { Args: never; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }

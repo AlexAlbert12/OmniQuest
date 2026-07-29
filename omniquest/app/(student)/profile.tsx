@@ -394,7 +394,6 @@ export default function ProfileScreen() {
             level={level}
             points={points}
             nextLevelProgress={nextLevelProgress}
-            cosmetics={cosmetics}
             onSignOut={handleSignOut}
           />
         ) : null}

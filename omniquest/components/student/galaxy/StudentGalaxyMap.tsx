@@ -594,7 +594,7 @@ function AddCourseGalaxyNode({
               autoCapitalize="characters"
               placeholder="Código de clase"
               placeholderTextColor="#647896"
-              style={styles.joinInput}
+              style={styles.joinPanelInput}
               accessibilityLabel="Código de clase"
               accessibilityHint="Introduce el código de seis caracteres facilitado por tu profesor"
             />
@@ -1054,7 +1054,7 @@ const styles = StyleSheet.create({
     paddingLeft: 15,
     overflow: 'hidden',
   },
-  joinInput: {
+  joinPanelInput: {
     flex: 1,
     color: '#FFFFFF',
     fontSize: 15,
