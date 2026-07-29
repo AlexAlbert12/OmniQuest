@@ -447,7 +447,119 @@ export type Database = {
           sort_order?: number
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "avatar_frames_required_badge_id_fkey"
+            columns: ["required_badge_id"]
+            isOneToOne: false
+            referencedRelation: "badge_definitions"
+            referencedColumns: ["badge_id"]
+          },
+        ]
+      }
+      badge_categories: {
+        Row: {
+          category_key: string
+          color: string
+          created_at: string
+          description: string | null
+          icon: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_key: string
+          color: string
+          created_at?: string
+          description?: string | null
+          icon: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_key?: string
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
         Relationships: []
+      }
+      badge_definitions: {
+        Row: {
+          badge_id: string
+          category_key: string
+          color: string
+          created_at: string
+          description: string
+          icon: string
+          is_active: boolean
+          metric_key: string
+          minimum_samples: number
+          requirement: string
+          reward_xp: number
+          sort_order: number
+          target_value: number
+          title: string
+          unit_plural: string
+          unit_singular: string
+          updated_at: string
+        }
+        Insert: {
+          badge_id: string
+          category_key: string
+          color: string
+          created_at?: string
+          description: string
+          icon: string
+          is_active?: boolean
+          metric_key: string
+          minimum_samples?: number
+          requirement: string
+          reward_xp?: number
+          sort_order?: number
+          target_value: number
+          title: string
+          unit_plural: string
+          unit_singular: string
+          updated_at?: string
+        }
+        Update: {
+          badge_id?: string
+          category_key?: string
+          color?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          is_active?: boolean
+          metric_key?: string
+          minimum_samples?: number
+          requirement?: string
+          reward_xp?: number
+          sort_order?: number
+          target_value?: number
+          title?: string
+          unit_plural?: string
+          unit_singular?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "badge_definitions_category_key_fkey"
+            columns: ["category_key"]
+            isOneToOne: false
+            referencedRelation: "badge_categories"
+            referencedColumns: ["category_key"]
+          },
+        ]
       }
       classrooms: {
         Row: {
@@ -961,6 +1073,13 @@ export type Database = {
             referencedColumns: ["frame_key"]
           },
           {
+            foreignKeyName: "profile_cosmetics_featured_badge_id_fkey"
+            columns: ["featured_badge_id"]
+            isOneToOne: false
+            referencedRelation: "badge_definitions"
+            referencedColumns: ["badge_id"]
+          },
+          {
             foreignKeyName: "profile_cosmetics_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
@@ -1010,6 +1129,13 @@ export type Database = {
           visibility?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "student_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badge_definitions"
+            referencedColumns: ["badge_id"]
+          },
           {
             foreignKeyName: "profiles_role_id_fkey"
             columns: ["role_id"]
@@ -1170,6 +1296,7 @@ export type Database = {
           time_limit_seconds: number | null
           topic_id: number | null
           type: string
+          updated_at: string
         }
         Insert: {
           active?: boolean | null
@@ -1189,6 +1316,7 @@ export type Database = {
           time_limit_seconds?: number | null
           topic_id?: number | null
           type: string
+          updated_at?: string
         }
         Update: {
           active?: boolean | null
@@ -1208,6 +1336,7 @@ export type Database = {
           time_limit_seconds?: number | null
           topic_id?: number | null
           type?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1232,6 +1361,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ranking_seasons: {
+        Row: {
+          active: boolean
+          created_at: string
+          ends_at: string
+          id: string
+          name: string
+          reset_at: string
+          starts_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          ends_at: string
+          id?: string
+          name: string
+          reset_at: string
+          starts_at: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          ends_at?: string
+          id?: string
+          name?: string
+          reset_at?: string
+          starts_at?: string
+        }
+        Relationships: []
       }
       roles: {
         Row: {
@@ -2096,6 +2255,24 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: string
       }
+      ensure_current_ranking_season: {
+        Args: never
+        Returns: {
+          active: boolean
+          created_at: string
+          ends_at: string
+          id: string
+          name: string
+          reset_at: string
+          starts_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ranking_seasons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       ensure_default_classroom: {
         Args: { p_subject_id: number }
         Returns: number
@@ -2316,6 +2493,15 @@ export type Database = {
         Returns: Json
       }
       get_avatar_customization_options: { Args: never; Returns: Json }
+      get_student_badge_catalog: {
+        Args: {
+          p_category_key?: string
+          p_page?: number
+          p_page_size?: number
+          p_status?: string
+        }
+        Returns: Json
+      }
       get_class_ranking_profiles: {
         Args: { p_classroom_id: number; p_limit?: number }
         Returns: {

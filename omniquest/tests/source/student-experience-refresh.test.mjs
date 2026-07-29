@@ -25,20 +25,20 @@ test('auth flows share modern cards, inline validation and verification resend',
 })
 
 test('student progress leads with an actionable daily recommendation', () => {
-  const progress = read('app/(student)/progress.tsx')
+  const progress = read('app/(student)/progress.tsx') + read('hooks/student/useStudentProgress.ts') + read('components/student/progress/DailyPracticeRecommendation.tsx') + read('components/student/progress/PracticeOpportunityList.tsx') + read('components/student/progress/ProgressOverview.tsx')
 
   assert.match(progress, /Tu recomendación de hoy/)
-  assert.match(progress, /Preguntas para practicar/)
+  assert.match(progress, /Oportunidades de práctica/)
   assert.match(progress, /Oportunidades de mejora/)
-  assert.match(progress, /últimos intentos/)
+  assert.match(progress, /últimos 30 días/)
 })
 
 test('ranking highlights the current student and keeps server pagination', () => {
-  const ranking = read('app/(student)/ranking.tsx')
+  const ranking = read('app/(student)/ranking.tsx') + read('hooks/student/useStudentRanking.ts') + read('components/student/ranking/RankingTabs.tsx') + read('components/student/ranking/CurrentPositionCard.tsx')
 
   assert.match(ranking, /Tu posición/)
   assert.match(ranking, /label: 'Global'/)
-  assert.match(ranking, /label: 'Semana'/)
+  assert.match(ranking, /label: 'Semanal'/)
   assert.match(ranking, /label: 'Clase'/)
   assert.match(ranking, /PaginationControls/)
   assert.match(ranking, /get_ranking_profiles_page/)
@@ -50,11 +50,9 @@ test('badges expose compact categories and the next unlock', () => {
   const badgeModel = read('lib/studentBadges.ts')
 
   assert.match(badges, /Siguiente logro/)
-  assert.match(badges, /label: 'XP'/)
-  assert.match(badges, /label: 'Racha'/)
-  assert.match(badges, /label: 'Precisión'/)
-  assert.match(badges, /label: 'Cursos'/)
-  assert.match(badges, /label: 'Retos'/)
+  assert.match(badges, /categories\.map/)
+  assert.match(badges, /label: category\.name/)
+  assert.match(badgeModel, /fetchStudentBadgeCatalog/)
   assert.match(badges, /'48%'/)
   assert.match(badgeModel, /StudentBadgeCategory/)
 })

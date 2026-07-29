@@ -1,13 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
-  Platform,
   Pressable,
   ScrollView,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
@@ -22,6 +19,8 @@ import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import HomeVisualBackground from '../../components/HomeVisualBackground'
 import { useAppTheme } from '../../lib/appTheme'
+import { useAppModal } from '../../components/AppModalProvider'
+import { useResponsiveLayout } from '../../lib/responsive'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { CourseGalaxyMap } from '../../components/student/galaxy/StudentGalaxyMap'
 import { readThroughCache, updateOfflineCache } from '../../lib/offlineCache'
@@ -71,7 +70,7 @@ const studentClassSorts: { id: ClassSort; label: string }[] = [
 ]
 
 export default function ClassesScreen() {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -87,8 +86,9 @@ export default function ClassesScreen() {
   const [openFilterMenu, setOpenFilterMenu] = useState<'state' | 'sort' | null>(null)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
 
-  const isDesktop = width >= 1024
-  const { accentColor } = useAppTheme()
+  const isDesktop = responsive.isDesktop
+  const { accentColor, tokens } = useAppTheme()
+  const { showModal } = useAppModal()
   const { lastSyncedAt } = useOfflineSync()
   const classRows = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase()
@@ -219,12 +219,11 @@ export default function ClassesScreen() {
   }, [fetchClasses, lastSyncedAt])
 
   const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`)
-      return
-    }
-
-    Alert.alert(title, message)
+    showModal({
+      title,
+      message,
+      variant: title.toLowerCase().includes('error') ? 'error' : 'info',
+    })
   }
 
   const handleJoinClass = async () => {
@@ -292,7 +291,7 @@ export default function ClassesScreen() {
         <HomeVisualBackground isDesktop={isDesktop} />
         <View className="z-10 flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={accentColor} />
-          <Text className="mt-4" style={{ color: '#B8C4E0' }}>Cargando tus cursos...</Text>
+          <Text className="mt-4" style={{ color: tokens.text.secondary }}>Cargando tus cursos...</Text>
         </View>
       </View>
     )
@@ -384,18 +383,46 @@ export default function ClassesScreen() {
               ) : null}
             </View>
 
+            {subjects.length > 5 ? (
+              <View className="mb-5 flex-row items-center rounded-2xl border border-border-default bg-surface-default px-4">
+                <Ionicons name="search-outline" size={20} color={tokens.text.muted} />
+                <TextInput
+                  accessibilityLabel="Buscar en mis cursos"
+                  accessibilityHint="Filtra los cursos por nombre, clase o descripción"
+                  className="min-w-0 flex-1 px-3 py-4 text-white"
+                  placeholder="Buscar entre mis cursos..."
+                  placeholderTextColor={tokens.text.disabled}
+                  value={search}
+                  onChangeText={setSearch}
+                />
+                {search ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Limpiar búsqueda"
+                    onPress={() => setSearch('')}
+                    className="h-10 w-10 items-center justify-center rounded-xl"
+                  >
+                    <Ionicons name="close" size={18} color={tokens.text.muted} />
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+
             {showMobileFilters ? (
               <View className="mb-8 rounded-[24px] border border-border-default bg-surface-disabled p-4">
-                <View className="flex-row items-center rounded-2xl border border-border-default bg-background-primary px-4">
-                  <Ionicons name="search-outline" size={20} color="#93A5C2" />
-                  <TextInput
-                    className="min-w-0 flex-1 px-3 py-4 text-white"
-                    placeholder="Buscar una galaxia..."
-                    placeholderTextColor="#647896"
-                    value={search}
-                    onChangeText={setSearch}
-                  />
-                </View>
+                {subjects.length <= 5 ? (
+                  <View className="flex-row items-center rounded-2xl border border-border-default bg-background-primary px-4">
+                    <Ionicons name="search-outline" size={20} color={tokens.text.muted} />
+                    <TextInput
+                      accessibilityLabel="Buscar en mis cursos"
+                      className="min-w-0 flex-1 px-3 py-4 text-white"
+                      placeholder="Buscar una galaxia..."
+                      placeholderTextColor={tokens.text.disabled}
+                      value={search}
+                      onChangeText={setSearch}
+                    />
+                  </View>
+                ) : null}
 
                 {isDesktop ? (
                   <View className="mt-4 flex-row flex-wrap items-center gap-3">
@@ -487,6 +514,11 @@ export default function ClassesScreen() {
                 const progress = progressBySubject[getCourseRowKey(subject)]
                 const progressPercent = progress?.percent ?? 0
                 const statusBadge = getMobileCourseStatusBadge(progress)
+                const group = progress?.isCompleted || progressPercent >= 100
+                  ? 'completed' as const
+                  : (progress?.failedQuestions ?? 0) > 0
+                    ? 'practice' as const
+                    : 'in_progress' as const
                 return {
                   key: getCourseRowKey(subject),
                   title: subject.name,
@@ -497,6 +529,7 @@ export default function ClassesScreen() {
                   badgeLabel: statusBadge.label,
                   badgeColor: statusBadge.label === 'Repasar' ? '#DD365E' : statusBadge.label === 'Completado' ? '#159B79' : '#7C4DDB',
                   detailColor: statusBadge.color,
+                  group,
                   onPress: () => router.push(buildClassHref(subject) as any),
                   onMore: () => handleLeaveClass(subject),
                 }

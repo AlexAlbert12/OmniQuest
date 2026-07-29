@@ -1,29 +1,22 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../../lib/supabase'
-import { difficultyOptions, getDifficultyMeta, normalizeDifficulty, type DifficultyLevel } from '../../../lib/difficulty'
-import StudentPageHeader from '../../../components/student/StudentPageHeader'
+import { difficultyOptions, normalizeDifficulty, type DifficultyLevel } from '../../../lib/difficulty'
 import StudentBottomNav from '../../../components/student/StudentBottomNav'
-import OmniGuide, { type OmniState } from '../../../components/OmniGuide'
-import { withAlpha } from '../../../lib/color'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
-import MobileMetricCard from '../../../components/ui/mobile/MobileMetricCard'
 import { GalaxyScreenBackground, TopicGalaxyMap } from '../../../components/student/galaxy/StudentGalaxyMap'
 import { fetchStudentAttemptHistory, fetchStudentQuestionCatalog } from '../../../lib/studentSecureData'
+import { useAppTheme } from '../../../lib/appTheme'
+import { useAppModal } from '../../../components/AppModalProvider'
+import { useResponsiveLayout } from '../../../lib/responsive'
+import {
+  CourseGalaxyHeader,
+  CourseNextMission,
+  CourseProgressPanel,
+  TopicDifficultyModal,
+} from '../../../components/student/course'
 
 type Subject = {
   id: number
@@ -87,7 +80,7 @@ type ClassRankingItem = {
 export default function StudentClassDetailScreen() {
   const { id, classroomId } = useLocalSearchParams<{ id: string; classroomId?: string }>()
   const router = useRouter()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const [subject, setSubject] = useState<Subject | null>(null)
   const [classroom, setClassroom] = useState<Classroom | null>(null)
   const [topics, setTopics] = useState<Topic[]>([])
@@ -100,8 +93,10 @@ export default function StudentClassDetailScreen() {
 
   const subjectId = Array.isArray(id) ? id[0] : id
   const selectedClassroomId = Array.isArray(classroomId) ? classroomId[0] : classroomId
-  const isDesktop = width >= 1024
-  const color = subject?.theme_color || '#6574FF'
+  const isDesktop = responsive.isDesktop
+  const { tokens } = useAppTheme()
+  const { showModal } = useAppModal()
+  const color = subject?.theme_color || tokens.brand.student
 
   const totals = useMemo(() => {
     const questions = topics.reduce((total, topic) => total + topic.questionsCount, 0)
@@ -326,12 +321,7 @@ export default function StudentClassDetailScreen() {
   )
 
   const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`)
-      return
-    }
-
-    Alert.alert(title, message)
+    showModal({ title, message, variant: 'error' })
   }
 
   const openTopic = (topic: Topic, reviewFailed = false) => {
@@ -358,7 +348,7 @@ export default function StudentClassDetailScreen() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-background-primary">
-        <ActivityIndicator size="large" color="#6574FF" />
+        <ActivityIndicator size="large" color={tokens.brand.student} />
         <Text className="mt-4 text-text-muted">Cargando temas...</Text>
       </View>
     )
@@ -367,7 +357,7 @@ export default function StudentClassDetailScreen() {
   if (!subject) {
     return (
       <View className="flex-1 items-center justify-center bg-background-primary px-6">
-        <Ionicons name="alert-circle-outline" size={52} color="#FB7185" />
+        <Ionicons name="alert-circle-outline" size={52} color={tokens.semantic.danger} />
         <Text className="mt-4 text-center text-xl font-black text-white">No se encontró esta clase</Text>
         <Pressable onPress={() => router.replace('/(student)/classes' as any)} className="mt-5 rounded-xl bg-brand-student px-5 py-3">
           <Text className="font-bold text-white">Volver a clases</Text>
@@ -416,183 +406,64 @@ export default function StudentClassDetailScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingHorizontal: isDesktop ? 18 : 18,
-          paddingTop: isDesktop ? 30 : 34,
-          paddingBottom: isDesktop ? 70 : MOBILE_BOTTOM_NAV_SPACER + 28,
+          paddingHorizontal: responsive.horizontalPadding,
+          paddingTop: responsive.verticalPadding,
+          paddingBottom: isDesktop ? 170 : MOBILE_BOTTOM_NAV_SPACER + 150,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <GalaxyScreenBackground height={Math.max(2500, topics.length * 320 + 1280)} />
-        <View className="mx-auto w-full max-w-[1480px]">
-          <StudentPageHeader
-            backAction={{ label: 'Mis cursos', onPress: () => router.back() }}
+        <GalaxyScreenBackground height={Math.max(1900, Math.min(3200, topics.length * 120 + 1700))} />
+        <View className="mx-auto w-full max-w-[1480px]" style={{ maxWidth: responsive.isWide ? 1320 : 1160 }}>
+          <CourseGalaxyHeader
+            subject={subject}
+            classroom={classroom}
+            totals={totals}
             isDesktop={isDesktop}
-            title={subject.name}
-            subtitle={`${totals.progress}% avance · ${totals.failed} ${totals.failed === 1 ? 'fallo pendiente' : 'fallos pendientes'}${classroom ? ` · ${classroom.name}` : ''}`}
-            titleNumberOfLines={2}
-            showNotifications={isDesktop}
-            showAvatar={isDesktop}
-            leading={(
-              <View className={isDesktop ? 'h-20 w-20' : 'h-16 w-16'}>
-                <View className="absolute -inset-1 rounded-full bg-surface-disabled" />
-                <LinearGradient
-                  colors={[withAlpha(color, 'FF'), '#F59E0B', '#8A3518']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  className="h-full w-full items-center justify-center rounded-full border-4"
-                  style={{ borderColor: withAlpha(color, 'CC') }}
-                >
-                  {subject.icon ? (
-                    getValidIoniconName(subject.icon) ? (
-                      <Ionicons name={getValidIoniconName(subject.icon) || 'book'} size={isDesktop ? 34 : 28} color="#FFFFFF" />
-                    ) : (
-                      <Text className={isDesktop ? 'text-[32px]' : 'text-[26px]'}>{subject.icon}</Text>
-                    )
-                  ) : (
-                    <Ionicons name="book" size={isDesktop ? 34 : 28} color="#FFFFFF" />
-                  )}
-                </LinearGradient>
-              </View>
-            )}
-            actions={(
-              <View className="flex-row items-center gap-4">
-                <View className="flex-row items-center gap-2">
-                  <Ionicons name="flame" size={22} color="#FF7A3D" />
-                  <Text className="text-[18px] font-black text-white">{totals.failed}</Text>
-                </View>
-                <View className="flex-row items-center gap-2">
-                  <Ionicons name="diamond" size={22} color="#59C7FF" />
-                  <Text className="text-[18px] font-black text-white">{totals.earnedXp.toLocaleString()}</Text>
-                </View>
-              </View>
-            )}
+            onBack={() => router.back()}
           />
 
-          <View className="mb-9 flex-row items-center gap-4 rounded-[28px] border border-border-default bg-surface-disabled px-5 py-5">
-            <View className="min-w-0 flex-1">
-              <Text className="text-[12px] font-black uppercase tracking-[1.6px] text-brand-admin">Ruta de aprendizaje</Text>
-              <Text className={isDesktop ? 'mt-2 text-[26px] font-black text-white' : 'mt-2 text-[23px] font-black leading-7 text-white'} numberOfLines={2}>
-                {recommendedTopic ? `Tema ${recommendedTopicPosition} · ${recommendedTopic.title}` : topics.length > 0 ? 'Has completado la galaxia' : 'Aún no hay temas disponibles'}
-              </Text>
-              <Text className="mt-2 text-[15px] leading-6 text-text-secondary" numberOfLines={2}>
-                {recommendedTopic?.description || subject.description || 'Selecciona un planeta para empezar una misión.'}
-              </Text>
-            </View>
-            <View className="h-16 w-16 items-center justify-center rounded-[20px] border border-brand-student bg-semantic-surface-danger">
-              <Ionicons name="book-outline" size={30} color="#A96CFF" />
-            </View>
-          </View>
+          <CourseNextMission
+            topic={recommendedTopic}
+            position={recommendedTopicPosition}
+            courseDescription={subject.description}
+            onContinue={recommendedTopic ? () => openTopic(recommendedTopic, recommendedTopic.failedQuestions > 0) : undefined}
+          />
 
           <TopicGalaxyMap items={topicGalaxyItems} />
 
-          <View className="mt-6 rounded-[28px] border border-border-default bg-surface-default p-5">
-            <View className="mb-5 flex-row items-center justify-between gap-3">
-              <View>
-                <Text className="text-[24px] font-black text-white">Resumen de la galaxia</Text>
-                <Text className="mt-1 text-[14px] text-text-muted">Tu progreso, tus retos y la clasificación de la clase.</Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Ver toda mi actividad"
-                onPress={() => router.push('/(student)/activity-log' as any)}
-                className="rounded-full border border-border-default bg-surface-disabled px-4 py-2"
-              >
-                <Text className="font-black text-brand-admin">Actividad</Text>
-              </Pressable>
-            </View>
-
-            <View className={isDesktop ? 'flex-row gap-4' : 'flex-row gap-3'}>
-              <MobileMetricCard
-                compact
-                icon="planet"
-                color={color}
-                value={topics.length}
-                label="Temas"
-                style={{ flex: 1, minHeight: 118 }}
-              />
-              <MobileMetricCard
-                compact
-                icon="checkmark-circle"
-                color="#35D7B4"
-                value={`${totals.progress}%`}
-                label="Avance"
-                style={{ flex: 1, minHeight: 118 }}
-              />
-              <MobileMetricCard
-                compact
-                icon="flame"
-                color="#FB4772"
-                value={totals.failed}
-                label="Repasar"
-                style={{ flex: 1, minHeight: 118 }}
-              />
-              {isDesktop ? (
-                <MobileMetricCard
-                  compact
-                  icon="diamond"
-                  color="#59C7FF"
-                  value={totals.earnedXp}
-                  suffix=" XP"
-                  label="Experiencia"
-                  style={{ flex: 1, minHeight: 118 }}
-                />
-              ) : null}
-            </View>
-
-            <View className={isDesktop ? 'mt-6 flex-row gap-5' : 'mt-6 gap-5'}>
-              <View className={isDesktop ? 'flex-1' : ''}>
-                <MobileSectionHeading title="Preguntas para repasar" actionLabel="Ver todas" onAction={() => router.push('/(student)/activity-log' as any)} />
-                {failedQuestions.length > 0 ? (
-                  <View className="gap-3">
-                    {failedQuestions.slice(0, 2).map((question) => (
-                      <MobileFailedQuestionCard
-                        key={question.id}
-                        question={question}
-                        onPress={() => openFailedQuestion(question)}
-                      />
-                    ))}
-                  </View>
-                ) : (
-                  <MobileEmptyBlock icon="checkmark-circle-outline" omniState="happy" title="Sin fallos pendientes" subtitle="Has superado todas tus misiones recientes." />
-                )}
-              </View>
-
-              <View className={isDesktop ? 'flex-1' : ''}>
-                <MobileSectionHeading title="Ranking de la clase" />
-                <View className="gap-2 rounded-2xl border border-border-default bg-surface-default p-3">
-                  {classRanking.length > 0 ? (
-                    classRanking.slice(0, 3).map((row, index) => (
-                      <MobileRankingRow key={row.studentId} row={row} index={index} />
-                    ))
-                  ) : (
-                    <MobileEmptyBlock icon="trophy-outline" omniState="normal" title="Sin ranking todavía" subtitle="Completa una misión para aparecer en la clasificación." />
-                  )}
-                  <View className="mt-1 rounded-xl bg-surface-disabled px-3 py-2">
-                    <Text className="text-center text-[12px] font-black text-brand-student">{rankingLabel}</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            <MobileSectionHeading title="Últimos intentos" actionLabel="Ver todo" onAction={() => router.push('/(student)/activity-log' as any)} />
-            <View className="overflow-hidden rounded-2xl border border-border-default bg-surface-default">
-              {recentAttempts.length > 0 ? (
-                recentAttempts.slice(0, 3).map((attempt, index) => (
-                  <MobileRecentAttemptRow
-                    key={attempt.id}
-                    attempt={attempt}
-                    isLast={index === Math.min(recentAttempts.length, 3) - 1}
-                  />
-                ))
-              ) : (
-                <MobileEmptyBlock icon="play-circle-outline" omniState="normal" title="Sin intentos recientes" subtitle="Selecciona un planeta para iniciar tu primera misión." />
-              )}
-            </View>
-          </View>
+          <CourseProgressPanel
+            totals={totals}
+            topicsCount={topics.length}
+            color={color}
+            failedQuestions={failedQuestions}
+            classRanking={classRanking}
+            recentAttempts={recentAttempts}
+            rankingLabel={rankingLabel}
+            isDesktop={isDesktop}
+            onOpenActivity={() => router.push('/(student)/activity-log' as any)}
+            onOpenFailedQuestion={openFailedQuestion}
+          />
         </View>
       </ScrollView>
 
-      <DifficultyChooser
+      {recommendedTopic ? (
+        <View
+          pointerEvents="box-none"
+          style={isDesktop
+            ? { position: 'absolute', right: 24, bottom: 24, width: 520, zIndex: 30 }
+            : { position: 'absolute', left: 14, right: 14, bottom: 82, zIndex: 30 }}
+        >
+          <CourseNextMission
+            compact
+            topic={recommendedTopic}
+            position={recommendedTopicPosition}
+            courseDescription={subject.description}
+            onContinue={() => openTopic(recommendedTopic, recommendedTopic.failedQuestions > 0)}
+          />
+        </View>
+      ) : null}
+
+      <TopicDifficultyModal
         color={color}
         topic={difficultyChooserTopic}
         onClose={() => setDifficultyChooserTopic(null)}
@@ -602,263 +473,6 @@ export default function StudentClassDetailScreen() {
     </View>
   )
 }
-
-function MobileRankingRow({ row, index }: { row: ClassRankingItem; index: number }) {
-  const medalColors = ['#FBBF24', '#CBD5E1', '#F97316']
-
-  return (
-    <View className="flex-row items-center gap-3 rounded-xl bg-surface-raised px-3 py-3">
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-semantic-surface-info">
-        {index < 3 ? (
-          <Ionicons name="medal" size={18} color={medalColors[index]} />
-        ) : (
-          <Text className="text-[13px] font-black text-text-secondary">{index + 1}</Text>
-        )}
-      </View>
-      <Text className="min-w-0 flex-1 text-[14px] font-black text-white" numberOfLines={1}>{row.alias}</Text>
-      <Text className="text-[13px] font-black text-brand-student">{row.points.toLocaleString()} XP</Text>
-    </View>
-  )
-}
-
-function MobileSectionHeading({
-  actionLabel,
-  onAction,
-  title,
-}: {
-  actionLabel?: string
-  onAction?: () => void
-  title: string
-}) {
-  return (
-    <View className="mb-3 mt-7 flex-row items-center justify-between gap-3">
-      <Text className="text-[22px] font-black text-white">{title}</Text>
-      {actionLabel && onAction ? (
-        <Pressable onPress={onAction}>
-          <Text className="text-[15px] font-black text-brand-admin">{actionLabel}</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  )
-}
-
-function MobileRecentAttemptRow({ attempt, isLast }: { attempt: RecentAttempt; isLast: boolean }) {
-  const color = attempt.isCorrect ? '#22C55E' : '#FB7185'
-
-  return (
-    <View className={`flex-row items-center gap-3 p-4 ${isLast ? '' : 'border-b border-border-subtle'}`}>
-      <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '26') }}>
-        <Ionicons name={attempt.isCorrect ? 'checkmark' : 'close'} size={26} color={color} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="text-[15px] font-black text-white" numberOfLines={1}>
-          {attempt.isCorrect ? 'Respuesta correcta' : 'Respuesta incorrecta'}
-        </Text>
-        <Text className="mt-1 text-[13px] text-text-secondary" numberOfLines={1}>{attempt.topicTitle} · {attempt.questionText}</Text>
-      </View>
-      <View className="items-end gap-2">
-        <Text className="text-[13px] text-text-secondary">{formatRecentAttemptDate(attempt.attemptedAt)}</Text>
-        <View className="rounded-xl bg-surface-selected px-3 py-1.5">
-          <Text className="text-[13px] font-black text-text-secondary">{attempt.isCorrect ? '+10 XP' : '+5 XP'}</Text>
-        </View>
-      </View>
-    </View>
-  )
-}
-
-function MobileFailedQuestionCard({ question, onPress }: { question: FailedQuestion; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="min-h-[78px] flex-row items-center gap-3 rounded-2xl border border-border-default bg-semantic-surface-danger p-4"
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-    >
-      <View className="h-11 w-11 items-center justify-center rounded-full bg-semantic-surface-danger">
-        <Ionicons name="close" size={24} color="#FB7185" />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="text-[14px] font-black text-white" numberOfLines={2}>{question.text}</Text>
-        <Text className="mt-1 text-[13px] font-bold text-semantic-danger" numberOfLines={1}>{question.topicTitle}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={22} color="#E9D5FF" />
-    </Pressable>
-  )
-}
-
-function MobileEmptyBlock({
-  icon,
-  omniState,
-  subtitle,
-  title,
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  omniState?: OmniState
-  subtitle: string
-  title: string
-}) {
-  return (
-    <View className="items-center rounded-2xl border border-dashed border-border-default bg-surface-raised px-4 py-7">
-      {omniState ? <OmniGuide state={omniState} size={78} autoBlink={omniState === 'normal'} /> : <Ionicons name={icon} size={30} color="#8FA7C7" />}
-      <Text className="mt-3 text-center text-[15px] font-black text-white">{title}</Text>
-      <Text className="mt-1 text-center text-[13px] leading-5 text-text-muted">{subtitle}</Text>
-    </View>
-  )
-}
-
-function DifficultyChooser({
-  color,
-  onChoose,
-  onClose,
-  topic,
-}: {
-  color: string
-  onChoose: (difficulty: DifficultyLevel, reviewFailed: boolean) => void
-  onClose: () => void
-  topic: Topic | null
-}) {
-  return (
-    <Modal
-      visible={Boolean(topic)}
-      transparent
-      animationType="fade"
-      presentationStyle="overFullScreen"
-      statusBarTranslucent
-      navigationBarTranslucent
-      onRequestClose={onClose}
-    >
-      <View
-        accessibilityViewIsModal
-        style={difficultyModalStyles.root}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Cerrar selector de dificultad"
-          onPress={onClose}
-          style={StyleSheet.absoluteFill}
-        />
-
-        <View pointerEvents="box-none" style={difficultyModalStyles.contentFrame}>
-          <ScrollView
-            bounces={false}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            style={difficultyModalStyles.panel}
-            contentContainerStyle={difficultyModalStyles.panelContent}
-          >
-            {topic ? (
-              <>
-                <View className="flex-row items-start justify-between gap-4">
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-[12px] font-black uppercase tracking-[0.08em]" style={{ color }}>Elige dificultad</Text>
-                    <Text className="mt-2 text-[24px] font-black text-white">{topic.title}</Text>
-                    <Text className="mt-1 text-[13px] leading-5 text-text-secondary">
-                      Este tema tiene varias versiones. Jugarás solo las preguntas de la dificultad seleccionada.
-                    </Text>
-                  </View>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Cerrar selector de dificultad"
-                    onPress={onClose}
-                    hitSlop={8}
-                    className="h-10 w-10 items-center justify-center rounded-xl border border-border-default bg-surface-raised"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
-                  >
-                    <Ionicons name="close" size={18} color="#AFC2DB" />
-                  </Pressable>
-                </View>
-
-                <View className="mt-5 gap-3">
-                  {topic.difficulties.map((stats) => {
-                    const meta = getDifficultyMeta(stats.difficulty)
-                    const pending = Math.max(0, stats.questionsCount - stats.answeredQuestions)
-                    const action = stats.answeredQuestions === 0 ? 'Empezar' : pending > 0 ? 'Continuar' : 'Repetir'
-                    return (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`${meta.label}. ${stats.questionsCount} preguntas. ${action}`}
-                        key={stats.difficulty}
-                        onPress={() => onChoose(stats.difficulty, false)}
-                        className="flex-row flex-wrap items-center gap-4 rounded-xl border p-4"
-                        style={({ pressed }) => ({
-                          borderColor: `${meta.color}88`,
-                          backgroundColor: `${meta.color}18`,
-                          opacity: pressed ? 0.82 : 1,
-                        })}
-                      >
-                        <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${meta.color}24` }}>
-                          <Ionicons name="layers-outline" size={22} color={meta.color} />
-                        </View>
-                        <View className="min-w-[180px] flex-1">
-                          <Text className="text-[16px] font-black text-white">{meta.label}</Text>
-                          <Text className="mt-1 text-[12px] text-text-secondary">
-                            {stats.questionsCount} preguntas · {stats.answeredQuestions} respondidas · {stats.failedQuestions} falladas
-                          </Text>
-                        </View>
-                        <View className="flex-row flex-wrap items-center gap-2">
-                          {stats.failedQuestions > 0 ? (
-                            <Pressable
-                              accessibilityRole="button"
-                              accessibilityLabel={`Repasar fallos de dificultad ${meta.label}`}
-                              onPress={(event) => {
-                                event.stopPropagation?.()
-                                onChoose(stats.difficulty, true)
-                              }}
-                              className="rounded-lg border border-semantic-danger bg-semantic-danger px-4 py-2"
-                              style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
-                            >
-                              <Text className="font-black text-gamification-badge">Repasar fallos</Text>
-                            </Pressable>
-                          ) : null}
-                          <View className="rounded-lg px-4 py-2" style={{ backgroundColor: meta.color }}>
-                            <Text className="font-black text-white">{action}</Text>
-                          </View>
-                        </View>
-                      </Pressable>
-                    )
-                  })}
-                </View>
-              </>
-            ) : null}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  )
-}
-
-const difficultyModalStyles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: 'rgba(1, 5, 15, 0.88)',
-    zIndex: 9999,
-    elevation: 9999,
-  },
-  contentFrame: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 32,
-  },
-  panel: {
-    flexGrow: 0,
-    width: '100%',
-    maxWidth: 560,
-    maxHeight: '100%',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#244166',
-    backgroundColor: '#081832',
-    shadowColor: '#000000',
-    shadowOpacity: 0.55,
-    shadowRadius: 28,
-    shadowOffset: { width: 0, height: 18 },
-    elevation: 30,
-  },
-  panelContent: {
-    padding: 20,
-  },
-})
 
 function getTopicActionLabel(topic: Topic) {
   if (topic.questionsCount === 0) return 'Sin preguntas'

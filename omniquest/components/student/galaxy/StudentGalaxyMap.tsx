@@ -17,6 +17,7 @@ import AppButton from '../../ui/AppButton'
 import AppIconButton from '../../ui/AppIconButton'
 import AppPressable from '../../ui/AppPressable'
 import AppTabs from '../../ui/AppTabs'
+import TopicPlanet from '../course/TopicPlanet'
 
 export type GalaxyCourseItem = {
   key: string
@@ -30,6 +31,8 @@ export type GalaxyCourseItem = {
   detailColor: string
   onPress: () => void
   onMore?: () => void
+  group?: 'in_progress' | 'practice' | 'completed'
+  groupLabel?: string
 }
 
 export type GalaxyTopicState = 'completed' | 'active' | 'available' | 'locked' | 'empty'
@@ -122,7 +125,7 @@ export function GalaxyScreenBackground({ height = 2800 }: { height?: number }) {
   )
 }
 
-type GalaxyViewMode = 'galaxy' | 'list'
+export type GalaxyViewMode = 'galaxy' | 'list'
 
 const GALAXY_VIEW_OPTIONS = [
   { key: 'galaxy' as const, label: 'Vista galáctica', icon: 'planet-outline' as const, activeIcon: 'planet' as const },
@@ -183,18 +186,36 @@ export function CourseGalaxyMap({
   const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
   const isDesktop = responsive.isDesktop
-  const mapWidth = Math.max(320, Math.min(isDesktop ? responsive.width - 330 : responsive.width - 30, isDesktop ? 1440 : 430))
-  const planetSize = isDesktop ? 228 : 188
-  const rowHeight = isDesktop ? 318 : 352
-  const addRowHeight = 430
+  const desktopCanvasWidth = isDesktop ? 1440 : 430
+  const maxMapWidth = responsive.isTablet
+    ? 860
+    : Math.min(desktopCanvasWidth, responsive.isWide ? 1180 : isDesktop ? 1080 : 560)
+  const mapWidth = Math.max(320, Math.min(isDesktop ? responsive.width - 330 : responsive.width - 30, maxMapWidth))
+  const planetSize = responsive.isWide ? 220 : isDesktop ? 206 : responsive.isTablet ? 196 : 176
+  const rowHeight = isDesktop ? 302 : responsive.isTablet ? 294 : 332
+  const addRowHeight = 390
+  const pageSize = responsive.isWide ? 6 : isDesktop ? 5 : responsive.isTablet ? 4 : 4
   const [joinOpen, setJoinOpen] = useState(false)
   const [viewMode, setViewMode] = useAccessibleGalaxyViewMode()
+  const [page, setPage] = useState(0)
+  const [visibleListCount, setVisibleListCount] = useState(8)
 
-  const addTop = items.length === 0 ? 250 : items.length * rowHeight + 24
-  const mapHeight = addTop + addRowHeight
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize))
+  const safePage = Math.min(page, totalPages - 1)
+  const pageItems = items.slice(safePage * pageSize, safePage * pageSize + pageSize)
+  const isLastPage = safePage >= totalPages - 1
+  const addTop = pageItems.length === 0 ? 230 : pageItems.length * rowHeight + 18
+  const mapHeight = addTop + (isLastPage ? addRowHeight : 90)
+  const visibleListItems = items.slice(0, visibleListCount)
+  const groupedItems = useMemo(() => groupCourseItems(visibleListItems), [visibleListItems])
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, Math.max(0, totalPages - 1)))
+    setVisibleListCount((current) => Math.max(8, Math.min(current, Math.max(items.length, 8))))
+  }, [items.length, totalPages])
 
   return (
-    <View style={{ width: '100%', maxWidth: isDesktop ? 1440 : 560, alignSelf: 'center' }}>
+    <View style={{ width: '100%', maxWidth: maxMapWidth, alignSelf: 'center' }}>
       <GalaxyViewModeToggle value={viewMode} onChange={setViewMode} />
 
       {viewMode === 'list' ? (
@@ -205,35 +226,65 @@ export function CourseGalaxyMap({
               <Text style={[styles.listTitle, { color: tokens.text.primary }]}>No encontramos cursos</Text>
               <Text style={[styles.listDescription, { color: tokens.text.secondary }]}>{emptyMessage}</Text>
             </View>
-          ) : items.map((item) => (
-            <View key={item.key} style={[styles.listCard, { backgroundColor: tokens.surface.default, borderColor: tokens.border.default }]}>
-              <AppPressable
-                accessibilityLabel={`${item.title}. ${item.progress}% completado. ${item.subtitle}`}
-                accessibilityHint="Abre el curso y muestra sus temas"
-                onPress={item.onPress}
-                style={({ pressed }) => [styles.listMainAction, { opacity: pressed ? 0.78 : 1 }]}
-              >
-                <View style={[styles.listIcon, { backgroundColor: withAlpha(item.color || tokens.brand.student, '24') }]}>
-                  <Ionicons name={getValidIoniconName(item.icon) || 'book-outline'} size={23} color={item.color || tokens.brand.student} />
-                </View>
-                <View style={styles.listCopy}>
-                  <Text maxFontSizeMultiplier={2} style={[styles.listTitle, { color: tokens.text.primary }]}>{item.title}</Text>
-                  <Text maxFontSizeMultiplier={2} style={[styles.listDescription, { color: tokens.text.secondary }]}>{item.subtitle}</Text>
-                  <Text maxFontSizeMultiplier={2} style={[styles.listMeta, { color: item.detailColor }]}>{item.progress}% completado · {item.badgeLabel}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={tokens.text.muted} />
-              </AppPressable>
-              {item.onMore ? (
-                <AppIconButton
-                  accessibilityLabel={`Más opciones de ${item.title}`}
-                  accessibilityHint="Abre las acciones disponibles para este curso"
-                  icon="ellipsis-horizontal"
-                  size="sm"
-                  onPress={item.onMore}
-                />
-              ) : null}
+          ) : groupedItems.map((group) => (
+            <View key={group.key} style={styles.listGroup}>
+              <View style={styles.listGroupHeader}>
+                <Text maxFontSizeMultiplier={2} style={[styles.listGroupTitle, { color: tokens.text.primary }]}>{group.label}</Text>
+                <Text maxFontSizeMultiplier={2} style={[styles.listGroupCount, { color: tokens.text.muted }]}>{group.items.length}</Text>
+              </View>
+              <View style={[
+                styles.listGrid,
+                responsive.isTablet || responsive.isDesktop ? styles.listGridTablet : null,
+              ]}>
+                {group.items.map((item) => (
+                  <View
+                    key={item.key}
+                    style={[
+                      styles.listCard,
+                      responsive.isTablet || responsive.isDesktop ? styles.listCardTablet : null,
+                      { backgroundColor: tokens.surface.default, borderColor: tokens.border.default },
+                    ]}
+                  >
+                    <AppPressable
+                      accessibilityLabel={`${item.title}. ${item.progress}% completado. ${item.subtitle}`}
+                      accessibilityHint="Abre el curso y muestra sus temas"
+                      onPress={item.onPress}
+                      style={({ pressed }) => [styles.listMainAction, { opacity: pressed ? 0.78 : 1 }]}
+                    >
+                      <View style={[styles.listIcon, { backgroundColor: withAlpha(item.color || tokens.brand.student, '24') }]}>
+                        <Ionicons name={getValidIoniconName(item.icon) || 'book-outline'} size={23} color={item.color || tokens.brand.student} />
+                      </View>
+                      <View style={styles.listCopy}>
+                        <Text maxFontSizeMultiplier={2} style={[styles.listTitle, { color: tokens.text.primary }]}>{item.title}</Text>
+                        <Text maxFontSizeMultiplier={2} style={[styles.listDescription, { color: tokens.text.secondary }]}>{item.subtitle}</Text>
+                        <Text maxFontSizeMultiplier={2} style={[styles.listMeta, { color: item.detailColor }]}>{item.progress}% completado · {item.badgeLabel}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color={tokens.text.muted} />
+                    </AppPressable>
+                    {item.onMore ? (
+                      <AppIconButton
+                        accessibilityLabel={`Más opciones de ${item.title}`}
+                        accessibilityHint="Abre las acciones disponibles para este curso"
+                        icon="ellipsis-horizontal"
+                        size="sm"
+                        onPress={item.onMore}
+                      />
+                    ) : null}
+                  </View>
+                ))}
+              </View>
             </View>
           ))}
+
+          {visibleListCount < items.length ? (
+            <AppButton
+              label={`Mostrar ${Math.min(8, items.length - visibleListCount)} cursos más`}
+              variant="secondary"
+              icon="chevron-down"
+              fullWidth
+              onPress={() => setVisibleListCount((current) => Math.min(items.length, current + 8))}
+            />
+          ) : null}
 
           <View style={[styles.joinListCard, { backgroundColor: tokens.surface.raised, borderColor: tokens.border.default }]}>
             <View style={styles.listCopy}>
@@ -263,140 +314,166 @@ export function CourseGalaxyMap({
           </View>
         </View>
       ) : (
-        <View
-          accessibilityLabel="Mapa visual de cursos. Cambia a Vista lista para una alternativa lineal."
-          style={{ width: mapWidth, minHeight: mapHeight, alignSelf: 'center', position: 'relative' }}
-        >
-          {items.length === 0 ? (
-            <View style={{ minHeight: 210, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }}>
-              <Ionicons name="planet-outline" size={56} color="#8294B2" />
-              <Text style={styles.emptyTitle}>No encontramos cursos</Text>
-              <Text style={styles.emptyText}>{emptyMessage}</Text>
-            </View>
+        <>
+          {totalPages > 1 ? (
+            <GalaxyPagination
+              currentPage={safePage}
+              totalPages={totalPages}
+              label="Página de galaxias"
+              onPrevious={() => setPage((current) => Math.max(0, current - 1))}
+              onNext={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
+            />
           ) : null}
+          <View
+            accessibilityLabel={`Mapa visual de cursos. Página ${safePage + 1} de ${totalPages}. Cambia a Vista lista para una alternativa lineal.`}
+            style={{ width: mapWidth, minHeight: mapHeight, alignSelf: 'center', position: 'relative' }}
+          >
+            {items.length === 0 ? (
+              <View style={{ minHeight: 210, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }}>
+                <Ionicons name="planet-outline" size={56} color={tokens.text.muted} />
+                <Text style={styles.emptyTitle}>No encontramos cursos</Text>
+                <Text style={styles.emptyText}>{emptyMessage}</Text>
+              </View>
+            ) : null}
 
-          {items.map((item, index) => {
-            const side = index % 2 === 0 ? 'right' : 'left'
-            const nextSide = (index + 1) % 2 === 0 ? 'right' : 'left'
-            const palette = getCoursePalette(item.color, index)
-            const x = side === 'left' ? 12 : mapWidth - planetSize - 24
-            const nextX = nextSide === 'left' ? 12 : mapWidth - planetSize - 24
-            const labelWidth = Math.min(isDesktop ? 280 : 286, mapWidth - 20)
-            const labelX = side === 'left' ? 8 : mapWidth - labelWidth - 8
-            const connectToAdd = index === items.length - 1
-            const addSide = items.length % 2 === 0 ? 'right' : 'left'
-            const addSize = isDesktop ? 190 : 156
-            const addX = addSide === 'left' ? 24 : mapWidth - addSize - 24
-            const targetX = connectToAdd ? addX + addSize / 2 : nextX + planetSize / 2
+            {pageItems.map((item, pageIndex) => {
+              const globalIndex = safePage * pageSize + pageIndex
+              const side = pageIndex % 2 === 0 ? 'right' : 'left'
+              const nextSide = (pageIndex + 1) % 2 === 0 ? 'right' : 'left'
+              const palette = getCoursePalette(item.color, globalIndex)
+              const x = side === 'left' ? 12 : mapWidth - planetSize - 24
+              const nextX = nextSide === 'left' ? 12 : mapWidth - planetSize - 24
+              const labelWidth = Math.min(isDesktop ? 280 : 286, mapWidth - 20)
+              const labelX = side === 'left' ? 8 : mapWidth - labelWidth - 8
+              const connectToAdd = isLastPage && pageIndex === pageItems.length - 1
+              const hasNextOnPage = pageIndex < pageItems.length - 1
+              const addSide = pageItems.length % 2 === 0 ? 'right' : 'left'
+              const addSize = isDesktop ? 184 : 156
+              const addX = addSide === 'left' ? 24 : mapWidth - addSize - 24
+              const targetX = connectToAdd ? addX + addSize / 2 : nextX + planetSize / 2
 
-            return (
-              <View key={item.key} style={{ height: rowHeight, position: 'relative' }}>
-                <GalaxyDottedConnector
-                  color="#58BFFF"
-                  x1={x + planetSize / 2}
-                  y1={planetSize - 4}
-                  x2={targetX}
-                  y2={rowHeight + 34}
-                  bend={side === 'left' ? 1 : -1}
-                />
+              return (
+                <View key={item.key} style={{ height: rowHeight, position: 'relative' }}>
+                  {hasNextOnPage || connectToAdd ? (
+                    <GalaxyDottedConnector
+                      color={tokens.semantic.info}
+                      x1={x + planetSize / 2}
+                      y1={planetSize - 4}
+                      x2={targetX}
+                      y2={rowHeight + 34}
+                      bend={side === 'left' ? 1 : -1}
+                    />
+                  ) : null}
 
-                <View style={{ position: 'absolute', top: 0, left: x }}>
-                  <GalaxyPlanet
-                    size={planetSize}
-                    palette={palette}
-                    icon={item.icon}
-                    label={item.title}
-                    badgeLabel={item.badgeLabel}
-                    badgeColor={item.badgeColor}
-                    onPress={item.onPress}
-                  />
-                </View>
+                  <View style={{ position: 'absolute', top: 0, left: x }}>
+                    <GalaxyPlanet
+                      size={planetSize}
+                      palette={palette}
+                      icon={item.icon}
+                      label={item.title}
+                      badgeLabel={item.badgeLabel}
+                      badgeColor={item.badgeColor}
+                      onPress={item.onPress}
+                    />
+                  </View>
 
-                <View
-                  style={[
-                    styles.courseLabelCard,
-                    {
-                      width: labelWidth,
-                      left: labelX,
-                      top: planetSize + (isDesktop ? 10 : 18),
-                      minHeight: isDesktop ? 76 : 92,
-                      borderRadius: isDesktop ? 20 : 24,
-                      paddingHorizontal: isDesktop ? 16 : 20,
-                      paddingVertical: isDesktop ? 10 : 16,
-                    },
-                  ]}
-                >
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Abrir curso ${item.title}`}
-                    accessibilityHint={`${item.progress}% completado. ${item.subtitle}`}
-                    onPress={item.onPress}
-                    style={({ pressed }) => ({ flex: 1, justifyContent: 'center', opacity: pressed ? 0.82 : 1, paddingRight: item.onMore ? 30 : 0 })}
+                  <View
+                    style={[
+                      styles.courseLabelCard,
+                      {
+                        width: labelWidth,
+                        left: labelX,
+                        top: planetSize + (isDesktop ? 10 : 18),
+                        minHeight: isDesktop ? 76 : 92,
+                        borderRadius: isDesktop ? 20 : 24,
+                        paddingHorizontal: isDesktop ? 16 : 20,
+                        paddingVertical: isDesktop ? 10 : 16,
+                      },
+                    ]}
                   >
-                    <Text
-                      maxFontSizeMultiplier={2}
-                      style={[
-                        styles.courseTitle,
-                        isDesktop ? styles.courseTitleDesktop : null,
-                        { textAlign: side === 'left' ? 'left' : 'right' },
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {item.title}
-                    </Text>
-                    <Text
-                      maxFontSizeMultiplier={2}
-                      style={[
-                        styles.courseSubtitle,
-                        isDesktop ? styles.courseSubtitleDesktop : null,
-                        { textAlign: side === 'left' ? 'left' : 'right' },
-                      ]}
-                      numberOfLines={2}
-                    >
-                      <Text style={{ color: item.detailColor, fontWeight: '900' }}>{item.progress}%</Text>
-                      {' · '}{item.subtitle}
-                    </Text>
-                  </Pressable>
-                  {item.onMore ? (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Más opciones de ${item.title}`}
-                      accessibilityHint="Abre el menú de acciones del curso"
-                      onPress={item.onMore}
-                      hitSlop={8}
-                      style={({ pressed }) => ({
-                        position: 'absolute',
-                        right: 10,
-                        top: 10,
-                        width: 34,
-                        height: 34,
-                        borderRadius: 17,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: 'rgba(8,13,27,0.7)',
-                        opacity: pressed ? 0.72 : 1,
-                      })}
+                      accessibilityLabel={`Abrir curso ${item.title}`}
+                      accessibilityHint={`${item.progress}% completado. ${item.subtitle}`}
+                      onPress={item.onPress}
+                      style={({ pressed }) => ({ flex: 1, justifyContent: 'center', opacity: pressed ? 0.82 : 1, paddingRight: item.onMore ? 30 : 0 })}
                     >
-                      <Ionicons name="ellipsis-horizontal" size={18} color="#AAB8D0" />
+                      <Text
+                        maxFontSizeMultiplier={2}
+                        style={[
+                          styles.courseTitle,
+                          isDesktop ? styles.courseTitleDesktop : null,
+                          { textAlign: side === 'left' ? 'left' : 'right' },
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {item.title}
+                      </Text>
+                      <Text
+                        maxFontSizeMultiplier={2}
+                        style={[
+                          styles.courseSubtitle,
+                          isDesktop ? styles.courseSubtitleDesktop : null,
+                          { textAlign: side === 'left' ? 'left' : 'right' },
+                        ]}
+                        numberOfLines={2}
+                      >
+                        <Text style={{ color: item.detailColor, fontWeight: '900' }}>{item.progress}%</Text>
+                        {' · '}{item.subtitle}
+                      </Text>
                     </Pressable>
-                  ) : null}
+                    {item.onMore ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Más opciones de ${item.title}`}
+                        accessibilityHint="Abre el menú de acciones del curso"
+                        onPress={item.onMore}
+                        hitSlop={8}
+                        style={({ pressed }) => ({
+                          position: 'absolute',
+                          right: 10,
+                          top: 10,
+                          width: 34,
+                          height: 34,
+                          borderRadius: 17,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: tokens.background.overlay,
+                          opacity: pressed ? 0.72 : 1,
+                        })}
+                      >
+                        <Ionicons name="ellipsis-horizontal" size={18} color={tokens.text.secondary} />
+                      </Pressable>
+                    ) : null}
+                  </View>
                 </View>
-              </View>
-            )
-          })}
+              )
+            })}
 
-          <AddCourseGalaxyNode
-            top={addTop}
-            mapWidth={mapWidth}
-            side={items.length % 2 === 0 ? 'right' : 'left'}
-            inviteCode={inviteCode}
-            joining={joining}
-            open={joinOpen}
-            onToggle={() => setJoinOpen((current) => !current)}
-            onChangeInviteCode={onChangeInviteCode}
-            onJoin={onJoin}
-          />
-        </View>
+            {isLastPage ? (
+              <AddCourseGalaxyNode
+                top={addTop}
+                mapWidth={mapWidth}
+                side={pageItems.length % 2 === 0 ? 'right' : 'left'}
+                inviteCode={inviteCode}
+                joining={joining}
+                open={joinOpen}
+                onToggle={() => setJoinOpen((current) => !current)}
+                onChangeInviteCode={onChangeInviteCode}
+                onJoin={onJoin}
+              />
+            ) : null}
+          </View>
+          {totalPages > 1 ? (
+            <GalaxyPagination
+              currentPage={safePage}
+              totalPages={totalPages}
+              label="Navegación de páginas de galaxias"
+              onPrevious={() => setPage((current) => Math.max(0, current - 1))}
+              onNext={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
+            />
+          ) : null}
+        </>
       )}
     </View>
   )
@@ -406,14 +483,27 @@ export function TopicGalaxyMap({ items }: { items: GalaxyTopicItem[] }) {
   const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
   const isDesktop = responsive.isDesktop
-  const mapWidth = Math.max(320, Math.min(isDesktop ? responsive.width - 330 : responsive.width - 24, isDesktop ? 1360 : 430))
-  const nodeSize = isDesktop ? 178 : 152
-  const rowHeight = isDesktop ? 300 : 280
-  const mapHeight = Math.max(400, items.length * rowHeight + 80)
+  const maxMapWidth = responsive.isWide ? 1120 : isDesktop ? 1020 : responsive.isTablet ? 840 : 560
+  const mapWidth = Math.max(320, Math.min(isDesktop ? responsive.width - 330 : responsive.width - 24, maxMapWidth))
+  const nodeSize = responsive.isWide ? 178 : isDesktop ? 166 : responsive.isTablet ? 158 : 146
+  const rowHeight = isDesktop ? 286 : responsive.isTablet ? 274 : 266
+  const pageSize = responsive.isWide ? 6 : isDesktop ? 5 : responsive.isTablet ? 4 : 5
   const [viewMode, setViewMode] = useAccessibleGalaxyViewMode()
+  const [page, setPage] = useState(0)
+  const [visibleListCount, setVisibleListCount] = useState(10)
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize))
+  const safePage = Math.min(page, totalPages - 1)
+  const pageItems = items.slice(safePage * pageSize, safePage * pageSize + pageSize)
+  const mapHeight = Math.max(360, pageItems.length * rowHeight + 60)
+  const visibleListItems = items.slice(0, visibleListCount)
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, Math.max(0, totalPages - 1)))
+    setVisibleListCount((current) => Math.max(10, Math.min(current, Math.max(items.length, 10))))
+  }, [items.length, totalPages])
 
   return (
-    <View style={{ width: '100%', maxWidth: isDesktop ? 1360 : 560, alignSelf: 'center' }}>
+    <View style={{ width: '100%', maxWidth: maxMapWidth, alignSelf: 'center' }}>
       <GalaxyViewModeToggle value={viewMode} onChange={setViewMode} />
 
       {viewMode === 'list' ? (
@@ -424,115 +514,127 @@ export function TopicGalaxyMap({ items }: { items: GalaxyTopicItem[] }) {
               <Text style={[styles.listTitle, { color: tokens.text.primary }]}>Aún no hay temas</Text>
               <Text style={[styles.listDescription, { color: tokens.text.secondary }]}>Tu profesor añadirá temas con preguntas para esta galaxia.</Text>
             </View>
-          ) : items.map((item, index) => {
-            const disabled = item.state === 'locked' || item.state === 'empty'
-            const palette = getTopicPalette(item, index)
-            return (
-              <AppPressable
-                key={item.key}
-                accessibilityLabel={`${item.title}. ${getTopicStateLabel(item.state)}. ${item.progress}% completado. ${item.questionsCount} preguntas.`}
-                accessibilityHint={disabled ? 'Este tema todavía no está disponible' : item.actionLabel}
-                accessibilityState={{ disabled }}
-                disabled={disabled}
-                onPress={item.onPress}
-                style={({ pressed }) => [
-                  styles.listCard,
-                  {
-                    backgroundColor: tokens.surface.default,
-                    borderColor: item.state === 'active' ? tokens.border.active : tokens.border.default,
-                    opacity: disabled ? 0.56 : pressed ? 0.78 : 1,
-                  },
-                ]}
-              >
-                <View style={[styles.listIcon, { backgroundColor: withAlpha(palette.rim, '24') }]}>
-                  <Ionicons name={getValidIoniconName(item.icon) || (disabled ? 'lock-closed-outline' : 'play-outline')} size={23} color={palette.rim} />
-                </View>
-                <View style={styles.listCopy}>
-                  <Text maxFontSizeMultiplier={2} style={[styles.listTitle, { color: tokens.text.primary }]}>{item.title}</Text>
-                  <Text maxFontSizeMultiplier={2} style={[styles.listDescription, { color: tokens.text.secondary }]}>{getTopicStateLabel(item.state)} · {item.questionsCount} pregunta{item.questionsCount === 1 ? '' : 's'}</Text>
-                  <Text maxFontSizeMultiplier={2} style={[styles.listMeta, { color: item.failedQuestions > 0 ? tokens.semantic.warning : palette.rim }]}>
-                    {item.failedQuestions > 0 ? `${item.failedQuestions} para repasar` : `${item.progress}% completado`}
-                  </Text>
-                </View>
-                <Ionicons name={disabled ? 'lock-closed' : 'chevron-forward'} size={20} color={tokens.text.muted} />
-              </AppPressable>
-            )
-          })}
+          ) : (
+            <View style={[styles.listGrid, responsive.isTablet || responsive.isDesktop ? styles.listGridTablet : null]}>
+              {visibleListItems.map((item, index) => {
+                const palette = getTopicPalette(item, index)
+                return (
+                  <TopicPlanet
+                    key={item.key}
+                    item={item}
+                    accentColor={palette.rim}
+                    style={responsive.isTablet || responsive.isDesktop ? styles.listCardTablet : undefined}
+                  />
+                )
+              })}
+            </View>
+          )}
+
+          {visibleListCount < items.length ? (
+            <AppButton
+              label={`Mostrar ${Math.min(10, items.length - visibleListCount)} temas más`}
+              variant="secondary"
+              icon="chevron-down"
+              fullWidth
+              onPress={() => setVisibleListCount((current) => Math.min(items.length, current + 10))}
+            />
+          ) : null}
         </View>
       ) : items.length === 0 ? (
         <View style={{ minHeight: 320, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
-          <Ionicons name="planet-outline" size={62} color="#7F91AD" />
+          <Ionicons name="planet-outline" size={62} color={tokens.text.muted} />
           <Text style={styles.emptyTitle}>Aún no hay planetas</Text>
           <Text style={styles.emptyText}>Tu profesor añadirá temas con preguntas para esta galaxia.</Text>
         </View>
       ) : (
-        <View
-          accessibilityLabel="Mapa visual de temas. Cambia a Vista lista para una alternativa lineal."
-          style={{ width: mapWidth, minHeight: mapHeight + 68, paddingTop: 68, alignSelf: 'center', position: 'relative' }}
-        >
-          {items.map((item, index) => {
-            const side = index % 2 === 0 ? 'center-left' : 'center-right'
-            const nextSide = (index + 1) % 2 === 0 ? 'center-left' : 'center-right'
-            const x = getTopicNodeX(side, mapWidth, nodeSize, isDesktop)
-            const nextX = getTopicNodeX(nextSide, mapWidth, nodeSize, isDesktop)
-            const palette = getTopicPalette(item, index)
+        <>
+          {totalPages > 1 ? (
+            <GalaxyPagination
+              currentPage={safePage}
+              totalPages={totalPages}
+              label="Página de temas"
+              onPrevious={() => setPage((current) => Math.max(0, current - 1))}
+              onNext={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
+            />
+          ) : null}
+          <View
+            accessibilityLabel={`Mapa visual de temas. Página ${safePage + 1} de ${totalPages}. Cambia a Vista lista para una alternativa lineal.`}
+            style={{ width: mapWidth, minHeight: mapHeight + 68, paddingTop: 68, alignSelf: 'center', position: 'relative' }}
+          >
+            {pageItems.map((item, pageIndex) => {
+              const globalIndex = safePage * pageSize + pageIndex
+              const side = pageIndex % 2 === 0 ? 'center-left' : 'center-right'
+              const nextSide = (pageIndex + 1) % 2 === 0 ? 'center-left' : 'center-right'
+              const x = getTopicNodeX(side, mapWidth, nodeSize, isDesktop)
+              const nextX = getTopicNodeX(nextSide, mapWidth, nodeSize, isDesktop)
+              const palette = getTopicPalette(item, globalIndex)
 
-            return (
-              <View key={item.key} style={{ height: rowHeight, position: 'relative' }}>
-                {index < items.length - 1 ? (
-                  <GalaxyDottedConnector
-                    color="#9F741E"
-                    x1={x + nodeSize / 2}
-                    y1={nodeSize - 2}
-                    x2={nextX + nodeSize / 2}
-                    y2={rowHeight + 30}
-                    bend={side === 'center-left' ? 1 : -1}
-                    dotSize={4}
-                  />
-                ) : null}
-
-                <View style={{ position: 'absolute', left: x, top: 0, alignItems: 'center', width: nodeSize }}>
-                  {item.state === 'active' ? (
-                    <View style={styles.startBubble}>
-                      <Text maxFontSizeMultiplier={2} style={styles.startBubbleText}>{item.actionLabel.toUpperCase()}</Text>
-                      <View style={styles.startBubbleTail} />
-                    </View>
+              return (
+                <View key={item.key} style={{ height: rowHeight, position: 'relative' }}>
+                  {pageIndex < pageItems.length - 1 ? (
+                    <GalaxyDottedConnector
+                      color={tokens.gamification.xp}
+                      x1={x + nodeSize / 2}
+                      y1={nodeSize - 2}
+                      x2={nextX + nodeSize / 2}
+                      y2={rowHeight + 30}
+                      bend={side === 'center-left' ? 1 : -1}
+                      dotSize={4}
+                    />
                   ) : null}
 
-                  <TopicPlanetButton item={item} palette={palette} size={nodeSize} />
+                  <View style={{ position: 'absolute', left: x, top: 0, alignItems: 'center', width: nodeSize }}>
+                    {item.state === 'active' ? (
+                      <View style={styles.startBubble}>
+                        <Text maxFontSizeMultiplier={2} style={styles.startBubbleText}>{item.actionLabel.toUpperCase()}</Text>
+                        <View style={styles.startBubbleTail} />
+                      </View>
+                    ) : null}
 
-                  <View style={{ marginTop: 12, flexDirection: 'row', gap: 5, minHeight: 22 }}>
-                    {item.state !== 'locked' && item.state !== 'empty'
-                      ? [0, 1, 2].map((starIndex) => {
-                          const earnedStars = getEarnedStars(item.progress)
-                          return (
-                            <Ionicons
-                              key={starIndex}
-                              name="star"
-                              size={18}
-                              color={starIndex < earnedStars ? palette.rim : '#314250'}
-                            />
-                          )
-                        })
-                      : <Ionicons name={item.state === 'locked' ? 'lock-closed' : 'remove-circle'} size={19} color="#60748E" />}
-                  </View>
+                    <TopicPlanetButton item={item} palette={palette} size={nodeSize} />
 
-                  <Text maxFontSizeMultiplier={2} style={styles.topicTitle} numberOfLines={2}>{item.title}</Text>
-                  {item.failedQuestions > 0 ? (
-                    <View style={styles.reviewPill}>
-                      <Ionicons name="flame" size={13} color="#FFFFFF" />
-                      <Text maxFontSizeMultiplier={2} style={styles.reviewPillText}>{item.failedQuestions} para repasar</Text>
+                    <View style={{ marginTop: 12, flexDirection: 'row', gap: 5, minHeight: 22 }}>
+                      {item.state !== 'locked' && item.state !== 'empty'
+                        ? [0, 1, 2].map((starIndex) => {
+                            const earnedStars = getEarnedStars(item.progress)
+                            return (
+                              <Ionicons
+                                key={starIndex}
+                                name="star"
+                                size={18}
+                                color={starIndex < earnedStars ? palette.rim : tokens.border.default}
+                              />
+                            )
+                          })
+                        : <Ionicons name={item.state === 'locked' ? 'lock-closed' : 'remove-circle'} size={19} color={tokens.text.muted} />}
                     </View>
-                  ) : typeof item.bestScore === 'number' ? (
-                    <Text maxFontSizeMultiplier={2} style={styles.topicMeta}>Mejor: {item.bestScore} XP</Text>
-                  ) : (
-                    <Text maxFontSizeMultiplier={2} style={styles.topicMeta}>{item.questionsCount} pregunta{item.questionsCount === 1 ? '' : 's'}</Text>
-                  )}
+
+                    <Text maxFontSizeMultiplier={2} style={styles.topicTitle} numberOfLines={2}>{item.title}</Text>
+                    {item.failedQuestions > 0 ? (
+                      <View style={styles.reviewPill}>
+                        <Ionicons name="flame" size={13} color={tokens.text.inverse} />
+                        <Text maxFontSizeMultiplier={2} style={styles.reviewPillText}>{item.failedQuestions} para repasar</Text>
+                      </View>
+                    ) : typeof item.bestScore === 'number' ? (
+                      <Text maxFontSizeMultiplier={2} style={styles.topicMeta}>Mejor: {item.bestScore} XP</Text>
+                    ) : (
+                      <Text maxFontSizeMultiplier={2} style={styles.topicMeta}>{item.questionsCount} pregunta{item.questionsCount === 1 ? '' : 's'}</Text>
+                    )}
+                  </View>
                 </View>
-              </View>
-            )
-          })}
-        </View>
+              )
+            })}
+          </View>
+          {totalPages > 1 ? (
+            <GalaxyPagination
+              currentPage={safePage}
+              totalPages={totalPages}
+              label="Navegación de páginas de temas"
+              onPrevious={() => setPage((current) => Math.max(0, current - 1))}
+              onNext={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
+            />
+          ) : null}
+        </>
       )}
     </View>
   )
@@ -789,6 +891,64 @@ function GalaxyDottedConnector({
   )
 }
 
+
+function GalaxyPagination({
+  currentPage,
+  totalPages,
+  label,
+  onPrevious,
+  onNext,
+}: {
+  currentPage: number
+  totalPages: number
+  label: string
+  onPrevious: () => void
+  onNext: () => void
+}) {
+  const { tokens } = useAppTheme()
+  return (
+    <View accessibilityLabel={label} style={styles.paginationRow}>
+      <AppButton
+        accessibilityLabel="Página anterior"
+        icon="chevron-back"
+        iconOnly
+        size="sm"
+        variant="secondary"
+        disabled={currentPage <= 0}
+        onPress={onPrevious}
+      />
+      <View style={[styles.paginationLabel, { backgroundColor: tokens.surface.default, borderColor: tokens.border.default }]}>
+        <Text maxFontSizeMultiplier={2} style={[styles.paginationText, { color: tokens.text.secondary }]}>
+          Página {currentPage + 1} de {totalPages}
+        </Text>
+      </View>
+      <AppButton
+        accessibilityLabel="Página siguiente"
+        icon="chevron-forward"
+        iconOnly
+        size="sm"
+        variant="secondary"
+        disabled={currentPage >= totalPages - 1}
+        onPress={onNext}
+      />
+    </View>
+  )
+}
+
+function groupCourseItems(items: GalaxyCourseItem[]) {
+  const definitions = [
+    { key: 'in_progress' as const, label: 'En curso' },
+    { key: 'practice' as const, label: 'Para practicar' },
+    { key: 'completed' as const, label: 'Completados' },
+  ]
+  return definitions
+    .map((definition) => ({
+      ...definition,
+      items: items.filter((item) => (item.group || 'in_progress') === definition.key),
+    }))
+    .filter((group) => group.items.length > 0)
+}
+
 function getCoursePalette(color: string | null | undefined, index: number) {
   const palette = COURSE_PALETTES[index % COURSE_PALETTES.length]
   if (!color || !/^#[0-9A-F]{6}$/i.test(color)) return palette
@@ -863,6 +1023,62 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 8,
     paddingBottom: 24,
+  },
+  listGroup: {
+    width: '100%',
+    gap: 10,
+  },
+  listGroupHeader: {
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  listGroupTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '900',
+  },
+  listGroupCount: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '800',
+  },
+  listGrid: {
+    width: '100%',
+    gap: 12,
+  },
+  listGridTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  listCardTablet: {
+    width: '48.8%',
+    minWidth: 280,
+    flexGrow: 1,
+  },
+  paginationRow: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  paginationLabel: {
+    minHeight: 38,
+    minWidth: 126,
+    borderWidth: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  paginationText: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '900',
   },
   listCard: {
     width: '100%',

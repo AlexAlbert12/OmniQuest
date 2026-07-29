@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import {
+  ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -16,24 +18,22 @@ import BadgeUnlockModal from '../../components/gamification/BadgeUnlockModal'
 import { supabase } from '../../lib/supabase'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import {
-  buildStudentBadges,
-  getStudentBadgeMetrics,
-  syncStudentBadgeAwards,
+  fetchStudentBadgeCatalog,
   type StudentBadge,
-  type StudentBadgeAttempt,
-  type StudentBadgeCategory,
+  type StudentBadgeCatalogPage,
+  type StudentBadgeCatalogSummary,
+  type StudentBadgeCategoryDefinition,
 } from '../../lib/studentBadges'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { useAppTheme } from '../../lib/appTheme'
-import { readThroughCache } from '../../lib/offlineCache'
-import { enqueueOfflineMutation, isRetriableOfflineError } from '../../lib/offlineMutations'
+import { readThroughCache, updateOfflineCache } from '../../lib/offlineCache'
+import { enqueueOfflineMutation } from '../../lib/offlineMutations'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { withAlpha } from '../../lib/color'
 import { useNotifications } from '../../hooks/useNotifications'
 import { LinearGradient } from 'expo-linear-gradient'
-import { fetchStudentAttemptHistory } from '../../lib/studentSecureData'
 import OmniGuide from '@/components/OmniGuide'
 
 type Profile = {
@@ -44,35 +44,41 @@ type Profile = {
 }
 
 type BadgeFilter = 'all' | 'unlocked' | 'locked'
-type BadgeCategoryFilter = 'all' | StudentBadgeCategory
+type BadgeCategoryFilter = 'all' | string
 type BadgesCacheSnapshot = {
   profile: Profile
-  attempts: StudentBadgeAttempt[]
-  subjectsCount: number
-  badges: StudentBadge[]
-  awardedXp: number
-  newlyAwardedBadges: StudentBadge[]
+  catalog: StudentBadgeCatalogPage
 }
 
-const badgeCategoryTabs: { key: BadgeCategoryFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'all', label: 'Todos', icon: 'apps-outline' },
-  { key: 'xp', label: 'XP', icon: 'flash-outline' },
-  { key: 'streak', label: 'Racha', icon: 'flame-outline' },
-  { key: 'accuracy', label: 'Precisión', icon: 'speedometer-outline' },
-  { key: 'courses', label: 'Cursos', icon: 'book-outline' },
-  { key: 'challenges', label: 'Retos', icon: 'flag-outline' },
-]
+const PAGE_SIZE = 12
+const EMPTY_SUMMARY: StudentBadgeCatalogSummary = {
+  total: 0,
+  unlocked: 0,
+  locked: 0,
+  completionPercent: 0,
+  streakDays: 0,
+}
 
 export default function BadgesScreen() {
   const { width } = useWindowDimensions()
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [attempts, setAttempts] = useState<StudentBadgeAttempt[]>([])
-  const [subjectsCount, setSubjectsCount] = useState(0)
-  const [syncedBadges, setSyncedBadges] = useState<StudentBadge[]>([])
+  const [badges, setBadges] = useState<StudentBadge[]>([])
+  const [categories, setCategories] = useState<StudentBadgeCategoryDefinition[]>([])
+  const [summary, setSummary] = useState<StudentBadgeCatalogSummary>(EMPTY_SUMMARY)
+  const [nextBadge, setNextBadge] = useState<StudentBadge | null>(null)
   const [activeFilter, setActiveFilter] = useState<BadgeFilter>('all')
   const [activeCategory, setActiveCategory] = useState<BadgeCategoryFilter>('all')
   const [celebrationBadges, setCelebrationBadges] = useState<StudentBadge[]>([])
+  const [selectedBadge, setSelectedBadge] = useState<StudentBadge | null>(null)
+  const [featuredBadgeId, setFeaturedBadgeId] = useState<string | null>(null)
+  const [equippedFrameKey, setEquippedFrameKey] = useState('explorer')
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [resultTotal, setResultTotal] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [savingFeatured, setSavingFeatured] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   const isDesktop = width >= 1024
@@ -82,31 +88,26 @@ export default function BadgesScreen() {
   const alias = profile?.alias || 'Sin alias'
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)
-  const metrics = getStudentBadgeMetrics({ attempts, totalPoints: points, subjectsCount })
-  const computedBadges = buildStudentBadges(metrics)
-  const badges = syncedBadges.length > 0 ? syncedBadges : computedBadges
-  const unlockedBadges = badges.filter((badge) => badge.unlocked)
-  const lockedBadges = badges.filter((badge) => !badge.unlocked)
-  const completionPercent = badges.length > 0 ? Math.round((unlockedBadges.length / badges.length) * 100) : 0
-  const nextBadge = [...lockedBadges].sort((a, b) => (b.current / Math.max(b.target, 1)) - (a.current / Math.max(a.target, 1)))[0] ?? null
-
-  const visibleBadges = useMemo(() => {
-    const categoryBadges = activeCategory === 'all'
-      ? badges
-      : badges.filter((badge) => badge.category === activeCategory)
-
-    if (activeFilter === 'unlocked') return categoryBadges.filter((badge) => badge.unlocked)
-    if (activeFilter === 'locked') return categoryBadges.filter((badge) => !badge.unlocked)
-    return categoryBadges
-  }, [activeCategory, activeFilter, badges])
+  const badgeCategoryTabs = useMemo(() => [
+    { key: 'all', label: 'Todos', icon: 'apps-outline' as const, badge: summary.total },
+    ...categories.map((category) => ({
+      key: category.key,
+      label: category.name,
+      icon: category.icon,
+      badge: category.totalCount,
+    })),
+  ], [categories, summary.total])
   const activeCelebrationBadge = celebrationBadges[0] ?? null
+  const currentCacheResource = getBadgesCacheResource(activeFilter, activeCategory, page)
 
   const handleCloseCelebration = useCallback(() => {
     setCelebrationBadges((currentBadges) => currentBadges.slice(1))
   }, [])
 
-  const fetchBadges = useCallback(async () => {
-    setLoading(true)
+  const fetchBadges = useCallback(async (requestedPage = 0, append = false) => {
+    if (append) setLoadingMore(true)
+    else setLoading(true)
+    setErrorMessage(null)
 
     try {
       const { data: session } = await supabase.auth.getSession()
@@ -116,81 +117,97 @@ export default function BadgesScreen() {
 
       await readThroughCache<BadgesCacheSnapshot>({
         userId,
-        resource: 'student:badges',
+        resource: getBadgesCacheResource(activeFilter, activeCategory, requestedPage),
         fetcher: async () => {
-          const [profileResult, enrollmentsResult, attemptsResult] = await Promise.all([
-            supabase.from('profiles').select('id, alias, avatar, points').eq('id', userId).single(),
-            supabase.from('enrollments').select('subject_id').eq('student_id', userId),
-            fetchStudentAttemptHistory({ limit: 5000 }),
-          ])
+          const catalog = await fetchStudentBadgeCatalog({
+            page: requestedPage,
+            pageSize: PAGE_SIZE,
+            category: activeCategory === 'all' ? null : activeCategory,
+            status: activeFilter,
+          })
+          const profileResult = await supabase
+            .from('profiles')
+            .select('id, alias, avatar, points')
+            .eq('id', userId)
+            .single()
           if (profileResult.error) throw profileResult.error
-          if (enrollmentsResult.error) throw enrollmentsResult.error
 
-          const nextAttempts = (attemptsResult || []) as StudentBadgeAttempt[]
-          const nextSubjectsCount = enrollmentsResult.data?.length || 0
-          const nextPoints = profileResult.data?.points ?? 0
-          const nextBadges = buildStudentBadges(getStudentBadgeMetrics({
-            attempts: nextAttempts,
-            totalPoints: nextPoints,
-            subjectsCount: nextSubjectsCount,
-          }))
-
-          try {
-            const syncResult = await syncStudentBadgeAwards({ userId, badges: nextBadges, currentPoints: nextPoints })
-            return {
-              profile: { ...profileResult.data, points: nextPoints + syncResult.awardedXp },
-              attempts: nextAttempts,
-              subjectsCount: nextSubjectsCount,
-              badges: syncResult.badges,
-              awardedXp: syncResult.awardedXp,
-              newlyAwardedBadges: syncResult.newlyAwardedBadges,
-            }
-          } catch (error) {
-            if (isRetriableOfflineError(error)) {
-              await enqueueOfflineMutation({
-                userId,
-                kind: 'badges.sync',
-                entityKey: 'badges:sync',
-                conflictPolicy: 'server_wins',
-                payload: {},
-              })
-            }
-            console.error('Error sincronizando logros:', error)
-            return {
-              profile: profileResult.data,
-              attempts: nextAttempts,
-              subjectsCount: nextSubjectsCount,
-              badges: nextBadges,
-              awardedXp: 0,
-              newlyAwardedBadges: [],
-            }
-          }
+          return { profile: profileResult.data, catalog }
         },
         onData: (snapshot, metadata) => {
           setProfile(snapshot.profile)
-          setSubjectsCount(snapshot.subjectsCount)
-          setAttempts(snapshot.attempts)
-          setSyncedBadges(snapshot.badges)
+          setBadges((current) => append
+            ? mergeBadgePages(current, snapshot.catalog.badges)
+            : snapshot.catalog.badges)
+          setCategories(snapshot.catalog.categories)
+          setSummary(snapshot.catalog.summary)
+          setNextBadge(snapshot.catalog.nextBadge)
+          setFeaturedBadgeId(snapshot.catalog.featuredBadgeId)
+          setEquippedFrameKey(snapshot.catalog.equippedFrameKey)
+          setPage(snapshot.catalog.page)
+          setHasMore(snapshot.catalog.hasMore)
+          setResultTotal(snapshot.catalog.total)
           setLoading(false)
-          if (metadata.source === 'network' && snapshot.awardedXp > 0) {
+          setLoadingMore(false)
+          if (metadata.source === 'network' && snapshot.catalog.awardedXp > 0) {
             void refreshStudentNotifications()
-            if (snapshot.newlyAwardedBadges.length > 0) setCelebrationBadges(snapshot.newlyAwardedBadges)
-            else showAlert('¡Logro desbloqueado!', `Has ganado ${snapshot.awardedXp.toLocaleString()} XP en recompensas.`)
+            if (snapshot.catalog.newlyAwardedBadges.length > 0) setCelebrationBadges(snapshot.catalog.newlyAwardedBadges)
+            else showAlert('¡Logro desbloqueado!', `Has ganado ${snapshot.catalog.awardedXp.toLocaleString()} XP en recompensas.`)
           }
         },
       })
     } catch (error) {
       console.error('Error fetching badges:', error)
+      setErrorMessage('No se pudo actualizar la colección. Revisa tu conexión e inténtalo de nuevo.')
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
-  }, [refreshStudentNotifications])
+  }, [activeCategory, activeFilter, refreshStudentNotifications])
 
   useFocusEffect(
     useCallback(() => {
-      fetchBadges()
+      setBadges([])
+      setPage(0)
+      void fetchBadges(0, false)
     }, [fetchBadges])
   )
+
+  const handleFeatureBadge = useCallback(async (badge: StudentBadge) => {
+    if (!badge.unlocked) return
+    setSavingFeatured(true)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+      if (!userId) throw new Error('No hay sesión activa.')
+
+      const nextFeaturedBadgeId = featuredBadgeId === badge.id ? null : badge.id
+      await enqueueOfflineMutation({
+        userId,
+        kind: 'profile.cosmetics',
+        entityKey: 'profile:cosmetics',
+        conflictPolicy: 'client_wins',
+        payload: { frameKey: equippedFrameKey, featuredBadgeId: nextFeaturedBadgeId },
+      })
+      setFeaturedBadgeId(nextFeaturedBadgeId)
+      await updateOfflineCache<BadgesCacheSnapshot>(userId, currentCacheResource, (snapshot) => ({
+        ...snapshot,
+        catalog: { ...snapshot.catalog, featuredBadgeId: nextFeaturedBadgeId },
+      }))
+      showAlert(
+        nextFeaturedBadgeId ? 'Logro destacado' : 'Logro retirado',
+        nextFeaturedBadgeId
+          ? `${badge.title} aparecerá junto a tu avatar en el perfil.`
+          : 'Tu perfil ya no muestra un logro destacado.'
+      )
+    } catch (error) {
+      console.error('Error destacando logro:', error)
+      showAlert('No se pudo guardar', 'Inténtalo de nuevo. Si estás sin conexión, comprueba el almacenamiento local.')
+    } finally {
+      setSavingFeatured(false)
+    }
+  }, [currentCacheResource, equippedFrameKey, featuredBadgeId])
 
   const showAlert = (title: string, message: string) => {
     if (Platform.OS === 'web') {
@@ -259,20 +276,20 @@ export default function BadgesScreen() {
                 <View className="min-w-0 flex-1">
                   <Text className="text-[16px] font-bold text-text-secondary">Colección de logros</Text>
                   <Text className="mt-1 text-[36px] font-black text-white">
-                    {unlockedBadges.length} / {badges.length}
+                    {summary.unlocked} / {summary.total}
                   </Text>
                   <Text className="mt-1 text-[13px] text-text-secondary">insignias conseguidas</Text>
                   <View className="mt-4 h-2 overflow-hidden rounded-full bg-surface-selected">
-                    <View className="h-full rounded-full" style={{ width: `${completionPercent}%`, backgroundColor: accentColor }} />
+                    <View className="h-full rounded-full" style={{ width: `${summary.completionPercent}%`, backgroundColor: accentColor }} />
                   </View>
                 </View>
               </View>
             </View>
 
             <View className={isDesktop ? 'flex-1 flex-row gap-4' : 'flex-row gap-3'}>
-              <MetricTile icon="checkmark-circle" color="#34D399" label="Conseguidas" value={String(unlockedBadges.length)} />
-              <MetricTile icon="lock-closed" color="#F6A64A" label="Pendientes" value={String(lockedBadges.length)} />
-              <MetricTile icon="flame" color="#FF7B45" label="Días de racha" value={String(metrics.streakDays)} />
+              <MetricTile icon="checkmark-circle" color="#34D399" label="Conseguidas" value={String(summary.unlocked)} />
+              <MetricTile icon="lock-closed" color="#F6A64A" label="Pendientes" value={String(summary.locked)} />
+              <MetricTile icon="flame" color="#FF7B45" label="Días de racha" value={String(summary.streakDays)} />
             </View>
           </View>
 
@@ -285,7 +302,7 @@ export default function BadgesScreen() {
               <View className="min-w-0 flex-1">
                 <Text className="text-[15px] font-black text-white">Colección por categorías</Text>
                 <Text className="mt-1 text-[12px] leading-5 text-text-muted">
-                  Explora logros de XP, racha, precisión, cursos y retos. Las insignias bloqueadas muestran tu avance real.
+                  Las categorías y sus logros se cargan desde el catálogo. Abre una insignia para consultar todos sus detalles.
                 </Text>
               </View>
               <View className="flex-row rounded-xl border border-border-default bg-surface-raised p-1">
@@ -307,16 +324,54 @@ export default function BadgesScreen() {
             </View>
 
             <View className={isDesktop ? 'mt-5 flex-row flex-wrap gap-4' : 'mt-5 flex-row flex-wrap gap-3'}>
-              {visibleBadges.length > 0 ? visibleBadges.map((badge) => (
-                <BadgeCard key={badge.id} badge={badge} isDesktop={isDesktop} />
+              {badges.length > 0 ? badges.map((badge) => (
+                <BadgeCard
+                  key={badge.id}
+                  badge={badge}
+                  featured={featuredBadgeId === badge.id}
+                  isDesktop={isDesktop}
+                  onPress={() => setSelectedBadge(badge)}
+                />
               )) : (
                 <View className="w-full items-center rounded-2xl border border-dashed border-border-default bg-surface-raised px-5 py-10">
                   <OmniGuide state="thinking" size={72} />
-                  <Text className="mt-3 text-[15px] font-black text-white">No hay logros en este filtro</Text>
-                  <Text className="mt-1 text-center text-[12px] text-text-muted">Prueba otra categoría o cambia el estado de las insignias.</Text>
+                  <Text className="mt-3 text-[15px] font-black text-white">{errorMessage ? 'No se pudo cargar la colección' : 'No hay logros en este filtro'}</Text>
+                  <Text className="mt-1 text-center text-[12px] text-text-muted">
+                    {errorMessage || 'Prueba otra categoría o cambia el estado de las insignias.'}
+                  </Text>
+                  {errorMessage ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      className="mt-4 rounded-xl bg-brand-student px-4 py-2.5"
+                      onPress={() => void fetchBadges(0, false)}
+                    >
+                      <Text className="text-[12px] font-black text-white">Reintentar</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
               )}
             </View>
+
+            {hasMore ? (
+              <View className="mt-5 items-center border-t border-border-subtle pt-5">
+                <Pressable
+                  accessibilityHint="Carga la página siguiente de logros"
+                  accessibilityRole="button"
+                  className="min-w-[190px] flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-raised px-5 py-3"
+                  disabled={loadingMore}
+                  onPress={() => void fetchBadges(page + 1, true)}
+                  style={{ opacity: loadingMore ? 0.7 : 1 }}
+                >
+                  {loadingMore ? <ActivityIndicator size="small" color={accentColor} /> : <Ionicons name="add-circle-outline" size={18} color={accentColor} />}
+                  <Text className="text-[13px] font-black text-white">{loadingMore ? 'Cargando...' : 'Cargar más logros'}</Text>
+                </Pressable>
+                <Text className="mt-2 text-[11px] text-text-muted">Mostrando {badges.length} de {resultTotal}</Text>
+              </View>
+            ) : badges.length > 0 ? (
+              <Text className="mt-5 border-t border-border-subtle pt-4 text-center text-[11px] text-text-muted">
+                Mostrando {badges.length} de {resultTotal} logros
+              </Text>
+            ) : null}
           </View>
         </ScrollView>
       </View>
@@ -326,6 +381,14 @@ export default function BadgesScreen() {
         visible={Boolean(activeCelebrationBadge)}
         remainingCount={Math.max(0, celebrationBadges.length - 1)}
         onClose={handleCloseCelebration}
+      />
+
+      <BadgeDetailModal
+        badge={selectedBadge}
+        busy={savingFeatured}
+        featured={Boolean(selectedBadge && featuredBadgeId === selectedBadge.id)}
+        onClose={() => setSelectedBadge(null)}
+        onToggleFeatured={(badge) => void handleFeatureBadge(badge)}
       />
 
       {!isDesktop ? <StudentBottomNav active="badges" /> : null}
@@ -378,20 +441,8 @@ function NextBadgeCard({ badge, isDesktop }: { badge: StudentBadge; isDesktop: b
 
 function getRemainingBadgeMessage(badge: StudentBadge, remaining: number) {
   const amount = remaining.toLocaleString()
-  switch (badge.category) {
-    case 'xp':
-      return `Te faltan ${amount} XP para desbloquearlo.`
-    case 'streak':
-      return `Te faltan ${amount} día${remaining === 1 ? '' : 's'} de racha.`
-    case 'courses':
-      return `Te faltan ${amount} curso${remaining === 1 ? '' : 's'} o clase${remaining === 1 ? '' : 's'} por explorar.`
-    case 'accuracy':
-      return badge.id === 'accuracy-80'
-        ? `Te faltan ${amount} puntos de precisión.`
-        : `Te faltan ${amount} respuestas correctas.`
-    default:
-      return `Te faltan ${amount} pregunta${remaining === 1 ? '' : 's'}.`
-  }
+  const unit = remaining === 1 ? badge.unitSingular : badge.unitPlural
+  return `Te faltan ${amount} ${unit || 'pasos'} para desbloquearlo.`
 }
 
 function MetricTile({
@@ -431,12 +482,26 @@ function FilterButton({ label, active, onPress }: { label: string; active: boole
   )
 }
 
-function BadgeCard({ badge, isDesktop }: { badge: StudentBadge; isDesktop: boolean }) {
+function BadgeCard({
+  badge,
+  featured,
+  isDesktop,
+  onPress,
+}: {
+  badge: StudentBadge
+  featured: boolean
+  isDesktop: boolean
+  onPress: () => void
+}) {
   const progressPercent = Math.min(100, Math.round((badge.current / Math.max(badge.target, 1)) * 100))
 
   return (
-    <View
+    <Pressable
+      accessibilityHint="Abre el detalle completo del logro"
+      accessibilityLabel={`${badge.title}, ${badge.statusLabel}`}
+      accessibilityRole="button"
       className={`rounded-2xl border bg-surface-raised ${isDesktop ? 'p-4' : 'p-3'} ${badge.unlocked ? 'border-semantic-success' : 'border-border-default'}`}
+      onPress={onPress}
       style={{ width: isDesktop ? '31.8%' : '48%', minHeight: isDesktop ? 292 : 224 }}
     >
       <View className="flex-row items-start justify-between gap-3">
@@ -446,13 +511,21 @@ function BadgeCard({ badge, isDesktop }: { badge: StudentBadge; isDesktop: boole
         >
           <Ionicons name={badge.unlocked ? badge.icon : 'lock-closed'} size={isDesktop ? 30 : 25} color={badge.color} />
         </View>
-        <View
-          className="rounded-full px-3 py-1"
-          style={{ backgroundColor: badge.unlocked ? 'rgba(52,211,153,0.16)' : 'rgba(143,167,199,0.14)' }}
-        >
-          <Text className={`text-[11px] font-black ${badge.unlocked ? 'text-semantic-success' : 'text-text-secondary'}`} numberOfLines={1}>
-            {badge.statusLabel}
-          </Text>
+        <View className="items-end gap-1.5">
+          {featured ? (
+            <View className="flex-row items-center gap-1 rounded-full bg-brand-student px-2.5 py-1">
+              <Ionicons name="star" size={11} color="#FFFFFF" />
+              <Text className="text-[10px] font-black text-white">Destacado</Text>
+            </View>
+          ) : null}
+          <View
+            className="rounded-full px-3 py-1"
+            style={{ backgroundColor: badge.unlocked ? 'rgba(52,211,153,0.16)' : 'rgba(143,167,199,0.14)' }}
+          >
+            <Text className={`text-[11px] font-black ${badge.unlocked ? 'text-semantic-success' : 'text-text-secondary'}`} numberOfLines={1}>
+              {badge.statusLabel}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -470,9 +543,150 @@ function BadgeCard({ badge, isDesktop }: { badge: StudentBadge; isDesktop: boole
       </View>
 
       <View className="mt-4 flex-row items-center justify-between border-t border-border-subtle pt-3">
-        <Text className="text-[12px] text-text-muted">Recompensa</Text>
+        <View>
+          <Text className="text-[12px] text-text-muted">Recompensa</Text>
+          {badge.unlocked && badge.awardedAt ? (
+            <Text className="mt-1 text-[10px] text-text-muted">{formatAwardedAt(badge.awardedAt)}</Text>
+          ) : null}
+        </View>
         <Text className="text-[12px] font-black text-brand-admin">{badge.xp}</Text>
       </View>
+    </Pressable>
+  )
+}
+
+function BadgeDetailModal({
+  badge,
+  busy,
+  featured,
+  onClose,
+  onToggleFeatured,
+}: {
+  badge: StudentBadge | null
+  busy: boolean
+  featured: boolean
+  onClose: () => void
+  onToggleFeatured: (badge: StudentBadge) => void
+}) {
+  if (!badge) return null
+
+  const progressPercent = Math.min(100, Math.round((badge.current / Math.max(badge.target, 1)) * 100))
+
+  return (
+    <Modal animationType="fade" onRequestClose={onClose} transparent visible>
+      <Pressable className="flex-1 items-center justify-center bg-black/70 px-5 py-10" onPress={onClose}>
+        <Pressable
+          accessibilityViewIsModal
+          className="w-full max-w-[560px] overflow-hidden rounded-3xl border border-border-default bg-surface-default"
+          onPress={(event) => event.stopPropagation()}
+        >
+          <LinearGradient colors={[`${badge.color}35`, '#101D36', '#0A1427']}>
+            <ScrollView contentContainerStyle={{ padding: 24 }} showsVerticalScrollIndicator={false}>
+              <View className="flex-row items-start justify-between gap-4">
+                <View className="h-20 w-20 items-center justify-center rounded-3xl border-2" style={{ borderColor: badge.color, backgroundColor: `${badge.color}22` }}>
+                  <Ionicons name={badge.unlocked ? badge.icon : 'lock-closed'} size={38} color={badge.color} />
+                </View>
+                <Pressable accessibilityLabel="Cerrar detalle" accessibilityRole="button" className="h-10 w-10 items-center justify-center rounded-full bg-surface-raised" onPress={onClose}>
+                  <Ionicons name="close" size={22} color="#DCEBFF" />
+                </Pressable>
+              </View>
+
+              <View className="mt-5 flex-row items-center gap-2">
+                <Ionicons name={badge.categoryIcon || 'ribbon-outline'} size={15} color={badge.categoryColor || badge.color} />
+                <Text className="text-[12px] font-black uppercase tracking-[0.08em]" style={{ color: badge.categoryColor || badge.color }}>
+                  {badge.categoryName || badge.category}
+                </Text>
+              </View>
+              <Text className="mt-2 text-[26px] font-black text-white">{badge.title}</Text>
+              <Text className="mt-3 text-[14px] leading-6 text-text-secondary">{badge.detail}</Text>
+
+              <View className="mt-5 rounded-2xl border border-border-default bg-surface-raised p-4">
+                <Text className="text-[11px] font-black uppercase tracking-[0.08em] text-text-muted">Cómo conseguirlo</Text>
+                <Text className="mt-2 text-[14px] font-bold leading-5 text-white">{badge.requirement}</Text>
+                <View className="mt-4 flex-row items-center justify-between">
+                  <Text className="text-[12px] text-text-muted">Progreso</Text>
+                  <Text className="text-[12px] font-black text-white">{badge.progressLabel}</Text>
+                </View>
+                <View className="mt-2 h-2.5 overflow-hidden rounded-full bg-surface-interactive">
+                  <View className="h-full rounded-full" style={{ width: `${progressPercent}%`, backgroundColor: badge.color }} />
+                </View>
+              </View>
+
+              <View className="mt-4 flex-row gap-3">
+                <DetailFact icon="gift-outline" label="Recompensa" value={badge.xp} color={badge.color} />
+                <DetailFact
+                  icon="calendar-outline"
+                  label={badge.unlocked ? 'Conseguido el' : 'Estado'}
+                  value={badge.unlocked && badge.awardedAt ? formatAwardedAt(badge.awardedAt) : badge.statusLabel}
+                  color={badge.unlocked ? '#34D399' : '#8FA7C7'}
+                />
+              </View>
+
+              {badge.unlocked ? (
+                <Pressable
+                  accessibilityHint="Muestra u oculta esta insignia junto a tu avatar"
+                  accessibilityRole="button"
+                  className="mt-5 flex-row items-center justify-center gap-2 rounded-xl bg-brand-student px-5 py-3.5"
+                  disabled={busy}
+                  onPress={() => onToggleFeatured(badge)}
+                  style={{ opacity: busy ? 0.7 : 1 }}
+                >
+                  {busy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name={featured ? 'star-outline' : 'star'} size={18} color="#FFFFFF" />}
+                  <Text className="text-[13px] font-black text-white">
+                    {busy ? 'Guardando...' : featured ? 'Quitar del perfil' : 'Destacar en mi perfil'}
+                  </Text>
+                </Pressable>
+              ) : (
+                <View className="mt-5 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-raised px-5 py-3.5">
+                  <Ionicons name="lock-closed" size={17} color="#8FA7C7" />
+                  <Text className="text-[12px] font-bold text-text-secondary">Desbloquéalo para destacarlo en tu perfil</Text>
+                </View>
+              )}
+            </ScrollView>
+          </LinearGradient>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  )
+}
+
+function DetailFact({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  value: string
+  color: string
+}) {
+  return (
+    <View className="min-w-0 flex-1 rounded-2xl border border-border-default bg-surface-raised p-4">
+      <Ionicons name={icon} size={18} color={color} />
+      <Text className="mt-2 text-[10px] font-black uppercase tracking-[0.07em] text-text-muted">{label}</Text>
+      <Text className="mt-1 text-[12px] font-black text-white" numberOfLines={2}>{value}</Text>
     </View>
   )
+}
+
+function getBadgesCacheResource(filter: BadgeFilter, category: BadgeCategoryFilter, page: number) {
+  return `student:badges:${filter}:${category}:page:${page}`
+}
+
+function mergeBadgePages(current: StudentBadge[], nextPage: StudentBadge[]) {
+  const badgesById = new Map(current.map((badge) => [badge.id, badge]))
+  nextPage.forEach((badge) => badgesById.set(badge.id, badge))
+  return Array.from(badgesById.values())
+}
+
+function formatAwardedAt(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Fecha no disponible'
+
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
 }

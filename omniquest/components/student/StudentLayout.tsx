@@ -1,4 +1,5 @@
-import { ReactNode } from 'react'
+import { ReactNode, type ReactElement } from 'react'
+import type { RefreshControlProps } from 'react-native'
 import StudentSidebar, { StudentSection } from './StudentSidebar'
 import StudentBottomNav, { StudentBottomNavKey } from './StudentBottomNav'
 import StudentScreenLayout from '../layouts/StudentScreenLayout'
@@ -16,6 +17,7 @@ type StudentLayoutProps = {
   onSignOut: () => void
   points: number
   level: number
+  refreshControl?: ReactElement<RefreshControlProps>
 }
 
 /** Backwards-compatible student shell backed by the shared responsive layout. */
@@ -32,6 +34,7 @@ export default function StudentLayout({
   nextLevelProgress,
   onSignOut,
   points,
+  refreshControl,
 }: StudentLayoutProps) {
   return (
     <StudentScreenLayout
@@ -51,6 +54,7 @@ export default function StudentLayout({
       isDesktop={isDesktop}
       loading={loading}
       loadingLabel={loadingLabel}
+      refreshControl={refreshControl}
     >
       {children}
     </StudentScreenLayout>

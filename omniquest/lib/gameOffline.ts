@@ -14,6 +14,7 @@ export type PendingGameAnswer = {
   payload?: Json
   skipped?: boolean
   timedOut?: boolean
+  questionUpdatedAt?: string | null
 }
 
 export type StoredGameSnapshot = {

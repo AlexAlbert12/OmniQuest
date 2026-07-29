@@ -53,7 +53,12 @@ test('student courses, profile, badges, notifications, progress and history read
     'app/(student)/progress.tsx',
     'app/(student)/activity-log.tsx',
   ]
-  files.forEach((file) => assert.match(read(file), /readThroughCache/, `${file} must use read-through cache`))
+  files.forEach((file) => {
+    const implementation = file === 'app/(student)/progress.tsx'
+      ? read(file) + read('hooks/student/useStudentProgress.ts')
+      : read(file)
+    assert.match(implementation, /readThroughCache/, `${file} must use read-through cache`)
+  })
 
   const notifications = read('hooks/useNotifications.ts')
   assert.match(notifications, /notifications:\$\{audience\}/)

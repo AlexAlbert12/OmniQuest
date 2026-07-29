@@ -9,7 +9,7 @@ const read = (path) => readFileSync(join(root, path), 'utf8')
 test('usage analytics records game lifecycle, errors and badge unlocks', () => {
   const migration = read('supabase/migrations/20260720110000_product_operations.sql')
   const hook = read('hooks/useGame.ts')
-  const play = read('app/(student)/play/[id].tsx')
+  const play = read('app/(student)/play/[id].tsx') + read('components/student/game/GameDialogs.tsx')
   const analytics = read('lib/analytics.ts')
 
   assert.match(migration, /create table if not exists public\.analytics_events/)

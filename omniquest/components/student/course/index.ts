@@ -1,0 +1,6 @@
+export { default as CourseGalaxyHeader } from './CourseGalaxyHeader'
+export { default as CourseNextMission } from './CourseNextMission'
+export { default as TopicPlanet } from './TopicPlanet'
+export { default as TopicDifficultyModal } from './TopicDifficultyModal'
+export { default as CourseProgressPanel } from './CourseProgressPanel'
+export type * from './types'

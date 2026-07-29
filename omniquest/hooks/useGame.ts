@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Alert, Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { normalizeDifficulty } from '../lib/difficulty';
 import type { Json } from '../types/database.types';
@@ -7,6 +6,8 @@ import { fetchAttemptFeedback, type AttemptFeedback } from '../lib/studentSecure
 import { measureRpc, toSafeAnalyticsError, trackUsageEvent } from '../lib/analytics';
 import { useAppHaptics } from '../lib/haptics';
 import { getStudentBadgePresentation, type StudentBadge } from '../lib/studentBadges';
+import { isQuestionVersionConflict, withQuestionVersionMetadata } from '../lib/gameQuestionLogic';
+import type { GameQuestionConflict, GameSyncState } from '../components/student/game/types';
 import {
   buildGameSnapshotKey,
   clearGameSnapshot,
@@ -113,10 +114,15 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   const [resumedFromSnapshot, setResumedFromSnapshot] = useState(false);
   const [pendingAnswer, setPendingAnswer] = useState<PendingGameAnswer | null>(null);
   const [newlyUnlockedBadges, setNewlyUnlockedBadges] = useState<StudentBadge[]>([]);
+  const [syncState, setSyncState] = useState<GameSyncState>('idle');
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [questionConflict, setQuestionConflict] = useState<GameQuestionConflict | null>(null);
 
   const loadGame = useCallback(async () => {
     setStatus('loading');
     setLoadError(null);
+    setSyncError(null);
+    setQuestionConflict(null);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData.session?.user.id;
@@ -142,6 +148,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
         setFeedback(snapshot.feedback as QuestionFeedback | null);
         setFeedbackNextStatus(snapshot.feedbackNextStatus);
         setResumedFromSnapshot(true);
+        setSyncState(snapshot.pendingAnswer ? 'offline' : 'synced');
         setStatus('playing');
         void trackUsageEvent('game_resumed', {
           subjectId: numericSubjectId,
@@ -216,6 +223,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       setPendingAnswer(null);
       setNewlyUnlockedBadges([]);
       setResumedFromSnapshot(false);
+      setSyncState('idle');
       setQuestions(safeQuestions);
       setTimeLeft(safeQuestions[0].time_limit_seconds ?? 30);
       setStatus('playing');
@@ -388,6 +396,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       payload,
       skipped,
       timedOut,
+      questionUpdatedAt: typeof currentQ.question_updated_at === 'string' ? currentQ.question_updated_at : null,
     };
     setPendingAnswer(pendingSubmission);
 
@@ -395,6 +404,9 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     setIsSubmitting(true);
     setSelectedAnswerId(answerId ?? null);
     setCorrectAnswerId(null);
+    setSyncError(null);
+    setQuestionConflict(null);
+    setSyncState(retry ? 'retrying' : 'saving');
 
     try {
       const timeLimit = currentQ.time_limit_seconds ?? 30;
@@ -406,7 +418,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
           p_question_id: currentQ.id,
           p_answer_id: answerId ?? undefined,
           p_answer_text: answerText ?? undefined,
-          p_answer_payload: payload ?? undefined,
+          p_answer_payload: withQuestionVersionMetadata(payload, pendingSubmission.questionUpdatedAt),
           p_time_taken_seconds: timeTaken,
           p_hint_used: hintUsedRef.current,
           p_skipped: skipped,
@@ -424,6 +436,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       if (error) throw error;
       setPendingAnswer(null);
       setIsOffline(false);
+      setSyncState('synced');
 
       const result = asSubmitAnswerResult(data);
       let secureFeedback: AttemptFeedback = {};
@@ -497,6 +510,29 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       });
     } catch (error: any) {
       console.error('Error submitting answer:', error);
+      if (isQuestionVersionConflict(error)) {
+        setPendingAnswer(null);
+        setHasAnswered(false);
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
+        setFeedback(null);
+        setFeedbackNextStatus(null);
+        setSyncState('conflict');
+        setQuestionConflict({
+          questionId: Number(currentQ.id),
+          questionText: String(currentQ.text || 'Pregunta actual'),
+          expectedVersion: typeof currentQ.question_updated_at === 'string' ? currentQ.question_updated_at : null,
+          message: 'El profesor modificó esta pregunta mientras la partida estaba sin conexión. Tu respuesta no se ha enviado para evitar corregirla contra una versión distinta.',
+        });
+        void trackUsageEvent('game_error', {
+          subjectId: numericSubjectId,
+          classroomId: numericClassroomId,
+          topicId: numericTopicId,
+          attemptId: attemptIdRef.current,
+          properties: { stage: 'question_version_conflict', question_id: Number(currentQ.id), error_code: 'QUESTION_VERSION_CONFLICT' },
+        });
+        return;
+      }
       const online = await getNetworkAvailability().catch(() => false);
       void trackUsageEvent('game_error', {
         subjectId: numericSubjectId,
@@ -517,10 +553,9 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       setIsSubmitting(false);
       setFeedback(null);
       setFeedbackNextStatus(null);
-      if (online) {
-        setPendingAnswer(null);
-        Platform.OS === 'web' ? window.alert(error.message) : Alert.alert('Error', error.message);
-      }
+      setSyncError(error?.message || 'No se pudo sincronizar la respuesta.');
+      setSyncState(online ? 'error' : 'offline');
+      if (online) setPendingAnswer(null);
     }
   }, [currentIndex, haptics, hasAnswered, numericClassroomId, numericSubjectId, numericTopicId, questions, status, timeLeft]);
 
@@ -549,11 +584,11 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     let cancelled = false;
     const updateAvailability = async () => {
       const online = await getNetworkAvailability().catch(() => false);
-      if (!cancelled) setIsOffline(!online);
+      if (!cancelled) { setIsOffline(!online); if (!online) setSyncState('offline'); }
     };
     void updateAvailability();
     const unsubscribe = subscribeToNetworkAvailability((online) => {
-      if (!cancelled) setIsOffline(!online);
+      if (!cancelled) { setIsOffline(!online); if (!online) setSyncState('offline'); }
     });
     return () => {
       cancelled = true;
@@ -608,6 +643,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       return;
     }
     setIsOffline(false);
+    setSyncState('retrying');
     void completeAnswer({
       answerId: pendingAnswer.answerId,
       answerText: pendingAnswer.answerText,
@@ -651,6 +687,21 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     void completeAnswer({ skipped: true });
   };
 
+  const restartAfterConflict = useCallback(async () => {
+    setQuestionConflict(null);
+    setSyncError(null);
+    setSyncState('idle');
+    setStatus('loading');
+    await clearGameSnapshot(gameSnapshotKey);
+    await finalizeGameAttempt('gameOver');
+    await loadGame();
+  }, [finalizeGameAttempt, gameSnapshotKey, loadGame]);
+
+  const dismissSyncError = useCallback(() => {
+    setSyncError(null);
+    setSyncState(isOffline ? 'offline' : 'idle');
+  }, [isOffline]);
+
   const continueAfterFeedback = () => {
     if (!feedback) return;
 
@@ -686,7 +737,12 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     resumedFromSnapshot,
     pendingAnswer,
     newlyUnlockedBadges,
+    syncState,
+    syncError,
+    questionConflict,
     retryPendingAnswer,
+    restartAfterConflict,
+    dismissSyncError,
     dismissUnlockedBadge,
     retryLoadGame: loadGame,
     abandonGame,

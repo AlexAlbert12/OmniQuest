@@ -24,7 +24,7 @@ export type StudentBadgeAttempt = {
   questions?: StudentBadgeAttemptQuestion | StudentBadgeAttemptQuestion[] | null
 }
 
-export type StudentBadgeCategory = 'xp' | 'streak' | 'accuracy' | 'courses' | 'challenges'
+export type StudentBadgeCategory = string
 
 export type StudentBadge = {
   id: string
@@ -42,6 +42,44 @@ export type StudentBadge = {
   current: number
   target: number
   awardedAt?: string | null
+  categoryName?: string
+  categoryIcon?: keyof typeof Ionicons.glyphMap
+  categoryColor?: string
+  unitSingular?: string
+  unitPlural?: string
+}
+
+export type StudentBadgeCategoryDefinition = {
+  key: string
+  name: string
+  description: string | null
+  icon: keyof typeof Ionicons.glyphMap
+  color: string
+  totalCount: number
+  unlockedCount: number
+}
+
+export type StudentBadgeCatalogSummary = {
+  total: number
+  unlocked: number
+  locked: number
+  completionPercent: number
+  streakDays: number
+}
+
+export type StudentBadgeCatalogPage = {
+  categories: StudentBadgeCategoryDefinition[]
+  badges: StudentBadge[]
+  page: number
+  pageSize: number
+  total: number
+  hasMore: boolean
+  summary: StudentBadgeCatalogSummary
+  nextBadge: StudentBadge | null
+  featuredBadgeId: string | null
+  equippedFrameKey: string
+  awardedXp: number
+  newlyAwardedBadges: StudentBadge[]
 }
 
 export type StudentBadgeMetrics = {
@@ -75,6 +113,52 @@ export function getStudentLevel(points: number) {
 
 export function getNextLevelProgress(points: number) {
   return Math.max(0, points) % 100
+}
+
+export async function fetchStudentBadgeCatalog({
+  page = 0,
+  pageSize = 12,
+  category = null,
+  status = 'all',
+}: {
+  page?: number
+  pageSize?: number
+  category?: string | null
+  status?: 'all' | 'unlocked' | 'locked'
+} = {}): Promise<StudentBadgeCatalogPage> {
+  const { data, error } = await supabase.rpc('get_student_badge_catalog', {
+    p_page: page,
+    p_page_size: pageSize,
+    p_category_key: category ?? undefined,
+    p_status: status,
+  })
+
+  if (error) throw error
+
+  const payload = asRecord(data)
+  const pagination = asRecord(payload.pagination)
+  const summary = asRecord(payload.summary)
+
+  return {
+    categories: asArray(payload.categories).map(normalizeCategory).filter(isPresent),
+    badges: asArray(payload.items).map(normalizeCatalogBadge).filter(isPresent),
+    page: toSafeInteger(pagination.page, page),
+    pageSize: toSafeInteger(pagination.page_size, pageSize),
+    total: toSafeInteger(pagination.total),
+    hasMore: pagination.has_more === true,
+    summary: {
+      total: toSafeInteger(summary.total),
+      unlocked: toSafeInteger(summary.unlocked),
+      locked: toSafeInteger(summary.locked),
+      completionPercent: toSafeInteger(summary.completion_percent),
+      streakDays: toSafeInteger(summary.streak_days),
+    },
+    nextBadge: normalizeCatalogBadge(payload.next_badge),
+    featuredBadgeId: typeof payload.featured_badge_id === 'string' ? payload.featured_badge_id : null,
+    equippedFrameKey: typeof payload.equipped_frame_key === 'string' ? payload.equipped_frame_key : 'explorer',
+    awardedXp: toSafeInteger(payload.awarded_xp),
+    newlyAwardedBadges: asArray(payload.new_awards).map(normalizeCatalogBadge).filter(isPresent),
+  }
 }
 
 export function getStudentBadgeMetrics({
@@ -477,6 +561,79 @@ function inferNewAwardRows({
   }
 
   return inferredRows
+}
+
+function normalizeCategory(value: unknown): StudentBadgeCategoryDefinition | null {
+  const row = asRecord(value)
+  if (typeof row.key !== 'string' || typeof row.name !== 'string') return null
+
+  return {
+    key: row.key,
+    name: row.name,
+    description: typeof row.description === 'string' ? row.description : null,
+    icon: normalizeIcon(row.icon, 'ribbon-outline'),
+    color: typeof row.color === 'string' ? row.color : '#58B5FF',
+    totalCount: toSafeInteger(row.total_count),
+    unlockedCount: toSafeInteger(row.unlocked_count),
+  }
+}
+
+function normalizeCatalogBadge(value: unknown): StudentBadge | null {
+  const row = asRecord(value)
+  if (typeof row.id !== 'string' || typeof row.title !== 'string') return null
+
+  const current = toSafeInteger(row.current)
+  const target = Math.max(1, toSafeInteger(row.target, 1))
+  const rewardXp = toSafeInteger(row.reward_xp)
+  const unlocked = row.unlocked === true
+
+  return {
+    id: row.id,
+    category: typeof row.category_key === 'string' ? row.category_key : 'uncategorized',
+    categoryName: typeof row.category_name === 'string' ? row.category_name : undefined,
+    categoryIcon: normalizeIcon(row.category_icon, 'ribbon-outline'),
+    categoryColor: typeof row.category_color === 'string' ? row.category_color : undefined,
+    title: row.title,
+    detail: typeof row.detail === 'string' ? row.detail : '',
+    requirement: typeof row.requirement === 'string' ? row.requirement : '',
+    progressLabel: `${Math.min(current, target).toLocaleString()} / ${target.toLocaleString()}`,
+    statusLabel: unlocked ? 'Conseguida' : 'Bloqueada',
+    xp: `+${rewardXp.toLocaleString()} XP`,
+    rewardXp,
+    icon: normalizeIcon(row.icon, 'ribbon'),
+    color: typeof row.color === 'string' ? row.color : '#58B5FF',
+    unlocked,
+    current: Math.min(current, target),
+    target,
+    awardedAt: typeof row.awarded_at === 'string' ? row.awarded_at : null,
+    unitSingular: typeof row.unit_singular === 'string' ? row.unit_singular : undefined,
+    unitPlural: typeof row.unit_plural === 'string' ? row.unit_plural : undefined,
+  }
+}
+
+function normalizeIcon(value: unknown, fallback: keyof typeof Ionicons.glyphMap) {
+  return typeof value === 'string' && value in Ionicons.glyphMap
+    ? value as keyof typeof Ionicons.glyphMap
+    : fallback
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function toSafeInteger(value: unknown, fallback = 0) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : fallback
+}
+
+function isPresent<T>(value: T | null): value is T {
+  return value !== null
 }
 
 function parseRewardXp(value: string) {

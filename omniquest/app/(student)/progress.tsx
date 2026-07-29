@@ -1,1346 +1,152 @@
-import React, { useCallback, useState } from 'react'
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native'
-import { useFocusEffect, useRouter } from 'expo-router'
+import React, { useCallback } from 'react'
+import { Text, useWindowDimensions, View } from 'react-native'
+import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
-import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../../lib/supabase'
-import StudentSidebar from '../../components/student/StudentSidebar'
-import {
-  buildStudentBadges,
-  getStudentBadgeMetrics,
-  type StudentBadge,
-  type StudentBadgeScore,
-} from '../../lib/studentBadges'
-import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
-import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
-import StudentBottomNav from '../../components/student/StudentBottomNav'
+import { useAppTheme } from '../../lib/appTheme'
+import StudentLayout from '../../components/student/StudentLayout'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import StudentDashboardCard from '../../components/student/StudentDashboardCard'
-import StudentEmptyState from '../../components/student/StudentEmptyState'
-import OmniGuide, { type OmniState } from '../../components/OmniGuide'
-import StudentListRow from '../../components/student/StudentListRow'
-import StudentPrimaryLearningCTA from '../../components/student/StudentPrimaryLearningCTA'
-import { formatShortDate } from '../../lib/dateFormat'
-import { useAppTheme } from '../../lib/appTheme'
-import type { DesignColorTokens } from '../../lib/designTokens'
-import { withAlpha } from '../../lib/color'
-import { readThroughCache } from '../../lib/offlineCache'
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
-import { fetchStudentAttemptHistory } from '../../lib/studentSecureData'
-
-type Profile = {
-  id: string
-  alias: string
-  avatar: string | null
-  points: number | null
-}
-
-type ScoreRow = {
-  subject_id: number | null
-  classroom_id?: number | null
-  max_score: number | null
-  played_at?: string | null
-  played_days?: string[] | null
-  correct_answers?: number | null
-  subjects?: { name: string } | { name: string }[] | null
-}
-
-type SubjectProgress = {
-  id: number
-  classroomId?: number | null
-  name: string
-  detail: string
-  icon: keyof typeof Ionicons.glyphMap
-  color: string
-  averageScore: number | null
-  bestScore: number | null
-  totalXp: number
-  scoreCount: number
-  totalQuestions: number
-  failedQuestions: number
-  pendingQuestions: number
-  barPercent: number
-}
-
-type RecentScore = {
-  label: string
-  meta: string
-  value: number
-}
-
-type ReinforcementQuestionRelation = {
-  id: number
-  text: string | null
-  type: string | null
-  subject_id: number | null
-  topic_id: number | null
-  subjects?: { name: string } | { name: string }[] | null
-  subject_topics?: { title: string } | { title: string }[] | null
-}
-
-type ReinforcementAttemptRow = {
-  id: number
-  is_correct: boolean | null
-  attempted_at: string | null
-  questions?: ReinforcementQuestionRelation | ReinforcementQuestionRelation[] | null
-}
-
-type ReinforcementArea = {
-  id: string
-  title: string
-  detail: string
-  badge: string
-  icon: keyof typeof Ionicons.glyphMap
-  color: string
-  failedCount: number
-  accuracyPercent: number
-  totalAttempts: number
-  subjectId?: number
-  topicId?: number | null
-  topicName?: string
-  actionLabel: string
-}
-
-type ProgressCacheSnapshot = {
-  profile: Profile
-  weeklyAttemptsCount: number
-  subjectProgress: SubjectProgress[]
-  recentScores: RecentScore[]
-  scores: ScoreRow[]
-  reinforcementAreas: ReinforcementArea[]
-}
+import AppPressable from '../../components/ui/AppPressable'
+import { AppStatusBanner } from '../../components/ui'
+import DailyPracticeRecommendation from '../../components/student/progress/DailyPracticeRecommendation'
+import ProgressOverview from '../../components/student/progress/ProgressOverview'
+import PracticeOpportunityList from '../../components/student/progress/PracticeOpportunityList'
+import CourseProgressList from '../../components/student/progress/CourseProgressList'
+import LatestResults from '../../components/student/progress/LatestResults'
+import { useStudentProgress, type PracticeOpportunity, type StudentCourseProgress } from '../../hooks/student/useStudentProgress'
 
 export default function ProgressScreen() {
   const { width } = useWindowDimensions()
   const router = useRouter()
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [subjectProgress, setSubjectProgress] = useState<SubjectProgress[]>([])
-  const [recentScores, setRecentScores] = useState<RecentScore[]>([])
-  const [weeklyAttemptsCount, setWeeklyAttemptsCount] = useState(0)
-  const [scores, setScores] = useState<ScoreRow[]>([])
-  const [reinforcementAreas, setReinforcementAreas] = useState<ReinforcementArea[]>([])
-  const [loading, setLoading] = useState(true)
-  const { accentColor, tokens } = useAppTheme()
-
+  const { accentColor } = useAppTheme()
+  const progress = useStudentProgress()
   const isDesktop = width >= 1024
-  const points = profile?.points ?? 0
-  const alias = profile?.alias || 'Alex'
-  const level = getStudentLevel(points)
-  const nextLevelProgress = getNextLevelProgress(points)
-  const totalClasses = subjectProgress.length
-  const savedScores = subjectProgress.reduce((total, subject) => total + subject.scoreCount, 0)
-  const totalQuestions = subjectProgress.reduce((total, subject) => total + subject.totalQuestions, 0)
-  const progressPercent = totalQuestions > 0 ? Math.round((savedScores / totalQuestions) * 100) : 0
-  const failedQuestions = subjectProgress.reduce((total, subject) => total + subject.failedQuestions, 0)
-  const accuracyPercent = scores.length > 0
-    ? Math.round(
-        (scores.reduce((total, score) => total + (score.correct_answers ?? 0), 0) / Math.max(savedScores, 1)) * 100
-      )
-    : 0
-  const safeProgressPercent = Math.min(100, Math.max(0, progressPercent))
-  const safeAccuracyPercent = Math.min(100, Math.max(0, accuracyPercent))
-  const badgeMetrics = getStudentBadgeMetrics({
-    scores: scores as StudentBadgeScore[],
-    totalPoints: points,
-    subjectsCount: totalClasses,
-  })
-  const badges = buildStudentBadges(badgeMetrics)
-  const recommendedArea = reinforcementAreas[0] ?? null
 
-  const fetchProgress = useCallback(async () => {
-    setLoading(true)
-
-    try {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
-
-      if (!userId) return
-
-      const now = new Date()
-      const weekStart = getStartOfWeekMonday(now)
-      const weekStartIso = weekStart.toISOString()
-      const nowIso = now.toISOString()
-
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-      const thirtyDaysAgoIso = thirtyDaysAgo.toISOString()
-
-      await readThroughCache<ProgressCacheSnapshot>({
-        userId,
-        resource: 'student:progress',
-        fetcher: async () => {
-          const [profileResult, scoresResult, weeklyAttemptsResult, progressResult, reinforcementResult] = await Promise.all([
-            supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
-            supabase
-              .from('subject_scores')
-              .select('subject_id, classroom_id, max_score, played_at, played_days, correct_answers, subjects(name)')
-              .eq('student_id', userId)
-              .order('played_at', { ascending: false }),
-            supabase
-              .from('attempt_history')
-              .select('id', { count: 'exact', head: true })
-              .eq('student_id', userId)
-              .gte('attempted_at', weekStartIso)
-              .lte('attempted_at', nowIso),
-            fetchStudentProgressSummary(userId),
-            fetchStudentAttemptHistory({ limit: 1000, since: thirtyDaysAgoIso }),
-          ])
-          if (profileResult.error) throw profileResult.error
-          if (scoresResult.error) throw scoresResult.error
-          if (weeklyAttemptsResult.error) throw weeklyAttemptsResult.error
-          const nextScores = (scoresResult.data || []) as ScoreRow[]
-          return {
-            profile: profileResult.data,
-            weeklyAttemptsCount: weeklyAttemptsResult.count || 0,
-            subjectProgress: buildSubjectRows(progressResult.subjects, nextScores, tokens),
-            recentScores: buildRecentScores(nextScores),
-            scores: nextScores,
-            reinforcementAreas: buildReinforcementAreas((reinforcementResult || []) as ReinforcementAttemptRow[], tokens),
-          }
-        },
-        onData: (snapshot) => {
-          setProfile(snapshot.profile)
-          setWeeklyAttemptsCount(snapshot.weeklyAttemptsCount)
-          setSubjectProgress(snapshot.subjectProgress)
-          setRecentScores(snapshot.recentScores)
-          setScores(snapshot.scores)
-          setReinforcementAreas(snapshot.reinforcementAreas)
-          setLoading(false)
-        },
-      })
-    } catch (error) {
-      console.error('Error fetching progress:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [tokens])
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchProgress()
-    }, [fetchProgress])
-  )
-
-  const handleReviewArea = useCallback((area: ReinforcementArea) => {
-    if (area.subjectId) {
+  const handlePractice = useCallback((opportunity: PracticeOpportunity) => {
+    if (opportunity.subjectId) {
       router.push({
         pathname: '/(student)/play/[id]',
         params: {
-          id: String(area.subjectId),
-          topicId: area.topicId === null || area.topicId === undefined ? 'general' : String(area.topicId),
-          topicName: area.topicName || area.title,
+          id: String(opportunity.subjectId),
+          topicId: opportunity.topicId === null || opportunity.topicId === undefined ? 'general' : String(opportunity.topicId),
+          topicName: opportunity.topicName || opportunity.title,
           review: 'failed',
         },
       } as any)
       return
     }
-
     router.push('/(student)/activity-log' as any)
   }, [router])
 
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background-primary">
-        <ActivityIndicator size="large" color={accentColor} />
-        <Text className="mt-4 text-text-muted">Analizando tu progreso...</Text>
-      </View>
-    )
-  }
+  const handleOpenCourse = useCallback((course: StudentCourseProgress) => {
+    router.push({
+      pathname: '/(student)/class/[id]',
+      params: {
+        id: String(course.id),
+        ...(course.classroomId ? { classroomId: String(course.classroomId) } : {}),
+      },
+    } as any)
+  }, [router])
 
-  if (!isDesktop) {
-    return (
-      <MobileStudentProgress
-        level={level}
-        points={points}
-        nextLevelProgress={nextLevelProgress}
-        progressPercent={safeProgressPercent}
-        answeredQuestions={savedScores}
-        weeklyAttemptsCount={weeklyAttemptsCount}
-        accuracyPercent={safeAccuracyPercent}
-        failedQuestions={failedQuestions}
-        streakDays={badgeMetrics.streakDays}
-        subjectProgress={subjectProgress}
-        recentScores={recentScores}
-        reinforcementAreas={reinforcementAreas}
-        accentColor={accentColor}
+  return (
+    <StudentLayout
+      activeSection="progress"
+      bottomNavActive="progress"
+      alias={progress.alias}
+      avatar={progress.profile?.avatar}
+      level={progress.level}
+      points={progress.points}
+      nextLevelProgress={progress.nextLevelProgress}
+      isDesktop={isDesktop}
+      loading={progress.loading}
+      loadingLabel="Analizando tu progreso..."
+      onSignOut={() => { void supabase.auth.signOut() }}
+    >
+      <StudentPageHeader
+        icon="stats-chart"
+        isDesktop={isDesktop}
+        title="Progreso"
+        subtitle="Entiende qué practicar, por qué se recomienda y qué puedes ganar."
       />
-    )
-  }
 
-  return (
-    <View className="flex-1 bg-background-primary">
-      <View className="flex-1 flex-row">
-        {isDesktop ? (
-          <StudentSidebar
-            activeSection="progress"
-            alias={alias}
-            avatar={profile?.avatar}
-            level={level}
-            points={points}
-            nextLevelProgress={nextLevelProgress}
-            onSignOut={() => supabase.auth.signOut()}
+      {progress.error ? (
+        <View className="mb-4">
+          <AppStatusBanner
+            variant="danger"
+            icon="warning-outline"
+            title="No se pudo actualizar el progreso"
+            message={progress.error}
+            actionLabel="Reintentar"
+            onAction={() => { void progress.reload() }}
           />
-        ) : null}
-
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 28 : 18,
-            paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 28 : MOBILE_BOTTOM_NAV_SPACER,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          <StudentPageHeader
-            icon="stats-chart"
-            isDesktop={isDesktop}
-            title="Progreso"
-            subtitle="Descubre qué practicar hoy y sigue avanzando paso a paso."
-          />
-
-          <View className="mb-3 mt-1 flex-row items-center gap-2">
-            <Ionicons name="sparkles" size={20} color={accentColor} />
-            <Text className="text-[18px] font-black text-white">Tu recomendación de hoy</Text>
-          </View>
-
-          <StudentPrimaryLearningCTA
-            icon={recommendedArea ? 'sparkles' : 'book'}
-            title={recommendedArea ? `Practica ${recommendedArea.title}` : 'Continúa tu ruta de aprendizaje'}
-            subtitle={recommendedArea ? `Tienes ${recommendedArea.failedCount} preguntas preparadas para reforzar este contenido.` : 'Entra en tus cursos y completa la siguiente actividad disponible.'}
-            meta={recommendedArea ? '+20 XP posibles' : `${subjectProgress.length} cursos activos`}
-            ctaLabel={recommendedArea ? 'Practicar ahora' : 'Ver cursos'}
-            color={recommendedArea?.color ?? accentColor}
-            onPress={() => recommendedArea ? handleReviewArea(recommendedArea) : router.push('/(student)/classes' as any)}
-          />
-
-          <View className="mt-5 flex-row flex-wrap items-stretch gap-4">
-            <ProgressOverviewCard
-              progressPercent={safeProgressPercent}
-              accentColor={accentColor}
-              className={isDesktop ? 'flex-1 min-w-[220px]' : ''}
-            />
-            <ProgressMetricCard
-              icon="refresh-circle"
-              title="Preguntas para practicar"
-              value={String(failedQuestions)}
-              detail={failedQuestions > 0 ? 'Oportunidad de mejora' : 'Todo al día'}
-              detailColor={failedQuestions > 0 ? tokens.semantic.warning : tokens.semantic.success}
-              color={tokens.semantic.warning}
-              className={isDesktop ? 'flex-1 min-w-[220px]' : ''}
-            />
-            <ProgressMetricCard
-              icon="flame"
-              title="Racha actual"
-              value={`${badgeMetrics.streakDays} días`}
-              detail={badgeMetrics.streakDays > 0 ? 'Mantén el ritmo' : 'Empieza hoy'}
-              color={tokens.gamification.streak}
-              className={isDesktop ? 'flex-1 min-w-[220px]' : ''}
-            />
-          </View>
-
-          <View className={isDesktop ? 'mt-5 flex-row flex-wrap items-stretch gap-5' : 'mt-5 gap-5'}>
-            <ReinforcementCard
-              className={isDesktop ? 'flex-[1.55] min-w-[360px]' : ''}
-              areas={reinforcementAreas}
-              onSeeAll={() => router.push('/(student)/activity-log' as any)}
-              onReview={handleReviewArea}
-            />
-
-            <XpEvolution
-              scores={recentScores}
-              className={isDesktop ? 'flex-1 min-w-[320px]' : ''}
-              onSeeAll={() => router.push('/(student)/activity-log' as any)}
-            />
-          </View>
-
-          <View className={isDesktop ? 'mt-5 flex-row flex-wrap items-stretch gap-5' : 'mt-5 gap-5'}>
-            <StudentDashboardCard
-              title="Progreso por curso"
-              actionLabel="Ver todos mis cursos"
-              onAction={() => router.push('/(student)/classes' as any)}
-              className={isDesktop ? 'flex-[1.55] min-w-[360px]' : ''}
-            >
-              <View style={{ gap: 10 }}>
-                {subjectProgress.length > 0 ? (
-                  subjectProgress.map((subject) => (
-                    <SubjectProgressRow
-                      key={`${subject.id}:${subject.classroomId ?? 'general'}`}
-                      subject={subject}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/(student)/class/[id]',
-                          params: {
-                            id: String(subject.id),
-                            ...(subject.classroomId ? { classroomId: String(subject.classroomId) } : {}),
-                          },
-                        } as any)
-                      }
-                    />
-                  ))
-                ) : (
-                  <EmptyProgress />
-                )}
-              </View>
-            </StudentDashboardCard>
-
-            <StudentDashboardCard
-              title="Logros recientes"
-              actionLabel="Ver todos"
-              onAction={() => router.push('/(student)/badges' as any)}
-              className={isDesktop ? 'flex-1 min-w-[320px]' : ''}
-            >
-              <View style={{ gap: 10 }}>
-                {badges.slice(0, 4).map((achievement) => (
-                  <AchievementRow
-                    key={achievement.title}
-                    achievement={achievement}
-                    onPress={() => router.push('/(student)/badges' as any)}
-                  />
-                ))}
-              </View>
-            </StudentDashboardCard>
-          </View>
-        </ScrollView>
-      </View>
-
-      {!isDesktop ? <StudentBottomNav active="progress" /> : null}
-    </View>
-  )
-}
-
-function MobileStudentProgress({
-  level,
-  points,
-  nextLevelProgress,
-  progressPercent,
-  answeredQuestions,
-  weeklyAttemptsCount,
-  accuracyPercent,
-  failedQuestions,
-  streakDays,
-  subjectProgress,
-  recentScores,
-  reinforcementAreas,
-  accentColor,
-}: {
-  level: number
-  points: number
-  nextLevelProgress: number
-  progressPercent: number
-  answeredQuestions: number
-  weeklyAttemptsCount: number
-  accuracyPercent: number
-  failedQuestions: number
-  streakDays: number
-  subjectProgress: SubjectProgress[]
-  recentScores: RecentScore[]
-  reinforcementAreas: ReinforcementArea[]
-  accentColor: string
-}) {
-  const router = useRouter()
-  const { tokens } = useAppTheme()
-  const xpToNextLevel = Math.max(0, 100 - nextLevelProgress)
-  const recommendedArea = reinforcementAreas[0] ?? null
-
-  const handleReviewArea = (area: ReinforcementArea) => {
-    if (area.subjectId) {
-      router.push({
-        pathname: '/(student)/play/[id]',
-        params: {
-          id: String(area.subjectId),
-          topicId: area.topicId === null || area.topicId === undefined ? 'general' : String(area.topicId),
-          topicName: area.topicName || area.title,
-          review: 'failed',
-        },
-      } as any)
-      return
-    }
-
-    router.push('/(student)/activity-log' as any)
-  }
-
-  return (
-    <View className="flex-1 bg-background-primary">
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: MOBILE_BOTTOM_NAV_SPACER }}
-        showsVerticalScrollIndicator={false}
-      >
-        <StudentPageHeader
-          icon="stats-chart"
-          isDesktop={false}
-          title="Progreso"
-          subtitle="Sigue aprendiendo cada día."
-        />
-
-        <View className="mb-3 flex-row items-center gap-2">
-          <Ionicons name="sparkles" size={19} color={accentColor} />
-          <Text className="text-[17px] font-black text-white">Tu recomendación de hoy</Text>
         </View>
-
-        <StudentPrimaryLearningCTA
-          icon={recommendedArea ? 'sparkles' : 'book'}
-          title={recommendedArea ? `Practica ${recommendedArea.title}` : 'Continúa tu aprendizaje'}
-          subtitle={recommendedArea ? `${recommendedArea.failedCount} preguntas preparadas para reforzar este contenido.` : 'Entra en tus cursos y completa la siguiente actividad.'}
-          meta={recommendedArea ? '+20 XP posibles' : `${subjectProgress.length} cursos activos`}
-          ctaLabel={recommendedArea ? 'Practicar' : 'Ver cursos'}
-          color={recommendedArea?.color ?? accentColor}
-          onPress={() => recommendedArea ? handleReviewArea(recommendedArea) : router.push('/(student)/classes' as any)}
-        />
-
-        <View className="mt-3 flex-row items-start gap-2 rounded-xl border border-border-default bg-surface-default px-3 py-3">
-          <Ionicons name="information-circle-outline" size={17} color={tokens.semantic.info} />
-          <Text className="min-w-0 flex-1 text-[11px] font-semibold leading-4 text-text-secondary">
-            Calculado según tus últimos intentos y las preguntas que más te conviene practicar.
-          </Text>
-        </View>
-
-        <MobileProgressHero
-          level={level}
-          points={points}
-          nextLevelProgress={nextLevelProgress}
-          progressPercent={progressPercent}
-          xpToNextLevel={xpToNextLevel}
-          accentColor={accentColor}
-        />
-
-        <View className="mt-5 flex-row gap-3">
-          <MobileProgressStat icon="refresh-circle" label="Para practicar" value={String(failedQuestions)} helper={failedQuestions > 0 ? 'Oportunidad' : 'Todo al día'} color={tokens.semantic.warning} />
-          <MobileProgressStat icon="flame" label="Racha actual" value={String(streakDays)} helper="días" color={tokens.gamification.streak} />
-        </View>
-
-        <MobileSectionHeader
-          icon="sparkles"
-          title="Oportunidades de mejora"
-          actionLabel="Historial"
-          onAction={() => router.push('/(student)/activity-log' as any)}
-        />
-        <View className="overflow-hidden rounded-[24px] border border-border-default bg-surface-default">
-          {reinforcementAreas.length > 0 ? (
-            reinforcementAreas.slice(0, 3).map((area, index) => (
-              <MobileReinforcementRow
-                key={area.id}
-                area={area}
-                isLast={index === Math.min(reinforcementAreas.length, 3) - 1}
-                onPress={() => handleReviewArea(area)}
-              />
-            ))
-          ) : (
-            <MobileCompactEmpty icon="sparkles-outline" omniState="happy" title="Sin retos pendientes" subtitle="Cuando practiques más, verás recomendaciones aquí." />
-          )}
-        </View>
-
-        <View className="mt-6 gap-5">
-          <MobileRecentScoresCard scores={recentScores} onSeeAll={() => router.push('/(student)/activity-log' as any)} />
-          <MobileCourseProgressCard subjects={subjectProgress} onSeeAll={() => router.push('/(student)/classes' as any)} />
-        </View>
-
-      </ScrollView>
-
-      <StudentBottomNav active="progress" />
-    </View>
-  )
-}
-
-function MobileProgressHero({
-  level,
-  points,
-  nextLevelProgress,
-  progressPercent,
-  xpToNextLevel,
-  accentColor,
-}: {
-  level: number
-  points: number
-  nextLevelProgress: number
-  progressPercent: number
-  xpToNextLevel: number
-  accentColor: string
-}) {
-  const { tokens } = useAppTheme()
-
-  return (
-    <LinearGradient
-      colors={[tokens.surface.selected, tokens.surface.raised, tokens.background.primary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ borderRadius: 28, borderWidth: 1, borderColor: tokens.border.active, overflow: 'hidden' }}
-    >
-      <View className="relative min-h-[180px] flex-row items-center gap-5 p-5">
-        <View className="absolute -right-8 -top-8 h-32 w-32 rounded-full" style={{ backgroundColor: withAlpha(tokens.brand.student, '33') }} />
-
-        <View
-          className="h-[118px] w-[118px] items-center justify-center rounded-full bg-background-secondary"
-          style={{ borderColor: accentColor, borderWidth: 9 }}
-        >
-          <Text className="text-[32px] font-black text-white">{progressPercent}%</Text>
-          <Text className="text-[11px] font-semibold text-text-secondary">Avance</Text>
-        </View>
-
-        <View className="min-w-0 flex-1 pr-12">
-          <Text className="text-[28px] font-black text-white">{points.toLocaleString()} XP</Text>
-          <Text className="mt-1 text-[13px] text-text-secondary">Nivel {level}</Text>
-          <View className="mt-4 h-3 overflow-hidden rounded-full bg-surface-interactive">
-            <View className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(6, nextLevelProgress))}%`, backgroundColor: accentColor }} />
-          </View>
-          <Text className="mt-2 text-[12px] font-semibold text-text-secondary">
-            {xpToNextLevel} XP para subir
-          </Text>
-        </View>
-      </View>
-    </LinearGradient>
-  )
-}
-
-function MobileProgressStat({
-  icon,
-  label,
-  value,
-  helper,
-  color,
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  label: string
-  value: string
-  helper: string
-  color: string
-}) {
-  return (
-    <View className="min-h-[122px] flex-1 basis-[47%] items-center justify-center rounded-[24px] border border-border-default bg-surface-default px-3 py-4">
-      <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: `${color}24` }}>
-        <Ionicons name={icon} size={22} color={color} />
-      </View>
-      <Text className="mt-3 text-[28px] font-black text-white" numberOfLines={1}>{value}</Text>
-      <Text className="text-center text-[13px] font-bold leading-4 text-text-secondary" numberOfLines={2}>{label}</Text>
-      <Text className="mt-1 text-center text-[11px] font-bold" style={{ color }} numberOfLines={1}>{helper}</Text>
-    </View>
-  )
-}
-
-function MobileSectionHeader({
-  icon,
-  title,
-  actionLabel,
-  onAction,
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  title: string
-  actionLabel?: string
-  onAction?: () => void
-}) {
-  const { tokens } = useAppTheme()
-
-  return (
-    <View className="mb-3 mt-7 flex-row items-center justify-between gap-3">
-      <View className="min-w-0 flex-1 flex-row items-center gap-2">
-        <Ionicons name={icon} size={22} color={tokens.brand.student} />
-        <Text className="text-[22px] font-black text-white" numberOfLines={1}>{title}</Text>
-      </View>
-      {actionLabel && onAction ? (
-        <Pressable onPress={onAction} className="flex-row items-center gap-1 px-1 py-2">
-          <Text className="text-[13px] font-black text-brand-student">{actionLabel}</Text>
-          <Ionicons name="chevron-forward" size={15} color={tokens.brand.student} />
-        </Pressable>
       ) : null}
-    </View>
-  )
-}
 
-function MobileReinforcementRow({
-  area,
-  isLast,
-  onPress,
-}: {
-  area: ReinforcementArea
-  isLast: boolean
-  onPress: () => void
-}) {
-  const detail = splitReinforcementDetail(area.detail)
-  const safeAccuracy = Math.min(100, Math.max(0, area.accuracyPercent))
-  const title = area.title
-  const context = detail.context || area.badge
+      <DailyPracticeRecommendation
+        recommendation={progress.recommendation}
+        coursesCount={progress.courseProgress.length}
+        accentColor={accentColor}
+        onPractice={handlePractice}
+        onBrowseCourses={() => router.push('/(student)/classes' as any)}
+      />
 
-  return (
-    <Pressable
-      onPress={onPress}
-      className={`flex-row items-center gap-4 p-4 ${isLast ? '' : 'border-b border-border-subtle'}`}
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-    >
-      <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: `${area.color}24` }}>
-        <Ionicons name={area.icon} size={25} color={area.color} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="text-[15px] font-black text-white" numberOfLines={2}>{title}</Text>
-        <Text className="mt-1 text-[12px] text-text-secondary" numberOfLines={1}>{context} · {area.failedCount} para practicar</Text>
-        <View className="mt-3 h-2 overflow-hidden rounded-full bg-surface-interactive">
-          <View className="h-full rounded-full" style={{ width: `${safeAccuracy}%`, backgroundColor: area.color }} />
+      <ProgressOverview
+        progressPercent={progress.progressPercent}
+        accuracyPercent={progress.accuracyPercent}
+        failedQuestions={progress.failedQuestions}
+        weeklyAttemptsCount={progress.weeklyAttemptsCount}
+        streakDays={progress.streakDays}
+      />
+
+      <View className={`${isDesktop ? 'flex-row items-start' : ''} mt-5 gap-5`}>
+        <View className={isDesktop ? 'min-w-0 flex-[1.4]' : ''}>
+          <PracticeOpportunityList
+            opportunities={progress.opportunities}
+            onPractice={handlePractice}
+            onSeeAll={() => router.push('/(student)/activity-log' as any)}
+          />
+        </View>
+        <View className={isDesktop ? 'min-w-[320px] flex-1' : ''}>
+          <LatestResults
+            results={progress.latestResults}
+            onSeeAll={() => router.push('/(student)/activity-log' as any)}
+          />
         </View>
       </View>
-      <View className="items-end gap-2">
-        <Text className="text-[12px] text-text-muted">Precisión</Text>
-        <Text className="text-[16px] font-black" style={{ color: area.color }}>{safeAccuracy}%</Text>
-        <View className="rounded-full px-3 py-1.5" style={{ backgroundColor: `${area.color}26` }}>
-          <Text className="text-[11px] font-black" style={{ color: area.color }}>Repasar</Text>
+
+      <View className={`${isDesktop ? 'flex-row items-start' : ''} mt-5 gap-5`}>
+        <View className={isDesktop ? 'min-w-0 flex-[1.4]' : ''}>
+          <CourseProgressList
+            courses={progress.courseProgress}
+            onOpenCourse={handleOpenCourse}
+            onSeeAll={() => router.push('/(student)/classes' as any)}
+          />
         </View>
-      </View>
-    </Pressable>
-  )
-}
-
-function MobileRecentScoresCard({ scores, onSeeAll }: { scores: RecentScore[]; onSeeAll: () => void }) {
-  const { tokens } = useAppTheme()
-  const maxScore = Math.max(...scores.map((score) => score.value), 1)
-
-  return (
-    <View className="rounded-[24px] border border-border-default bg-surface-default p-4">
-      <View className="mb-4 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2">
-          <Ionicons name="trophy" size={20} color={tokens.brand.student} />
-          <Text className="text-[18px] font-black text-white">Últimos XP</Text>
-        </View>
-        <Pressable onPress={onSeeAll} className="flex-row items-center gap-1">
-          <Text className="text-[12px] font-black text-brand-student">Ver todo</Text>
-          <Ionicons name="chevron-forward" size={14} color={tokens.brand.student} />
-        </Pressable>
-      </View>
-
-      {scores.length > 0 ? (
-        <View className="gap-3">
-          {scores.slice(0, 3).map((score, index) => {
-            const percent = score.value <= 0 ? 0 : Math.max(10, Math.round((score.value / maxScore) * 100))
-            return (
-              <View key={`${score.label}-${score.meta}-${index}`}>
-                <View className="mb-2 flex-row items-center gap-3">
-                  <View className="h-11 w-11 items-center justify-center rounded-2xl bg-surface-interactive">
-                    <Ionicons name={index === 0 ? 'checkmark' : 'analytics'} size={20} color={index === 0 ? tokens.semantic.success : tokens.brand.student} />
+        <View className={isDesktop ? 'min-w-[320px] flex-1' : ''}>
+          <StudentDashboardCard title="Logros recientes" actionLabel="Ver todos" onAction={() => router.push('/(student)/badges' as any)}>
+            <View className="gap-2">
+              {progress.badges.slice(0, 4).map((badge) => (
+                <AppPressable
+                  key={badge.id}
+                  accessibilityLabel={`${badge.title}. ${badge.statusLabel}`}
+                  onPress={() => router.push('/(student)/badges' as any)}
+                  className="flex-row items-center gap-3 rounded-xl border border-border-subtle bg-surface-raised p-3"
+                >
+                  <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${accentColor}20` }}>
+                    <Ionicons name={badge.icon} size={20} color={accentColor} />
                   </View>
                   <View className="min-w-0 flex-1">
-                    <Text className="text-[13px] font-black text-white" numberOfLines={1}>{score.label}</Text>
-                    <Text className="mt-0.5 text-[11px] text-text-muted" numberOfLines={1}>{score.meta}</Text>
+                    <Text className="font-black text-text-primary">{badge.title}</Text>
+                    <Text className="mt-1 text-[12px] text-text-secondary">{badge.requirement}</Text>
                   </View>
-                  <Text className="text-[13px] font-black text-white">{score.value.toLocaleString()} XP</Text>
-                </View>
-                <View className="ml-[56px] h-2 overflow-hidden rounded-full bg-surface-interactive">
-                  <View className="h-full rounded-full bg-brand-student" style={{ width: `${percent}%` }} />
-                </View>
-              </View>
-            )
-          })}
-        </View>
-      ) : (
-        <MobileCompactEmpty icon="analytics-outline" omniState="normal" title="Sin actividad todavía" subtitle="Completa una práctica para verla aquí." />
-      )}
-    </View>
-  )
-}
-
-function MobileCourseProgressCard({ subjects, onSeeAll }: { subjects: SubjectProgress[]; onSeeAll: () => void }) {
-  const router = useRouter()
-  const { tokens } = useAppTheme()
-
-  return (
-    <View className="rounded-[24px] border border-border-default bg-surface-default p-4">
-      <View className="mb-4 flex-row items-center justify-between gap-3">
-        <View className="min-w-0 flex-1 flex-row items-center gap-2">
-          <Ionicons name="book" size={20} color={tokens.brand.student} />
-          <Text className="text-[18px] font-black text-white" numberOfLines={1}>Progreso por curso</Text>
-        </View>
-        <Pressable onPress={onSeeAll} className="flex-row items-center gap-1">
-          <Text className="text-[12px] font-black text-brand-student">Ver todos</Text>
-          <Ionicons name="chevron-forward" size={14} color={tokens.brand.student} />
-        </Pressable>
-      </View>
-
-      {subjects.length > 0 ? (
-        <View className="gap-3">
-          {subjects.slice(0, 3).map((subject) => {
-            const safePercent = Math.min(100, Math.max(0, subject.barPercent))
-            return (
-              <Pressable
-                key={`${subject.id}:${subject.classroomId ?? 'general'}`}
-                onPress={() => router.push({
-                  pathname: '/(student)/class/[id]',
-                  params: {
-                    id: String(subject.id),
-                    ...(subject.classroomId ? { classroomId: String(subject.classroomId) } : {}),
-                  },
-                } as any)}
-                className="flex-row items-center gap-4 rounded-2xl bg-surface-raised p-3"
-                style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-              >
-                <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: `${subject.color}24` }}>
-                  <Ionicons name={subject.icon} size={25} color={subject.color} />
-                </View>
-                <View className="min-w-0 flex-1">
-                  <View className="flex-row items-center justify-between gap-3">
-                    <Text className="min-w-0 flex-1 text-[15px] font-black text-white" numberOfLines={1}>{subject.name}</Text>
-                    <Text className="text-[15px] font-black" style={{ color: subject.color }}>{safePercent}%</Text>
-                  </View>
-                  <Text className="mt-1 text-[12px] text-text-secondary" numberOfLines={1}>{subject.scoreCount} / {subject.totalQuestions} preguntas</Text>
-                  <View className="mt-3 h-2 overflow-hidden rounded-full bg-surface-interactive">
-                    <View className="h-full rounded-full" style={{ width: `${safePercent}%`, backgroundColor: subject.color }} />
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
-              </Pressable>
-            )
-          })}
-        </View>
-      ) : (
-        <MobileCompactEmpty icon="book-outline" omniState="thinking" title="Sin cursos activos" subtitle="Únete a una clase para empezar." />
-      )}
-    </View>
-  )
-}
-
-function MobileStreakCard({ streakDays }: { streakDays: number }) {
-  const { tokens } = useAppTheme()
-
-  return (
-    <LinearGradient
-      colors={[tokens.surface.selected, tokens.surface.raised, tokens.background.primary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ marginTop: 24, borderRadius: 24, borderWidth: 1, borderColor: tokens.border.active }}
-    >
-      <View className="flex-row items-center gap-4 p-4">
-        <View className="h-16 w-16 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(tokens.gamification.badge, '24') }}>
-          <Ionicons name="trophy" size={34} color={tokens.semantic.warning} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className="text-[20px] font-black text-white">¡Sigue así!</Text>
-          <Text className="mt-1 text-[13px] text-text-secondary">Cada paso te acerca a tu meta.</Text>
-        </View>
-        <View className="h-16 w-20 items-center justify-center rounded-2xl border border-border-active bg-surface-raised">
-          <Text className="text-[24px] font-black text-white">{streakDays}</Text>
-          <Text className="text-[11px] text-text-secondary">días</Text>
+                  <Text className="text-[12px] font-black text-gamification-xp">{badge.xp}</Text>
+                </AppPressable>
+              ))}
+            </View>
+          </StudentDashboardCard>
         </View>
       </View>
-    </LinearGradient>
+    </StudentLayout>
   )
-}
-
-function MobileCompactEmpty({ icon, omniState, title, subtitle }: { icon: keyof typeof Ionicons.glyphMap; omniState?: OmniState; title: string; subtitle: string }) {
-  const { tokens } = useAppTheme()
-
-  return (
-    <View className="items-center justify-center rounded-2xl bg-surface-raised p-6">
-      {omniState ? <OmniGuide state={omniState} size={78} autoBlink={omniState === 'normal'} /> : <Ionicons name={icon} size={28} color={tokens.text.muted} />}
-      <Text className="mt-3 text-center text-[15px] font-black text-white">{title}</Text>
-      <Text className="mt-1 text-center text-[12px] leading-5 text-text-muted">{subtitle}</Text>
-    </View>
-  )
-}
-
-
-function ProgressOverviewCard({
-  progressPercent,
-  accentColor,
-  className = '',
-}: {
-  progressPercent: number
-  accentColor: string
-  className?: string
-}) {
-  return (
-    <MobileMetricCard
-      className={`min-w-[210px] ${className}`}
-      color={accentColor}
-      detail="Avance de cursos"
-      icon="bar-chart"
-      label="Progreso general"
-      value={`${progressPercent}%`}
-    />
-  )
-}
-
-function ProgressMetricCard({
-  icon,
-  title,
-  value,
-  detail,
-  color,
-  detailColor,
-  className = '',
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  title: string
-  value: string
-  detail: string
-  color: string
-  detailColor?: string
-  className?: string
-}) {
-  const { tokens } = useAppTheme()
-
-  return (
-    <MobileMetricCard
-      className={`min-w-[200px] flex-1 ${className}`}
-      color={color}
-      detail={detail}
-      detailColor={detailColor ?? tokens.text.muted}
-      icon={icon}
-      label={title}
-      value={value}
-    />
-  )
-}
-
-function XpEvolution({
-  scores,
-  className = '',
-  onSeeAll,
-}: {
-  scores: RecentScore[]
-  className?: string
-  onSeeAll?: () => void
-}) {
-  const maxScore = Math.max(...scores.map((score) => score.value), 1)
-  const { accentColor, tokens } = useAppTheme()
-
-  return (
-    <StudentDashboardCard
-      title="Últimos resultados"
-      actionLabel={onSeeAll ? 'Ver todas' : undefined}
-      onAction={onSeeAll}
-      className={className}
-    >
-      {scores.length > 0 ? (
-        <View style={{ gap: 16 }}>
-          {scores.slice(0, 3).map((score, index) => {
-            const percent = score.value <= 0 ? 0 : Math.max(8, Math.round((score.value / maxScore) * 100))
-
-            return (
-              <View key={`${score.label}-${score.meta}-${index}`}>
-                <View className="mb-2 flex-row items-center justify-between gap-3">
-                  <View className="min-w-0 flex-1 flex-row items-center gap-3">
-                    <View className="h-10 w-10 items-center justify-center rounded-xl bg-surface-interactive">
-                      <Ionicons name={index === 0 ? 'sparkles' : 'analytics'} size={18} color={index === 0 ? tokens.gamification.xp : tokens.semantic.success} />
-                    </View>
-                    <View className="min-w-0 flex-1">
-                      <Text className="text-[13px] font-black text-text-secondary" numberOfLines={1}>
-                        {score.label}
-                      </Text>
-                      <Text className="mt-1 text-[12px] text-text-secondary" numberOfLines={1}>{score.meta}</Text>
-                    </View>
-                  </View>
-                  <Text className="text-[13px] font-black text-white">{score.value.toLocaleString()} XP</Text>
-                </View>
-                <View className="ml-[52px] h-2.5 overflow-hidden rounded-full bg-surface-interactive">
-                  {percent > 0 ? (
-                    <View
-                      className="h-full rounded-full"
-                      style={{ width: `${percent}%`, opacity: index === 0 ? 1 : 0.72, backgroundColor: accentColor }}
-                    />
-                  ) : null}
-                </View>
-              </View>
-            )
-          })}
-        </View>
-      ) : (
-        <View className="h-44 items-center justify-center rounded-xl border border-dashed border-border-default bg-surface-raised">
-          <Ionicons name="analytics-outline" size={30} color={tokens.text.muted} />
-          <Text className="mt-3 text-center text-[13px] text-text-secondary">Aún no hay puntuaciones guardadas.</Text>
-        </View>
-      )}
-    </StudentDashboardCard>
-  )
-}
-
-function splitReinforcementDetail(detail: string) {
-  const parts = detail.split(' · ')
-  if (parts.length >= 2) {
-    return { main: parts.slice(0, -1).join(' · '), context: parts[parts.length - 1] }
-  }
-  return { main: '', context: detail }
-}
-
-function ReinforcementCard({
-  areas,
-  onReview,
-  onSeeAll,
-  className = '',
-}: {
-  areas: ReinforcementArea[]
-  onReview: (area: ReinforcementArea) => void
-  onSeeAll?: () => void
-  className?: string
-}) {
-  return (
-    <StudentDashboardCard
-      title="Oportunidades de mejora"
-      actionLabel={onSeeAll ? 'Ver historial' : undefined}
-      onAction={onSeeAll}
-      className={className}
-    >
-      {areas.length > 0 ? (
-        <View style={{ gap: 10 }}>
-          {areas.slice(0, 3).map((area) => {
-            const safeAccuracy = Math.min(100, Math.max(0, area.accuracyPercent))
-            const detail = splitReinforcementDetail(area.detail)
-
-            return (
-              <StudentListRow
-                key={area.id}
-                onPress={() => onReview(area)}
-                icon={area.icon}
-                color={area.color}
-                title={area.title}
-                subtitle={detail.context}
-                actionLabel="Repasar ahora"
-                meta={[
-                  { label: 'Precisión', value: `${safeAccuracy}%`, color: area.color },
-                ]}
-              >
-                {detail.main ? (
-                  <Text className="mt-1 text-[12px] font-bold text-text-secondary" numberOfLines={1}>
-                    {detail.main || `${area.failedCount} preguntas para practicar`}
-                  </Text>
-                ) : null}
-                <View className="mt-2 flex-row items-center gap-3">
-                  <View className="h-2 flex-1 overflow-hidden rounded-full bg-surface-interactive">
-                    <View
-                      className="h-full rounded-full"
-                      style={{ width: `${safeAccuracy}%`, backgroundColor: area.color }}
-                    />
-                  </View>
-                  <Text className="w-12 text-right text-[18px] font-black" style={{ color: area.color }}>
-                    {safeAccuracy}%
-                  </Text>
-                </View>
-              </StudentListRow>
-            )
-          })}
-        </View>
-      ) : (
-        <StudentEmptyState
-          icon="sparkles-outline"
-          omniState="happy"
-          title="Sin retos pendientes"
-          message="Cuando acumules más práctica, OmniQuest te recomendará repasos concretos para subir precisión y ganar XP."
-        />
-      )}
-    </StudentDashboardCard>
-  )
-}
-
-function SubjectProgressRow({
-  onPress,
-  subject,
-}: {
-  onPress: () => void
-  subject: SubjectProgress
-}) {
-  const { tokens } = useAppTheme()
-  const safePercent = Math.min(100, Math.max(0, subject.barPercent))
-
-  return (
-    <StudentListRow
-      onPress={onPress}
-      icon={subject.icon}
-      color={subject.color}
-      title={subject.name}
-      subtitle={subject.detail}
-      actionLabel="Ver curso"
-      meta={[
-        { label: 'Progreso', value: `${safePercent}%` },
-        { label: 'Respondidas', value: `${subject.scoreCount} / ${subject.totalQuestions}` },
-        { label: 'Practicar', value: String(subject.failedQuestions), color: subject.failedQuestions > 0 ? tokens.semantic.warning : tokens.semantic.success },
-        { label: 'Pendientes', value: String(subject.pendingQuestions) },
-        { label: 'Mejor', value: subject.bestScore === null ? '-' : `${subject.bestScore.toLocaleString()} XP` },
-      ]}
-    >
-      <View className="mt-2 h-2 overflow-hidden rounded-full bg-surface-interactive">
-        <View className="h-full rounded-full" style={{ width: `${safePercent}%`, backgroundColor: subject.color }} />
-      </View>
-    </StudentListRow>
-  )
-}
-
-function EmptyProgress() {
-  return (
-    <StudentEmptyState
-      icon="stats-chart-outline"
-      omniState="normal"
-      title="Sin progreso real todavía"
-      message="Cuando completes una partida, se guardará tu puntuación y se actualizará tu avance."
-    />
-  )
-}
-
-function AchievementRow({ achievement, onPress }: { achievement: StudentBadge; onPress: () => void }) {
-  const { accentColor } = useAppTheme()
-
-  return (
-    <Pressable onPress={onPress} className={`flex-row items-center gap-4 rounded-xl bg-surface-raised p-3 ${achievement.unlocked ? '' : 'opacity-70'}`}>
-      <View
-        className="h-14 w-14 items-center justify-center rounded-2xl border-2"
-        style={{ backgroundColor: `${achievement.color}20`, borderColor: achievement.color }}
-      >
-        <Ionicons name={achievement.unlocked ? achievement.icon : 'lock-closed'} size={26} color={achievement.color} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="font-black text-white">{achievement.title}</Text>
-        <Text className="mt-1 text-[13px] text-text-secondary">{achievement.requirement}</Text>
-      </View>
-      <View className="items-end">
-        <Text className="text-[13px] text-text-muted">{achievement.statusLabel}</Text>
-        <Text className="mt-1 text-[13px] font-bold" style={{ color: accentColor }}>{achievement.xp}</Text>
-      </View>
-    </Pressable>
-  )
-}
-
-function buildSubjectRows(subjects: StudentProgressSubject[], scores: ScoreRow[], tokens: DesignColorTokens): SubjectProgress[] {
-  const colors = [
-    tokens.semantic.success,
-    tokens.brand.student,
-    tokens.semantic.info,
-    tokens.gamification.xp,
-    tokens.text.muted,
-  ]
-  const icons: (keyof typeof Ionicons.glyphMap)[] = ['book', 'calculator', 'flask', 'business', 'ellipsis-horizontal']
-  const scoresBySubject = scores.reduce<Record<string, number[]>>((acc, score) => {
-    if (score.subject_id === null || score.max_score === null) return acc
-    const key = `${score.subject_id}:${score.classroom_id ?? 'general'}`
-    if (!acc[key]) acc[key] = []
-    acc[key].push(score.max_score)
-    return acc
-  }, {})
-
-  return subjects.map((subject, index) => {
-    const subjectScores = scoresBySubject[`${subject.id}:${subject.classroomId ?? 'general'}`] || []
-    const averageScore = subjectScores.length > 0
-      ? Math.round(subjectScores.reduce((total, score) => total + score, 0) / subjectScores.length)
-      : null
-    const bestScore = subjectScores.length > 0 ? Math.max(...subjectScores) : null
-
-    const classroomLabel = subject.classroomName || 'Clase principal'
-    const questionsLabel = `${subject.totalQuestions} ${subject.totalQuestions === 1 ? 'pregunta' : 'preguntas'}`
-    const topicsLabel = `${Math.max(1, subject.totalTopics)} ${Math.max(1, subject.totalTopics) === 1 ? 'tema' : 'temas'}`
-
-    return {
-      id: subject.id,
-      classroomId: subject.classroomId ?? null,
-      name: subject.name,
-      detail: `${classroomLabel} · ${topicsLabel} · ${questionsLabel}`,
-      icon: icons[index] || 'book',
-      color: subject.theme_color || colors[index % colors.length] || tokens.semantic.success,
-      averageScore,
-      bestScore,
-      totalXp: subjectScores.reduce((total, score) => total + score, 0),
-      scoreCount: subject.answeredQuestions,
-      totalQuestions: subject.totalQuestions,
-      failedQuestions: subject.failedQuestions,
-      pendingQuestions: subject.pendingQuestions,
-      barPercent: subject.percent,
-    }
-  })
-}
-
-function buildRecentScores(scores: ScoreRow[]): RecentScore[] {
-  return scores
-    .filter((score) => score.max_score !== null)
-    .slice(0, 7)
-    .map((score, index) => {
-      const subjectData = score.subjects
-      const subjectName = Array.isArray(subjectData) ? subjectData[0]?.name : subjectData?.name
-
-      return {
-        label: subjectName || `Nota ${index + 1}`,
-        meta: formatShortDate(score.played_at),
-        value: score.max_score || 0,
-      }
-    })
-}
-
-function getStartOfWeekMonday(date: Date) {
-  const day = date.getDay()
-  const diffToMonday = day === 0 ? -6 : 1 - day
-  const monday = new Date(date)
-  monday.setDate(date.getDate() + diffToMonday)
-  monday.setHours(0, 0, 0, 0)
-  return monday
-}
-
-function buildReinforcementAreas(rows: ReinforcementAttemptRow[], tokens: DesignColorTokens): ReinforcementArea[] {
-  type TopicStats = {
-    subjectId: number
-    topicId: number | null
-    topicName: string
-    subjectName: string
-    totalAttempts: number
-    correctAttempts: number
-    failedCount: number
-    lastAttemptAt: string
-  }
-
-  type TypeStats = {
-    type: string
-    totalAttempts: number
-    correctAttempts: number
-    failedCount: number
-  }
-
-  const topicStats = new Map<string, TopicStats>()
-  const typeStats = new Map<string, TypeStats>()
-
-  rows.forEach((row) => {
-    const question = normalizeSingleRelation(row.questions)
-    if (!question || question.subject_id === null) return
-
-    const isCorrect = row.is_correct === true
-    const topic = normalizeSingleRelation(question.subject_topics)
-    const subject = normalizeSingleRelation(question.subjects)
-
-    const topicId = question.topic_id ?? null
-    const topicName = topic?.title || 'Tema general'
-    const subjectName = subject?.name || 'Curso'
-    const topicKey = `${question.subject_id}:${topicId ?? 'general'}`
-
-    const currentTopic = topicStats.get(topicKey) || {
-      subjectId: question.subject_id,
-      topicId,
-      topicName,
-      subjectName,
-      totalAttempts: 0,
-      correctAttempts: 0,
-      failedCount: 0,
-      lastAttemptAt: row.attempted_at || '',
-    }
-
-    currentTopic.totalAttempts += 1
-    currentTopic.correctAttempts += isCorrect ? 1 : 0
-    currentTopic.failedCount += isCorrect ? 0 : 1
-
-    if ((row.attempted_at || '') > currentTopic.lastAttemptAt) {
-      currentTopic.lastAttemptAt = row.attempted_at || ''
-    }
-
-    topicStats.set(topicKey, currentTopic)
-
-    const questionType = question.type || 'unknown'
-    const currentType = typeStats.get(questionType) || {
-      type: questionType,
-      totalAttempts: 0,
-      correctAttempts: 0,
-      failedCount: 0,
-    }
-
-    currentType.totalAttempts += 1
-    currentType.correctAttempts += isCorrect ? 1 : 0
-    currentType.failedCount += isCorrect ? 0 : 1
-
-    typeStats.set(questionType, currentType)
-  })
-
-  const topicAreas: ReinforcementArea[] = Array.from(topicStats.values())
-    .filter((item) => item.failedCount > 0)
-    .map((item) => {
-      const accuracyPercent = Math.round((item.correctAttempts / Math.max(item.totalAttempts, 1)) * 100)
-
-      return {
-        id: `topic-${item.subjectId}-${item.topicId ?? 'general'}`,
-        title: item.topicName,
-        detail: `${item.failedCount} ${item.failedCount === 1 ? 'pregunta para practicar' : 'preguntas para practicar'} · ${item.subjectName}`,
-        badge: 'Tema',
-        icon: 'alert-circle',
-        color: tokens.semantic.warning,
-        failedCount: item.failedCount,
-        accuracyPercent,
-        totalAttempts: item.totalAttempts,
-        subjectId: item.subjectId,
-        topicId: item.topicId,
-        topicName: item.topicName,
-        actionLabel: 'Repasar',
-      } satisfies ReinforcementArea
-    })
-    .sort((a, b) => {
-      if (b.failedCount !== a.failedCount) return b.failedCount - a.failedCount
-      return a.accuracyPercent - b.accuracyPercent
-    })
-    .slice(0, 3)
-
-  const typeAreas: ReinforcementArea[] = Array.from(typeStats.values())
-    .filter((item) => item.totalAttempts >= 3 && item.failedCount > 0)
-    .map((item) => {
-      const accuracyPercent = Math.round((item.correctAttempts / Math.max(item.totalAttempts, 1)) * 100)
-
-      return {
-        id: `type-${item.type}`,
-        title: getQuestionTypeLabel(item.type),
-        detail: `${item.failedCount} preguntas para practicar`,
-        badge: 'Tipo de pregunta',
-        icon: getQuestionTypeIcon(item.type),
-        color: tokens.brand.student,
-        failedCount: item.failedCount,
-        accuracyPercent,
-        totalAttempts: item.totalAttempts,
-        actionLabel: 'Ver historial',
-      } satisfies ReinforcementArea
-    })
-    .filter((item) => item.accuracyPercent <= 60)
-    .sort((a, b) => {
-      if (a.accuracyPercent !== b.accuracyPercent) return a.accuracyPercent - b.accuracyPercent
-      return b.failedCount - a.failedCount
-    })
-    .slice(0, 2)
-
-  return [...topicAreas, ...typeAreas].slice(0, 4)
-}
-
-function normalizeSingleRelation<T>(relation: T | T[] | null | undefined): T | null {
-  if (Array.isArray(relation)) return relation[0] ?? null
-  return relation ?? null
-}
-
-function getQuestionTypeLabel(type: string) {
-  switch (type) {
-    case 'multiple_choice':
-      return 'Preguntas tipo test'
-    case 'true_false':
-      return 'Verdadero o falso'
-    case 'open_answer':
-      return 'Preguntas abiertas'
-    case 'fill_blank':
-      return 'Rellenar huecos'
-    case 'ordering':
-      return 'Ordenar elementos'
-    case 'match_pairs':
-      return 'Unir parejas'
-    case 'drag_drop':
-      return 'Asignar elementos'
-    default:
-      return 'Tipo de pregunta'
-  }
-}
-
-function getQuestionTypeIcon(type: string): keyof typeof Ionicons.glyphMap {
-  switch (type) {
-    case 'multiple_choice':
-      return 'list-circle'
-    case 'true_false':
-      return 'checkmark-circle'
-    case 'open_answer':
-      return 'chatbubble-ellipses'
-    case 'fill_blank':
-      return 'create'
-    case 'ordering':
-      return 'reorder-three'
-    case 'match_pairs':
-      return 'git-compare'
-    case 'drag_drop':
-      return 'move'
-    default:
-      return 'help-circle'
-  }
 }

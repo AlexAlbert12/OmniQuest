@@ -21,7 +21,7 @@ test('student galaxy screens use the available desktop width and compact course 
 })
 
 test('ranking league cards stay inside the carousel during web hover', () => {
-  const ranking = read('app/(student)/ranking.tsx')
+  const ranking = read('app/(student)/ranking.tsx') + read('components/student/ranking/LeagueCarousel.tsx')
   const css = read('global.css')
 
   assert.match(ranking, /omni-no-hover-lift/)

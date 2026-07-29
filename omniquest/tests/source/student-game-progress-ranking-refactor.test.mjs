@@ -1,0 +1,44 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+
+const read = (path) => fs.readFileSync(path, 'utf8')
+
+test('game screen is composed from dedicated modules', () => {
+  const screen = read('app/(student)/play/[id].tsx')
+  assert.ok(screen.split('\n').length < 400)
+  for (const name of ['GameErrorBoundary', 'GameHeader', 'GameSyncStatus', 'GameDialogs', 'GameAchievementModal', 'GameQuestionRenderer']) {
+    assert.match(screen, new RegExp(name))
+  }
+  assert.match(read('hooks/useGame.ts'), /measureRpc\(/)
+  assert.match(read('hooks/useGame.ts'), /questionConflict/)
+})
+
+test('progress screen delegates data and sections', () => {
+  const screen = read('app/(student)/progress.tsx')
+  assert.ok(screen.split('\n').length < 300)
+  for (const name of ['useStudentProgress', 'DailyPracticeRecommendation', 'ProgressOverview', 'PracticeOpportunityList', 'CourseProgressList', 'LatestResults']) {
+    assert.match(screen, new RegExp(name))
+  }
+})
+
+test('ranking screen delegates data, seasons and privacy', () => {
+  const screen = read('app/(student)/ranking.tsx')
+  assert.ok(screen.split('\n').length < 320)
+  for (const name of ['useStudentRanking', 'LeagueCarousel', 'CurrentPositionCard', 'RankingTabs', 'RankingTable', 'RankingMobileList']) {
+    assert.match(screen, new RegExp(name))
+  }
+  const hook = read('hooks/student/useStudentRanking.ts')
+  assert.match(hook, /visibility/)
+  assert.match(hook, /setRankingParticipation/)
+  assert.match(hook, /scope.*season/s)
+})
+
+test('database migration protects stale game answers and defines ranking seasons', () => {
+  const migration = read('supabase/migrations/20260729120000_game_conflicts_ranking_seasons.sql')
+  assert.match(migration, /add column if not exists updated_at/)
+  assert.match(migration, /QUESTION_VERSION_CONFLICT/)
+  assert.match(migration, /create table if not exists public\.ranking_seasons/)
+  assert.match(migration, /tie_break/)
+  assert.match(migration, /visibility.*private/s)
+})
