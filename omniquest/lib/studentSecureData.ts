@@ -90,9 +90,28 @@ export type StudentAttemptHistoryPageFilters = {
   difficulty?: number | null
 }
 
+export type StudentActivityFacet = {
+  id: string
+  label: string
+  count: number
+}
+
+export type StudentActivityTopicFacet = StudentActivityFacet & {
+  subjectId: number | null
+}
+
+export type StudentAttemptStatusCounts = {
+  all: number
+  correct: number
+  incorrect: number
+}
+
 export type StudentAttemptHistoryPage = {
   rows: SafeStudentAttempt[]
   total: number
+  statusCounts: StudentAttemptStatusCounts
+  subjects: StudentActivityFacet[]
+  topics: StudentActivityTopicFacet[]
 }
 
 export type StudentAttemptHistoryFilters = {
@@ -170,12 +189,32 @@ export async function fetchStudentAttemptHistoryPage({
 
   if (error) throw error
   const payload = data && typeof data === 'object' && !Array.isArray(data)
-    ? data as { rows?: unknown; total?: unknown }
+    ? data as { rows?: unknown; total?: unknown; status_counts?: unknown; subjects?: unknown; topics?: unknown }
+    : {}
+
+  const rawStatusCounts = payload.status_counts && typeof payload.status_counts === 'object' && !Array.isArray(payload.status_counts)
+    ? payload.status_counts as Record<string, unknown>
     : {}
 
   return {
     rows: parseRpcArray<SafeStudentAttempt>(payload.rows),
     total: Math.max(0, Number(payload.total || 0)),
+    statusCounts: {
+      all: Math.max(0, Number(rawStatusCounts.all || 0)),
+      correct: Math.max(0, Number(rawStatusCounts.correct || 0)),
+      incorrect: Math.max(0, Number(rawStatusCounts.incorrect || 0)),
+    },
+    subjects: parseRpcArray<Record<string, unknown>>(payload.subjects).map((item) => ({
+      id: String(item.id ?? ''),
+      label: String(item.label ?? 'Clase sin nombre'),
+      count: Math.max(0, Number(item.count || 0)),
+    })).filter((item) => Boolean(item.id)),
+    topics: parseRpcArray<Record<string, unknown>>(payload.topics).map((item) => ({
+      id: String(item.id ?? ''),
+      subjectId: item.subject_id === null || item.subject_id === undefined ? null : Number(item.subject_id),
+      label: String(item.label ?? 'Tema general'),
+      count: Math.max(0, Number(item.count || 0)),
+    })).filter((item) => Boolean(item.id)),
   }
 }
 

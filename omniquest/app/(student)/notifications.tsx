@@ -1,11 +1,12 @@
+// NotificationFeed composes NotificationListItem and NotificationEmptyState and keeps the
+// visible action “Marcar todas como leídas” alongside swipe alternatives.
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Alert, Platform, RefreshControl, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, Text, useWindowDimensions, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import AppButton from '../../components/ui/AppButton'
 import AppTabs from '../../components/ui/AppTabs'
-import NotificationEmptyState from '../../components/notifications/NotificationEmptyState'
-import NotificationListItem from '../../components/notifications/NotificationListItem'
+import NotificationFeed from '../../components/notifications/NotificationFeed'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import StudentSidebar from '../../components/student/StudentSidebar'
@@ -15,6 +16,7 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { supabase } from '../../lib/supabase'
 import { readThroughCache } from '../../lib/offlineCache'
+import { useAppModal } from '../../components/AppModalProvider'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
 type Profile = { alias: string; avatar: string | null; points: number | null }
@@ -40,14 +42,19 @@ export default function StudentNotificationsScreen() {
   const { width } = useWindowDimensions()
   const router = useRouter()
   const { tokens } = useAppTheme()
+  const { showModal } = useAppModal()
   const {
     notifications,
     unreadCount,
+    total,
     loading,
+    loadingMore,
+    hasMore,
     markAsRead,
     markAllAsRead,
     deleteNotification,
     refresh,
+    loadMore,
     error,
     clearError,
   } = useNotifications('student')
@@ -70,11 +77,11 @@ export default function StudentNotificationsScreen() {
   const tabs = useMemo(() => filterOptions.map((option) => ({
     ...option,
     badge: option.key === 'all'
-      ? notifications.length
+      ? total
       : option.key === 'unread'
         ? unreadCount
         : notifications.filter((notification) => notification.type === option.key).length,
-  })), [notifications, unreadCount])
+  })), [notifications, total, unreadCount])
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -103,18 +110,17 @@ export default function StudentNotificationsScreen() {
 
   useFocusEffect(useCallback(() => { void fetchProfile() }, [fetchProfile]))
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true)
     await Promise.all([refresh(), fetchProfile()])
     setRefreshing(false)
-  }
+  }, [fetchProfile, refresh])
 
   useEffect(() => {
     if (!error) return
-    if (Platform.OS === 'web') window.alert(`Error de notificaciones\n${error}`)
-    else Alert.alert('Error de notificaciones', error)
+    showModal({ title: 'Error de notificaciones', message: error, variant: 'error' })
     clearError()
-  }, [clearError, error])
+  }, [clearError, error, showModal])
 
   const handleNotificationAction = async (notification: AppNotification) => {
     if (!notification.isRead) await markAsRead(notification.id)
@@ -135,6 +141,64 @@ export default function StudentNotificationsScreen() {
     )
   }
 
+  const header = (
+    <>
+      <StudentPageHeader
+        icon="notifications"
+        isDesktop={isDesktop}
+        title="Notificaciones"
+        subtitle={unreadCount > 0 ? `Tienes ${unreadCount} novedad${unreadCount === 1 ? '' : 'es'} por revisar` : 'Todo está al día en tus cursos'}
+        showNotifications={false}
+        actions={(
+          <View className="flex-row gap-2">
+            <AppButton
+              accessibilityLabel="Actualizar notificaciones"
+              icon="refresh-outline"
+              iconOnly={!isDesktop}
+              label={isDesktop ? 'Actualizar' : undefined}
+              loading={refreshing}
+              size="sm"
+              variant="secondary"
+              onPress={() => void onRefresh()}
+            />
+            {unreadCount > 0 ? (
+              <AppButton
+                accessibilityLabel="Marcar todas las notificaciones cargadas como leídas"
+                icon="checkmark-done-outline"
+                iconOnly={!isDesktop}
+                label={isDesktop ? 'Marcar cargadas como leídas' : undefined}
+                role="student"
+                size="sm"
+                onPress={() => void markAllAsRead()}
+              />
+            ) : null}
+          </View>
+        )}
+      />
+
+      <AppTabs<NotificationFilter>
+        accessibilityLabel="Filtrar notificaciones"
+        compact
+        role="student"
+        items={tabs}
+        value={selectedFilter}
+        onChange={setSelectedFilter}
+      />
+
+      <View className="mb-3 mt-5 flex-row items-center justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="text-[20px] font-black" style={{ color: tokens.text.primary }}>{getSectionTitle(selectedFilter)}</Text>
+          <Text className="mt-1 text-[11px]" style={{ color: tokens.text.muted }}>
+            Usa los botones visibles para marcar o eliminar; en móvil también puedes deslizar.
+          </Text>
+        </View>
+        <View className="rounded-full px-3 py-1.5" style={{ backgroundColor: tokens.surface.interactive }}>
+          <Text className="text-[11px] font-black" style={{ color: tokens.text.secondary }}>{filteredNotifications.length}/{total}</Text>
+        </View>
+      </View>
+    </>
+  )
+
   return (
     <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
       <View className="flex-1 flex-row">
@@ -150,86 +214,31 @@ export default function StudentNotificationsScreen() {
           />
         ) : null}
 
-        <ScrollView
-          className="flex-1"
+        <NotificationFeed
+          audience="student"
+          notifications={filteredNotifications}
+          unreadOnly={selectedFilter === 'unread'}
+          compact={!isDesktop}
+          swipeEnabled={!isDesktop}
+          hasMore={hasMore}
+          loadingMore={loadingMore}
+          refreshing={refreshing}
+          header={header}
           contentContainerStyle={{
+            width: '100%',
+            maxWidth: 1240,
+            alignSelf: 'center',
             paddingHorizontal: isDesktop ? 28 : 18,
             paddingTop: isDesktop ? 28 : 18,
             paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER,
           }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.brand.student} />}
-          showsVerticalScrollIndicator={false}
-        >
-          <StudentPageHeader
-            icon="notifications"
-            isDesktop={isDesktop}
-            title="Notificaciones"
-            subtitle={unreadCount > 0 ? `Tienes ${unreadCount} novedad${unreadCount === 1 ? '' : 'es'} por revisar` : 'Todo está al día en tus cursos'}
-            showNotifications={false}
-            actions={(
-              <View className="flex-row gap-2">
-                <AppButton
-                  accessibilityLabel="Actualizar notificaciones"
-                  icon="refresh-outline"
-                  iconOnly={!isDesktop}
-                  label={isDesktop ? 'Actualizar' : undefined}
-                  loading={refreshing}
-                  size="sm"
-                  variant="secondary"
-                  onPress={() => void onRefresh()}
-                />
-                {unreadCount > 0 ? (
-                  <AppButton
-                    accessibilityLabel="Marcar todas como leídas"
-                    icon="checkmark-done-outline"
-                    iconOnly={!isDesktop}
-                    label={isDesktop ? 'Marcar todas como leídas' : undefined}
-                    role="student"
-                    size="sm"
-                    onPress={() => void markAllAsRead()}
-                  />
-                ) : null}
-              </View>
-            )}
-          />
-
-          <AppTabs<NotificationFilter>
-            accessibilityLabel="Filtrar notificaciones"
-            compact
-            role="student"
-            items={tabs}
-            value={selectedFilter}
-            onChange={setSelectedFilter}
-          />
-
-          <View className="mb-3 mt-5 flex-row items-center justify-between gap-3">
-            <View>
-              <Text className="text-[20px] font-black" style={{ color: tokens.text.primary }}>{getSectionTitle(selectedFilter)}</Text>
-              {!isDesktop ? <Text className="mt-1 text-[11px]" style={{ color: tokens.text.muted }}>Desliza a la derecha para marcar como leída y a la izquierda para eliminar.</Text> : null}
-            </View>
-            <View className="rounded-full px-3 py-1.5" style={{ backgroundColor: tokens.surface.interactive }}>
-              <Text className="text-[11px] font-black" style={{ color: tokens.text.secondary }}>{filteredNotifications.length}</Text>
-            </View>
-          </View>
-
-          <View style={{ gap: 11 }}>
-            {filteredNotifications.length > 0 ? filteredNotifications.map((notification) => (
-              <NotificationListItem
-                key={notification.id}
-                notification={notification}
-                categoryLabel={categoryLabels[notification.type]}
-                role="student"
-                compact={!isDesktop}
-                swipeEnabled={!isDesktop}
-                onPress={() => handleNotificationAction(notification)}
-                onMarkAsRead={() => markAsRead(notification.id)}
-                onDelete={() => deleteNotification(notification.id)}
-              />
-            )) : (
-              <NotificationEmptyState audience="student" unreadOnly={selectedFilter === 'unread'} />
-            )}
-          </View>
-        </ScrollView>
+          categoryLabel={(notification) => categoryLabels[notification.type]}
+          onPress={handleNotificationAction}
+          onMarkAsRead={(notification) => markAsRead(notification.id)}
+          onDelete={(notification) => deleteNotification(notification.id)}
+          onRefresh={onRefresh}
+          onLoadMore={loadMore}
+        />
       </View>
       {!isDesktop ? <StudentBottomNav active="notifications" /> : null}
     </View>

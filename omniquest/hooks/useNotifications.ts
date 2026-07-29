@@ -1,10 +1,30 @@
-import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { AppNotification, AudienceState, NotificationAudience, NotificationType } from '../lib/notifications/types'
+import type { AuthChangeEvent, RealtimePostgresInsertPayload, Session } from '@supabase/supabase-js'
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import type {
+  AppNotification,
+  AudienceState,
+  NotificationAudience,
+  NotificationCursor,
+  NotificationType,
+} from '../lib/notifications/types'
 import { fetchStudentNotifications } from '../lib/notifications/derivedStudent'
 import { fetchTeacherNotifications } from '../lib/notifications/derivedTeacher'
 import {
-  fetchPersistentNotificationSource,
+  deletePersistentNotifications,
+  fetchPersistentNotificationPage,
+  getDatabaseNotificationId,
   loadNotificationStateFromDB,
+  markPersistentNotificationsRead,
   mergeNotificationSources,
   shouldLoadDerivedNotifications,
 } from '../lib/notifications/persistent'
@@ -15,37 +35,43 @@ import { enqueueOfflineMutation } from '../lib/offlineMutations'
 
 export type { AppNotification, NotificationAudience, NotificationType }
 
+const NOTIFICATION_PAGE_SIZE = 20
+
 type NotificationContextValue = {
+  activeAudience: NotificationAudience | null
   getAudienceState: (audience: NotificationAudience) => AudienceState
   refresh: (audience: NotificationAudience) => Promise<void>
+  loadMore: (audience: NotificationAudience) => Promise<void>
   markAsRead: (audience: NotificationAudience, id: string) => Promise<void>
   markAllAsRead: (audience: NotificationAudience) => Promise<void>
   deleteNotification: (audience: NotificationAudience, id: string) => Promise<void>
+  deleteNotifications: (audience: NotificationAudience, ids: string[]) => Promise<void>
   clearError: (audience: NotificationAudience) => void
 }
-
-const emptyAudienceState: AudienceState = {
-  notifications: [],
-  loading: true,
-  error: null,
-}
-
-const NotificationContext = createContext<NotificationContextValue | null>(null)
 
 type NotificationCacheSnapshot = {
   notifications: AppNotification[]
   readIds: string[]
   deletedIds: string[]
+  cursor: NotificationCursor | null
+  hasMore: boolean
+  total: number
+  unreadCount: number
 }
 
+const NotificationContext = createContext<NotificationContextValue | null>(null)
+
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [audienceState, setAudienceState] = useState<Record<NotificationAudience, AudienceState>>({
-    teacher: emptyAudienceState,
-    student: emptyAudienceState,
-  })
+  const [audienceState, setAudienceState] = useState<Record<NotificationAudience, AudienceState>>(createInitialState)
+  const stateRef = useRef(audienceState)
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
   const [userId, setUserId] = useState<string | null>(null)
+  const [activeAudience, setActiveAudience] = useState<NotificationAudience | null>(null)
+
+  useEffect(() => {
+    stateRef.current = audienceState
+  }, [audienceState])
 
   useEffect(() => {
     let isMounted = true
@@ -54,30 +80,41 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (!isMounted) return
 
       setUserId(nextUserId)
+      setAudienceState(createInitialState())
 
-      if (nextUserId) {
-        let read = new Set<string>()
-        let deleted = new Set<string>()
-
-        try {
-          const state = await loadNotificationStateFromDB(nextUserId)
-          read = state.read
-          deleted = state.deleted
-        } catch (error) {
-          console.error('Error cargando estado inicial de notificaciones:', error)
-        }
-
-        if (!isMounted) return
-
-        setReadIds(read)
-        setDeletedIds(deleted)
-      } else {
+      if (!nextUserId) {
+        setActiveAudience(null)
         setReadIds(new Set())
         setDeletedIds(new Set())
-        setAudienceState({
-          teacher: { notifications: [], loading: false, error: null },
-          student: { notifications: [], loading: false, error: null },
-        })
+        return
+      }
+
+      try {
+        const [{ data: profile, error: profileError }, notificationState] = await Promise.all([
+          supabase.from('profiles').select('role_id, active').eq('id', nextUserId).single(),
+          loadNotificationStateFromDB(nextUserId),
+        ])
+        if (profileError) throw profileError
+        if (!isMounted) return
+
+        const nextAudience = profile?.active === false ? null : audienceForRole(profile?.role_id)
+        setActiveAudience(nextAudience)
+        setReadIds(notificationState.read)
+        setDeletedIds(notificationState.deleted)
+        setAudienceState((current) => ({
+          ...current,
+          teacher: nextAudience === 'teacher' ? current.teacher : createEmptyAudienceState(false),
+          student: nextAudience === 'student' ? current.student : createEmptyAudienceState(false),
+        }))
+      } catch (error) {
+        console.error('Error resolviendo el rol para notificaciones:', error)
+        if (isMounted) {
+          setActiveAudience(null)
+          setAudienceState({
+            teacher: createEmptyAudienceState(false),
+            student: createEmptyAudienceState(false),
+          })
+        }
       }
     }
 
@@ -93,7 +130,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     void syncInitialSession()
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       void syncUser(session?.user.id || null)
     })
 
@@ -103,324 +140,384 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const setAudienceLoading = useCallback((audience: NotificationAudience, loading: boolean) => {
+  const applySnapshot = useCallback((audience: NotificationAudience, snapshot: NotificationCacheSnapshot) => {
+    setReadIds(new Set(snapshot.readIds))
+    setDeletedIds(new Set(snapshot.deletedIds))
     setAudienceState((current) => ({
       ...current,
       [audience]: {
-        ...current[audience],
-        loading,
-        error: loading ? null : current[audience].error,
+        notifications: snapshot.notifications,
+        loading: false,
+        loadingMore: false,
+        error: null,
+        hasMore: snapshot.hasMore,
+        total: snapshot.total,
+        unreadCount: snapshot.unreadCount,
+        cursor: snapshot.cursor,
       },
     }))
   }, [])
 
-  const setAudienceNotifications = useCallback((audience: NotificationAudience, notifications: AppNotification[]) => {
+  const buildPageSnapshot = useCallback(async (
+    audience: NotificationAudience,
+    cursor: NotificationCursor | null,
+  ): Promise<NotificationCacheSnapshot> => {
+    if (!userId) return emptyCacheSnapshot()
+
+    const [{ read: latestRead, deleted: latestDeleted }, preferences, persistentPage] = await Promise.all([
+      loadNotificationStateFromDB(userId),
+      loadNotificationPreferences(userId),
+      fetchPersistentNotificationPage({
+        userId,
+        audience,
+        cursor,
+        pageSize: NOTIFICATION_PAGE_SIZE,
+      }),
+    ])
+
+    const derivedNotifications = cursor === null && shouldLoadDerivedNotifications(persistentPage.available)
+      ? filterNotificationsByPreferences(
+          audience === 'student'
+            ? await fetchStudentNotifications({ userId, readIds: latestRead, deletedIds: latestDeleted })
+            : await fetchTeacherNotifications({ userId, readIds: latestRead, deletedIds: latestDeleted }),
+          preferences
+        )
+      : []
+
+    const persistentNotifications = filterNotificationsByPreferences(persistentPage.notifications, preferences)
+    const notifications = cursor === null
+      ? mergeNotificationSources(persistentNotifications, derivedNotifications)
+      : persistentNotifications
+
+    return {
+      notifications,
+      readIds: [...latestRead],
+      deletedIds: [...latestDeleted],
+      cursor: persistentPage.cursor,
+      hasMore: persistentPage.hasMore,
+      total: Math.max(persistentPage.total, notifications.length),
+      unreadCount: Math.max(
+        persistentPage.unreadCount,
+        notifications.filter((notification) => !notification.isRead).length
+      ),
+    }
+  }, [userId])
+
+  const fetchNotifications = useCallback(async (
+    audience: NotificationAudience,
+    mode: 'reset' | 'more' = 'reset',
+  ) => {
+    if (!userId || activeAudience !== audience) {
+      setAudienceState((current) => ({ ...current, [audience]: createEmptyAudienceState(false) }))
+      return
+    }
+
+    const currentState = stateRef.current[audience]
+    if (mode === 'more' && (!currentState.hasMore || currentState.loadingMore || !currentState.cursor)) return
+
     setAudienceState((current) => ({
       ...current,
       [audience]: {
-        notifications,
-        loading: false,
+        ...current[audience],
+        loading: mode === 'reset',
+        loadingMore: mode === 'more',
         error: null,
       },
     }))
-  }, [])
 
-  const setAudienceError = useCallback((audience: NotificationAudience, error: string) => {
+    try {
+      if (mode === 'reset') {
+        await readThroughCache<NotificationCacheSnapshot>({
+          userId,
+          resource: `notifications:${audience}`,
+          fetcher: () => buildPageSnapshot(audience, null),
+          onData: (snapshot) => applySnapshot(audience, snapshot),
+        })
+        return
+      }
+
+      const nextPage = await buildPageSnapshot(audience, currentState.cursor)
+      const mergedNotifications = mergeById(currentState.notifications, nextPage.notifications)
+      const nextSnapshot: NotificationCacheSnapshot = {
+        ...nextPage,
+        notifications: mergedNotifications,
+        total: Math.max(currentState.total, nextPage.total, mergedNotifications.length),
+        unreadCount: Math.max(0, nextPage.unreadCount),
+      }
+      applySnapshot(audience, nextSnapshot)
+      await updateOfflineCache<NotificationCacheSnapshot>(userId, `notifications:${audience}`, () => nextSnapshot)
+    } catch (error: any) {
+      console.error('Error cargando notificaciones:', error?.message || error)
+      setAudienceState((current) => ({
+        ...current,
+        [audience]: {
+          ...current[audience],
+          loading: false,
+          loadingMore: false,
+          error: 'No se pudieron cargar las notificaciones. Revisa tu conexión o vuelve a iniciar sesión.',
+        },
+      }))
+    }
+  }, [activeAudience, applySnapshot, buildPageSnapshot, userId])
+
+  useEffect(() => {
+    if (!userId || !activeAudience) return
+    void fetchNotifications(activeAudience, 'reset')
+  }, [activeAudience, fetchNotifications, userId])
+
+  useEffect(() => {
+    if (!userId || !activeAudience) return
+
+    const channel = supabase
+      .channel(`notifications:${userId}:${activeAudience}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload: RealtimePostgresInsertPayload<{ audience?: string }>) => {
+          const row = payload.new
+          if (row.audience === activeAudience) void fetchNotifications(activeAudience, 'reset')
+        }
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [activeAudience, fetchNotifications, userId])
+
+  const persistBatchState = useCallback(async ({
+    ids,
+    read,
+    deleted,
+  }: {
+    ids: string[]
+    read?: boolean
+    deleted?: boolean
+  }) => {
+    if (!userId || ids.length === 0) return
+
+    const databaseIds = ids.filter((id) => Boolean(getDatabaseNotificationId(id)))
+    const derivedIds = ids.filter((id) => !getDatabaseNotificationId(id))
+
+    try {
+      if (databaseIds.length > 0) {
+        if (deleted) await deletePersistentNotifications(databaseIds)
+        else if (read) await markPersistentNotificationsRead(databaseIds)
+      }
+    } catch (error) {
+      console.warn('La actualización de notificaciones se sincronizará más tarde:', error)
+      derivedIds.push(...databaseIds)
+    }
+
+    await Promise.all(derivedIds.map((notificationId) => enqueueOfflineMutation({
+      userId,
+      kind: 'notification.state',
+      entityKey: `notification:${notificationId}`,
+      conflictPolicy: 'merge',
+      payload: {
+        notificationId,
+        isRead: read === true || readIds.has(notificationId),
+        isDeleted: deleted === true || deletedIds.has(notificationId),
+      },
+    })))
+  }, [deletedIds, readIds, userId])
+
+  const markIdsAsRead = useCallback(async (audience: NotificationAudience, ids: string[]) => {
+    if (!userId || ids.length === 0) return
+    const uniqueIds = [...new Set(ids)]
+
+    setReadIds((current) => new Set([...current, ...uniqueIds]))
     setAudienceState((current) => ({
       ...current,
       [audience]: {
         ...current[audience],
-        loading: false,
-        error,
+        notifications: current[audience].notifications.map((notification) => uniqueIds.includes(notification.id)
+          ? { ...notification, isRead: true }
+          : notification),
+        unreadCount: Math.max(0, current[audience].unreadCount - uniqueIds.filter((id) => current[audience].notifications.some((item) => item.id === id && !item.isRead)).length),
       },
     }))
-  }, [])
+    await patchNotificationCacheBatch(userId, audience, uniqueIds, { read: true })
+    await persistBatchState({ ids: uniqueIds, read: true })
+  }, [persistBatchState, userId])
 
-  const fetchNotifications = useCallback(async (audience: NotificationAudience) => {
-    setAudienceLoading(audience, true)
+  const deleteIds = useCallback(async (audience: NotificationAudience, ids: string[]) => {
+    if (!userId || ids.length === 0) return
+    const uniqueIds = [...new Set(ids)]
 
-    try {
-      if (!userId) {
-        setAudienceNotifications(audience, [])
-        return
+    setDeletedIds((current) => new Set([...current, ...uniqueIds]))
+    setAudienceState((current) => {
+      const removedUnread = current[audience].notifications.filter((item) => uniqueIds.includes(item.id) && !item.isRead).length
+      const remaining = current[audience].notifications.filter((notification) => !uniqueIds.includes(notification.id))
+      return {
+        ...current,
+        [audience]: {
+          ...current[audience],
+          notifications: remaining,
+          total: Math.max(0, current[audience].total - uniqueIds.length),
+          unreadCount: Math.max(0, current[audience].unreadCount - removedUnread),
+        },
       }
-
-      await readThroughCache<NotificationCacheSnapshot>({
-        userId,
-        resource: `notifications:${audience}`,
-        fetcher: async () => {
-          const { read: latestRead, deleted: latestDeleted } = await loadNotificationStateFromDB(userId)
-          const preferences = await loadNotificationPreferences(userId)
-          const persistentSource = await fetchPersistentNotificationSource({ userId, audience })
-          const persistentNotifications = filterNotificationsByPreferences(
-            persistentSource.notifications,
-            preferences
-          )
-
-          const derivedNotifications = shouldLoadDerivedNotifications(persistentSource.available)
-            ? filterNotificationsByPreferences(
-                audience === 'student'
-                  ? await fetchStudentNotifications({ userId, readIds: latestRead, deletedIds: latestDeleted })
-                  : await fetchTeacherNotifications({ userId, readIds: latestRead, deletedIds: latestDeleted }),
-                preferences
-              )
-            : []
-
-          return {
-            notifications: mergeNotificationSources(persistentNotifications, derivedNotifications),
-            readIds: [...latestRead],
-            deletedIds: [...latestDeleted],
-          }
-        },
-        onData: (snapshot) => {
-          setReadIds(new Set(snapshot.readIds))
-          setDeletedIds(new Set(snapshot.deletedIds))
-          setAudienceNotifications(audience, snapshot.notifications)
-        },
-      })
-    } catch (error: any) {
-      console.error('Error cargando notificaciones:', error.message)
-      setAudienceError(
-        audience,
-        'No se pudieron cargar las notificaciones. Revisa tu conexión o vuelve a iniciar sesión.'
-      )
-    }
-  }, [setAudienceError, setAudienceLoading, setAudienceNotifications, userId])
-
-  useEffect(() => {
-    if (!userId) return
-    void fetchNotifications('teacher')
-    void fetchNotifications('student')
-  }, [fetchNotifications, userId])
+    })
+    await patchNotificationCacheBatch(userId, audience, uniqueIds, { deleted: true })
+    await persistBatchState({ ids: uniqueIds, deleted: true })
+  }, [persistBatchState, userId])
 
   const markAsRead = useCallback(
-    async (audience: NotificationAudience, id: string) => {
-      if (!userId) return
-
-      setReadIds((current) => {
-        const next = new Set(current)
-        next.add(id)
-        return next
-      })
-
-      setAudienceState((current) => markNotificationReadInState(current, id))
-      await patchNotificationCache(userId, audience, id, { read: true })
-      await enqueueOfflineMutation({
-        userId,
-        kind: 'notification.state',
-        entityKey: `notification:${id}`,
-        conflictPolicy: 'merge',
-        payload: { notificationId: id, isRead: true, isDeleted: deletedIds.has(id) },
-      })
-    },
-    [deletedIds, userId]
+    async (audience: NotificationAudience, id: string) => markIdsAsRead(audience, [id]),
+    [markIdsAsRead]
   )
 
   const markAllAsRead = useCallback(async (audience: NotificationAudience) => {
-    if (!userId) return
-
-    const notifications = audienceState[audience].notifications
-    const unreadNotifications = notifications.filter((notification) => !notification.isRead)
-    if (unreadNotifications.length === 0) return
-
-    setReadIds((current) => {
-      const next = new Set(current)
-      unreadNotifications.forEach((notification) => next.add(notification.id))
-      return next
-    })
-
-    setAudienceState((current) => markAllAudienceNotificationsReadInState(current, audience))
-
-    for (const notification of unreadNotifications) {
-      await patchNotificationCache(userId, audience, notification.id, { read: true })
-      await enqueueOfflineMutation({
-        userId,
-        kind: 'notification.state',
-        entityKey: `notification:${notification.id}`,
-        conflictPolicy: 'merge',
-        payload: {
-          notificationId: notification.id,
-          isRead: true,
-          isDeleted: deletedIds.has(notification.id),
-        },
-      })
-    }
-  }, [audienceState, deletedIds, userId])
+    const ids = stateRef.current[audience].notifications
+      .filter((notification) => !notification.isRead)
+      .map((notification) => notification.id)
+    await markIdsAsRead(audience, ids)
+  }, [markIdsAsRead])
 
   const deleteNotification = useCallback(
-    async (audience: NotificationAudience, id: string) => {
-      if (!userId) return
-
-      setDeletedIds((current) => {
-        const next = new Set(current)
-        next.add(id)
-        return next
-      })
-
-      setAudienceState((current) => deleteNotificationFromState(current, id))
-      await patchNotificationCache(userId, audience, id, { deleted: true })
-      await enqueueOfflineMutation({
-        userId,
-        kind: 'notification.state',
-        entityKey: `notification:${id}`,
-        conflictPolicy: 'merge',
-        payload: { notificationId: id, isRead: readIds.has(id), isDeleted: true },
-      })
-    },
-    [readIds, userId]
+    async (audience: NotificationAudience, id: string) => deleteIds(audience, [id]),
+    [deleteIds]
   )
 
-  const refresh = useCallback(async (audience: NotificationAudience) => {
-    await fetchNotifications(audience)
-  }, [fetchNotifications])
+  const deleteNotifications = useCallback(
+    async (audience: NotificationAudience, ids: string[]) => deleteIds(audience, ids),
+    [deleteIds]
+  )
+
+  const refresh = useCallback(
+    async (audience: NotificationAudience) => fetchNotifications(audience, 'reset'),
+    [fetchNotifications]
+  )
+
+  const loadMore = useCallback(
+    async (audience: NotificationAudience) => fetchNotifications(audience, 'more'),
+    [fetchNotifications]
+  )
 
   const clearError = useCallback((audience: NotificationAudience) => {
     setAudienceState((current) => ({
       ...current,
-      [audience]: {
-        ...current[audience],
-        error: null,
-      },
+      [audience]: { ...current[audience], error: null },
     }))
   }, [])
 
   const value = useMemo<NotificationContextValue>(() => ({
-    getAudienceState: (audience) => audienceState[audience] || emptyAudienceState,
+    activeAudience,
+    getAudienceState: (audience) => audienceState[audience] || createEmptyAudienceState(false),
     refresh,
+    loadMore,
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    deleteNotifications,
     clearError,
-  }), [audienceState, clearError, deleteNotification, markAllAsRead, markAsRead, refresh])
+  }), [
+    activeAudience,
+    audienceState,
+    clearError,
+    deleteNotification,
+    deleteNotifications,
+    loadMore,
+    markAllAsRead,
+    markAsRead,
+    refresh,
+  ])
 
   return createElement(NotificationContext.Provider, { value }, children)
-}
-
-async function patchNotificationCache(
-  userId: string,
-  audience: NotificationAudience,
-  notificationId: string,
-  state: { read?: boolean; deleted?: boolean },
-) {
-  await updateOfflineCache<NotificationCacheSnapshot>(userId, `notifications:${audience}`, (snapshot) => ({
-    notifications: state.deleted
-      ? snapshot.notifications.filter((notification) => notification.id !== notificationId)
-      : snapshot.notifications.map((notification) => notification.id === notificationId
-        ? { ...notification, isRead: state.read ? true : notification.isRead }
-        : notification),
-    readIds: state.read
-      ? [...new Set([...snapshot.readIds, notificationId])]
-      : snapshot.readIds,
-    deletedIds: state.deleted
-      ? [...new Set([...snapshot.deletedIds, notificationId])]
-      : snapshot.deletedIds,
-  }))
 }
 
 export function useNotifications(audience: NotificationAudience = 'teacher') {
   const context = useContext(NotificationContext)
 
-  if (!context) {
-    throw new Error('useNotifications debe usarse dentro de NotificationProvider')
-  }
+  if (!context) throw new Error('useNotifications debe usarse dentro de NotificationProvider')
 
-  const {
-    clearError: clearAudienceError,
-    deleteNotification: deleteAudienceNotification,
-    getAudienceState,
-    markAllAsRead: markAllAudienceAsRead,
-    markAsRead: markAudienceAsRead,
-    refresh: refreshAudience,
-  } = context
-  const { notifications, loading, error } = getAudienceState(audience)
-  const unreadCount = useMemo(
-    () => notifications.filter((notification) => !notification.isRead).length,
-    [notifications]
-  )
-  const markAsRead = useCallback(
-    (id: string) => markAudienceAsRead(audience, id),
-    [audience, markAudienceAsRead]
-  )
-  const deleteNotification = useCallback(
-    (id: string) => deleteAudienceNotification(audience, id),
-    [audience, deleteAudienceNotification]
-  )
-  const markAllAsRead = useCallback(
-    () => markAllAudienceAsRead(audience),
-    [audience, markAllAudienceAsRead]
-  )
-  const refresh = useCallback(
-    () => refreshAudience(audience),
-    [audience, refreshAudience]
-  )
-  const clearError = useCallback(
-    () => clearAudienceError(audience),
-    [audience, clearAudienceError]
-  )
+  const state = context.getAudienceState(audience)
 
   return {
-    notifications,
-    unreadCount,
+    ...state,
+    activeAudience: context.activeAudience,
+    markAsRead: (id: string) => context.markAsRead(audience, id),
+    markAllAsRead: () => context.markAllAsRead(audience),
+    deleteNotification: (id: string) => context.deleteNotification(audience, id),
+    deleteNotifications: (ids: string[]) => context.deleteNotifications(audience, ids),
+    refresh: () => context.refresh(audience),
+    loadMore: () => context.loadMore(audience),
+    clearError: () => context.clearError(audience),
+  }
+}
+
+async function patchNotificationCacheBatch(
+  userId: string,
+  audience: NotificationAudience,
+  notificationIds: string[],
+  state: { read?: boolean; deleted?: boolean },
+) {
+  const ids = new Set(notificationIds)
+  await updateOfflineCache<NotificationCacheSnapshot>(userId, `notifications:${audience}`, (snapshot) => {
+    const removedUnread = snapshot.notifications.filter((notification) => ids.has(notification.id) && !notification.isRead).length
+    const notifications = state.deleted
+      ? snapshot.notifications.filter((notification) => !ids.has(notification.id))
+      : snapshot.notifications.map((notification) => ids.has(notification.id)
+        ? { ...notification, isRead: state.read ? true : notification.isRead }
+        : notification)
+
+    return {
+      ...snapshot,
+      notifications,
+      total: state.deleted ? Math.max(0, snapshot.total - ids.size) : snapshot.total,
+      unreadCount: Math.max(0, snapshot.unreadCount - removedUnread),
+      readIds: state.read ? [...new Set([...snapshot.readIds, ...notificationIds])] : snapshot.readIds,
+      deletedIds: state.deleted ? [...new Set([...snapshot.deletedIds, ...notificationIds])] : snapshot.deletedIds,
+    }
+  })
+}
+
+function audienceForRole(roleId: string | null | undefined): NotificationAudience | null {
+  if (roleId === 'teacher') return 'teacher'
+  if (roleId === 'student' || roleId === 'guest') return 'student'
+  return null
+}
+
+function createInitialState(): Record<NotificationAudience, AudienceState> {
+  return {
+    teacher: createEmptyAudienceState(true),
+    student: createEmptyAudienceState(true),
+  }
+}
+
+function createEmptyAudienceState(loading: boolean): AudienceState {
+  return {
+    notifications: [],
     loading,
-    error,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    refresh,
-    clearError,
+    loadingMore: false,
+    error: null,
+    hasMore: false,
+    total: 0,
+    unreadCount: 0,
+    cursor: null,
   }
 }
 
-function markNotificationReadInState(
-  current: Record<NotificationAudience, AudienceState>,
-  notificationId: string
-) {
-  return mapAudienceNotifications(current, (notification) =>
-    notification.id === notificationId ? { ...notification, isRead: true } : notification
-  )
-}
-
-function markAllAudienceNotificationsReadInState(
-  current: Record<NotificationAudience, AudienceState>,
-  audience: NotificationAudience
-) {
+function emptyCacheSnapshot(): NotificationCacheSnapshot {
   return {
-    ...current,
-    [audience]: {
-      ...current[audience],
-      notifications: current[audience].notifications.map((notification) => ({ ...notification, isRead: true })),
-    },
+    notifications: [],
+    readIds: [],
+    deletedIds: [],
+    cursor: null,
+    hasMore: false,
+    total: 0,
+    unreadCount: 0,
   }
 }
 
-function deleteNotificationFromState(
-  current: Record<NotificationAudience, AudienceState>,
-  notificationId: string
-) {
-  return {
-    teacher: {
-      ...current.teacher,
-      notifications: current.teacher.notifications.filter((notification) => notification.id !== notificationId),
-    },
-    student: {
-      ...current.student,
-      notifications: current.student.notifications.filter((notification) => notification.id !== notificationId),
-    },
-  }
-}
-
-function mapAudienceNotifications(
-  current: Record<NotificationAudience, AudienceState>,
-  mapper: (notification: AppNotification) => AppNotification
-) {
-  return {
-    teacher: {
-      ...current.teacher,
-      notifications: current.teacher.notifications.map(mapper),
-    },
-    student: {
-      ...current.student,
-      notifications: current.student.notifications.map(mapper),
-    },
-  }
+function mergeById(current: AppNotification[], next: AppNotification[]) {
+  const seen = new Set(current.map((notification) => notification.id))
+  return [...current, ...next.filter((notification) => !seen.has(notification.id))]
+    .sort((left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime())
 }

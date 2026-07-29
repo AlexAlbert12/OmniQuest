@@ -3,6 +3,11 @@ import { Ionicons } from '@expo/vector-icons'
 export type NotificationType = 'enrollment' | 'student_activity' | 'achievement' | 'new_class' | 'announcement'
 export type NotificationAudience = 'teacher' | 'student'
 
+export type NotificationCursor = {
+  createdAt: string
+  id: string
+}
+
 export type AppNotification = {
   id: string
   type: NotificationType
@@ -22,7 +27,12 @@ export type AppNotification = {
 export type AudienceState = {
   notifications: AppNotification[]
   loading: boolean
+  loadingMore: boolean
   error: string | null
+  hasMore: boolean
+  total: number
+  unreadCount: number
+  cursor: NotificationCursor | null
 }
 
 export type NotificationPreferenceState = {

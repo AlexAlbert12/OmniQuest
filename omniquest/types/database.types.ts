@@ -2121,6 +2121,7 @@ export type Database = {
       }
       analytics_allowed: { Args: { p_user_id: string }; Returns: boolean }
       apply_analytics_retention: { Args: never; Returns: Json }
+      apply_attempt_sensitive_data_retention: { Args: never; Returns: Json }
       assert_topic_playable: {
         Args: { p_topic_id: number }
         Returns: undefined
@@ -2242,6 +2243,7 @@ export type Database = {
         Returns: number
       }
       delete_my_account: { Args: never; Returns: undefined }
+      delete_notifications: { Args: { p_ids: string[] }; Returns: number }
       delete_user_relational_data: {
         Args: { p_user_id: string }
         Returns: Json
@@ -2309,6 +2311,15 @@ export type Database = {
       generate_unique_subject_code: { Args: never; Returns: string }
       get_activity_attempt_detail: {
         Args: { p_attempt_history_id: number }
+        Returns: Json
+      }
+      get_notifications_page: {
+        Args: {
+          p_audience: string
+          p_cursor_created_at?: string
+          p_cursor_id?: string
+          p_limit?: number
+        }
         Returns: Json
       }
       get_admin_audit_logs_page: {
@@ -2686,6 +2697,7 @@ export type Database = {
         Args: { p_student_id: string }
         Returns: number
       }
+      mark_notifications_read: { Args: { p_ids: string[] }; Returns: number }
       register_push_token: {
         Args: {
           p_app_version?: string

@@ -1,0 +1,6 @@
+export { default as StudentAvatarCustomizationModal } from './StudentAvatarCustomizationModal'
+export { default as StudentProfileAchievements } from './StudentProfileAchievements'
+export { default as StudentProfileHero } from './StudentProfileHero'
+export { default as StudentProfileMetrics } from './StudentProfileMetrics'
+export { default as StudentProfilePrivacy } from './StudentProfilePrivacy'
+export { default as StudentProfileQuickActions } from './StudentProfileQuickActions'

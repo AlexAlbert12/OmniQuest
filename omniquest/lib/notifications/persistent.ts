@@ -1,14 +1,89 @@
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../supabase'
 import type { Database, Json, Tables } from '../../types/database.types'
-import type { AppNotification, NotificationAudience, NotificationType } from './types'
+import type {
+  AppNotification,
+  NotificationAudience,
+  NotificationCursor,
+  NotificationType,
+} from './types'
 
 type PersistentNotificationRow = Tables<'notifications'>
 type PersistentNotificationUpdate = Database['public']['Tables']['notifications']['Update']
+type NotificationStateRow = Pick<Tables<'notification_state'>, 'notification_id' | 'is_read' | 'is_deleted'>
+
+type NotificationPagePayload = {
+  rows?: unknown
+  has_more?: unknown
+  next_cursor_created_at?: unknown
+  next_cursor_id?: unknown
+  total?: unknown
+  unread_count?: unknown
+}
 
 export type PersistentNotificationSource = {
   notifications: AppNotification[]
   available: boolean
+}
+
+export type PersistentNotificationPage = PersistentNotificationSource & {
+  cursor: NotificationCursor | null
+  hasMore: boolean
+  total: number
+  unreadCount: number
+}
+
+export async function fetchPersistentNotificationPage({
+  userId,
+  audience,
+  cursor = null,
+  pageSize = 20,
+}: {
+  userId: string
+  audience: NotificationAudience
+  cursor?: NotificationCursor | null
+  pageSize?: number
+}): Promise<PersistentNotificationPage> {
+  const safePageSize = Math.min(Math.max(pageSize, 1), 50)
+
+  try {
+    const { data, error } = await supabase.rpc('get_notifications_page', {
+      p_audience: audience,
+      p_limit: safePageSize,
+      p_cursor_created_at: cursor?.createdAt,
+      p_cursor_id: cursor?.id,
+    })
+
+    if (error) {
+      if (isMissingNotificationRpcError(error)) {
+        return fetchPersistentNotificationPageLegacy({ userId, audience, pageSize: safePageSize })
+      }
+      throw error
+    }
+
+    const payload = data && typeof data === 'object' && !Array.isArray(data)
+      ? data as NotificationPagePayload
+      : {}
+    const rows = Array.isArray(payload.rows) ? payload.rows : []
+
+    return {
+      notifications: rows.map(mapPersistentRow).filter((row): row is AppNotification => Boolean(row)),
+      available: true,
+      hasMore: payload.has_more === true,
+      cursor: typeof payload.next_cursor_created_at === 'string' && typeof payload.next_cursor_id === 'string'
+        ? { createdAt: payload.next_cursor_created_at, id: payload.next_cursor_id }
+        : null,
+      total: Math.max(0, Number(payload.total || 0)),
+      unreadCount: Math.max(0, Number(payload.unread_count || 0)),
+    }
+  } catch (error: any) {
+    if (isMissingNotificationTableError(error)) {
+      return emptyPersistentPage(false)
+    }
+
+    console.error('Error cargando notificaciones persistentes:', error)
+    throw error
+  }
 }
 
 export async function fetchPersistentNotificationSource({
@@ -18,50 +93,8 @@ export async function fetchPersistentNotificationSource({
   userId: string
   audience: NotificationAudience
 }): Promise<PersistentNotificationSource> {
-  try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('id, audience, type, title, description, icon, color, created_at, read_at, action_url, related_id, metadata')
-      .eq('user_id', userId)
-      .eq('audience', audience)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .limit(60)
-
-    if (error) throw error
-
-    const notifications = ((data || []) as PersistentNotificationRow[])
-      .filter((row) => isNotificationType(row.type))
-      .map((row) => {
-        const type = row.type as NotificationType
-        const metadata = getNotificationMetadata(row.metadata)
-
-        return {
-          id: `db:${row.id}`,
-          type,
-          title: row.title,
-          description: row.description,
-          icon: getSafeNotificationIcon(row.icon),
-          color: row.color || getNotificationTypeColor(type),
-          timestamp: row.created_at || new Date().toISOString(),
-          isRead: Boolean(row.read_at),
-          relatedId: row.related_id && /^\d+$/.test(row.related_id) ? Number(row.related_id) : undefined,
-          subjectName: typeof metadata.subject_name === 'string' ? metadata.subject_name : undefined,
-          studentName: typeof metadata.student_name === 'string' ? metadata.student_name : undefined,
-          actionUrl: row.action_url || undefined,
-          source: 'database' as const,
-        }
-      })
-
-    return { notifications, available: true }
-  } catch (error: any) {
-    if (isMissingNotificationTableError(error)) {
-      return { notifications: [], available: false }
-    }
-
-    console.error('Error cargando notificaciones persistentes:', error)
-    throw error
-  }
+  const page = await fetchPersistentNotificationPage({ userId, audience, pageSize: 50 })
+  return { notifications: page.notifications, available: page.available }
 }
 
 export async function fetchPersistentNotifications({
@@ -95,25 +128,52 @@ export function mergeNotificationSources(persistent: AppNotification[], derived:
       return true
     })
     .sort((a, b) => toTimestamp(b.timestamp) - toTimestamp(a.timestamp))
-    .slice(0, 60)
 }
 
 export function getDatabaseNotificationId(id: string) {
   return id.startsWith('db:') ? id.slice(3) : null
 }
 
-export async function updatePersistentNotificationState(id: string, state: { read?: boolean; deleted?: boolean }) {
-  const payload: PersistentNotificationUpdate = { updated_at: new Date().toISOString() }
+export async function markPersistentNotificationsRead(ids: string[]) {
+  const uniqueIds = uniqueDatabaseIds(ids)
+  if (uniqueIds.length === 0) return 0
 
-  if (state.read) payload.read_at = new Date().toISOString()
-  if (state.deleted) payload.deleted_at = new Date().toISOString()
+  const { data, error } = await supabase.rpc('mark_notifications_read', { p_ids: uniqueIds })
+  if (!error) return Number(data || 0)
+  if (!isMissingNotificationRpcError(error)) throw error
 
-  const { error } = await supabase
+  const { error: fallbackError } = await supabase
     .from('notifications')
-    .update(payload)
-    .eq('id', id)
+    .update({ read_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .in('id', uniqueIds)
+  if (fallbackError) throw fallbackError
+  return uniqueIds.length
+}
 
-  if (error) throw error
+export async function deletePersistentNotifications(ids: string[]) {
+  const uniqueIds = uniqueDatabaseIds(ids)
+  if (uniqueIds.length === 0) return 0
+
+  const { data, error } = await supabase.rpc('delete_notifications', { p_ids: uniqueIds })
+  if (!error) return Number(data || 0)
+  if (!isMissingNotificationRpcError(error)) throw error
+
+  const { error: fallbackError } = await supabase
+    .from('notifications')
+    .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .in('id', uniqueIds)
+  if (fallbackError) throw fallbackError
+  return uniqueIds.length
+}
+
+export async function updatePersistentNotificationState(id: string, state: { read?: boolean; deleted?: boolean }) {
+  if (state.deleted) {
+    await deletePersistentNotifications([id])
+    return
+  }
+  if (state.read) {
+    await markPersistentNotificationsRead([id])
+  }
 }
 
 export async function loadNotificationStateFromDB(userId: string): Promise<{ read: Set<string>; deleted: Set<string> }> {
@@ -128,7 +188,7 @@ export async function loadNotificationStateFromDB(userId: string): Promise<{ rea
     const read = new Set<string>()
     const deleted = new Set<string>()
 
-    data?.forEach((row: any) => {
+    ;(data as NotificationStateRow[] | null)?.forEach((row) => {
       if (row.is_read) read.add(row.notification_id)
       if (row.is_deleted) deleted.add(row.notification_id)
     })
@@ -195,6 +255,82 @@ export async function persistNotificationStateToDb(
   }
 }
 
+function mapPersistentRow(value: unknown): AppNotification | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const row = value as Partial<PersistentNotificationRow>
+  if (!row.id || !row.title || !row.description || !row.type || !isNotificationType(row.type)) return null
+
+  const metadata = getNotificationMetadata(row.metadata ?? null)
+  const type = row.type
+
+  return {
+    id: `db:${row.id}`,
+    type,
+    title: row.title,
+    description: row.description,
+    icon: getSafeNotificationIcon(row.icon),
+    color: row.color || getNotificationTypeColor(type),
+    timestamp: row.created_at || new Date().toISOString(),
+    isRead: Boolean(row.read_at),
+    relatedId: row.related_id && /^\d+$/.test(row.related_id) ? Number(row.related_id) : undefined,
+    subjectName: typeof metadata.subject_name === 'string' ? metadata.subject_name : undefined,
+    studentName: typeof metadata.student_name === 'string' ? metadata.student_name : undefined,
+    actionUrl: row.action_url || undefined,
+    source: 'database',
+  }
+}
+
+async function fetchPersistentNotificationPageLegacy({
+  userId,
+  audience,
+  pageSize,
+}: {
+  userId: string
+  audience: NotificationAudience
+  pageSize: number
+}): Promise<PersistentNotificationPage> {
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('id, audience, type, title, description, icon, color, created_at, read_at, action_url, related_id, metadata')
+    .eq('user_id', userId)
+    .eq('audience', audience)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(pageSize)
+
+  if (error) throw error
+  const notifications = (data || []).map(mapPersistentRow).filter((row: AppNotification | null): row is AppNotification => Boolean(row))
+
+  return {
+    notifications,
+    available: true,
+    cursor: null,
+    hasMore: false,
+    total: notifications.length,
+    unreadCount: notifications.filter((notification: AppNotification) => !notification.isRead).length,
+  }
+}
+
+function emptyPersistentPage(available: boolean): PersistentNotificationPage {
+  return {
+    notifications: [],
+    available,
+    cursor: null,
+    hasMore: false,
+    total: 0,
+    unreadCount: 0,
+  }
+}
+
+function uniqueDatabaseIds(ids: string[]) {
+  return [...new Set(ids.map((id) => getDatabaseNotificationId(id) || id).filter(isUuid))]
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
+
 function getNotificationMetadata(value: Json | null): Record<string, unknown> {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value as Record<string, unknown>
@@ -218,6 +354,12 @@ function getNotificationTypeColor(type: NotificationType) {
   if (type === 'achievement') return '#F6A64A'
   if (type === 'new_class') return '#58B5FF'
   return '#F97316'
+}
+
+function isMissingNotificationRpcError(error: any) {
+  const code = String(error?.code || '')
+  const message = String(error?.message || '').toLowerCase()
+  return code === 'PGRST202' || code === '42883' || message.includes('function') && message.includes('does not exist')
 }
 
 function isMissingNotificationTableError(error: any) {

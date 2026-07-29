@@ -1,0 +1,63 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+
+const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')
+
+test('notifications are role-aware, cursor-paginated and updated in batches', () => {
+  const hook = read('hooks/useNotifications.ts')
+  const persistent = read('lib/notifications/persistent.ts')
+  const migration = read('supabase/migrations/20260729183000_notifications_profile_activity.sql')
+  const feed = read('components/notifications/NotificationFeed.tsx')
+
+  assert.match(hook, /audienceForRole/)
+  assert.match(hook, /activeAudience !== audience/)
+  assert.match(hook, /loadMore/)
+  assert.match(hook, /postgres_changes/)
+  assert.match(persistent, /get_notifications_page/)
+  assert.match(persistent, /mark_notifications_read/)
+  assert.match(persistent, /delete_notifications/)
+  assert.match(migration, /create or replace function public\.get_notifications_page/)
+  assert.match(migration, /create or replace function public\.mark_notifications_read\(p_ids uuid\[\]\)/)
+  assert.match(migration, /create or replace function public\.delete_notifications\(p_ids uuid\[\]\)/)
+  assert.match(feed, /FlatList/)
+  assert.match(feed, /buildNotificationRows/)
+  assert.match(feed, /onEndReached/)
+  assert.match(feed, /NotificationListItem/)
+})
+
+test('student profile is identity-focused and delegates avatar customization', () => {
+  const screen = read('app/(student)/profile.tsx')
+  const hook = read('hooks/student/useStudentProfile.ts')
+  const privacy = read('components/student/profile/StudentProfilePrivacy.tsx')
+  const modal = read('components/student/profile/StudentAvatarCustomizationModal.tsx')
+
+  assert.match(screen, /StudentProfileMetrics/)
+  assert.match(screen, /StudentAvatarCustomizationModal/)
+  assert.match(screen, /StudentProfileAchievements/)
+  assert.doesNotMatch(screen, /Actividad reciente/)
+  assert.match(hook, /readThroughCache/)
+  assert.match(privacy, /Alias/)
+  assert.match(privacy, /Avatar/)
+  assert.match(privacy, /Ranking/)
+  assert.match(modal, /stageAvatarForOffline/)
+  assert.match(modal, /kind: 'profile\.cosmetics'/)
+})
+
+test('student activity uses server filters, lazy detail, memoized rows and retention', () => {
+  const screen = read('app/(student)/activity-log.tsx')
+  const hook = read('hooks/student/useStudentActivity.ts')
+  const row = read('components/student/activity/StudentActivityAttemptRow.tsx')
+  const migration = read('supabase/migrations/20260729183000_notifications_profile_activity.sql')
+
+  assert.match(screen, /keyExtractor=\{\(item(?:: ActivityListItem)?\) => item\.key\}/)
+  assert.match(hook, /fetchStudentAttemptHistoryPage/)
+  assert.match(hook, /fetchActivityAttemptDetail/)
+  assert.match(hook, /debouncedSearch/)
+  assert.match(row, /React\.memo/)
+  assert.match(row, /Practicar \$\{topicTitle\}/)
+  assert.match(row, /no reconstruye el banco de respuestas/)
+  assert.match(migration, /attempt_sensitive_data_retention_policy/)
+  assert.match(migration, /apply_attempt_sensitive_data_retention/)
+  assert.match(migration, /submitted_answer_payload = null/)
+})
