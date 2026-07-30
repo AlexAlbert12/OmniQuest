@@ -786,24 +786,25 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   const executeDeleteAccount = async () => {
     try {
       setDeletingAccount(true)
-      const { error } = await supabase.functions.invoke('delete-account', {
-        body: {},
-      })
+      const { data, error } = await supabase.rpc('request_account_deletion')
 
       if (error) {
-        throw new Error(error.message || 'No se pudo completar el borrado en el servidor.')
+        throw new Error(error.message || 'No se pudo registrar la solicitud de borrado.')
       }
-
-      const { error: signOutError } = await supabase.auth.signOut()
-      if (signOutError) {
-        console.warn('No se pudo cerrar sesión tras borrar cuenta:', signOutError.message)
-      }
-      showAlert('Cuenta borrada', 'Tu cuenta se ha eliminado correctamente.')
-      router.replace(LOGIN_ROUTE)
+      const request = data && typeof data === 'object' && !Array.isArray(data)
+        ? data as { scheduled_for?: string }
+        : {}
+      const scheduledFor = request.scheduled_for
+        ? new Date(request.scheduled_for).toLocaleString(locale)
+        : 'dentro de 7 días'
+      showAlert(
+        'Solicitud registrada',
+        `Tu cuenta está programada para borrarse ${scheduledFor}. Puedes cancelar la solicitud desde Datos antes de esa fecha.`
+      )
     } catch (error: unknown) {
       showAlert(
-        'No se pudo borrar la cuenta',
-        getErrorMessage(error) || 'No se pudo eliminar tu cuenta completa. Revisa la función delete-account de Supabase.'
+        'No se pudo solicitar el borrado',
+        getErrorMessage(error) || 'No se pudo registrar la solicitud. Inténtalo de nuevo.'
       )
     } finally {
       setDeletingAccount(false)

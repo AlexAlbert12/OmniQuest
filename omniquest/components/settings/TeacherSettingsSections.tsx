@@ -139,9 +139,9 @@ export default function TeacherSettingsSections({
           <TeacherDataNotice />
           <SettingsDataPanel
             isTeacher
-            exportingData={data.exportingData}
             deletingData={data.deletingData}
-            onExportData={data.handleExportData}
+            deletingAccount={data.deletingAccount}
+            onRequestDeletion={data.handleDeleteAccount}
             onDeletePartialData={data.handleDeletePartialData}
           />
         </>

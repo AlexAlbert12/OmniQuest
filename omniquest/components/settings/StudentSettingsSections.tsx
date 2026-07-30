@@ -122,9 +122,9 @@ export function RoleSettingsSections({
       {!securityOnly && activeSettingsSection === 'data' ? (
         <SettingsDataPanel
           isTeacher={isTeacher}
-          exportingData={data.exportingData}
           deletingData={data.deletingData}
-          onExportData={data.handleExportData}
+          deletingAccount={data.deletingAccount}
+          onRequestDeletion={data.handleDeleteAccount}
           onDeletePartialData={(dataType) => data.handleDeletePartialData(dataType)}
         />
       ) : null}

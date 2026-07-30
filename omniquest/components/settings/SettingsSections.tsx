@@ -14,6 +14,7 @@ import {
   SelectPill,
 } from './SettingsUi'
 import ManagedSessionsCard from './ManagedSessionsCard'
+import AccountDataRequestsCard from './AccountDataRequestsCard'
 import {
   SecurityAccountStatusCard,
   SecurityDangerCard,
@@ -132,6 +133,7 @@ export function SettingsProfilePanel({
   formatPreferenceLabel: FormatPreferenceLabel
   onOpenSecurity: () => void
 }) {
+  const { colors } = useAppTheme()
   return (
     <Panel title={`Información del ${isTeacher ? 'profesor' : 'alumno'}`}>
       <View className={width >= 520 ? 'flex-row gap-5' : 'gap-4'}>
@@ -156,7 +158,8 @@ export function SettingsProfilePanel({
               onChangeText={onNameChange}
               placeholder={isTeacher ? 'Profesor' : 'Alumno'}
               placeholderTextColor="#64748B"
-              className="rounded-lg border border-border-default bg-surface-default px-4 py-3 text-[13px] text-white"
+              className="rounded-lg border px-4 py-3 text-[13px]"
+              style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised, color: colors.text }}
             />
           </Field>
           <Field label="Correo electrónico">
@@ -164,7 +167,8 @@ export function SettingsProfilePanel({
               value={email}
               editable={false}
               placeholderTextColor="#64748B"
-              className="rounded-lg border border-border-default bg-surface-default px-4 py-3 text-[13px] text-text-secondary"
+              className="rounded-lg border px-4 py-3 text-[13px]"
+              style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised, color: colors.textSecondary }}
             />
           </Field>
           <Field label="Idioma preferido">
@@ -470,13 +474,14 @@ export function SettingsPrivacyPanel({
   onAnalyticsEnabledChange: (enabled: boolean) => void
   onShowPrivacyCenter: () => void
 }) {
+  const { colors } = useAppTheme()
   return (
     <Panel title="Privacidad">
-      <View className="mb-4 rounded-lg border border-border-default bg-surface-default p-4">
+      <View className="mb-4 rounded-lg border p-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
         <View className="flex-row flex-wrap items-center justify-between gap-3">
           <View className="min-w-0 flex-1">
-            <Text className="font-bold text-white">Visibilidad del perfil</Text>
-            <Text className="mt-1 text-[12px] text-text-secondary">
+            <Text className="font-bold" style={{ color: colors.text }}>Visibilidad del perfil</Text>
+            <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>
               {isTeacher
                 ? 'Decide cómo se muestra tu perfil docente dentro de OmniQuest.'
                 : 'Decide si otros estudiantes pueden ver tu perfil en rankings y logros.'}
@@ -490,6 +495,7 @@ export function SettingsPrivacyPanel({
               selected={profileVisibility === 'public'}
               available={profileVisibilityAvailable}
               accentColor={accentColor}
+              colors={colors}
               onPress={onProfileVisibilityChange}
             />
             <VisibilityButton
@@ -498,6 +504,7 @@ export function SettingsPrivacyPanel({
               selected={profileVisibility === 'private'}
               available={profileVisibilityAvailable}
               accentColor={accentColor}
+              colors={colors}
               onPress={onProfileVisibilityChange}
             />
           </View>
@@ -510,7 +517,7 @@ export function SettingsPrivacyPanel({
         ) : null}
       </View>
 
-      <View className="mb-4 overflow-hidden rounded-xl border border-border-default bg-surface-default">
+      <View className="mb-4 overflow-hidden rounded-xl border" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
         <NotificationRow
           icon="analytics-outline"
           title="Analítica de producto"
@@ -525,16 +532,16 @@ export function SettingsPrivacyPanel({
         </Text>
       </View>
 
-      <View className="rounded-xl border border-border-active bg-surface-raised p-4">
+      <View className="rounded-xl border p-4" style={{ borderColor: colors.borderStrong, backgroundColor: colors.surfaceRaised }}>
         <View className="flex-row gap-3">
           <Ionicons name="shield-checkmark-outline" size={22} color={accentColor} />
           <View className="min-w-0 flex-1">
-            <Text className="font-black text-white">Tu privacidad es importante</Text>
-            <Text className="mt-1 text-[12px] leading-5 text-text-secondary">
+            <Text className="font-black" style={{ color: colors.text }}>Tu privacidad es importante</Text>
+            <Text className="mt-1 text-[12px] leading-5" style={{ color: colors.textSecondary }}>
               Protegemos tu información y tu historial académico.
             </Text>
             <Pressable onPress={onShowPrivacyCenter} className="mt-2 flex-row items-center gap-1">
-              <Text className="text-[12px] font-bold text-text-secondary">Centro de privacidad</Text>
+              <Text className="text-[12px] font-bold" style={{ color: colors.textSecondary }}>Centro de privacidad</Text>
               <Ionicons name="open-outline" size={13} color="#A78BFA" />
             </Pressable>
           </View>
@@ -550,6 +557,7 @@ function VisibilityButton({
   selected,
   available,
   accentColor,
+  colors,
   onPress,
 }: {
   label: string
@@ -557,6 +565,7 @@ function VisibilityButton({
   selected: boolean
   available: boolean
   accentColor: string
+  colors: ReturnType<typeof useAppTheme>['colors']
   onPress: (visibility: ProfileVisibility) => void
 }) {
   return (
@@ -565,46 +574,39 @@ function VisibilityButton({
       disabled={!available}
       className="rounded-lg border px-3 py-2"
       style={{
-        borderColor: selected ? accentColor : '#2A456A',
-        backgroundColor: selected ? withAlpha(accentColor, '24') : '#0A2042',
+        borderColor: selected ? accentColor : colors.border,
+        backgroundColor: selected ? withAlpha(accentColor, '24') : colors.surface,
       }}
     >
-      <Text className="text-[12px] font-semibold text-white">{label}</Text>
+      <Text className="text-[12px] font-semibold" style={{ color: colors.text }}>{label}</Text>
     </Pressable>
   )
 }
 
 export function SettingsDataPanel({
   isTeacher,
-  exportingData,
   deletingData,
-  onExportData,
+  deletingAccount,
+  onRequestDeletion,
   onDeletePartialData,
 }: {
   isTeacher: boolean
-  exportingData: boolean
   deletingData: boolean
-  onExportData: () => void
+  deletingAccount: boolean
+  onRequestDeletion: () => void
   onDeletePartialData: (dataType: 'scores' | 'enrollments' | 'all') => void
 }) {
+  const { colors } = useAppTheme()
   return (
     <Panel title="Datos">
-      <ActionRow
-        icon="download-outline"
-        title="Exportar datos"
-        description={
-          isTeacher
-            ? 'Descarga perfil, cursos, clases, temas, preguntas, respuestas, inscripciones, puntuaciones, preferencias y notificaciones.'
-            : 'Descarga una copia de todos tus datos personales.'
-        }
-        onPress={onExportData}
-        disabled={exportingData}
-        loading={exportingData}
+      <AccountDataRequestsCard
+        deletingAccount={deletingAccount}
+        onRequestDeletion={onRequestDeletion}
       />
 
-      <View className="mt-4 rounded-lg border border-border-default bg-surface-default p-4">
-        <Text className="font-bold text-white">Zona de datos</Text>
-        <Text className="mb-3 mt-1 text-[12px] text-text-secondary">
+      <View className="mt-4 rounded-lg border p-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
+        <Text className="font-bold" style={{ color: colors.text }}>Zona de datos</Text>
+        <Text className="mb-3 mt-1 text-[12px]" style={{ color: colors.textSecondary }}>
           {isTeacher
             ? 'Puedes limpiar progreso o reiniciar por completo tu espacio docente. Estas acciones no se pueden deshacer.'
             : 'Elimina selectivamente progreso, cursos o preferencias guardadas. Estas acciones no se pueden deshacer.'}
@@ -655,6 +657,7 @@ function DangerDataRow({
   deletingData: boolean
   onPress: () => void
 }) {
+  const { colors } = useAppTheme()
   return (
     <Pressable
       onPress={onPress}
@@ -665,8 +668,8 @@ function DangerDataRow({
       <View className="flex-row items-center gap-3">
         <Ionicons name={icon} size={16} color="#FB7185" />
         <View className="min-w-0 flex-1">
-          <Text className="text-[13px] font-semibold text-white">{title}</Text>
-          {description ? <Text className="mt-1 text-[12px] text-text-secondary">{description}</Text> : null}
+          <Text className="text-[13px] font-semibold" style={{ color: colors.text }}>{title}</Text>
+          {description ? <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>{description}</Text> : null}
         </View>
       </View>
 
@@ -730,6 +733,7 @@ export function SettingsSecurityPanel({
   onSignOut: () => void
   onDeleteAccount: () => void
 }) {
+  const { colors } = useAppTheme()
   return (
     <Panel title="Seguridad">
       {!securityOnly ? (
@@ -787,13 +791,13 @@ export function SettingsAboutPanel({
   return (
     <Panel title="Acerca de OmniQuest">
       <View className="gap-4">
-        <Text className="text-[13px] leading-5 text-text-secondary">
+        <Text className="text-[13px] leading-5" style={{ color: colors.textSecondary }}>
           OmniQuest es una plataforma educativa gamificada para practicar contenidos mediante cursos, clases, temas y preguntas interactivas.
         </Text>
 
-        <View className="rounded-xl border border-border-default bg-surface-default p-4">
-          <Text className="text-[12px] text-text-muted">Versión</Text>
-          <Text className="mt-1 font-black text-white">1.0.0</Text>
+        <View className="rounded-xl border p-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
+          <Text className="text-[12px]" style={{ color: colors.textMuted }}>Versión</Text>
+          <Text className="mt-1 font-black" style={{ color: colors.text }}>1.0.0</Text>
         </View>
 
         <ActionRow
