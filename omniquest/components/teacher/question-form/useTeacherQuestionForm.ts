@@ -1,9 +1,22 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Platform } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useNavigation, useRouter } from 'expo-router'
 import type { Json } from '../../../types/database.types'
 import { normalizeDifficulty, type DifficultyLevel } from '../../../lib/difficulty'
-import { getQuestionMediaManifest, removeQuestionMedia, uploadQuestionMedia } from '../../../lib/questionMedia'
+import {
+  getQuestionMediaManifest,
+  isQuestionMediaUploadCancelled,
+  removeQuestionMedia,
+  uploadQuestionMedia,
+  type QuestionMediaUploadStage,
+} from '../../../lib/questionMedia'
+import {
+  getTeacherQuestionDraftKey,
+  readTeacherQuestionDraft,
+  removeTeacherQuestionDraft,
+  saveTeacherQuestionDraft,
+} from '../../../lib/questionDraftStorage'
+import { teacherQuestionSchema } from '../../../lib/questionFormSchema.js'
 import { supabase } from '../../../lib/supabase'
 import type { TeacherQuestionMediaValue } from '../TeacherQuestionMediaEditor'
 import { useFormAnalytics } from '../../../hooks/useFormAnalytics'
@@ -16,8 +29,10 @@ import {
   questionTypes,
   type AnswerItem,
   type QuestionTypeId,
+  type QuestionValidationIssue,
   type QuestionWizardStep,
   type TeacherQuestionFormOptions,
+  type TeacherQuestionFormState,
   type TopicOption,
 } from './types'
 import {
@@ -27,7 +42,6 @@ import {
   fromDatabaseQuestionType,
   getFirstInvalidStep,
   getIntegerRangeError,
-  getQuestionValidationIssues,
   getValidTopicId,
   isNumericId,
   issuesForStep,
@@ -51,6 +65,8 @@ const EMPTY_MEDIA: TeacherQuestionMediaValue = {
   removeExisting: false,
 }
 
+const AUTOSAVE_DELAY_MS = 900
+
 export function useTeacherQuestionForm({
   mode,
   subjectId,
@@ -60,6 +76,7 @@ export function useTeacherQuestionForm({
   initialDifficulty = null,
 }: TeacherQuestionFormOptions) {
   const router = useRouter()
+  const navigation = useNavigation()
   const isEdit = mode === 'edit'
   const normalizedSubjectId = normalizeParam(subjectId)
   const normalizedQuestionId = normalizeParam(questionId)
@@ -94,16 +111,33 @@ export function useTeacherQuestionForm({
   const [dragdropPairsText, setDragdropPairsText] = useState('')
   const [media, setMedia] = useState<TeacherQuestionMediaValue>(EMPTY_MEDIA)
   const [originalMediaPath, setOriginalMediaPath] = useState<string | null>(null)
+  const [draftReady, setDraftReady] = useState(false)
+  const [draftRestored, setDraftRestored] = useState(false)
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'pending' | 'saving' | 'saved' | 'error'>('idle')
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [uploadingMedia, setUploadingMedia] = useState(false)
+  const [mediaUploadProgress, setMediaUploadProgress] = useState(0)
+  const [mediaUploadStage, setMediaUploadStage] = useState<QuestionMediaUploadStage | null>(null)
+
+  const leaveApprovedRef = useRef(false)
+  const baselineFingerprintRef = useRef('')
+  const lastSavedFingerprintRef = useRef('')
+  const uploadControllerRef = useRef<AbortController | null>(null)
+
   const formAnalytics = useFormAnalytics('teacher_question', {
     mode,
     subject_id: normalizedSubjectId,
   })
 
+  const draftKey = useMemo(() => getTeacherQuestionDraftKey({
+    mode,
+    subjectId: normalizedSubjectId,
+    questionId: normalizedQuestionId,
+  }), [mode, normalizedQuestionId, normalizedSubjectId])
+
   useEffect(() => {
-    formAnalytics.updateContext({
-      step: activeStep,
-      question_type: selectedType,
-    })
+    formAnalytics.updateContext({ step: activeStep, question_type: selectedType })
   }, [activeStep, formAnalytics, selectedType])
 
   const isMultipleType = selectedType === 'multiple'
@@ -120,22 +154,30 @@ export function useTeacherQuestionForm({
     return index >= 0 ? index : 0
   }, [visibleAnswers])
 
-  const validationIssues = useMemo(() => getQuestionValidationIssues({
-    selectedType,
-    questionText,
-    timeLimit,
-    points,
-    mediaType: media.type,
-    mediaAltText: media.altText,
-    mediaTranscript: media.transcript,
-    mediaSubtitlesVtt: media.subtitlesVtt,
-    visibleAnswers,
-    openExpectedAnswer,
-    fillAnswersText,
-    orderItemsText,
-    matchPairsText,
-    dragdropPairsText,
-  }), [
+  const validationIssues = useMemo<QuestionValidationIssue[]>(() => {
+    const result = teacherQuestionSchema.safeParse({
+      selectedType,
+      questionText,
+      timeLimit,
+      points,
+      mediaType: media.type,
+      mediaAltText: media.altText,
+      mediaTranscript: media.transcript,
+      mediaSubtitlesVtt: media.subtitlesVtt,
+      visibleAnswers,
+      openExpectedAnswer,
+      fillAnswersText,
+      orderItemsText,
+      matchPairsText,
+      dragdropPairsText,
+    })
+    if (result.success) return []
+    return result.error.issues.map((issue) => ({
+      step: issue.step,
+      field: issue.field,
+      message: issue.message,
+    }))
+  }, [
     dragdropPairsText,
     fillAnswersText,
     matchPairsText,
@@ -152,6 +194,62 @@ export function useTeacherQuestionForm({
     visibleAnswers,
   ])
 
+  const draftState = useMemo<Omit<TeacherQuestionFormState, 'topics'>>(() => ({
+    activeStep,
+    selectedType,
+    questionText,
+    timeLimit,
+    points,
+    optionsCount,
+    explanation,
+    selectedDifficulty,
+    selectedTopicId,
+    answers,
+    openExpectedAnswer,
+    fillAnswersText,
+    orderItemsText,
+    matchPairsText,
+    dragdropPairsText,
+    media,
+  }), [
+    activeStep,
+    answers,
+    dragdropPairsText,
+    explanation,
+    fillAnswersText,
+    matchPairsText,
+    media,
+    openExpectedAnswer,
+    optionsCount,
+    orderItemsText,
+    points,
+    questionText,
+    selectedDifficulty,
+    selectedTopicId,
+    selectedType,
+    timeLimit,
+  ])
+  const draftFingerprint = useMemo(() => fingerprintDraft(draftState), [draftState])
+
+  const applyDraftState = useCallback((state: Omit<TeacherQuestionFormState, 'topics'>) => {
+    setActiveStep(clampStep(state.activeStep))
+    setSelectedType(state.selectedType)
+    setQuestionText(state.questionText || '')
+    setTimeLimit(state.timeLimit || '30')
+    setPoints(state.points || '10')
+    setOptionsCount(Math.max(2, Math.min(6, state.optionsCount || 4)))
+    setExplanation(state.explanation || '')
+    setSelectedDifficulty(normalizeDifficulty(state.selectedDifficulty) || 1)
+    setSelectedTopicId(state.selectedTopicId || null)
+    setAnswers(Array.isArray(state.answers) && state.answers.length ? state.answers : [{ text: '', isCorrect: true }, { text: '', isCorrect: false }])
+    setOpenExpectedAnswer(state.openExpectedAnswer || '')
+    setFillAnswersText(state.fillAnswersText || '')
+    setOrderItemsText(state.orderItemsText || '')
+    setMatchPairsText(state.matchPairsText || '')
+    setDragdropPairsText(state.dragdropPairsText || '')
+    setMedia({ ...EMPTY_MEDIA, ...(state.media || {}), pendingAsset: state.media?.pendingAsset || null })
+  }, [])
+
   useEffect(() => {
     let mounted = true
     const loadFormData = async () => {
@@ -161,7 +259,7 @@ export function useTeacherQuestionForm({
         return
       }
 
-      setInitializing(isEdit)
+      setInitializing(true)
       try {
         const { data: sessionData } = await supabase.auth.getSession()
         const teacherId = sessionData.session?.user.id
@@ -285,10 +383,96 @@ export function useTeacherQuestionForm({
     }
 
     void loadFormData()
-    return () => {
-      mounted = false
-    }
+    return () => { mounted = false }
   }, [isEdit, normalizedInitialClassroomId, normalizedInitialTopicId, normalizedQuestionId, normalizedSubjectId, router])
+
+  useEffect(() => {
+    if (initializing || draftReady) return
+    let mounted = true
+    baselineFingerprintRef.current = draftFingerprint
+    lastSavedFingerprintRef.current = draftFingerprint
+
+    void readTeacherQuestionDraft(draftKey)
+      .then((draft) => {
+        if (!mounted) return
+        if (draft) {
+          applyDraftState(draft.state)
+          setDraftRestored(true)
+          setDraftSavedAt(draft.savedAt)
+          setDraftStatus('saved')
+          lastSavedFingerprintRef.current = fingerprintDraft(draft.state)
+        }
+      })
+      .finally(() => {
+        if (mounted) setDraftReady(true)
+      })
+
+    return () => { mounted = false }
+  }, [applyDraftState, draftFingerprint, draftKey, draftReady, initializing])
+
+  useEffect(() => {
+    if (!draftReady || saving) return
+    const changed = draftFingerprint !== baselineFingerprintRef.current
+    setHasUnsavedChanges(changed)
+    if (!changed || draftFingerprint === lastSavedFingerprintRef.current) return
+
+    setDraftStatus('pending')
+    const timer = setTimeout(() => {
+      setDraftStatus('saving')
+      void saveTeacherQuestionDraft(draftKey, draftState)
+        .then((savedAt) => {
+          lastSavedFingerprintRef.current = draftFingerprint
+          setDraftSavedAt(savedAt)
+          setDraftStatus('saved')
+        })
+        .catch(() => setDraftStatus('error'))
+    }, AUTOSAVE_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [draftFingerprint, draftKey, draftReady, draftState, saving])
+
+  const confirmLeave = useCallback((onLeave: () => void) => {
+    if (!hasUnsavedChanges || leaveApprovedRef.current) {
+      onLeave()
+      return
+    }
+    Alert.alert(
+      'Hay cambios sin publicar',
+      'El borrador está guardado en este dispositivo. Puedes salir y recuperarlo al volver.',
+      [
+        { text: 'Seguir editando', style: 'cancel' },
+        {
+          text: 'Salir y conservar borrador',
+          style: 'destructive',
+          onPress: () => {
+            leaveApprovedRef.current = true
+            onLeave()
+          },
+        },
+      ],
+    )
+  }, [hasUnsavedChanges])
+
+  const requestClose = useCallback(() => confirmLeave(() => router.back()), [confirmLeave, router])
+
+  useEffect(() => {
+    const unsubscribe = (navigation as any).addListener?.('beforeRemove', (event: any) => {
+      if (!hasUnsavedChanges || leaveApprovedRef.current || saving) return
+      event.preventDefault()
+      confirmLeave(() => (navigation as any).dispatch(event.data.action))
+    })
+    return unsubscribe
+  }, [confirmLeave, hasUnsavedChanges, navigation, saving])
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges || leaveApprovedRef.current) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [hasUnsavedChanges])
 
   const updateAnswerText = (text: string, index: number) => {
     setAnswers((current) => current.map((answer, answerIndex) => answerIndex === index ? { ...answer, text } : answer))
@@ -359,6 +543,8 @@ export function useTeacherQuestionForm({
 
   const handlePreviousStep = () => setActiveStep((current) => Math.max(1, current - 1) as QuestionWizardStep)
 
+  const cancelMediaUpload = useCallback(() => uploadControllerRef.current?.abort(), [])
+
   const handleSave = async () => {
     if (!normalizedSubjectId) {
       showAlert('Error', 'No se encontró el curso para guardar la pregunta.')
@@ -395,7 +581,17 @@ export function useTeacherQuestionForm({
       let mediaPath = media.path
       let mediaDurationSeconds = media.durationSeconds
       if (media.pendingAsset) {
-        const uploaded = await uploadQuestionMedia(media.pendingAsset, Number(normalizedSubjectId))
+        const controller = new AbortController()
+        uploadControllerRef.current = controller
+        setUploadingMedia(true)
+        setMediaUploadProgress(0)
+        const uploaded = await uploadQuestionMedia(media.pendingAsset, Number(normalizedSubjectId), {
+          signal: controller.signal,
+          onProgress: (progress, stage) => {
+            setMediaUploadProgress(progress)
+            setMediaUploadStage(stage)
+          },
+        })
         mediaType = uploaded.type
         mediaPath = uploaded.path
         mediaDurationSeconds = uploaded.durationSeconds
@@ -439,18 +635,26 @@ export function useTeacherQuestionForm({
         }
       }
 
+      await removeTeacherQuestionDraft(draftKey).catch(() => undefined)
+      leaveApprovedRef.current = true
+      baselineFingerprintRef.current = draftFingerprint
+      lastSavedFingerprintRef.current = draftFingerprint
+      setHasUnsavedChanges(false)
       showAlert(isEdit ? 'Pregunta actualizada' : 'Pregunta creada', isEdit ? 'Los cambios se guardaron correctamente.' : 'La pregunta se guardó correctamente.')
       router.back()
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (uploadedPath) {
-        try {
-          await removeQuestionMedia(uploadedPath)
-        } catch {
-          // The main save error is more relevant than a failed cleanup.
-        }
+        try { await removeQuestionMedia(uploadedPath) } catch { /* best effort */ }
       }
-      showAlert('Error', error.message || 'No se pudo guardar la pregunta.')
+      if (isQuestionMediaUploadCancelled(error)) {
+        showAlert('Subida cancelada', 'El archivo no se ha publicado. El resto del borrador sigue guardado.')
+      } else {
+        showAlert('Error', error instanceof Error ? error.message : 'No se pudo guardar la pregunta.')
+      }
     } finally {
+      uploadControllerRef.current = null
+      setUploadingMedia(false)
+      setMediaUploadStage(null)
       setSaving(false)
     }
   }
@@ -488,6 +692,13 @@ export function useTeacherQuestionForm({
     timeLimitError,
     pointsError,
     validationIssues,
+    draftRestored,
+    draftStatus,
+    draftSavedAt,
+    hasUnsavedChanges,
+    uploadingMedia,
+    mediaUploadProgress,
+    mediaUploadStage,
     setQuestionText: (value: string) => {
       formAnalytics.markStarted()
       setQuestionText(value)
@@ -511,6 +722,8 @@ export function useTeacherQuestionForm({
     handleNextStep,
     handlePreviousStep,
     handleSave,
+    requestClose,
+    cancelMediaUpload,
   }
 }
 
@@ -518,10 +731,28 @@ function normalizeParam(value: string | string[] | null | undefined) {
   return Array.isArray(value) ? value[0] : value ?? null
 }
 
+function clampStep(value: unknown): QuestionWizardStep {
+  const numeric = Number(value)
+  return Math.max(1, Math.min(5, Number.isFinite(numeric) ? numeric : 1)) as QuestionWizardStep
+}
+
+function fingerprintDraft(state: Omit<TeacherQuestionFormState, 'topics'>) {
+  return JSON.stringify({
+    ...state,
+    media: {
+      ...state.media,
+      pendingAsset: state.media.pendingAsset ? {
+        type: state.media.pendingAsset.type,
+        uri: state.media.pendingAsset.uri,
+        fileName: state.media.pendingAsset.fileName,
+        mimeType: state.media.pendingAsset.mimeType,
+        fileSize: state.media.pendingAsset.fileSize,
+        durationSeconds: state.media.pendingAsset.durationSeconds,
+      } : null,
+    },
+  })
+}
+
 function showAlert(title: string, message: string) {
-  if (Platform.OS === 'web') {
-    window.alert(`${title}\n${message}`)
-    return
-  }
   Alert.alert(title, message)
 }

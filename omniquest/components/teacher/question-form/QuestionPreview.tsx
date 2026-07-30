@@ -1,12 +1,14 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../../lib/appTheme'
+import type { QuestionType } from '../../../lib/gameQuestionLogic'
+import GameQuestionRenderer from '../../student/game/GameQuestionRenderer'
+import type { GameQuestion, StructuredAnswerPayload } from '../../student/game/types'
 import QuestionMedia from '../../questions/QuestionMedia'
 import type { TeacherQuestionMediaValue } from '../TeacherQuestionMediaEditor'
 import type { AnswerItem, QuestionTypeCard, QuestionTypeId } from './types'
-import { getQuestionTypePreviewTitle, parseLines, parsePairLines } from './utils'
-import ChoiceAnswerRow from './ChoiceAnswerRow'
+import { parseLines, parsePairLines, toDatabaseQuestionType } from './utils'
 import QuestionFormSection from './QuestionFormSection'
 
 export default function QuestionPreview({
@@ -39,23 +41,46 @@ export default function QuestionPreview({
   points: number | null
 }) {
   const { tokens } = useAppTheme()
-  const previewTextMap: Record<QuestionTypeId, string> = {
-    multiple: '',
-    boolean: '',
-    open: openExpectedAnswer,
-    fill: fillAnswersText,
-    order: orderItemsText,
-    match: matchPairsText,
-    dragdrop: dragdropPairsText,
+  const [selectedAnswerId, setSelectedAnswerId] = useState<number | null>(null)
+  const [previewInteraction, setPreviewInteraction] = useState(0)
+  const questionType = toDatabaseQuestionType(selectedType) as QuestionType
+  const question = useMemo(() => buildPreviewQuestion({
+    selectedType,
+    questionText,
+    visibleAnswers,
+    openExpectedAnswer,
+    fillAnswersText,
+    orderItemsText,
+    matchPairsText,
+    dragdropPairsText,
+    explanation,
+    points,
+  }), [
+    dragdropPairsText,
+    explanation,
+    fillAnswersText,
+    matchPairsText,
+    openExpectedAnswer,
+    orderItemsText,
+    points,
+    questionText,
+    selectedType,
+    visibleAnswers,
+  ])
+
+  useEffect(() => {
+    setSelectedAnswerId(null)
+    setPreviewInteraction((value) => value + 1)
+  }, [question.id, question.text, questionType])
+
+  const handleStructuredPreview = (_payload: StructuredAnswerPayload) => {
+    setPreviewInteraction((value) => value + 1)
   }
-  const sourceText = previewTextMap[selectedType]
-  const pairs = selectedType === 'match' || selectedType === 'dragdrop' ? parsePairLines(sourceText) : []
-  const lines = pairs.length === 0 ? parseLines(sourceText) : []
 
   return (
     <QuestionFormSection
-      title="Vista previa"
-      subtitle="Así verá el alumnado el contenido principal de la pregunta."
+      title="Vista previa real"
+      subtitle="Usa el mismo componente que la partida del alumno; puedes interactuar sin guardar respuestas."
       icon="eye-outline"
     >
       <View className="rounded-2xl border p-4 md:p-5" style={{ borderColor: tokens.border.active, backgroundColor: tokens.surface.raised }}>
@@ -69,8 +94,12 @@ export default function QuestionPreview({
           </View>
         </View>
 
-        <Text className="mt-5 text-[25px] font-black leading-8 md:text-[34px] md:leading-[42px]" style={{ color: tokens.text.primary }}>
-          {questionText.trim() || 'Escribe el enunciado para completar la vista previa.'}
+        <Text
+          accessibilityRole="header"
+          className="mt-5 text-[25px] font-black leading-8 md:text-[34px] md:leading-[42px]"
+          style={{ color: tokens.text.primary }}
+        >
+          {question.text}
         </Text>
 
         {media.type && (media.pendingAsset?.uri || media.url || media.path) ? (
@@ -86,36 +115,20 @@ export default function QuestionPreview({
           />
         ) : null}
 
-        {selectedType === 'multiple' || selectedType === 'boolean' ? (
-          <View className="mt-5 gap-3">
-            {visibleAnswers.map((answer, index) => (
-              <ChoiceAnswerRow key={index} index={index} text={answer.text} correct={answer.isCorrect} readOnly />
-            ))}
-          </View>
-        ) : (
-          <View className="mt-5 rounded-xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive }}>
-            <Text className="font-black" style={{ color: tokens.brand.teacher }}>{getQuestionTypePreviewTitle(selectedType)}</Text>
-            {pairs.length > 0 ? (
-              <View className="mt-3 gap-2">
-                {pairs.slice(0, 10).map((pair, index) => (
-                  <View key={`${pair.left}-${pair.right}-${index}`} className="flex-row flex-wrap items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: tokens.background.primary }}>
-                    <Text className="font-bold" style={{ color: tokens.text.primary }}>{pair.left}</Text>
-                    <Ionicons name="arrow-forward" size={15} color={tokens.brand.teacher} />
-                    <Text className="font-bold" style={{ color: tokens.semantic.success }}>{pair.right}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : lines.length > 0 ? (
-              <View className="mt-3 gap-2">
-                {lines.slice(0, 10).map((line, index) => (
-                  <Text key={`${line}-${index}`} className="text-[14px]" style={{ color: tokens.text.secondary }}>{index + 1}. {line}</Text>
-                ))}
-              </View>
-            ) : (
-              <Text className="mt-2 text-[13px]" style={{ color: tokens.text.muted }}>Completa las respuestas para ver el resultado.</Text>
-            )}
-          </View>
-        )}
+        <View className="mt-5" key={`${question.id}-${previewInteraction}`}>
+          <GameQuestionRenderer
+            question={question}
+            questionType={questionType}
+            selectedAnswerId={selectedAnswerId}
+            correctAnswerId={null}
+            hintedAnswerId={null}
+            hasAnswered={false}
+            isSubmitting={false}
+            answerStatus={null}
+            onChoiceAnswer={setSelectedAnswerId}
+            onStructuredAnswer={handleStructuredPreview}
+          />
+        </View>
 
         {explanation.trim() ? (
           <View className="mt-5 rounded-xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive }}>
@@ -126,6 +139,65 @@ export default function QuestionPreview({
       </View>
     </QuestionFormSection>
   )
+}
+
+function buildPreviewQuestion({
+  selectedType,
+  questionText,
+  visibleAnswers,
+  openExpectedAnswer,
+  fillAnswersText,
+  orderItemsText,
+  matchPairsText,
+  dragdropPairsText,
+  explanation,
+  points,
+}: {
+  selectedType: QuestionTypeId
+  questionText: string
+  visibleAnswers: AnswerItem[]
+  openExpectedAnswer: string
+  fillAnswersText: string
+  orderItemsText: string
+  matchPairsText: string
+  dragdropPairsText: string
+  explanation: string
+  points: number | null
+}): GameQuestion {
+  const prompt = questionText.trim() || 'Escribe el enunciado para completar la vista previa.'
+  const choiceAnswers = visibleAnswers.map((answer, index) => ({ id: index + 1, text: answer.text.trim() || `Opción ${index + 1}` }))
+  const orderItems = parseLines(orderItemsText)
+  const pairSource = selectedType === 'dragdrop' ? dragdropPairsText : matchPairsText
+  const pairs = parsePairLines(pairSource)
+  const fillAnswers = parseLines(fillAnswersText)
+  const fallbackAnswer = openExpectedAnswer.trim() || 'Respuesta esperada'
+
+  let answers = choiceAnswers
+  let pairOptions: string[] | undefined
+  if (selectedType === 'open') answers = [{ id: 1, text: fallbackAnswer }]
+  if (selectedType === 'fill') answers = fillAnswers.map((text, index) => ({ id: index + 1, text }))
+  if (selectedType === 'order') answers = orderItems.map((text, index) => ({ id: index + 1, text }))
+  if (selectedType === 'match' || selectedType === 'dragdrop') {
+    answers = pairs.map((pair, index) => ({ id: index + 1, text: pair.left }))
+    pairOptions = pairs.map((pair) => pair.right)
+  }
+
+  return {
+    id: stablePreviewId(selectedType, prompt, answers.map((answer) => answer.text).join('|')),
+    text: prompt,
+    type: toDatabaseQuestionType(selectedType),
+    points_base: points ?? 0,
+    explanation: explanation.trim() || null,
+    answers,
+    pair_options: pairOptions,
+    blank_count: selectedType === 'fill' ? Math.max(fillAnswers.length, 1) : null,
+  }
+}
+
+function stablePreviewId(...values: string[]) {
+  let hash = 17
+  values.join('::').split('').forEach((character) => { hash = ((hash * 31) + character.charCodeAt(0)) | 0 })
+  return Math.abs(hash || 1)
 }
 
 function Metric({ icon, value, highlight = false }: { icon: keyof typeof Ionicons.glyphMap; value: string; highlight?: boolean }) {

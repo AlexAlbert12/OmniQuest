@@ -1,271 +1,122 @@
-import React, { useCallback, useState } from 'react';
+import React, { useMemo, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   Text,
-  View,
+  TextInput,
   useWindowDimensions,
-} from 'react-native';
-import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import MobileMetricCard from '../../../components/ui/mobile/MobileMetricCard'
-import { supabase } from '../../../lib/supabase';
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout';
-import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty';
-import TeacherSidebar from '../../../components/teacher/TeacherSidebar';
-import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav';
-import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader';
-import TeacherTopicOverview, { TeacherTopicAddQuestionCTA } from '../../../components/teacher/topic/TeacherTopicOverview';
+  View,
+} from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import TeacherSidebar from '../../../components/teacher/TeacherSidebar'
+import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav'
+import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader'
+import TeacherTopicOverview, { TeacherTopicAddQuestionCTA } from '../../../components/teacher/topic/TeacherTopicOverview'
+import AppButton from '../../../components/ui/AppButton'
+import AppTabs from '../../../components/ui/AppTabs'
+import PaginationControls from '../../../components/ui/PaginationControls'
+import AppConfirmModal from '../../../components/AppConfirmModal'
+import AppStatusBanner from '../../../components/ui/AppStatusBanner'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
+import { getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty'
+import { useAppTheme } from '../../../lib/appTheme'
+import { supabase } from '../../../lib/supabase'
+import { useTeacherTopicDetail, type VisibilityFilter } from '../../../hooks/teacher/useTeacherTopicDetail'
+import type { TeacherTopicQuestion } from '../../../lib/teacherServerData'
 
-type TeacherActionResult = {
-  error?: string
-  [key: string]: unknown
-}
+const difficultyItems: Array<{ key: DifficultyLevel | 'all'; label: string }> = [
+  { key: 'all', label: 'Todas' },
+  { key: 1, label: 'Fácil' },
+  { key: 2, label: 'Media' },
+  { key: 3, label: 'Difícil' },
+]
 
-type Topic = {
-  id: number
-  title: string
-  description: string | null
-  icon: string | null
-  sort_order: number | null
-  available_until?: string | null
-  subject_id: number
-  classroom_id?: number | null
-  created_at?: string | null
-}
-
-type Subject = {
-  id: number
-  name: string
-  description: string | null
-  icon: string | null
-  code: string
-  theme_color: string | null
-  teacher_id?: string | null
-}
-
-type Question = {
-  id: number
-  text: string
-  points_base: number | null
-  difficulty?: number | null
-  topic_id: number | null
-  created_at?: string | null
-  answers?: { text: string; is_correct: boolean }[]
-}
-
-type TopicScore = {
-  topic_id: number
-  max_score: number | null
-}
-
-type Enrollment = {
-  student_id: string
-}
+const visibilityItems: Array<{ key: VisibilityFilter; label: string }> = [
+  { key: 'all', label: 'Todas' },
+  { key: 'visible', label: 'Visibles' },
+  { key: 'archived', label: 'Archivadas' },
+]
 
 export default function TopicDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
-  const { width } = useWindowDimensions();
-  const [topic, setTopic] = useState<Topic | null>(null);
-  const [subject, setSubject] = useState<Subject | null>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [topicScores, setTopicScores] = useState<TopicScore[]>([]);
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [subjectsCount, setSubjectsCount] = useState(0);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel | 'all'>('all');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const { id } = useLocalSearchParams<{ id?: string | string[] }>()
+  const topicIdValue = Array.isArray(id) ? id[0] : id
+  const topicId = topicIdValue && /^\d+$/.test(topicIdValue) ? Number(topicIdValue) : null
+  const router = useRouter()
+  const { width } = useWindowDimensions()
+  const { tokens } = useAppTheme()
+  const [archiveOpen, setArchiveOpen] = useState(false)
+  const [archiveBusy, setArchiveBusy] = useState(false)
+  const [questionToDelete, setQuestionToDelete] = useState<TeacherTopicQuestion | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const detail = useTeacherTopicDetail(topicId)
+  const isDesktop = width >= 1080
 
-  const isDesktop = width >= 1080;
-  const topicId = Array.isArray(id) ? id[0] : id;
-  const allTopicQuestions = questions.filter((question) => question.topic_id === Number(topicId));
-  const topicQuestions = allTopicQuestions
-    .filter((question) => selectedDifficulty === 'all' || (question.difficulty || 1) === selectedDifficulty);
-  const difficultyValues = Array.from(new Set(allTopicQuestions.map((question) => question.difficulty || 1)));
-  const difficultySummary = difficultyValues.length === 0
-    ? 'Sin definir'
-    : difficultyValues.length === 1
-      ? getDifficultyMeta(difficultyValues[0]).label
-      : 'Mixta';
+  const summary = detail.summary
+  const topic = summary?.topic
+  const subject = summary?.subject
+  const addQuestionHref = topic && subject
+    ? `/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroomId ?? ''}&topicId=${topic.id}${detail.difficulty !== 'all' ? `&difficulty=${detail.difficulty}` : ''}`
+    : ''
 
-  const scoreValues = topicScores
-    .filter((score) => Number(score.topic_id) === Number(topicId) && typeof score.max_score === 'number')
-    .map((score) => score.max_score || 0);
-  const averageXp = scoreValues.length > 0
-    ? Math.round(scoreValues.reduce((total, score) => total + score, 0) / scoreValues.length)
-    : 0;
-  const participation = enrollments.length > 0 ? Math.min(100, Math.round((scoreValues.length / enrollments.length) * 100)) : 0;
-
-  const fetchData = useCallback(async () => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const teacherId = sessionData.session?.user.id;
-
-      if (!teacherId) {
-        throw new Error('No se encontró una sesión activa.');
-      }
-
-      const { data: topicOwnerData, error: topicError } = await supabase
-        .from('subject_topics')
-        .select('id, subject_id, classroom_id')
-        .eq('id', topicId)
-        .single();
-
-      if (topicError) throw topicError;
-
-      const subjectId = topicOwnerData.subject_id;
-      const classroomId = topicOwnerData.classroom_id ?? null;
-
-      const subjectResult = await supabase
-        .from('subjects')
-        .select('*')
-        .eq('id', subjectId)
-        .eq('teacher_id', teacherId)
-        .single();
-
-      if (subjectResult.error) throw subjectResult.error;
-
-      const [topicResult, questionsResult, topicScoresResult, enrollmentsResult, subjectsCountResult] = await Promise.all([
-        supabase
-          .from('subject_topics')
-          .select('*')
-          .eq('id', topicId)
-          .eq('subject_id', subjectId)
-          .single(),
-        supabase
-          .from('questions')
-          .select('*, answers(*)')
-          .eq('topic_id', topicId)
-          .eq('subject_id', subjectId)
-          .match(classroomId ? { classroom_id: classroomId } : {})
-          .eq('active', true)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('topic_scores')
-          .select('topic_id, max_score, classroom_id')
-          .eq('topic_id', topicId)
-          .match(classroomId ? { classroom_id: classroomId } : {}),
-        supabase.from('enrollments').select('student_id, classroom_id').eq('subject_id', subjectId).match(classroomId ? { classroom_id: classroomId } : {}),
-        supabase.from('subjects').select('id').eq('teacher_id', teacherId).eq('is_archived', false),
-      ]);
-
-      if (topicResult.error) throw topicResult.error;
-      if (questionsResult.error) throw questionsResult.error;
-      if (topicScoresResult.error) throw topicScoresResult.error;
-      if (enrollmentsResult.error) throw enrollmentsResult.error;
-      if (subjectsCountResult.error) throw subjectsCountResult.error;
-
-      const nextEnrollments = (enrollmentsResult.data || []) as Enrollment[];
-
-      setTopic(topicResult.data as Topic);
-      setSubject(subjectResult.data as Subject);
-      setQuestions((questionsResult.data || []) as Question[]);
-      setTopicScores((topicScoresResult.data || []) as TopicScore[]);
-      setEnrollments(nextEnrollments);
-      setSubjectsCount(subjectsCountResult.data?.length || 0);
-    } catch (error: any) {
-      console.error('Error cargando detalle del tema:', error.message);
-      showAlert('No se pudo cargar el tema', 'Inténtalo de nuevo en unos segundos.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [topicId]);
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [fetchData])
-  );
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchData();
-  };
-
-  const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`);
-      return;
-    }
-
-    Alert.alert(title, message);
-  };
-
-  const invokeTeacherAction = async <T extends TeacherActionResult>(
-    functionName: string,
-    body: Record<string, unknown>
-  ): Promise<T> => {
-    const { data, error } = await supabase.functions.invoke(functionName, { body });
-
-    if (error) throw error;
-
-    const result = (data || {}) as T;
-    if (result.error) throw new Error(result.error);
-    return result;
-  };
-
-  const executeDelete = async (questionId: number) => {
-    if (!subject) return;
-
-    try {
-      await invokeTeacherAction('teacher-delete-question', { questionId });
-      setQuestions((prevQuestions) => prevQuestions.filter((question) => question.id !== questionId));
-    } catch (error: any) {
-      showAlert('Error al borrar', error.message);
-    }
-  };
-
-  const handleDelete = (questionId: number) => {
-    Alert.alert('Borrar pregunta', '¿Estás seguro de que quieres eliminar esta pregunta? Esta acción no se puede deshacer.', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sí, borrar', style: 'destructive', onPress: () => executeDelete(questionId) },
-    ]);
-  };
+  const availabilityLabel = useMemo(() => formatTopicAvailability(topic?.active, topic?.availableUntil), [topic?.active, topic?.availableUntil])
+  const difficultyLabel = summary
+    ? getDifficultyMeta(Math.max(1, Math.min(3, summary.summary.averageDifficulty || 1))).label
+    : 'Sin definir'
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.replace('/(auth)/login' as any);
-  };
-
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background-primary">
-        <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-text-muted">Cargando tema...</Text>
-      </View>
-    );
+    await supabase.auth.signOut()
+    router.replace('/(auth)/login' as never)
   }
 
-  if (!topic || !subject) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background-primary px-6">
-        <Ionicons name="alert-circle-outline" size={52} color="#F87171" />
-        <Text className="mt-4 text-center text-xl font-black text-white">No se encontró este tema</Text>
-        <Pressable onPress={() => router.replace('/(teacher)/classes' as any)} className="mt-5 rounded-xl bg-brand-teacher px-5 py-3">
-          <Text className="font-bold text-white">Volver a Cursos</Text>
-        </Pressable>
-      </View>
-    );
+  const handleArchive = async () => {
+    setArchiveBusy(true)
+    try {
+      await detail.archiveTopic()
+      setArchiveOpen(false)
+      router.replace(`/(teacher)/subject/${subject?.id}` as never)
+    } finally {
+      setArchiveBusy(false)
+    }
   }
 
-  const addQuestionHref = `/(teacher)/subject/add-question?subjectId=${subject.id}&classroomId=${topic.classroom_id ?? ''}&topicId=${topic.id}${selectedDifficulty !== 'all' ? `&difficulty=${selectedDifficulty}` : ''}`;
-  const availabilityLabel = formatTopicDeadline(topic.available_until);
+  const handleDeleteQuestion = async () => {
+    if (!questionToDelete) return
+    setDeleteBusy(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('teacher-delete-question', {
+        body: { questionId: questionToDelete.id },
+      })
+      if (error) throw error
+      if ((data as { error?: string } | null)?.error) throw new Error((data as { error: string }).error)
+      detail.removeQuestion(questionToDelete.id)
+      setQuestionToDelete(null)
+    } finally {
+      setDeleteBusy(false)
+    }
+  }
+
+  if (detail.loadingSummary && !summary) {
+    return <LoadingState />
+  }
+
+  if (detail.error && !summary) {
+    return (
+      <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: tokens.background.primary }}>
+        <AppStatusBanner variant="danger" title="No se pudo cargar el tema" message={detail.error} />
+        <AppButton label="Volver a cursos" variant="secondary" style={{ marginTop: 18 }} onPress={() => router.replace('/(teacher)/classes' as never)} />
+      </View>
+    )
+  }
+
+  if (!topic || !subject || !summary) return <LoadingState />
 
   return (
-    <View className="flex-1 bg-background-primary">
+    <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
       <View className="flex-1 flex-row">
         {isDesktop ? (
-          <TeacherSidebar
-            activeSection="classes"
-            subjectsCount={subjectsCount}
-            onSignOut={handleSignOut}
-          />
+          <TeacherSidebar activeSection="classes" subjectsCount={summary.subjectsCount} onSignOut={handleSignOut} />
         ) : null}
 
         <ScrollView
@@ -273,223 +124,281 @@ export default function TopicDetailScreen() {
           contentContainerStyle={{
             paddingHorizontal: isDesktop ? 28 : 14,
             paddingTop: isDesktop ? 22 : 18,
-            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER + 84,
+            paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER + 88,
           }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
+          refreshControl={<RefreshControl refreshing={detail.refreshing} onRefresh={detail.refresh} tintColor={tokens.brand.teacher} />}
           showsVerticalScrollIndicator={false}
         >
           <TeacherPageHeader
-            backAction={{ label: subject.name, onPress: () => router.push(`/(teacher)/subject/${subject.id}` as any) }}
+            backAction={{ label: subject.name, onPress: () => router.push(`/(teacher)/subject/${subject.id}` as never) }}
             isDesktop={isDesktop}
             title={topic.title}
-            subtitle={`${topic.description || 'Tema de la clase'} · ${allTopicQuestions.length} pregunta${allTopicQuestions.length === 1 ? '' : 's'} · ${availabilityLabel}`}
+            subtitle={`${topic.description || 'Tema de la clase'} · ${summary.summary.questionsCount} pregunta${summary.summary.questionsCount === 1 ? '' : 's'}`}
             titleNumberOfLines={2}
             subtitleNumberOfLines={3}
             leading={(
-              <View className="h-20 w-20 items-center justify-center rounded-2xl border border-border-active bg-surface-selected">
+              <View className="h-20 w-20 items-center justify-center rounded-2xl border" style={{ borderColor: tokens.border.active, backgroundColor: tokens.surface.selected }}>
                 {topic.icon && !topic.icon.includes('-outline') ? (
                   <Text className="text-[42px]">{topic.icon}</Text>
                 ) : (
-                  <Ionicons name="book-outline" size={42} color="#D8B4FE" />
+                  <Ionicons name="book-outline" size={42} color={tokens.brand.teacher} />
                 )}
               </View>
             )}
             actions={(
-              <>
-                <Pressable
+              <View className="flex-row flex-wrap gap-2">
+                <AppButton
+                  label={isDesktop ? 'Editar' : ''}
                   accessibilityLabel="Editar tema"
-                  accessibilityRole="button"
-                  onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}` as any)}
-                  className="flex-row items-center gap-2 rounded-xl border border-border-default bg-surface-default px-4 py-3"
-                >
-                  <Ionicons name="create-outline" size={16} color="#AFC2DB" />
-                  {isDesktop ? <Text className="text-[12px] font-bold text-text-secondary">Editar tema</Text> : null}
-                </Pressable>
-                {isDesktop ? <TeacherTopicAddQuestionCTA href={addQuestionHref} isDesktop /> : null}
-              </>
+                  icon="create-outline"
+                  variant="secondary"
+                  onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}` as never)}
+                />
+                <AppButton
+                  label={isDesktop ? 'Fecha límite' : ''}
+                  accessibilityLabel="Editar fecha límite del tema"
+                  icon="calendar-outline"
+                  variant="secondary"
+                  onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}&section=availability` as never)}
+                />
+                <AppButton
+                  label={isDesktop ? 'Archivar' : ''}
+                  accessibilityLabel="Archivar tema"
+                  icon="archive-outline"
+                  variant="danger"
+                  disabled={!topic.active}
+                  onPress={() => setArchiveOpen(true)}
+                />
+                {isDesktop && addQuestionHref ? <TeacherTopicAddQuestionCTA href={addQuestionHref} isDesktop /> : null}
+              </View>
             )}
           />
 
+          <View className="mb-4 flex-row flex-wrap gap-3">
+            <StatusPill
+              icon={topic.active ? 'eye-outline' : 'archive-outline'}
+              label="Visibilidad"
+              value={topic.active ? 'Visible para el alumnado' : 'Archivado'}
+              color={topic.active ? tokens.semantic.success : tokens.text.muted}
+            />
+            <StatusPill
+              icon="calendar-outline"
+              label="Disponibilidad"
+              value={availabilityLabel}
+              color={topic.availability === 'closed' ? tokens.semantic.warning : tokens.semantic.info}
+            />
+          </View>
+
           <TeacherTopicOverview
             availability={availabilityLabel}
-            difficulty={difficultySummary}
-            averageXp={averageXp}
-            attemptsCount={scoreValues.length}
-            participation={participation}
-            questionsCount={allTopicQuestions.length}
+            difficulty={difficultyLabel}
+            averageXp={summary.summary.averageXp}
+            attemptsCount={summary.summary.attemptsCount}
+            participation={summary.summary.participation}
+            questionsCount={summary.summary.questionsCount}
           />
 
-          <Panel title={`Preguntas del tema: ${topic.title}`}>
-            <DifficultyFilterBar selected={selectedDifficulty} onChange={setSelectedDifficulty} />
-            {topicQuestions.length === 0 ? (
-              <View className="items-center rounded-xl border border-dashed border-border-default bg-surface-default p-8">
-                <Ionicons name="help-circle-outline" size={44} color="#64748B" />
-                <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
-                <Text className="mt-1 text-center text-[12px] text-text-muted">Añade tu primera pregunta para activar este tema.</Text>
-                <Link
-                  href={addQuestionHref as any}
-                  asChild
-                >
-                  <Pressable className="mt-5 rounded-xl bg-brand-teacher px-5 py-3">
-                    <Text className="font-bold text-white">Crear pregunta</Text>
-                  </Pressable>
-                </Link>
+          {detail.error ? <AppStatusBanner variant="warning" title="Actualización incompleta" message={detail.error} style={{ marginBottom: 16 }} /> : null}
+
+          <View className="rounded-2xl border p-4 md:p-5" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
+            <View className="flex-row flex-wrap items-end justify-between gap-3">
+              <View className="min-w-[220px] flex-1">
+                <Text className="text-[20px] font-black" style={{ color: tokens.text.primary }}>Preguntas del tema</Text>
+                <Text className="mt-1 text-[12px]" style={{ color: tokens.text.muted }}>
+                  Se cargan {detail.pageSize} preguntas por página para mantener la pantalla rápida.
+                </Text>
+              </View>
+              <Text className="text-[12px] font-black" style={{ color: tokens.brand.teacher }}>{detail.total} en total</Text>
+            </View>
+
+            <View className="mt-4 flex-row flex-wrap gap-3">
+              <View className="min-h-12 min-w-[260px] flex-1 flex-row items-center rounded-xl border px-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive }}>
+                <TextInput
+                  accessibilityLabel="Buscar preguntas del tema"
+                  className="min-w-0 flex-1"
+                  style={{ color: tokens.text.primary }}
+                  placeholder="Buscar por enunciado..."
+                  placeholderTextColor={tokens.text.muted}
+                  value={detail.search}
+                  onChangeText={detail.setSearch}
+                />
+                <Ionicons name="search-outline" size={19} color={tokens.text.muted} />
+              </View>
+            </View>
+
+            <View className="mt-4 gap-3">
+              <View>
+                <Text className="mb-2 text-[10px] font-black uppercase tracking-[0.7px]" style={{ color: tokens.text.muted }}>Dificultad</Text>
+                <AppTabs
+                  compact
+                  role="teacher"
+                  accessibilityLabel="Filtrar preguntas por dificultad"
+                  items={difficultyItems}
+                  value={detail.difficulty}
+                  onChange={detail.setDifficulty}
+                />
+              </View>
+              <View>
+                <Text className="mb-2 text-[10px] font-black uppercase tracking-[0.7px]" style={{ color: tokens.text.muted }}>Estado</Text>
+                <AppTabs
+                  compact
+                  role="teacher"
+                  accessibilityLabel="Filtrar preguntas por visibilidad"
+                  items={visibilityItems}
+                  value={detail.visibility}
+                  onChange={detail.setVisibility}
+                />
+              </View>
+            </View>
+
+            {detail.loadingQuestions ? (
+              <View className="items-center py-10">
+                <ActivityIndicator color={tokens.brand.teacher} />
+                <Text className="mt-3 text-[13px]" style={{ color: tokens.text.muted }}>Cargando página de preguntas...</Text>
+              </View>
+            ) : detail.questions.length === 0 ? (
+              <View className="mt-5 items-center rounded-xl border border-dashed p-8" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}>
+                <Ionicons name="help-circle-outline" size={44} color={tokens.text.muted} />
+                <Text className="mt-3 text-center font-bold" style={{ color: tokens.text.primary }}>No hay preguntas con estos filtros</Text>
+                <Text className="mt-1 text-center text-[12px]" style={{ color: tokens.text.muted }}>Cambia los filtros o añade una nueva pregunta.</Text>
+                {addQuestionHref ? <AppButton label="Añadir pregunta" icon="add" role="teacher" style={{ marginTop: 18 }} onPress={() => router.push(addQuestionHref as never)} /> : null}
               </View>
             ) : (
-              <View className="gap-3">
-                {topicQuestions.map((question, index) => (
+              <View className="mt-5 gap-3">
+                {detail.questions.map((question, index) => (
                   <QuestionRow
                     key={question.id}
                     question={question}
-                    index={index}
-                    subjectId={subject.id}
-                    classroomId={topic.classroom_id ?? null}
-                    topicId={topicId}
-                    onDelete={() => handleDelete(question.id)}
+                    number={detail.page * detail.pageSize + index + 1}
+                    onEdit={() => router.push(buildEditQuestionHref(question, subject.id, topic.classroomId, topic.id) as never)}
+                    onDelete={() => setQuestionToDelete(question)}
                   />
                 ))}
               </View>
             )}
-          </Panel>
+
+            <PaginationControls
+              page={detail.page}
+              pageSize={detail.pageSize}
+              total={detail.total}
+              onPrevious={() => detail.setPage(Math.max(0, detail.page - 1))}
+              onNext={() => detail.setPage(Math.min(detail.pageCount - 1, detail.page + 1))}
+            />
+          </View>
         </ScrollView>
       </View>
-      {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
-      {!isDesktop ? <TeacherTopicAddQuestionCTA href={addQuestionHref} isDesktop={false} /> : null}
-    </View>
-  );
-}
 
-function MetricCard({ icon, label, value, suffix, color, detail }: {
-  icon: keyof typeof Ionicons.glyphMap
-  label: string
-  value: string
-  suffix?: string
-  color: string
-  detail?: string
-}) {
-  return (
-    <MobileMetricCard
-      className="min-w-[190px] flex-1"
-      color={color}
-      detail={detail}
-      icon={icon}
-      label={label}
-      suffix={suffix}
-      value={value}
-    />
+      {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
+      {!isDesktop && addQuestionHref ? <TeacherTopicAddQuestionCTA href={addQuestionHref} isDesktop={false} /> : null}
+
+      <AppConfirmModal
+        visible={archiveOpen}
+        busy={archiveBusy}
+        title="Archivar tema"
+        message="El tema y sus preguntas dejarán de estar disponibles para el alumnado. Los resultados históricos se conservarán."
+        confirmLabel="Archivar tema"
+        variant="danger"
+        onCancel={() => setArchiveOpen(false)}
+        onConfirm={handleArchive}
+      />
+      <AppConfirmModal
+        visible={Boolean(questionToDelete)}
+        busy={deleteBusy}
+        title="Eliminar pregunta"
+        message={`Se eliminará “${questionToDelete?.text || 'esta pregunta'}” y no podrá recuperarse.`}
+        confirmLabel="Eliminar"
+        variant="danger"
+        onCancel={() => setQuestionToDelete(null)}
+        onConfirm={handleDeleteQuestion}
+      />
+    </View>
   )
 }
 
-function Panel({ title, children, actionLabel, onAction }: {
-  title: string
-  children: React.ReactNode
-  actionLabel?: string
-  onAction?: () => void
-}) {
+function LoadingState() {
+  const { tokens } = useAppTheme()
   return (
-    <View className="mb-5 rounded-xl border border-border-default bg-surface-default p-5">
-      <View className="mb-4 flex-row items-center justify-between">
-        <Text className="text-[18px] font-black text-white">{title}</Text>
-        {actionLabel && onAction && (
-          <Pressable onPress={onAction} className="flex-row items-center gap-1">
-            <Text className="text-[12px] font-semibold text-brand-teacher">{actionLabel}</Text>
-            <Ionicons name="chevron-forward" size={14} color="#8B5CF6" />
-          </Pressable>
-        )}
+    <View className="flex-1 items-center justify-center" style={{ backgroundColor: tokens.background.primary }}>
+      <ActivityIndicator size="large" color={tokens.brand.teacher} />
+      <Text className="mt-4" style={{ color: tokens.text.muted }}>Cargando tema...</Text>
+    </View>
+  )
+}
+
+function StatusPill({ icon, label, value, color }: {
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  value: string
+  color: string
+}) {
+  const { tokens } = useAppTheme()
+  return (
+    <View className="min-w-[220px] flex-1 flex-row items-center gap-3 rounded-xl border p-3" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
+      <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: tokens.surface.raised }}>
+        <Ionicons name={icon} size={20} color={color} />
       </View>
-      {children}
+      <View className="min-w-0 flex-1">
+        <Text className="text-[10px] font-black uppercase tracking-[0.6px]" style={{ color: tokens.text.muted }}>{label}</Text>
+        <Text className="mt-1 text-[13px] font-black" style={{ color: tokens.text.primary }}>{value}</Text>
+      </View>
     </View>
-  );
+  )
 }
 
-function DifficultyFilterBar({
-  onChange,
-  selected,
-}: {
-  selected: DifficultyLevel | 'all'
-  onChange: (value: DifficultyLevel | 'all') => void
+function QuestionRow({ question, number, onEdit, onDelete }: {
+  question: TeacherTopicQuestion
+  number: number
+  onEdit: () => void
+  onDelete: () => void
 }) {
+  const { tokens } = useAppTheme()
+  const difficulty = getDifficultyMeta(question.difficulty || 1)
   return (
-    <View className="mb-4 flex-row flex-wrap gap-2">
-      <Pressable
-        onPress={() => onChange('all')}
-        className="rounded-lg border px-3 py-2"
-        style={{
-          borderColor: selected === 'all' ? '#8B5CF6' : '#20375E',
-          backgroundColor: selected === 'all' ? '#312E8126' : '#09162C',
-        }}
-      >
-        <Text className="text-[12px] font-bold" style={{ color: selected === 'all' ? '#D8B4FE' : '#AFC2DB' }}>Todas</Text>
-      </Pressable>
-      {difficultyOptions.map((option) => {
-        const active = selected === option.value;
-        return (
-          <Pressable
-            key={option.value}
-            onPress={() => onChange(option.value)}
-            className="rounded-lg border px-3 py-2"
-            style={{ borderColor: active ? option.color : '#20375E', backgroundColor: active ? `${option.color}26` : '#09162C' }}
-          >
-            <Text className="text-[12px] font-bold" style={{ color: active ? '#FFFFFF' : '#AFC2DB' }}>{option.label}</Text>
-          </Pressable>
-        );
-      })}
+    <View className="flex-row flex-wrap items-center gap-4 rounded-xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}>
+      <View className="h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: tokens.surface.interactive }}>
+        <Text className="font-bold" style={{ color: tokens.brand.teacher }}>#{number}</Text>
+      </View>
+      <View className="min-w-[260px] flex-1">
+        <View className="flex-row flex-wrap items-center gap-2">
+          <Text className="min-w-0 flex-1 font-semibold" style={{ color: tokens.text.primary }}>{question.text}</Text>
+          <View className="rounded-full px-2 py-1" style={{ backgroundColor: question.active ? tokens.semanticSurface.success : tokens.surface.interactive }}>
+            <Text className="text-[10px] font-black" style={{ color: question.active ? tokens.semantic.success : tokens.text.muted }}>
+              {question.active ? 'VISIBLE' : 'ARCHIVADA'}
+            </Text>
+          </View>
+        </View>
+        <Text className="mt-2 text-[12px]" style={{ color: tokens.text.muted }}>
+          {question.pointsBase || 0} puntos · {question.answersCount} respuesta{question.answersCount === 1 ? '' : 's'} · {question.attemptsCount} intento{question.attemptsCount === 1 ? '' : 's'}
+        </Text>
+        <View className="mt-2 flex-row flex-wrap gap-3">
+          <Text className="text-[11px] font-black" style={{ color: difficulty.color }}>{difficulty.label}</Text>
+          {question.correctAnswer ? <Text className="text-[11px]" style={{ color: tokens.text.secondary }}>Correcta: {question.correctAnswer}</Text> : null}
+          {question.accuracyPercent !== null ? <Text className="text-[11px]" style={{ color: tokens.semantic.info }}>Precisión: {question.accuracyPercent}%</Text> : null}
+        </View>
+      </View>
+      <View className="flex-row flex-wrap gap-2">
+        <AppButton label="Editar" icon="create-outline" variant="secondary" onPress={onEdit} />
+        <AppButton label="Eliminar" icon="trash-outline" variant="danger" onPress={onDelete} />
+      </View>
     </View>
-  );
+  )
 }
 
-function formatTopicDeadline(value?: string | null) {
-  if (!value) return 'Sin fecha límite';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Sin fecha límite';
-  if (date.getTime() <= Date.now()) return 'Tema bloqueado por fecha límite';
+function buildEditQuestionHref(question: TeacherTopicQuestion, subjectId: number, classroomId: number | null, topicId: number) {
+  return `/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${classroomId ? `&classroomId=${classroomId}` : ''}&topicId=${topicId}&difficulty=${question.difficulty || 1}`
+}
+
+function formatTopicAvailability(active?: boolean, value?: string | null) {
+  if (!active) return 'Archivado'
+  if (!value) return 'Sin fecha límite'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Sin fecha límite'
+  if (date.getTime() <= Date.now()) return 'Fecha límite vencida'
   return `Disponible hasta ${new Intl.DateTimeFormat('es-ES', {
     day: '2-digit',
     month: 'short',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(date)}`;
-}
-
-function QuestionRow({ question, index, subjectId, classroomId, topicId, onDelete }: {
-  question: Question
-  index: number
-  subjectId: number
-  classroomId: number | null
-  topicId: string | undefined
-  onDelete: () => void
-}) {
-  const correctAnswer = question.answers?.find((answer) => answer.is_correct);
-  const difficulty = getDifficultyMeta(question.difficulty || 1);
-
-  return (
-    <View className="flex-row flex-wrap items-center gap-4 rounded-xl border border-border-default bg-surface-default p-4">
-      <View className="h-10 w-10 items-center justify-center rounded-lg bg-surface-interactive">
-        <Text className="font-bold text-brand-teacher">#{index + 1}</Text>
-      </View>
-      <View className="min-w-[300px] flex-1">
-        <Text className="font-semibold text-white" numberOfLines={2}>{question.text}</Text>
-        <Text className="mt-1 text-[12px] text-text-muted">
-          {question.points_base} puntos · {question.answers?.length || 0} opciones · Respuesta correcta: {correctAnswer?.text || 'N/A'}
-        </Text>
-        <Text className="mt-1 text-[11px] font-black" style={{ color: difficulty.color }}>{difficulty.label}</Text>
-      </View>
-      <View className="flex-row gap-2">
-        <Link href={`/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${classroomId ? `&classroomId=${classroomId}` : ''}${topicId ? `&topicId=${topicId}` : ''}&difficulty=${question.difficulty || 1}`} asChild>
-          <Pressable className="flex-row items-center gap-2 rounded-lg bg-semantic-info px-3 py-2">
-            <Ionicons name="create-outline" size={14} color="#FFFFFF" />
-            <Text className="text-[12px] font-semibold text-white">Editar</Text>
-          </Pressable>
-        </Link>
-        <Pressable
-          onPress={onDelete}
-          className="flex-row items-center gap-2 rounded-lg bg-semantic-danger px-3 py-2"
-          style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-        >
-          <Ionicons name="trash-outline" size={14} color="#FFFFFF" />
-          <Text className="text-[12px] font-semibold text-white">Borrar</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
+  }).format(date)}`
 }

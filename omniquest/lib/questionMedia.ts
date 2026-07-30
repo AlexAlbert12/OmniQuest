@@ -95,10 +95,25 @@ export async function pickQuestionMedia(type: QuestionMediaType): Promise<Picked
   }
 }
 
+export type QuestionMediaUploadStage = 'validating' | 'reading' | 'scanning' | 'uploading' | 'processing' | 'signing' | 'complete'
+
+export type QuestionMediaUploadOptions = {
+  signal?: AbortSignal
+  onProgress?: (progress: number, stage: QuestionMediaUploadStage) => void
+}
+
 export async function uploadQuestionMedia(
   asset: PickedQuestionMedia,
   subjectId: number,
+  options: QuestionMediaUploadOptions = {},
 ): Promise<UploadedQuestionMedia> {
+  const report = (progress: number, stage: QuestionMediaUploadStage) => options.onProgress?.(progress, stage)
+  const assertNotCancelled = () => {
+    if (options.signal?.aborted) throw createUploadCancelledError()
+  }
+
+  report(4, 'validating')
+  assertNotCancelled()
   if (asset.fileSize && asset.fileSize > QUESTION_MEDIA_MAX_BYTES) {
     throw new Error('El archivo supera el límite de 25 MB.')
   }
@@ -107,31 +122,38 @@ export async function uploadQuestionMedia(
   const { data: sessionData } = await supabase.auth.getSession()
   const userId = sessionData.session?.user.id
   if (!userId) throw new Error('No hay una sesión activa.')
+  assertNotCancelled()
 
   const extension = getExtension(asset.fileName, asset.mimeType, asset.type)
   const safeName = sanitizeFileName(asset.fileName.replace(/\.[^.]+$/, '')) || asset.type
   const path = `${userId}/${subjectId}/${Date.now()}-${randomToken()}-${safeName}.${extension}`
-  const body = asset.file ? await asset.file.arrayBuffer() : await fetch(asset.uri).then((response) => {
+
+  report(12, 'reading')
+  const body = asset.file ? await asset.file.arrayBuffer() : await fetch(asset.uri, { signal: options.signal }).then((response) => {
     if (!response.ok) throw new Error('No se pudo leer el archivo seleccionado.')
     return response.arrayBuffer()
   })
+  assertNotCancelled()
 
   if (body.byteLength > QUESTION_MEDIA_MAX_BYTES) {
     throw new Error('El archivo supera el límite de 25 MB.')
   }
+  report(28, 'scanning')
   validateQuestionMediaBytes(body, asset.type, asset.mimeType)
+  assertNotCancelled()
 
-  const { error } = await supabase.storage
-    .from(QUESTION_MEDIA_BUCKET)
-    .upload(path, body, {
-      contentType: asset.mimeType,
-      cacheControl: '3600',
-      upsert: false,
-    })
-
-  if (error) throw error
+  report(42, 'uploading')
+  await uploadQuestionMediaObject({
+    path,
+    body,
+    mimeType: asset.mimeType,
+    signal: options.signal,
+    onProgress: (progress) => report(progress, 'uploading'),
+  })
 
   try {
+    assertNotCancelled()
+    report(76, 'processing')
     const processed = await processUploadedQuestionMedia({
       path,
       subjectId,
@@ -140,7 +162,11 @@ export async function uploadQuestionMedia(
       sizeBytes: body.byteLength,
       durationSeconds: asset.durationSeconds,
     })
+    assertNotCancelled()
+    report(94, 'signing')
     const url = await createQuestionMediaSignedUrl(processed.path || path, asset.type)
+    assertNotCancelled()
+    report(100, 'complete')
     return {
       type: asset.type,
       url,
@@ -367,6 +393,78 @@ async function processUploadedQuestionMedia(input: {
   }
 }
 
+async function uploadQuestionMediaObject({
+  path,
+  body,
+  mimeType,
+  signal,
+  onProgress,
+}: {
+  path: string
+  body: ArrayBuffer
+  mimeType: string
+  signal?: AbortSignal
+  onProgress?: (progress: number) => void
+}) {
+  if (signal?.aborted) throw createUploadCancelledError()
+
+  const projectUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.replace(/\/$/, '')
+  const publicKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_KEY
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError) throw sessionError
+  const accessToken = sessionData.session?.access_token
+  if (!projectUrl || !publicKey || !accessToken) {
+    throw new Error('No se pudo autorizar la subida multimedia.')
+  }
+
+  const encodedPath = path.split('/').map(encodeURIComponent).join('/')
+  const uploadUrl = `${projectUrl}/storage/v1/object/${QUESTION_MEDIA_BUCKET}/${encodedPath}`
+
+  await new Promise<void>((resolve, reject) => {
+    const request = new XMLHttpRequest()
+    let settled = false
+
+    const finish = (callback: () => void) => {
+      if (settled) return
+      settled = true
+      signal?.removeEventListener('abort', handleAbort)
+      callback()
+    }
+    const handleAbort = () => request.abort()
+
+    request.open('POST', uploadUrl)
+    request.setRequestHeader('Authorization', `Bearer ${accessToken}`)
+    request.setRequestHeader('apikey', publicKey)
+    request.setRequestHeader('Content-Type', mimeType)
+    request.setRequestHeader('Cache-Control', '3600')
+    request.setRequestHeader('x-upsert', 'false')
+    request.upload.onprogress = (event) => {
+      if (!event.lengthComputable || event.total <= 0) return
+      const fraction = Math.min(1, Math.max(0, event.loaded / event.total))
+      onProgress?.(42 + Math.round(fraction * 32))
+    }
+    request.onload = () => {
+      if (request.status >= 200 && request.status < 300) {
+        finish(resolve)
+        return
+      }
+
+      let message = `No se pudo subir el archivo multimedia (${request.status}).`
+      try {
+        const payload = JSON.parse(request.responseText || '{}') as { message?: string; error?: string }
+        message = payload.message || payload.error || message
+      } catch {
+        // Storage can return plain text for gateway errors.
+      }
+      finish(() => reject(new Error(message)))
+    }
+    request.onerror = () => finish(() => reject(new Error('No se pudo conectar con Storage para subir el archivo.')))
+    request.onabort = () => finish(() => reject(createUploadCancelledError()))
+    signal?.addEventListener('abort', handleAbort, { once: true })
+    request.send(body)
+  })
+}
+
 function sanitizeFileName(value: string) {
   return value
     .normalize('NFD')
@@ -420,4 +518,15 @@ function inferMimeType(fileName: string, type: QuestionMediaType) {
 
 function delay(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds))
+}
+
+
+function createUploadCancelledError() {
+  const error = new Error('Subida multimedia cancelada.')
+  error.name = 'AbortError'
+  return error
+}
+
+export function isQuestionMediaUploadCancelled(error: unknown) {
+  return error instanceof Error && (error.name === 'AbortError' || error.message === 'Subida multimedia cancelada.')
 }

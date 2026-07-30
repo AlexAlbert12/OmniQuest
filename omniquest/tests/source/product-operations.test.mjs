@@ -43,8 +43,9 @@ test('admin exports fetch every server page while preserving current filters', (
 test('admin support has a paginated queue, protected update RPC and user-visible replies', () => {
   const migration = read('supabase/migrations/20260720110000_product_operations.sql')
   const admin = read('components/admin/portal/AdminSupportSection.tsx')
-  const studentHelp = read('app/(student)/help-center.tsx')
-  const teacherHelp = read('app/(teacher)/help-center.tsx')
+  const sharedHelp = read('components/support/RoleHelpCenter.tsx')
+  const studentHelp = read('app/(student)/help-center.tsx') + sharedHelp
+  const teacherHelp = read('app/(teacher)/help-center.tsx') + sharedHelp
 
   assert.match(migration, /get_admin_support_tickets_page/)
   assert.match(migration, /admin_update_support_ticket/)
@@ -52,8 +53,10 @@ test('admin support has a paginated queue, protected update RPC and user-visible
   assert.match(migration, /create policy "user_support_tickets_insert_self"/)
   assert.match(admin, /AdminSupportScreen/)
   assert.match(admin, /Guardar y notificar/)
-  assert.match(studentHelp, /Respuesta de soporte/)
-  assert.match(teacherHelp, /Respuesta de soporte/)
+  assert.match(studentHelp, /fetchSupportThread/)
+  assert.match(studentHelp, /addSupportReply/)
+  assert.match(teacherHelp, /MessageBubble/)
+  assert.match(teacherHelp, /selectedTicket\.status/)
 })
 
 test('global search is role-aware and injected into admin and teacher headers', () => {

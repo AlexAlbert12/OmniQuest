@@ -41,6 +41,10 @@ export default function MatchingPairsEditor({
         {rows.map((row, index) => (
           <View
             key={index}
+            accessible
+            accessibilityRole="summary"
+            accessibilityLabel={`Relación ${index + 1} de ${rows.length}`}
+            accessibilityHint="Completa ambos campos o elimina esta relación"
             className="rounded-xl border p-3"
             style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive }}
           >
@@ -51,7 +55,8 @@ export default function MatchingPairsEditor({
                 </Text>
                 <TextInput
                   accessibilityLabel={`${isMatch ? 'Concepto' : 'Elemento'} ${index + 1}`}
-                  className="h-12 rounded-xl border px-4 text-[15px] font-semibold"
+                  accessibilityHint={`Escribe el valor izquierdo de la relación ${index + 1}`}
+                  className="min-h-12 rounded-xl border px-4 py-3 text-[15px] font-semibold"
                   style={{ borderColor: tokens.border.default, backgroundColor: tokens.background.primary, color: tokens.text.primary }}
                   placeholder={isMatch ? 'España' : '8 - 3'}
                   placeholderTextColor={tokens.text.muted}
@@ -68,7 +73,8 @@ export default function MatchingPairsEditor({
                 </Text>
                 <TextInput
                   accessibilityLabel={`${isMatch ? 'Pareja' : 'Destino'} ${index + 1}`}
-                  className="h-12 rounded-xl border px-4 text-[15px] font-semibold"
+                  accessibilityHint={`Escribe el valor derecho de la relación ${index + 1}`}
+                  className="min-h-12 rounded-xl border px-4 py-3 text-[15px] font-semibold"
                   style={{ borderColor: tokens.border.default, backgroundColor: tokens.background.primary, color: tokens.text.primary }}
                   placeholder={isMatch ? 'Madrid' : '5'}
                   placeholderTextColor={tokens.text.muted}
@@ -78,6 +84,7 @@ export default function MatchingPairsEditor({
               </View>
               <AppButton
                 accessibilityLabel={`Eliminar relación ${index + 1}`}
+                accessibilityHint="Elimina esta relación del ejercicio"
                 icon="trash-outline"
                 iconOnly
                 variant="danger"

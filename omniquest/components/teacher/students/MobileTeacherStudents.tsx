@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -51,6 +51,12 @@ export default function MobileTeacherStudents({
   onSendStudentReminder,
   onRequestPasswordRecovery,
   onNotifications,
+  page,
+  pageCount,
+  total,
+  pageSize,
+  onPreviousPage,
+  onNextPage,
 }: {
   subjects: Subject[]
   classroomOptions: Classroom[]
@@ -80,8 +86,13 @@ export default function MobileTeacherStudents({
   onSendStudentReminder: (student: StudentRow) => void
   onRequestPasswordRecovery: (student: StudentRow) => void
   onNotifications: () => void
+  page: number
+  pageCount: number
+  total: number
+  pageSize: number
+  onPreviousPage: () => void
+  onNextPage: () => void
 }) {
-  const [page, setPage] = useState(0);
   const selectedStatusLabel = statusFilterOptions.find((option) => option.value === selectedStatus)?.label || 'Todos';
   const selectedSortLabel = sortOptions.find((option) => option.value === selectedSort)?.label || 'Actividad reciente';
   const attentionStudents = useMemo(
@@ -94,16 +105,8 @@ export default function MobileTeacherStudents({
     || option.value === 'no_activity'
     || option.value === 'needs_help'
   ));
-  const pageCount = Math.max(1, Math.ceil(visibleStudents.length / MOBILE_STUDENTS_PAGE_SIZE));
-  const safePage = Math.min(page, pageCount - 1);
-  const paginatedStudents = visibleStudents.slice(
-    safePage * MOBILE_STUDENTS_PAGE_SIZE,
-    safePage * MOBILE_STUDENTS_PAGE_SIZE + MOBILE_STUDENTS_PAGE_SIZE
-  );
-
-  useEffect(() => {
-    setPage(0);
-  }, [search, selectedSubjectId, selectedClassroomId, selectedStatus, selectedSort, visibleStudents.length]);
+  const safePage = Math.min(page, Math.max(0, pageCount - 1));
+  const paginatedStudents = visibleStudents;
 
   return (
     <MobileScreen
@@ -268,7 +271,7 @@ export default function MobileTeacherStudents({
           <Ionicons name="chevron-down" size={17} color="#AFC2DB" />
         </Pressable>
         <View className="rounded-2xl border border-border-default bg-surface-default px-4 py-3">
-          <Text className="text-[13px] font-black text-brand-teacher">{visibleStudents.length} de {students.length}</Text>
+          <Text className="text-[13px] font-black text-brand-teacher">{visibleStudents.length} en esta página · {total} en total</Text>
         </View>
       </View>
 
@@ -297,9 +300,10 @@ export default function MobileTeacherStudents({
       <MobileStudentsPagination
         page={safePage}
         pageCount={pageCount}
-        total={visibleStudents.length}
-        onPrevious={() => setPage((current) => Math.max(0, current - 1))}
-        onNext={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
+        total={total}
+        pageSize={pageSize}
+        onPrevious={onPreviousPage}
+        onNext={onNextPage}
       />
 
       {visibleStudents.length === 0 ? (
@@ -625,17 +629,19 @@ function MobileStudentsPagination({
   total,
   onPrevious,
   onNext,
+  pageSize = MOBILE_STUDENTS_PAGE_SIZE,
 }: {
   page: number
   pageCount: number
   total: number
+  pageSize?: number
   onPrevious: () => void
   onNext: () => void
 }) {
-  if (total <= MOBILE_STUDENTS_PAGE_SIZE) return null;
+  if (total <= pageSize) return null;
 
-  const start = page * MOBILE_STUDENTS_PAGE_SIZE + 1;
-  const end = Math.min(total, (page + 1) * MOBILE_STUDENTS_PAGE_SIZE);
+  const start = page * pageSize + 1;
+  const end = Math.min(total, (page + 1) * pageSize);
 
   return (
     <View className="mt-4 flex-row items-center justify-between gap-3 rounded-2xl border border-border-default bg-surface-default p-3">

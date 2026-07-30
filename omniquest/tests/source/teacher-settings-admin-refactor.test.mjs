@@ -7,7 +7,7 @@ const root = process.cwd()
 const read = (path) => readFileSync(join(root, path), 'utf8')
 
 test('teacher settings separate personal and teaching preferences', () => {
-  const route = read('app/(student)/settings.tsx')
+  const route = read('app/(teacher)/settings.tsx') + read('app/(student)/settings.tsx') + read('components/settings/TeacherSettingsSections.tsx')
   const sections = read('components/settings/TeacherSettingsSections.tsx')
   const hook = read('hooks/useSettingsData.ts')
   const migration = read('supabase/migrations/20260722200000_teacher_preferences.sql')
@@ -25,11 +25,12 @@ test('teacher settings separate personal and teaching preferences', () => {
 })
 
 test('teacher help shows ticket status, response and contact tracking', () => {
-  const help = read('app/(teacher)/help-center.tsx')
-  assert.match(help, /Contacto y seguimiento/)
-  assert.match(help, /TicketTimeline/)
-  assert.match(help, /Respuesta de soporte/)
-  assert.match(help, /soporte@omniquest\.app/)
+  const help = read('app/(teacher)/help-center.tsx') + read('components/support/RoleHelpCenter.tsx')
+  assert.match(help, /fetchOwnSupportTickets/)
+  assert.match(help, /fetchSupportThread/)
+  assert.match(help, /TicketSla/)
+  assert.match(help, /MessageBubble/)
+  assert.match(help, /addSupportReply/)
 })
 
 test('admin portal is split into focused sections and shared primitives', () => {

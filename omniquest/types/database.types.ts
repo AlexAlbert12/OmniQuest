@@ -46,6 +46,53 @@ export type Database = {
           },
         ]
       }
+      account_deletion_requests: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          processed_at: string | null
+          requested_at: string
+          scheduled_for: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          requested_at?: string
+          scheduled_for?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          requested_at?: string
+          scheduled_for?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_deletion_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -377,6 +424,24 @@ export type Database = {
           },
         ]
       }
+      attempt_sensitive_data_retention_policy: {
+        Row: {
+          retention_days: number
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          retention_days?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          retention_days?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       auth_rate_limits: {
         Row: {
           action: string
@@ -595,6 +660,59 @@ export type Database = {
             columns: ["subject_id"]
             isOneToOne: false
             referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_export_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          file_size_bytes: number | null
+          id: string
+          object_path: string | null
+          requested_at: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          object_path?: string | null
+          requested_at?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          object_path?: string | null
+          requested_at?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_export_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1130,13 +1248,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "student_badges_badge_id_fkey"
-            columns: ["badge_id"]
-            isOneToOne: false
-            referencedRelation: "badge_definitions"
-            referencedColumns: ["badge_id"]
-          },
-          {
             foreignKeyName: "profiles_role_id_fkey"
             columns: ["role_id"]
             isOneToOne: false
@@ -1434,6 +1545,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "student_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badge_definitions"
+            referencedColumns: ["badge_id"]
+          },
+          {
             foreignKeyName: "student_badges_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
@@ -1613,6 +1731,109 @@ export type Database = {
           },
         ]
       }
+      support_ticket_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          message_id: number | null
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          ticket_id: number
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          message_id?: number | null
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          ticket_id: number
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          message_id?: number | null
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          ticket_id?: number
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "support_ticket_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_attachments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "user_support_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_ticket_messages: {
+        Row: {
+          author_id: string | null
+          author_role: string
+          body: string
+          created_at: string
+          id: number
+          ticket_id: number
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_role: string
+          body: string
+          created_at?: string
+          id?: number
+          ticket_id: number
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          author_role?: string
+          body?: string
+          created_at?: string
+          id?: number
+          ticket_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "user_support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_audit_logs: {
         Row: {
           action: string
@@ -1721,6 +1942,68 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "teacher_digest_deliveries_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_student_notes: {
+        Row: {
+          body: string
+          classroom_id: number | null
+          created_at: string
+          id: number
+          student_id: string
+          subject_id: number | null
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          classroom_id?: number | null
+          created_at?: string
+          id?: number
+          student_id: string
+          subject_id?: number | null
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          classroom_id?: number | null
+          created_at?: string
+          id?: number
+          student_id?: string
+          subject_id?: number | null
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_student_notes_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_student_notes_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_student_notes_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_student_notes_teacher_id_fkey"
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -2042,10 +2325,13 @@ export type Database = {
           category: string
           contact_email: string | null
           created_at: string
+          first_responded_at: string | null
+          first_response_due_at: string | null
           id: number
           last_response_at: string | null
           message: string
           priority: string
+          resolution_due_at: string | null
           resolved_at: string | null
           role: string
           status: string
@@ -2059,10 +2345,13 @@ export type Database = {
           category: string
           contact_email?: string | null
           created_at?: string
+          first_responded_at?: string | null
+          first_response_due_at?: string | null
           id?: number
           last_response_at?: string | null
           message: string
           priority?: string
+          resolution_due_at?: string | null
           resolved_at?: string | null
           role?: string
           status?: string
@@ -2076,10 +2365,13 @@ export type Database = {
           category?: string
           contact_email?: string | null
           created_at?: string
+          first_responded_at?: string | null
+          first_response_due_at?: string | null
           id?: number
           last_response_at?: string | null
           message?: string
           priority?: string
+          resolution_due_at?: string | null
           resolved_at?: string | null
           role?: string
           status?: string
@@ -2110,6 +2402,15 @@ export type Database = {
         }
         Returns: Json
       }
+      add_teacher_student_note: {
+        Args: {
+          p_body: string
+          p_classroom_id?: number
+          p_student_id: string
+          p_subject_id?: number
+        }
+        Returns: Json
+      }
       admin_update_support_ticket: {
         Args: {
           p_admin_response?: string
@@ -2122,15 +2423,21 @@ export type Database = {
       analytics_allowed: { Args: { p_user_id: string }; Returns: boolean }
       apply_analytics_retention: { Args: never; Returns: Json }
       apply_attempt_sensitive_data_retention: { Args: never; Returns: Json }
+      archive_teacher_topic: { Args: { p_topic_id: number }; Returns: Json }
       assert_topic_playable: {
         Args: { p_topic_id: number }
         Returns: undefined
+      }
+      badge_metric_value: {
+        Args: { p_metric_key: string; p_metrics: Json }
+        Returns: number
       }
       can_access_question_media: {
         Args: { p_classroom_id?: number; p_subject_id: number }
         Returns: boolean
       }
       can_read_profile: { Args: { p_profile_id: string }; Returns: boolean }
+      cancel_account_deletion: { Args: { p_request_id: string }; Returns: Json }
       claim_notification_delivery_batch: {
         Args: { p_limit?: number; p_worker_id: string }
         Returns: {
@@ -2313,15 +2620,6 @@ export type Database = {
         Args: { p_attempt_history_id: number }
         Returns: Json
       }
-      get_notifications_page: {
-        Args: {
-          p_audience: string
-          p_cursor_created_at?: string
-          p_cursor_id?: string
-          p_limit?: number
-        }
-        Returns: Json
-      }
       get_admin_audit_logs_page: {
         Args: {
           p_action?: string
@@ -2480,13 +2778,18 @@ export type Database = {
         Returns: {
           admin_response: string
           assigned_admin_id: string
+          attachment_count: number
           category: string
           contact_email: string
           created_at: string
+          first_responded_at: string
+          first_response_due_at: string
           id: number
           last_response_at: string
           message: string
+          message_count: number
           priority: string
+          resolution_due_at: string
           resolved_at: string
           role: string
           status: string
@@ -2504,15 +2807,6 @@ export type Database = {
         Returns: Json
       }
       get_avatar_customization_options: { Args: never; Returns: Json }
-      get_student_badge_catalog: {
-        Args: {
-          p_category_key?: string
-          p_page?: number
-          p_page_size?: number
-          p_status?: string
-        }
-        Returns: Json
-      }
       get_class_ranking_profiles: {
         Args: { p_classroom_id: number; p_limit?: number }
         Returns: {
@@ -2535,6 +2829,15 @@ export type Database = {
       }
       get_manual_review_thread: {
         Args: { p_attempt_history_id: number }
+        Returns: Json
+      }
+      get_notifications_page: {
+        Args: {
+          p_audience: string
+          p_cursor_created_at?: string
+          p_cursor_id?: string
+          p_limit?: number
+        }
         Returns: Json
       }
       get_profile_cosmetics: {
@@ -2621,8 +2924,22 @@ export type Database = {
         }
         Returns: Json
       }
+      get_student_badge_catalog: {
+        Args: {
+          p_category_key?: string
+          p_page?: number
+          p_page_size?: number
+          p_status?: string
+        }
+        Returns: Json
+      }
+      get_student_badge_metrics: { Args: never; Returns: Json }
       get_student_question_catalog: {
         Args: { p_classroom_id?: number; p_subject_id?: number }
+        Returns: Json
+      }
+      get_teacher_attention_students_page: {
+        Args: { p_limit?: number; p_offset?: number }
         Returns: Json
       }
       get_teacher_audit_logs_page: {
@@ -2643,6 +2960,21 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_teacher_classrooms_page: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: Json
+      }
+      get_teacher_courses_page: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_sort?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
+      get_teacher_dashboard_summary: { Args: never; Returns: Json }
       get_teacher_manual_review_queue: {
         Args: {
           p_classroom_id?: number
@@ -2652,6 +2984,10 @@ export type Database = {
           p_status?: string
           p_subject_id?: number
         }
+        Returns: Json
+      }
+      get_teacher_recent_activity_page: {
+        Args: { p_limit?: number; p_offset?: number }
         Returns: Json
       }
       get_teacher_student_attempts_page: {
@@ -2664,6 +3000,119 @@ export type Database = {
         }
         Returns: Json
       }
+      get_teacher_student_history_metrics: {
+        Args: {
+          p_classroom_id?: number
+          p_period_days?: number
+          p_student_id: string
+          p_subject_id?: number
+        }
+        Returns: Json
+      }
+      get_teacher_student_history_reviews_page: {
+        Args: {
+          p_classroom_id?: number
+          p_limit?: number
+          p_offset?: number
+          p_student_id: string
+          p_subject_id?: number
+        }
+        Returns: Json
+      }
+      get_teacher_student_history_summary: {
+        Args: {
+          p_classroom_id?: number
+          p_period_days?: number
+          p_student_id: string
+          p_subject_id?: number
+        }
+        Returns: Json
+      }
+      get_teacher_student_history_timeline_page: {
+        Args: {
+          p_classroom_id?: number
+          p_limit?: number
+          p_offset?: number
+          p_student_id: string
+          p_subject_id?: number
+        }
+        Returns: Json
+      }
+      get_teacher_student_history_weaknesses: {
+        Args: {
+          p_classroom_id?: number
+          p_period_days?: number
+          p_student_id: string
+          p_subject_id?: number
+        }
+        Returns: Json
+      }
+      get_teacher_students_page: {
+        Args: {
+          p_classroom_id?: number
+          p_limit?: number
+          p_offset?: number
+          p_order?: string
+          p_search?: string
+          p_status?: string
+          p_subject_id?: number
+        }
+        Returns: Json
+      }
+      get_teacher_subject_analytics: {
+        Args: { p_classroom_id: number; p_subject_id: number }
+        Returns: Json
+      }
+      get_teacher_subject_overview: {
+        Args: { p_classroom_id?: number; p_subject_id: number }
+        Returns: Json
+      }
+      get_teacher_subject_questions_page: {
+        Args: {
+          p_classroom_id: number
+          p_difficulty?: number
+          p_general_topic?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_subject_id: number
+          p_topic_id?: number
+        }
+        Returns: Json
+      }
+      get_teacher_subject_students_page: {
+        Args: {
+          p_classroom_id: number
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_sort?: string
+          p_status?: string
+          p_subject_id: number
+        }
+        Returns: Json
+      }
+      get_teacher_subject_topics_page: {
+        Args: {
+          p_classroom_id: number
+          p_limit?: number
+          p_offset?: number
+          p_subject_id: number
+        }
+        Returns: Json
+      }
+      get_teacher_topic_questions_page: {
+        Args: {
+          p_difficulty?: number
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_topic_id: number
+          p_visibility?: string
+        }
+        Returns: Json
+      }
+      get_teacher_topic_summary: { Args: { p_topic_id: number }; Returns: Json }
       initialize_guest_profile: { Args: { p_alias: string }; Returns: Json }
       invoke_notification_delivery_worker: { Args: never; Returns: number }
       invoke_teacher_digest_processor: { Args: never; Returns: undefined }
@@ -2692,12 +3141,12 @@ export type Database = {
             Returns: boolean
           }
       join_subject_by_code: { Args: { p_code: string }; Returns: Json }
+      mark_notifications_read: { Args: { p_ids: string[] }; Returns: number }
       normalize_answer_text: { Args: { value: string }; Returns: string }
       recalculate_student_points: {
         Args: { p_student_id: string }
         Returns: number
       }
-      mark_notifications_read: { Args: { p_ids: string[] }; Returns: number }
       register_push_token: {
         Args: {
           p_app_version?: string
@@ -2717,6 +3166,8 @@ export type Database = {
         }
         Returns: Json
       }
+      request_account_data_export: { Args: never; Returns: Json }
+      request_account_deletion: { Args: never; Returns: Json }
       reserve_teacher_student_recovery_request: {
         Args: {
           p_classroom_id?: number
@@ -2829,6 +3280,14 @@ export type Database = {
           p_time_taken_seconds?: number
         }
         Returns: Json
+      }
+      support_first_response_interval: {
+        Args: { p_priority: string }
+        Returns: string
+      }
+      support_resolution_interval: {
+        Args: { p_priority: string }
+        Returns: string
       }
       sync_student_badges: { Args: never; Returns: Json }
       sync_student_points: { Args: { student_id: string }; Returns: number }

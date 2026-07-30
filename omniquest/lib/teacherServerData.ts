@@ -286,3 +286,212 @@ export async function callTeacherRpc<T>(name: string, args: Record<string, unkno
   if (data == null) throw new Error(`La operación ${name} no devolvió datos`)
   return data as T
 }
+
+export type TeacherTopicSummaryPayload = {
+  topic: {
+    id: number
+    subjectId: number
+    classroomId: number | null
+    title: string
+    description: string | null
+    icon: string | null
+    sortOrder: number | null
+    active: boolean
+    availableUntil: string | null
+    createdAt: string | null
+    visibility: 'visible' | 'archived'
+    availability: 'unlimited' | 'scheduled' | 'closed' | 'archived'
+  }
+  subject: {
+    id: number
+    name: string
+    description: string | null
+    icon: string | null
+    code: string
+    themeColor: string | null
+  }
+  classroom: { id: number; name: string | null } | null
+  summary: {
+    questionsCount: number
+    visibleQuestionsCount: number
+    archivedQuestionsCount: number
+    averageDifficulty: number
+    attemptsCount: number
+    averageXp: number
+    enrolledStudents: number
+    participatingStudents: number
+    participation: number
+    lastActivityAt: string | null
+  }
+  subjectsCount: number
+}
+
+export type TeacherTopicQuestion = {
+  id: number
+  subjectId: number
+  classroomId: number | null
+  topicId: number
+  type: string
+  text: string
+  pointsBase: number | null
+  timeLimitSeconds: number | null
+  difficulty: number | null
+  explanation: string | null
+  active: boolean
+  createdAt: string | null
+  updatedAt: string | null
+  mediaType: string | null
+  mediaPath: string | null
+  answersCount: number
+  correctAnswer: string | null
+  attemptsCount: number
+  accuracyPercent: number | null
+}
+
+export type TeacherStudentsPageSummary = {
+  total: number
+  active: number
+  noActivity: number
+  needsHelp: number
+  withActivity: number
+  averageXp: number
+  averageGrade: number
+  averageAccuracy: number
+  completedChallenges: number
+}
+
+export type TeacherStudentsPagePayload<TStudent> = PagedPayload<TStudent> & {
+  summary: TeacherStudentsPageSummary
+  subjects: Array<{ id: number; name: string }>
+  classrooms: Array<{ id: number; subject_id: number; name: string; academic_year: string | null }>
+  attention: Array<{ id: string; alias: string; status: string; priority: number }>
+  pending: Array<{ id: string; alias: string; status: string }>
+}
+
+export type TeacherStudentHistoryNote = {
+  id: number
+  body: string
+  subjectId: number | null
+  classroomId: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type TeacherStudentHistorySummaryPayload = {
+  profile: {
+    id: string
+    alias: string
+    avatar: string | null
+    points: number | null
+    active: boolean | null
+    createdAt: string | null
+  }
+  subjectsCount: number
+  courseContexts: Array<{
+    enrollmentId: number
+    subjectId: number
+    subjectName: string
+    classroomId: number | null
+    classroomName: string
+    classroomCode: string | null
+    academicYear: string | null
+    joinedAt: string | null
+  }>
+  summary: {
+    periodDays: number
+    attempts: number
+    correct: number
+    accuracyPercent: number | null
+    earnedXp: number
+    lastActivityAt: string | null
+    pendingReviews: number
+    answeredQuestions: number
+    availableQuestions: number
+    coveragePercent: number | null
+  }
+  comparison: {
+    current: { attempts: number; accuracyPercent: number | null; earnedXp: number }
+    previous: { attempts: number; accuracyPercent: number | null; earnedXp: number }
+    delta: { attempts: number; accuracyPoints: number; earnedXp: number }
+  }
+  recommendation: {
+    code: 'start' | 'review' | 'practice' | 'reengage' | 'challenge'
+    title: string
+    reason: string
+    actionLabel: string
+    topicId: number | null
+  }
+  notes: TeacherStudentHistoryNote[]
+}
+
+export type TeacherStudentHistoryTimelineItem = {
+  id: number
+  question_id: number
+  question_text: string
+  question_type: string
+  subject_id: number
+  subject_name: string
+  classroom_id: number | null
+  classroom_name: string
+  topic_id: number | null
+  topic_title: string
+  answer_text: string
+  is_correct: boolean
+  earned_points: number
+  time_taken_seconds: number | null
+  hint_used: boolean
+  was_skipped: boolean
+  attempted_at: string
+  manual_review_status: string
+  reviewed_at: string | null
+  review_notes: string | null
+  difficulty: number | null
+  comments_count: number
+}
+
+export type TeacherStudentHistoryWeakness = {
+  subject_id: number
+  subject_name: string
+  topic_id: number | null
+  topic_title: string
+  attempts: number
+  mistakes: number
+  accuracy_percent: number
+  last_attempt_at: string | null
+}
+
+export type TeacherStudentHistoryReview = {
+  id: number
+  question_id: number
+  question_text: string
+  subject_name: string
+  topic_title: string
+  answer_text: string | null
+  status: string
+  reviewed_at: string | null
+  review_notes: string | null
+  attempted_at: string
+  comments_count: number
+}
+
+export type TeacherStudentHistoryMetricsPayload = {
+  periodDays: number
+  evolution: Array<{
+    date: string
+    attempts: number
+    correct: number
+    accuracyPercent: number
+    earnedXp: number
+  }>
+  topics: Array<{
+    subject_id: number
+    subject_name: string
+    topic_id: number | null
+    topic_title: string
+    attempts: number
+    correct: number
+    accuracy_percent: number
+    earned_xp: number
+    last_activity_at: string | null
+  }>
+}

@@ -105,6 +105,8 @@ export type StudentRow = {
   averageScore: number
   accuracyPercent: number
   challenges: number
+  questions: number
+  participation: number
   progress: number
   status: StudentStatus
   hasActivity: boolean

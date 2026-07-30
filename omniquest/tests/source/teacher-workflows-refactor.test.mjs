@@ -42,14 +42,17 @@ test('teacher students prioritize attention and inactivity before an expandable 
   assert.match(desktop, /Ver detalle/)
 })
 
-test('student history leads with recommendation and moves analytics into tabs', () => {
+test('student history leads with recommendation and moves analytics into lazy tabs', () => {
   const history = read('app/(teacher)/student/[id]/history.tsx')
-  assert.match(history, /StudentSummaryHero/)
-  assert.match(history, /Recomendación docente/)
-  assert.match(history, /Timeline de actividad/)
-  assert.match(history, /Áreas débiles/)
-  assert.match(history, /Respuestas abiertas/)
-  assert.match(history, /activeHistoryTab === 'metrics'/)
+  const hook = read('hooks/teacher/useTeacherStudentHistory.ts')
+  const summary = read('components/teacher/student-history/StudentHistorySummary.tsx')
+  assert.match(history, /StudentHistorySummary/)
+  assert.match(summary, /Acción recomendada/)
+  assert.match(history, /StudentHistoryTimeline/)
+  assert.match(history, /StudentHistoryWeaknesses/)
+  assert.match(history, /StudentHistoryReviews/)
+  assert.match(history, /history\.activeTab === 'metrics'/)
+  assert.match(hook, /loadedTabsRef/)
 })
 
 test('question report exposes immediate diagnosis and the requested teacher actions', () => {
