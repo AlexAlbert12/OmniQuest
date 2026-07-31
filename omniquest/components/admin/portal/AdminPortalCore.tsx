@@ -129,6 +129,11 @@ export type AdminSupportTicketRow = {
   assigned_admin_id: string | null
   resolved_at: string | null
   last_response_at: string | null
+  first_response_due_at: string | null
+  resolution_due_at: string | null
+  first_responded_at: string | null
+  message_count: number
+  attachment_count: number
   created_at: string
   updated_at: string
   total_count?: number | null
@@ -1225,6 +1230,13 @@ export function SupportTicketCard({ ticket, onManage }: { ticket: AdminSupportTi
         </Pressable>
       </View>
       <Text className="mt-3 text-[13px] leading-5 text-text-secondary" numberOfLines={3}>{ticket.message}</Text>
+      <View className="mt-3 flex-row flex-wrap gap-2">
+        <MiniPill icon="chatbubbles-outline" label={`${ticket.message_count || 0} mensajes`} />
+        {ticket.attachment_count > 0 ? <MiniPill icon="attach-outline" label={`${ticket.attachment_count} adjuntos`} /> : null}
+        {!ticket.first_responded_at && ticket.first_response_due_at ? (
+          <MiniPill icon="timer-outline" label={`Respuesta antes de ${formatAuditDate(ticket.first_response_due_at)}`} />
+        ) : null}
+      </View>
       {ticket.admin_response ? (
         <View className="mt-3 rounded-xl border border-border-active bg-semantic-surface-info p-3">
           <Text className="text-[11px] font-black uppercase tracking-[0.6px] text-semantic-info">Última respuesta</Text>

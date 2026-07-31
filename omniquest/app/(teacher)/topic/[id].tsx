@@ -198,7 +198,7 @@ export default function TopicDetailScreen() {
             questionsCount={summary.summary.questionsCount}
           />
 
-          {detail.error ? <AppStatusBanner variant="warning" title="Actualización incompleta" message={detail.error} style={{ marginBottom: 16 }} /> : null}
+          {detail.error ? <View style={{ marginBottom: 16 }}><AppStatusBanner variant="warning" title="Actualización incompleta" message={detail.error} /></View> : null}
 
           <View className="rounded-2xl border p-4 md:p-5" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
             <View className="flex-row flex-wrap items-end justify-between gap-3">

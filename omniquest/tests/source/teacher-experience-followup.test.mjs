@@ -21,14 +21,14 @@ test('teacher student selectors use explicit themed borders', () => {
 })
 
 test('teacher audit exposes the requested categories and a useful empty state', () => {
-  const audit = read('app/(teacher)/audit.tsx')
+  const audit = read('app/(teacher)/audit.tsx') + read('components/teacher/audit/TeacherAuditFilters.tsx') + read('components/teacher/audit/TeacherAuditTimeline.tsx')
   assert.match(audit, /label: 'Alumnos'/)
   assert.match(audit, /label: 'Cursos'/)
   assert.match(audit, /label: 'Preguntas'/)
   assert.match(audit, /label: 'Perfil'/)
   assert.match(audit, /label: 'Códigos'/)
   assert.doesNotMatch(audit, /id: 'topic'/)
-  assert.match(audit, /allLogsTotal === 0/)
+  assert.match(audit, /No hay eventos con los filtros seleccionados/)
 })
 
 test('teacher profile prioritizes impact and provides four quick accesses', () => {

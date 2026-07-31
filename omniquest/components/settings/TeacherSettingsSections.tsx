@@ -3,6 +3,7 @@ import { Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { useSettingsData } from '../../hooks/useSettingsData'
 import { useAppTheme } from '../../lib/appTheme'
+import { useI18n } from '../../lib/i18n'
 import AppButton from '../ui/AppButton'
 import {
   SettingsAboutPanel,
@@ -17,7 +18,6 @@ import { NotificationRow, Panel } from './SettingsUi'
 import type {
   SettingsMenuSectionKey,
   TeacherDigestFrequency,
-  TeacherNotificationSettingsState,
 } from './SettingsTypes'
 
 type SettingsData = ReturnType<typeof useSettingsData>
@@ -46,14 +46,15 @@ export default function TeacherSettingsSections({
   securityOnly,
   width,
 }: TeacherSettingsSectionsProps) {
+  const { t } = useI18n()
   return (
     <>
       {!securityOnly && activeSettingsSection === 'personal' ? (
         <>
           <SettingsSectionIntro
             icon="person-circle-outline"
-            title="Ajustes personales"
-            description="Estos cambios afectan a tu cuenta, tu identidad y la forma en la que ves OmniQuest. No modifican el contenido ni el progreso de tus alumnos."
+            title={t('settings.section.personal')}
+            description={t('settings.teacher.personal.description')}
           />
           <SettingsProfilePanel
             isTeacher
@@ -95,8 +96,8 @@ export default function TeacherSettingsSections({
         <>
           <SettingsSectionIntro
             icon="school-outline"
-            title="Preferencias docentes"
-            description="Decide qué situaciones requieren tu atención, dónde recibir recordatorios y con qué frecuencia quieres un resumen de tus cursos."
+            title={t('settings.section.teaching')}
+            description={t('settings.teacher.teaching.description')}
           />
           <TeacherCommunicationPanel data={data} />
           <SettingsNotificationsPanel
@@ -110,8 +111,8 @@ export default function TeacherSettingsSections({
             formatNotificationFrequencyLabel={data.formatNotificationFrequencyLabel}
             pushRegistrationStatus={data.pushRegistrationStatus}
             onShowServerPreferences={() => data.showAlert(
-              'Notificaciones docentes',
-              'Las preferencias se guardan en tu cuenta y se aplican a los avisos push, correo y resúmenes operativos.',
+              t('settings.teacher.notifications.title'),
+              t('settings.teacher.notifications.description'),
             )}
           />
         </>
@@ -185,6 +186,7 @@ export default function TeacherSettingsSections({
 
 function TeacherCommunicationPanel({ data }: { data: SettingsData }) {
   const { tokens } = useAppTheme()
+  const { t } = useI18n()
   const settings = data.teacherNotificationSettings
   const [emailDraft, setEmailDraft] = useState(settings.reminderEmail)
 
@@ -197,20 +199,20 @@ function TeacherCommunicationPanel({ data }: { data: SettingsData }) {
   }
 
   return (
-    <Panel title="Alertas y resúmenes docentes">
+    <Panel title={t('settings.teacher.communication.title')}>
       <View
         className="rounded-xl border p-4"
         style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}
       >
         <Text className="text-[13px] font-black" style={{ color: tokens.text.primary }}>
-          Correo para recordatorios
+          {t('settings.teacher.reminderEmail.title')}
         </Text>
         <Text className="mt-1 text-[12px] leading-5" style={{ color: tokens.text.secondary }}>
-          Puedes usar un correo distinto al de acceso para recibir resúmenes de actividad y recordatorios operativos.
+          {t('settings.teacher.reminderEmail.description')}
         </Text>
         <View className="mt-3 gap-3 md:flex-row md:items-end">
           <TextInput
-            accessibilityLabel="Correo para recordatorios docentes"
+            accessibilityLabel={t('settings.teacher.reminderEmail.accessibility')}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
@@ -226,7 +228,7 @@ function TeacherCommunicationPanel({ data }: { data: SettingsData }) {
             }}
           />
           <AppButton
-            label="Guardar correo"
+            label={t('settings.teacher.reminderEmail.save')}
             icon="mail-outline"
             role="teacher"
             loading={data.savingTeacherNotificationKey === 'reminderEmail'}
@@ -238,24 +240,24 @@ function TeacherCommunicationPanel({ data }: { data: SettingsData }) {
       <View className="mt-4 gap-3">
         <NotificationRow
           icon="time-outline"
-          title="Alumnos sin actividad"
-          description="Avísame cuando un alumno lleve varios días sin participar."
+          title={t('settings.teacher.inactive.title')}
+          description={t('settings.teacher.inactive.description')}
           enabled={settings.inactiveStudentAlerts}
           loading={data.savingTeacherNotificationKey === 'inactiveStudentAlerts'}
           onPress={() => void data.updateTeacherNotificationPreference('inactiveStudentAlerts', !settings.inactiveStudentAlerts)}
         />
         <NotificationRow
           icon="create-outline"
-          title="Revisiones manuales pendientes"
-          description="Avísame cuando una respuesta abierta necesite corrección."
+          title={t('settings.teacher.reviews.title')}
+          description={t('settings.teacher.reviews.description')}
           enabled={settings.openReviewAlerts}
           loading={data.savingTeacherNotificationKey === 'openReviewAlerts'}
           onPress={() => void data.updateTeacherNotificationPreference('openReviewAlerts', !settings.openReviewAlerts)}
         />
         <NotificationRow
           icon="shield-checkmark-outline"
-          title="Acciones sensibles"
-          description="Avísame de cambios relevantes en cursos, permisos, clases o códigos."
+          title={t('settings.teacher.sensitive.title')}
+          description={t('settings.teacher.sensitive.description')}
           enabled={settings.sensitiveActionAlerts}
           loading={data.savingTeacherNotificationKey === 'sensitiveActionAlerts'}
           onPress={() => void data.updateTeacherNotificationPreference('sensitiveActionAlerts', !settings.sensitiveActionAlerts)}
@@ -264,16 +266,16 @@ function TeacherCommunicationPanel({ data }: { data: SettingsData }) {
 
       <View className="mt-5">
         <Text className="text-[13px] font-black" style={{ color: tokens.text.primary }}>
-          Frecuencia del resumen docente
+          {t('settings.teacher.digest.title')}
         </Text>
         <Text className="mt-1 text-[12px]" style={{ color: tokens.text.secondary }}>
-          Agrupa alumnos sin actividad, revisiones pendientes y alertas de tus cursos.
+          {t('settings.teacher.digest.description')}
         </Text>
         <View className="mt-3 flex-row flex-wrap gap-2">
           {([
-            ['off', 'Desactivado'],
-            ['daily', 'Diario'],
-            ['weekly', 'Semanal'],
+            ['off', t('settings.teacher.digest.off')],
+            ['daily', t('settings.teacher.digest.daily')],
+            ['weekly', t('settings.teacher.digest.weekly')],
           ] as [TeacherDigestFrequency, string][]).map(([value, label]) => (
             <DigestChoice
               key={value}
@@ -300,7 +302,6 @@ function DigestChoice({
   loading: boolean
   onPress: () => void
 }) {
-  const { tokens } = useAppTheme()
   return (
     <AppButton
       label={label}
@@ -345,14 +346,15 @@ function SettingsSectionIntro({
 
 function TeacherPrivacyNotice() {
   const { tokens } = useAppTheme()
+  const { t } = useI18n()
   return (
     <View
       className="rounded-2xl border p-4"
       style={{ borderColor: tokens.semantic.info, backgroundColor: tokens.surface.raised }}
     >
-      <Text className="font-black" style={{ color: tokens.text.primary }}>Privacidad docente</Text>
+      <Text className="font-black" style={{ color: tokens.text.primary }}>{t('settings.teacher.privacy.title')}</Text>
       <Text className="mt-2 text-[13px] leading-5" style={{ color: tokens.text.secondary }}>
-        La visibilidad de tu perfil afecta a tu identidad pública. Los resultados de alumnos solo son accesibles en los cursos y clases que gestionas. Exportar datos no modifica la plataforma.
+        {t('settings.teacher.privacy.description')}
       </Text>
     </View>
   )
@@ -360,14 +362,15 @@ function TeacherPrivacyNotice() {
 
 function TeacherDataNotice() {
   const { tokens } = useAppTheme()
+  const { t } = useI18n()
   return (
     <View
       className="rounded-2xl border p-4"
       style={{ borderColor: tokens.semantic.warning, backgroundColor: tokens.surface.raised }}
     >
-      <Text className="font-black" style={{ color: tokens.text.primary }}>Antes de borrar datos docentes</Text>
+      <Text className="font-black" style={{ color: tokens.text.primary }}>{t('settings.teacher.data.title')}</Text>
       <Text className="mt-2 text-[13px] leading-5" style={{ color: tokens.text.secondary }}>
-        Exporta primero una copia. Borrar progreso afecta a resultados de alumnos; borrar cursos elimina clases, temas y preguntas. Borrar la cuenta es una acción distinta disponible en Seguridad.
+        {t('settings.teacher.data.description')}
       </Text>
     </View>
   )

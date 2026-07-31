@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import AppButton, { type AppButtonVariant } from './AppButton'
 import { useAppTheme } from '../../lib/appTheme'
@@ -16,6 +16,7 @@ type AppStatusBannerProps = {
   actionLabel?: string
   onAction?: () => void
   compact?: boolean
+  style?: StyleProp<ViewStyle>
 }
 
 const DEFAULT_ICONS: Record<AppStatusBannerVariant, keyof typeof Ionicons.glyphMap> = {
@@ -34,6 +35,7 @@ export default function AppStatusBanner({
   actionLabel,
   onAction,
   compact = false,
+  style,
 }: AppStatusBannerProps) {
   const { tokens } = useAppTheme()
   const color = variant === 'neutral' ? tokens.text.secondary : tokens.semantic[variant]
@@ -56,6 +58,7 @@ export default function AppStatusBanner({
           backgroundColor: background,
           borderColor: withAlpha(color, '88'),
         },
+        style,
       ]}
     >
       <View style={[styles.iconBox, { backgroundColor: withAlpha(color, '1F') }]}>

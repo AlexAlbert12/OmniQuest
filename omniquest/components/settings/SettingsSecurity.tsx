@@ -2,6 +2,8 @@ import React from 'react'
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { withAlpha } from '../../lib/color'
+import { useAppTheme } from '../../lib/appTheme'
+import { useI18n } from '../../lib/i18n'
 import { SecurityDangerCard } from './SettingsDangerZone'
 import type { IconName } from './SettingsTypes'
 
@@ -49,17 +51,17 @@ export function SecurityPasswordCard({
   onToggleConfirmPassword: () => void
   onSubmit: () => void
 }) {
+  const { colors, tokens } = useAppTheme()
+  const { t } = useI18n()
   return (
-    <View className="rounded-2xl border border-border-default bg-surface-default p-4">
+    <View className="rounded-2xl border p-4" style={{ borderColor: colors.border, backgroundColor: colors.surface }}>
       <View className="mb-4 flex-row items-start gap-3">
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-raised">
-          <Ionicons name="key-outline" size={20} color="#9FD6FF" />
+        <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: colors.surfaceRaised }}>
+          <Ionicons name="key-outline" size={20} color={tokens.semantic.info} />
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="text-[16px] font-black text-white">Cambiar contraseña</Text>
-          <Text className="mt-1 text-[12px] leading-5 text-text-secondary">
-            Verificaremos tu contraseña actual antes de guardar la nueva.
-          </Text>
+          <Text className="text-[16px] font-black" style={{ color: colors.text }}>{t('security.password.title')}</Text>
+          <Text className="mt-1 text-[12px] leading-5" style={{ color: colors.textSecondary }}>{t('security.password.description')}</Text>
         </View>
       </View>
 
@@ -69,7 +71,7 @@ export function SecurityPasswordCard({
           onChangeText={onCurrentPasswordChange}
           visible={showCurrentPassword}
           onToggleVisible={onToggleCurrentPassword}
-          placeholder="Contraseña actual"
+          placeholder={t('security.password.current')}
           autoComplete="current-password"
           textContentType="password"
         />
@@ -78,7 +80,7 @@ export function SecurityPasswordCard({
           onChangeText={onNewPasswordChange}
           visible={showNewPassword}
           onToggleVisible={onToggleNewPassword}
-          placeholder="Nueva contraseña"
+          placeholder={t('security.password.new')}
           autoComplete="new-password"
           textContentType="newPassword"
         />
@@ -87,20 +89,18 @@ export function SecurityPasswordCard({
           onChangeText={onConfirmPasswordChange}
           visible={showConfirmPassword}
           onToggleVisible={onToggleConfirmPassword}
-          placeholder="Confirmar nueva contraseña"
+          placeholder={t('security.password.confirm')}
           autoComplete="new-password"
           textContentType="newPassword"
         />
       </View>
 
-      <View className="mt-4 rounded-xl border border-border-default bg-surface-default p-3">
-        <Text className="mb-3 text-[12px] font-black uppercase tracking-[1px] text-text-muted">
-          Requisitos
-        </Text>
-        <PasswordRuleRow valid={checks.hasCurrentPassword} label="Contraseña actual indicada" />
-        <PasswordRuleRow valid={checks.hasMinimumLength} label="Mínimo 6 caracteres" />
-        <PasswordRuleRow valid={checks.passwordsMatch} label="Las contraseñas coinciden" />
-        <PasswordRuleRow valid={checks.isDifferentFromCurrent} label="La nueva contraseña es diferente" />
+      <View className="mt-4 rounded-xl border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
+        <Text className="mb-3 text-[12px] font-black uppercase tracking-[1px]" style={{ color: colors.textMuted }}>{t('security.password.requirements')}</Text>
+        <PasswordRuleRow valid={checks.hasCurrentPassword} label={t('security.password.rule.current')} />
+        <PasswordRuleRow valid={checks.hasMinimumLength} label={t('security.password.rule.length')} />
+        <PasswordRuleRow valid={checks.passwordsMatch} label={t('security.password.rule.match')} />
+        <PasswordRuleRow valid={checks.isDifferentFromCurrent} label={t('security.password.rule.different')} />
       </View>
 
       <Pressable
@@ -117,7 +117,7 @@ export function SecurityPasswordCard({
         ) : (
           <>
             <Ionicons name="shield-checkmark-outline" size={18} color="#FFFFFF" />
-            <Text className="text-[14px] font-black text-white">Actualizar contraseña</Text>
+            <Text className="text-[14px] font-black text-white">{t('security.password.update')}</Text>
           </>
         )}
       </Pressable>
@@ -142,37 +142,40 @@ function PasswordInput({
   autoComplete?: any
   textContentType?: any
 }) {
+  const { colors } = useAppTheme()
   return (
-    <View className="flex-row items-center rounded-xl border border-border-default bg-surface-default px-4">
+    <View className="flex-row items-center rounded-xl border px-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={!visible}
         placeholder={placeholder}
-        placeholderTextColor="#64748B"
+        placeholderTextColor={colors.textMuted}
         autoCapitalize="none"
         autoCorrect={false}
         autoComplete={autoComplete}
         textContentType={textContentType}
-        className="min-w-0 flex-1 py-3 text-[13px] text-white"
+        className="min-w-0 flex-1 py-3 text-[13px]"
+        style={{ color: colors.text }}
       />
-      <Pressable onPress={onToggleVisible} className="ml-3 h-9 w-9 items-center justify-center rounded-full bg-surface-raised">
-        <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={18} color="#AFC2DB" />
+      <Pressable onPress={onToggleVisible} className="ml-3 h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: colors.surfaceMuted }}>
+        <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.textSecondary} />
       </Pressable>
     </View>
   )
 }
 
 function PasswordRuleRow({ valid, label }: { valid: boolean; label: string }) {
+  const { colors } = useAppTheme()
   return (
     <View className="mb-2 flex-row items-center gap-2">
       <View
         className="h-5 w-5 items-center justify-center rounded-full"
-        style={{ backgroundColor: valid ? '#22C55E24' : '#20375E' }}
+        style={{ backgroundColor: valid ? withAlpha(colors.success, '24') : colors.surfaceMuted }}
       >
-        <Ionicons name={valid ? 'checkmark' : 'ellipse-outline'} size={13} color={valid ? '#22C55E' : '#8FA7C7'} />
+        <Ionicons name={valid ? 'checkmark' : 'ellipse-outline'} size={13} color={valid ? colors.success : colors.textMuted} />
       </View>
-      <Text className={`text-[12px] font-semibold ${valid ? 'text-text-secondary' : 'text-text-muted'}`}>
+      <Text className="text-[12px] font-semibold" style={{ color: valid ? colors.textSecondary : colors.textMuted }}>
         {label}
       </Text>
     </View>
@@ -191,45 +194,48 @@ export function SecurityAccountStatusCard({
   onSignOut: () => void
 }) {
   const verified = Boolean(emailConfirmedAt)
+  const { colors, tokens } = useAppTheme()
+  const { t, formatDate } = useI18n()
+  const lastSignIn = lastSignInAt
+    ? formatDate(lastSignInAt, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : t('security.account.noDate')
 
   return (
-    <View className="rounded-2xl border border-border-default bg-surface-default p-4">
+    <View className="rounded-2xl border p-4" style={{ borderColor: colors.border, backgroundColor: colors.surface }}>
       <View className="mb-4 flex-row items-start gap-3">
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-raised">
-          <Ionicons name="shield-checkmark-outline" size={21} color={verified ? '#22C55E' : '#F6A64A'} />
+        <View className="h-11 w-11 items-center justify-center rounded-full" style={{ backgroundColor: colors.surfaceRaised }}>
+          <Ionicons name="shield-checkmark-outline" size={21} color={verified ? colors.success : colors.warning} />
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="text-[16px] font-black text-white">Estado de la cuenta</Text>
-          <Text className="mt-1 text-[12px] leading-5 text-text-secondary">
-            Información útil para revisar el acceso y la verificación de tu cuenta.
-          </Text>
+          <Text className="text-[16px] font-black" style={{ color: colors.text }}>{t('security.account.title')}</Text>
+          <Text className="mt-1 text-[12px] leading-5" style={{ color: colors.textSecondary }}>{t('security.account.description')}</Text>
         </View>
       </View>
 
       <View className="gap-3">
         <SecurityStatusRow
           icon={verified ? 'checkmark-circle' : 'alert-circle'}
-          title="Correo verificado"
-          value={verified ? 'Verificado' : 'Pendiente de verificación'}
+          title={t('security.account.email')}
+          value={verified ? t('security.account.verified') : t('security.account.pending')}
           description={email}
-          color={verified ? '#22C55E' : '#F6A64A'}
+          color={verified ? colors.success : colors.warning}
         />
         <SecurityStatusRow
           icon="time-outline"
-          title="Último inicio de sesión"
-          value={formatSecurityDate(lastSignInAt)}
-          description="Última sesión registrada por Supabase Auth."
-          color="#9FD6FF"
+          title={t('security.account.lastSignIn')}
+          value={lastSignIn}
+          description={t('security.account.sessionSource')}
+          color={tokens.semantic.info}
         />
       </View>
 
       <Pressable
         onPress={onSignOut}
-        className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-default px-5 py-4"
-        style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+        className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border px-5 py-4"
+        style={({ pressed }) => ({ borderColor: colors.border, backgroundColor: colors.surfaceRaised, opacity: pressed ? 0.82 : 1 })}
       >
-        <Ionicons name="log-out-outline" size={18} color="#F87171" />
-        <Text className="text-[13px] font-black text-semantic-danger">Cerrar sesión en este dispositivo</Text>
+        <Ionicons name="log-out-outline" size={18} color={colors.danger} />
+        <Text className="text-[13px] font-black" style={{ color: colors.danger }}>{t('security.account.signOut')}</Text>
       </Pressable>
     </View>
   )
@@ -248,33 +254,19 @@ function SecurityStatusRow({
   description: string
   color: string
 }) {
+  const { colors } = useAppTheme()
   return (
-    <View className="flex-row items-center gap-3 rounded-xl border border-border-default bg-surface-default p-3">
+    <View className="flex-row items-center gap-3 rounded-xl border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
       <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '22') }}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="text-[12px] font-bold text-text-muted">{title}</Text>
-        <Text className="mt-1 text-[13px] font-black text-white">{value}</Text>
-        <Text className="mt-1 text-[12px] text-text-secondary" numberOfLines={1}>{description}</Text>
+        <Text className="text-[12px] font-bold" style={{ color: colors.textMuted }}>{title}</Text>
+        <Text className="mt-1 text-[13px] font-black" style={{ color: colors.text }}>{value}</Text>
+        <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }} numberOfLines={1}>{description}</Text>
       </View>
     </View>
   )
 }
 
 export { SecurityDangerCard }
-
-function formatSecurityDate(value: string | null) {
-  if (!value) return 'Sin registro disponible'
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Sin registro disponible'
-
-  return date.toLocaleString('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}

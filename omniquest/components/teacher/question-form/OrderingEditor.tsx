@@ -44,7 +44,7 @@ export default function OrderingEditor({ value, onChange }: { value: string; onC
         {rows.map((row, index) => (
           <View
             key={index}
-            accessibilityRole="listitem"
+            accessible
             accessibilityLabel={`Posición ${index + 1} de ${rows.length}`}
             className="rounded-xl border p-3"
             style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive }}

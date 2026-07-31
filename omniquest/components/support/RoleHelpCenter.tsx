@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -55,6 +55,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   const [email, setEmail] = useState('')
   const [tickets, setTickets] = useState<SupportTicket[]>([])
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null)
+  const selectedTicketIdRef = useRef<number | null>(null)
   const [messages, setMessages] = useState<SupportMessage[]>([])
   const [attachments, setAttachments] = useState<SupportAttachment[]>([])
   const [subject, setSubject] = useState('')
@@ -73,6 +74,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   }, [])
 
   const openTicket = useCallback(async (ticket: SupportTicket) => {
+    selectedTicketIdRef.current = ticket.id
     setSelectedTicket(ticket)
     setThreadLoading(true)
     try {
@@ -102,8 +104,8 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
       if (Number.isFinite(requestedTicketId)) {
         const requestedTicket = nextTickets.find((ticket) => ticket.id === requestedTicketId)
         if (requestedTicket) await openTicket(requestedTicket)
-      } else if (selectedTicket) {
-        const refreshed = nextTickets.find((ticket) => ticket.id === selectedTicket.id)
+      } else if (selectedTicketIdRef.current !== null) {
+        const refreshed = nextTickets.find((ticket) => ticket.id === selectedTicketIdRef.current)
         if (refreshed) await openTicket(refreshed)
       }
     } catch (error) {
@@ -111,7 +113,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
     } finally {
       setLoading(false)
     }
-  }, [openTicket, params.ticket, router, selectedTicket, showAlert, t])
+  }, [openTicket, params.ticket, router, showAlert, t])
 
   useFocusEffect(useCallback(() => {
     void load()
@@ -181,7 +183,6 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
       const result = await addSupportReply({
         ticketId: selectedTicket.id,
         userId,
-        role,
         body: replyBody,
         attachment: replyAttachment,
       })

@@ -9,6 +9,8 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '../../lib/appTheme';
+import { useI18n } from '../../lib/i18n';
 
 export type DestructiveActionType = 'scores' | 'enrollments' | 'all' | 'account'
 
@@ -21,17 +23,17 @@ export function SecurityDangerCard({
   deletingAccount: boolean
   onDeleteAccount: () => void
 }) {
+  const { colors } = useAppTheme()
+  const { t } = useI18n()
   return (
-    <View className="rounded-2xl border border-semantic-danger bg-background-secondary p-4">
+    <View className="rounded-2xl border p-4" style={{ borderColor: colors.danger, backgroundColor: colors.surface }}>
       <View className="flex-row items-start gap-3">
         <View className="h-11 w-11 items-center justify-center rounded-full bg-semantic-surface-danger">
           <Ionicons name="warning-outline" size={21} color="#FB7185" />
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="text-[16px] font-black text-white">Zona sensible</Text>
-          <Text className="mt-1 text-[12px] leading-5 text-semantic-danger">
-            Estas acciones afectan a tu cuenta y no deberían usarse para limpiar solo una partida.
-          </Text>
+          <Text className="text-[16px] font-black" style={{ color: colors.text }}>{t('danger.title')}</Text>
+          <Text className="mt-1 text-[12px] leading-5" style={{ color: colors.danger }}>{t('danger.description')}</Text>
         </View>
       </View>
 
@@ -44,8 +46,8 @@ export function SecurityDangerCard({
         <View className="min-w-0 flex-1 flex-row items-center gap-3">
           <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
           <View className="min-w-0 flex-1">
-            <Text className="font-black text-semantic-danger">Borrar mi cuenta</Text>
-            <Text className="mt-1 text-[12px] text-semantic-danger">Elimina tu perfil, progreso y datos asociados.</Text>
+            <Text className="font-black" style={{ color: colors.danger }}>{t('danger.account.request')}</Text>
+            <Text className="mt-1 text-[12px]" style={{ color: colors.danger }}>{t('danger.account.requestDescription')}</Text>
           </View>
         </View>
         {deletingAccount ? <ActivityIndicator color="#FF6B6B" /> : <Ionicons name="chevron-forward" size={18} color="#FF6B6B" />}
@@ -73,7 +75,9 @@ export function DestructiveConfirmModal({
   onCancel: () => void
   onConfirm: () => void
 }) {
-  const details = getDestructiveActionDetails(action, isTeacher)
+  const { colors } = useAppTheme()
+  const { t } = useI18n()
+  const details = getDestructiveActionDetails(action, isTeacher, t)
   const canConfirm = value.trim() === REQUIRED_DESTRUCTIVE_CONFIRMATION && !busy
   const { width } = useWindowDimensions()
   const isPhone = width < 640
@@ -87,21 +91,22 @@ export function DestructiveConfirmModal({
               <Ionicons name="warning-outline" size={20} color="#FB7185" />
             </View>
             <View className="min-w-0 flex-1">
-              <Text className="text-[16px] font-black text-white">{details.title}</Text>
-              <Text className="mt-1 text-[12px] leading-5 text-semantic-danger">{details.description}</Text>
+              <Text className="text-[16px] font-black" style={{ color: colors.text }}>{details.title}</Text>
+              <Text className="mt-1 text-[12px] leading-5" style={{ color: colors.danger }}>{details.description}</Text>
             </View>
           </View>
 
           <Text className="mt-5 text-[12px] font-semibold text-text-secondary">
-            Escribe {REQUIRED_DESTRUCTIVE_CONFIRMATION} para continuar.
+            {t('danger.confirmInstruction', { confirmation: REQUIRED_DESTRUCTIVE_CONFIRMATION })}
           </Text>
           <TextInput
             value={value}
             onChangeText={onChangeText}
             autoCapitalize="characters"
             placeholder={REQUIRED_DESTRUCTIVE_CONFIRMATION}
-            placeholderTextColor="#64748B"
-            className="mt-2 rounded-lg border border-semantic-danger bg-surface-raised px-4 py-3 text-[13px] font-bold text-white"
+            placeholderTextColor={colors.textMuted}
+            className="mt-2 rounded-lg border px-4 py-3 text-[13px] font-bold"
+            style={{ borderColor: colors.danger, backgroundColor: colors.surfaceRaised, color: colors.text }}
           />
 
           <View className={`mt-5 gap-3 ${isPhone ? '' : 'flex-row justify-end'}`}>
@@ -111,7 +116,7 @@ export function DestructiveConfirmModal({
               className={`${isPhone ? 'items-center py-4' : 'px-4 py-3'} rounded-lg border border-border-default`}
               style={({ pressed }) => ({ opacity: busy ? 0.55 : pressed ? 0.8 : 1 })}
             >
-              <Text className="text-[12px] font-bold text-text-secondary">Cancelar</Text>
+              <Text className="text-[12px] font-bold" style={{ color: colors.textSecondary }}>{t('common.cancel')}</Text>
             </Pressable>
             <Pressable
               onPress={onConfirm}
@@ -132,61 +137,61 @@ export function DestructiveConfirmModal({
   )
 }
 
-function getDestructiveActionDetails(action: DestructiveActionType | null, isTeacher: boolean) {
+function getDestructiveActionDetails(action: DestructiveActionType | null, isTeacher: boolean, t: ReturnType<typeof useI18n>['t']) {
   switch (action) {
     case 'scores':
       return isTeacher
         ? {
-          title: 'Eliminar progreso de alumnos',
-          description: 'Se borrarán puntuaciones por curso, clase, puntuaciones por tema e intentos de alumnos en tus cursos. No se borran cursos, clases, preguntas ni perfiles.',
-          confirmLabel: 'Eliminar progreso',
+          title: t('danger.scores.teacher.title'),
+          description: t('danger.scores.teacher.description'),
+          confirmLabel: t('danger.scores.teacher.confirm'),
         }
         : {
-          title: 'Eliminar puntuaciones',
-          description: 'Se borrarán subject_scores, topic_scores, intentos e insignias; tu XP global se recalculará a 0.',
-          confirmLabel: 'Eliminar puntuaciones',
+          title: t('danger.scores.student.title'),
+          description: t('danger.scores.student.description'),
+          confirmLabel: t('danger.scores.student.confirm'),
         }
     case 'enrollments':
       return isTeacher
         ? {
-          title: 'Eliminar cursos y contenido',
-          description: 'Se borrarán tus cursos, clases, temas, preguntas, respuestas, inscripciones y progreso asociado. Tu cuenta seguirá activa.',
-          confirmLabel: 'Eliminar contenido',
+          title: t('danger.enrollments.teacher.title'),
+          description: t('danger.enrollments.teacher.description'),
+          confirmLabel: t('danger.enrollments.teacher.confirm'),
         }
         : {
-          title: 'Salir de todas los cursos',
-          description: 'Se eliminarán tus inscripciones actuales. Tu cuenta seguirá activa.',
-          confirmLabel: 'Salir de cursos',
+          title: t('danger.enrollments.student.title'),
+          description: t('danger.enrollments.student.description'),
+          confirmLabel: t('danger.enrollments.student.confirm'),
         }
     case 'all':
       return isTeacher
         ? {
-          title: 'Eliminar todos mis datos docentes',
-          description: 'Se borrarán tus cursos, clases, temas, preguntas, respuestas, inscripciones, puntuaciones de alumnos, intentos, preferencias, notificaciones y avatar. Tu cuenta seguirá activa.',
-          confirmLabel: 'Eliminar todo',
+          title: t('danger.all.teacher.title'),
+          description: t('danger.all.teacher.description'),
+          confirmLabel: t('danger.all.teacher.confirm'),
         }
         : {
-          title: 'Eliminar datos de uso',
-          description: 'Se borrarán progreso, intentos, estado de notificaciones, preferencias y avatar. Tu cuenta seguirá activa.',
-          confirmLabel: 'Eliminar datos',
+          title: t('danger.all.student.title'),
+          description: t('danger.all.student.description'),
+          confirmLabel: t('danger.all.student.confirm'),
         }
     case 'account':
       return isTeacher
         ? {
-          title: 'Borrar mi cuenta',
-          description: 'Se eliminarán tu usuario, perfil docente y datos asociados. Revisa antes tus clases y contenido creado. No se puede deshacer.',
-          confirmLabel: 'Borrar cuenta',
+          title: t('danger.account.title'),
+          description: t('danger.account.teacherDescription'),
+          confirmLabel: t('danger.account.confirm'),
         }
         : {
-          title: 'Borrar mi cuenta',
-          description: 'Se eliminarán tu usuario, perfil, progreso académico y datos asociados. No se puede deshacer.',
-          confirmLabel: 'Borrar cuenta',
+          title: t('danger.account.title'),
+          description: t('danger.account.studentDescription'),
+          confirmLabel: t('danger.account.confirm'),
         }
     default:
       return {
-        title: 'Confirmar acción',
-        description: 'Esta acción no se puede deshacer.',
-        confirmLabel: 'Continuar',
+        title: t('danger.default.title'),
+        description: t('danger.default.description'),
+        confirmLabel: t('common.continue'),
       }
   }
 }

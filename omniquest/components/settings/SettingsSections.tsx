@@ -44,50 +44,51 @@ export function SettingsGeneralPanel({
   onSelectSection: (section: SettingsMenuSectionKey) => void
   onSignOut: () => void
 }) {
+  const { t } = useI18n()
   return (
-    <Panel title="Configuración general">
+    <Panel title={t('settings.general.title')}>
       <View className="gap-4">
         <ActionRow
           icon="person-outline"
-          title="Editar perfil"
-          description="Actualiza tu alias, idioma preferido y datos básicos."
+          title={t('settings.general.profile.title')}
+          description={t('settings.general.profile.description')}
           onPress={() => onSelectSection('profile')}
         />
         <ActionRow
           icon="globe-outline"
-          title="Idioma y región"
-          description="Ajusta idioma, zona horaria, fecha, hora e inicio de semana."
+          title={t('settings.general.locale.title')}
+          description={t('settings.general.locale.description')}
           onPress={() => onSelectSection('preferences')}
         />
         <ActionRow
           icon="notifications-outline"
-          title="Preferencias de notificación"
-          description="Configura avisos, resumen diario y novedades."
+          title={t('settings.general.notifications.title')}
+          description={t('settings.general.notifications.description')}
           onPress={() => onSelectSection('notifications')}
         />
         <ActionRow
           icon="shield-checkmark-outline"
-          title="Privacidad"
-          description="Controla la visibilidad de tu perfil y revisa el centro de privacidad."
+          title={t('settings.section.privacy')}
+          description={t('settings.general.privacy.description')}
           onPress={() => onSelectSection('privacy')}
         />
         <ActionRow
           icon="server-outline"
-          title="Datos"
-          description="Exporta o elimina datos asociados a tu cuenta."
+          title={t('settings.section.data')}
+          description={t('settings.general.data.description')}
           onPress={() => onSelectSection('data')}
         />
         <ActionRow
           icon="lock-closed-outline"
-          title="Seguridad"
-          description="Cambia tu contraseña o revisa el estado de tu cuenta."
+          title={t('settings.section.security')}
+          description={t('settings.general.security.description')}
           onPress={() => onSelectSection('security')}
         />
         {!isDesktop ? (
           <ActionRow
             icon="log-out-outline"
-            title="Cerrar sesión"
-            description="Salir de tu cuenta en este dispositivo."
+            title={t('settings.signOut')}
+            description={t('settings.signOut.description')}
             onPress={onSignOut}
           />
         ) : null}
@@ -134,8 +135,9 @@ export function SettingsProfilePanel({
   onOpenSecurity: () => void
 }) {
   const { colors } = useAppTheme()
+  const { t } = useI18n()
   return (
-    <Panel title={`Información del ${isTeacher ? 'profesor' : 'alumno'}`}>
+    <Panel title={t(isTeacher ? 'settings.profile.title.teacher' : 'settings.profile.title.student')}>
       <View className={width >= 520 ? 'flex-row gap-5' : 'gap-4'}>
         <View className="items-center">
           <View className="h-24 w-24 items-center justify-center rounded-full bg-surface-selected">
@@ -147,31 +149,31 @@ export function SettingsProfilePanel({
             className="mt-5 rounded-lg px-5 py-3"
             style={{ backgroundColor: accentColor }}
           >
-            <Text className="text-[12px] font-bold text-white">{saving ? 'Guardando...' : 'Guardar perfil'}</Text>
+            <Text className="text-[12px] font-bold text-white">{saving ? t('settings.profile.saving') : t('settings.profile.save')}</Text>
           </Pressable>
         </View>
 
         <View className="min-w-0 flex-1 gap-3">
-          <Field label="Alias">
+          <Field label={t('settings.profile.alias')}>
             <TextInput
               value={name}
               onChangeText={onNameChange}
-              placeholder={isTeacher ? 'Profesor' : 'Alumno'}
-              placeholderTextColor="#64748B"
+              placeholder={t(isTeacher ? 'settings.profile.placeholder.teacher' : 'settings.profile.placeholder.student')}
+              placeholderTextColor={colors.textMuted}
               className="rounded-lg border px-4 py-3 text-[13px]"
               style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised, color: colors.text }}
             />
           </Field>
-          <Field label="Correo electrónico">
+          <Field label={t('settings.profile.email')}>
             <TextInput
               value={email}
               editable={false}
-              placeholderTextColor="#64748B"
+              placeholderTextColor={colors.textMuted}
               className="rounded-lg border px-4 py-3 text-[13px]"
               style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised, color: colors.textSecondary }}
             />
           </Field>
-          <Field label="Idioma preferido">
+          <Field label={t('settings.profile.language')}>
             <SelectPill
               value={formatPreferenceLabel('language', preferences.language)}
               selectedValue={preferences.language}
@@ -189,8 +191,8 @@ export function SettingsProfilePanel({
       <View className="mt-4 border-t border-border-subtle pt-4">
         <ActionRow
           icon="lock-closed-outline"
-          title="Gestionar seguridad"
-          description="Cambiar contraseña y revisar acciones críticas de la cuenta."
+          title={t('settings.security.manage')}
+          description={t('settings.security.manageDescription')}
           onPress={onOpenSecurity}
         />
       </View>
@@ -275,15 +277,15 @@ export function SettingsPreferencesPanel({
         className="mb-4 rounded-lg border p-3"
         style={{ backgroundColor: colors.surfaceRaised, borderColor: colors.border }}
       >
-        <Text className="text-[12px] font-bold" style={{ color: colors.text }}>Color de acento</Text>
+        <Text className="text-[12px] font-bold" style={{ color: colors.text }}>{t('settings.accent.title')}</Text>
         <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>
-          Se aplica a navegación, botones principales y estados seleccionados.
+          {t('settings.accent.description')}
         </Text>
         <View className="mt-2 flex-row flex-wrap gap-3">
           {accentColors.map((color) => (
             <Pressable
               key={color}
-              accessibilityLabel={`Usar color de acento ${color}`}
+              accessibilityLabel={t('settings.accent.use', { color })}
               accessibilityRole="radio"
               accessibilityState={{ selected: accentColor === color }}
               hitSlop={5}
@@ -303,8 +305,8 @@ export function SettingsPreferencesPanel({
 
       <NotificationRow
         icon="phone-portrait-outline"
-        title="Respuesta táctil"
-        description="Vibra al responder, desbloquear logros y completar acciones importantes."
+        title={t('settings.haptics.title')}
+        description={t('settings.haptics.description')}
         enabled={preferences.hapticsEnabled}
         onPress={() => onToggleHaptics(!preferences.hapticsEnabled)}
         disabled={savingHaptics}
@@ -312,7 +314,7 @@ export function SettingsPreferencesPanel({
       />
 
       <PreferenceRow
-        label="Idioma"
+        label={t('settings.preference.language')}
         value={formatPreferenceLabel('language', preferences.language)}
         selectedValue={preferences.language}
         open={openPreferenceKey === 'language'}
@@ -328,11 +330,11 @@ export function SettingsPreferencesPanel({
         <PreferenceRow
           key={key}
           label={{
-            timezone: 'Zona horaria',
-            dateFormat: 'Formato de fecha',
-            timeFormat: 'Formato de hora',
-            weekStart: 'Inicio de semana',
-            language: 'Idioma',
+            timezone: t('settings.preference.timezone'),
+            dateFormat: t('settings.preference.dateFormat'),
+            timeFormat: t('settings.preference.timeFormat'),
+            weekStart: t('settings.preference.weekStart'),
+            language: t('settings.preference.language'),
           }[key]}
           value={formatPreferenceLabel(key, preferences[key])}
           selectedValue={preferences[key]}
@@ -383,7 +385,7 @@ export function SettingsNotificationsPanel({
         </Text>
         <View className="mt-3">
           <PreferenceRow
-            label="Frecuencia"
+            label={t('settings.notifications.frequency')}
             value={formatNotificationFrequencyLabel(notificationSettings.frequency)}
             selectedValue={notificationSettings.frequency}
             open={openNotificationFrequency}
@@ -411,8 +413,8 @@ export function SettingsNotificationsPanel({
       />
       <NotificationRow
         icon="mail-outline"
-        title="Preferencia por email"
-        description="Se guardará para futuros resúmenes y avisos por correo."
+        title={t('settings.notifications.email.title')}
+        description={t('settings.notifications.email.description')}
         enabled={notificationSettings.email}
         onPress={() => onToggleNotification('email')}
         disabled={Boolean(savingNotificationKey)}
@@ -420,8 +422,8 @@ export function SettingsNotificationsPanel({
       />
       <NotificationRow
         icon="calendar-outline"
-        title="Resumen diario"
-        description="Preferencia para futuros resúmenes de progreso."
+        title={t('settings.notifications.daily.title')}
+        description={t('settings.notifications.daily.description')}
         enabled={notificationSettings.daily}
         onPress={() => onToggleNotification('daily')}
         disabled={Boolean(savingNotificationKey)}
@@ -429,8 +431,8 @@ export function SettingsNotificationsPanel({
       />
       <NotificationRow
         icon="clipboard-outline"
-        title="Actividades y preguntas"
-        description="Controla avisos de cursos, logros, inscripciones y señales de aprendizaje."
+        title={t('settings.notifications.activities.title')}
+        description={t('settings.notifications.activities.description')}
         enabled={notificationSettings.activities}
         onPress={() => onToggleNotification('activities')}
         disabled={Boolean(savingNotificationKey)}
@@ -438,15 +440,15 @@ export function SettingsNotificationsPanel({
       />
       <NotificationRow
         icon="megaphone-outline"
-        title="Actualizaciones y novedades"
-        description="Controla avisos informativos y novedades generales de OmniQuest."
+        title={t('settings.notifications.news.title')}
+        description={t('settings.notifications.news.description')}
         enabled={notificationSettings.news}
         onPress={() => onToggleNotification('news')}
         disabled={Boolean(savingNotificationKey)}
         loading={savingNotificationKey === 'news'}
       />
       <FooterLink
-        label="Preferencias aplicadas en servidor"
+        label={t('settings.notifications.server')}
         onPress={onShowServerPreferences}
       />
     </Panel>
@@ -475,22 +477,23 @@ export function SettingsPrivacyPanel({
   onShowPrivacyCenter: () => void
 }) {
   const { colors } = useAppTheme()
+  const { t } = useI18n()
   return (
-    <Panel title="Privacidad">
+    <Panel title={t('settings.section.privacy')}>
       <View className="mb-4 rounded-lg border p-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
         <View className="flex-row flex-wrap items-center justify-between gap-3">
           <View className="min-w-0 flex-1">
-            <Text className="font-bold" style={{ color: colors.text }}>Visibilidad del perfil</Text>
+            <Text className="font-bold" style={{ color: colors.text }}>{t('settings.privacy.visibility')}</Text>
             <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>
               {isTeacher
-                ? 'Decide cómo se muestra tu perfil docente dentro de OmniQuest.'
-                : 'Decide si otros estudiantes pueden ver tu perfil en rankings y logros.'}
+                ? t('settings.privacy.visibility.teacher')
+                : t('settings.privacy.visibility.student')}
             </Text>
           </View>
 
           <View className="flex-row gap-2">
             <VisibilityButton
-              label="Público"
+              label={t('settings.privacy.public')}
               value="public"
               selected={profileVisibility === 'public'}
               available={profileVisibilityAvailable}
@@ -499,7 +502,7 @@ export function SettingsPrivacyPanel({
               onPress={onProfileVisibilityChange}
             />
             <VisibilityButton
-              label="Privado"
+              label={t('settings.privacy.private')}
               value="private"
               selected={profileVisibility === 'private'}
               available={profileVisibilityAvailable}
@@ -512,7 +515,7 @@ export function SettingsPrivacyPanel({
 
         {!profileVisibilityAvailable ? (
           <Text className="mt-3 text-[12px] leading-5 text-gamification-xp">
-            Esta preferencia no se guardará hasta aplicar la migración y regenerar types/database.types.ts.
+            {t('settings.privacy.unavailable')}
           </Text>
         ) : null}
       </View>
@@ -520,15 +523,15 @@ export function SettingsPrivacyPanel({
       <View className="mb-4 overflow-hidden rounded-xl border" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
         <NotificationRow
           icon="analytics-outline"
-          title="Analítica de producto"
-          description="Permite enviar métricas pseudonimizadas de navegación, formularios y rendimiento para mejorar OmniQuest. Puedes retirarlo cuando quieras."
+          title={t('settings.privacy.analytics.title')}
+          description={t('settings.privacy.analytics.description')}
           enabled={analyticsEnabled}
           onPress={() => onAnalyticsEnabledChange(!analyticsEnabled)}
           disabled={savingAnalytics}
           loading={savingAnalytics}
         />
         <Text className="px-4 pb-4 text-[11px] leading-4 text-text-muted">
-          Los eventos se anonimizan a los 90 días y se eliminan como máximo a los 395 días. Los errores operativos esenciales no incluyen contenido académico ni credenciales.
+          {t('settings.privacy.analytics.retention')}
         </Text>
       </View>
 
@@ -536,13 +539,13 @@ export function SettingsPrivacyPanel({
         <View className="flex-row gap-3">
           <Ionicons name="shield-checkmark-outline" size={22} color={accentColor} />
           <View className="min-w-0 flex-1">
-            <Text className="font-black" style={{ color: colors.text }}>Tu privacidad es importante</Text>
+            <Text className="font-black" style={{ color: colors.text }}>{t('settings.privacy.important')}</Text>
             <Text className="mt-1 text-[12px] leading-5" style={{ color: colors.textSecondary }}>
-              Protegemos tu información y tu historial académico.
+              {t('settings.privacy.importantDescription')}
             </Text>
             <Pressable onPress={onShowPrivacyCenter} className="mt-2 flex-row items-center gap-1">
-              <Text className="text-[12px] font-bold" style={{ color: colors.textSecondary }}>Centro de privacidad</Text>
-              <Ionicons name="open-outline" size={13} color="#A78BFA" />
+              <Text className="text-[12px] font-bold" style={{ color: colors.textSecondary }}>{t('settings.privacy.center')}</Text>
+              <Ionicons name="open-outline" size={13} color={accentColor} />
             </Pressable>
           </View>
         </View>
@@ -597,43 +600,44 @@ export function SettingsDataPanel({
   onDeletePartialData: (dataType: 'scores' | 'enrollments' | 'all') => void
 }) {
   const { colors } = useAppTheme()
+  const { t } = useI18n()
   return (
-    <Panel title="Datos">
+    <Panel title={t('settings.section.data')}>
       <AccountDataRequestsCard
         deletingAccount={deletingAccount}
         onRequestDeletion={onRequestDeletion}
       />
 
       <View className="mt-4 rounded-lg border p-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
-        <Text className="font-bold" style={{ color: colors.text }}>Zona de datos</Text>
+        <Text className="font-bold" style={{ color: colors.text }}>{t('settings.data.zone')}</Text>
         <Text className="mb-3 mt-1 text-[12px]" style={{ color: colors.textSecondary }}>
           {isTeacher
-            ? 'Puedes limpiar progreso o reiniciar por completo tu espacio docente. Estas acciones no se pueden deshacer.'
-            : 'Elimina selectivamente progreso, cursos o preferencias guardadas. Estas acciones no se pueden deshacer.'}
+            ? t('settings.data.description.teacher')
+            : t('settings.data.description.student')}
         </Text>
 
         <View className="gap-2">
           <DangerDataRow
             icon="trash-outline"
-            title={isTeacher ? 'Eliminar progreso de alumnos' : 'Eliminar puntuaciones'}
-            description={isTeacher ? 'Borra puntuaciones e intentos de alumnos en tus cursos.' : 'Borra tus puntuaciones y reinicia tu XP global.'}
+            title={t(isTeacher ? 'danger.scores.teacher.title' : 'danger.scores.student.title')}
+            description={t(isTeacher ? 'settings.data.scores.teacher' : 'settings.data.scores.student')}
             deletingData={deletingData}
             onPress={() => onDeletePartialData('scores')}
           />
           <DangerDataRow
             icon={isTeacher ? 'folder-open-outline' : 'exit-outline'}
-            title={isTeacher ? 'Eliminar cursos y contenido' : 'Salir de todos los cursos'}
-            description={isTeacher ? 'Borra cursos, clases, temas, preguntas, respuestas e inscripciones.' : undefined}
+            title={t(isTeacher ? 'danger.enrollments.teacher.title' : 'danger.enrollments.student.title')}
+            description={isTeacher ? t('settings.data.enrollments.teacher') : undefined}
             deletingData={deletingData}
             onPress={() => onDeletePartialData('enrollments')}
           />
           <DangerDataRow
             icon="warning-outline"
-            title={isTeacher ? 'Eliminar todos mis datos docentes' : 'Eliminar datos de uso'}
+            title={t(isTeacher ? 'danger.all.teacher.title' : 'danger.all.student.title')}
             description={
               isTeacher
-                ? 'Borra cursos, clases, temas, preguntas, respuestas, inscripciones, puntuaciones, intentos, preferencias, notificaciones y avatar.'
-                : 'Borra progreso, intentos, preferencias, notificaciones y avatar.'
+                ? t('settings.data.all.teacher')
+                : t('settings.data.all.student')
             }
             deletingData={deletingData}
             onPress={() => onDeletePartialData('all')}
@@ -666,7 +670,7 @@ function DangerDataRow({
       style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
     >
       <View className="flex-row items-center gap-3">
-        <Ionicons name={icon} size={16} color="#FB7185" />
+        <Ionicons name={icon} size={16} color={colors.danger} />
         <View className="min-w-0 flex-1">
           <Text className="text-[13px] font-semibold" style={{ color: colors.text }}>{title}</Text>
           {description ? <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>{description}</Text> : null}
@@ -674,9 +678,9 @@ function DangerDataRow({
       </View>
 
       {deletingData ? (
-        <ActivityIndicator size="small" color="#FB7185" />
+        <ActivityIndicator size="small" color={colors.danger} />
       ) : (
-        <Ionicons name="chevron-forward" size={16} color="#FB7185" />
+        <Ionicons name="chevron-forward" size={16} color={colors.danger} />
       )}
     </Pressable>
   )
@@ -734,13 +738,14 @@ export function SettingsSecurityPanel({
   onDeleteAccount: () => void
 }) {
   const { colors } = useAppTheme()
+  const { t } = useI18n()
   return (
-    <Panel title="Seguridad">
+    <Panel title={t('settings.section.security')}>
       {!securityOnly ? (
         <ActionRow
           icon="lock-closed-outline"
-          title="Gestionar seguridad"
-          description="Cambiar contraseña y borrar cuenta en una pantalla dedicada."
+          title={t('settings.security.manage')}
+          description={t('settings.security.dedicatedDescription')}
           onPress={onOpenSecurity}
         />
       ) : (
@@ -788,22 +793,24 @@ export function SettingsAboutPanel({
 }: {
   onOpenHelpCenter: () => void
 }) {
+  const { colors } = useAppTheme()
+  const { t } = useI18n()
   return (
-    <Panel title="Acerca de OmniQuest">
+    <Panel title={t('settings.about.title')}>
       <View className="gap-4">
         <Text className="text-[13px] leading-5" style={{ color: colors.textSecondary }}>
-          OmniQuest es una plataforma educativa gamificada para practicar contenidos mediante cursos, clases, temas y preguntas interactivas.
+          {t('settings.about.description')}
         </Text>
 
         <View className="rounded-xl border p-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
-          <Text className="text-[12px]" style={{ color: colors.textMuted }}>Versión</Text>
+          <Text className="text-[12px]" style={{ color: colors.textMuted }}>{t('settings.about.version')}</Text>
           <Text className="mt-1 font-black" style={{ color: colors.text }}>1.0.0</Text>
         </View>
 
         <ActionRow
           icon="help-circle-outline"
-          title="Centro de ayuda"
-          description="Consulta ayuda, soporte y preguntas frecuentes."
+          title={t('support.title')}
+          description={t('settings.about.helpDescription')}
           onPress={onOpenHelpCenter}
         />
       </View>

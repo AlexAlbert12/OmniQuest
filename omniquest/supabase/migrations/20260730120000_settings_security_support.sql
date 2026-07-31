@@ -1,5 +1,8 @@
 -- Settings, account requests and conversational support.
 
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
+
 create table if not exists public.data_export_requests (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
@@ -274,7 +277,7 @@ alter table public.support_ticket_attachments enable row level security;
 
 revoke all on public.support_ticket_messages from public, anon, authenticated;
 revoke all on public.support_ticket_attachments from public, anon, authenticated;
-grant select, insert on public.support_ticket_messages to authenticated;
+grant select on public.support_ticket_messages to authenticated;
 grant select, insert on public.support_ticket_attachments to authenticated;
 
 drop policy if exists "support_messages_select_participants" on public.support_ticket_messages;
@@ -284,23 +287,11 @@ using (
   public.is_admin()
   or exists (
     select 1 from public.user_support_tickets ticket
-    where ticket.id = ticket_id and ticket.user_id = auth.uid()
+    where ticket.id = support_ticket_messages.ticket_id and ticket.user_id = auth.uid()
   )
 );
 
 drop policy if exists "support_messages_insert_owner" on public.support_ticket_messages;
-create policy "support_messages_insert_owner"
-on public.support_ticket_messages for insert to authenticated
-with check (
-  author_id = auth.uid()
-  and author_role in ('student', 'teacher')
-  and exists (
-    select 1 from public.user_support_tickets ticket
-    where ticket.id = ticket_id
-      and ticket.user_id = auth.uid()
-      and ticket.status <> 'closed'
-  )
-);
 
 drop policy if exists "support_attachments_select_participants" on public.support_ticket_attachments;
 create policy "support_attachments_select_participants"
@@ -309,7 +300,7 @@ using (
   public.is_admin()
   or exists (
     select 1 from public.user_support_tickets ticket
-    where ticket.id = ticket_id and ticket.user_id = auth.uid()
+    where ticket.id = support_ticket_attachments.ticket_id and ticket.user_id = auth.uid()
   )
 );
 
@@ -320,13 +311,52 @@ with check (
   uploaded_by = auth.uid()
   and exists (
     select 1 from public.user_support_tickets ticket
-    where ticket.id = ticket_id and ticket.user_id = auth.uid() and ticket.status <> 'closed'
+    where ticket.id = support_ticket_attachments.ticket_id and ticket.user_id = auth.uid() and ticket.status <> 'closed'
   )
-  and (message_id is null or exists (
+  and (support_ticket_attachments.message_id is null or exists (
     select 1 from public.support_ticket_messages message
-    where message.id = message_id and message.ticket_id = ticket_id
+    where message.id = support_ticket_attachments.message_id
+      and message.ticket_id = support_ticket_attachments.ticket_id
   ))
 );
+
+create or replace function public.add_support_ticket_message(
+  p_ticket_id bigint,
+  p_body text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_role text;
+  v_body text := trim(coalesce(p_body, ''));
+  v_message public.support_ticket_messages%rowtype;
+begin
+  if v_user_id is null then raise exception 'Authentication required'; end if;
+  if char_length(v_body) not between 2 and 10000 then raise exception 'Message length must be between 2 and 10000 characters'; end if;
+
+  select ticket.role into v_role
+  from public.user_support_tickets ticket
+  where ticket.id = p_ticket_id
+    and ticket.user_id = v_user_id
+    and ticket.status <> 'closed'
+  for update;
+
+  if not found then raise exception 'Support ticket not found or closed'; end if;
+
+  insert into public.support_ticket_messages (ticket_id, author_id, author_role, body)
+  values (p_ticket_id, v_user_id, v_role, v_body)
+  returning * into v_message;
+
+  return to_jsonb(v_message);
+end;
+$$;
+
+revoke all on function public.add_support_ticket_message(bigint, text) from public, anon;
+grant execute on function public.add_support_ticket_message(bigint, text) to authenticated;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -350,7 +380,9 @@ with check (
   and (storage.foldername(name))[2] = auth.uid()::text
   and exists (
     select 1 from public.user_support_tickets ticket
-    where ticket.id = split_part(name, '/', 1)::bigint
+    where ticket.id = case
+      when split_part(name, '/', 1) ~ '^[0-9]+$' then split_part(name, '/', 1)::bigint
+    end
       and ticket.user_id = auth.uid()
       and ticket.status <> 'closed'
   )
@@ -366,7 +398,9 @@ using (
     public.is_admin()
     or exists (
       select 1 from public.user_support_tickets ticket
-      where ticket.id = split_part(name, '/', 1)::bigint
+      where ticket.id = case
+        when split_part(name, '/', 1) ~ '^[0-9]+$' then split_part(name, '/', 1)::bigint
+      end
         and ticket.user_id = auth.uid()
     )
   )
@@ -663,5 +697,65 @@ grant execute on function public.admin_update_support_ticket(bigint, text, text,
 
 revoke all on function public.support_first_response_interval(text) from public, anon, authenticated;
 revoke all on function public.support_resolution_interval(text) from public, anon, authenticated;
+
+-- Invoke the account-request worker through pg_net. The job is a no-op until
+-- Vault contains project_url and account_requests_secret. The same secret must
+-- be configured as ACCOUNT_REQUESTS_CRON_SECRET in the Edge Function.
+create or replace function public.invoke_account_requests_processor()
+returns bigint
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_project_url text;
+  v_secret text;
+  v_request_id bigint;
+begin
+  if to_regclass('vault.decrypted_secrets') is null then return null; end if;
+
+  execute $query$
+    select decrypted_secret from vault.decrypted_secrets
+    where name = 'project_url' order by created_at desc limit 1
+  $query$ into v_project_url;
+  execute $query$
+    select decrypted_secret from vault.decrypted_secrets
+    where name = 'account_requests_secret' order by created_at desc limit 1
+  $query$ into v_secret;
+
+  if nullif(trim(coalesce(v_project_url, '')), '') is null
+     or nullif(trim(coalesce(v_secret, '')), '') is null then return null; end if;
+
+  select net.http_post(
+    url := rtrim(v_project_url, '/') || '/functions/v1/process-account-requests',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-account-requests-secret', v_secret
+    ),
+    body := jsonb_build_object('source', 'pg_cron'),
+    timeout_milliseconds := 30000
+  ) into v_request_id;
+  return v_request_id;
+end;
+$$;
+
+revoke all on function public.invoke_account_requests_processor() from public, anon, authenticated;
+grant execute on function public.invoke_account_requests_processor() to service_role;
+
+do $$
+declare
+  v_job_id bigint;
+begin
+  if to_regclass('cron.job') is null then return; end if;
+  select jobid into v_job_id from cron.job
+  where jobname = 'omniquest-account-requests' limit 1;
+  if v_job_id is not null then perform cron.unschedule(v_job_id); end if;
+  perform cron.schedule(
+    'omniquest-account-requests',
+    '*/5 * * * *',
+    'select public.invoke_account_requests_processor();'
+  );
+end
+$$;
 
 notify pgrst, 'reload schema';

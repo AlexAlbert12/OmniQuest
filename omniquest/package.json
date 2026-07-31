@@ -22,7 +22,8 @@
     "audit:design-system": "node scripts/audit-design-system.mjs",
     "audit:accessibility": "node scripts/audit-accessibility-responsive.mjs",
     "deploy:auth": "supabase functions deploy auth-attempt-guard --no-verify-jwt",
-    "test:auth-forms": "node --test tests/source/auth-public-flows.behavior.test.mjs"
+    "test:auth-forms": "node --test tests/source/auth-public-flows.behavior.test.mjs",
+    "deploy:audit-exports": "supabase functions deploy process-teacher-audit-exports --no-verify-jwt"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",

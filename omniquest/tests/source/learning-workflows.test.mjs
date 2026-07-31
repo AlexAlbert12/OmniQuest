@@ -31,7 +31,7 @@ test('standalone tasks are removed and the calendar is reused for topic deadline
 
 test('advanced manual review has a dedicated queue, comments and explicit states', () => {
   const migration = read(migrationPath)
-  const reviews = read('app/(teacher)/reviews.tsx')
+  const reviews = read('app/(teacher)/reviews.tsx') + read('hooks/teacher/useManualReview.ts') + read('components/teacher/reviews/ManualReviewDetailSheet.tsx')
 
   assert.match(migration, /create table if not exists public\.manual_review_comments/)
   assert.match(migration, /'pending', 'in_review', 'needs_changes', 'approved', 'rejected'/)
@@ -44,7 +44,7 @@ test('advanced manual review has a dedicated queue, comments and explicit states
   assert.match(reviews, /get_teacher_manual_review_queue/)
   assert.match(reviews, /get_manual_review_thread/)
   assert.match(reviews, /needs_changes/)
-  assert.match(reviews, /nota interna/)
+  assert.match(reviews, /Nota interna/)
   const activity = read('app/(student)/activity-log.tsx')
   assert.match(activity, /Comentarios del profesor/)
   assert.match(activity, /Pendiente de revisión/)

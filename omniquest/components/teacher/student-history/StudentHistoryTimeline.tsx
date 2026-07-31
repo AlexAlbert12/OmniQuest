@@ -25,7 +25,7 @@ export default function StudentHistoryTimeline({
     <View>
       <View accessibilityRole="list" className="gap-3">
         {items.map((item) => (
-          <View key={item.id} accessibilityRole="listitem" className="rounded-2xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
+          <View key={item.id} accessible accessibilityLabel={`${item.question_text}. ${item.is_correct ? 'Correcta' : 'Incorrecta'}. ${item.earned_points} XP.`} className="rounded-2xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
             <View className="flex-row flex-wrap items-start gap-3">
               <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: item.is_correct ? tokens.semanticSurface.success : tokens.semanticSurface.danger }}>
                 <Ionicons name={item.is_correct ? 'checkmark' : 'close'} size={20} color={item.is_correct ? tokens.semantic.success : tokens.semantic.danger} />

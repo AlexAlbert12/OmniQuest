@@ -1,5 +1,6 @@
 import React from 'react'
 import type { useSettingsData } from '../../hooks/useSettingsData'
+import { useI18n } from '../../lib/i18n'
 import {
   SettingsAboutPanel,
   SettingsDataPanel,
@@ -41,6 +42,7 @@ export function RoleSettingsSections({
   securityOnly,
   width,
 }: RoleSettingsSectionsProps) {
+  const { t } = useI18n()
   return (
     <>
       {!securityOnly && activeSettingsSection === 'general' ? (
@@ -101,7 +103,7 @@ export function RoleSettingsSections({
           onToggleNotification={(key) => void data.updateNotificationToggle(key)}
           formatNotificationFrequencyLabel={data.formatNotificationFrequencyLabel}
           pushRegistrationStatus={data.pushRegistrationStatus}
-          onShowServerPreferences={() => data.showAlert('Notificaciones', 'OmniQuest aplica las preferencias en servidor y usa los dispositivos registrados para enviar avisos push.')}
+          onShowServerPreferences={() => data.showAlert(t('settings.section.notifications'), t('settings.notifications.serverDescription'))}
         />
       ) : null}
 

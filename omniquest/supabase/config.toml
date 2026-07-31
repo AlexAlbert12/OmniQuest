@@ -124,3 +124,6 @@ verify_jwt = false
 
 [functions.auth-attempt-guard]
 verify_jwt = false
+
+[functions.process-account-requests]
+verify_jwt = false

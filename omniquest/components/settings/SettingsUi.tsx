@@ -1,8 +1,9 @@
 import React from 'react'
-import { ActivityIndicator, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
+import { useI18n } from '../../lib/i18n'
 import type {
   IconName,
   SettingsAnchorKey,
@@ -15,147 +16,6 @@ export type SettingsMenuItem = {
   label: string
   icon: IconName
   anchor: SettingsAnchorKey
-}
-
-type DestructiveActionType = 'scores' | 'enrollments' | 'all' | 'account'
-const REQUIRED_DESTRUCTIVE_CONFIRMATION = 'ELIMINAR'
-
-export function DestructiveConfirmModal({
-  visible,
-  action,
-  isTeacher,
-  value,
-  busy,
-  onChangeText,
-  onCancel,
-  onConfirm,
-}: {
-  visible: boolean
-  action: DestructiveActionType | null
-  isTeacher: boolean
-  value: string
-  busy: boolean
-  onChangeText: (value: string) => void
-  onCancel: () => void
-  onConfirm: () => void
-}) {
-  const details = getDestructiveActionDetails(action, isTeacher)
-  const { colors } = useAppTheme()
-  const canConfirm = value.trim() === REQUIRED_DESTRUCTIVE_CONFIRMATION && !busy
-
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View className="flex-1 items-center justify-center bg-black/70 px-5">
-        <View className="w-full max-w-[430px] rounded-2xl border p-5" style={{ borderColor: colors.danger, backgroundColor: colors.surface }}>
-          <View className="flex-row items-center gap-3">
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-semantic-surface-danger">
-              <Ionicons name="warning-outline" size={20} color="#FB7185" />
-            </View>
-            <View className="min-w-0 flex-1">
-              <Text className="text-[16px] font-black" style={{ color: colors.text }}>{details.title}</Text>
-              <Text className="mt-1 text-[12px] leading-5 text-semantic-danger">{details.description}</Text>
-            </View>
-          </View>
-
-          <Text className="mt-5 text-[12px] font-semibold" style={{ color: colors.textSecondary }}>
-            Escribe {REQUIRED_DESTRUCTIVE_CONFIRMATION} para continuar.
-          </Text>
-          <TextInput
-            value={value}
-            onChangeText={onChangeText}
-            autoCapitalize="characters"
-            placeholder={REQUIRED_DESTRUCTIVE_CONFIRMATION}
-            placeholderTextColor="#64748B"
-            className="mt-2 rounded-lg border px-4 py-3 text-[13px] font-bold"
-            style={{ borderColor: colors.danger, backgroundColor: colors.surfaceRaised, color: colors.text }}
-          />
-
-          <View className="mt-5 flex-row justify-end gap-3">
-            <Pressable
-              accessibilityLabel="Cancelar acción destructiva"
-              accessibilityRole="button"
-              hitSlop={6}
-              onPress={onCancel}
-              disabled={busy}
-              className="rounded-lg border px-4 py-3"
-              style={({ pressed }) => ({ borderColor: colors.border, backgroundColor: colors.surfaceRaised, opacity: busy ? 0.55 : pressed ? 0.8 : 1 })}
-            >
-              <Text className="text-[12px] font-bold" style={{ color: colors.textSecondary }}>Cancelar</Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel={details.confirmLabel}
-              accessibilityRole="button"
-              accessibilityState={{ disabled: !canConfirm, busy }}
-              hitSlop={6}
-              onPress={onConfirm}
-              disabled={!canConfirm}
-              className="rounded-lg bg-semantic-surface-danger px-4 py-3"
-              style={({ pressed }) => ({ opacity: !canConfirm ? 0.45 : pressed ? 0.82 : 1 })}
-            >
-              {busy ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text className="text-[12px] font-bold text-white">{details.confirmLabel}</Text>
-              )}
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  )
-}
-
-function getDestructiveActionDetails(action: DestructiveActionType | null, isTeacher: boolean) {
-  switch (action) {
-    case 'scores':
-      return isTeacher
-        ? {
-            title: 'Eliminar progreso de alumnos',
-            description: 'Se borrarán puntuaciones por clase, puntuaciones por tema e intentos de alumnos en tus clases. No se borran clases, preguntas ni perfiles.',
-            confirmLabel: 'Eliminar progreso',
-          }
-        : {
-            title: 'Eliminar puntuaciones',
-            description: 'Se borrarán subject_scores, topic_scores, intentos e insignias; tu XP global se recalculará a 0.',
-            confirmLabel: 'Eliminar puntuaciones',
-          }
-    case 'enrollments':
-      return {
-        title: 'Salir de todas las clases',
-        description: 'Se eliminarán tus inscripciones actuales. Tu cuenta seguirá activa.',
-        confirmLabel: 'Salir de clases',
-      }
-    case 'all':
-      return isTeacher
-        ? {
-            title: 'Eliminar todos mis datos docentes',
-            description: 'Se borrarán tus clases, temas, preguntas, respuestas, inscripciones, puntuaciones de alumnos, intentos, preferencias, notificaciones y avatar. Tu cuenta seguirá activa.',
-            confirmLabel: 'Eliminar todo',
-          }
-        : {
-            title: 'Eliminar datos de uso',
-            description: 'Se borrarán progreso, intentos, estado de notificaciones, preferencias y avatar. Tu cuenta seguirá activa.',
-            confirmLabel: 'Eliminar datos',
-          }
-    case 'account':
-      return isTeacher
-        ? {
-            title: 'Borrar mi cuenta',
-            description: 'Se eliminarán tu usuario, perfil docente y datos asociados. Revisa antes tus clases y contenido creado. No se puede deshacer.',
-            confirmLabel: 'Borrar cuenta',
-          }
-        : {
-            title: 'Borrar mi cuenta',
-            description: 'Se eliminarán tu usuario, perfil, progreso académico y datos asociados. No se puede deshacer.',
-            confirmLabel: 'Borrar cuenta',
-          }
-    default:
-      return {
-        title: 'Confirmar acción',
-        description: 'Esta acción no se puede deshacer.',
-        confirmLabel: 'Continuar',
-      }
-  }
 }
 
 export function SettingsMenu({
@@ -172,6 +32,7 @@ export function SettingsMenu({
   sections: SettingsMenuItem[]
 }) {
   const { accentColor, colors } = useAppTheme()
+  const { t } = useI18n()
 
   const renderMenuItem = (section: SettingsMenuItem) => {
     const active = section.key === activeSection
@@ -222,13 +83,13 @@ export function SettingsMenu({
         <Pressable
           onPress={onSignOut}
           accessibilityRole="button"
-          accessibilityLabel="Cerrar sesión"
+          accessibilityLabel={t('settings.signOut')}
           hitSlop={6}
           className="mt-4 flex-row items-center gap-2 rounded-xl px-3 py-3"
           style={({ pressed }) => ({ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceRaised, opacity: pressed ? 0.82 : 1 })}
         >
           <Ionicons name="log-out-outline" size={15} color="#F87171" />
-          <Text className="text-[12px] font-bold text-semantic-danger">Cerrar sesión</Text>
+          <Text className="text-[12px] font-bold text-semantic-danger">{t('settings.signOut')}</Text>
         </Pressable>
       </View>
     )

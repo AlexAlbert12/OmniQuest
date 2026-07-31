@@ -342,6 +342,11 @@ export type Database = {
           hint_used: boolean
           id: number
           is_correct: boolean
+          manual_review_assigned_to: string | null
+          manual_review_due_at: string | null
+          manual_review_rubric_id: string | null
+          manual_review_rubric_result: Json | null
+          manual_review_started_at: string | null
           manual_review_status: string
           question_id: number
           review_notes: string | null
@@ -362,6 +367,11 @@ export type Database = {
           hint_used?: boolean
           id?: number
           is_correct: boolean
+          manual_review_assigned_to?: string | null
+          manual_review_due_at?: string | null
+          manual_review_rubric_id?: string | null
+          manual_review_rubric_result?: Json | null
+          manual_review_started_at?: string | null
           manual_review_status?: string
           question_id: number
           review_notes?: string | null
@@ -382,6 +392,11 @@ export type Database = {
           hint_used?: boolean
           id?: number
           is_correct?: boolean
+          manual_review_assigned_to?: string | null
+          manual_review_due_at?: string | null
+          manual_review_rubric_id?: string | null
+          manual_review_rubric_result?: Json | null
+          manual_review_started_at?: string | null
           manual_review_status?: string
           question_id?: number
           review_notes?: string | null
@@ -406,6 +421,20 @@ export type Database = {
             columns: ["attempt_id"]
             isOneToOne: false
             referencedRelation: "game_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_history_manual_review_assigned_to_fkey"
+            columns: ["manual_review_assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_history_manual_review_rubric_id_fkey"
+            columns: ["manual_review_rubric_id"]
+            isOneToOne: false
+            referencedRelation: "manual_review_rubrics"
             referencedColumns: ["id"]
           },
           {
@@ -863,6 +892,47 @@ export type Database = {
           },
         ]
       }
+      manual_review_comment_templates: {
+        Row: {
+          active: boolean
+          audience: string
+          body: string
+          created_at: string
+          id: string
+          teacher_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          audience?: string
+          body: string
+          created_at?: string
+          id?: string
+          teacher_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          audience?: string
+          body?: string
+          created_at?: string
+          id?: string
+          teacher_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_review_comment_templates_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       manual_review_comments: {
         Row: {
           attempt_history_id: number
@@ -900,6 +970,166 @@ export type Database = {
             foreignKeyName: "manual_review_comments_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manual_review_history: {
+        Row: {
+          actor_id: string | null
+          after_state: Json
+          attempt_history_id: number
+          before_state: Json
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: number
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          after_state?: Json
+          attempt_history_id: number
+          before_state?: Json
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: number
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          after_state?: Json
+          attempt_history_id?: number
+          before_state?: Json
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: number
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_review_history_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_review_history_attempt_history_id_fkey"
+            columns: ["attempt_history_id"]
+            isOneToOne: false
+            referencedRelation: "attempt_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manual_review_rubrics: {
+        Row: {
+          active: boolean
+          created_at: string
+          criteria: Json
+          id: string
+          name: string
+          subject_id: number | null
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          criteria?: Json
+          id?: string
+          name: string
+          subject_id?: number | null
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          criteria?: Json
+          id?: string
+          name?: string
+          subject_id?: number | null
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_review_rubrics_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_review_rubrics_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manual_review_saved_filters: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          name: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_review_saved_filters_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manual_review_settings: {
+        Row: {
+          sla_hours: number
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          sla_hours?: number
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          sla_hours?: number
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_review_settings_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1834,30 +2064,145 @@ export type Database = {
           },
         ]
       }
+      teacher_audit_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          created_at: string
+          description: string
+          event_count: number
+          id: number
+          pattern_key: string
+          severity: string
+          teacher_id: string
+          title: string
+          window_ended_at: string
+          window_started_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          created_at?: string
+          description: string
+          event_count: number
+          id?: number
+          pattern_key: string
+          severity: string
+          teacher_id: string
+          title: string
+          window_ended_at: string
+          window_started_at: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          created_at?: string
+          description?: string
+          event_count?: number
+          id?: number
+          pattern_key?: string
+          severity?: string
+          teacher_id?: string
+          title?: string
+          window_ended_at?: string
+          window_started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_audit_alerts_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_audit_export_requests: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          expires_at: string | null
+          filters: Json
+          id: string
+          object_path: string | null
+          requested_at: string
+          row_count: number | null
+          started_at: string | null
+          status: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          filters?: Json
+          id?: string
+          object_path?: string | null
+          requested_at?: string
+          row_count?: number | null
+          started_at?: string | null
+          status?: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          filters?: Json
+          id?: string
+          object_path?: string | null
+          requested_at?: string
+          row_count?: number | null
+          started_at?: string | null
+          status?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_audit_export_requests_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_audit_logs: {
         Row: {
           action: string
+          after_state: Json
+          before_state: Json
           created_at: string
           id: number
           metadata: Json
+          request_id: string | null
+          severity: string
           target_id: string | null
           target_table: string | null
           teacher_id: string
         }
         Insert: {
           action: string
+          after_state?: Json
+          before_state?: Json
           created_at?: string
           id?: number
           metadata?: Json
+          request_id?: string | null
+          severity?: string
           target_id?: string | null
           target_table?: string | null
           teacher_id: string
         }
         Update: {
           action?: string
+          after_state?: Json
+          before_state?: Json
           created_at?: string
           id?: number
           metadata?: Json
+          request_id?: string | null
+          severity?: string
           target_id?: string | null
           target_table?: string | null
           teacher_id?: string
@@ -1865,6 +2210,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "teacher_audit_logs_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_audit_retention_policy: {
+        Row: {
+          retention_days: number
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          retention_days?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          retention_days?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      teacher_audit_saved_filters: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          name: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_audit_saved_filters_teacher_id_fkey"
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -2394,6 +2792,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      acknowledge_teacher_audit_alert: {
+        Args: { p_alert_id: number }
+        Returns: boolean
+      }
       add_manual_review_comment: {
         Args: {
           p_attempt_history_id: number
@@ -2423,14 +2825,30 @@ export type Database = {
       analytics_allowed: { Args: { p_user_id: string }; Returns: boolean }
       apply_analytics_retention: { Args: never; Returns: Json }
       apply_attempt_sensitive_data_retention: { Args: never; Returns: Json }
+      apply_teacher_audit_retention: { Args: never; Returns: number }
       archive_teacher_topic: { Args: { p_topic_id: number }; Returns: Json }
       assert_topic_playable: {
         Args: { p_topic_id: number }
         Returns: undefined
       }
+      assign_manual_review_attempts: {
+        Args: { p_assignee_id: string; p_attempt_ids: number[] }
+        Returns: Json
+      }
       badge_metric_value: {
         Args: { p_metric_key: string; p_metrics: Json }
         Returns: number
+      }
+      batch_review_manual_attempts: {
+        Args: {
+          p_attempt_ids: number[]
+          p_comment_audience?: string
+          p_notes?: string
+          p_rubric_id?: string
+          p_rubric_result?: Json
+          p_status: string
+        }
+        Returns: Json
       }
       can_access_question_media: {
         Args: { p_classroom_id?: number; p_subject_id: number }
@@ -2453,6 +2871,29 @@ export type Database = {
       claim_open_answer_attempt: {
         Args: { p_attempt_history_id: number }
         Returns: Json
+      }
+      claim_teacher_audit_export_requests: {
+        Args: { p_limit?: number }
+        Returns: {
+          completed_at: string | null
+          error_message: string | null
+          expires_at: string | null
+          filters: Json
+          id: string
+          object_path: string | null
+          requested_at: string
+          row_count: number | null
+          started_at: string | null
+          status: string
+          teacher_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "teacher_audit_export_requests"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       claim_teacher_digest_batch: {
         Args: { p_limit?: number; p_worker_id: string }
@@ -2487,6 +2928,16 @@ export type Database = {
       }
       cleanup_auth_rate_limits: { Args: never; Returns: number }
       cleanup_expired_guests: { Args: { p_limit?: number }; Returns: number }
+      complete_teacher_audit_export: {
+        Args: {
+          p_error_message?: string
+          p_object_path?: string
+          p_request_id: string
+          p_row_count?: number
+          p_status: string
+        }
+        Returns: undefined
+      }
       consume_auth_rate_limit: {
         Args: {
           p_action: string
@@ -2555,6 +3006,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: Json
       }
+      detect_teacher_audit_anomalies: { Args: never; Returns: number }
       duplicate_teacher_subject: {
         Args: { p_name_suffix?: string; p_subject_id: number }
         Returns: Json
@@ -2827,6 +3279,11 @@ export type Database = {
         }
         Returns: Json
       }
+      get_manual_review_configuration: { Args: never; Returns: Json }
+      get_manual_review_history: {
+        Args: { p_attempt_history_id: number }
+        Returns: Json
+      }
       get_manual_review_thread: {
         Args: { p_attempt_history_id: number }
         Returns: Json
@@ -2942,6 +3399,7 @@ export type Database = {
         Args: { p_limit?: number; p_offset?: number }
         Returns: Json
       }
+      get_teacher_audit_configuration: { Args: never; Returns: Json }
       get_teacher_audit_logs_page: {
         Args: {
           p_category?: string
@@ -2959,6 +3417,20 @@ export type Database = {
           teacher_id: string
           total_count: number
         }[]
+      }
+      get_teacher_audit_logs_page_v2: {
+        Args: {
+          p_action?: string
+          p_category?: string
+          p_from?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_severity?: string
+          p_target_table?: string
+          p_to?: string
+        }
+        Returns: Json
       }
       get_teacher_classrooms_page: {
         Args: { p_limit?: number; p_offset?: number; p_search?: string }
@@ -2983,6 +3455,26 @@ export type Database = {
           p_search?: string
           p_status?: string
           p_subject_id?: number
+        }
+        Returns: Json
+      }
+      get_teacher_question_affected_students_page: {
+        Args: {
+          p_classroom_id?: number
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+          p_offset?: number
+          p_question_id: number
+        }
+        Returns: Json
+      }
+      get_teacher_question_report: {
+        Args: {
+          p_classroom_id?: number
+          p_date_from?: string
+          p_date_to?: string
+          p_question_id: number
         }
         Returns: Json
       }
@@ -3168,6 +3660,10 @@ export type Database = {
       }
       request_account_data_export: { Args: never; Returns: Json }
       request_account_deletion: { Args: never; Returns: Json }
+      request_teacher_audit_export: {
+        Args: { p_filters?: Json }
+        Returns: Json
+      }
       reserve_teacher_student_recovery_request: {
         Args: {
           p_classroom_id?: number
@@ -3177,11 +3673,31 @@ export type Database = {
         }
         Returns: Json
       }
+      review_manual_review_attempt: {
+        Args: {
+          p_attempt_history_id: number
+          p_comment_audience?: string
+          p_notes?: string
+          p_rubric_id?: string
+          p_rubric_result?: Json
+          p_status: string
+        }
+        Returns: Json
+      }
       review_open_answer_attempt: {
         Args: {
           p_attempt_history_id: number
           p_is_correct: boolean
           p_notes?: string
+        }
+        Returns: Json
+      }
+      review_open_answer_attempt_assigned: {
+        Args: {
+          p_attempt_history_id: number
+          p_comment_audience?: string
+          p_notes?: string
+          p_status: string
         }
         Returns: Json
       }
@@ -3205,6 +3721,37 @@ export type Database = {
       sanitize_analytics_properties: {
         Args: { p_properties: Json }
         Returns: Json
+      }
+      sanitize_teacher_audit_payload: { Args: { p_value: Json }; Returns: Json }
+      save_manual_review_filter: {
+        Args: { p_filters: Json; p_id: string; p_name: string }
+        Returns: string
+      }
+      save_manual_review_rubric: {
+        Args: {
+          p_criteria: Json
+          p_id: string
+          p_name: string
+          p_subject_id: number
+        }
+        Returns: string
+      }
+      save_manual_review_settings: {
+        Args: { p_sla_hours: number }
+        Returns: Json
+      }
+      save_manual_review_template: {
+        Args: {
+          p_audience: string
+          p_body: string
+          p_id: string
+          p_title: string
+        }
+        Returns: string
+      }
+      save_teacher_audit_filter: {
+        Args: { p_filters: Json; p_id: string; p_name: string }
+        Returns: string
       }
       save_teacher_question: {
         Args: {

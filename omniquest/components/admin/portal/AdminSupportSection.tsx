@@ -1,8 +1,14 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams } from 'expo-router'
 import { supabase } from '../../../lib/supabase'
+import {
+  fetchSupportThread,
+  openSupportAttachment,
+  type SupportAttachment,
+  type SupportMessage,
+} from '../../../lib/support'
 import AdminSearchBar from './AdminSearchBar'
 import { AdminPagination } from './AdminPagination'
 import {
@@ -56,6 +62,7 @@ import {
 } from './AdminPortalCore'
 
 export function AdminSupportSection() {
+  const params = useLocalSearchParams<{ ticket?: string }>()
   const { width } = useWindowDimensions()
   const isDesktop = width >= 1040
   const pageSize = isDesktop ? 25 : 8
@@ -70,6 +77,9 @@ export function AdminSupportSection() {
   const [editPriority, setEditPriority] = useState<AdminSupportTicketRow['priority']>('medium')
   const [adminResponse, setAdminResponse] = useState('')
   const [saving, setSaving] = useState(false)
+  const [threadLoading, setThreadLoading] = useState(false)
+  const [messages, setMessages] = useState<SupportMessage[]>([])
+  const [attachments, setAttachments] = useState<SupportAttachment[]>([])
 
   const supportPage = useAdminRpcPage<AdminSupportTicketRow>('get_admin_support_tickets_page', {
     p_search: search.trim() || undefined,
@@ -78,11 +88,36 @@ export function AdminSupportSection() {
     p_role: roleFilter === 'all' ? undefined : roleFilter,
   }, data.version, pageSize)
 
-  const openTicket = (ticket: AdminSupportTicketRow) => {
+  const openTicket = useCallback(async (ticket: AdminSupportTicketRow) => {
     setSelectedTicket(ticket)
     setEditStatus(ticket.status === 'open' ? 'in_progress' : ticket.status)
     setEditPriority(ticket.priority)
-    setAdminResponse(ticket.admin_response || '')
+    setAdminResponse('')
+    setThreadLoading(true)
+    try {
+      const thread = await fetchSupportThread(ticket.id)
+      setMessages(thread.messages)
+      setAttachments(thread.attachments)
+    } catch (error: any) {
+      showAlert('No se pudo cargar la conversación', error?.message || 'Inténtalo de nuevo.')
+    } finally {
+      setThreadLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const requestedId = Number(params.ticket)
+    if (!Number.isFinite(requestedId) || selectedTicket?.id === requestedId) return
+    const requestedTicket = supportPage.rows.find((ticket) => ticket.id === requestedId)
+    if (requestedTicket) void openTicket(requestedTicket)
+  }, [openTicket, params.ticket, selectedTicket?.id, supportPage.rows])
+
+  const openAttachment = async (attachment: SupportAttachment) => {
+    try {
+      await openSupportAttachment(attachment)
+    } catch (error: any) {
+      showAlert('No se pudo abrir el adjunto', error?.message || 'El enlace puede haber caducado.')
+    }
   }
 
   const saveTicket = async () => {
@@ -126,13 +161,54 @@ export function AdminSupportSection() {
                 <SupportPriorityPill priority={selectedTicket.priority} />
                 <MiniPill icon={selectedTicket.role === 'teacher' ? 'school-outline' : 'person-outline'} label={selectedTicket.role === 'teacher' ? 'Profesor' : 'Alumno'} />
               </View>
-              <Text className="mt-4 text-[18px] font-black text-white">{selectedTicket.subject}</Text>
+              <Text className="mt-4 text-[18px] font-black text-text-primary">{selectedTicket.subject}</Text>
               <Text className="mt-1 text-[12px] font-semibold text-text-muted">
                 {selectedTicket.user_alias || 'Usuario'} · {selectedTicket.user_email || selectedTicket.contact_email || 'Sin correo'} · {formatAuditDate(selectedTicket.created_at)}
               </Text>
-              <View className="mt-4 rounded-xl border border-border-default bg-surface-default p-4">
-                <Text className="text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Mensaje</Text>
-                <Text className="mt-2 text-[14px] leading-6 text-text-secondary">{selectedTicket.message}</Text>
+              <View className="mt-4 flex-row flex-wrap gap-2">
+                <MiniPill icon="chatbubbles-outline" label={`${selectedTicket.message_count || messages.length} mensajes`} />
+                <MiniPill icon="attach-outline" label={`${selectedTicket.attachment_count || attachments.length} adjuntos`} />
+              </View>
+              <View className="mt-3 rounded-xl border border-border-default bg-surface-default p-4">
+                <Text className="text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">SLA estimado</Text>
+                <Text className="mt-2 text-[12px] font-semibold text-text-secondary">
+                  Primera respuesta: {formatSupportDeadline(selectedTicket.first_response_due_at, Boolean(selectedTicket.first_responded_at))}
+                </Text>
+                <Text className="mt-1 text-[12px] font-semibold text-text-secondary">
+                  Resolución: {formatSupportDeadline(selectedTicket.resolution_due_at, ['resolved', 'closed'].includes(selectedTicket.status))}
+                </Text>
+              </View>
+
+              <View className="mt-4 rounded-xl border border-border-default bg-surface-raised p-4">
+                <Text className="text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Conversación</Text>
+                {threadLoading ? <ActivityIndicator className="my-6" /> : (
+                  <View className="mt-3 gap-3">
+                    {messages.map((message) => (
+                      <View
+                        key={message.id}
+                        className={`max-w-[92%] rounded-xl border p-3 ${message.author_role === 'admin' ? 'self-end border-border-active bg-semantic-surface-info' : 'self-start border-border-default bg-surface-default'}`}
+                      >
+                        <Text className="text-[10px] font-black uppercase tracking-[0.6px] text-text-muted">
+                          {message.author_role === 'admin' ? 'Soporte' : selectedTicket.user_alias || 'Usuario'} · {formatAuditDate(message.created_at)}
+                        </Text>
+                        <Text className="mt-2 text-[13px] leading-5 text-text-primary">{message.body}</Text>
+                        {attachments.filter((attachment) => attachment.message_id === message.id).map((attachment) => (
+                          <Pressable key={attachment.id} onPress={() => void openAttachment(attachment)} className="mt-3 flex-row items-center gap-2 rounded-lg border border-border-default px-3 py-2">
+                            <Ionicons name="document-attach-outline" size={16} />
+                            <Text className="min-w-0 flex-1 text-[11px] font-bold text-text-secondary" numberOfLines={1}>{attachment.file_name}</Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    ))}
+                    {attachments.filter((attachment) => attachment.message_id === null).map((attachment) => (
+                      <Pressable key={attachment.id} onPress={() => void openAttachment(attachment)} className="flex-row items-center gap-2 rounded-lg border border-border-default px-3 py-2">
+                        <Ionicons name="document-attach-outline" size={16} />
+                        <Text className="min-w-0 flex-1 text-[11px] font-bold text-text-secondary" numberOfLines={1}>{attachment.file_name}</Text>
+                      </Pressable>
+                    ))}
+                    {messages.length === 0 ? <Text className="py-4 text-center text-text-muted">Sin mensajes.</Text> : null}
+                  </View>
+                )}
               </View>
             </View>
 
@@ -154,7 +230,7 @@ export function AdminSupportSection() {
               <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Respuesta al usuario</Text>
               <TextInput
                 accessibilityLabel="Respuesta del administrador"
-                className="mt-2 min-h-[130px] rounded-xl border border-border-default bg-surface-default px-4 py-3 text-[14px] leading-5 text-white"
+                className="mt-2 min-h-[130px] rounded-xl border border-border-default bg-surface-default px-4 py-3 text-[14px] leading-5 text-text-primary"
                 multiline
                 onChangeText={setAdminResponse}
                 placeholder="Explica la solución o los siguientes pasos..."
@@ -242,7 +318,7 @@ export function AdminSupportSection() {
         <View className="mt-4" style={{ gap: 12 }}>
           {supportPage.loading && !supportPage.refreshing ? <ListLoadingState /> : null}
           {supportPage.rows.map((ticket) => (
-            <SupportTicketCard key={ticket.id} ticket={ticket} onManage={() => openTicket(ticket)} />
+            <SupportTicketCard key={ticket.id} ticket={ticket} onManage={() => void openTicket(ticket)} />
           ))}
           {!supportPage.loading && supportPage.rows.length === 0 ? <EmptyState label="No hay tickets que coincidan con los filtros." /> : null}
         </View>
@@ -263,3 +339,11 @@ export function AdminSupportSection() {
 
 
 export const AdminSupportScreen = AdminSupportSection
+
+function formatSupportDeadline(value: string | null, completed: boolean) {
+  if (completed) return 'cumplida'
+  if (!value) return 'sin estimación'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'sin estimación'
+  return `${formatAuditDate(value)}${date.getTime() < Date.now() ? ' · vencida' : ''}`
+}

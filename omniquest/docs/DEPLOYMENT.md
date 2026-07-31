@@ -45,11 +45,24 @@ supabase secrets set RESEND_API_KEY="TU_RESEND_API_KEY"
 supabase secrets set MAIL_FROM="OmniQuest <no-reply@tu-dominio.com>"
 ```
 
+Las exportaciones y solicitudes de borrado asíncronas requieren un secreto
+compartido entre Vault y la Edge Function:
+
+```bash
+supabase secrets set ACCOUNT_REQUESTS_CRON_SECRET="UN_SECRETO_LARGO_Y_ALEATORIO"
+supabase functions deploy process-account-requests --no-verify-jwt
+```
+
+En Supabase Vault crea también `project_url` con la URL del proyecto y
+`account_requests_secret` con exactamente el mismo valor. La migración programa
+el procesador cada cinco minutos; sin estos secretos el cron es un no-op seguro.
+
 Notas:
 
 - `SUPABASE_URL` y `SUPABASE_ANON_KEY` suelen estar disponibles automáticamente en Edge Functions de Supabase.
 - `RESEND_API_KEY` y `MAIL_FROM` no bloquean la importación de alumnos: si faltan, la app importa y marca los emails como no enviados.
 - Nunca subas `SUPABASE_SERVICE_ROLE_KEY` ni claves reales al repositorio.
+- Nunca subas `ACCOUNT_REQUESTS_CRON_SECRET`; el header secreto protege la función que ejecuta el cron.
 
 ## 4. Desplegar Edge Functions
 
@@ -76,6 +89,7 @@ teacher-reset-student-progress
 teacher-student-reminder
 teacher-update-subject
 teacher-update-topic
+process-account-requests
 ```
 
 Despliegue directo:
@@ -123,6 +137,8 @@ npx supabase gen types typescript --project-id TU_PROJECT_REF > types/database.t
 - El portal admin puede ejecutar acciones sensibles.
 - El profesor puede crear/editar cursos, temas y alumnos mediante Edge Functions.
 - El alumno puede jugar, sincronizar puntos y consultar progreso.
+- Las solicitudes de exportación pasan de `queued` a `ready` y generan una notificación.
+- Las solicitudes de borrado pueden cancelarse durante el plazo de 7 días.
 
 ## 7. Comandos habituales
 
@@ -139,4 +155,3 @@ supabase functions logs import-students
 # Reaplicar migraciones pendientes
 supabase db push
 ```
-

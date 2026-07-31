@@ -156,32 +156,30 @@ export async function createSupportTicket({
 export async function addSupportReply({
   ticketId,
   userId,
-  role,
   body,
   attachment,
 }: {
   ticketId: number
   userId: string
-  role: 'student' | 'teacher'
   body: string
   attachment?: PickedSupportAttachment | null
 }) {
-  const { data, error } = await supabase
-    .from('support_ticket_messages')
-    .insert({ ticket_id: ticketId, author_id: userId, author_role: role, body: body.trim() })
-    .select('id, ticket_id, author_id, author_role, body, created_at')
-    .single()
+  const { data, error } = await supabase.rpc('add_support_ticket_message', {
+    p_ticket_id: ticketId,
+    p_body: body.trim(),
+  })
   if (error) throw error
+  const message = data as unknown as SupportMessage
 
   let attachmentError: string | null = null
   if (attachment) {
     try {
-      await uploadSupportAttachment(ticketId, data.id, userId, attachment)
+      await uploadSupportAttachment(ticketId, message.id, userId, attachment)
     } catch (uploadError) {
       attachmentError = uploadError instanceof Error ? uploadError.message : 'No se pudo adjuntar el archivo.'
     }
   }
-  return { message: data as SupportMessage, attachmentError }
+  return { message, attachmentError }
 }
 
 export async function pickSupportAttachment(): Promise<PickedSupportAttachment | null> {
