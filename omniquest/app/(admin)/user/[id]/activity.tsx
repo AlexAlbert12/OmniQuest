@@ -1,5 +1,5 @@
 import React from 'react'
-import AdminProfileActivityScreen from '../../../../components/admin/portal/AdminProfileActivityScreen'
+import AdminProfileActivityScreen from '../../../../components/admin/users/AdminProfileActivityScreen'
 
 export default function AdminUserActivityPage() {
   return <AdminProfileActivityScreen />

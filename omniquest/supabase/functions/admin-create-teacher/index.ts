@@ -1,4 +1,4 @@
-import { errorResponse, methodNotAllowedResponse, corsHeaders, getAdminContext, isResponse, json, readJsonBody, writeAdminAudit } from '../_shared/admin.ts'
+import { errorResponse, methodNotAllowedResponse, corsHeaders, getAdminContext, isResponse, json, readJsonBody, writeAdminAudit, writeAdminUserHistory } from '../_shared/admin.ts'
 
 type CreateTeacherRequest = {
   alias?: string
@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
-    const context = await getAdminContext(req)
+    const context = await getAdminContext(req, 'users.manage')
     if (isResponse(context)) return context
 
     const body = await readJsonBody<CreateTeacherRequest>(req)
@@ -51,6 +51,11 @@ Deno.serve(async (req) => {
         })
 
       if (profileError) throw profileError
+
+      await writeAdminUserHistory(context.adminClient, {
+        action: 'admin.teacher.update_existing', adminUserId: context.adminUserId, profileId: existingUser.id,
+        reason: 'Alta o actualización docente', before: { role_id: 'teacher' }, after: { role_id: 'teacher', active: true, alias },
+      })
 
       await writeAdminAudit(context.adminClient, {
         action: 'admin.teacher.update_existing',
@@ -102,6 +107,11 @@ Deno.serve(async (req) => {
       })
 
     if (profileError) throw profileError
+
+    await writeAdminUserHistory(context.adminClient, {
+      action: 'admin.teacher.create', adminUserId: context.adminUserId, profileId: createdUser.user.id,
+      reason: 'Creación de cuenta docente', before: {}, after: { role_id: 'teacher', active: true, alias },
+    })
 
     await writeAdminAudit(context.adminClient, {
       action: 'admin.teacher.create',

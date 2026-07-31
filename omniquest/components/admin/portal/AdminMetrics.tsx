@@ -1,1 +1,1 @@
-export { AdminMetrics } from './AdminPortalCore'
+export { AdminMetrics } from '../dashboard/AdminMetrics'

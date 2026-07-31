@@ -66,7 +66,7 @@ test('persistent notifications use a central queue with retries, receipts and ra
 
 test('database types expose recovery and notification delivery contracts', () => {
   const types = read('types/database.types.ts')
-  const adminDashboard = read('components/admin/portal/AdminDashboard.tsx')
+  const adminDashboard = read('components/admin/dashboard/AdminDashboard.tsx')
 
   for (const table of [
     'teacher_student_recovery_requests',

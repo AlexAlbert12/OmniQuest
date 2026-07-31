@@ -3,6 +3,8 @@ import { errorResponse, methodNotAllowedResponse, corsHeaders, getAdminContext, 
 type RequestBody = {
   archive?: boolean
   subjectId?: number | string
+  reason?: string
+  deactivateClassrooms?: boolean
 }
 
 Deno.serve(async (req) => {
@@ -10,18 +12,21 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
-    const context = await getAdminContext(req)
+    const context = await getAdminContext(req, 'courses.manage')
     if (isResponse(context)) return context
 
     const body = await readJsonBody<RequestBody>(req)
     const subjectId = Number(body.subjectId)
     const archive = Boolean(body.archive)
+    const reason = String(body.reason || '').trim()
+    const deactivateClassrooms = body.deactivateClassrooms !== false
 
     if (!Number.isFinite(subjectId)) return json({ error: 'subjectId no válido.' }, 400)
+    if (archive && reason.length < 5) return json({ error: 'Indica el motivo de archivo.' }, 400)
 
     const { data: subject, error: subjectError } = await context.adminClient
       .from('subjects')
-      .select('id, name, active, is_archived, teacher_id')
+      .select('id, name, active, is_archived, teacher_id, archive_reason, archived_at, retention_until')
       .eq('id', subjectId)
       .single()
 
@@ -29,10 +34,15 @@ Deno.serve(async (req) => {
 
     const { error } = await context.adminClient
       .from('subjects')
-      .update({ is_archived: archive, active: archive ? subject.active : true })
+      .update(archive ? { is_archived: true, active: false, archive_reason: reason, archived_at: new Date().toISOString(), retention_until: new Date(Date.now() + 90 * 86400000).toISOString() } : { is_archived: false, active: true, archive_reason: null, archived_at: null, retention_until: null })
       .eq('id', subjectId)
 
     if (error) throw error
+
+    if (archive && deactivateClassrooms) {
+      const { error: classroomError } = await context.adminClient.from('classrooms').update({ active: false, deactivation_reason: `Curso archivado: ${reason}`, deactivated_at: new Date().toISOString() }).eq('subject_id', subjectId)
+      if (classroomError) throw classroomError
+    }
 
     await writeAdminAudit(context.adminClient, {
       action: archive ? 'admin.course.archive' : 'admin.course.restore',
@@ -44,6 +54,8 @@ Deno.serve(async (req) => {
         teacher_id: subject.teacher_id,
         previous_is_archived: subject.is_archived,
         next_is_archived: archive,
+        reason: archive ? reason : 'Restauración administrativa',
+        deactivate_classrooms: archive ? deactivateClassrooms : false,
       },
     })
 

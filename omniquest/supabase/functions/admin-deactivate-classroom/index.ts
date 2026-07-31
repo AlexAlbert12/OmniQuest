@@ -3,6 +3,7 @@ import { errorResponse, methodNotAllowedResponse, corsHeaders, getAdminContext, 
 type RequestBody = {
   active?: boolean
   classroomId?: number | string
+  reason?: string
 }
 
 Deno.serve(async (req) => {
@@ -10,18 +11,20 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
-    const context = await getAdminContext(req)
+    const context = await getAdminContext(req, 'courses.manage')
     if (isResponse(context)) return context
 
     const body = await readJsonBody<RequestBody>(req)
     const classroomId = Number(body.classroomId)
     const active = Boolean(body.active)
+    const reason = String(body.reason || '').trim()
 
     if (!Number.isFinite(classroomId)) return json({ error: 'classroomId no válido.' }, 400)
+    if (!active && reason.length < 5) return json({ error: 'Indica el motivo de desactivación.' }, 400)
 
     const { data: classroom, error: classroomError } = await context.adminClient
       .from('classrooms')
-      .select('id, name, subject_id, active')
+      .select('id, name, subject_id, active, deactivation_reason, deactivated_at')
       .eq('id', classroomId)
       .single()
 
@@ -29,7 +32,7 @@ Deno.serve(async (req) => {
 
     const { error } = await context.adminClient
       .from('classrooms')
-      .update({ active })
+      .update({ active, deactivation_reason: active ? null : reason, deactivated_at: active ? null : new Date().toISOString() })
       .eq('id', classroomId)
 
     if (error) throw error
@@ -44,6 +47,7 @@ Deno.serve(async (req) => {
         subject_id: classroom.subject_id,
         previous_active: classroom.active,
         next_active: active,
+        reason: active ? 'Reactivación administrativa' : reason,
       },
     })
 

@@ -59,7 +59,7 @@ test('admin portal is split into focused sections and shared primitives', () => 
 
 test('admin mobile navigation has five stable groups and internal entity tabs', () => {
   const bottom = read('components/admin/AdminBottomNav.tsx')
-  const core = read('components/admin/portal/AdminPortalCore.tsx')
+  const core = read('components/admin/shared/AdminScaffold.tsx')
 
   assert.match(bottom, /'home' \| 'users' \| 'content' \| 'audit' \| 'more'/)
   assert.match(bottom, /label: 'Usuarios'/)

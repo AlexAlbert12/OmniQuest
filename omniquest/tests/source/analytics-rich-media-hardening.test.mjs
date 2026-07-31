@@ -11,7 +11,7 @@ test('analytics is consent-aware, indexed, retained and aggregate-only for admin
   const analytics = read('lib/analytics.ts')
   const layout = read('app/_layout.tsx')
   const settings = read('components/settings/SettingsSections.tsx')
-  const admin = read('components/admin/portal/AdminPortalCore.tsx')
+  const admin = read('components/admin/dashboard/AdminUsageAnalyticsPanel.tsx')
 
   assert.match(migration, /analytics_enabled boolean not null default false/)
   assert.match(migration, /analytics_events_occurred_at_brin_idx/)

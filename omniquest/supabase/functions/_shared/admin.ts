@@ -7,87 +7,100 @@ export type AdminContext = {
   adminClient: any
   adminUserId: string
   authHeader: string
+  permissions: string[]
+  roleId: string
+  roleName: string
   supabaseUrl: string
 }
 
-
-export async function getAdminContext(req: Request): Promise<AdminContext | Response> {
+export async function getAdminContext(req: Request, requiredPermission?: string): Promise<AdminContext | Response> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_ROLE_KEY')
 
-  if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
-    return publicErrorResponse('El servicio no está configurado correctamente.', 500, 'service_unavailable')
-  }
+  if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) return publicErrorResponse('El servicio no está configurado correctamente.', 500, 'service_unavailable')
 
   const authHeader = req.headers.get('Authorization')
-  if (!authHeader) {
-    return publicErrorResponse('Necesitas iniciar sesión para continuar.', 401, 'unauthorized')
-  }
+  if (!authHeader) return publicErrorResponse('Necesitas iniciar sesión para continuar.', 401, 'unauthorized')
 
-  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } },
-  })
-  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
+  const userClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } })
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } })
   const { data: userData, error: userError } = await userClient.auth.getUser()
-  if (userError || !userData.user) {
-    return publicErrorResponse('Tu sesión no es válida o ha caducado. Vuelve a iniciar sesión.', 401, 'unauthorized')
+  if (userError || !userData.user) return publicErrorResponse('Tu sesión no es válida o ha caducado. Vuelve a iniciar sesión.', 401, 'unauthorized')
+
+  const { data: adminProfile, error: adminProfileError } = await adminClient.from('profiles').select('role_id, active').eq('id', userData.user.id).single()
+  if (adminProfileError || adminProfile?.role_id !== 'admin' || adminProfile.active === false) return publicErrorResponse('No tienes permisos para realizar esta acción.', 403, 'forbidden')
+
+  let permissions: string[] = []
+  let roleId = 'super_admin'
+  let roleName = 'Administrador global'
+  const { data: portalContext, error: portalError } = await userClient.rpc('get_admin_portal_context')
+  if (!portalError && portalContext && typeof portalContext === 'object' && !Array.isArray(portalContext)) {
+    const payload = portalContext as Record<string, unknown>
+    permissions = Array.isArray(payload.permissions) ? payload.permissions.map(String) : []
+    roleId = String(payload.role_id || roleId)
+    roleName = String(payload.role_name || roleName)
+  } else {
+    // Compatibility before the governance migration: existing admins remain global.
+    permissions = ['dashboard.read','users.read','users.manage','users.security','users.export','courses.read','courses.manage','courses.transfer','courses.delete','audit.read','audit.export','support.read','support.manage','admin.roles.manage']
   }
 
-  const { data: adminProfile, error: adminProfileError } = await adminClient
-    .from('profiles')
-    .select('role_id, active')
-    .eq('id', userData.user.id)
-    .single()
+  if (requiredPermission && !permissions.includes(requiredPermission)) return publicErrorResponse('Tu rol administrativo no permite esta acción.', 403, 'forbidden')
 
-  if (adminProfileError || adminProfile?.role_id !== 'admin' || adminProfile.active === false) {
-    return publicErrorResponse('No tienes permisos para realizar esta acción.', 403, 'forbidden')
-  }
-
-  return {
-    adminClient,
-    adminUserId: userData.user.id,
-    authHeader,
-    supabaseUrl,
-  }
+  return { adminClient, adminUserId: userData.user.id, authHeader, permissions, roleId, roleName, supabaseUrl }
 }
 
 export function isResponse(value: AdminContext | Response): value is Response {
   return value instanceof Response
 }
 
-export async function writeAdminAudit(
-  adminClient: any,
-  params: {
-    action: string
-    adminUserId: string
-    metadata?: Record<string, unknown>
-    targetId?: string | number | null
-    targetTable?: string | null
-  }
-) {
-  const { error } = await adminClient
-    .from('admin_audit_logs')
-    .insert({
-      admin_id: params.adminUserId,
-      action: params.action,
-      target_table: params.targetTable ?? null,
-      target_id: params.targetId === undefined || params.targetId === null ? null : String(params.targetId),
-      metadata: params.metadata || {},
-    })
+export async function writeAdminAudit(adminClient: any, params: {
+  action: string
+  adminUserId: string
+  metadata?: Record<string, unknown>
+  targetId?: string | number | null
+  targetTable?: string | null
+}) {
+  const { error } = await adminClient.from('admin_audit_logs').insert({
+    admin_id: params.adminUserId,
+    action: params.action,
+    target_table: params.targetTable ?? null,
+    target_id: params.targetId === undefined || params.targetId === null ? null : String(params.targetId),
+    metadata: sanitizeAuditMetadata(params.metadata || {}),
+  })
+  if (error) console.warn('[admin audit] could not write audit log:', error.message)
+}
 
-  if (error) {
-    console.warn('[admin audit] could not write audit log:', error.message)
-  }
+export async function writeAdminUserHistory(adminClient: any, params: {
+  action: string
+  adminUserId: string
+  after?: Record<string, unknown> | null
+  before?: Record<string, unknown> | null
+  profileId: string
+  reason?: string | null
+}) {
+  const { error } = await adminClient.from('admin_user_change_history').insert({
+    profile_id: params.profileId,
+    changed_by: params.adminUserId,
+    action: params.action,
+    before_state: sanitizeAuditMetadata(params.before || {}),
+    after_state: sanitizeAuditMetadata(params.after || {}),
+    reason: params.reason?.trim() || null,
+  })
+  if (error && !isMissingSchemaError(error.code)) console.warn('[admin history] could not write history:', error.message)
 }
 
 export async function readJsonBody<T>(req: Request): Promise<T> {
-  try {
-    return await req.json() as T
-  } catch (_error) {
-    return {} as T
-  }
+  try { return await req.json() as T } catch (_error) { return {} as T }
+}
+
+function sanitizeAuditMetadata(value: Record<string, unknown>) {
+  const blocked = new Set(['password','token','secret','answer','answer_text','response','email','phone','ip','user_agent'])
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !blocked.has(key.toLowerCase())).map(([key, item]) => [key, sanitizeValue(item, blocked)]))
+}
+
+function sanitizeValue(value: unknown, blocked: Set<string>): unknown {
+  if (Array.isArray(value)) return value.slice(0, 100).map((item) => sanitizeValue(item, blocked))
+  if (!value || typeof value !== 'object') return value
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).filter(([key]) => !blocked.has(key.toLowerCase())).map(([key, item]) => [key, sanitizeValue(item, blocked)]))
 }

@@ -9,8 +9,6 @@ type AdminPagedRpcName =
   | 'get_admin_profiles_page'
   | 'get_admin_subjects_page'
   | 'get_admin_classrooms_page'
-  | 'get_admin_audit_logs_page'
-  | 'get_admin_support_tickets_page'
 
 type AdminPagedRpcArgs<Name extends AdminPagedRpcName> = Omit<
   PublicFunctions[Name]['Args'],
@@ -50,6 +48,24 @@ async function fetchAllRpcRows<Name extends AdminPagedRpcName>(
     if (page.length < EXPORT_PAGE_SIZE) break
   }
 
+  return rows.slice(0, MAX_EXPORT_ROWS)
+}
+
+
+async function fetchAllRpcRowsUntyped(functionName: string, filters: Record<string, unknown>): Promise<Array<Record<string, any> & PageRow>> {
+  const rows: Array<Record<string, any> & PageRow> = []
+  let offset = 0
+  let total = Number.POSITIVE_INFINITY
+  while (offset < total && rows.length < MAX_EXPORT_ROWS) {
+    const { data, error } = await (supabase.rpc(functionName as any, { ...filters, p_limit: EXPORT_PAGE_SIZE, p_offset: offset }) as any)
+    if (error) throw error
+    const page = Array.isArray(data) ? data as Array<Record<string, any> & PageRow> : []
+    if (page.length === 0) break
+    rows.push(...page)
+    total = Number(page[0]?.total_count ?? rows.length)
+    offset += page.length
+    if (page.length < EXPORT_PAGE_SIZE) break
+  }
   return rows.slice(0, MAX_EXPORT_ROWS)
 }
 
@@ -211,7 +227,7 @@ export async function exportAdminAudit(filters: {
   to?: string | null
   severity?: string | null
 }) {
-  const rows = await fetchAllRpcRows('get_admin_audit_logs_page', {
+  const rows = await fetchAllRpcRowsUntyped('get_admin_audit_logs_page_secured', {
     p_search: filters.search.trim() || undefined,
     p_actor_id: filters.actorId || undefined,
     p_action: filters.action || undefined,
@@ -245,7 +261,7 @@ export async function exportAdminSupport(filters: {
   priority?: string | null
   role?: string | null
 }) {
-  const rows = await fetchAllRpcRows('get_admin_support_tickets_page', {
+  const rows = await fetchAllRpcRowsUntyped('get_admin_support_tickets_page_secured', {
     p_search: filters.search.trim() || undefined,
     p_status: filters.status || undefined,
     p_priority: filters.priority || undefined,

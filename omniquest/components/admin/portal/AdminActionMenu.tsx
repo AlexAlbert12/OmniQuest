@@ -1,1 +1,1 @@
-export { RowActions as AdminActionMenu } from './AdminPortalCore'
+export { RowActions as AdminActionMenu } from '../shared/AdminPrimitives'

@@ -169,6 +169,195 @@ export type Database = {
           },
         ]
       }
+      admin_export_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          export_type: string
+          filters: Json
+          id: string
+          processed_rows: number
+          requested_by: string
+          row_count: number | null
+          started_at: string | null
+          status: string
+          storage_path: string | null
+          updated_at: string
+          worker_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          export_type: string
+          filters?: Json
+          id?: string
+          processed_rows?: number
+          requested_by: string
+          row_count?: number | null
+          started_at?: string | null
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          worker_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          export_type?: string
+          filters?: Json
+          id?: string
+          processed_rows?: number
+          requested_by?: string
+          row_count?: number | null
+          started_at?: string | null
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_export_jobs_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_role_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          role_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          role_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          role_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_role_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_role_assignments_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "admin_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_role_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          permissions: string[]
+          system: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id: string
+          name: string
+          permissions?: string[]
+          system?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          permissions?: string[]
+          system?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_user_change_history: {
+        Row: {
+          action: string
+          after_state: Json | null
+          before_state: Json | null
+          change_source: string
+          changed_by: string | null
+          created_at: string
+          id: number
+          profile_id: string
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          after_state?: Json | null
+          before_state?: Json | null
+          change_source?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: number
+          profile_id: string
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          change_source?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: number
+          profile_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_user_change_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_user_change_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_events: {
         Row: {
           attempt_id: string | null
@@ -660,7 +849,10 @@ export type Database = {
           academic_year: string | null
           active: boolean
           code: string | null
+          code_expires_at: string | null
           created_at: string
+          deactivated_at: string | null
+          deactivation_reason: string | null
           id: number
           name: string
           subject_id: number | null
@@ -669,7 +861,10 @@ export type Database = {
           academic_year?: string | null
           active?: boolean
           code?: string | null
+          code_expires_at?: string | null
           created_at?: string
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
           id?: number
           name: string
           subject_id?: number | null
@@ -678,7 +873,10 @@ export type Database = {
           academic_year?: string | null
           active?: boolean
           code?: string | null
+          code_expires_at?: string | null
           created_at?: string
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
           id?: number
           name?: string
           subject_id?: number | null
@@ -1443,10 +1641,13 @@ export type Database = {
           avatar: string | null
           converted_at: string | null
           created_at: string
+          deactivated_at: string | null
+          deactivation_reason: string | null
           email: string | null
           expires_at: string | null
           id: string
           points: number | null
+          reactivate_at: string | null
           role_id: string | null
           visibility: string
         }
@@ -1456,10 +1657,13 @@ export type Database = {
           avatar?: string | null
           converted_at?: string | null
           created_at?: string
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
           email?: string | null
           expires_at?: string | null
           id: string
           points?: number | null
+          reactivate_at?: string | null
           role_id?: string | null
           visibility?: string
         }
@@ -1469,10 +1673,13 @@ export type Database = {
           avatar?: string | null
           converted_at?: string | null
           created_at?: string
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
           email?: string | null
           expires_at?: string | null
           id?: string
           points?: number | null
+          reactivate_at?: string | null
           role_id?: string | null
           visibility?: string
         }
@@ -1909,6 +2116,8 @@ export type Database = {
         Row: {
           academic_year: string | null
           active: boolean | null
+          archive_reason: string | null
+          archived_at: string | null
           code: string
           created_at: string
           description: string | null
@@ -1917,6 +2126,7 @@ export type Database = {
           id: number
           is_archived: boolean
           name: string
+          retention_until: string | null
           subject_label: string | null
           teacher_id: string | null
           theme_color: string | null
@@ -1924,6 +2134,8 @@ export type Database = {
         Insert: {
           academic_year?: string | null
           active?: boolean | null
+          archive_reason?: string | null
+          archived_at?: string | null
           code: string
           created_at?: string
           description?: string | null
@@ -1932,6 +2144,7 @@ export type Database = {
           id?: number
           is_archived?: boolean
           name: string
+          retention_until?: string | null
           subject_label?: string | null
           teacher_id?: string | null
           theme_color?: string | null
@@ -1939,6 +2152,8 @@ export type Database = {
         Update: {
           academic_year?: string | null
           active?: boolean | null
+          archive_reason?: string | null
+          archived_at?: string | null
           code?: string
           created_at?: string
           description?: string | null
@@ -1947,6 +2162,7 @@ export type Database = {
           id?: number
           is_archived?: boolean
           name?: string
+          retention_until?: string | null
           subject_label?: string | null
           teacher_id?: string | null
           theme_color?: string | null
@@ -3001,7 +3217,17 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_has_permission: { Args: { p_permission: string }; Returns: boolean }
       admin_update_support_ticket: {
+        Args: {
+          p_admin_response?: string
+          p_priority?: string
+          p_status: string
+          p_ticket_id: number
+        }
+        Returns: Json
+      }
+      admin_update_support_ticket_secured: {
         Args: {
           p_admin_response?: string
           p_priority?: string
@@ -3018,6 +3244,10 @@ export type Database = {
       assert_topic_playable: {
         Args: { p_topic_id: number }
         Returns: undefined
+      }
+      assign_admin_role: {
+        Args: { p_reason: string; p_role_id: string; p_user_id: string }
+        Returns: Json
       }
       assign_manual_review_attempts: {
         Args: { p_assignee_id: string; p_attempt_ids: number[] }
@@ -3044,6 +3274,32 @@ export type Database = {
       }
       can_read_profile: { Args: { p_profile_id: string }; Returns: boolean }
       cancel_account_deletion: { Args: { p_request_id: string }; Returns: Json }
+      claim_admin_export_jobs: {
+        Args: { p_limit?: number; p_worker_id: string }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          export_type: string
+          filters: Json
+          id: string
+          processed_rows: number
+          requested_by: string
+          row_count: number | null
+          started_at: string | null
+          status: string
+          storage_path: string | null
+          updated_at: string
+          worker_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "admin_export_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_notification_delivery_batch: {
         Args: { p_limit?: number; p_worker_id: string }
         Returns: {
@@ -3145,6 +3401,10 @@ export type Database = {
       }
       cleanup_auth_rate_limits: { Args: never; Returns: number }
       cleanup_expired_guests: { Args: { p_limit?: number }; Returns: number }
+      complete_admin_export_job: {
+        Args: { p_job_id: string; p_row_count: number; p_storage_path: string }
+        Returns: undefined
+      }
       complete_teacher_audit_export: {
         Args: {
           p_error_message?: string
@@ -3259,6 +3519,11 @@ export type Database = {
         Args: { p_featured_badge_id?: string; p_frame_key?: string }
         Returns: Json
       }
+      expire_admin_export_jobs: { Args: never; Returns: number }
+      fail_admin_export_job: {
+        Args: { p_error_message: string; p_job_id: string }
+        Returns: undefined
+      }
       finish_game_attempt: {
         Args: { p_attempt_id: string; p_status?: string }
         Returns: Json
@@ -3327,6 +3592,33 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_admin_audit_logs_page_secured: {
+        Args: {
+          p_action?: string
+          p_actor_id?: string
+          p_from?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_severity?: string
+          p_target_id?: string
+          p_target_table?: string
+          p_to?: string
+        }
+        Returns: {
+          action: string
+          actor_alias: string
+          actor_email: string
+          admin_id: string
+          created_at: string
+          id: number
+          metadata: Json
+          severity: string
+          target_id: string
+          target_table: string
+          total_count: number
+        }[]
+      }
       get_admin_classrooms_page: {
         Args: {
           p_active?: boolean
@@ -3342,7 +3634,12 @@ export type Database = {
         Returns: {
           active: boolean
           code: string
+          code_expires_at: string
+          code_status: string
           created_at: string
+          deactivated_at: string
+          deactivation_reason: string
+          duplicate_code_count: number
           enrollments_count: number
           id: number
           incidents_count: number
@@ -3360,6 +3657,37 @@ export type Database = {
       get_admin_dashboard_metrics: { Args: never; Returns: Json }
       get_admin_directory_filters: { Args: never; Returns: Json }
       get_admin_enrollments_summary: { Args: never; Returns: Json }
+      get_admin_export_download_path: {
+        Args: { p_job_id: string }
+        Returns: Json
+      }
+      get_admin_export_jobs_page: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          export_type: string
+          filters: Json
+          id: string
+          processed_rows: number
+          requested_by: string
+          row_count: number | null
+          started_at: string | null
+          status: string
+          storage_path: string | null
+          updated_at: string
+          worker_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "admin_export_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_admin_portal_context: { Args: never; Returns: Json }
       get_admin_profile_activity_page: {
         Args: {
           p_event_type?: string
@@ -3401,13 +3729,22 @@ export type Database = {
         Returns: {
           active: boolean
           activity_state: string
+          admin_permissions: string[]
+          admin_role_name: string
           alias: string
+          change_count: number
           created_at: string
+          deactivated_at: string
+          deactivation_reason: string
           email: string
           enrollment_count: number
           id: string
           last_activity_at: string
+          last_sign_in_at: string
+          mfa_factor_count: number
+          reactivate_at: string
           role_id: string
+          security_status: string
           subject_count: number
           total_count: number
         }[]
@@ -3415,6 +3752,31 @@ export type Database = {
       get_admin_push_delivery_metrics: {
         Args: { p_days?: number }
         Returns: Json
+      }
+      get_admin_role_assignments_page: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          alias: string
+          assigned_at: string
+          assigned_by: string
+          email: string
+          permissions: string[]
+          role_id: string
+          role_name: string
+          total_count: number
+          user_id: string
+        }[]
+      }
+      get_admin_roles: {
+        Args: never
+        Returns: {
+          assigned_count: number
+          description: string
+          id: string
+          name: string
+          permissions: string[]
+          system: boolean
+        }[]
       }
       get_admin_subjects_page: {
         Args: {
@@ -3429,9 +3791,14 @@ export type Database = {
         }
         Returns: {
           active: boolean
+          archive_reason: string
+          archived_at: string
           classes_count: number
           created_at: string
+          deletion_eligible_at: string
+          duplicate_code_count: number
           enrollments_count: number
+          expired_code_count: number
           id: number
           inactive_classrooms_count: number
           incidents_count: number
@@ -3439,7 +3806,9 @@ export type Database = {
           last_activity_at: string
           missing_code_count: number
           name: string
+          orphaned: boolean
           pending_reviews_count: number
+          retention_until: string
           teacher_alias: string
           teacher_email: string
           teacher_id: string
@@ -3481,7 +3850,58 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_admin_support_tickets_page_secured: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_priority?: string
+          p_role?: string
+          p_search?: string
+          p_status?: string
+        }
+        Returns: {
+          admin_response: string
+          assigned_admin_id: string
+          attachment_count: number
+          category: string
+          contact_email: string
+          created_at: string
+          first_responded_at: string
+          first_response_due_at: string
+          id: number
+          last_response_at: string
+          message: string
+          message_count: number
+          priority: string
+          resolution_due_at: string
+          resolved_at: string
+          role: string
+          status: string
+          subject: string
+          total_count: number
+          updated_at: string
+          user_alias: string
+          user_email: string
+          user_id: string
+        }[]
+      }
       get_admin_usage_analytics: { Args: { p_days?: number }; Returns: Json }
+      get_admin_user_change_history_page: {
+        Args: { p_limit?: number; p_offset?: number; p_profile_id: string }
+        Returns: {
+          action: string
+          actor_alias: string
+          after_state: Json
+          before_state: Json
+          change_source: string
+          changed_by: string
+          created_at: string
+          id: number
+          profile_id: string
+          reason: string
+          total_count: number
+        }[]
+      }
       get_attempt_feedback: {
         Args: { p_attempt_history_id: number }
         Returns: Json
@@ -3940,6 +4360,7 @@ export type Database = {
       }
       get_teacher_topic_summary: { Args: { p_topic_id: number }; Returns: Json }
       initialize_guest_profile: { Args: { p_alias: string }; Returns: Json }
+      invoke_admin_export_processor: { Args: never; Returns: undefined }
       invoke_notification_delivery_worker: { Args: never; Returns: number }
       invoke_support_email_processor: { Args: never; Returns: undefined }
       invoke_teacher_digest_processor: { Args: never; Returns: undefined }
@@ -3970,6 +4391,7 @@ export type Database = {
       join_subject_by_code: { Args: { p_code: string }; Returns: Json }
       mark_notifications_read: { Args: { p_ids: string[] }; Returns: number }
       normalize_answer_text: { Args: { value: string }; Returns: string }
+      reactivate_due_admin_users: { Args: never; Returns: number }
       recalculate_student_points: {
         Args: { p_student_id: string }
         Returns: number
@@ -3995,6 +4417,10 @@ export type Database = {
       }
       request_account_data_export: { Args: never; Returns: Json }
       request_account_deletion: { Args: never; Returns: Json }
+      request_admin_export_job: {
+        Args: { p_export_type: string; p_filters?: Json }
+        Returns: Json
+      }
       request_teacher_audit_export: {
         Args: { p_filters?: Json }
         Returns: Json

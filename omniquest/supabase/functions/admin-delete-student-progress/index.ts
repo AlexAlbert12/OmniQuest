@@ -1,4 +1,4 @@
-import { errorResponse, methodNotAllowedResponse, corsHeaders, getAdminContext, isResponse, json, readJsonBody, writeAdminAudit } from '../_shared/admin.ts'
+import { errorResponse, methodNotAllowedResponse, corsHeaders, getAdminContext, isResponse, json, readJsonBody, writeAdminAudit, writeAdminUserHistory } from '../_shared/admin.ts'
 
 type RequestBody = {
   studentId?: string
@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return methodNotAllowedResponse()
 
   try {
-    const context = await getAdminContext(req)
+    const context = await getAdminContext(req, 'users.manage')
     if (isResponse(context)) return context
 
     const body = await readJsonBody<RequestBody>(req)
@@ -45,6 +45,15 @@ Deno.serve(async (req) => {
       .rpc('sync_student_points', { student_id: studentId })
 
     if (syncPointsError) throw syncPointsError
+
+    await writeAdminUserHistory(context.adminClient, {
+      action: 'admin.student.delete_progress',
+      adminUserId: context.adminUserId,
+      profileId: studentId,
+      reason: 'Eliminación administrativa de progreso',
+      before: { points: profile.points },
+      after: { points: syncedPoints, deleted },
+    })
 
     await writeAdminAudit(context.adminClient, {
       action: 'admin.student.delete_progress',

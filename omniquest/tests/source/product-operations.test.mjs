@@ -27,7 +27,7 @@ test('usage analytics records game lifecycle, errors and badge unlocks', () => {
 test('admin exports fetch every server page while preserving current filters', () => {
   const exports = read('lib/adminExports.ts')
   const csv = read('lib/reportExports.ts')
-  const admin = read('components/admin/portal/AdminTeachersSection.tsx') + read('components/admin/portal/AdminStudentsSection.tsx') + read('components/admin/portal/AdminCoursesSection.tsx') + read('components/admin/portal/AdminClassroomsSection.tsx') + read('components/admin/portal/AdminSearchBar.tsx')
+  const admin = read('components/admin/users/AdminTeachersSection.tsx') + read('components/admin/users/AdminStudentsSection.tsx') + read('components/admin/courses/AdminCoursesSection.tsx') + read('components/admin/classrooms/AdminClassroomsSection.tsx') + read('components/admin/shared/AdminSearchBar.tsx')
 
   assert.match(exports, /fetchAllRpcRows/)
   assert.match(exports, /get_admin_profiles_page/)
@@ -42,7 +42,7 @@ test('admin exports fetch every server page while preserving current filters', (
 
 test('admin support has a paginated queue, protected update RPC and user-visible replies', () => {
   const migration = read('supabase/migrations/20260720110000_product_operations.sql')
-  const admin = read('components/admin/portal/AdminSupportSection.tsx')
+  const admin = read('components/admin/support/AdminSupportSection.tsx')
   const sharedHelp = read('components/support/RoleHelpCenter.tsx')
   const studentHelp = read('app/(student)/help-center.tsx') + sharedHelp
   const teacherHelp = read('app/(teacher)/help-center.tsx') + sharedHelp
@@ -63,7 +63,7 @@ test('global search is role-aware and injected into admin and teacher headers', 
   const migration = read('supabase/migrations/20260720110000_product_operations.sql')
   const search = read('components/search/GlobalSearchButton.tsx')
   const teacherHeader = read('components/teacher/TeacherPageHeader.tsx')
-  const admin = read('components/admin/portal/AdminPortalCore.tsx')
+  const admin = read('components/admin/shared/AdminScaffold.tsx')
 
   assert.match(migration, /search_app_entities/)
   assert.match(migration, /if v_role = 'admin'/)
