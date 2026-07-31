@@ -16,14 +16,15 @@
     "test:security": "npm run test:source && npm run test:db",
     "types:supabase": "supabase gen types typescript --linked --schema public > types/database.types.ts",
     "deploy:push": "supabase functions deploy send-push-notification && supabase functions deploy teacher-student-reminder && supabase functions deploy process-notification-delivery --no-verify-jwt",
-    "deploy:operations": "supabase functions deploy process-notification-delivery --no-verify-jwt && supabase functions deploy process-teacher-digests --no-verify-jwt",
+    "deploy:operations": "supabase functions deploy process-notification-delivery --no-verify-jwt && supabase functions deploy process-teacher-digests --no-verify-jwt && supabase functions deploy process-support-email-delivery --no-verify-jwt",
     "deploy:security": "supabase functions deploy manage-account-security",
     "deploy:media": "supabase functions deploy process-question-media && supabase functions deploy cleanup-question-media --no-verify-jwt",
     "audit:design-system": "node scripts/audit-design-system.mjs",
     "audit:accessibility": "node scripts/audit-accessibility-responsive.mjs",
     "deploy:auth": "supabase functions deploy auth-attempt-guard --no-verify-jwt",
     "test:auth-forms": "node --test tests/source/auth-public-flows.behavior.test.mjs",
-    "deploy:audit-exports": "supabase functions deploy process-teacher-audit-exports --no-verify-jwt"
+    "deploy:audit-exports": "supabase functions deploy process-teacher-audit-exports --no-verify-jwt",
+    "deploy:support-email": "supabase functions deploy process-support-email-delivery --no-verify-jwt"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",

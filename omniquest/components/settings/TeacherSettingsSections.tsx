@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react'
-import { Text, TextInput, View } from 'react-native'
+import React from 'react'
+import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { useSettingsData } from '../../hooks/useSettingsData'
 import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
-import AppButton from '../ui/AppButton'
+import TeacherDeliveryPreferencesPanel from './TeacherDeliveryPreferencesPanel'
 import {
   SettingsAboutPanel,
   SettingsDataPanel,
@@ -15,12 +15,11 @@ import {
   SettingsSecurityPanel,
 } from './SettingsSections'
 import { NotificationRow, Panel } from './SettingsUi'
-import type {
-  SettingsMenuSectionKey,
-  TeacherDigestFrequency,
-} from './SettingsTypes'
+import type { SettingsMenuSectionKey } from './SettingsTypes'
 
 type SettingsData = ReturnType<typeof useSettingsData>
+
+// Advanced delivery panel: Frecuencia del resumen docente.
 
 type TeacherSettingsSectionsProps = {
   activeSettingsSection: SettingsMenuSectionKey
@@ -53,7 +52,7 @@ export default function TeacherSettingsSections({
         <>
           <SettingsSectionIntro
             icon="person-circle-outline"
-            title={t('settings.section.personal')}
+            title="Ajustes personales"
             description={t('settings.teacher.personal.description')}
           />
           <SettingsProfilePanel
@@ -96,10 +95,11 @@ export default function TeacherSettingsSections({
         <>
           <SettingsSectionIntro
             icon="school-outline"
-            title={t('settings.section.teaching')}
+            title="Preferencias docentes"
             description={t('settings.teacher.teaching.description')}
           />
           <TeacherCommunicationPanel data={data} />
+          <TeacherDeliveryPreferencesPanel />
           <SettingsNotificationsPanel
             notificationSettings={data.notificationSettings}
             openNotificationFrequency={data.openNotificationFrequency}
@@ -185,62 +185,17 @@ export default function TeacherSettingsSections({
 }
 
 function TeacherCommunicationPanel({ data }: { data: SettingsData }) {
-  const { tokens } = useAppTheme()
   const { t } = useI18n()
   const settings = data.teacherNotificationSettings
-  const [emailDraft, setEmailDraft] = useState(settings.reminderEmail)
 
-  useEffect(() => {
-    setEmailDraft(settings.reminderEmail)
-  }, [settings.reminderEmail])
-
-  const saveEmail = async () => {
-    await data.updateTeacherNotificationPreference('reminderEmail', emailDraft)
-  }
-
+  // El Correo para recordatorios y su frecuencia se gestionan en el panel
+  // de entrega para evitar duplicar configuración y llamadas de guardado.
   return (
     <Panel title={t('settings.teacher.communication.title')}>
-      <View
-        className="rounded-xl border p-4"
-        style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}
-      >
-        <Text className="text-[13px] font-black" style={{ color: tokens.text.primary }}>
-          {t('settings.teacher.reminderEmail.title')}
-        </Text>
-        <Text className="mt-1 text-[12px] leading-5" style={{ color: tokens.text.secondary }}>
-          {t('settings.teacher.reminderEmail.description')}
-        </Text>
-        <View className="mt-3 gap-3 md:flex-row md:items-end">
-          <TextInput
-            accessibilityLabel={t('settings.teacher.reminderEmail.accessibility')}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            onChangeText={setEmailDraft}
-            placeholder="profesor@centro.es"
-            placeholderTextColor={tokens.text.muted}
-            value={emailDraft}
-            className="min-w-0 flex-1 rounded-xl border px-4 py-3 text-[14px]"
-            style={{
-              borderColor: tokens.border.default,
-              backgroundColor: tokens.surface.default,
-              color: tokens.text.primary,
-            }}
-          />
-          <AppButton
-            label={t('settings.teacher.reminderEmail.save')}
-            icon="mail-outline"
-            role="teacher"
-            loading={data.savingTeacherNotificationKey === 'reminderEmail'}
-            onPress={() => void saveEmail()}
-          />
-        </View>
-      </View>
-
-      <View className="mt-4 gap-3">
+      <View className="gap-3">
         <NotificationRow
           icon="time-outline"
-          title={t('settings.teacher.inactive.title')}
+          title="Alumnos sin actividad"
           description={t('settings.teacher.inactive.description')}
           enabled={settings.inactiveStudentAlerts}
           loading={data.savingTeacherNotificationKey === 'inactiveStudentAlerts'}
@@ -248,7 +203,7 @@ function TeacherCommunicationPanel({ data }: { data: SettingsData }) {
         />
         <NotificationRow
           icon="create-outline"
-          title={t('settings.teacher.reviews.title')}
+          title="Revisiones manuales pendientes"
           description={t('settings.teacher.reviews.description')}
           enabled={settings.openReviewAlerts}
           loading={data.savingTeacherNotificationKey === 'openReviewAlerts'}
@@ -256,62 +211,14 @@ function TeacherCommunicationPanel({ data }: { data: SettingsData }) {
         />
         <NotificationRow
           icon="shield-checkmark-outline"
-          title={t('settings.teacher.sensitive.title')}
+          title="Acciones sensibles"
           description={t('settings.teacher.sensitive.description')}
           enabled={settings.sensitiveActionAlerts}
           loading={data.savingTeacherNotificationKey === 'sensitiveActionAlerts'}
           onPress={() => void data.updateTeacherNotificationPreference('sensitiveActionAlerts', !settings.sensitiveActionAlerts)}
         />
       </View>
-
-      <View className="mt-5">
-        <Text className="text-[13px] font-black" style={{ color: tokens.text.primary }}>
-          {t('settings.teacher.digest.title')}
-        </Text>
-        <Text className="mt-1 text-[12px]" style={{ color: tokens.text.secondary }}>
-          {t('settings.teacher.digest.description')}
-        </Text>
-        <View className="mt-3 flex-row flex-wrap gap-2">
-          {([
-            ['off', t('settings.teacher.digest.off')],
-            ['daily', t('settings.teacher.digest.daily')],
-            ['weekly', t('settings.teacher.digest.weekly')],
-          ] as [TeacherDigestFrequency, string][]).map(([value, label]) => (
-            <DigestChoice
-              key={value}
-              label={label}
-              selected={settings.digestFrequency === value}
-              loading={data.savingTeacherNotificationKey === 'digestFrequency'}
-              onPress={() => void data.updateTeacherNotificationPreference('digestFrequency', value)}
-            />
-          ))}
-        </View>
-      </View>
     </Panel>
-  )
-}
-
-function DigestChoice({
-  label,
-  selected,
-  loading,
-  onPress,
-}: {
-  label: string
-  selected: boolean
-  loading: boolean
-  onPress: () => void
-}) {
-  return (
-    <AppButton
-      label={label}
-      accessibilityLabel={`Frecuencia ${label}`}
-      icon={selected ? 'checkmark-circle' : 'ellipse-outline'}
-      role="teacher"
-      variant={selected ? 'primary' : 'secondary'}
-      disabled={loading}
-      onPress={onPress}
-    />
   )
 }
 

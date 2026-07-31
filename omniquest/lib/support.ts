@@ -6,6 +6,7 @@ export type SupportRole = 'student' | 'teacher' | 'admin' | 'system'
 export type SupportTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
 export type SupportTicketPriority = 'low' | 'medium' | 'high'
 export type SupportTicketCategory = 'plataforma' | 'cursos' | 'preguntas' | 'cuenta' | 'otro'
+export type SupportContactPreference = 'in_app' | 'email' | 'both'
 
 export type SupportTicket = {
   id: number
@@ -23,7 +24,39 @@ export type SupportTicket = {
   first_response_due_at: string | null
   resolution_due_at: string | null
   first_responded_at: string | null
+  preferred_channel: SupportContactPreference
+  contact_email: string | null
+  message_count?: number
+  attachment_count?: number
 }
+
+export type SupportTicketPage = {
+  tickets: SupportTicket[]
+  total: number
+  hasMore: boolean
+}
+
+export type SupportContactChannel = {
+  channel_key: string
+  label: string
+  channel_type: 'in_app' | 'email' | 'url'
+  value: string | null
+  description: string | null
+  enabled: boolean
+  sort_order: number
+}
+
+export type SupportEmailDelivery = {
+  id: number
+  ticket_id: number
+  message_id: number | null
+  subject: string
+  status: 'queued' | 'processing' | 'sent' | 'retry' | 'failed' | 'cancelled'
+  sent_at: string | null
+  error_message: string | null
+  created_at: string
+}
+
 
 export type SupportMessage = {
   id: number
@@ -57,6 +90,8 @@ export type PickedSupportAttachment = {
 export type SupportThread = {
   messages: SupportMessage[]
   attachments: SupportAttachment[]
+  hasMore: boolean
+  nextBeforeId: number | null
 }
 
 const SUPPORT_ATTACHMENT_BUCKET = 'support-attachments'
@@ -64,45 +99,105 @@ const SUPPORT_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024
 const SUPPORT_ATTACHMENT_TTL_SECONDS = 10 * 60
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'text/plain'])
 
-const TICKET_SELECT = 'id, user_id, role, subject, message, category, status, priority, created_at, updated_at, resolved_at, last_response_at, first_response_due_at, resolution_due_at, first_responded_at'
+const TICKET_SELECT = 'id, user_id, role, subject, message, category, status, priority, preferred_channel, contact_email, created_at, updated_at, resolved_at, last_response_at, first_response_due_at, resolution_due_at, first_responded_at'
 
 export async function fetchOwnSupportTickets(limit = 30) {
+  const page = await fetchOwnSupportTicketsPage({ limit, offset: 0 })
+  return page.tickets
+}
+
+export async function fetchOwnSupportTicketsPage({
+  limit = 10,
+  offset = 0,
+}: {
+  limit?: number
+  offset?: number
+} = {}): Promise<SupportTicketPage> {
+  const { data, error } = await supabase.rpc('get_own_support_tickets_page', {
+    p_limit: limit,
+    p_offset: offset,
+  })
+  if (error) throw error
+  const rows = (data || []) as Array<Record<string, unknown>>
+  const tickets = rows.map(mapSupportTicket)
+  const total = Number(rows[0]?.total_count || 0)
+  return { tickets, total, hasMore: offset + tickets.length < total }
+}
+
+export async function fetchOwnSupportTicketById(ticketId: number): Promise<SupportTicket | null> {
   const { data, error } = await supabase
     .from('user_support_tickets')
     .select(TICKET_SELECT)
-    .order('updated_at', { ascending: false })
-    .limit(limit)
+    .eq('id', ticketId)
+    .maybeSingle()
   if (error) throw error
-  return (data || []) as SupportTicket[]
+  return data ? mapSupportTicket(data as unknown as Record<string, unknown>) : null
 }
 
 export async function fetchSupportThread(ticketId: number): Promise<SupportThread> {
-  const [messagesResult, attachmentsResult] = await Promise.all([
-    supabase
-      .from('support_ticket_messages')
-      .select('id, ticket_id, author_id, author_role, body, created_at')
-      .eq('ticket_id', ticketId)
-      .order('created_at', { ascending: true })
-      .order('id', { ascending: true }),
-    supabase
-      .from('support_ticket_attachments')
-      .select('id, ticket_id, message_id, storage_path, file_name, mime_type, size_bytes, created_at')
-      .eq('ticket_id', ticketId)
-      .order('created_at', { ascending: true }),
-  ])
-  if (messagesResult.error) throw messagesResult.error
-  if (attachmentsResult.error) throw attachmentsResult.error
+  return fetchSupportThreadPage({ ticketId })
+}
 
-  const attachments = await Promise.all(((attachmentsResult.data || []) as Omit<SupportAttachment, 'signedUrl'>[]).map(async (attachment) => {
-    const { data } = await supabase.storage
-      .from(SUPPORT_ATTACHMENT_BUCKET)
-      .createSignedUrl(attachment.storage_path, SUPPORT_ATTACHMENT_TTL_SECONDS)
-    return { ...attachment, signedUrl: data?.signedUrl || null }
-  }))
-
+export async function fetchSupportThreadPage({
+  ticketId,
+  limit = 30,
+  beforeId = null,
+}: {
+  ticketId: number
+  limit?: number
+  beforeId?: number | null
+}): Promise<SupportThread> {
+  const { data, error } = await supabase.rpc('get_support_thread_page', {
+    p_ticket_id: ticketId,
+    p_limit: limit,
+    p_before_id: beforeId ?? undefined,
+  })
+  if (error) throw error
+  const payload = isObject(data) ? data : {}
+  const messages = Array.isArray(payload.messages) ? payload.messages.map(mapSupportMessage) : []
+  const rawAttachments = Array.isArray(payload.attachments) ? payload.attachments.map(mapSupportAttachment) : []
+  const attachments = await signSupportAttachments(rawAttachments)
   return {
-    messages: (messagesResult.data || []) as SupportMessage[],
+    messages,
     attachments,
+    hasMore: payload.has_more === true,
+    nextBeforeId: payload.next_before_id == null ? null : Number(payload.next_before_id),
+  }
+}
+
+export async function fetchSupportContactChannels(): Promise<SupportContactChannel[]> {
+  const { data, error } = await supabase.rpc('get_support_contact_channels')
+  if (error) throw error
+  return ((data || []) as Array<Record<string, unknown>>).map((row) => ({
+    channel_key: String(row.channel_key || ''),
+    label: String(row.label || 'Canal de soporte'),
+    channel_type: row.channel_type === 'email' || row.channel_type === 'url' ? row.channel_type : 'in_app',
+    value: typeof row.value === 'string' ? row.value : null,
+    description: typeof row.description === 'string' ? row.description : null,
+    enabled: row.enabled !== false,
+    sort_order: Number(row.sort_order || 0),
+  }))
+}
+
+export async function fetchOwnSupportEmailHistory(limit = 10, offset = 0) {
+  const { data, error } = await supabase.rpc('get_own_support_email_history', {
+    p_limit: limit,
+    p_offset: offset,
+  })
+  if (error) throw error
+  const rows = (data || []) as Array<Record<string, unknown>>
+  return {
+    deliveries: rows.map((row): SupportEmailDelivery => ({
+      id: Number(row.id),
+      ticket_id: Number(row.ticket_id),
+      message_id: row.message_id == null ? null : Number(row.message_id),
+      subject: String(row.subject || 'Respuesta de soporte'),
+      status: normalizeDeliveryStatus(row.status),
+      sent_at: typeof row.sent_at === 'string' ? row.sent_at : null,
+      error_message: typeof row.error_message === 'string' ? row.error_message : null,
+      created_at: String(row.created_at || new Date(0).toISOString()),
+    })),
+    total: Number(rows[0]?.total_count || 0),
   }
 }
 
@@ -114,6 +209,7 @@ export async function createSupportTicket({
   body,
   category,
   priority,
+  preferredChannel = 'in_app',
   attachment,
 }: {
   userId: string
@@ -123,6 +219,7 @@ export async function createSupportTicket({
   body: string
   category: SupportTicketCategory
   priority: SupportTicketPriority
+  preferredChannel?: SupportContactPreference
   attachment?: PickedSupportAttachment | null
 }) {
   const { data, error } = await supabase
@@ -135,6 +232,7 @@ export async function createSupportTicket({
       message: body.trim(),
       category,
       priority,
+      preferred_channel: preferredChannel,
       status: 'open',
     })
     .select(TICKET_SELECT)
@@ -150,7 +248,7 @@ export async function createSupportTicket({
     }
   }
 
-  return { ticket: data as SupportTicket, attachmentError }
+  return { ticket: mapSupportTicket(data as unknown as Record<string, unknown>), attachmentError }
 }
 
 export async function addSupportReply({
@@ -213,6 +311,19 @@ export async function openSupportAttachment(attachment: SupportAttachment) {
   await Linking.openURL(attachment.signedUrl)
 }
 
+export async function openSupportContactChannel(channel: SupportContactChannel) {
+  if (!channel.value || channel.channel_type === 'in_app') {
+    throw new Error('Este canal se utiliza directamente dentro de OmniQuest.')
+  }
+
+  const target = channel.channel_type === 'email'
+    ? `mailto:${channel.value.trim()}`
+    : normalizeExternalUrl(channel.value)
+  const supported = await Linking.canOpenURL(target)
+  if (!supported) throw new Error('Este dispositivo no puede abrir el canal de contacto.')
+  await Linking.openURL(target)
+}
+
 async function uploadSupportAttachment(
   ticketId: number,
   messageId: number | null,
@@ -253,6 +364,95 @@ async function uploadSupportAttachment(
   }
 }
 
+async function signSupportAttachments(attachments: Omit<SupportAttachment, 'signedUrl'>[]) {
+  return Promise.all(attachments.map(async (attachment) => {
+    const { data } = await supabase.storage
+      .from(SUPPORT_ATTACHMENT_BUCKET)
+      .createSignedUrl(attachment.storage_path, SUPPORT_ATTACHMENT_TTL_SECONDS)
+    return { ...attachment, signedUrl: data?.signedUrl || null }
+  }))
+}
+
+function mapSupportTicket(row: Record<string, unknown>): SupportTicket {
+  return {
+    id: Number(row.id),
+    user_id: String(row.user_id || ''),
+    role: row.role === 'teacher' ? 'teacher' : 'student',
+    subject: String(row.subject || ''),
+    message: String(row.message || ''),
+    category: isSupportCategory(row.category) ? row.category : 'otro',
+    status: isSupportStatus(row.status) ? row.status : 'open',
+    priority: isSupportPriority(row.priority) ? row.priority : 'medium',
+    preferred_channel: normalizeSupportPreference(row.preferred_channel),
+    contact_email: typeof row.contact_email === 'string' ? row.contact_email : null,
+    created_at: String(row.created_at || new Date(0).toISOString()),
+    updated_at: String(row.updated_at || new Date(0).toISOString()),
+    resolved_at: typeof row.resolved_at === 'string' ? row.resolved_at : null,
+    last_response_at: typeof row.last_response_at === 'string' ? row.last_response_at : null,
+    first_response_due_at: typeof row.first_response_due_at === 'string' ? row.first_response_due_at : null,
+    resolution_due_at: typeof row.resolution_due_at === 'string' ? row.resolution_due_at : null,
+    first_responded_at: typeof row.first_responded_at === 'string' ? row.first_responded_at : null,
+    message_count: row.message_count == null ? undefined : Number(row.message_count),
+    attachment_count: row.attachment_count == null ? undefined : Number(row.attachment_count),
+  }
+}
+
+function mapSupportMessage(value: unknown): SupportMessage {
+  const row = isObject(value) ? value : {}
+  return {
+    id: Number(row.id),
+    ticket_id: Number(row.ticket_id),
+    author_id: typeof row.author_id === 'string' ? row.author_id : null,
+    author_role: isSupportRole(row.author_role) ? row.author_role : 'system',
+    body: String(row.body || ''),
+    created_at: String(row.created_at || new Date(0).toISOString()),
+  }
+}
+
+function mapSupportAttachment(value: unknown): Omit<SupportAttachment, 'signedUrl'> {
+  const row = isObject(value) ? value : {}
+  return {
+    id: String(row.id || ''),
+    ticket_id: Number(row.ticket_id),
+    message_id: row.message_id == null ? null : Number(row.message_id),
+    storage_path: String(row.storage_path || ''),
+    file_name: String(row.file_name || 'adjunto'),
+    mime_type: String(row.mime_type || 'application/octet-stream'),
+    size_bytes: Number(row.size_bytes || 0),
+    created_at: String(row.created_at || new Date(0).toISOString()),
+  }
+}
+
+function normalizeSupportPreference(value: unknown): SupportContactPreference {
+  return value === 'email' || value === 'both' ? value : 'in_app'
+}
+
+function normalizeDeliveryStatus(value: unknown): SupportEmailDelivery['status'] {
+  return value === 'processing' || value === 'sent' || value === 'retry' || value === 'failed' || value === 'cancelled'
+    ? value
+    : 'queued'
+}
+
+function isSupportCategory(value: unknown): value is SupportTicketCategory {
+  return value === 'plataforma' || value === 'cursos' || value === 'preguntas' || value === 'cuenta' || value === 'otro'
+}
+
+function isSupportStatus(value: unknown): value is SupportTicketStatus {
+  return value === 'open' || value === 'in_progress' || value === 'resolved' || value === 'closed'
+}
+
+function isSupportPriority(value: unknown): value is SupportTicketPriority {
+  return value === 'low' || value === 'medium' || value === 'high'
+}
+
+function isSupportRole(value: unknown): value is SupportRole {
+  return value === 'student' || value === 'teacher' || value === 'admin' || value === 'system'
+}
+
+function isObject(value: unknown): value is Record<string, any> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
 function sanitizeFileName(value: string) {
   return value
     .normalize('NFKD')
@@ -264,6 +464,12 @@ function sanitizeFileName(value: string) {
 
 function randomToken() {
   return Math.random().toString(36).slice(2, 10)
+}
+
+function normalizeExternalUrl(value: string) {
+  const trimmed = value.trim()
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
 }
 
 function inferMimeType(name: string) {

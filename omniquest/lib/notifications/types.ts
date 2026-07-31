@@ -22,6 +22,9 @@ export type AppNotification = {
   studentName?: string
   actionUrl?: string
   source?: 'database' | 'derived'
+  severity?: 'critical' | 'informative'
+  category?: string
+  subjectId?: number
 }
 
 export type AudienceState = {

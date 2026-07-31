@@ -1,327 +1,210 @@
-// NotificationFeed composes NotificationListItem and NotificationEmptyState and keeps the
-// visible action “Marcar todas como leídas” alongside swipe alternatives.
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Text, useWindowDimensions, View } from 'react-native'
-import { useFocusEffect, useRouter } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
-import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
-import AppButton from '../../components/ui/AppButton'
-import AppTabs from '../../components/ui/AppTabs'
+import React, { useCallback, useEffect, useMemo } from 'react'
+import { View } from 'react-native'
+import { useRouter } from 'expo-router'
+import TeacherScreenLayout from '../../components/layouts/TeacherScreenLayout'
 import NotificationFeed from '../../components/notifications/NotificationFeed'
+// NotificationFeed reuses NotificationListItem and NotificationEmptyState; the visible action remains “Marcar todas como leídas”.
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
-import { useNotifications, type AppNotification } from '../../hooks/useNotifications'
-import { useAppTheme } from '../../lib/appTheme'
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
-import { supabase } from '../../lib/supabase'
+import AppButton from '../../components/ui/AppButton'
+import AppStatusBanner from '../../components/ui/AppStatusBanner'
+import AppTabs from '../../components/ui/AppTabs'
+import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import { useAppModal } from '../../components/AppModalProvider'
+import {
+  useTeacherNotifications,
+  type TeacherNotificationBucket,
+  type TeacherNotificationCategory,
+} from '../../hooks/teacher/useTeacherNotifications'
+import type { AppNotification } from '../../lib/notifications/types'
+import { useAppTheme } from '../../lib/appTheme'
+import { useResponsiveLayout } from '../../lib/responsive'
+import { supabase } from '../../lib/supabase'
 
-type NotificationFilter = 'all' | 'unread' | 'students' | 'review' | 'courses' | 'system' | 'audit'
-
-const filterOptions: { key: NotificationFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'all', label: 'Todas', icon: 'list-outline' },
-  { key: 'unread', label: 'Sin leer', icon: 'mail-unread-outline' },
-  { key: 'students', label: 'Alumnos', icon: 'people-outline' },
-  { key: 'review', label: 'Revisión', icon: 'create-outline' },
-  { key: 'courses', label: 'Cursos', icon: 'book-outline' },
-  { key: 'system', label: 'Sistema', icon: 'megaphone-outline' },
-  { key: 'audit', label: 'Auditoría', icon: 'shield-checkmark-outline' },
+const bucketTabs = [
+  { key: 'all' as const, label: 'Todas', icon: 'list-outline' as const },
+  { key: 'critical' as const, label: 'Críticas', icon: 'alert-circle-outline' as const },
+  { key: 'informative' as const, label: 'Informativas', icon: 'information-circle-outline' as const },
 ]
 
-const categoryLabels: Record<Exclude<NotificationFilter, 'all' | 'unread'>, string> = {
-  students: 'Alumnos',
-  review: 'Revisión',
-  courses: 'Cursos',
-  system: 'Sistema',
-  audit: 'Auditoría',
-}
-
-type TeacherAttentionSummary = {
-  pendingReviews: number
-  inactiveStudents: number
-  sensitiveActions: number
-}
-
-const EMPTY_ATTENTION_SUMMARY: TeacherAttentionSummary = {
-  pendingReviews: 0,
-  inactiveStudents: 0,
-  sensitiveActions: 0,
-}
+const categoryTabs = [
+  { key: 'all' as const, label: 'Todas' },
+  { key: 'students' as const, label: 'Alumnos' },
+  { key: 'review' as const, label: 'Revisión' },
+  { key: 'courses' as const, label: 'Cursos' },
+  { key: 'system' as const, label: 'Sistema' },
+  { key: 'audit' as const, label: 'Auditoría' },
+]
 
 export default function TeacherNotificationsScreen() {
-  const { width } = useWindowDimensions()
   const router = useRouter()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
   const { showModal } = useAppModal()
-  const {
-    notifications,
-    unreadCount,
-    total,
-    loading,
-    loadingMore,
-    hasMore,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    refresh,
-    loadMore,
-    error,
-    clearError,
-  } = useNotifications('teacher')
-  const [refreshing, setRefreshing] = useState(false)
-  const [selectedFilter, setSelectedFilter] = useState<NotificationFilter>('all')
-  const [attentionSummary, setAttentionSummary] = useState<TeacherAttentionSummary>(EMPTY_ATTENTION_SUMMARY)
-  const isDesktop = width >= 1080
-
-  const filteredNotifications = useMemo(() => {
-    if (selectedFilter === 'all') return notifications
-    if (selectedFilter === 'unread') return notifications.filter((notification) => !notification.isRead)
-    return notifications.filter((notification) => getTeacherNotificationCategory(notification) === selectedFilter)
-  }, [notifications, selectedFilter])
-
-  const tabs = useMemo(() => filterOptions.map((option) => ({
-    ...option,
-    badge: option.key === 'all'
-      ? total
-      : option.key === 'unread'
-        ? unreadCount
-        : notifications.filter((notification) => getTeacherNotificationCategory(notification) === option.key).length,
-  })), [notifications, total, unreadCount])
-
-  const fetchAttentionSummary = useCallback(async () => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession()
-      const teacherId = sessionData.session?.user.id
-      if (!teacherId) return
-
-      const subjectsResult = await supabase
-        .from('subjects')
-        .select('id')
-        .eq('teacher_id', teacherId)
-        .eq('is_archived', false)
-
-      if (subjectsResult.error) throw subjectsResult.error
-      const subjectIds = ((subjectsResult.data || []) as { id: number }[]).map((subject) => Number(subject.id))
-
-      const [reviewResult, auditResult, enrollmentsResult, scoresResult] = await Promise.all([
-        supabase.rpc('get_teacher_manual_review_queue', {
-          p_subject_id: undefined,
-          p_classroom_id: undefined,
-          p_status: 'pending',
-          p_search: undefined,
-          p_limit: 1,
-          p_offset: 0,
-        }),
-        supabase.rpc('get_teacher_audit_logs_page', {
-          p_category: 'all',
-          p_search: undefined,
-          p_limit: 1,
-          p_offset: 0,
-        }),
-        subjectIds.length > 0
-          ? supabase.from('enrollments').select('student_id, subject_id').in('subject_id', subjectIds)
-          : Promise.resolve({ data: [], error: null }),
-        subjectIds.length > 0
-          ? supabase.from('subject_scores').select('student_id, subject_id, max_score').in('subject_id', subjectIds)
-          : Promise.resolve({ data: [], error: null }),
-      ])
-
-      const enrolledStudents = new Set<string>()
-      for (const row of (enrollmentsResult.data || []) as { student_id?: string | null }[]) {
-        if (row.student_id) enrolledStudents.add(row.student_id)
-      }
-      const activeStudents = new Set<string>()
-      for (const row of (scoresResult.data || []) as { student_id?: string | null; max_score?: number | null }[]) {
-        if (row.student_id && Number(row.max_score || 0) > 0) activeStudents.add(row.student_id)
-      }
-
-      const reviewPayload = (reviewResult.data || {}) as { total?: number | null }
-      const auditRows = (auditResult.data || []) as { total_count?: number | null }[]
-      setAttentionSummary({
-        pendingReviews: Number(reviewPayload.total || 0),
-        inactiveStudents: [...enrolledStudents].filter((studentId) => !activeStudents.has(studentId)).length,
-        sensitiveActions: Number(auditRows[0]?.total_count || 0),
-      })
-    } catch (error) {
-      console.warn('No se pudo cargar el resumen docente de notificaciones:', error)
-    }
-  }, [])
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true)
-    await Promise.all([refresh(), fetchAttentionSummary()])
-    setRefreshing(false)
-  }, [fetchAttentionSummary, refresh])
-
-  useFocusEffect(useCallback(() => {
-    void refresh()
-    void fetchAttentionSummary()
-  }, [fetchAttentionSummary, refresh]))
+  const notifications = useTeacherNotifications()
 
   useEffect(() => {
-    if (!error) return
-    showModal({ title: 'Error de notificaciones', message: error, variant: 'error' })
-    clearError()
-  }, [clearError, error, showModal])
+    if (!notifications.error) return
+    showModal({ title: 'Error de notificaciones', message: notifications.error, variant: 'error' })
+    notifications.clearError()
+  }, [notifications, showModal])
 
-  const handleNotificationAction = async (notification: AppNotification) => {
-    if (!notification.isRead) await markAsRead(notification.id)
-    if (notification.actionUrl) router.push(notification.actionUrl as any)
-  }
-
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut()
-    router.replace('/(auth)/login' as any)
-  }
+    router.replace('/(auth)/login' as never)
+  }, [router])
 
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: tokens.background.primary }}>
-        <ActivityIndicator size="large" color={tokens.brand.teacher} />
-        <Text className="mt-4" style={{ color: tokens.text.muted }}>Cargando notificaciones…</Text>
-      </View>
-    )
-  }
+  const tabs = useMemo(() => bucketTabs.map((tab) => ({
+    ...tab,
+    badge: tab.key === 'all'
+      ? notifications.total
+      : tab.key === 'critical'
+        ? notifications.criticalCount
+        : notifications.informativeCount,
+  })), [notifications.criticalCount, notifications.informativeCount, notifications.total])
 
   const header = (
-    <>
+    <View>
       <TeacherPageHeader
         icon="notifications"
-        isDesktop={isDesktop}
+        isDesktop={responsive.isDesktop}
         title="Centro de notificaciones"
         mobileTitle="Notificaciones"
-        subtitle={unreadCount > 0 ? `Tienes ${unreadCount} novedad${unreadCount === 1 ? '' : 'es'} por revisar` : 'Todas las notificaciones están al día'}
+        subtitle={notifications.activeFilterDescription}
         showNotifications={false}
         actions={(
-          <View className="flex-row gap-2">
+          <View style={{ flexDirection: 'row', gap: 8 }}>
             <AppButton
-              accessibilityLabel="Actualizar notificaciones"
-              icon="refresh-outline"
-              iconOnly={!isDesktop}
-              label={isDesktop ? 'Actualizar' : undefined}
-              loading={refreshing}
+              accessibilityLabel="Abrir preferencias de notificaciones"
+              icon="options-outline"
+              iconOnly={!responsive.isDesktop}
+              label={responsive.isDesktop ? 'Preferencias' : undefined}
+              role="teacher"
               size="sm"
               variant="secondary"
-              onPress={() => void onRefresh()}
+              onPress={() => router.push('/(teacher)/settings?section=teaching' as never)}
             />
-            {unreadCount > 0 ? (
+            {notifications.unreadCount > 0 ? (
               <AppButton
-                accessibilityLabel="Marcar las notificaciones cargadas como leídas"
+                accessibilityLabel="Marcar notificaciones cargadas como leídas"
                 icon="checkmark-done-outline"
-                iconOnly={!isDesktop}
-                label={isDesktop ? 'Marcar cargadas como leídas' : undefined}
+                iconOnly={!responsive.isDesktop}
+                label={responsive.isDesktop ? 'Marcar leídas' : undefined}
                 role="teacher"
                 size="sm"
-                onPress={() => void markAllAsRead()}
+                onPress={() => void notifications.markAllAsRead()}
               />
             ) : null}
           </View>
         )}
       />
 
-      <View className={`${isDesktop ? 'flex-row' : 'flex-row flex-wrap'} mb-5 gap-3`}>
-        <MobileMetricCard
-          compact
-          className="min-w-[170px] flex-1"
-          semantic="attention"
-          label="Pendientes de revisar"
-          value={attentionSummary.pendingReviews}
-          detail="Respuestas abiertas"
-          onPress={() => router.push('/(teacher)/reviews' as any)}
+      {notifications.summary.mutedUntil && new Date(notifications.summary.mutedUntil).getTime() > Date.now() ? (
+        <AppStatusBanner
+          style={{ marginBottom: 14 }}
+          variant="info"
+          title="Notificaciones informativas silenciadas"
+          message={`El silencio temporal termina el ${new Date(notifications.summary.mutedUntil).toLocaleString('es-ES')}. Las alertas críticas continúan activas.`}
+          actionLabel="Reactivar ahora"
+          onAction={() => void notifications.muteUntil(null)}
         />
-        <MobileMetricCard
-          compact
-          className="min-w-[170px] flex-1"
-          icon="time"
-          color={tokens.semantic.info}
-          label="Sin actividad"
-          value={attentionSummary.inactiveStudents}
-          detail="Alumnos por activar"
-          onPress={() => router.push('/(teacher)/students?status=no_activity' as any)}
-        />
-        <MobileMetricCard
-          compact
-          className="min-w-[170px] flex-1"
-          semantic="audit"
-          label="Acciones sensibles"
-          value={attentionSummary.sensitiveActions}
-          detail="Trazabilidad docente"
-          onPress={() => router.push('/(teacher)/audit' as any)}
-        />
+      ) : (
+        <View style={{ marginBottom: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <AppButton label="Silenciar 1 hora" icon="volume-mute-outline" size="sm" variant="secondary" onPress={() => void notifications.muteUntil(new Date(Date.now() + 60 * 60 * 1000).toISOString())} />
+          <AppButton label="Silenciar hasta mañana" icon="moon-outline" size="sm" variant="secondary" onPress={() => void notifications.muteUntil(nextMorningIso())} />
+        </View>
+      )}
+
+      <View style={{ marginBottom: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        <MobileMetricCard compact className="min-w-[165px] flex-1" semantic="attention" label="Pendientes de revisar" value={notifications.summary.pendingReviews} detail="Respuestas abiertas" onPress={() => router.push('/(teacher)/reviews' as never)} />
+        <MobileMetricCard compact className="min-w-[165px] flex-1" icon="time" color={tokens.semantic.info} label="Sin actividad" value={notifications.summary.inactiveStudents} detail="Últimos 7 días" onPress={() => router.push('/(teacher)/students?status=no_activity' as never)} />
+        <MobileMetricCard compact className="min-w-[165px] flex-1" semantic="audit" label="Acciones sensibles" value={notifications.summary.sensitiveActions} detail="Últimos 7 días" onPress={() => router.push('/(teacher)/audit' as never)} />
       </View>
 
-      <AppTabs<NotificationFilter>
-        accessibilityLabel="Filtrar notificaciones"
+      <AppTabs<TeacherNotificationBucket>
+        accessibilityLabel="Separar alertas críticas e informativas"
         compact
+        fill
         role="teacher"
         items={tabs}
-        value={selectedFilter}
-        onChange={setSelectedFilter}
+        value={notifications.bucket}
+        onChange={notifications.setBucket}
       />
 
-      <View className="mb-3 mt-5 flex-row items-center justify-between gap-3">
-        <View className="min-w-0 flex-1">
-          <Text className="text-[20px] font-black" style={{ color: tokens.text.primary }}>{getSectionTitle(selectedFilter)}</Text>
-          <Text className="mt-1 text-[11px]" style={{ color: tokens.text.muted }}>
-            Usa los botones visibles para marcar o eliminar; en móvil también puedes deslizar.
-          </Text>
-        </View>
-        <View className="rounded-full px-3 py-1.5" style={{ backgroundColor: tokens.surface.interactive }}>
-          <Text className="text-[11px] font-black" style={{ color: tokens.text.secondary }}>{filteredNotifications.length}/{total}</Text>
-        </View>
+      <View style={{ marginTop: 10 }}>
+        <AppTabs<TeacherNotificationCategory>
+          accessibilityLabel="Filtrar notificaciones docentes por categoría"
+          compact
+          role="teacher"
+          items={categoryTabs}
+          value={notifications.category}
+          onChange={notifications.setCategory}
+        />
       </View>
-    </>
+
+      <View style={{ marginTop: 10, marginBottom: 6, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <AppButton
+          label={notifications.unreadOnly ? 'Mostrando sin leer' : 'Solo sin leer'}
+          icon={notifications.unreadOnly ? 'mail-unread' : 'mail-unread-outline'}
+          role="teacher"
+          size="sm"
+          variant={notifications.unreadOnly ? 'primary' : 'secondary'}
+          onPress={() => notifications.setUnreadOnly(!notifications.unreadOnly)}
+        />
+        <AppButton label="Actualizar" icon="refresh-outline" loading={notifications.refreshing} size="sm" variant="secondary" onPress={() => void notifications.refresh()} />
+      </View>
+    </View>
   )
 
   return (
-    <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
-      <View className="flex-1 flex-row">
-        {isDesktop ? <TeacherSidebar activeSection="notifications" subjectsCount={0} onSignOut={handleSignOut} /> : null}
-
-        <NotificationFeed
-          audience="teacher"
-          notifications={filteredNotifications}
-          unreadOnly={selectedFilter === 'unread'}
-          compact={!isDesktop}
-          swipeEnabled={!isDesktop}
-          hasMore={hasMore}
-          loadingMore={loadingMore}
-          refreshing={refreshing}
-          header={header}
-          contentContainerStyle={{
-            width: '100%',
-            maxWidth: 1240,
-            alignSelf: 'center',
-            paddingHorizontal: isDesktop ? 28 : 18,
-            paddingTop: isDesktop ? 28 : 18,
-            paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER,
-          }}
-          categoryLabel={(notification) => categoryLabels[getTeacherNotificationCategory(notification)]}
-          onPress={handleNotificationAction}
-          onMarkAsRead={(notification) => markAsRead(notification.id)}
-          onDelete={(notification) => deleteNotification(notification.id)}
-          onRefresh={onRefresh}
-          onLoadMore={loadMore}
-        />
-      </View>
-      {!isDesktop ? <TeacherBottomNav active="notifications" /> : null}
-    </View>
+    <TeacherScreenLayout
+      isDesktop={responsive.isDesktop}
+      loading={notifications.loading}
+      loadingLabel="Cargando notificaciones docentes…"
+      scroll={false}
+      maxContentWidth={1240}
+      contentContainerStyle={{ flex: 1 }}
+      desktopSidebar={<TeacherSidebar activeSection="notifications" subjectsCount={0} onSignOut={() => void handleSignOut()} />}
+      mobileBottomNavigation={<TeacherBottomNav active="notifications" />}
+    >
+      <NotificationFeed
+        audience="teacher"
+        notifications={notifications.notifications}
+        unreadOnly={notifications.unreadOnly}
+        hasMore={notifications.hasMore}
+        loadingMore={notifications.loadingMore}
+        refreshing={notifications.refreshing}
+        header={header}
+        categoryLabel={teacherCategoryLabel}
+        onPress={async (notification) => {
+          await notifications.markAsRead(notification)
+          if (notification.actionUrl) router.push(notification.actionUrl as never)
+        }}
+        onMarkAsRead={notifications.markAsRead}
+        onDelete={notifications.deleteNotification}
+        onRefresh={notifications.refresh}
+        onLoadMore={notifications.loadMore}
+        contentContainerStyle={{ paddingBottom: responsive.isDesktop ? 36 : 100 }}
+      />
+    </TeacherScreenLayout>
   )
 }
 
-function getTeacherNotificationCategory(notification: AppNotification): Exclude<NotificationFilter, 'all' | 'unread'> {
-  const searchable = `${notification.title} ${notification.description} ${notification.actionUrl || ''}`.toLowerCase()
-
-  if (searchable.includes('/reviews') || searchable.includes('revisi') || searchable.includes('respuesta abierta')) return 'review'
-  if (searchable.includes('/audit') || searchable.includes('auditor') || searchable.includes('acción sensible') || searchable.includes('codigo regenerado') || searchable.includes('código regenerado')) return 'audit'
-  if (notification.type === 'enrollment' || notification.type === 'student_activity') return 'students'
-  if (notification.type === 'new_class') return 'courses'
-  return 'system'
+function teacherCategoryLabel(notification: AppNotification) {
+  const labels: Record<string, string> = {
+    students: 'Alumnos',
+    review: 'Revisión',
+    courses: 'Cursos',
+    system: 'Sistema',
+    audit: 'Auditoría',
+  }
+  return labels[notification.category || 'system'] || 'Sistema'
 }
 
-function getSectionTitle(filter: NotificationFilter) {
-  if (filter === 'all') return 'Novedades docentes'
-  if (filter === 'unread') return 'Sin leer'
-  return categoryLabels[filter]
+function nextMorningIso() {
+  const date = new Date()
+  date.setDate(date.getDate() + 1)
+  date.setHours(8, 0, 0, 0)
+  return date.toISOString()
 }

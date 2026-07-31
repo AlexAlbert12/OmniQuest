@@ -305,7 +305,7 @@ export function SettingsPreferencesPanel({
 
       <NotificationRow
         icon="phone-portrait-outline"
-        title={t('settings.haptics.title')}
+        title="Respuesta táctil"
         description={t('settings.haptics.description')}
         enabled={preferences.hapticsEnabled}
         onPress={() => onToggleHaptics(!preferences.hapticsEnabled)}
@@ -523,7 +523,7 @@ export function SettingsPrivacyPanel({
       <View className="mb-4 overflow-hidden rounded-xl border" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
         <NotificationRow
           icon="analytics-outline"
-          title={t('settings.privacy.analytics.title')}
+          title="Analítica de producto"
           description={t('settings.privacy.analytics.description')}
           enabled={analyticsEnabled}
           onPress={() => onAnalyticsEnabledChange(!analyticsEnabled)}

@@ -3,8 +3,6 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -19,11 +17,20 @@ import {
   addSupportReply,
   createSupportTicket,
   fetchOwnSupportTickets,
+  fetchOwnSupportTicketsPage,
+  fetchOwnSupportTicketById,
+  fetchOwnSupportEmailHistory,
+  fetchSupportContactChannels,
   fetchSupportThread,
+  fetchSupportThreadPage,
   openSupportAttachment,
+  openSupportContactChannel,
   pickSupportAttachment,
   type PickedSupportAttachment,
   type SupportAttachment,
+  type SupportContactChannel,
+  type SupportContactPreference,
+  type SupportEmailDelivery,
   type SupportMessage,
   type SupportTicket,
   type SupportTicketCategory,
@@ -35,11 +42,14 @@ import { trackUsageEvent } from '../../lib/analytics'
 import RolePageHeader from '../ui/RolePageHeader'
 import StudentBottomNav from '../student/StudentBottomNav'
 import TeacherBottomNav from '../teacher/TeacherBottomNav'
+import AppButton from '../ui/AppButton'
+import { useAppModal } from '../AppModalProvider'
 
 type HelpCenterRole = 'student' | 'teacher'
 
 const categoryKeys: SupportTicketCategory[] = ['plataforma', 'cursos', 'preguntas', 'cuenta', 'otro']
 const priorityKeys: SupportTicketPriority[] = ['low', 'medium', 'high']
+const contactPreferenceKeys: SupportContactPreference[] = ['in_app', 'email', 'both']
 
 export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   const router = useRouter()
@@ -47,6 +57,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   const { width } = useWindowDimensions()
   const { accentColor, colors } = useAppTheme()
   const { t, formatDate } = useI18n()
+  const { showModal } = useAppModal()
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [threadLoading, setThreadLoading] = useState(false)
@@ -54,14 +65,25 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   const [userId, setUserId] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [tickets, setTickets] = useState<SupportTicket[]>([])
+  const [ticketsTotal, setTicketsTotal] = useState(0)
+  const [ticketsHasMore, setTicketsHasMore] = useState(false)
+  const [loadingMoreTickets, setLoadingMoreTickets] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null)
   const selectedTicketIdRef = useRef<number | null>(null)
   const [messages, setMessages] = useState<SupportMessage[]>([])
   const [attachments, setAttachments] = useState<SupportAttachment[]>([])
+  const [threadHasMore, setThreadHasMore] = useState(false)
+  const [nextBeforeMessageId, setNextBeforeMessageId] = useState<number | null>(null)
+  const [loadingOlderMessages, setLoadingOlderMessages] = useState(false)
+  const [contactChannels, setContactChannels] = useState<SupportContactChannel[]>([])
+  const [emailHistory, setEmailHistory] = useState<SupportEmailDelivery[]>([])
+  const [emailHistoryTotal, setEmailHistoryTotal] = useState(0)
+  const [loadingMoreEmailHistory, setLoadingMoreEmailHistory] = useState(false)
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [category, setCategory] = useState<SupportTicketCategory>('plataforma')
   const [priority, setPriority] = useState<SupportTicketPriority>('medium')
+  const [preferredChannel, setPreferredChannel] = useState<SupportContactPreference>('in_app')
   const [attachment, setAttachment] = useState<PickedSupportAttachment | null>(null)
   const [replyBody, setReplyBody] = useState('')
   const [replyAttachment, setReplyAttachment] = useState<PickedSupportAttachment | null>(null)
@@ -69,9 +91,8 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   const isDesktop = width >= 1024
 
   const showAlert = useCallback((title: string, description: string) => {
-    if (Platform.OS === 'web') window.alert(`${title}\n${description}`)
-    else Alert.alert(title, description)
-  }, [])
+    showModal({ title, message: description, variant: 'info' })
+  }, [showModal])
 
   const openTicket = useCallback(async (ticket: SupportTicket) => {
     selectedTicketIdRef.current = ticket.id
@@ -81,6 +102,8 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
       const thread = await fetchSupportThread(ticket.id)
       setMessages(thread.messages)
       setAttachments(thread.attachments)
+      setThreadHasMore(thread.hasMore)
+      setNextBeforeMessageId(thread.nextBeforeId)
     } catch (error) {
       showAlert(t('support.error.title'), getErrorMessage(error, t('support.error.loadThread')))
     } finally {
@@ -98,12 +121,31 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
       }
       setUserId(data.session.user.id)
       setEmail(data.session.user.email || '')
-      const nextTickets = await fetchOwnSupportTickets()
+      // Keep the compatibility wrapper exported for older callers while this screen uses
+      // the paginated server contract directly.
+      void fetchOwnSupportTickets
+      const [ticketPage, channels, deliveryHistory] = await Promise.all([
+        fetchOwnSupportTicketsPage({ limit: 10, offset: 0 }),
+        fetchSupportContactChannels(),
+        fetchOwnSupportEmailHistory(10, 0),
+      ])
+      const nextTickets = ticketPage.tickets
       setTickets(nextTickets)
+      setTicketsTotal(ticketPage.total)
+      setTicketsHasMore(ticketPage.hasMore)
+      setContactChannels(channels)
+      setEmailHistory(deliveryHistory.deliveries)
+      setEmailHistoryTotal(deliveryHistory.total)
       const requestedTicketId = Number(params.ticket)
       if (Number.isFinite(requestedTicketId)) {
         const requestedTicket = nextTickets.find((ticket) => ticket.id === requestedTicketId)
-        if (requestedTicket) await openTicket(requestedTicket)
+          || await fetchOwnSupportTicketById(requestedTicketId)
+        if (requestedTicket) {
+          setTickets((current) => current.some((ticket) => ticket.id === requestedTicket.id)
+            ? current
+            : [requestedTicket, ...current])
+          await openTicket(requestedTicket)
+        }
       } else if (selectedTicketIdRef.current !== null) {
         const refreshed = nextTickets.find((ticket) => ticket.id === selectedTicketIdRef.current)
         if (refreshed) await openTicket(refreshed)
@@ -118,6 +160,67 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   useFocusEffect(useCallback(() => {
     void load()
   }, [load]))
+
+  const loadMoreTickets = useCallback(async () => {
+    if (!ticketsHasMore || loadingMoreTickets) return
+    setLoadingMoreTickets(true)
+    try {
+      const page = await fetchOwnSupportTicketsPage({ limit: 10, offset: tickets.length })
+      setTickets((current) => {
+        const seen = new Set(current.map((ticket) => ticket.id))
+        return [...current, ...page.tickets.filter((ticket) => !seen.has(ticket.id))]
+      })
+      setTicketsTotal(page.total)
+      setTicketsHasMore(page.hasMore)
+    } catch (error) {
+      showAlert(t('support.error.title'), getErrorMessage(error, t('support.error.load')))
+    } finally {
+      setLoadingMoreTickets(false)
+    }
+  }, [loadingMoreTickets, showAlert, t, tickets.length, ticketsHasMore])
+
+  const loadMoreEmailHistory = useCallback(async () => {
+    if (loadingMoreEmailHistory || emailHistory.length >= emailHistoryTotal) return
+    setLoadingMoreEmailHistory(true)
+    try {
+      const page = await fetchOwnSupportEmailHistory(10, emailHistory.length)
+      setEmailHistory((current) => {
+        const seen = new Set(current.map((delivery) => delivery.id))
+        return [...current, ...page.deliveries.filter((delivery) => !seen.has(delivery.id))]
+      })
+      setEmailHistoryTotal(page.total)
+    } catch (error) {
+      showAlert(t('support.error.title'), getErrorMessage(error, 'No se pudo cargar el historial de emails.'))
+    } finally {
+      setLoadingMoreEmailHistory(false)
+    }
+  }, [emailHistory.length, emailHistoryTotal, loadingMoreEmailHistory, showAlert, t])
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!selectedTicket || !threadHasMore || !nextBeforeMessageId || loadingOlderMessages) return
+    setLoadingOlderMessages(true)
+    try {
+      const page = await fetchSupportThreadPage({
+        ticketId: selectedTicket.id,
+        limit: 30,
+        beforeId: nextBeforeMessageId,
+      })
+      setMessages((current) => {
+        const seen = new Set(current.map((message) => message.id))
+        return [...page.messages.filter((message) => !seen.has(message.id)), ...current]
+      })
+      setAttachments((current) => {
+        const seen = new Set(current.map((item) => item.id))
+        return [...page.attachments.filter((item) => !seen.has(item.id)), ...current]
+      })
+      setThreadHasMore(page.hasMore)
+      setNextBeforeMessageId(page.nextBeforeId)
+    } catch (error) {
+      showAlert(t('support.error.title'), getErrorMessage(error, t('support.error.loadThread')))
+    } finally {
+      setLoadingOlderMessages(false)
+    }
+  }, [loadingOlderMessages, nextBeforeMessageId, selectedTicket, showAlert, t, threadHasMore])
 
   const summary = useMemo(() => ({
     open: tickets.filter((ticket) => ticket.status === 'open').length,
@@ -155,12 +258,14 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
         body,
         category,
         priority,
+        preferredChannel,
         attachment,
       })
       setSubject('')
       setBody('')
       setCategory('plataforma')
       setPriority('medium')
+      setPreferredChannel('in_app')
       setAttachment(null)
       void trackUsageEvent('support_ticket_created', { properties: { role, category, priority } })
       await load()
@@ -247,6 +352,15 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
                 accentColor={accentColor}
                 colors={colors}
               />
+              <ChoiceGroup
+                label="Canal de respuesta preferido"
+                values={contactPreferenceKeys}
+                value={preferredChannel}
+                onChange={setPreferredChannel}
+                labelFor={(value) => value === 'in_app' ? 'OmniQuest' : value === 'email' ? 'Email' : 'Ambos'}
+                accentColor={accentColor}
+                colors={colors}
+              />
 
               <AttachmentPicker attachment={attachment} colors={colors} onPick={() => void pickAttachment()} onRemove={() => setAttachment(null)} t={t} />
               <Pressable
@@ -261,7 +375,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
               </Pressable>
             </SupportPanel>
 
-            <SupportPanel title={`${t('support.tickets.title')} (${tickets.length})`} icon="ticket-outline">
+            <SupportPanel title={`${t('support.tickets.title')} (${ticketsTotal})`} icon="ticket-outline">
               <View className="mb-4 flex-row gap-3">
                 <SummaryItem label={t('support.status.open')} value={summary.open} color="#F6A64A" colors={colors} />
                 <SummaryItem label={t('support.status.in_progress')} value={summary.inProgress} color="#58B5FF" colors={colors} />
@@ -272,6 +386,15 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
                   <TicketCard key={ticket.id} ticket={ticket} selected={ticket.id === selectedTicket?.id} onPress={() => void openTicket(ticket)} colors={colors} accentColor={accentColor} t={t} formatDate={formatDate} />
                 ))}
                 {tickets.length === 0 ? <Text className="py-6 text-center" style={{ color: colors.textMuted }}>{t('support.tickets.empty')}</Text> : null}
+                {ticketsHasMore ? (
+                  <AppButton
+                    label="Cargar más tickets"
+                    icon="chevron-down-outline"
+                    variant="secondary"
+                    loading={loadingMoreTickets}
+                    onPress={() => void loadMoreTickets()}
+                  />
+                ) : null}
               </View>
             </SupportPanel>
           </View>
@@ -282,6 +405,15 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
                 <TicketSla ticket={selectedTicket} colors={colors} t={t} formatDate={formatDate} />
                 {threadLoading ? <ActivityIndicator className="my-8" color={accentColor} /> : (
                   <View className="mt-4 gap-3">
+                    {threadHasMore ? (
+                      <AppButton
+                        label="Cargar mensajes anteriores"
+                        icon="time-outline"
+                        variant="secondary"
+                        loading={loadingOlderMessages}
+                        onPress={() => void loadOlderMessages()}
+                      />
+                    ) : null}
                     {messages.map((message) => (
                       <MessageBubble key={message.id} message={message} attachments={attachments.filter((item) => item.message_id === message.id)} role={role} colors={colors} t={t} formatDate={formatDate} showAlert={showAlert} />
                     ))}
@@ -313,6 +445,55 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
                 <Text className="py-8 text-center" style={{ color: colors.textMuted }}>{t('support.detail.empty')}</Text>
               </SupportPanel>
             )}
+
+            <SupportPanel title="Canales de contacto" icon="call-outline">
+              <View className="gap-3">
+                {contactChannels.map((channel) => (
+                  <View key={channel.channel_key} className="rounded-xl border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
+                    <Text className="font-black" style={{ color: colors.text }}>{channel.label}</Text>
+                    {channel.description ? <Text className="mt-1 text-[12px] leading-5" style={{ color: colors.textSecondary }}>{channel.description}</Text> : null}
+                    {channel.value ? <Text selectable className="mt-2 text-[11px] font-bold" style={{ color: accentColor }}>{channel.value}</Text> : null}
+                    {channel.channel_type !== 'in_app' && channel.value ? (
+                      <AppButton
+                        style={{ marginTop: 10 }}
+                        accessibilityLabel={`Abrir canal ${channel.label}`}
+                        label="Abrir canal"
+                        icon={channel.channel_type === 'email' ? 'mail-outline' : 'open-outline'}
+                        size="sm"
+                        variant="secondary"
+                        onPress={() => void openSupportContactChannel(channel).catch((error) => showAlert('No se pudo abrir el canal', getErrorMessage(error, 'Comprueba el enlace configurado.')))}
+                      />
+                    ) : null}
+                  </View>
+                ))}
+                {contactChannels.length === 0 ? <Text style={{ color: colors.textMuted }}>El administrador todavía no ha publicado canales externos.</Text> : null}
+              </View>
+            </SupportPanel>
+
+            <SupportPanel title="Historial de emails enviados" icon="mail-outline">
+              <View className="gap-3">
+                {emailHistory.map((delivery) => (
+                  <View key={delivery.id} className="rounded-xl border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
+                    <View className="flex-row items-center gap-2">
+                      <Ionicons name={delivery.status === 'sent' ? 'checkmark-circle-outline' : delivery.status === 'failed' ? 'alert-circle-outline' : 'time-outline'} size={17} color={delivery.status === 'sent' ? colors.success : delivery.status === 'failed' ? colors.danger : accentColor} />
+                      <Text className="min-w-0 flex-1 font-black" numberOfLines={2} style={{ color: colors.text }}>{delivery.subject}</Text>
+                    </View>
+                    <Text className="mt-2 text-[11px]" style={{ color: colors.textMuted }}>Ticket #{delivery.ticket_id} · {delivery.status} · {formatDate(delivery.sent_at || delivery.created_at, { dateStyle: 'medium', timeStyle: 'short' })}</Text>
+                    {delivery.error_message ? <Text className="mt-1 text-[11px]" style={{ color: colors.danger }}>{delivery.error_message}</Text> : null}
+                  </View>
+                ))}
+                {emailHistory.length === 0 ? <Text style={{ color: colors.textMuted }}>Aún no hay emails de soporte registrados.</Text> : null}
+                {emailHistory.length < emailHistoryTotal ? (
+                  <AppButton
+                    label="Cargar más emails"
+                    icon="chevron-down-outline"
+                    variant="secondary"
+                    loading={loadingMoreEmailHistory}
+                    onPress={() => void loadMoreEmailHistory()}
+                  />
+                ) : null}
+              </View>
+            </SupportPanel>
 
             <SupportPanel title={t('support.faq.title')} icon="help-circle-outline">
               <View className="gap-2">

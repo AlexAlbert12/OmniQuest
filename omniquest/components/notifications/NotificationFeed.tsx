@@ -64,6 +64,7 @@ function NotificationFeed({
 
   return (
     <FlatList
+      style={{ flex: 1 }}
       data={rows}
       keyExtractor={(item: NotificationFeedRow) => item.key}
       renderItem={({ item }: { item: NotificationFeedRow }) => item.kind === 'date' ? (

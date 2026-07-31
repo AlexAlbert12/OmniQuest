@@ -1961,6 +1961,124 @@ export type Database = {
           },
         ]
       }
+      support_contact_channels: {
+        Row: {
+          channel_key: string
+          channel_type: string
+          description: string | null
+          enabled: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          channel_key: string
+          channel_type: string
+          description?: string | null
+          enabled?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          channel_key?: string
+          channel_type?: string
+          description?: string | null
+          enabled?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
+      support_email_deliveries: {
+        Row: {
+          attempts: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          id: number
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          message_id: number | null
+          next_attempt_at: string
+          provider_message_id: string | null
+          recipient_email: string
+          recipient_id: string
+          sent_at: string | null
+          status: string
+          subject: string
+          ticket_id: number
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: number
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          message_id?: number | null
+          next_attempt_at?: string
+          provider_message_id?: string | null
+          recipient_email: string
+          recipient_id: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          ticket_id: number
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: number
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          message_id?: number | null
+          next_attempt_at?: string
+          provider_message_id?: string | null
+          recipient_email?: string
+          recipient_id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          ticket_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_email_deliveries_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "support_ticket_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_email_deliveries_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_email_deliveries_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "user_support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_ticket_attachments: {
         Row: {
           created_at: string
@@ -2347,6 +2465,54 @@ export type Database = {
           },
         ]
       }
+      teacher_notification_course_preferences: {
+        Row: {
+          created_at: string
+          critical_enabled: boolean
+          digest_enabled: boolean
+          informative_enabled: boolean
+          muted_until: string | null
+          subject_id: number
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          critical_enabled?: boolean
+          digest_enabled?: boolean
+          informative_enabled?: boolean
+          muted_until?: string | null
+          subject_id: number
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          critical_enabled?: boolean
+          digest_enabled?: boolean
+          informative_enabled?: boolean
+          muted_until?: string | null
+          subject_id?: number
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_notification_course_preferences_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_notification_course_preferences_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_student_notes: {
         Row: {
           body: string
@@ -2560,10 +2726,15 @@ export type Database = {
           frequency: string
           news_enabled: boolean
           push_enabled: boolean
+          support_contact_email: string | null
+          support_preferred_channel: string
           teacher_digest_frequency: string
+          teacher_digest_hour: number
           teacher_digest_last_sent_at: string | null
           teacher_digest_unsubscribed_at: string | null
+          teacher_digest_weekday: number
           teacher_inactive_student_alerts: boolean
+          teacher_notifications_muted_until: string | null
           teacher_open_review_alerts: boolean
           teacher_reminder_email: string | null
           teacher_sensitive_action_alerts: boolean
@@ -2578,10 +2749,15 @@ export type Database = {
           frequency?: string
           news_enabled?: boolean
           push_enabled?: boolean
+          support_contact_email?: string | null
+          support_preferred_channel?: string
           teacher_digest_frequency?: string
+          teacher_digest_hour?: number
           teacher_digest_last_sent_at?: string | null
           teacher_digest_unsubscribed_at?: string | null
+          teacher_digest_weekday?: number
           teacher_inactive_student_alerts?: boolean
+          teacher_notifications_muted_until?: string | null
           teacher_open_review_alerts?: boolean
           teacher_reminder_email?: string | null
           teacher_sensitive_action_alerts?: boolean
@@ -2596,10 +2772,15 @@ export type Database = {
           frequency?: string
           news_enabled?: boolean
           push_enabled?: boolean
+          support_contact_email?: string | null
+          support_preferred_channel?: string
           teacher_digest_frequency?: string
+          teacher_digest_hour?: number
           teacher_digest_last_sent_at?: string | null
           teacher_digest_unsubscribed_at?: string | null
+          teacher_digest_weekday?: number
           teacher_inactive_student_alerts?: boolean
+          teacher_notifications_muted_until?: string | null
           teacher_open_review_alerts?: boolean
           teacher_reminder_email?: string | null
           teacher_sensitive_action_alerts?: boolean
@@ -2728,6 +2909,7 @@ export type Database = {
           id: number
           last_response_at: string | null
           message: string
+          preferred_channel: string
           priority: string
           resolution_due_at: string | null
           resolved_at: string | null
@@ -2748,6 +2930,7 @@ export type Database = {
           id?: number
           last_response_at?: string | null
           message: string
+          preferred_channel?: string
           priority?: string
           resolution_due_at?: string | null
           resolved_at?: string | null
@@ -2768,6 +2951,7 @@ export type Database = {
           id?: number
           last_response_at?: string | null
           message?: string
+          preferred_channel?: string
           priority?: string
           resolution_due_at?: string | null
           resolved_at?: string | null
@@ -2802,6 +2986,10 @@ export type Database = {
           p_audience?: string
           p_body: string
         }
+        Returns: Json
+      }
+      add_support_ticket_message: {
+        Args: { p_body: string; p_ticket_id: number }
         Returns: Json
       }
       add_teacher_student_note: {
@@ -2871,6 +3059,35 @@ export type Database = {
       claim_open_answer_attempt: {
         Args: { p_attempt_history_id: number }
         Returns: Json
+      }
+      claim_support_email_delivery_batch: {
+        Args: { p_limit?: number; p_worker_id: string }
+        Returns: {
+          attempts: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          id: number
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          message_id: number | null
+          next_attempt_at: string
+          provider_message_id: string | null
+          recipient_email: string
+          recipient_id: string
+          sent_at: string | null
+          status: string
+          subject: string
+          ticket_id: number
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "support_email_deliveries"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       claim_teacher_audit_export_requests: {
         Args: { p_limit?: number }
@@ -3045,6 +3262,17 @@ export type Database = {
       finish_game_attempt: {
         Args: { p_attempt_id: string; p_status?: string }
         Returns: Json
+      }
+      finish_support_email_delivery: {
+        Args: {
+          p_error_code?: string
+          p_error_message?: string
+          p_id: number
+          p_provider_message_id?: string
+          p_retry_after_seconds?: number
+          p_status: string
+        }
+        Returns: undefined
       }
       finish_teacher_digest: {
         Args: {
@@ -3297,6 +3525,45 @@ export type Database = {
         }
         Returns: Json
       }
+      get_own_support_email_history: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          error_message: string
+          id: number
+          message_id: number
+          sent_at: string
+          status: string
+          subject: string
+          ticket_id: number
+          total_count: number
+        }[]
+      }
+      get_own_support_tickets_page: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          attachment_count: number
+          category: string
+          contact_email: string
+          created_at: string
+          first_responded_at: string
+          first_response_due_at: string
+          id: number
+          last_response_at: string
+          message: string
+          message_count: number
+          preferred_channel: string
+          priority: string
+          resolution_due_at: string
+          resolved_at: string
+          role: string
+          status: string
+          subject: string
+          total_count: number
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_profile_cosmetics: {
         Args: { p_user_ids?: string[] }
         Returns: {
@@ -3395,6 +3662,29 @@ export type Database = {
         Args: { p_classroom_id?: number; p_subject_id?: number }
         Returns: Json
       }
+      get_support_contact_channels: {
+        Args: never
+        Returns: {
+          channel_key: string
+          channel_type: string
+          description: string | null
+          enabled: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+          value: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "support_contact_channels"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_support_thread_page: {
+        Args: { p_before_id?: number; p_limit?: number; p_ticket_id: number }
+        Returns: Json
+      }
       get_teacher_attention_students_page: {
         Args: { p_limit?: number; p_offset?: number }
         Returns: Json
@@ -3456,6 +3746,50 @@ export type Database = {
           p_status?: string
           p_subject_id?: number
         }
+        Returns: Json
+      }
+      get_teacher_notification_center_summary: { Args: never; Returns: Json }
+      get_teacher_notification_settings: { Args: never; Returns: Json }
+      get_teacher_notifications_page: {
+        Args: {
+          p_bucket?: string
+          p_category?: string
+          p_cursor_created_at?: string
+          p_cursor_id?: string
+          p_limit?: number
+          p_subject_id?: number
+          p_unread_only?: boolean
+        }
+        Returns: Json
+      }
+      get_teacher_profile_recent_questions_page: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          id: number
+          question_type: string
+          subject_id: number
+          subject_name: string
+          text: string
+          total_count: number
+        }[]
+      }
+      get_teacher_profile_recent_subjects_page: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          classroom_count: number
+          code: string
+          created_at: string
+          description: string
+          icon: string
+          id: number
+          name: string
+          student_count: number
+          total_count: number
+        }[]
+      }
+      get_teacher_profile_summary: {
+        Args: { p_period_days?: number }
         Returns: Json
       }
       get_teacher_question_affected_students_page: {
@@ -3607,6 +3941,7 @@ export type Database = {
       get_teacher_topic_summary: { Args: { p_topic_id: number }; Returns: Json }
       initialize_guest_profile: { Args: { p_alias: string }; Returns: Json }
       invoke_notification_delivery_worker: { Args: never; Returns: number }
+      invoke_support_email_processor: { Args: never; Returns: undefined }
       invoke_teacher_digest_processor: { Args: never; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_classroom_enrolled: {
@@ -3791,6 +4126,33 @@ export type Database = {
         }[]
       }
       set_analytics_consent: { Args: { p_enabled: boolean }; Returns: boolean }
+      set_teacher_course_notification_preference: {
+        Args: {
+          p_critical_enabled: boolean
+          p_digest_enabled: boolean
+          p_informative_enabled: boolean
+          p_muted_until?: string
+          p_subject_id: number
+        }
+        Returns: Json
+      }
+      set_teacher_digest_preference: {
+        Args: {
+          p_frequency: string
+          p_hour?: number
+          p_recipient_email?: string
+          p_weekday?: number
+        }
+        Returns: Json
+      }
+      set_teacher_notifications_mute: {
+        Args: { p_until?: string }
+        Returns: Json
+      }
+      set_teacher_support_preference: {
+        Args: { p_channel: string; p_contact_email?: string }
+        Returns: Json
+      }
       start_game_attempt: {
         Args: {
           p_classroom_id?: number
@@ -3838,6 +4200,23 @@ export type Database = {
       }
       sync_student_badges: { Args: never; Returns: Json }
       sync_student_points: { Args: { student_id: string }; Returns: number }
+      teacher_notification_category: {
+        Args: {
+          p_action_url: string
+          p_metadata: Json
+          p_title: string
+          p_type: string
+        }
+        Returns: string
+      }
+      teacher_notification_severity: {
+        Args: { p_metadata: Json; p_title: string; p_type: string }
+        Returns: string
+      }
+      teacher_notification_subject_id: {
+        Args: { p_metadata: Json }
+        Returns: number
+      }
       track_usage_event: {
         Args: {
           p_attempt_id?: string
