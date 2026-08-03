@@ -3,6 +3,7 @@ import { ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import AppButton from '../../ui/AppButton'
+import VirtualizedStack from '../../ui/VirtualizedStack'
 import AdminSearchBar from '../shared/AdminSearchBar'
 import AdminAuditTable from './AdminAuditTable'
 import { AdminDateRangeFields, AdminFilterSelect, toAdminFilterTimestamp, useAdminDirectoryFilters } from '../shared/AdminAdvancedFilters'
@@ -86,7 +87,7 @@ export function AdminAuditSection() {
         {activeFilterCount > 0 ? <View className="mt-3 flex-row items-center justify-between gap-3"><Text className="text-[11px] font-bold text-text-muted">{activeFilterCount} filtro(s) avanzado(s) activo(s)</Text><AppButton label="Limpiar filtros" size="sm" variant="ghost" icon="refresh-outline" onPress={clearFilters} /></View> : null}
         <View className="mt-4" style={{ gap: 12 }}>
           {auditPage.loading && !auditPage.refreshing ? <ListLoadingState /> : null}
-          {!auditPage.loading && auditPage.rows.length > 0 ? isDesktop ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ minWidth: 1260 }}><AdminAuditTable rows={auditPage.rows} /></ScrollView> : auditPage.rows.map((log) => <AuditLogCard key={`${log.id}-${log.created_at}`} log={log} data={data} />) : null}
+          {!auditPage.loading && auditPage.rows.length > 0 ? isDesktop ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ minWidth: 1260 }}><AdminAuditTable rows={auditPage.rows} /></ScrollView> : <VirtualizedStack data={auditPage.rows} keyExtractor={(log) => `${log.id}-${log.created_at}`} renderItem={(log) => <AuditLogCard log={log} data={data} />} accessibilityLabel="Registros de auditoría" /> : null}
           {!auditPage.loading && auditPage.rows.length === 0 ? <EmptyState label="No hay acciones de auditoría que coincidan con los filtros." /> : null}
         </View>
         <AdminPaginationControls page={auditPage.page} pageSize={auditPage.pageSize} total={auditPage.total} hasPrevious={auditPage.hasPrevious} hasNext={auditPage.hasNext} onPrevious={auditPage.previousPage} onNext={auditPage.nextPage} />

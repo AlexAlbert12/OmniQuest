@@ -32,7 +32,7 @@ test('question form is split into focused editors and a five-step wizard', () =>
 })
 
 test('teacher students prioritize attention and inactivity before an expandable desktop table', () => {
-  const screen = read('app/(teacher)/students.tsx')
+  const screen = read('features/teacher-students/screen.tsx')
   const desktop = read('components/teacher/students/TeacherStudentsDesktop.tsx')
   assert.match(screen, /TeacherStudentPrioritySections/)
   assert.match(screen, /TeacherStudentsDesktopTable/)

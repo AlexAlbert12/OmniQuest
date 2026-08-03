@@ -1,5 +1,6 @@
 import React from 'react'
 import { Text, View } from 'react-native'
+import VirtualizedStack from '../../ui/VirtualizedStack'
 import GamifiedAvatar from '../../gamification/GamifiedAvatar'
 import { formatRelativeDate } from '../../../lib/dateFormat'
 import type { RankingProfile } from '../../../hooks/student/useStudentRanking'
@@ -17,10 +18,14 @@ export default function RankingTable({ rows, currentUserId, emptyMessage }: { ro
         <Text className="w-32 text-right text-[11px] font-black uppercase text-text-muted">Actividad</Text>
         <Text className="w-28 text-right text-[11px] font-black uppercase text-text-muted">XP</Text>
       </View>
-      {rows.map((row) => {
-        const own = row.id === currentUserId
-        return (
-          <View key={row.id} className={`flex-row items-center border-b border-border-subtle px-5 py-3 ${own ? 'bg-surface-selected' : ''}`}>
+      <VirtualizedStack
+        data={rows}
+        keyExtractor={(row) => row.id}
+        gap={0}
+        renderItem={(row) => {
+          const own = row.id === currentUserId
+          return (
+          <View className={`flex-row items-center border-b border-border-subtle px-5 py-3 ${own ? 'bg-surface-selected' : ''}`}>
             <Text className="w-16 text-[17px] font-black text-text-primary">#{row.rank ?? '—'}</Text>
             <View className="min-w-0 flex-1 flex-row items-center gap-3">
               <GamifiedAvatar alias={row.alias} avatarUrl={row.avatar} cosmetics={row.cosmetics} size={42} showLevel={false} />
@@ -33,8 +38,10 @@ export default function RankingTable({ rows, currentUserId, emptyMessage }: { ro
             <Text className="w-32 text-right text-[12px] text-text-secondary">{formatRelativeDate(row.last_activity_at)}</Text>
             <Text className="w-28 text-right text-[17px] font-black text-gamification-xp">{row.points.toLocaleString()}</Text>
           </View>
-        )
-      })}
+          )
+        }}
+        accessibilityLabel="Tabla de clasificación"
+      />
     </View>
   )
 }

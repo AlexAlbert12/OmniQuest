@@ -38,7 +38,7 @@ test('buttons and tabs use shared accessible components', () => {
 })
 
 test('teacher desktop toolbars render horizontally instead of vertical ScrollViews', () => {
-  const students = read('app/(teacher)/students.tsx')
+  const students = read('features/teacher-students/screen.tsx')
   const subject = read('app/(teacher)/subject/[id].tsx')
 
   assert.match(students, /flexDirection: 'row', flexWrap: 'wrap'/)

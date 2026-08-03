@@ -1,6 +1,7 @@
 import React from 'react'
 import { Text, View } from 'react-native'
 import TeacherClassroomCard from './TeacherClassroomCard'
+import VirtualizedStack from '../../ui/VirtualizedStack'
 import type { TeacherClassroom, TeacherClassroomAnalytics, TeacherCourse } from './types'
 
 export default function TeacherClassroomsList({ analyticsByClassroom, classrooms, coursesById, isDesktop }: {
@@ -31,15 +32,20 @@ export default function TeacherClassroomsList({ analyticsByClassroom, classrooms
           <View className="w-[18px]" />
         </View>
       ) : null}
-      {classrooms.map((classroom) => (
-        <TeacherClassroomCard
-          key={classroom.id}
-          analytics={analyticsByClassroom[classroom.id] || { studentsCount: 0, questionsCount: 0, topicsCount: 0 }}
-          classroom={classroom}
-          course={classroom.subject_id ? coursesById[classroom.subject_id] : undefined}
-          isDesktop={isDesktop}
-        />
-      ))}
+      <VirtualizedStack
+        data={classrooms}
+        keyExtractor={(classroom) => String(classroom.id)}
+        gap={isDesktop ? 0 : 12}
+        renderItem={(classroom) => (
+          <TeacherClassroomCard
+            analytics={analyticsByClassroom[classroom.id] || { studentsCount: 0, questionsCount: 0, topicsCount: 0 }}
+            classroom={classroom}
+            course={classroom.subject_id ? coursesById[classroom.subject_id] : undefined}
+            isDesktop={isDesktop}
+          />
+        )}
+        accessibilityLabel="Clases del profesor"
+      />
     </View>
   )
 }

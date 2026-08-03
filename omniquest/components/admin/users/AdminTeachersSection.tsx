@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams } from 'expo-router'
 import { supabase } from '../../../lib/supabase'
 import AdminSearchBar from '../shared/AdminSearchBar'
+import VirtualizedStack from '../../ui/VirtualizedStack'
 import AdminUsersSection from './AdminUsersSection'
 import AdminBulkSelectionBar from '../shared/AdminBulkSelectionBar'
 import AdminGovernanceModal, { type AdminGovernanceMode, type AdminGovernanceResult } from '../shared/AdminGovernanceModal'
@@ -93,13 +94,13 @@ export function AdminTeachersSection() {
           <AdminSearchBar search={search} onChangeSearch={setSearch} placeholder="Buscar profesor por nombre o correo..." exporting={exporting || exportJobs.loading} onExport={canExport ? () => void handleExport() : undefined} />
           <AdminProfileFilters currentRole="teacher" directory={directory} accountStatus={accountStatus} activityState={activityState} courseId={courseId} classroomId={classroomId} createdFrom={createdFrom} createdTo={createdTo} onChangeAccountStatus={setAccountStatus} onChangeActivityState={setActivityState} onChangeCourseId={setCourseId} onChangeClassroomId={setClassroomId} onChangeCreatedFrom={setCreatedFrom} onChangeCreatedTo={setCreatedTo} />
           {canManage ? <AdminBulkSelectionBar count={selection.count} onClear={selection.clear} onSelectPage={() => selection.selectPage(page.rows.map((row) => row.id))} primaryLabel="Desactivar seleccionados" onPrimary={() => setGovernanceMode('deactivate-user')} secondaryLabel="Activar seleccionados" onSecondary={() => void actions.executeBulkAction({ action: 'activate_users', entity: 'profiles', ids: selection.selected }).then(() => { selection.clear(); page.refresh() })} /> : null}
-          <View className="mt-4" style={{ gap: 12 }}>{page.loading && !page.refreshing ? <ListLoadingState /> : null}{page.rows.map((profile) => <ProfileRowCard key={profile.id} profile={profile} meta={`${profile.subject_count ?? 0} curso(s)`} selected={selection.isSelected(profile.id)} onToggleSelected={canManage ? () => selection.toggle(profile.id) : undefined} actions={[
+          <View className="mt-4">{page.loading && !page.refreshing ? <ListLoadingState /> : null}<VirtualizedStack data={page.rows} keyExtractor={(profile) => profile.id} renderItem={(profile) => <ProfileRowCard profile={profile} meta={`${profile.subject_count ?? 0} curso(s)`} selected={selection.isSelected(profile.id)} onToggleSelected={canManage ? () => selection.toggle(profile.id) : undefined} actions={[
             { label: 'Ver actividad', icon: 'pulse-outline', onPress: () => actions.viewProfileActivity(profile) },
             { label: 'Historial de cambios', icon: 'git-compare-outline', onPress: () => setHistoryProfile(profile) },
             { label: 'Ver cursos', icon: 'book-outline', onPress: () => actions.router.push(`/(admin)/courses?teacherId=${profile.id}` as any) },
             { label: profile.active === false ? 'Activar' : 'Desactivar', icon: profile.active === false ? 'checkmark-circle-outline' : 'ban-outline', destructive: profile.active !== false, disabled: !canManage || profile.id === data.portalContext?.user_id, onPress: () => profile.active === false ? void actions.toggleProfileActive(profile) : (selection.selectPage([profile.id]), setGovernanceMode('deactivate-user')) },
             { label: 'Resetear contraseña', icon: 'key-outline', destructive: true, disabled: !canSecurity, onPress: () => void actions.resetPassword(profile) },
-          ]} />)}{!page.loading && page.rows.length === 0 ? <EmptyState label="No hay profesores que coincidan con los filtros." /> : null}</View>
+          ]} />} emptyComponent={!page.loading ? <EmptyState label="No hay profesores que coincidan con los filtros." /> : null} accessibilityLabel="Profesores administrados" /></View>
           <AdminPaginationControls page={page.page} pageSize={page.pageSize} total={page.total} hasPrevious={page.hasPrevious} hasNext={page.hasNext} onPrevious={page.previousPage} onNext={page.nextPage} />
         </Panel>}
       />

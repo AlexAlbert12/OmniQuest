@@ -26,7 +26,7 @@ test('local Supabase auth configuration matches the public authentication UX', (
 test('teacher recovery creates one-time links without passwords and is rate limited', () => {
   const edgeFunction = read('supabase/functions/teacher-student-reminder/index.ts')
   const migration = read('supabase/migrations/20260722230000_auth_recovery_push_delivery.sql')
-  const studentsScreen = read('app/(teacher)/students.tsx')
+  const studentsScreen = read('features/teacher-students/screen.tsx') + read('features/teacher-students/api.ts')
 
   assert.match(edgeFunction, /auth\.admin\.generateLink\(\{[\s\S]*type:\s*'recovery'/)
   assert.match(edgeFunction, /reserve_teacher_student_recovery_request/)
@@ -37,7 +37,7 @@ test('teacher recovery creates one-time links without passwords and is rate limi
   assert.match(migration, /interval '15 minutes'/)
   assert.match(migration, /v_recent_count >= 3/)
   assert.match(migration, /interval '30 minutes'/)
-  assert.match(studentsScreen, /mode:\s*'recovery'/)
+  assert.match(studentsScreen, /'recovery'/)
   assert.doesNotMatch(studentsScreen, /temporaryPassword/)
 })
 

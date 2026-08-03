@@ -3,6 +3,7 @@ import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import AppButton from '../../ui/AppButton'
 import AppPressable from '../../ui/AppPressable'
+import VirtualizedStack from '../../ui/VirtualizedStack'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
 import type { StudentRow } from './types'
@@ -151,12 +152,16 @@ export default function TeacherStudentsDesktopTable({
         <View className="w-[132px]" />
       </View>
 
-      {students.map((student, index) => {
-        const expanded = expandedStudentId === student.id
-        const status = getStatusMeta(student.status)
-        const mainCourse = student.courseContexts[0]
-        return (
-          <View key={student.id} style={{ borderTopWidth: index === 0 ? 0 : 1, borderTopColor: tokens.border.default }}>
+      <VirtualizedStack
+        data={students}
+        keyExtractor={(student) => student.id}
+        gap={0}
+        renderItem={(student, index) => {
+          const expanded = expandedStudentId === student.id
+          const status = getStatusMeta(student.status)
+          const mainCourse = student.courseContexts[0]
+          return (
+          <View style={{ borderTopWidth: index === 0 ? 0 : 1, borderTopColor: tokens.border.default }}>
             <AppPressable
               accessibilityLabel={`${student.alias}. ${status.label}. Abrir resumen`}
               accessibilityState={{ expanded }}
@@ -210,8 +215,10 @@ export default function TeacherStudentsDesktopTable({
               </View>
             ) : null}
           </View>
-        )
-      })}
+          )
+        }}
+        accessibilityLabel="Tabla de estudiantes"
+      />
     </View>
   )
 }

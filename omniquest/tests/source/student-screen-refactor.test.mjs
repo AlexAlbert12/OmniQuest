@@ -8,10 +8,14 @@ const testDir = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(testDir, '../..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
 
-test('student home delegates data loading and renders the learning-first section order', () => {
-  const home = read('app/(student)/homeStudent.tsx')
-  const hook = read('hooks/student/useStudentHome.ts')
+test('student home delegates one aggregate RPC and renders the learning-first section order', () => {
+  const route = read('app/(student)/homeStudent.tsx')
+  const home = read('features/student-home/screen.tsx')
+  const hook = read('features/student-home/useStudentHome.ts')
+  const api = read('features/student-home/api.ts')
+  const model = read('features/student-home/model.ts')
 
+  assert.match(route, /features\/student-home\/screen/)
   for (const component of [
     'StudentRecommendedAction',
     'StudentContinueCourse',
@@ -19,9 +23,7 @@ test('student home delegates data loading and renders the learning-first section
     'StudentHomeSummary',
     'StudentHomeAchievements',
     'StudentHomeRankingPreview',
-  ]) {
-    assert.match(home, new RegExp(component))
-  }
+  ]) assert.match(home, new RegExp(component))
 
   const order = [
     home.indexOf('<StudentRecommendedAction'),
@@ -34,9 +36,11 @@ test('student home delegates data loading and renders the learning-first section
   assert.ok(order.every((position) => position >= 0))
   assert.deepEqual(order, [...order].sort((left, right) => left - right))
   assert.match(home, /useStudentHome\(\)/)
-  assert.doesNotMatch(home, /\.from\(['"]/)
-  assert.match(hook, /Promise\.all/)
-  assert.match(hook, /buildRecommendedAction/)
+  assert.doesNotMatch(home, /supabase|\.from\(['"]/)
+  assert.match(api, /get_student_home_dashboard/)
+  assert.doesNotMatch(api, /attempt_history/)
+  assert.match(hook, /buildStudentHomeViewModel/)
+  assert.match(model, /buildRecommendedAction/)
 })
 
 test('student courses expose searchable grouped list and paginated galaxy experiences', () => {

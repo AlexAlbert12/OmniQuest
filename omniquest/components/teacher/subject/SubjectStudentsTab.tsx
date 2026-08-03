@@ -2,6 +2,8 @@ import React from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
+import PaginationControls from '../../ui/PaginationControls'
+import VirtualizedStack from '../../ui/VirtualizedStack'
 import {
   getGradeColor,
   getInitials,
@@ -26,9 +28,12 @@ export function SubjectStudentsTab({
   isDesktop,
   isWide,
   onImportStudents,
+  onPageChange,
   onStudentSearchChange,
   onStudentSortKeyChange,
   onStudentStatusFilterChange,
+  page,
+  pageSize,
   questionsCount,
   reportParticipation,
   scorePerformanceCount,
@@ -38,6 +43,7 @@ export function SubjectStudentsTab({
   studentSearch,
   studentSortKey,
   studentStatusFilter,
+  totalStudents,
 }: {
   isDesktop: boolean
   isWide: boolean
@@ -49,14 +55,18 @@ export function SubjectStudentsTab({
   studentSortKey: StudentSortKey
   reportParticipation: number
   averageXp: number
+  page: number
+  pageSize: number
   questionsCount: number
   scores: SubjectScore[]
   gradeDistribution: { label: string; color: string; count: number }[]
   scorePerformanceCount: number
+  totalStudents: number
   onStudentSearchChange: (value: string) => void
   onStudentStatusFilterChange: (value: StudentStatusFilter) => void
   onStudentSortKeyChange: (value: StudentSortKey) => void
   onImportStudents: () => void
+  onPageChange: (page: number) => void
 }) {
   const activeStudents = studentReportRows.filter((student) => getStudentStatus(student) === 'active').length;
   const studentsNeedingAttention = studentReportRows.filter((student) => getStudentStatus(student) === 'needs_help');
@@ -67,10 +77,10 @@ export function SubjectStudentsTab({
     <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
       <View className={isDesktop ? 'flex-[1.55] gap-5' : 'gap-5'}>
         <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
-          <StudentMetricCard icon="people" label="Alumnos inscritos" value={String(enrollmentsCount)} detail={`${studentReportRows.length} en esta clase`} color="#8B5CF6" />
+          <StudentMetricCard icon="people" label="Alumnos inscritos" value={String(enrollmentsCount)} detail={`${studentReportRows.length} en esta página`} color="#8B5CF6" />
           <StudentMetricCard icon="checkmark-circle" label="Activos esta semana" value={String(activeStudents)} detail={`${reportParticipation}% del total`} color="#34D399" />
           <StudentMetricCard icon="star" label="XP media de la clase" value={`${averageXp} XP`} detail="Media de puntos con bonus" color="#3B82F6" />
-          <StudentMetricCard icon="trophy" label="Mejor alumno" value={`${bestStudent?.score ?? 0} XP`} detail={bestStudent?.name || 'Sin actividad'} color="#F59E0B" />
+          <StudentMetricCard icon="trophy" label="Mejor en esta página" value={`${bestStudent?.score ?? 0} XP`} detail={bestStudent?.name || 'Sin actividad'} color="#F59E0B" />
         </View>
 
         <View className="rounded-xl border border-border-default bg-surface-default p-4">
@@ -121,20 +131,29 @@ export function SubjectStudentsTab({
             <StudentTableHeader label="Última actividad" flex={0.9} />
           </View>
 
-          {studentListRows.length > 0 ? (
-            studentListRows.map((student, index) => (
-              <StudentClassRow key={student.id} student={student} index={index} mobile={!isWide} />
-            ))
-          ) : (
-            <View className="items-center justify-center rounded-xl border border-dashed border-border-default bg-surface-default p-8">
-              <Ionicons name="people-outline" size={44} color="#64748B" />
-              <Text className="mt-3 text-center font-bold text-white">No hay alumnos para mostrar</Text>
-              <Text className="mt-1 text-center text-[12px] text-text-muted">Comparte el código de la clase o cambia los filtros.</Text>
-            </View>
-          )}
+          <VirtualizedStack
+            data={studentListRows}
+            keyExtractor={(student) => student.id}
+            renderItem={(student, index) => <StudentClassRow student={student} index={(page * pageSize) + index} mobile={!isWide} />}
+            emptyComponent={(
+              <View className="items-center justify-center rounded-xl border border-dashed border-border-default bg-surface-default p-8">
+                <Ionicons name="people-outline" size={44} color="#64748B" />
+                <Text className="mt-3 text-center font-bold text-white">No hay alumnos para mostrar</Text>
+                <Text className="mt-1 text-center text-[12px] text-text-muted">Comparte el código de la clase o cambia los filtros.</Text>
+              </View>
+            )}
+            accessibilityLabel="Alumnos del curso"
+          />
 
-          <Text className="mt-4 text-right text-[11px] text-text-muted">
-            Mostrando {studentListRows.length} de {studentReportRows.length} alumnos
+          <PaginationControls
+            page={page}
+            pageSize={pageSize}
+            total={totalStudents}
+            onPrevious={() => onPageChange(Math.max(0, page - 1))}
+            onNext={() => onPageChange(page + 1)}
+          />
+          <Text className="mt-2 text-right text-[11px] text-text-muted">
+            Mostrando {studentListRows.length} de {totalStudents} alumnos
           </Text>
         </View>
       </View>

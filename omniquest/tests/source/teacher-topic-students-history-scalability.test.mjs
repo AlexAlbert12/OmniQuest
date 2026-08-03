@@ -22,9 +22,11 @@ test('topic detail uses paginated RPCs and explicit lifecycle actions', () => {
 })
 
 test('teacher students page delegates filters and pagination to one RPC', () => {
-  const screen = read('app/(teacher)/students.tsx')
-  const hook = read('hooks/teacher/useTeacherStudentsPage.ts')
+  const route = read('app/(teacher)/students.tsx')
+  const screen = read('features/teacher-students/screen.tsx')
+  const hook = read('features/teacher-students/api.ts')
   const migration = read('supabase/migrations/20260730150000_teacher_topic_questions_students_history.sql')
+  assert.match(route, /features\/teacher-students\/screen/)
   assert.match(hook, /get_teacher_students_page/)
   assert.match(hook, /p_limit/)
   assert.match(hook, /p_offset/)

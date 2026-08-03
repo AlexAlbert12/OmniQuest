@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   callTeacherRpc,
   type TeacherSubjectStudentsPayload,
@@ -6,8 +6,9 @@ import {
 import type { StudentSortKey, StudentStatusFilter } from '../../../lib/teacherSubjectAnalytics'
 import { useTeacherSubjectResource } from './useTeacherSubjectResource'
 
+const PAGE_SIZE = 25
 const EMPTY: TeacherSubjectStudentsPayload = {
-  items: [], total: 0, limit: 50, offset: 0,
+  items: [], total: 0, limit: PAGE_SIZE, offset: 0,
   summary: {
     enrolled: 0, answered: 0, participation: 0, averageGrade: 0, averageAccuracy: 0,
     failedAnswers: 0, correctAnswers: 0, averageXp: 0, questionsCount: 0,
@@ -20,9 +21,16 @@ export function useTeacherSubjectStudents({ subjectId, classroomId, enabled }: {
   classroomId: number | null
   enabled: boolean
 }) {
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<StudentStatusFilter>('all')
-  const [sort, setSort] = useState<StudentSortKey>('xp')
+  const [search, setSearchState] = useState('')
+  const [status, setStatusState] = useState<StudentStatusFilter>('all')
+  const [sort, setSortState] = useState<StudentSortKey>('xp')
+  const [page, setPage] = useState(0)
+
+  useEffect(() => setPage(0), [classroomId, subjectId])
+
+  const setSearch = useCallback((value: string) => { setPage(0); setSearchState(value) }, [])
+  const setStatus = useCallback((value: StudentStatusFilter) => { setPage(0); setStatusState(value) }, [])
+  const setSort = useCallback((value: StudentSortKey) => { setPage(0); setSortState(value) }, [])
 
   const loader = useCallback(() => callTeacherRpc<TeacherSubjectStudentsPayload>('get_teacher_subject_students_page', {
     p_subject_id: subjectId,
@@ -30,11 +38,16 @@ export function useTeacherSubjectStudents({ subjectId, classroomId, enabled }: {
     p_search: search.trim() || undefined,
     p_status: status === 'all' ? undefined : status,
     p_sort: sort,
-    p_limit: 100,
-    p_offset: 0,
-  }), [classroomId, search, sort, status, subjectId])
+    p_limit: PAGE_SIZE,
+    p_offset: page * PAGE_SIZE,
+  }), [classroomId, page, search, sort, status, subjectId])
 
   const resource = useTeacherSubjectResource({ enabled: enabled && Boolean(classroomId), initialValue: EMPTY, loader })
+  const pageCount = useMemo(() => Math.max(1, Math.ceil(resource.data.total / PAGE_SIZE)), [resource.data.total])
 
-  return { ...resource, search, setSearch, setSort, setStatus, sort, status }
+  useEffect(() => {
+    if (page >= pageCount) setPage(Math.max(0, pageCount - 1))
+  }, [page, pageCount])
+
+  return { ...resource, page, pageCount, pageSize: PAGE_SIZE, search, setPage, setSearch, setSort, setStatus, sort, status }
 }

@@ -6,6 +6,7 @@ import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../.
 import { SubjectPanel } from './SubjectShared';
 import AppButton from '../../ui/AppButton';
 import AppTabs from '../../ui/AppTabs';
+import VirtualizedStack from '../../ui/VirtualizedStack';
 
 type Question = {
   id: number
@@ -147,18 +148,20 @@ export function SubjectQuestionsPanel({
           </View>
         </View>
       ) : (
-        <View className="gap-3">
-          {filteredQuestions.map((question, index) => (
+        <VirtualizedStack
+          data={filteredQuestions}
+          keyExtractor={(question) => String(question.id)}
+          renderItem={(question, index) => (
             <QuestionRow
-              key={question.id}
               question={question}
               index={filteredQuestions.length - index}
               subjectId={subjectId}
               topicName={question.topic_id ? topics.find((topic) => topic.id === question.topic_id)?.title : 'Tema general'}
               onDelete={() => onDeleteQuestion(question.id)}
             />
-          ))}
-        </View>
+          )}
+          accessibilityLabel="Preguntas del curso"
+        />
       )}
     </SubjectPanel>
   );

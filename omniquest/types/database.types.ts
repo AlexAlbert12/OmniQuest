@@ -4044,6 +4044,8 @@ export type Database = {
         }
         Returns: Json
       }
+      get_student_home_dashboard: { Args: never; Returns: Json }
+      get_student_progress_summary: { Args: never; Returns: Json }
       get_student_attempt_history: {
         Args: {
           p_classroom_id?: number

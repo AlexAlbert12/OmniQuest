@@ -250,9 +250,12 @@ export default function SubjectDetailScreen() {
             isDesktop={isDesktop}
             isWide={isWide}
             onImportStudents={() => detail.setShowStudentImportModal(true)}
+            onPageChange={detail.setStudentPage}
             onStudentSearchChange={detail.setStudentSearch}
             onStudentSortKeyChange={detail.setStudentSortKey}
             onStudentStatusFilterChange={detail.setStudentStatusFilter}
+            page={detail.studentPage}
+            pageSize={detail.studentPageSize}
             questionsCount={detail.studentsSummary.questionsCount}
             reportParticipation={detail.studentsSummary.participation}
             scorePerformanceCount={detail.studentReportRows.filter((student) => student.hasActivity).length}
@@ -262,6 +265,7 @@ export default function SubjectDetailScreen() {
             studentSearch={detail.studentSearch}
             studentSortKey={detail.studentSortKey}
             studentStatusFilter={detail.studentStatusFilter}
+            totalStudents={detail.studentsTotal}
           />
         ) : null}
 

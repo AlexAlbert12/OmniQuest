@@ -53,7 +53,7 @@ test('database types include recent tables and RPCs without rpc any-casts', () =
 })
 
 test('student home never invents ranking participants', () => {
-  const home = read('app/(student)/homeStudent.tsx')
+  const home = read('features/student-home/screen.tsx')
 
   for (const demoAlias of ['Sofia_R', 'Mateo09', 'CamilaStar', 'Lucho94']) {
     assert.doesNotMatch(home, new RegExp(demoAlias))

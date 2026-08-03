@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import AppButton from '../../ui/AppButton'
 import AppPressable from '../../ui/AppPressable'
 import PaginationControls from '../../ui/PaginationControls'
+import VirtualizedStack from '../../ui/VirtualizedStack'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
 import type { ManualReviewQueueRow } from '../../../lib/teacherManualReview'
@@ -58,13 +59,14 @@ export default function ManualReviewQueue({
         />
       </View>
 
-      <View className="gap-3">
-        {rows.map((row) => {
+      <VirtualizedStack
+        data={rows}
+        keyExtractor={(row) => String(row.id)}
+        renderItem={(row) => {
           const selected = selectedIds.includes(row.id)
           const status = getStatus(row.status, tokens)
           return (
             <View
-              key={row.id}
               className="rounded-2xl border p-4"
               style={{
                 borderColor: row.is_overdue ? tokens.semantic.danger : selected ? tokens.border.active : tokens.border.default,
@@ -104,8 +106,9 @@ export default function ManualReviewQueue({
               </View>
             </View>
           )
-        })}
-      </View>
+        }}
+        accessibilityLabel="Cola de revisión manual"
+      />
 
       <PaginationControls
         page={page}

@@ -18,6 +18,7 @@ import {
 import { NoActivityQuickActions } from './TeacherStudentList';
 import { formatRelativeDate, getInitials, getStatusMeta } from './studentUtils';
 import { MobileEmptyState, MobileMetricCard, MobileScreen, MobileSectionHeader } from '../../ui/mobile';
+import VirtualizedStack from '../../ui/VirtualizedStack'
 import TeacherBottomNav from '../TeacherBottomNav';
 
 const MOBILE_STUDENTS_PAGE_SIZE = 5;
@@ -282,10 +283,11 @@ export default function MobileTeacherStudents({
         className="mb-3 mt-1"
       />
 
-      <View style={{ gap: 12 }}>
-        {paginatedStudents.map((student) => (
+      <VirtualizedStack
+        data={paginatedStudents}
+        keyExtractor={(student) => student.id}
+        renderItem={(student) => (
           <MobileTeacherStudentCard
-            key={student.id}
             student={student}
             reminderBusy={Boolean(reminderStudentIds[student.id])}
             onViewDetails={onViewDetails}
@@ -294,8 +296,9 @@ export default function MobileTeacherStudents({
             onSendReminder={onSendStudentReminder}
             onRequestPasswordRecovery={onRequestPasswordRecovery}
           />
-        ))}
-      </View>
+        )}
+        accessibilityLabel="Estudiantes de la página"
+      />
 
       <MobileStudentsPagination
         page={safePage}

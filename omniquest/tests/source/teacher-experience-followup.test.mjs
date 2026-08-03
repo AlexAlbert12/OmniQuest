@@ -7,10 +7,11 @@ const root = process.cwd()
 const read = (path) => readFileSync(join(root, path), 'utf8')
 
 test('student history actions navigate to the real teacher history route', () => {
-  const students = read('app/(teacher)/students.tsx')
+  const students = read('features/teacher-students/screen.tsx')
+  const navigation = read('features/teacher-students/model.ts') + read('features/teacher-students/useTeacherStudentsController.ts')
   const table = read('components/teacher/students/TeacherStudentsDesktop.tsx')
-  assert.match(students, /pathname: '\/\(teacher\)\/student\/\[id\]\/history'/)
-  assert.doesNotMatch(students, /Puedes conectar esta acción con una pantalla de historial/)
+  assert.match(navigation, /pathname: '\/\(teacher\)\/student\/\[id\]\/history'/)
+  assert.doesNotMatch(students + navigation, /Puedes conectar esta acción con una pantalla de historial/)
   assert.match(table, /label="Ver historial"/)
 })
 
