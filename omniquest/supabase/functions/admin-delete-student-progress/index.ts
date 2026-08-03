@@ -60,11 +60,11 @@ Deno.serve(async (req) => {
       adminUserId: context.adminUserId,
       targetTable: 'profiles',
       targetId: studentId,
+      before: { points: profile.points },
+      after: { points: syncedPoints, deleted },
       metadata: {
         alias: profile.alias,
-        previous_points: profile.points,
-        synced_points: syncedPoints,
-        deleted,
+        deleted_records: deleted,
       },
     })
 

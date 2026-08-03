@@ -1,0 +1,64 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import test from 'node:test'
+
+const read = (path) => readFileSync(path, 'utf8')
+const migration = read('supabase/migrations/20260731170000_admin_audit_support_search_mobile.sql')
+
+test('admin audit is immutable, partitioned, retained and chained by the server', () => {
+  const screen = read('components/admin/audit/AdminAuditSection.tsx') + read('components/admin/audit/AdminAuditComponents.tsx')
+  const worker = read('supabase/functions/process-admin-export-jobs/index.ts')
+  const sensitiveActions = ['admin-archive-course', 'admin-deactivate-classroom', 'admin-delete-student-progress', 'admin-reset-password', 'admin-toggle-user'].map((name) => read(`supabase/functions/${name}/index.ts`)).join('\n')
+  assert.match(migration, /partition by range \(created_at\)/)
+  assert.match(migration, /admin_audit_logs is append-only/)
+  assert.match(migration, /admin_audit_severity/)
+  assert.match(migration, /maintain_admin_audit_partitions/)
+  assert.match(migration, /admin_audit_chain_checkpoints/)
+  assert.match(migration, /previous_hash/)
+  assert.match(migration, /chain_hash/)
+  assert.match(migration, /checkpoint_consistent/)
+  assert.match(migration, /capture_request_context boolean not null default false/)
+  assert.match(screen, /Antes → después/)
+  assert.match(screen, /Verificar cadena/)
+  assert.match(worker, /before_state,after_state,previous_hash,chain_hash/)
+  assert.match(sensitiveActions, /before: beforeState|before: \{ active: classroom\.active|before: \{ active: subject\.active|before: \{ points: profile\.points \}/)
+  assert.match(sensitiveActions, /after: afterState|after: nextState|after: \{ points: syncedPoints, deleted \}/)
+})
+
+test('admin support includes assignment, internal notes, tags, SLA, templates, attachments and history', () => {
+  const screen = read('components/admin/support/AdminSupportSection.tsx')
+  const support = read('lib/support.ts')
+  for (const token of ['support_ticket_history', 'support_ticket_tags', 'support_response_templates', 'is_internal', 'assigned_admin_id', 'computed_sla_state', 'support_priority_score', 'enqueue_support_email_delivery']) assert.match(migration, new RegExp(token))
+  assert.match(migration, /coalesce\(new\.is_internal, false\)/)
+  assert.match(migration, /attachment_added/)
+  assert.match(screen, /Comentario interno/)
+  assert.match(screen, /Asignado a/)
+  assert.match(screen, /Plantilla/)
+  assert.match(screen, /Historial de cambios/)
+  assert.match(support, /uploadAdminSupportAttachment/)
+})
+
+test('global search is indexed, paged, grouped, highlighted and route-validated', () => {
+  const search = read('components/search/GlobalSearchButton.tsx')
+  assert.match(migration, /profiles_global_search_fts_idx/)
+  assert.match(migration, /websearch_to_tsquery/)
+  assert.match(migration, /p_offset integer default 0/)
+  assert.match(search, /Búsquedas recientes/)
+  assert.match(search, /Cargar más/)
+  assert.match(search, /HighlightedText/)
+  assert.match(search, /getSafeResultHref/)
+  assert.match(search, /ctrlKey \|\| event\.metaKey/)
+})
+
+test('mobile admin uses entity hubs and a clear More menu without a global search in the first view', () => {
+  const scaffold = read('components/admin/shared/AdminScaffold.tsx')
+  const hubs = read('components/admin/mobile/AdminMobileHubScreens.tsx')
+  const bottom = read('components/admin/AdminBottomNav.tsx')
+  assert.match(bottom, /'home' \| 'users' \| 'content' \| 'audit' \| 'more'/)
+  assert.match(hubs, /title: 'Soporte'/)
+  assert.match(hubs, /title: 'Perfil'/)
+  assert.match(hubs, /title: 'Configuración'/)
+  assert.match(hubs, /Cerrar sesión/)
+  assert.doesNotMatch(scaffold, /GlobalSearchButton role="admin" compact/)
+  assert.doesNotMatch(scaffold, /AdminMobileSectionTabs/)
+})

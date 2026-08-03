@@ -82,7 +82,7 @@ async function readPage(client: any, job: ExportJob, offset: number, limit: numb
     query = applyDateRange(query, 'created_at', filters.p_created_from ?? filters.createdFrom, filters.p_created_to ?? filters.createdTo)
     query = applyTextSearch(query, 'name,code', filters.p_search ?? filters.search)
   } else if (job.export_type === 'audit') {
-    query = client.from('admin_audit_logs').select('id,admin_id,action,target_table,target_id,severity,metadata,created_at').order('created_at', { ascending: false })
+    query = client.from('admin_audit_logs').select('id,chain_seq,admin_id,action,target_table,target_id,severity,metadata,before_state,after_state,previous_hash,chain_hash,retention_until,created_at').order('created_at', { ascending: false })
     const actor = stringFilter(filters.p_actor_id ?? filters.actorId); if (actor) query = query.eq('admin_id', actor)
     const action = stringFilter(filters.p_action ?? filters.action); if (action) query = query.eq('action', action)
     const table = stringFilter(filters.p_target_table ?? filters.targetTable); if (table) query = query.eq('target_table', table)
@@ -91,7 +91,7 @@ async function readPage(client: any, job: ExportJob, offset: number, limit: numb
     query = applyDateRange(query, 'created_at', filters.p_from ?? filters.from, filters.p_to ?? filters.to)
     query = applyTextSearch(query, 'action,target_table,target_id', filters.p_search ?? filters.search)
   } else {
-    query = client.from('user_support_tickets').select('id,user_id,role,category,subject,priority,status,assigned_admin_id,resolved_at,created_at,updated_at').order('created_at', { ascending: false })
+    query = client.from('user_support_tickets').select('id,user_id,role,category,subject,priority,priority_source,auto_priority_score,status,assigned_admin_id,resolved_at,first_response_due_at,resolution_due_at,created_at,updated_at').order('created_at', { ascending: false })
     const status = stringFilter(filters.p_status ?? filters.status); if (status) query = query.eq('status', status)
     const priority = stringFilter(filters.p_priority ?? filters.priority); if (priority) query = query.eq('priority', priority)
     const role = stringFilter(filters.p_role ?? filters.role); if (role) query = query.eq('role', role)

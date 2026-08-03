@@ -191,7 +191,7 @@ export function getInitials(value: string) {
 
 export function getAdminSectionIcon(section: AdminSection): IconName {
   const icons: Record<AdminSection, IconName> = {
-    home: 'shield-checkmark', teachers: 'school', students: 'people', courses: 'book', classrooms: 'albums', support: 'headset', audit: 'receipt',
+    home: 'shield-checkmark', teachers: 'school', students: 'people', courses: 'book', classrooms: 'albums', support: 'headset', audit: 'receipt', users: 'people', content: 'book', more: 'ellipsis-horizontal-circle', profile: 'person-circle', settings: 'settings',
   }
   return icons[section]
 }

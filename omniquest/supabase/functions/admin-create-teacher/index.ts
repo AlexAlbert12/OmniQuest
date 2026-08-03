@@ -62,9 +62,10 @@ Deno.serve(async (req) => {
         adminUserId: context.adminUserId,
         targetTable: 'profiles',
         targetId: existingUser.id,
+        before: { role_id: existingUser.user_metadata?.role_id ?? null },
+        after: { role_id: 'teacher', active: true, alias },
         metadata: {
           alias,
-          email,
           role_id: 'teacher',
           source: 'admin-create-teacher',
         },
@@ -118,9 +119,10 @@ Deno.serve(async (req) => {
       adminUserId: context.adminUserId,
       targetTable: 'profiles',
       targetId: createdUser.user.id,
+      before: {},
+      after: { role_id: 'teacher', active: true, alias },
       metadata: {
         alias,
-        email,
         role_id: 'teacher',
         source: 'admin-create-teacher',
       },

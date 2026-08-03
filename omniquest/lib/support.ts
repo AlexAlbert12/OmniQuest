@@ -64,8 +64,24 @@ export type SupportMessage = {
   author_id: string | null
   author_role: SupportRole
   body: string
+  is_internal: boolean
   created_at: string
 }
+
+export type SupportHistory = {
+  id: number
+  ticket_id: number
+  changed_by: string | null
+  event_type: string
+  before_state: Record<string, unknown> | null
+  after_state: Record<string, unknown> | null
+  comment: string | null
+  created_at: string
+}
+
+export type SupportTag = { id: number; slug: string; label: string; color: string }
+export type SupportTemplate = { id: number; title: string; body: string; category: string | null }
+export type SupportDirectory = { admins: Array<{ id: string; alias: string; email: string | null }>; tags: SupportTag[]; templates: SupportTemplate[] }
 
 export type SupportAttachment = {
   id: string
@@ -90,6 +106,8 @@ export type PickedSupportAttachment = {
 export type SupportThread = {
   messages: SupportMessage[]
   attachments: SupportAttachment[]
+  history: SupportHistory[]
+  tags: SupportTag[]
   hasMore: boolean
   nextBeforeId: number | null
 }
@@ -157,12 +175,34 @@ export async function fetchSupportThreadPage({
   const messages = Array.isArray(payload.messages) ? payload.messages.map(mapSupportMessage) : []
   const rawAttachments = Array.isArray(payload.attachments) ? payload.attachments.map(mapSupportAttachment) : []
   const attachments = await signSupportAttachments(rawAttachments)
+  const history = Array.isArray(payload.history) ? payload.history.map(mapSupportHistory) : []
+  const tags = Array.isArray(payload.tags) ? payload.tags.map(mapSupportTag) : []
   return {
     messages,
     attachments,
+    history,
+    tags,
     hasMore: payload.has_more === true,
     nextBeforeId: payload.next_before_id == null ? null : Number(payload.next_before_id),
   }
+}
+
+
+export async function fetchAdminSupportDirectory(): Promise<SupportDirectory> {
+  const { data, error } = await supabase.rpc('get_admin_support_directory' as any)
+  if (error) throw error
+  const payload = isObject(data) ? data : {}
+  return {
+    admins: Array.isArray(payload.admins) ? payload.admins.map((item: unknown) => { const row = isObject(item) ? item : {}; return { id: String(row.id || ''), alias: String(row.alias || 'Administrador'), email: typeof row.email === 'string' ? row.email : null } }).filter((item: { id: string }) => item.id) : [],
+    tags: Array.isArray(payload.tags) ? payload.tags.map(mapSupportTag) : [],
+    templates: Array.isArray(payload.templates) ? payload.templates.map((item: unknown) => { const row = isObject(item) ? item : {}; return { id: Number(row.id), title: String(row.title || 'Plantilla'), body: String(row.body || ''), category: typeof row.category === 'string' ? row.category : null } }).filter((item: SupportTemplate) => Number.isFinite(item.id)) : [],
+  }
+}
+
+export async function uploadAdminSupportAttachment(ticketId: number, messageId: number | null, attachment: PickedSupportAttachment) {
+  const { data, error } = await supabase.auth.getUser()
+  if (error || !data.user) throw error || new Error('No hay una sesión válida.')
+  await uploadSupportAttachment(ticketId, messageId, data.user.id, attachment)
 }
 
 export async function fetchSupportContactChannels(): Promise<SupportContactChannel[]> {
@@ -267,7 +307,7 @@ export async function addSupportReply({
     p_body: body.trim(),
   })
   if (error) throw error
-  const message = data as unknown as SupportMessage
+  const message = mapSupportMessage(data)
 
   let attachmentError: string | null = null
   if (attachment) {
@@ -405,8 +445,29 @@ function mapSupportMessage(value: unknown): SupportMessage {
     author_id: typeof row.author_id === 'string' ? row.author_id : null,
     author_role: isSupportRole(row.author_role) ? row.author_role : 'system',
     body: String(row.body || ''),
+    is_internal: row.is_internal === true,
     created_at: String(row.created_at || new Date(0).toISOString()),
   }
+}
+
+
+function mapSupportHistory(value: unknown): SupportHistory {
+  const row = isObject(value) ? value : {}
+  return {
+    id: Number(row.id),
+    ticket_id: Number(row.ticket_id),
+    changed_by: typeof row.changed_by === 'string' ? row.changed_by : null,
+    event_type: String(row.event_type || 'ticket_updated'),
+    before_state: isObject(row.before_state) ? row.before_state : null,
+    after_state: isObject(row.after_state) ? row.after_state : null,
+    comment: typeof row.comment === 'string' ? row.comment : null,
+    created_at: String(row.created_at || new Date(0).toISOString()),
+  }
+}
+
+function mapSupportTag(value: unknown): SupportTag {
+  const row = isObject(value) ? value : {}
+  return { id: Number(row.id), slug: String(row.slug || ''), label: String(row.label || row.slug || 'Etiqueta'), color: String(row.color || '#64748B') }
 }
 
 function mapSupportAttachment(value: unknown): Omit<SupportAttachment, 'signedUrl'> {

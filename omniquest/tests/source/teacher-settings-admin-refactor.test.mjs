@@ -57,7 +57,7 @@ test('admin portal is split into focused sections and shared primitives', () => 
   assert.ok(barrel.split('\n').length < 20, 'AdminPortal.tsx should be a small barrel')
 })
 
-test('admin mobile navigation has five stable groups and internal entity tabs', () => {
+test('admin mobile navigation has five stable groups without duplicated entity tabs', () => {
   const bottom = read('components/admin/AdminBottomNav.tsx')
   const core = read('components/admin/shared/AdminScaffold.tsx')
 
@@ -65,5 +65,8 @@ test('admin mobile navigation has five stable groups and internal entity tabs', 
   assert.match(bottom, /label: 'Usuarios'/)
   assert.match(bottom, /label: 'Más'/)
   assert.doesNotMatch(bottom, /scrollable/)
-  assert.match(core, /\['teachers', 'students', 'courses', 'classrooms', 'audit'\]/)
+  assert.doesNotMatch(core, /AdminMobileSectionTabs/)
+  assert.doesNotMatch(core, /GlobalSearchButton role="admin" compact/)
+  assert.match(bottom, /\/\(admin\)\/users/)
+  assert.match(bottom, /\/\(admin\)\/content/)
 })

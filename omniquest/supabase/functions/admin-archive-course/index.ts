@@ -32,9 +32,14 @@ Deno.serve(async (req) => {
 
     if (subjectError || !subject) return json({ error: 'Curso no encontrado.' }, 404)
 
+    const archivedAt = archive ? new Date().toISOString() : null
+    const nextState = archive
+      ? { is_archived: true, active: false, archive_reason: reason, archived_at: archivedAt, retention_until: new Date(Date.now() + 90 * 86400000).toISOString() }
+      : { is_archived: false, active: true, archive_reason: null, archived_at: null, retention_until: null }
+
     const { error } = await context.adminClient
       .from('subjects')
-      .update(archive ? { is_archived: true, active: false, archive_reason: reason, archived_at: new Date().toISOString(), retention_until: new Date(Date.now() + 90 * 86400000).toISOString() } : { is_archived: false, active: true, archive_reason: null, archived_at: null, retention_until: null })
+      .update(nextState)
       .eq('id', subjectId)
 
     if (error) throw error
@@ -49,11 +54,11 @@ Deno.serve(async (req) => {
       adminUserId: context.adminUserId,
       targetTable: 'subjects',
       targetId: subjectId,
+      before: { active: subject.active, is_archived: subject.is_archived, archive_reason: subject.archive_reason, archived_at: subject.archived_at, retention_until: subject.retention_until },
+      after: nextState,
       metadata: {
         name: subject.name,
         teacher_id: subject.teacher_id,
-        previous_is_archived: subject.is_archived,
-        next_is_archived: archive,
         reason: archive ? reason : 'Restauración administrativa',
         deactivate_classrooms: archive ? deactivateClassrooms : false,
       },

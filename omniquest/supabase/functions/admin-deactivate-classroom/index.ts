@@ -30,9 +30,11 @@ Deno.serve(async (req) => {
 
     if (classroomError || !classroom) return json({ error: 'Clase no encontrada.' }, 404)
 
+    const nextState = { active, deactivation_reason: active ? null : reason, deactivated_at: active ? null : new Date().toISOString() }
+
     const { error } = await context.adminClient
       .from('classrooms')
-      .update({ active, deactivation_reason: active ? null : reason, deactivated_at: active ? null : new Date().toISOString() })
+      .update(nextState)
       .eq('id', classroomId)
 
     if (error) throw error
@@ -42,11 +44,11 @@ Deno.serve(async (req) => {
       adminUserId: context.adminUserId,
       targetTable: 'classrooms',
       targetId: classroomId,
+      before: { active: classroom.active, deactivation_reason: classroom.deactivation_reason, deactivated_at: classroom.deactivated_at },
+      after: nextState,
       metadata: {
         name: classroom.name,
         subject_id: classroom.subject_id,
-        previous_active: classroom.active,
-        next_active: active,
         reason: active ? 'Reactivación administrativa' : reason,
       },
     })

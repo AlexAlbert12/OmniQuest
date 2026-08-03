@@ -36,9 +36,12 @@ Deno.serve(async (req) => {
     if (targetError || !targetProfile) return json({ error: 'Usuario no encontrado.' }, 404)
     if (targetProfile.role_id === 'admin' && !context.permissions.includes('admin.roles.manage')) return json({ error: 'Solo un administrador global puede modificar otras cuentas administrativas.' }, 403)
 
+    const beforeState = { active: targetProfile.active, deactivation_reason: targetProfile.deactivation_reason, deactivated_at: targetProfile.deactivated_at, reactivate_at: targetProfile.reactivate_at }
+    const afterState = { active, deactivation_reason: active ? null : reason, deactivated_at: active ? null : new Date().toISOString(), reactivate_at: active ? null : reactivateAt }
+
     const { error } = await context.adminClient
       .from('profiles')
-      .update({ active, deactivation_reason: active ? null : reason, deactivated_at: active ? null : new Date().toISOString(), reactivate_at: active ? null : reactivateAt })
+      .update(afterState)
       .eq('id', profileId)
 
     if (error) throw error
@@ -48,8 +51,8 @@ Deno.serve(async (req) => {
       adminUserId: context.adminUserId,
       profileId,
       reason: active ? 'Reactivación administrativa' : reason,
-      before: { active: targetProfile.active, deactivation_reason: targetProfile.deactivation_reason, deactivated_at: targetProfile.deactivated_at, reactivate_at: targetProfile.reactivate_at },
-      after: { active, deactivation_reason: active ? null : reason, deactivated_at: active ? null : new Date().toISOString(), reactivate_at: active ? null : reactivateAt },
+      before: beforeState,
+      after: afterState,
     })
 
     await writeAdminAudit(context.adminClient, {
@@ -57,10 +60,10 @@ Deno.serve(async (req) => {
       adminUserId: context.adminUserId,
       targetTable: 'profiles',
       targetId: profileId,
+      before: beforeState,
+      after: afterState,
       metadata: {
         alias: targetProfile.alias,
-        previous_active: targetProfile.active,
-        next_active: active,
         role_id: targetProfile.role_id,
       },
     })

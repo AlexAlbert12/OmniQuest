@@ -57,16 +57,33 @@ export function isResponse(value: AdminContext | Response): value is Response {
 export async function writeAdminAudit(adminClient: any, params: {
   action: string
   adminUserId: string
+  after?: Record<string, unknown> | null
+  before?: Record<string, unknown> | null
+  contextCaptureReason?: string | null
   metadata?: Record<string, unknown>
+  requestContext?: { ip?: string | null; userAgent?: string | null } | null
+  requestId?: string | null
   targetId?: string | number | null
   targetTable?: string | null
 }) {
+  const rawMetadata = params.metadata || {}
+  const metadataBefore = isPlainObject(rawMetadata.before) ? rawMetadata.before as Record<string, unknown> : null
+  const metadataAfter = isPlainObject(rawMetadata.after) ? rawMetadata.after as Record<string, unknown> : null
+  const { before: _before, after: _after, ...metadataWithoutSnapshots } = rawMetadata
+  const captureContext = Boolean(params.contextCaptureReason?.trim())
+  const metadata = sanitizeAuditMetadata(metadataWithoutSnapshots)
+  if (captureContext && params.requestContext?.ip) metadata.ip = params.requestContext.ip.trim()
+  if (captureContext && params.requestContext?.userAgent) metadata.user_agent = params.requestContext.userAgent.trim()
   const { error } = await adminClient.from('admin_audit_logs').insert({
     admin_id: params.adminUserId,
     action: params.action,
     target_table: params.targetTable ?? null,
     target_id: params.targetId === undefined || params.targetId === null ? null : String(params.targetId),
-    metadata: sanitizeAuditMetadata(params.metadata || {}),
+    metadata,
+    before_state: params.before || metadataBefore ? sanitizeAuditMetadata(params.before || metadataBefore || {}) : null,
+    after_state: params.after || metadataAfter ? sanitizeAuditMetadata(params.after || metadataAfter || {}) : null,
+    request_id: params.requestId || null,
+    context_capture_reason: params.contextCaptureReason?.trim() || null,
   })
   if (error) console.warn('[admin audit] could not write audit log:', error.message)
 }
@@ -104,3 +121,5 @@ function sanitizeValue(value: unknown, blocked: Set<string>): unknown {
   if (!value || typeof value !== 'object') return value
   return Object.fromEntries(Object.entries(value as Record<string, unknown>).filter(([key]) => !blocked.has(key.toLowerCase())).map(([key, item]) => [key, sanitizeValue(item, blocked)]))
 }
+
+function isPlainObject(value: unknown): value is Record<string, unknown> { return Boolean(value) && typeof value === 'object' && !Array.isArray(value) }

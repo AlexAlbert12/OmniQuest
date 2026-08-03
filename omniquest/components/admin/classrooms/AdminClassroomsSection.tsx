@@ -25,7 +25,7 @@ export function AdminClassroomsSection() {
   const selection = useAdminSelection<number>()
   const exportJobs = useAdminExportJobs()
   const { directory } = useAdminDirectoryFilters()
-  const params = useLocalSearchParams<{ subjectId?: string; studentId?: string; teacherId?: string; search?: string }>()
+  const params = useLocalSearchParams<{ subjectId?: string; studentId?: string; teacherId?: string; search?: string; classroomId?: string }>()
   const [search, setSearch] = useState(() => getSearchParam(params.search))
   const [courseId, setCourseId] = useState(() => getSearchParam(params.subjectId))
   const [teacherId, setTeacherId] = useState(() => getSearchParam(params.teacherId))
@@ -36,7 +36,13 @@ export function AdminClassroomsSection() {
   const [governanceMode, setGovernanceMode] = useState<AdminGovernanceMode | null>(null)
   const pageSize = width >= 1040 ? ADMIN_PAGE_SIZE : 8
 
-  useEffect(() => setSearch(getSearchParam(params.search)), [params.search])
+  useEffect(() => {
+    const directSearch = getSearchParam(params.search)
+    if (directSearch) { setSearch(directSearch); return }
+    const requestedId = Number(getSearchParam(params.classroomId))
+    const requestedName = Number.isInteger(requestedId) && requestedId > 0 ? data.classroomById.get(requestedId)?.name : null
+    if (requestedName) setSearch(requestedName)
+  }, [data.classroomById, params.classroomId, params.search])
   const rpcFilters = useMemo(() => ({
     p_search: search.trim(), p_subject_id: courseId ? Number(courseId) : null,
     p_student_id: getSearchParam(params.studentId) || null, p_teacher_id: teacherId || null,

@@ -35,13 +35,17 @@ Deno.serve(async (req) => {
 
     if (error) throw error
 
+    const requestedAt = new Date().toISOString()
+    const beforeState = { active: profile.active, password_reset_requested_at: null }
+    const afterState = { active: profile.active, password_reset_requested_at: requestedAt }
+
     await writeAdminUserHistory(context.adminClient, {
       action: 'admin.user.reset_password',
       adminUserId: context.adminUserId,
       profileId,
       reason: 'Solicitud de restablecimiento de contraseña',
-      before: { active: profile.active },
-      after: { password_reset_requested_at: new Date().toISOString() },
+      before: beforeState,
+      after: afterState,
     })
 
     await writeAdminAudit(context.adminClient, {
@@ -49,9 +53,10 @@ Deno.serve(async (req) => {
       adminUserId: context.adminUserId,
       targetTable: 'profiles',
       targetId: profileId,
+      before: beforeState,
+      after: afterState,
       metadata: {
         alias: profile.alias,
-        email: profile.email,
       },
     })
 

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 
-export type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'support' | 'audit'
+export type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'support' | 'audit' | 'users' | 'content' | 'more' | 'profile' | 'settings'
 export type IconName = keyof typeof Ionicons.glyphMap
 
 export type AdminPermission =
@@ -100,6 +100,7 @@ export type ClassroomRow = {
 
 export type AdminAuditLogRow = {
   id: number
+  chain_seq?: number | null
   admin_id: string
   actor_alias?: string | null
   actor_email?: string | null
@@ -108,6 +109,11 @@ export type AdminAuditLogRow = {
   target_id: string | null
   severity?: 'info' | 'warning' | 'critical' | string | null
   metadata: Record<string, unknown> | null
+  before_state?: Record<string, unknown> | null
+  after_state?: Record<string, unknown> | null
+  previous_hash?: string | null
+  chain_hash?: string | null
+  retention_until?: string | null
   created_at: string
   total_count?: number | null
 }
@@ -162,6 +168,27 @@ export type AdminRoleAssignmentRow = {
   total_count?: number | null
 }
 
+
+export type AdminSupportTag = {
+  id: number
+  slug: string
+  label: string
+  color: string
+}
+
+export type AdminSupportTemplate = {
+  id: number
+  title: string
+  body: string
+  category: string | null
+}
+
+export type AdminSupportDirectory = {
+  admins: Array<{ id: string; alias: string; email: string | null }>
+  tags: AdminSupportTag[]
+  templates: AdminSupportTemplate[]
+}
+
 export type AdminSupportTicketRow = {
   id: number
   user_id: string
@@ -173,9 +200,14 @@ export type AdminSupportTicketRow = {
   message: string
   contact_email: string | null
   priority: 'low' | 'medium' | 'high'
+  priority_source?: 'user' | 'automatic' | 'admin' | string
+  auto_priority_score?: number | null
   status: 'open' | 'in_progress' | 'resolved' | 'closed'
   admin_response: string | null
   assigned_admin_id: string | null
+  assigned_admin_alias?: string | null
+  tags?: AdminSupportTag[] | null
+  sla_state?: 'on_track' | 'at_risk' | 'breached' | 'completed' | string | null
   resolved_at: string | null
   last_response_at: string | null
   first_response_due_at: string | null

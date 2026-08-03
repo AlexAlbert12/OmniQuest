@@ -30,7 +30,7 @@ export function useAdminData(): AdminData {
           p_role: 'admin', p_search: '', p_subject_id: null, p_classroom_id: null, p_profile_id: null,
           p_active: null, p_activity_state: null, p_created_from: null, p_created_to: null, p_limit: 50, p_offset: 0,
         }) as any,
-        fetchOptionalRows<AdminAuditLogRow>('admin_audit_logs', 'id, admin_id, action, target_table, target_id, metadata, created_at', { orderBy: 'created_at', ascending: false, limit: 50 }),
+        fetchOptionalRows<AdminAuditLogRow>('admin_audit_logs', 'id, chain_seq, admin_id, action, target_table, target_id, severity, metadata, before_state, after_state, previous_hash, chain_hash, retention_until, created_at', { orderBy: 'created_at', ascending: false, limit: 50 }),
       ])
 
       const fallbackMetrics = getFallbackAdminMetrics({ classrooms: [], enrollments: [], profiles: [], subjects: [] })
