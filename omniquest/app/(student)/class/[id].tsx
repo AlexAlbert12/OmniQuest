@@ -97,6 +97,9 @@ export default function StudentClassDetailScreen() {
   const { tokens } = useAppTheme()
   const { showModal } = useAppModal()
   const color = subject?.theme_color || tokens.brand.student
+  const showAlert = useCallback((title: string, message: string) => {
+    showModal({ title, message, variant: 'error' })
+  }, [showModal])
 
   const totals = useMemo(() => {
     const questions = topics.reduce((total, topic) => total + topic.questionsCount, 0)
@@ -312,17 +315,13 @@ export default function StudentClassDetailScreen() {
     } finally {
       setLoading(false)
     }
-  }, [selectedClassroomId, subjectId])
+  }, [selectedClassroomId, showAlert, subjectId])
 
   useFocusEffect(
     useCallback(() => {
       fetchClass()
     }, [fetchClass])
   )
-
-  const showAlert = (title: string, message: string) => {
-    showModal({ title, message, variant: 'error' })
-  }
 
   const openTopic = (topic: Topic, reviewFailed = false) => {
     if (topic.questionsCount === 0 || isTopicLocked(topic)) return
@@ -481,14 +480,6 @@ function getTopicActionLabel(topic: Topic) {
   return 'Repetir'
 }
 
-function getValidIoniconName(icon: string | null | undefined): keyof typeof Ionicons.glyphMap | null {
-  if (icon && icon in Ionicons.glyphMap) {
-    return icon as keyof typeof Ionicons.glyphMap
-  }
-
-  return null
-}
-
 function buildPlayHref(
   subjectId: number,
   classroomId: number | null,
@@ -537,25 +528,6 @@ function getLastAttemptAt(questions: { id: number }[], latestAttemptByQuestion: 
     if (!latest) return attemptedAt
     return new Date(attemptedAt).getTime() > new Date(latest).getTime() ? attemptedAt : latest
   }, null)
-}
-
-function formatRecentAttemptDate(value: string) {
-  const timestamp = new Date(value).getTime()
-  if (Number.isNaN(timestamp)) return 'Sin fecha'
-
-  const diffMs = Date.now() - timestamp
-  const diffMinutes = Math.floor(diffMs / 60_000)
-  if (diffMinutes < 1) return 'Ahora'
-  if (diffMinutes < 60) return `Hace ${diffMinutes} min`
-
-  const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `Hace ${diffHours} h`
-
-  const diffDays = Math.floor(diffHours / 24)
-  if (diffDays === 1) return 'Ayer'
-  if (diffDays < 7) return `Hace ${diffDays} días`
-
-  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(new Date(timestamp))
 }
 
 function normalizeRelation<T>(value: T | T[] | null | undefined) {

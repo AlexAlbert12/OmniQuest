@@ -28,7 +28,7 @@ import {
   StudentHistoryWeaknesses,
 } from '../../../../components/teacher/student-history'
 
-const historyTabs: Array<{ key: TeacherStudentHistoryTab; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+const historyTabs: { key: TeacherStudentHistoryTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'activity', label: 'Actividad', icon: 'time-outline' },
   { key: 'weaknesses', label: 'Áreas de refuerzo', icon: 'warning-outline' },
   { key: 'reviews', label: 'Revisiones', icon: 'chatbox-ellipses-outline' },

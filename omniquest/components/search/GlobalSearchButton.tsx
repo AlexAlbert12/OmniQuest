@@ -50,14 +50,17 @@ export default function GlobalSearchButton({ role, compact = false }: GlobalSear
       if (event.key === 'Escape') setVisible(false)
     }
     target.addEventListener?.('keydown', handler)
-    return () => target.removeEventListener?.('keydown', handler)
+    return () => {
+      if (target.removeEventListener) target.removeEventListener('keydown', handler)
+    }
   }, [])
 
   useEffect(() => {
     if (!visible || normalizedQuery.length < 2) { setLoading(false); setLoadingMore(false); return }
     let cancelled = false
     const timer = setTimeout(async () => {
-      offset === 0 ? setLoading(true) : setLoadingMore(true)
+      if (offset === 0) setLoading(true)
+      else setLoadingMore(true)
       setError(null)
       try {
         const { data, error: searchError } = await supabase.rpc('search_app_entities', { p_query: normalizedQuery, p_limit: PAGE_SIZE, p_offset: offset })

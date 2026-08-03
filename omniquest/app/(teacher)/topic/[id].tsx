@@ -26,14 +26,14 @@ import { supabase } from '../../../lib/supabase'
 import { useTeacherTopicDetail, type VisibilityFilter } from '../../../hooks/teacher/useTeacherTopicDetail'
 import type { TeacherTopicQuestion } from '../../../lib/teacherServerData'
 
-const difficultyItems: Array<{ key: DifficultyLevel | 'all'; label: string }> = [
+const difficultyItems: { key: DifficultyLevel | 'all'; label: string }[] = [
   { key: 'all', label: 'Todas' },
   { key: 1, label: 'Fácil' },
   { key: 2, label: 'Media' },
   { key: 3, label: 'Difícil' },
 ]
 
-const visibilityItems: Array<{ key: VisibilityFilter; label: string }> = [
+const visibilityItems: { key: VisibilityFilter; label: string }[] = [
   { key: 'all', label: 'Todas' },
   { key: 'visible', label: 'Visibles' },
   { key: 'archived', label: 'Archivadas' },

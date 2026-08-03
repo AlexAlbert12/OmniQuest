@@ -2,7 +2,7 @@
 
 OmniQuest es una aplicación educativa gamificada desarrollada con Expo, React Native y Supabase. El objetivo del proyecto es ofrecer un entorno donde el profesorado pueda crear cursos, clases, temas y preguntas, y donde el alumnado pueda practicar mediante partidas con puntuación, progreso, logros, ranking e historial de actividad.
 
-Este repositorio corresponde a un Trabajo Fin de Máster y busca ser reproducible: incluye el código de la app, migraciones SQL, políticas RLS, funciones RPC, Storage, documentación técnica y **20 Supabase Edge Functions** para operaciones sensibles.
+Este repositorio corresponde a un Trabajo Fin de Máster y busca ser reproducible: incluye el código de la app, migraciones SQL, políticas RLS, funciones RPC, Storage, documentación técnica y **32 Supabase Edge Functions** para operaciones sensibles y procesos asíncronos.
 
 ## Objetivo educativo
 
@@ -30,6 +30,11 @@ La puntuación se usa como elemento motivador, pero la analítica docente priori
 - Ranking global, semanal y por clase mediante RPCs seguras.
 - Progreso por curso, temas débiles, historial de actividad y logros.
 - Notificaciones persistentes en `public.notifications`, con preferencias por usuario.
+- Push nativo con registro de dispositivos, cola de entrega, reintentos y recibos.
+- Caché offline por usuario y reintento duradero de mutaciones y respuestas de juego.
+- Soporte con tickets, conversación, adjuntos, estados, SLA y entrega opcional por email.
+- Revisión manual de respuestas abiertas con cola, rúbricas, asignación y trazabilidad.
+- Contenido multimedia privado para preguntas, con URLs firmadas y procesamiento en servidor.
 - Auditoría administrativa en `admin_audit_logs`.
 - Auditoría docente en `teacher_audit_logs`.
 - Importación de alumnos con credenciales temporales y flujo post-importación.
@@ -123,9 +128,10 @@ Funciones de curso, juego y progreso:
 - `save_teacher_question`
 - `duplicate_teacher_subject`
 - `join_subject_by_code`
-- `get_game_questions`
+- `get_safe_game_questions`
 - `start_game_attempt`
-- `submit_answer`
+- `submit_answer_resumable`
+- `get_attempt_feedback`
 - `finish_game_attempt`
 - `review_open_answer_attempt`
 - `sync_student_badges`
@@ -156,38 +162,9 @@ Funciones administrativas y reporting:
 
 ## Edge Functions
 
-El proyecto incluye **20 Edge Functions**. Se usan para operaciones sensibles que no deberían ejecutarse directamente desde cliente.
+El proyecto incluye **32 Edge Functions** para operaciones sensibles y procesos asíncronos. Cubren gobierno administrativo, acciones docentes, seguridad de cuenta, importaciones, avatares, push, correo, soporte, exportaciones, solicitudes de privacidad y procesamiento de contenido multimedia.
 
-Administración:
-
-- `admin-archive-course`
-- `admin-create-teacher`
-- `admin-deactivate-classroom`
-- `admin-delete-student-progress`
-- `admin-reset-password`
-- `admin-toggle-user`
-
-Cuenta, perfil y alumno:
-
-- `delete-account`
-- `import-students`
-- `profile-update-avatar`
-- `student-reset-own-progress`
-
-Profesor:
-
-- `teacher-archive-subject`
-- `teacher-create-topic`
-- `teacher-delete-question`
-- `teacher-regenerate-class-code`
-- `teacher-remove-student-from-class`
-- `teacher-reset-own-data`
-- `teacher-reset-student-progress`
-- `teacher-student-reminder`
-- `teacher-update-subject`
-- `teacher-update-topic`
-
-Todas las funciones comparten una capa de errores controlados y validan permisos en servidor antes de ejecutar acciones destructivas o sensibles.
+El inventario se genera automáticamente desde el repositorio y se mantiene en [el catálogo de backend](omniquest/docs/generated/BACKEND_CATALOG.md). Las funciones autenticadas validan identidad, rol y propiedad en servidor. Los procesadores sin verificación JWT del gateway requieren un secreto interno o la service role y no quedan expuestos como operaciones anónimas privilegiadas.
 
 ## Auditoría
 
@@ -255,7 +232,8 @@ Pasos:
 
 ```bash
 cd omniquest
-npm install
+npm ci
+npm run quality:install
 ```
 
 Configura las variables de entorno y después arranca la app:

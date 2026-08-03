@@ -38,12 +38,13 @@ export default function SubjectDetailScreen() {
   const isWide = !responsive.isMobile
 
   const detail = useTeacherSubjectDetail({ subjectId, tab: params.tab })
+  const { setActiveTab, setShowStudentImportModal } = detail
 
   React.useEffect(() => {
     if (importStudents !== '1') return
-    detail.setActiveTab('students')
-    detail.setShowStudentImportModal(true)
-  }, [detail.setActiveTab, detail.setShowStudentImportModal, importStudents])
+    setActiveTab('students')
+    setShowStudentImportModal(true)
+  }, [importStudents, setActiveTab, setShowStudentImportModal])
 
   if (detail.loading) {
     return (

@@ -1,10 +1,9 @@
 import React from 'react'
-import { View } from 'react-native'
+import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import AppPressable from '../../ui/AppPressable'
 import { useAppTheme } from '../../../lib/appTheme'
 import type { RankingScope } from '../../../hooks/student/useStudentRanking'
-import { Text } from 'react-native'
 
 const TABS: { scope: RankingScope; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { scope: 'season', label: 'Temporada', icon: 'calendar' },

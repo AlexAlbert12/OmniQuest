@@ -21,7 +21,7 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { exportCsvFile, slugifyFilename } from '../../../lib/reportExports'
 import type { ClassroomComparisonPoint, QuestionReportPeriod, TemporalTrendPoint } from '../../../lib/teacherQuestionReport'
 
-const PERIODS: Array<{ key: QuestionReportPeriod; label: string; icon: any }> = [
+const PERIODS: { key: QuestionReportPeriod; label: string; icon: any }[] = [
   { key: '7d', label: '7 días', icon: 'calendar-outline' },
   { key: '30d', label: '30 días', icon: 'calendar-number-outline' },
   { key: '90d', label: '90 días', icon: 'calendar-clear-outline' },
@@ -58,7 +58,7 @@ export default function TeacherQuestionReportScreen() {
   const exportReport = async () => {
     if (!report.report) return
     const { question, summary, classComparison, temporalTrend, answerDistribution } = report.report
-    const rows: Array<Array<string | number | boolean | null | undefined>> = [
+    const rows: (string | number | boolean | null | undefined)[][] = [
       ['RESUMEN', question.id, question.subjectName, question.text, summary.totalAttempts, summary.sampleSize, summary.failedAttempts, summary.abandonmentPercent, summary.averageTimeSeconds, summary.discrimination],
       ...answerDistribution.map((item) => ['RESPUESTA', item.label, item.count, item.percent, item.correct]),
       ...classComparison.map((item) => ['CLASE', item.classroom_name, item.attempts, item.failure_percent, item.average_time_seconds]),

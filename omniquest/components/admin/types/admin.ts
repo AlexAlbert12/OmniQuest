@@ -184,7 +184,7 @@ export type AdminSupportTemplate = {
 }
 
 export type AdminSupportDirectory = {
-  admins: Array<{ id: string; alias: string; email: string | null }>
+  admins: { id: string; alias: string; email: string | null }[]
   tags: AdminSupportTag[]
   templates: AdminSupportTemplate[]
 }

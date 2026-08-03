@@ -737,7 +737,6 @@ export function SettingsSecurityPanel({
   onSignOut: () => void
   onDeleteAccount: () => void
 }) {
-  const { colors } = useAppTheme()
   const { t } = useI18n()
   return (
     <Panel title={t('settings.section.security')}>

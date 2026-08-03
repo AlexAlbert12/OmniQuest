@@ -14,10 +14,10 @@ export type AdminFilterOption = {
 }
 
 export type AdminDirectoryFilters = {
-  courses: Array<{ id: number; name: string; teacher_id: string | null; active: boolean; is_archived: boolean }>
-  classrooms: Array<{ id: number; name: string; subject_id: number | null; subject_name: string | null; active: boolean }>
-  teachers: Array<{ id: string; alias: string; email: string | null; active: boolean }>
-  actors: Array<{ id: string; alias: string; email: string | null }>
+  courses: { id: number; name: string; teacher_id: string | null; active: boolean; is_archived: boolean }[]
+  classrooms: { id: number; name: string; subject_id: number | null; subject_name: string | null; active: boolean }[]
+  teachers: { id: string; alias: string; email: string | null; active: boolean }[]
+  actors: { id: string; alias: string; email: string | null }[]
   audit_actions: string[]
   audit_entities: string[]
 }

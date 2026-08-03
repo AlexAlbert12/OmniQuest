@@ -23,7 +23,7 @@ export function useAdminActions(data: AdminData, requestConfirmation?: AdminConf
   const executeBulkAction = useCallback(async (options: {
     action: AdminBulkAction
     entity: 'profiles' | 'subjects' | 'classrooms'
-    ids: Array<string | number>
+    ids: (string | number)[]
     reason?: string
     reactivateAt?: string | null
     targetTeacherId?: string | null

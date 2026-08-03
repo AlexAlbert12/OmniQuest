@@ -19,7 +19,7 @@ export default function SubjectSummaryTab({
 }: {
   activity: ActivityItem[]
   addQuestionHref: string
-  gradeDistribution: Array<{ label: string; color: string; count: number }>
+  gradeDistribution: { label: string; color: string; count: number }[]
   isDesktop: boolean
   onOpenAnalytics: () => void
   onShowCode: () => void

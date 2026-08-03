@@ -5,7 +5,6 @@ import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import { AppButton, AppDropdown, AppMenu } from '../../ui'
 import { useAppTheme } from '../../../lib/appTheme'
 import type {
-  AdminData,
   AdminSupportTicketRow,
   ClassroomRow,
   IconName,

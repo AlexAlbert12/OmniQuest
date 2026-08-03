@@ -29,12 +29,12 @@ type Props = {
   onError: (message: string) => void
 }
 
-const options: Array<{
+const options: {
   type: QuestionMediaType
   label: string
   detail: string
   icon: keyof typeof Ionicons.glyphMap
-}> = [
+}[] = [
   { type: 'image', label: 'Imagen', detail: 'JPG, PNG, WebP o GIF', icon: 'image-outline' },
   { type: 'audio', label: 'Audio', detail: 'MP3, M4A, WAV u OGG', icon: 'volume-high-outline' },
   { type: 'video', label: 'Vídeo', detail: 'MP4, WebM o MOV', icon: 'videocam-outline' },

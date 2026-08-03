@@ -3,9 +3,9 @@ import { Text, TextInput, View } from 'react-native'
 import AppDropdown from '../../ui/AppDropdown'
 import AppTabs from '../../ui/AppTabs'
 import { useAppTheme } from '../../../lib/appTheme'
-import type { TeacherAuditCategory, TeacherAuditFilters, TeacherAuditSeverity } from '../../../lib/teacherAudit'
+import type { TeacherAuditCategory, TeacherAuditFilters as TeacherAuditFilterState, TeacherAuditSeverity } from '../../../lib/teacherAudit'
 
-const CATEGORIES: Array<{ key: TeacherAuditCategory; label: string; icon: any }> = [
+const CATEGORIES: { key: TeacherAuditCategory; label: string; icon: any }[] = [
   { key: 'all', label: 'Todas', icon: 'list-outline' },
   { key: 'student', label: 'Alumnos', icon: 'people-outline' },
   { key: 'question', label: 'Preguntas', icon: 'help-circle-outline' },
@@ -20,10 +20,10 @@ export default function TeacherAuditFilters({
   targetTables,
   onChange,
 }: {
-  filters: TeacherAuditFilters
+  filters: TeacherAuditFilterState
   actions: string[]
   targetTables: string[]
-  onChange: (patch: Partial<TeacherAuditFilters>) => void
+  onChange: (patch: Partial<TeacherAuditFilterState>) => void
 }) {
   const { tokens } = useAppTheme()
   return (

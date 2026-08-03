@@ -284,7 +284,7 @@ function TranscriptPanel({ title, text }: { title: string; text: string }) {
 }
 
 export function parseWebVtt(value?: string | null) {
-  if (!value) return [] as Array<{ start: number; end: number; text: string }>
+  if (!value) return [] as { start: number; end: number; text: string }[]
   const normalized = value.replace(/^WEBVTT[^\n]*\n+/i, '').replace(/\r/g, '')
   return normalized.split(/\n{2,}/).flatMap((block) => {
     const lines = block.trim().split('\n')

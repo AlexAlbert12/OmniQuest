@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native'
 import { useI18n } from '../../lib/i18n'
-import { readCapsLockFromKeyEvent } from '../../lib/authSecurity'
+import { readCapsLockFromKeyEvent } from '../../lib/capsLock'
 
 type AuthInputProps = TextInputProps & {
   error?: string
@@ -109,7 +109,7 @@ export default function AuthInput({
         ) : null}
       </View>
       {error ? (
-        <View accessibilityRole="alert" className="ml-1 flex-row items-start gap-1.5">
+        <View accessible accessibilityRole="alert" className="ml-1 flex-row items-start gap-1.5">
           <Ionicons name="alert-circle" size={14} color="#FDA4AF" />
           <Text maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[12px] font-semibold text-semantic-danger">{error}</Text>
         </View>

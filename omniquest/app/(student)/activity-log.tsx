@@ -27,6 +27,7 @@ export default function ActivityLogScreen() {
   const router = useRouter()
   const isDesktop = width >= 1024
   const activity = useStudentActivity()
+  const { detailedAttempts, expandedAttemptId, loadingAttemptId, toggleAttempt } = activity
 
   const handlePractice = useCallback((item: ActivityListItem) => {
     if (item.kind !== 'attempt') return
@@ -40,17 +41,17 @@ export default function ActivityLogScreen() {
 
   const renderItem = useCallback(({ item }: { item: ActivityListItem }) => {
     if (item.kind === 'date') return <ActivityDateHeader label={item.label} count={item.count} />
-    const attempt = activity.detailedAttempts[item.attempt.id] ?? item.attempt
+    const attempt = detailedAttempts[item.attempt.id] ?? item.attempt
     return (
       <StudentActivityAttemptRow
         attempt={attempt}
-        isExpanded={activity.expandedAttemptId === item.attempt.id}
-        isDetailLoading={activity.loadingAttemptId === item.attempt.id}
-        onToggle={() => void activity.toggleAttempt(item.attempt.id)}
+        isExpanded={expandedAttemptId === item.attempt.id}
+        isDetailLoading={loadingAttemptId === item.attempt.id}
+        onToggle={() => void toggleAttempt(item.attempt.id)}
         onPractice={() => handlePractice(item)}
       />
     )
-  }, [activity.detailedAttempts, activity.expandedAttemptId, activity.loadingAttemptId, activity.toggleAttempt, handlePractice])
+  }, [detailedAttempts, expandedAttemptId, handlePractice, loadingAttemptId, toggleAttempt])
 
   const listHeader = (
     <View>

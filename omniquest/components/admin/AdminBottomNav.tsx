@@ -17,7 +17,7 @@ export default function AdminBottomNav({ active, permissions }: { active: AdminS
   const { tokens } = useAppTheme()
   const activeGroup = resolveActiveGroup(active)
   const navItems = useMemo<MobileBottomNavigationItem<AdminMobileGroup>[]>(() => {
-    const allItems: Array<MobileBottomNavigationItem<AdminMobileGroup> & { permission: AdminPermission }> = [
+    const allItems: (MobileBottomNavigationItem<AdminMobileGroup> & { permission: AdminPermission })[] = [
       { key: 'home', label: 'Inicio', href: '/(admin)/homeAdmin', icon: 'home-outline', activeIcon: 'home', permission: 'dashboard.read' },
       { key: 'users', label: 'Usuarios', href: '/(admin)/users', icon: 'people-outline', activeIcon: 'people', permission: 'users.read' },
       { key: 'content', label: 'Contenido', href: '/(admin)/content', icon: 'book-outline', activeIcon: 'book', permission: 'courses.read' },

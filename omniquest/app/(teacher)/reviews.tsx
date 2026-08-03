@@ -21,7 +21,7 @@ import { supabase } from '../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import type { ManualReviewFilters, ManualReviewQueueRow, ManualReviewStatus } from '../../lib/teacherManualReview'
 
-const STATUS_OPTIONS: Array<{ key: 'all' | ManualReviewStatus; label: string; icon: any }> = [
+const STATUS_OPTIONS: { key: 'all' | ManualReviewStatus; label: string; icon: any }[] = [
   { key: 'all', label: 'Todas', icon: 'list-outline' },
   { key: 'pending', label: 'Pendientes', icon: 'time-outline' },
   { key: 'in_review', label: 'En revisión', icon: 'eye-outline' },

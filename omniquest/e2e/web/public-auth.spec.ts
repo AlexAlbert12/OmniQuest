@@ -17,10 +17,10 @@ test('login validates required fields before a network request', async ({ page }
   await expect(page.getByText(/Introduce tu contraseña\.|Enter your password\./i)).toBeVisible()
 })
 
-test('public routes do not overflow horizontally at the active viewport', async ({ page }) => {
-  for (const route of ['/', '/login', '/register', '/forgot-password']) {
+for (const route of ['/', '/login', '/register', '/forgot-password']) {
+  test(`${route} does not overflow horizontally at the active viewport`, async ({ page }) => {
     await page.goto(route)
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
     expect(overflow, `${route} has horizontal overflow`).toBeLessThanOrEqual(1)
-  }
-})
+  })
+}

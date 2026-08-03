@@ -93,7 +93,7 @@ function Metric({ label, value, detail, icon }: {
   return <MobileMetricCard className="min-w-[190px] flex-1" color="#8B5CF6" detail={detail} icon={icon} label={label} value={value} />
 }
 
-function addColors(rows: Array<{ label: string; count: number }>) {
+function addColors(rows: { label: string; count: number }[]) {
   const colors = ['#34D399', '#3B82F6', '#F59E0B', '#F43F5E']
   return rows.map((row, index) => ({ ...row, color: colors[index] || '#8FA7C7' }))
 }

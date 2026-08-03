@@ -139,11 +139,3 @@ export function formatRetryDelay(seconds: number, locale: 'es-ES' | 'en-US' = 'e
     ? `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`
     : `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`
 }
-
-export function readCapsLockFromKeyEvent(event: unknown): boolean | null {
-  const nativeEvent = (event as { nativeEvent?: unknown })?.nativeEvent as {
-    getModifierState?: (key: string) => boolean
-  } | undefined
-  if (typeof nativeEvent?.getModifierState !== 'function') return null
-  return nativeEvent.getModifierState('CapsLock')
-}

@@ -60,7 +60,7 @@ export async function fetchAdminPortalContext(): Promise<AdminPortalContext> {
 export async function runAdminBulkAction(options: {
   action: AdminBulkAction
   entity: AdminBulkEntity
-  ids: Array<string | number>
+  ids: (string | number)[]
   reason?: string
   reactivateAt?: string | null
   targetTeacherId?: string | null
