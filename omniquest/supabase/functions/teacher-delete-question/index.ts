@@ -1,4 +1,4 @@
-import { errorResponse, methodNotAllowedResponse, corsHeaders, ensureTeacherSubject, getTeacherContext, isResponse, json, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
+import { errorResponse, methodNotAllowedResponse, corsHeaders, getTeacherContext, isResponse, json, readJsonBody } from '../_shared/teacher.ts'
 
 type RequestBody = {
   questionId?: number | string
@@ -17,41 +17,11 @@ Deno.serve(async (req) => {
 
     if (!Number.isFinite(questionId)) return json({ error: 'questionId no válido.' }, 400)
 
-    const { data: question, error: questionError } = await context.adminClient
-      .from('questions')
-      .select('id, subject_id, classroom_id, topic_id, text, type')
-      .eq('id', questionId)
-      .single()
-
-    if (questionError || !question) return json({ error: 'Pregunta no encontrada.' }, 404)
-
-    const subject = await ensureTeacherSubject(context.adminClient, context.teacherUserId, Number(question.subject_id), 'id, name, teacher_id')
-
-    const { error } = await context.adminClient
-      .from('questions')
-      .delete()
-      .eq('id', questionId)
-      .eq('subject_id', question.subject_id)
-
+    const { data, error } = await context.userClient.rpc('archive_teacher_question', { p_question_id: questionId })
     if (error) throw error
 
-    await writeTeacherAudit(context.adminClient, {
-      action: 'teacher.question.delete',
-      teacherUserId: context.teacherUserId,
-      targetTable: 'questions',
-      targetId: questionId,
-      metadata: {
-        subject_id: question.subject_id,
-        subject_name: subject.name,
-        classroom_id: question.classroom_id,
-        topic_id: question.topic_id,
-        type: question.type,
-        text: question.text,
-      },
-    })
-
-    return json({ ok: true, questionId })
+    return json({ ok: true, questionId, archived: true, data })
   } catch (error) {
-    return errorResponse(error, 'No se pudo borrar la pregunta.', { functionName: 'teacher-delete-question' })
+    return errorResponse(error, 'No se pudo archivar la pregunta.', { functionName: 'teacher-delete-question' })
   }
 })

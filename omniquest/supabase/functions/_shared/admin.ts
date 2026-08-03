@@ -41,8 +41,7 @@ export async function getAdminContext(req: Request, requiredPermission?: string)
     roleId = String(payload.role_id || roleId)
     roleName = String(payload.role_name || roleName)
   } else {
-    // Compatibility before the governance migration: existing admins remain global.
-    permissions = ['dashboard.read','users.read','users.manage','users.security','users.export','courses.read','courses.manage','courses.transfer','courses.delete','audit.read','audit.export','support.read','support.manage','admin.roles.manage']
+    return publicErrorResponse('No se pudieron verificar los permisos administrativos.', 503, 'authorization_unavailable')
   }
 
   if (requiredPermission && !permissions.includes(requiredPermission)) return publicErrorResponse('Tu rol administrativo no permite esta acción.', 403, 'forbidden')

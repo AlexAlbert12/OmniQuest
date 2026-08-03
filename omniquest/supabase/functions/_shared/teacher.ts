@@ -5,6 +5,7 @@ export { corsHeaders, errorResponse, isMissingSchemaError, json, methodNotAllowe
 
 export type TeacherContext = {
   adminClient: any
+  userClient: any
   authHeader: string
   supabaseUrl: string
   teacherUserId: string
@@ -49,6 +50,7 @@ export async function getTeacherContext(req: Request): Promise<TeacherContext | 
 
   return {
     adminClient,
+    userClient,
     authHeader,
     supabaseUrl,
     teacherUserId: userData.user.id,

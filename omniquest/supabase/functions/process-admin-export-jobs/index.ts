@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { csvCell } from '../_shared/csv.ts'
 import { corsHeaders, errorResponse, json, methodNotAllowedResponse } from '../_shared/errors.ts'
 
 type ExportJob = { id: string; requested_by: string; export_type: 'profiles' | 'subjects' | 'classrooms' | 'audit' | 'support'; filters: Record<string, unknown> }
@@ -136,4 +137,3 @@ function normalizeCell(value: unknown) {
   return String(value)
 }
 
-function csvCell(value: unknown) { return `"${String(value ?? '').replace(/"/g, '""')}"` }

@@ -475,7 +475,7 @@ async function sendStudentEmail({
 
 
 function getEmailDeliveryMode(): 'real' | 'redirect' {
-  const mode = (Deno.env.get('EMAIL_DELIVERY_MODE') || 'real').trim().toLowerCase()
+  const mode = (Deno.env.get('EMAIL_DELIVERY_MODE') || 'redirect').trim().toLowerCase()
   return mode === 'redirect' ? 'redirect' : 'real'
 }
 

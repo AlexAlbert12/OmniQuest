@@ -1,0 +1,15 @@
+revoke all on table public.account_backup_codes from public, anon, authenticated;
+revoke all on table public.admin_audit_logs_default from public, anon, authenticated;
+revoke all on table public.admin_role_assignments from public, anon, authenticated;
+revoke all on table public.admin_roles from public, anon, authenticated;
+revoke all on table public.analytics_reporting_identities from public, anon, authenticated;
+revoke all on table public.analytics_retention_policy from public, anon, authenticated;
+revoke all on table public.attempt_sensitive_data_retention_policy from public, anon, authenticated;
+revoke all on table public.auth_rate_limits from public, anon, authenticated;
+revoke all on table public.game_answer_submission_receipts from public, anon, authenticated;
+revoke all on table public.notification_delivery_queue from public, anon, authenticated;
+revoke all on table public.notification_push_deliveries from public, anon, authenticated;
+revoke all on table public.question_media_assets from public, anon, authenticated;
+revoke all on table public.teacher_audit_retention_policy from public, anon, authenticated;
+revoke all on table public.teacher_digest_deliveries from public, anon, authenticated;
+revoke all on table public.teacher_student_recovery_requests from public, anon, authenticated;

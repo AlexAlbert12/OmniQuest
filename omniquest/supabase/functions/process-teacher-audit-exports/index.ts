@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { errorResponse, json, methodNotAllowedResponse, publicErrorResponse } from '../_shared/errors.ts'
+import { csvCell } from '../_shared/csv.ts'
 
 const BUCKET = 'teacher-audit-exports'
 const PAGE_SIZE = 1000
@@ -197,10 +198,6 @@ function buildCsv(rows: AuditRow[]) {
   ].join('\n')
 }
 
-function csvCell(value: unknown) {
-  const text = String(value ?? '')
-  return `"${text.replaceAll('"', '""')}"`
-}
 
 function stringFilter(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null

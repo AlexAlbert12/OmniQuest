@@ -458,7 +458,7 @@ async function sendStudentEmail({
 }
 
 function getEmailDeliveryMode(): 'real' | 'redirect' {
-  return (Deno.env.get('EMAIL_DELIVERY_MODE') || 'real').trim().toLowerCase() === 'redirect'
+  return (Deno.env.get('EMAIL_DELIVERY_MODE') || 'redirect').trim().toLowerCase() === 'redirect'
     ? 'redirect'
     : 'real'
 }

@@ -4,9 +4,9 @@
 
 ## Resumen
 
-- Migraciones: **62**
+- Migraciones: **69**
 - Tablas públicas detectadas: **68**
-- Funciones/RPC públicas detectadas: **227**
+- Funciones/RPC públicas detectadas: **233**
 - Edge Functions: **32**
 
 ## Edge Functions
@@ -136,6 +136,7 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `apply_teacher_audit_retention`
 - `apply_teacher_notification_delivery_preferences`
 - `apply_teacher_notification_queue_preferences`
+- `archive_teacher_question`
 - `archive_teacher_topic`
 - `assert_topic_playable`
 - `assign_admin_role`
@@ -169,6 +170,8 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `delete_user_relational_data`
 - `detect_teacher_audit_anomalies`
 - `duplicate_teacher_subject`
+- `enforce_global_invite_code_uniqueness`
+- `enforce_subject_teacher_role`
 - `enqueue_due_teacher_digests`
 - `enqueue_notification_push_delivery`
 - `enqueue_support_email_delivery`
@@ -264,15 +267,18 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `get_teacher_topic_summary`
 - `get_weekly_ranking_profiles`
 - `handle_new_user`
+- `harden_admin_audit_partition_privileges`
 - `initialize_guest_profile`
 - `invoke_account_requests_processor`
 - `invoke_admin_export_processor`
 - `invoke_notification_delivery_worker`
 - `invoke_support_email_processor`
 - `invoke_teacher_digest_processor`
+- `is_active_teacher`
 - `is_admin`
 - `is_classroom_enrolled`
 - `is_classroom_teacher`
+- `is_invite_code_available`
 - `is_own_avatar_storage_path`
 - `is_subject_enrolled`
 - `is_subject_teacher`
