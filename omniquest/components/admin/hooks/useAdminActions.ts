@@ -1,17 +1,24 @@
 import { useCallback } from 'react'
 import { Platform } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useRouter, type Href } from 'expo-router'
+import { useAppFeedback } from '../../../hooks/useAppFeedback'
+import { getErrorMessage } from '../../../lib/typeGuards'
 import type { AdminConfirmationRequester } from '../shared/AdminTypedConfirmation'
 import { invokeAdminAction, runAdminBulkAction } from '../api/adminApi'
 import type { AdminBulkAction, AdminData, ClassroomRow, ProfileRow, SubjectRow } from '../types/admin'
-import { confirmActionAsync, showAlert } from '../utils/adminUtils'
 
 export function useAdminActions(data: AdminData, requestConfirmation?: AdminConfirmationRequester) {
   const router = useRouter()
+  const feedback = useAppFeedback()
   const requestSensitiveConfirmation = useCallback(async (options: Parameters<AdminConfirmationRequester>[0]) => {
     if (requestConfirmation) return requestConfirmation(options)
-    return confirmActionAsync(options.title, `${options.message}\n\nEscribe ${options.confirmationText} en la confirmación para continuar.`)
-  }, [requestConfirmation])
+    return feedback.confirm({
+      title: options.title,
+      message: options.message,
+      confirmLabel: options.confirmLabel,
+      destructive: options.destructive,
+    })
+  }, [feedback, requestConfirmation])
 
   const executeBulkAction = useCallback(async (options: {
     action: AdminBulkAction
@@ -30,11 +37,11 @@ export function useAdminActions(data: AdminData, requestConfirmation?: AdminConf
   const toggleProfileActive = useCallback(async (profile: ProfileRow, governance?: { reason?: string; reactivateAt?: string | null }) => {
     const nextActive = profile.active === false
     if (!nextActive && profile.id === data.portalContext?.user_id) {
-      showAlert('Acción bloqueada', 'No puedes desactivar tu propia cuenta administradora.')
+      feedback.warning('Acción bloqueada', 'No puedes desactivar tu propia cuenta administradora.')
       return
     }
     const approved = nextActive
-      ? await confirmActionAsync('Activar usuario', `Se activará la cuenta de ${profile.alias}.`)
+      ? await feedback.confirm({ title: 'Activar usuario', message: `Se activará la cuenta de ${profile.alias}.`, confirmLabel: 'Activar' })
       : await requestSensitiveConfirmation({
           title: 'Desactivar usuario',
           message: `La cuenta de ${profile.alias} dejará de poder acceder. Motivo: ${governance?.reason || 'No especificado'}.`,
@@ -46,13 +53,17 @@ export function useAdminActions(data: AdminData, requestConfirmation?: AdminConf
         action: nextActive ? 'activate_users' : 'deactivate_users',
         entity: 'profiles', ids: [profile.id], reason: governance?.reason, reactivateAt: governance?.reactivateAt,
       })
-    } catch (error: any) {
-      showAlert('No se pudo actualizar', error.message)
+      feedback.success(nextActive ? 'Usuario activado' : 'Usuario desactivado', `${profile.alias} se ha actualizado correctamente.`)
+    } catch (error: unknown) {
+      feedback.error('No se pudo actualizar', getErrorMessage(error, 'Revisa tus permisos administrativos.'))
     }
-  }, [data.portalContext?.user_id, executeBulkAction, requestSensitiveConfirmation])
+  }, [data.portalContext?.user_id, executeBulkAction, feedback, requestSensitiveConfirmation])
 
   const resetPassword = useCallback(async (profile: ProfileRow) => {
-    if (!profile.email) return showAlert('Sin correo', 'Este usuario no tiene correo guardado en profiles.email.')
+    if (!profile.email) {
+      feedback.warning('Sin correo', 'Este usuario no tiene correo guardado en profiles.email.')
+      return
+    }
     const approved = await requestSensitiveConfirmation({
       title: 'Restablecer contraseña',
       message: `Se enviará un enlace de recuperación a ${profile.email}. Esta acción quedará registrada en auditoría.`,
@@ -61,11 +72,11 @@ export function useAdminActions(data: AdminData, requestConfirmation?: AdminConf
     if (!approved) return
     try {
       await invokeAdminAction('admin-reset-password', { profileId: profile.id })
-      showAlert('Correo enviado', `Se ha enviado un enlace de restablecimiento a ${profile.email}.`)
-    } catch (error: any) {
-      showAlert('No se pudo restablecer', error.message)
+      feedback.success('Correo enviado', `Se ha enviado un enlace de restablecimiento a ${profile.email}.`)
+    } catch (error: unknown) {
+      feedback.error('No se pudo restablecer', getErrorMessage(error, 'Revisa la configuración de correo.'))
     }
-  }, [requestSensitiveConfirmation])
+  }, [feedback, requestSensitiveConfirmation])
 
   const deleteStudentProgress = useCallback(async (student: ProfileRow) => {
     const approved = await requestSensitiveConfirmation({
@@ -77,11 +88,11 @@ export function useAdminActions(data: AdminData, requestConfirmation?: AdminConf
     try {
       await invokeAdminAction('admin-delete-student-progress', { studentId: student.id })
       await data.refresh()
-      showAlert('Progreso eliminado', `El progreso de ${student.alias} se ha eliminado.`)
-    } catch (error: any) {
-      showAlert('No se pudo eliminar progreso', error.message)
+      feedback.success('Progreso eliminado', `El progreso de ${student.alias} se ha eliminado.`)
+    } catch (error: unknown) {
+      feedback.error('No se pudo eliminar progreso', getErrorMessage(error, 'Inténtalo de nuevo.'))
     }
-  }, [data, requestSensitiveConfirmation])
+  }, [data, feedback, requestSensitiveConfirmation])
 
   const toggleCourseArchive = useCallback(async (subject: SubjectRow, governance?: { reason?: string; deactivateClassrooms?: boolean }) => {
     const archive = !subject.is_archived
@@ -91,30 +102,32 @@ export function useAdminActions(data: AdminData, requestConfirmation?: AdminConf
           message: `El curso ${subject.name} se archivará. ${governance?.deactivateClassrooms === false ? 'Las clases mantendrán su estado.' : 'Las clases activas se desactivarán de forma coherente.'}`,
           confirmationText: 'ARCHIVAR', confirmLabel: 'Archivar curso', destructive: true, icon: 'archive-outline',
         })
-      : await confirmActionAsync('Restaurar curso', `Se restaurará el curso ${subject.name}; las clases no se reactivarán automáticamente.`)
+      : await feedback.confirm({ title: 'Restaurar curso', message: `Se restaurará el curso ${subject.name}; las clases no se reactivarán automáticamente.`, confirmLabel: 'Restaurar' })
     if (!approved) return
     try {
       await executeBulkAction({
         action: archive ? 'archive_courses' : 'restore_courses', entity: 'subjects', ids: [subject.id],
         reason: governance?.reason, deactivateClassrooms: governance?.deactivateClassrooms ?? true,
       })
-    } catch (error: any) {
-      showAlert('No se pudo actualizar el curso', error.message)
+      feedback.success(archive ? 'Curso archivado' : 'Curso restaurado', subject.name)
+    } catch (error: unknown) {
+      feedback.error('No se pudo actualizar el curso', getErrorMessage(error, 'Inténtalo de nuevo.'))
     }
-  }, [executeBulkAction, requestSensitiveConfirmation])
+  }, [executeBulkAction, feedback, requestSensitiveConfirmation])
 
   const transferCourseOwner = useCallback(async (subject: SubjectRow, targetTeacherId: string, reason: string) => {
     try {
       await executeBulkAction({ action: 'transfer_courses', entity: 'subjects', ids: [subject.id], targetTeacherId, reason })
-    } catch (error: any) {
-      showAlert('No se pudo transferir el curso', error.message)
+      feedback.success('Curso transferido', subject.name)
+    } catch (error: unknown) {
+      feedback.error('No se pudo transferir el curso', getErrorMessage(error, 'Inténtalo de nuevo.'))
     }
-  }, [executeBulkAction])
+  }, [executeBulkAction, feedback])
 
   const toggleClassroomActive = useCallback(async (classroom: ClassroomRow, governance?: { reason?: string }) => {
     const nextActive = classroom.active === false
     const approved = nextActive
-      ? await confirmActionAsync('Activar clase', `Se activará la clase ${classroom.name}.`)
+      ? await feedback.confirm({ title: 'Activar clase', message: `Se activará la clase ${classroom.name}.`, confirmLabel: 'Activar' })
       : await requestSensitiveConfirmation({
           title: 'Desactivar clase', message: `La clase ${classroom.name} dejará de aceptar actividad.`,
           confirmationText: 'DESACTIVAR', confirmLabel: 'Desactivar clase', destructive: true, icon: 'ban-outline',
@@ -124,23 +137,28 @@ export function useAdminActions(data: AdminData, requestConfirmation?: AdminConf
       await executeBulkAction({
         action: nextActive ? 'activate_classrooms' : 'deactivate_classrooms', entity: 'classrooms', ids: [classroom.id], reason: governance?.reason,
       })
-    } catch (error: any) {
-      showAlert('No se pudo actualizar la clase', error.message)
+      feedback.success(nextActive ? 'Clase activada' : 'Clase desactivada', classroom.name)
+    } catch (error: unknown) {
+      feedback.error('No se pudo actualizar la clase', getErrorMessage(error, 'Inténtalo de nuevo.'))
     }
-  }, [executeBulkAction, requestSensitiveConfirmation])
+  }, [executeBulkAction, feedback, requestSensitiveConfirmation])
 
   const copyClassroomCode = useCallback(async (classroom: ClassroomRow) => {
-    if (!classroom.code) return showAlert('Sin código', 'Esta clase no tiene código disponible.')
+    if (!classroom.code) {
+      feedback.warning('Sin código', 'Esta clase no tiene código disponible.')
+      return
+    }
     if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
       await navigator.clipboard.writeText(classroom.code)
-      return showAlert('Código copiado', `Código ${classroom.code} copiado al portapapeles.`)
+      feedback.success('Código copiado', `Código ${classroom.code} copiado al portapapeles.`)
+      return
     }
-    showAlert('Código de clase', classroom.code)
-  }, [])
+    feedback.success('Código de clase', classroom.code)
+  }, [feedback])
 
-  const viewProfileActivity = useCallback((profile: ProfileRow) => router.push(`/(admin)/user/${profile.id}/activity` as any), [router])
+  const viewProfileActivity = useCallback((profile: ProfileRow) => router.push(`/(admin)/user/${profile.id}/activity` as Href), [router])
   const viewRelatedAudit = useCallback((targetTable: string, targetId: string | number) => {
-    router.push(`/(admin)/audit?targetTable=${encodeURIComponent(targetTable)}&targetId=${encodeURIComponent(String(targetId))}` as any)
+    router.push(`/(admin)/audit?targetTable=${encodeURIComponent(targetTable)}&targetId=${encodeURIComponent(String(targetId))}` as Href)
   }, [router])
 
   return {

@@ -1,7 +1,6 @@
 import React from 'react'
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   Text,
@@ -9,7 +8,7 @@ import {
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
 import { supabase } from '../../../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../../lib/mobileLayout'
 import { useAppTheme } from '../../../../lib/appTheme'
@@ -20,6 +19,7 @@ import TeacherPageHeader from '../../../../components/teacher/TeacherPageHeader'
 import AppButton from '../../../../components/ui/AppButton'
 import AppStatusBanner from '../../../../components/ui/AppStatusBanner'
 import AppTabs from '../../../../components/ui/AppTabs'
+import { useAppFeedback } from '../../../../hooks/useAppFeedback'
 import {
   StudentHistoryMetrics,
   StudentHistoryReviews,
@@ -40,6 +40,7 @@ export default function TeacherStudentHistoryScreen() {
   const router = useRouter()
   const { width } = useWindowDimensions()
   const { tokens } = useAppTheme()
+  const feedback = useAppFeedback()
   const isDesktop = width >= 1080
   const studentId = normalizeStringParam(params.id)
   const subjectId = parseNumberParam(params.subjectId)
@@ -50,13 +51,13 @@ export default function TeacherStudentHistoryScreen() {
     const recommendation = history.summary?.recommendation
     if (!recommendation || !studentId) return
     if (recommendation.code === 'review') {
-      router.push('/(teacher)/reviews' as any)
+      router.push('/(teacher)/reviews' as Href)
       return
     }
     if (recommendation.code === 'practice' || recommendation.code === 'challenge') {
       const context = history.summary?.courseContexts[0]
       if (!context) {
-        Alert.alert('Sin curso', 'No hay un curso disponible para preparar la práctica.')
+        feedback.warning('Sin curso', 'No hay un curso disponible para preparar la práctica.')
         return
       }
       router.push({
@@ -66,7 +67,7 @@ export default function TeacherStudentHistoryScreen() {
           ...(classroomId || context.classroomId ? { classroomId: String(classroomId || context.classroomId) } : {}),
           ...(recommendation.topicId ? { topicId: String(recommendation.topicId) } : {}),
         },
-      } as any)
+      } as Href)
       return
     }
 
@@ -77,9 +78,9 @@ export default function TeacherStudentHistoryScreen() {
         body: { studentIds: [studentId], subjectIds, mode: 'reminder' },
       })
       if (error) throw error
-      Alert.alert('Recordatorio enviado', 'El alumno recibirá una notificación para retomar su aprendizaje.')
+      feedback.success('Recordatorio enviado', 'El alumno recibirá una notificación para retomar su aprendizaje.')
     } catch (error) {
-      Alert.alert('No se pudo enviar', error instanceof Error ? error.message : 'Inténtalo de nuevo más tarde.')
+      feedback.error('No se pudo enviar', error instanceof Error ? error : 'Inténtalo de nuevo más tarde.')
     }
   }
 
@@ -121,7 +122,7 @@ export default function TeacherStudentHistoryScreen() {
         title={summary.profile.alias || 'Alumno'}
         subtitle="Resumen en servidor, actividad paginada y métricas cargadas solo cuando se necesitan."
         backAction={{ label: 'Alumnos', onPress: () => router.back() }}
-        notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
+        notificationOnPress={() => router.push('/(teacher)/notifications' as Href)}
       />
 
       <View className="mb-5 flex-row flex-wrap items-center gap-4 rounded-2xl border p-5" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>

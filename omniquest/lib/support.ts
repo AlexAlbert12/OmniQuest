@@ -1,6 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker'
 import { Linking } from 'react-native'
 import { supabase } from './supabase'
+import { isRecord } from './typeGuards'
 
 export type SupportRole = 'student' | 'teacher' | 'admin' | 'system'
 export type SupportTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
@@ -171,7 +172,7 @@ export async function fetchSupportThreadPage({
     p_before_id: beforeId ?? undefined,
   })
   if (error) throw error
-  const payload = isObject(data) ? data : {}
+  const payload = isRecord(data) ? data : {}
   const messages = Array.isArray(payload.messages) ? payload.messages.map(mapSupportMessage) : []
   const rawAttachments = Array.isArray(payload.attachments) ? payload.attachments.map(mapSupportAttachment) : []
   const attachments = await signSupportAttachments(rawAttachments)
@@ -189,13 +190,13 @@ export async function fetchSupportThreadPage({
 
 
 export async function fetchAdminSupportDirectory(): Promise<SupportDirectory> {
-  const { data, error } = await supabase.rpc('get_admin_support_directory' as any)
+  const { data, error } = await supabase.rpc('get_admin_support_directory')
   if (error) throw error
-  const payload = isObject(data) ? data : {}
+  const payload = isRecord(data) ? data : {}
   return {
-    admins: Array.isArray(payload.admins) ? payload.admins.map((item: unknown) => { const row = isObject(item) ? item : {}; return { id: String(row.id || ''), alias: String(row.alias || 'Administrador'), email: typeof row.email === 'string' ? row.email : null } }).filter((item: { id: string }) => item.id) : [],
+    admins: Array.isArray(payload.admins) ? payload.admins.map((item: unknown) => { const row = isRecord(item) ? item : {}; return { id: String(row.id || ''), alias: String(row.alias || 'Administrador'), email: typeof row.email === 'string' ? row.email : null } }).filter((item: { id: string }) => item.id) : [],
     tags: Array.isArray(payload.tags) ? payload.tags.map(mapSupportTag) : [],
-    templates: Array.isArray(payload.templates) ? payload.templates.map((item: unknown) => { const row = isObject(item) ? item : {}; return { id: Number(row.id), title: String(row.title || 'Plantilla'), body: String(row.body || ''), category: typeof row.category === 'string' ? row.category : null } }).filter((item: SupportTemplate) => Number.isFinite(item.id)) : [],
+    templates: Array.isArray(payload.templates) ? payload.templates.map((item: unknown) => { const row = isRecord(item) ? item : {}; return { id: Number(row.id), title: String(row.title || 'Plantilla'), body: String(row.body || ''), category: typeof row.category === 'string' ? row.category : null } }).filter((item: SupportTemplate) => Number.isFinite(item.id)) : [],
   }
 }
 
@@ -438,7 +439,7 @@ function mapSupportTicket(row: Record<string, unknown>): SupportTicket {
 }
 
 function mapSupportMessage(value: unknown): SupportMessage {
-  const row = isObject(value) ? value : {}
+  const row = isRecord(value) ? value : {}
   return {
     id: Number(row.id),
     ticket_id: Number(row.ticket_id),
@@ -452,26 +453,26 @@ function mapSupportMessage(value: unknown): SupportMessage {
 
 
 function mapSupportHistory(value: unknown): SupportHistory {
-  const row = isObject(value) ? value : {}
+  const row = isRecord(value) ? value : {}
   return {
     id: Number(row.id),
     ticket_id: Number(row.ticket_id),
     changed_by: typeof row.changed_by === 'string' ? row.changed_by : null,
     event_type: String(row.event_type || 'ticket_updated'),
-    before_state: isObject(row.before_state) ? row.before_state : null,
-    after_state: isObject(row.after_state) ? row.after_state : null,
+    before_state: isRecord(row.before_state) ? row.before_state : null,
+    after_state: isRecord(row.after_state) ? row.after_state : null,
     comment: typeof row.comment === 'string' ? row.comment : null,
     created_at: String(row.created_at || new Date(0).toISOString()),
   }
 }
 
 function mapSupportTag(value: unknown): SupportTag {
-  const row = isObject(value) ? value : {}
+  const row = isRecord(value) ? value : {}
   return { id: Number(row.id), slug: String(row.slug || ''), label: String(row.label || row.slug || 'Etiqueta'), color: String(row.color || '#64748B') }
 }
 
 function mapSupportAttachment(value: unknown): Omit<SupportAttachment, 'signedUrl'> {
-  const row = isObject(value) ? value : {}
+  const row = isRecord(value) ? value : {}
   return {
     id: String(row.id || ''),
     ticket_id: Number(row.ticket_id),
@@ -510,9 +511,6 @@ function isSupportRole(value: unknown): value is SupportRole {
   return value === 'student' || value === 'teacher' || value === 'admin' || value === 'system'
 }
 
-function isObject(value: unknown): value is Record<string, any> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-}
 
 function sanitizeFileName(value: string) {
   return value

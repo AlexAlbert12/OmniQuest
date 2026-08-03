@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Alert, Platform } from 'react-native'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { Platform } from 'react-native'
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
 import { removeStudentFromClasses, resetStudentProgress, sendTeacherStudentMessage, signOutTeacherStudents } from './api'
 import { buildStudentActivityRoute, buildStudentHistoryRoute, buildTeacherStudentPageView, buildTeacherStudentsCsv, parsePositiveNumberParam, parseStudentStatusParam } from './model'
 import { useTeacherStudentsPage } from './useTeacherStudentsPage'
 import type { ConfirmDialog, StudentRow } from './types'
+import { useAppFeedback } from '../../hooks/useAppFeedback'
 
 export function useTeacherStudentsController(pageSize: number) {
   const router = useRouter()
@@ -21,7 +22,7 @@ export function useTeacherStudentsController(pageSize: number) {
   const [reminderStudentIds, setReminderStudentIds] = useState<Record<string, boolean>>({})
   const [sendingBulkReminders, setSendingBulkReminders] = useState(false)
   const pageView = useMemo(() => buildTeacherStudentPageView(directory.students, directory.summary), [directory.students, directory.summary])
-  const showAlert = useCallback((title: string, message: string) => Alert.alert(title, message), [])
+  const feedback = useAppFeedback()
 
   const viewStudentDetails = useCallback((student: StudentRow) => {
     setActionStudent(null)
@@ -31,27 +32,27 @@ export function useTeacherStudentsController(pageSize: number) {
   const viewHistory = useCallback((student: StudentRow) => {
     setActionStudent(null)
     setDetailStudent(null)
-    router.push(buildStudentHistoryRoute(student, directory.selectedSubjectId, directory.selectedClassroomId) as any)
+    router.push(buildStudentHistoryRoute(student, directory.selectedSubjectId, directory.selectedClassroomId) as Href)
   }, [directory.selectedClassroomId, directory.selectedSubjectId, router])
 
   const assignActivity = useCallback((student: StudentRow) => {
     const route = buildStudentActivityRoute(student, directory.selectedSubjectId, directory.selectedClassroomId)
     if (!route) {
-      showAlert('Asignar repaso', 'Selecciona primero un curso o una clase para crear la actividad.')
+      feedback.warning('Asignar repaso', 'Selecciona primero un curso o una clase para crear la actividad.')
       return
     }
-    router.push(route as any)
-  }, [directory.selectedClassroomId, directory.selectedSubjectId, router, showAlert])
+    router.push(route as Href)
+  }, [directory.selectedClassroomId, directory.selectedSubjectId, router, feedback])
 
   const removeFromClass = useCallback(async (student: StudentRow) => {
     try {
       await removeStudentFromClasses(student)
       await directory.reload()
-      showAlert('Estudiante eliminado', `${student.alias} ha sido retirado de sus cursos y clases.`)
+      feedback.success('Estudiante eliminado', `${student.alias} ha sido retirado de sus cursos y clases.`)
     } catch (error) {
-      showAlert('Error', error instanceof Error ? error.message : 'No se pudo eliminar al estudiante.')
+      feedback.error('No se pudo eliminar al estudiante', error instanceof Error ? error : 'Inténtalo de nuevo más tarde.')
     }
-  }, [directory, showAlert])
+  }, [directory, feedback])
 
   const requestRemoveFromClass = useCallback((student: StudentRow) => {
     setActionStudent(null)
@@ -69,11 +70,11 @@ export function useTeacherStudentsController(pageSize: number) {
     try {
       await resetStudentProgress(student)
       await directory.reload()
-      showAlert('Progreso reiniciado', `El progreso de ${student.alias} se ha reiniciado.`)
+      feedback.success('Progreso reiniciado', `El progreso de ${student.alias} se ha reiniciado.`)
     } catch (error) {
-      showAlert('Error', error instanceof Error ? error.message : 'No se pudo reiniciar el progreso.')
+      feedback.error('No se pudo reiniciar el progreso', error instanceof Error ? error : 'Inténtalo de nuevo más tarde.')
     }
-  }, [directory, showAlert])
+  }, [directory, feedback])
 
   const requestResetProgress = useCallback((student: StudentRow) => {
     setActionStudent(null)
@@ -88,7 +89,7 @@ export function useTeacherStudentsController(pageSize: number) {
 
   const sendBulkReminder = useCallback(async () => {
     if (!pageView.pendingStudents.length || sendingBulkReminders) {
-      showAlert('Sin pendientes en esta página', 'No hay alumnos sin actividad en la página actual.')
+      feedback.warning('Sin pendientes en esta página', 'No hay alumnos sin actividad en la página actual.')
       return
     }
     try {
@@ -98,13 +99,13 @@ export function useTeacherStudentsController(pageSize: number) {
         Array.from(new Set(pageView.pendingStudents.flatMap((student) => student.subjectIds))),
         'reminder',
       )
-      showAlert('Recordatorios enviados', `${Number(data?.sent || 0)} envío(s) completado(s) desde la página actual.`)
+      feedback.success('Recordatorios enviados', `${Number(data?.sent || 0)} envío(s) completado(s) desde la página actual.`)
     } catch (error) {
-      showAlert('Error', error instanceof Error ? error.message : 'No se pudieron enviar los recordatorios.')
+      feedback.error('No se pudieron enviar los recordatorios', error instanceof Error ? error : 'Inténtalo de nuevo más tarde.')
     } finally {
       setSendingBulkReminders(false)
     }
-  }, [pageView.pendingStudents, sendingBulkReminders, showAlert])
+  }, [pageView.pendingStudents, sendingBulkReminders, feedback])
 
   const sendStudentMessage = useCallback(async (student: StudentRow, mode: 'reminder' | 'recovery') => {
     if (reminderStudentIds[student.id]) return
@@ -112,26 +113,26 @@ export function useTeacherStudentsController(pageSize: number) {
       setActionStudent(null)
       setReminderStudentIds((current) => ({ ...current, [student.id]: true }))
       await sendTeacherStudentMessage([student.id], student.subjectIds, mode)
-      showAlert(
+      feedback.success(
         mode === 'recovery' ? 'Enlace seguro enviado' : 'Recordatorio enviado',
         mode === 'recovery'
           ? `${student.alias} recibirá un enlace de recuperación de un solo uso.`
           : `${student.alias} recibirá un recordatorio para volver a practicar.`,
       )
     } catch (error) {
-      showAlert('Error', error instanceof Error ? error.message : 'No se pudo enviar el mensaje.')
+      feedback.error('No se pudo enviar el mensaje', error instanceof Error ? error : 'Inténtalo de nuevo más tarde.')
     } finally {
       setReminderStudentIds((current) => ({ ...current, [student.id]: false }))
     }
-  }, [reminderStudentIds, showAlert])
+  }, [reminderStudentIds, feedback])
 
   const exportCurrentPage = useCallback(() => {
     if (!directory.students.length) {
-      showAlert('Sin datos', 'No hay alumnos en la página actual para exportar.')
+      feedback.warning('Sin datos', 'No hay alumnos en la página actual para exportar.')
       return
     }
     if (Platform.OS !== 'web') {
-      showAlert('Exportación disponible en web', 'La descarga CSV está disponible desde la versión web.')
+      feedback.warning('Exportación disponible en web', 'La descarga CSV está disponible desde la versión web.')
       return
     }
     const blob = new Blob([`\uFEFF${buildTeacherStudentsCsv(directory.students)}`], { type: 'text/csv;charset=utf-8;' })
@@ -143,7 +144,10 @@ export function useTeacherStudentsController(pageSize: number) {
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
-  }, [directory.page, directory.students, showAlert])
+  }, [directory.page, directory.students, feedback])
+
+  const openNotifications = useCallback(() => router.push('/(teacher)/notifications' as Href), [router])
+  const signOut = useCallback(() => { void signOutTeacherStudents() }, [])
 
   return {
     directory,
@@ -164,7 +168,7 @@ export function useTeacherStudentsController(pageSize: number) {
     sendBulkReminder,
     sendStudentMessage,
     exportCurrentPage,
-    openNotifications: () => router.push('/(teacher)/notifications' as any),
-    signOut: () => { void signOutTeacherStudents() },
+    openNotifications,
+    signOut,
   }
 }

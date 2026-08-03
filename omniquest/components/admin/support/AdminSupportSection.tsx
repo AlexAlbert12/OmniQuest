@@ -3,6 +3,8 @@ import { ActivityIndicator, Pressable, Text, TextInput, useWindowDimensions, Vie
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams } from 'expo-router'
 import { supabase } from '../../../lib/supabase'
+import { useAppFeedback } from '../../../hooks/useAppFeedback'
+import { getErrorMessage, isRecord } from '../../../lib/typeGuards'
 import { fetchAdminSupportDirectory, fetchSupportThread, openSupportAttachment, pickSupportAttachment, uploadAdminSupportAttachment, type PickedSupportAttachment, type SupportAttachment, type SupportDirectory, type SupportHistory, type SupportMessage } from '../../../lib/support'
 import AdminSearchBar from '../shared/AdminSearchBar'
 import VirtualizedStack from '../../ui/VirtualizedStack'
@@ -13,7 +15,7 @@ import { useAdminRpcPage } from '../hooks/useAdminRpcPage'
 import { AdminScaffold } from '../shared/AdminScaffold'
 import { AdminChoiceChip, AdminFilterRow, AdminPaginationControls, EmptyState, ListLoadingState, MiniPill, Panel, SupportPriorityPill, SupportStatusPill, SupportTicketCard } from '../shared/AdminPrimitives'
 import type { AdminSupportTicketRow } from '../types/admin'
-import { formatAuditDate, getSupportPriorityLabel, getSupportStatusLabel, showAlert } from '../utils/adminUtils'
+import { formatAuditDate, getSupportPriorityLabel, getSupportStatusLabel } from '../utils/adminUtils'
 
 const EMPTY_DIRECTORY: SupportDirectory = { admins: [], tags: [], templates: [] }
 
@@ -22,6 +24,7 @@ export function AdminSupportSection() {
   const { width } = useWindowDimensions()
   const isDesktop = width >= 1040
   const pageSize = isDesktop ? 25 : 8
+  const feedback = useAppFeedback()
   const data = useAdminData()
   const exportJobs = useAdminExportJobs()
   const canManage = !data.portalContext || data.portalContext.permissions.includes('support.manage')
@@ -48,7 +51,7 @@ export function AdminSupportSection() {
   const [attachments, setAttachments] = useState<SupportAttachment[]>([])
   const [history, setHistory] = useState<SupportHistory[]>([])
 
-  useEffect(() => { void fetchAdminSupportDirectory().then(setDirectory).catch((error) => console.warn('[support directory]', error?.message)) }, [])
+  useEffect(() => { void fetchAdminSupportDirectory().then(setDirectory).catch((error: unknown) => console.warn('[support directory]', getErrorMessage(error, 'No se pudo cargar el directorio.'))) }, [])
 
   const supportPage = useAdminRpcPage<AdminSupportTicketRow>('get_admin_support_tickets_page_secured', {
     p_search: search.trim() || undefined,
@@ -68,12 +71,12 @@ export function AdminSupportSection() {
       setAttachments(thread.attachments)
       setHistory(thread.history)
       setSelectedTagSlugs(thread.tags.map((tag) => tag.slug))
-    } catch (error: any) {
-      showAlert('No se pudo cargar la conversación', error?.message || 'Inténtalo de nuevo.')
+    } catch (error: unknown) {
+      feedback.error('No se pudo cargar la conversación', getErrorMessage(error, 'Inténtalo de nuevo.'))
     } finally {
       setThreadLoading(false)
     }
-  }, [])
+  }, [feedback])
 
   const openTicket = useCallback(async (ticket: AdminSupportTicketRow) => {
     setSelectedTicket(ticket)
@@ -95,29 +98,29 @@ export function AdminSupportSection() {
     if (requestedTicket) void openTicket(requestedTicket)
   }, [openTicket, params.ticket, selectedTicket?.id, supportPage.rows])
 
-  const chooseAttachment = async () => {
+  const chooseAttachment = useCallback(async () => {
     try { setPickedAttachment(await pickSupportAttachment()) }
-    catch (error: any) { showAlert('Adjunto no válido', error?.message || 'Selecciona otro archivo.') }
-  }
+    catch (error: unknown) { feedback.warning('Adjunto no válido', getErrorMessage(error, 'Selecciona otro archivo.')) }
+  }, [feedback])
 
-  const openAttachment = async (attachment: SupportAttachment) => {
+  const openAttachment = useCallback(async (attachment: SupportAttachment) => {
     try { await openSupportAttachment(attachment) }
-    catch (error: any) { showAlert('No se pudo abrir el adjunto', error?.message || 'El enlace puede haber caducado.') }
-  }
+    catch (error: unknown) { feedback.error('No se pudo abrir el adjunto', getErrorMessage(error, 'El enlace puede haber caducado.')) }
+  }, [feedback])
 
-  const applyTemplate = (value: string) => {
+  const applyTemplate = useCallback((value: string) => {
     setTemplateId(value)
     const template = directory.templates.find((item) => String(item.id) === value)
     if (template) setAdminResponse(template.body)
-  }
+  }, [directory.templates])
 
-  const saveTicket = async () => {
+  const saveTicket = useCallback(async () => {
     if (!selectedTicket || !canManage) return
-    if ((editStatus === 'resolved' || editStatus === 'closed') && adminResponse.trim().length < 5) return showAlert('Respuesta necesaria', 'Escribe una respuesta antes de resolver o cerrar el ticket.')
-    if (pickedAttachment && adminResponse.trim().length < 2) return showAlert('Mensaje necesario', 'Añade una respuesta pública para asociar el adjunto.')
+    if ((editStatus === 'resolved' || editStatus === 'closed') && adminResponse.trim().length < 5) { feedback.warning('Respuesta necesaria', 'Escribe una respuesta antes de resolver o cerrar el ticket.'); return }
+    if (pickedAttachment && adminResponse.trim().length < 2) { feedback.warning('Mensaje necesario', 'Añade una respuesta pública para asociar el adjunto.'); return }
     setSaving(true)
     try {
-      const { data: result, error } = await supabase.rpc('admin_update_support_ticket_secured' as any, {
+      const { data: result, error } = await supabase.rpc('admin_update_support_ticket_secured', {
         p_ticket_id: selectedTicket.id,
         p_status: editStatus,
         p_priority: editPriority,
@@ -128,7 +131,8 @@ export function AdminSupportSection() {
         p_template_id: templateId ? Number(templateId) : undefined,
       })
       if (error) throw error
-      const publicMessageId = result && typeof result === 'object' && !Array.isArray(result) ? Number((result as any).public_message_id) : NaN
+      const resultPayload = isRecord(result) ? result : {}
+      const publicMessageId = Number(resultPayload.public_message_id)
       if (pickedAttachment) await uploadAdminSupportAttachment(selectedTicket.id, Number.isFinite(publicMessageId) ? publicMessageId : null, pickedAttachment)
       const assigned = directory.admins.find((admin) => admin.id === assignedAdminId)
       const tags = directory.tags.filter((tag) => selectedTagSlugs.includes(tag.slug))
@@ -140,13 +144,13 @@ export function AdminSupportSection() {
       setInternalComment('')
       setPickedAttachment(null)
       setTemplateId('')
-      showAlert('Ticket actualizado', 'Los cambios, mensajes y adjuntos se han guardado correctamente.')
-    } catch (error: any) {
-      showAlert('No se pudo actualizar el ticket', error?.message || 'Inténtalo de nuevo.')
+      feedback.success('Ticket actualizado', 'Los cambios, mensajes y adjuntos se han guardado correctamente.')
+    } catch (error: unknown) {
+      feedback.error('No se pudo actualizar el ticket', getErrorMessage(error, 'Inténtalo de nuevo.'))
     } finally {
       setSaving(false)
     }
-  }
+  }, [adminResponse, assignedAdminId, canManage, data, directory.admins, directory.tags, editPriority, editStatus, feedback, internalComment, loadThread, pickedAttachment, selectedTagSlugs, selectedTicket, supportPage, templateId])
 
   const exportFilters = useMemo(() => ({ search, status: statusFilter === 'all' ? null : statusFilter, priority: priorityFilter === 'all' ? null : priorityFilter, role: roleFilter === 'all' ? null : roleFilter, assignedAdminId: assigneeFilter === 'all' ? null : assigneeFilter, tag: tagFilter === 'all' ? null : tagFilter, slaState: slaFilter === 'all' ? null : slaFilter }), [assigneeFilter, priorityFilter, roleFilter, search, slaFilter, statusFilter, tagFilter])
   const notifiesUser = Boolean(adminResponse.trim()) || selectedTicket?.status !== editStatus

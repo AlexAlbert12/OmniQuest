@@ -1,5 +1,6 @@
-import { Alert, Platform } from 'react-native'
 import type { DesignColorTokens } from '../../../lib/designTokens'
+import type { AppFeedback } from '../../../hooks/useAppFeedback'
+import { getErrorMessage } from '../../../lib/typeGuards'
 import type {
   AdminAuditLogRow,
   AdminDashboardMetrics,
@@ -12,44 +13,16 @@ import type {
   SubjectRow,
 } from '../types/admin'
 
-export function showAlert(title: string, message: string) {
-  if (Platform.OS === 'web') {
-    window.alert(`${title}\n${message}`)
-    return
-  }
-  Alert.alert(title, message)
-}
-
-export async function runAdminExport(setExporting: (value: boolean) => void, task: () => Promise<boolean>) {
+export async function runAdminExport(feedback: Pick<AppFeedback, 'error' | 'warning'>, setExporting: (value: boolean) => void, task: () => Promise<boolean>) {
   setExporting(true)
   try {
     const exported = await task()
-    if (!exported) showAlert('Exportación no disponible', 'No se pudo abrir el diálogo para guardar o compartir el archivo.')
-  } catch (error: any) {
-    showAlert('No se pudo exportar', error?.message || 'Revisa la conexión y vuelve a intentarlo.')
+    if (!exported) feedback.warning('Exportación no disponible', 'No se pudo abrir el diálogo para guardar o compartir el archivo.')
+  } catch (error: unknown) {
+    feedback.error('No se pudo exportar', getErrorMessage(error, 'Revisa la conexión y vuelve a intentarlo.'))
   } finally {
     setExporting(false)
   }
-}
-
-export function confirmAction(title: string, message: string, onConfirm: () => void) {
-  Alert.alert(title, message, [
-    { text: 'Cancelar', style: 'cancel' },
-    { text: 'Confirmar', style: 'destructive', onPress: onConfirm },
-  ])
-}
-
-export function confirmActionAsync(title: string, message: string) {
-  return new Promise<boolean>((resolve) => {
-    if (Platform.OS === 'web') {
-      resolve(typeof window !== 'undefined' ? window.confirm(`${title}\n\n${message}`) : false)
-      return
-    }
-    Alert.alert(title, message, [
-      { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
-      { text: 'Confirmar', style: 'destructive', onPress: () => resolve(true) },
-    ], { cancelable: true, onDismiss: () => resolve(false) })
-  })
 }
 
 export function getFallbackAdminMetrics({ classrooms, enrollments, profiles, subjects }: {

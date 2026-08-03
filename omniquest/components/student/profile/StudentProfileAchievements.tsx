@@ -12,7 +12,7 @@ type Props = {
   onOpenAll: () => void
 }
 
-export default function StudentProfileAchievements({ badges, onOpenAll }: Props) {
+function StudentProfileAchievements({ badges, onOpenAll }: Props) {
   const { tokens } = useAppTheme()
   return (
     <View className="rounded-2xl border p-5" style={{ backgroundColor: tokens.surface.default, borderColor: tokens.border.default }}>
@@ -26,25 +26,7 @@ export default function StudentProfileAchievements({ badges, onOpenAll }: Props)
 
       {badges.length > 0 ? (
         <View className="gap-3">
-          {badges.map((badge) => (
-            <AppPressable
-              key={badge.id}
-              accessibilityLabel={`${badge.title}. ${badge.requirement}`}
-              accessibilityHint="Abre el catálogo de logros"
-              onPress={onOpenAll}
-              className="flex-row items-center gap-4 rounded-xl border p-3"
-              style={{ backgroundColor: tokens.surface.raised, borderColor: tokens.border.subtle }}
-            >
-              <View className="h-14 w-14 items-center justify-center rounded-2xl border-2" style={{ backgroundColor: withAlpha(badge.color, '20'), borderColor: badge.color }}>
-                <Ionicons name={badge.icon} size={26} color={badge.color} />
-              </View>
-              <View className="min-w-0 flex-1">
-                <Text className="text-[14px] font-black" style={{ color: tokens.text.primary }}>{badge.title}</Text>
-                <Text className="mt-1 text-[12px] leading-5" style={{ color: tokens.text.muted }}>{badge.requirement}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
-            </AppPressable>
-          ))}
+          {badges.map((badge) => <StudentProfileBadgeRow key={badge.id} badge={badge} onOpen={onOpenAll} />)}
         </View>
       ) : (
         <View className="items-center rounded-xl border border-dashed px-4 py-7" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}>
@@ -56,3 +38,27 @@ export default function StudentProfileAchievements({ badges, onOpenAll }: Props)
     </View>
   )
 }
+
+export default React.memo(StudentProfileAchievements)
+
+const StudentProfileBadgeRow = React.memo(function StudentProfileBadgeRow({ badge, onOpen }: { badge: StudentBadge; onOpen: () => void }) {
+  const { tokens } = useAppTheme()
+  return (
+    <AppPressable
+      accessibilityLabel={`${badge.title}. ${badge.requirement}`}
+      accessibilityHint="Abre el catálogo de logros"
+      onPress={onOpen}
+      className="flex-row items-center gap-4 rounded-xl border p-3"
+      style={{ backgroundColor: tokens.surface.raised, borderColor: tokens.border.subtle }}
+    >
+      <View className="h-14 w-14 items-center justify-center rounded-2xl border-2" style={{ backgroundColor: withAlpha(badge.color, '20'), borderColor: badge.color }}>
+        <Ionicons name={badge.icon} size={26} color={badge.color} />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[14px] font-black" style={{ color: tokens.text.primary }}>{badge.title}</Text>
+        <Text className="mt-1 text-[12px] leading-5" style={{ color: tokens.text.muted }}>{badge.requirement}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
+    </AppPressable>
+  )
+})

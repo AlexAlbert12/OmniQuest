@@ -5,7 +5,9 @@ import { useAppTheme } from '../../../lib/appTheme'
 import { assignAdminRole, fetchAdminRoleAssignments, fetchAdminRoles } from '../api/adminApi'
 import { Panel } from '../shared/AdminPrimitives'
 import type { AdminRoleAssignmentRow, AdminRoleRow } from '../types/admin'
-import { formatAdminDate, showAlert } from '../utils/adminUtils'
+import { formatAdminDate } from '../utils/adminUtils'
+import { useAppFeedback } from '../../../hooks/useAppFeedback'
+import { getErrorMessage } from '../../../lib/typeGuards'
 
 export default function AdminRoleManagementPanel({ canManage }: { canManage: boolean }) {
   const { tokens } = useAppTheme()
@@ -15,6 +17,7 @@ export default function AdminRoleManagementPanel({ canManage }: { canManage: boo
   const [reasons, setReasons] = useState<Record<string, string>>({})
   const [savingUserId, setSavingUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const feedback = useAppFeedback()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -23,12 +26,12 @@ export default function AdminRoleManagementPanel({ canManage }: { canManage: boo
       setRoles(nextRoles)
       setAssignments(nextAssignments)
       setSelectedRoles(Object.fromEntries(nextAssignments.map((item) => [item.user_id, item.role_id])))
-    } catch (error: any) {
-      showAlert('Roles administrativos no disponibles', error.message || 'No se pudieron cargar los roles.')
+    } catch (error: unknown) {
+      feedback.error('Roles administrativos no disponibles', getErrorMessage(error, 'No se pudieron cargar los roles.'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [feedback])
 
   useEffect(() => { void load() }, [load])
 
@@ -37,16 +40,16 @@ export default function AdminRoleManagementPanel({ canManage }: { canManage: boo
   const save = async (assignment: AdminRoleAssignmentRow) => {
     const roleId = selectedRoles[assignment.user_id]
     const reason = (reasons[assignment.user_id] || '').trim()
-    if (!roleId) return showAlert('Selecciona un rol', 'Debes seleccionar el perfil de permisos.')
-    if (reason.length < 5) return showAlert('Motivo obligatorio', 'Explica el motivo del cambio con al menos cinco caracteres.')
+    if (!roleId) return feedback.warning('Selecciona un rol', 'Debes seleccionar el perfil de permisos.')
+    if (reason.length < 5) return feedback.warning('Motivo obligatorio', 'Explica el motivo del cambio con al menos cinco caracteres.')
     setSavingUserId(assignment.user_id)
     try {
       await assignAdminRole(assignment.user_id, roleId, reason)
       setReasons((current) => ({ ...current, [assignment.user_id]: '' }))
-      showAlert('Rol actualizado', `Los permisos de ${assignment.alias} se han actualizado.`)
+      feedback.success('Rol actualizado', `Los permisos de ${assignment.alias} se han actualizado.`)
       await load()
-    } catch (error: any) {
-      showAlert('No se pudo actualizar el rol', error.message || 'Revisa tus permisos administrativos.')
+    } catch (error: unknown) {
+      feedback.error('No se pudo actualizar el rol', getErrorMessage(error, 'Revisa tus permisos administrativos.'))
     } finally {
       setSavingUserId(null)
     }

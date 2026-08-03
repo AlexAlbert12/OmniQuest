@@ -6,7 +6,7 @@ import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
 import type { GalaxyTopicItem } from '../galaxy/StudentGalaxyMap'
 
-export default function TopicPlanet({
+function TopicPlanet({
   item,
   accentColor,
   style,
@@ -59,6 +59,8 @@ export default function TopicPlanet({
     </AppPressable>
   )
 }
+
+export default React.memo(TopicPlanet)
 
 function getTopicStateLabel(state: GalaxyTopicItem['state']) {
   if (state === 'completed') return 'Completado'

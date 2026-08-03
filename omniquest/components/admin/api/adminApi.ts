@@ -8,6 +8,15 @@ import type {
   AdminUserChangeRow,
 } from '../types/admin'
 
+type DynamicRowsError = { code?: string; message: string }
+type DynamicRowsResponse = { data: unknown[] | null; error: DynamicRowsError | null }
+type DynamicRowsQuery = PromiseLike<DynamicRowsResponse> & {
+  order: (column: string, options: { ascending: boolean }) => DynamicRowsQuery
+  limit: (limit: number) => DynamicRowsQuery
+}
+type DynamicTableBuilder = { select: (columns: string) => DynamicRowsQuery }
+type DynamicSupabaseClient = { from: (table: string) => DynamicTableBuilder }
+
 export function isMissingSchemaError(errorCode?: string) {
   return errorCode === '42P01' || errorCode === '42703' || errorCode === 'PGRST204' || errorCode === 'PGRST205'
 }
@@ -17,7 +26,8 @@ export async function fetchOptionalRows<T>(
   select: string,
   options: { ascending?: boolean; limit?: number; orderBy?: string } = {},
 ) {
-  let query = (supabase.from(table as never) as any).select(select)
+  const dynamicClient = supabase as unknown as DynamicSupabaseClient
+  let query = dynamicClient.from(table).select(select)
   if (options.orderBy) query = query.order(options.orderBy, { ascending: options.ascending ?? true })
   if (options.limit) query = query.limit(options.limit)
 
@@ -35,7 +45,7 @@ export async function invokeAdminAction<T extends AdminActionResult>(functionNam
 }
 
 export async function fetchAdminPortalContext(): Promise<AdminPortalContext> {
-  const { data, error } = await supabase.rpc('get_admin_portal_context' as any)
+  const { data, error } = await supabase.rpc('get_admin_portal_context')
   if (error) throw error
   const payload = data && typeof data === 'object' && !Array.isArray(data) ? data as Record<string, unknown> : {}
   return {
@@ -59,7 +69,7 @@ export async function runAdminBulkAction(options: {
 }
 
 export async function requestAdminExportJob(exportType: AdminExportJob['export_type'], filters: Record<string, unknown>) {
-  const { data, error } = await supabase.rpc('request_admin_export_job' as any, {
+  const { data, error } = await supabase.rpc('request_admin_export_job', {
     p_export_type: exportType,
     p_filters: filters,
   })
@@ -68,13 +78,13 @@ export async function requestAdminExportJob(exportType: AdminExportJob['export_t
 }
 
 export async function fetchAdminExportJobs(limit = 10) {
-  const { data, error } = await supabase.rpc('get_admin_export_jobs_page' as any, { p_limit: limit, p_offset: 0 })
+  const { data, error } = await supabase.rpc('get_admin_export_jobs_page', { p_limit: limit, p_offset: 0 })
   if (error) throw error
   return (data || []) as unknown as AdminExportJob[]
 }
 
 export async function getAdminExportDownloadUrl(jobId: string) {
-  const { data, error } = await supabase.rpc('get_admin_export_download_path' as any, { p_job_id: jobId })
+  const { data, error } = await supabase.rpc('get_admin_export_download_path', { p_job_id: jobId })
   if (error) throw error
   const payload = data && typeof data === 'object' && !Array.isArray(data) ? data as Record<string, unknown> : {}
   const path = String(payload.storage_path || '')
@@ -85,7 +95,7 @@ export async function getAdminExportDownloadUrl(jobId: string) {
 }
 
 export async function fetchAdminUserChangeHistory(profileId: string, limit = 25, offset = 0) {
-  const { data, error } = await supabase.rpc('get_admin_user_change_history_page' as any, {
+  const { data, error } = await supabase.rpc('get_admin_user_change_history_page', {
     p_profile_id: profileId,
     p_limit: limit,
     p_offset: offset,
@@ -95,19 +105,19 @@ export async function fetchAdminUserChangeHistory(profileId: string, limit = 25,
 }
 
 export async function fetchAdminRoles() {
-  const { data, error } = await supabase.rpc('get_admin_roles' as any)
+  const { data, error } = await supabase.rpc('get_admin_roles')
   if (error) throw error
   return (data || []) as unknown as import('../types/admin').AdminRoleRow[]
 }
 
 export async function fetchAdminRoleAssignments(limit = 50, offset = 0) {
-  const { data, error } = await supabase.rpc('get_admin_role_assignments_page' as any, { p_limit: limit, p_offset: offset })
+  const { data, error } = await supabase.rpc('get_admin_role_assignments_page', { p_limit: limit, p_offset: offset })
   if (error) throw error
   return (data || []) as unknown as import('../types/admin').AdminRoleAssignmentRow[]
 }
 
 export async function assignAdminRole(userId: string, roleId: string, reason: string) {
-  const { data, error } = await supabase.rpc('assign_admin_role' as any, { p_user_id: userId, p_role_id: roleId, p_reason: reason })
+  const { data, error } = await supabase.rpc('assign_admin_role', { p_user_id: userId, p_role_id: roleId, p_reason: reason })
   if (error) throw error
   return data
 }

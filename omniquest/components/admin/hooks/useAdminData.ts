@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { useAppFeedback } from '../../../hooks/useAppFeedback'
+import { getErrorMessage } from '../../../lib/typeGuards'
 import { fetchAdminPortalContext, fetchOptionalRows, isMissingSchemaError } from '../api/adminApi'
 import type {
   AdminAuditLogRow,
@@ -10,9 +12,10 @@ import type {
   ProfileRow,
   SubjectRow,
 } from '../types/admin'
-import { getFallbackAdminMetrics, normalizeAdminMetrics, showAlert } from '../utils/adminUtils'
+import { getFallbackAdminMetrics, normalizeAdminMetrics } from '../utils/adminUtils'
 
 export function useAdminData(): AdminData {
+  const feedback = useAppFeedback()
   const [profiles, setProfiles] = useState<ProfileRow[]>([])
   const [portalContext, setPortalContext] = useState<AdminPortalContext | null>(null)
   const [metrics, setMetrics] = useState<AdminDashboardMetrics>(() => getFallbackAdminMetrics({ classrooms: [], enrollments: [], profiles: [], subjects: [] }))
@@ -25,11 +28,10 @@ export function useAdminData(): AdminData {
     try {
       const [contextResult, metricsResult, adminsResult, auditLogData] = await Promise.all([
         fetchAdminPortalContext().catch(() => null),
-        supabase.rpc('get_admin_dashboard_metrics' as any) as any,
-        supabase.rpc('get_admin_profiles_page' as any, {
-          p_role: 'admin', p_search: '', p_subject_id: null, p_classroom_id: null, p_profile_id: null,
-          p_active: null, p_activity_state: null, p_created_from: null, p_created_to: null, p_limit: 50, p_offset: 0,
-        }) as any,
+        supabase.rpc('get_admin_dashboard_metrics'),
+        supabase.rpc('get_admin_profiles_page', {
+          p_role: 'admin', p_search: '', p_limit: 50, p_offset: 0,
+        }),
         fetchOptionalRows<AdminAuditLogRow>('admin_audit_logs', 'id, chain_seq, admin_id, action, target_table, target_id, severity, metadata, before_state, after_state, previous_hash, chain_hash, retention_until, created_at', { orderBy: 'created_at', ascending: false, limit: 50 }),
       ])
 
@@ -38,17 +40,17 @@ export function useAdminData(): AdminData {
       if (adminsResult.error && !isMissingSchemaError(adminsResult.error.code)) console.warn('[admin] No se pudieron cargar administradores:', adminsResult.error.message)
 
       setPortalContext(contextResult)
-      setProfiles(adminsResult.error ? [] : ((adminsResult.data || []) as ProfileRow[]))
+      setProfiles(adminsResult.error ? [] : (adminsResult.data || []) as unknown as ProfileRow[])
       setMetrics(normalizeAdminMetrics(metricsResult.error ? null : metricsResult.data, fallbackMetrics))
       setAuditLogs(auditLogData)
       setVersion((value) => value + 1)
-    } catch (error: any) {
-      showAlert('No se pudo cargar el portal', error.message || 'Revisa los permisos de administrador y las políticas RLS.')
+    } catch (error: unknown) {
+      feedback.error('No se pudo cargar el portal', getErrorMessage(error, 'Revisa los permisos de administrador y las políticas RLS.'))
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [feedback])
 
   useEffect(() => { void fetchData() }, [fetchData])
 
@@ -58,8 +60,7 @@ export function useAdminData(): AdminData {
   const studentById = useMemo(() => new Map(students.map((student) => [student.id, student])), [students])
   const subjectById = useMemo(() => new Map<number, SubjectRow>(), [])
   const classroomById = useMemo(() => new Map<number, ClassroomRow>(), [])
-
-  const onRefresh = () => { setRefreshing(true); void fetchData() }
+  const onRefresh = useCallback(() => { setRefreshing(true); void fetchData() }, [fetchData])
 
   return {
     profiles, teachers, students, subjects: [], classrooms: [], enrollments: [], metrics, auditLogs,

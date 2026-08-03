@@ -1,16 +1,14 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native'
-import { useFocusEffect, useRouter } from 'expo-router'
+import { useFocusEffect, useRouter, type Href } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import AppTabs from '../../components/ui/AppTabs'
@@ -28,6 +26,7 @@ import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { useAppTheme } from '../../lib/appTheme'
+import { useAppFeedback } from '../../hooks/useAppFeedback'
 import { readThroughCache, updateOfflineCache } from '../../lib/offlineCache'
 import { enqueueOfflineMutation } from '../../lib/offlineMutations'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
@@ -83,6 +82,7 @@ export default function BadgesScreen() {
 
   const isDesktop = width >= 1024
   const { accentColor } = useAppTheme()
+  const feedback = useAppFeedback()
   const { refresh: refreshStudentNotifications } = useNotifications('student')
   const points = profile?.points ?? 0
   const alias = profile?.alias || 'Sin alias'
@@ -152,7 +152,7 @@ export default function BadgesScreen() {
           if (metadata.source === 'network' && snapshot.catalog.awardedXp > 0) {
             void refreshStudentNotifications()
             if (snapshot.catalog.newlyAwardedBadges.length > 0) setCelebrationBadges(snapshot.catalog.newlyAwardedBadges)
-            else showAlert('¡Logro desbloqueado!', `Has ganado ${snapshot.catalog.awardedXp.toLocaleString()} XP en recompensas.`)
+            else feedback.success('¡Logro desbloqueado!', `Has ganado ${snapshot.catalog.awardedXp.toLocaleString()} XP en recompensas.`)
           }
         },
       })
@@ -163,7 +163,7 @@ export default function BadgesScreen() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [activeCategory, activeFilter, refreshStudentNotifications])
+  }, [activeCategory, activeFilter, feedback, refreshStudentNotifications])
 
   useFocusEffect(
     useCallback(() => {
@@ -195,7 +195,7 @@ export default function BadgesScreen() {
         ...snapshot,
         catalog: { ...snapshot.catalog, featuredBadgeId: nextFeaturedBadgeId },
       }))
-      showAlert(
+      feedback.success(
         nextFeaturedBadgeId ? 'Logro destacado' : 'Logro retirado',
         nextFeaturedBadgeId
           ? `${badge.title} aparecerá junto a tu avatar en el perfil.`
@@ -203,24 +203,16 @@ export default function BadgesScreen() {
       )
     } catch (error) {
       console.error('Error destacando logro:', error)
-      showAlert('No se pudo guardar', 'Inténtalo de nuevo. Si estás sin conexión, comprueba el almacenamiento local.')
+      feedback.error('No se pudo guardar', 'Inténtalo de nuevo. Si estás sin conexión, comprueba el almacenamiento local.')
     } finally {
       setSavingFeatured(false)
     }
-  }, [currentCacheResource, equippedFrameKey, featuredBadgeId])
+  }, [currentCacheResource, equippedFrameKey, featuredBadgeId, feedback])
 
-  const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      window.alert(`${title}\n${message}`)
-      return
-    }
-
-    Alert.alert(title, message)
-  }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.replace('/login' as any)
+    router.replace('/login' as Href)
   }
 
   if (loading) {
@@ -330,7 +322,7 @@ export default function BadgesScreen() {
                   badge={badge}
                   featured={featuredBadgeId === badge.id}
                   isDesktop={isDesktop}
-                  onPress={() => setSelectedBadge(badge)}
+                  onSelect={setSelectedBadge}
                 />
               )) : (
                 <View className="w-full items-center rounded-2xl border border-dashed border-border-default bg-surface-raised px-5 py-10">
@@ -396,7 +388,7 @@ export default function BadgesScreen() {
   )
 }
 
-function NextBadgeCard({ badge, isDesktop }: { badge: StudentBadge; isDesktop: boolean }) {
+const NextBadgeCard = React.memo(function NextBadgeCard({ badge, isDesktop }: { badge: StudentBadge; isDesktop: boolean }) {
   const progressPercent = Math.min(100, Math.round((badge.current / Math.max(badge.target, 1)) * 100))
   const remaining = Math.max(0, badge.target - badge.current)
 
@@ -437,7 +429,7 @@ function NextBadgeCard({ badge, isDesktop }: { badge: StudentBadge; isDesktop: b
       </View>
     </LinearGradient>
   )
-}
+})
 
 function getRemainingBadgeMessage(badge: StudentBadge, remaining: number) {
   const amount = remaining.toLocaleString()
@@ -482,18 +474,19 @@ function FilterButton({ label, active, onPress }: { label: string; active: boole
   )
 }
 
-function BadgeCard({
+const BadgeCard = React.memo(function BadgeCard({
   badge,
   featured,
   isDesktop,
-  onPress,
+  onSelect,
 }: {
   badge: StudentBadge
   featured: boolean
   isDesktop: boolean
-  onPress: () => void
+  onSelect: (badge: StudentBadge) => void
 }) {
   const progressPercent = Math.min(100, Math.round((badge.current / Math.max(badge.target, 1)) * 100))
+  const handlePress = useCallback(() => onSelect(badge), [badge, onSelect])
 
   return (
     <Pressable
@@ -501,7 +494,7 @@ function BadgeCard({
       accessibilityLabel={`${badge.title}, ${badge.statusLabel}`}
       accessibilityRole="button"
       className={`rounded-2xl border bg-surface-raised ${isDesktop ? 'p-4' : 'p-3'} ${badge.unlocked ? 'border-semantic-success' : 'border-border-default'}`}
-      onPress={onPress}
+      onPress={handlePress}
       style={{ width: isDesktop ? '31.8%' : '48%', minHeight: isDesktop ? 292 : 224 }}
     >
       <View className="flex-row items-start justify-between gap-3">
@@ -553,7 +546,7 @@ function BadgeCard({
       </View>
     </Pressable>
   )
-}
+})
 
 function BadgeDetailModal({
   badge,

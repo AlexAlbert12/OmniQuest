@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { supabase } from '../../lib/supabase'
+import { getErrorMessage, isRecord } from '../../lib/typeGuards'
 import type { TeacherDigestFrequency } from '../../components/settings/SettingsTypes'
 
 export type TeacherCourseNotificationPreference = {
@@ -58,8 +59,8 @@ export function useTeacherCommunicationSettings() {
     try {
       const { data, error: rpcError } = await supabase.rpc('get_teacher_notification_settings')
       if (rpcError) throw rpcError
-      const payload = isObject(data) ? data : {}
-      const globalPayload = isObject(payload.global) ? payload.global : {}
+      const payload = isRecord(data) ? data : {}
+      const globalPayload = isRecord(payload.global) ? payload.global : {}
       setGlobal({
         mutedUntil: typeof globalPayload.muted_until === 'string' ? globalPayload.muted_until : null,
         digestFrequency: normalizeFrequency(globalPayload.digest_frequency),
@@ -186,8 +187,8 @@ function applySettingsPayload(
   setCourses: Dispatch<SetStateAction<TeacherCourseNotificationPreference[]>>,
   setHistory: Dispatch<SetStateAction<TeacherDigestDelivery[]>>,
 ) {
-  const payload = isObject(data) ? data : {}
-  const globalPayload = isObject(payload.global) ? payload.global : {}
+  const payload = isRecord(data) ? data : {}
+  const globalPayload = isRecord(payload.global) ? payload.global : {}
   setGlobal((current) => ({
     ...current,
     mutedUntil: typeof globalPayload.muted_until === 'string' ? globalPayload.muted_until : null,
@@ -204,7 +205,7 @@ function applySettingsPayload(
 }
 
 function mapCourse(value: unknown): TeacherCourseNotificationPreference {
-  const row = isObject(value) ? value : {}
+  const row = isRecord(value) ? value : {}
   return {
     subjectId: Number(row.subject_id),
     subjectName: String(row.subject_name || 'Curso'),
@@ -216,7 +217,7 @@ function mapCourse(value: unknown): TeacherCourseNotificationPreference {
 }
 
 function mapHistory(value: unknown): TeacherDigestDelivery {
-  const row = isObject(value) ? value : {}
+  const row = isRecord(value) ? value : {}
   return {
     id: Number(row.id),
     frequency: normalizeFrequency(row.frequency),
@@ -241,10 +242,4 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(Number.isFinite(value) ? value : min, min), max)
 }
 
-function isObject(value: unknown): value is Record<string, any> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-}
 
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback
-}

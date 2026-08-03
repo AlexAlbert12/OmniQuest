@@ -1,14 +1,14 @@
-import React from 'react';
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty';
-import { SubjectPanel } from './SubjectShared';
-import AppButton from '../../ui/AppButton';
-import AppTabs from '../../ui/AppTabs';
-import VirtualizedStack from '../../ui/VirtualizedStack';
+import React, { useCallback, useMemo } from 'react'
+import { Text, View } from 'react-native'
+import { useRouter, type Href } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
+import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty'
+import { SubjectPanel } from './SubjectShared'
+import AppButton from '../../ui/AppButton'
+import AppTabs from '../../ui/AppTabs'
+import VirtualizedStack from '../../ui/VirtualizedStack'
 
-type Question = {
+export type QuestionListItemDto = {
   id: number
   text: string
   points_base: number | null
@@ -18,12 +18,14 @@ type Question = {
   answers?: { text: string; is_correct: boolean }[]
 }
 
-type Topic = {
+export type QuestionTopicDto = {
   id: number
   title: string
 }
 
 type TopicFilter = number | 'all' | 'general'
+
+const questionKeyExtractor = (question: QuestionListItemDto) => String(question.id)
 
 function buildQuestionHref({
   classroomId,
@@ -35,11 +37,15 @@ function buildQuestionHref({
   classroomId?: number | null
   topicId: TopicFilter
   difficulty: DifficultyLevel | 'all'
-}) {
-  return `/(teacher)/subject/add-question?subjectId=${subjectId}${classroomId ? `&classroomId=${classroomId}` : ''}${typeof topicId === 'number' ? `&topicId=${topicId}` : ''}${difficulty !== 'all' ? `&difficulty=${difficulty}` : ''}`;
+}): Href {
+  const params: Record<string, string> = { subjectId: String(subjectId) }
+  if (classroomId) params.classroomId = String(classroomId)
+  if (typeof topicId === 'number') params.topicId = String(topicId)
+  if (difficulty !== 'all') params.difficulty = String(difficulty)
+  return { pathname: '/(teacher)/subject/add-question', params } as Href
 }
 
-export function SubjectQuestionsTab({
+export const SubjectQuestionsTab = React.memo(function SubjectQuestionsTab({
   filteredQuestions,
   isDesktop,
   onDeleteQuestion,
@@ -57,20 +63,21 @@ export function SubjectQuestionsTab({
   selectedTopicId: TopicFilter
   selectedDifficulty: DifficultyLevel | 'all'
   selectedTopicLabel: string
-  filteredQuestions: Question[]
+  filteredQuestions: QuestionListItemDto[]
   questionsCount: number
-  topics: Topic[]
+  topics: QuestionTopicDto[]
   isDesktop: boolean
   onDifficultyChange: (value: DifficultyLevel | 'all') => void
   onDeleteQuestion: (questionId: number) => void
 }) {
-  const router = useRouter();
-  const addQuestionHref = buildQuestionHref({
+  const router = useRouter()
+  const addQuestionHref = useMemo(() => buildQuestionHref({
     classroomId: selectedClassroomId,
     difficulty: selectedDifficulty,
     subjectId,
     topicId: selectedTopicId,
-  });
+  }), [selectedClassroomId, selectedDifficulty, selectedTopicId, subjectId])
+  const openAddQuestion = useCallback(() => router.push(addQuestionHref), [addQuestionHref, router])
 
   return (
     <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
@@ -90,14 +97,7 @@ export function SubjectQuestionsTab({
       <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
         <SubjectPanel title="Gestión rápida">
           <View className="mb-3">
-            <AppButton
-              label="Nueva pregunta"
-              accessibilityLabel="Crear nueva pregunta"
-              icon="add"
-              role="teacher"
-              fullWidth
-              onPress={() => router.push(addQuestionHref as any)}
-            />
+            <AppButton label="Nueva pregunta" accessibilityLabel="Crear nueva pregunta" icon="add" role="teacher" fullWidth onPress={openAddQuestion} />
           </View>
           <Text className="text-[12px] text-text-muted">
             Total preguntas: <Text className="font-bold text-white">{questionsCount}</Text>
@@ -105,10 +105,10 @@ export function SubjectQuestionsTab({
         </SubjectPanel>
       </View>
     </View>
-  );
-}
+  )
+})
 
-export function SubjectQuestionsPanel({
+export const SubjectQuestionsPanel = React.memo(function SubjectQuestionsPanel({
   addQuestionHref,
   filteredQuestions,
   onDeleteQuestion,
@@ -118,16 +118,27 @@ export function SubjectQuestionsPanel({
   subjectId,
   topics,
 }: {
-  addQuestionHref: string
+  addQuestionHref: Href
   subjectId: number
   selectedDifficulty: DifficultyLevel | 'all'
   selectedTopicLabel: string
-  filteredQuestions: Question[]
-  topics: Topic[]
+  filteredQuestions: QuestionListItemDto[]
+  topics: QuestionTopicDto[]
   onDifficultyChange: (value: DifficultyLevel | 'all') => void
   onDeleteQuestion: (questionId: number) => void
 }) {
-  const router = useRouter();
+  const router = useRouter()
+  const topicNames = useMemo(() => new Map(topics.map((topic) => [topic.id, topic.title])), [topics])
+  const openAddQuestion = useCallback(() => router.push(addQuestionHref), [addQuestionHref, router])
+  const renderQuestion = useCallback((question: QuestionListItemDto, index: number) => (
+    <QuestionRow
+      question={question}
+      index={filteredQuestions.length - index}
+      subjectId={subjectId}
+      topicName={question.topic_id ? topicNames.get(question.topic_id) : 'Tema general'}
+      onDeleteQuestion={onDeleteQuestion}
+    />
+  ), [filteredQuestions.length, onDeleteQuestion, subjectId, topicNames])
 
   return (
     <SubjectPanel title={`Preguntas: ${selectedTopicLabel}`}>
@@ -138,76 +149,68 @@ export function SubjectQuestionsPanel({
           <Text className="mt-3 text-center font-bold text-white">No hay preguntas todavía</Text>
           <Text className="mt-1 text-center text-[12px] text-text-muted">Añade tu primera pregunta para activar este tema.</Text>
           <View className="mt-5">
-            <AppButton
-              label="Crear pregunta"
-              accessibilityLabel="Crear primera pregunta"
-              icon="add"
-              role="teacher"
-              onPress={() => router.push(addQuestionHref as any)}
-            />
+            <AppButton label="Crear pregunta" accessibilityLabel="Crear primera pregunta" icon="add" role="teacher" onPress={openAddQuestion} />
           </View>
         </View>
       ) : (
         <VirtualizedStack
           data={filteredQuestions}
-          keyExtractor={(question) => String(question.id)}
-          renderItem={(question, index) => (
-            <QuestionRow
-              question={question}
-              index={filteredQuestions.length - index}
-              subjectId={subjectId}
-              topicName={question.topic_id ? topics.find((topic) => topic.id === question.topic_id)?.title : 'Tema general'}
-              onDelete={() => onDeleteQuestion(question.id)}
-            />
-          )}
+          keyExtractor={questionKeyExtractor}
+          renderItem={renderQuestion}
           accessibilityLabel="Preguntas del curso"
         />
       )}
     </SubjectPanel>
-  );
-}
+  )
+})
 
-function DifficultyFilterBar({
+const DifficultyFilterBar = React.memo(function DifficultyFilterBar({
   onChange,
   selected,
 }: {
   selected: DifficultyLevel | 'all'
   onChange: (value: DifficultyLevel | 'all') => void
 }) {
+  const items = useMemo(() => [
+    { key: 'all' as const, label: 'Todas' },
+    ...difficultyOptions.map((option) => ({ key: option.value, label: option.label })),
+  ], [])
+
   return (
     <View className="mb-4">
-      <AppTabs
-        accessibilityLabel="Filtrar preguntas por dificultad"
-        compact
-        items={[
-          { key: 'all' as const, label: 'Todas' },
-          ...difficultyOptions.map((option) => ({ key: option.value, label: option.label })),
-        ]}
-        onChange={onChange}
-        role="teacher"
-        value={selected}
-      />
+      <AppTabs accessibilityLabel="Filtrar preguntas por dificultad" compact items={items} onChange={onChange} role="teacher" value={selected} />
     </View>
   )
-}
+})
 
-function QuestionRow({
+const QuestionRow = React.memo(function QuestionRow({
   question,
   index,
   subjectId,
   topicName,
-  onDelete,
+  onDeleteQuestion,
 }: {
-  question: Question
+  question: QuestionListItemDto
   index: number
   subjectId: number
   topicName?: string
-  onDelete: () => void
+  onDeleteQuestion: (questionId: number) => void
 }) {
-  const answer = question.answers?.find((item) => item.is_correct)?.text || 'Sin respuesta marcada';
-  const difficulty = getDifficultyMeta(question.difficulty || 1);
-  const router = useRouter();
-  const editHref = `/(teacher)/subject/edit-question?questionId=${question.id}&subjectId=${subjectId}${question.classroom_id ? `&classroomId=${question.classroom_id}` : ''}${question.topic_id ? `&topicId=${question.topic_id}` : ''}&difficulty=${question.difficulty || 1}`;
+  const router = useRouter()
+  const answer = question.answers?.find((item) => item.is_correct)?.text || 'Sin respuesta marcada'
+  const difficulty = getDifficultyMeta(question.difficulty || 1)
+  const editHref = useMemo(() => ({
+    pathname: '/(teacher)/subject/edit-question',
+    params: {
+      questionId: String(question.id),
+      subjectId: String(subjectId),
+      ...(question.classroom_id ? { classroomId: String(question.classroom_id) } : {}),
+      ...(question.topic_id ? { topicId: String(question.topic_id) } : {}),
+      difficulty: String(question.difficulty || 1),
+    },
+  } as Href), [question.classroom_id, question.difficulty, question.id, question.topic_id, subjectId])
+  const openEditor = useCallback(() => router.push(editHref), [editHref, router])
+  const deleteQuestion = useCallback(() => onDeleteQuestion(question.id), [onDeleteQuestion, question.id])
 
   return (
     <View className="rounded-xl border border-border-default bg-surface-default p-4">
@@ -224,23 +227,9 @@ function QuestionRow({
         <View className="rounded-lg bg-surface-interactive px-3 py-2">
           <Text className="text-[11px] font-black text-text-secondary">{question.points_base ?? 0} pts</Text>
         </View>
-        <AppButton
-          accessibilityLabel={`Editar pregunta: ${question.text}`}
-          icon="create-outline"
-          iconOnly
-          size="sm"
-          variant="secondary"
-          onPress={() => router.push(editHref as any)}
-        />
-        <AppButton
-          accessibilityLabel={`Eliminar pregunta: ${question.text}`}
-          icon="trash-outline"
-          iconOnly
-          size="sm"
-          variant="danger"
-          onPress={onDelete}
-        />
+        <AppButton accessibilityLabel={`Editar pregunta: ${question.text}`} icon="create-outline" iconOnly size="sm" variant="secondary" onPress={openEditor} />
+        <AppButton accessibilityLabel={`Eliminar pregunta: ${question.text}`} icon="trash-outline" iconOnly size="sm" variant="danger" onPress={deleteQuestion} />
       </View>
     </View>
-  );
-}
+  )
+})

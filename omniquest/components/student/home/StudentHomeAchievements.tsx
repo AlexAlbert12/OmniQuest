@@ -6,7 +6,7 @@ import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
 import type { StudentHomeAchievementPreview } from './types'
 
-export default function StudentHomeAchievements({
+function StudentHomeAchievements({
   achievements,
   onOpen,
 }: {
@@ -26,33 +26,39 @@ export default function StudentHomeAchievements({
       </View>
 
       <View className="mt-4 gap-3">
-        {achievements.map((achievement) => {
-          const color = getAchievementColor(achievement.colorRole, tokens)
-          const progress = Math.min(100, Math.round((achievement.current / Math.max(achievement.target, 1)) * 100))
-          return (
-            <View key={achievement.id} className="flex-row items-center gap-3 rounded-xl border border-border-subtle bg-surface-raised p-3">
-              <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(color, '24') }}>
-                <Ionicons name={achievement.unlocked ? 'checkmark-circle' : achievement.icon} size={22} color={color} />
-              </View>
-              <View className="min-w-0 flex-1">
-                <Text maxFontSizeMultiplier={2} className="text-[13px] font-black text-white">{achievement.title}</Text>
-                <Text maxFontSizeMultiplier={2} className="mt-0.5 text-[11px] text-text-muted">{achievement.description}</Text>
-                <View className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-interactive">
-                  <View className="h-full rounded-full" style={{ width: `${Math.max(achievement.current > 0 ? 4 : 0, progress)}%`, backgroundColor: color }} />
-                </View>
-              </View>
-              <Text className="text-[11px] font-black" style={{ color }}>
-                {achievement.unlocked ? 'Hecho' : `${Math.min(achievement.current, achievement.target)}/${achievement.target}`}
-              </Text>
-            </View>
-          )
-        })}
+        {achievements.map((achievement) => <StudentHomeAchievementRow key={achievement.id} achievement={achievement} />)}
       </View>
 
       <AppButton label="Ver todos los logros" variant="ghost" size="sm" icon="arrow-forward" iconPosition="right" onPress={onOpen} style={{ marginTop: 14 }} />
     </View>
   )
 }
+
+export default React.memo(StudentHomeAchievements)
+
+const StudentHomeAchievementRow = React.memo(function StudentHomeAchievementRow({ achievement }: { achievement: StudentHomeAchievementPreview }) {
+  const { tokens } = useAppTheme()
+  const color = getAchievementColor(achievement.colorRole, tokens)
+  const progress = Math.min(100, Math.round((achievement.current / Math.max(achievement.target, 1)) * 100))
+
+  return (
+    <View className="flex-row items-center gap-3 rounded-xl border border-border-subtle bg-surface-raised p-3">
+      <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(color, '24') }}>
+        <Ionicons name={achievement.unlocked ? 'checkmark-circle' : achievement.icon} size={22} color={color} />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text maxFontSizeMultiplier={2} className="text-[13px] font-black text-white">{achievement.title}</Text>
+        <Text maxFontSizeMultiplier={2} className="mt-0.5 text-[11px] text-text-muted">{achievement.description}</Text>
+        <View className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-interactive">
+          <View className="h-full rounded-full" style={{ width: `${Math.max(achievement.current > 0 ? 4 : 0, progress)}%`, backgroundColor: color }} />
+        </View>
+      </View>
+      <Text className="text-[11px] font-black" style={{ color }}>
+        {achievement.unlocked ? 'Hecho' : `${Math.min(achievement.current, achievement.target)}/${achievement.target}`}
+      </Text>
+    </View>
+  )
+})
 
 function getAchievementColor(
   role: StudentHomeAchievementPreview['colorRole'],

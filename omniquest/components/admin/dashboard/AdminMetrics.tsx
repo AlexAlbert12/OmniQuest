@@ -3,11 +3,10 @@ import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../../lib/appTheme'
 import { useResponsiveLayout } from '../../../lib/responsive'
-import type { AdminData, AdminSection, IconName } from '../types/admin'
+import type { AdminData, IconName } from '../types/admin'
 import { AdminMetric } from '../shared/AdminPrimitives'
-import { AdminMobileSectionTabs } from '../shared/AdminScaffold'
 
-export function AdminMetrics({ activeSection, data }: { activeSection: AdminSection; data: AdminData }) {
+export function AdminMetrics({ data }: { data: AdminData }) {
   const { tokens } = useAppTheme()
   const responsive = useResponsiveLayout()
   const metricWidth = Math.max(136, Math.floor((responsive.width - 52) / 2))
@@ -27,7 +26,6 @@ export function AdminMetrics({ activeSection, data }: { activeSection: AdminSect
           <View className="mt-4 flex-row flex-wrap" style={{ gap: 12 }}>{metrics.slice(0, 4).map((metric) => <AdminMetric key={metric.label} {...metric} compact width={metricWidth} />)}</View>
         </View>
         <AdminMobileCriticalAlerts data={data} />
-        <AdminMobileSectionTabs activeSection={activeSection} data={data} />
       </View>
     )
   }

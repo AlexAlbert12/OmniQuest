@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../../lib/appTheme'
@@ -6,14 +6,14 @@ import type { AdminAuditLogRow, AdminData } from '../types/admin'
 import { EmptyState, MiniPill, Panel } from '../shared/AdminPrimitives'
 import { formatAuditDate, getAdminAuditSeverity, getAdminAuditSeverityMeta, getAuditActionLabel, getAuditTargetLabel } from '../utils/adminUtils'
 
-export function RecentAuditPanel({ data }: { data: AdminData }) {
-  const latestLogs = data.auditLogs.slice(0, 5)
+export const RecentAuditPanel = React.memo(function RecentAuditPanel({ data }: { data: AdminData }) {
+  const latestLogs = useMemo(() => data.auditLogs.slice(0, 5), [data.auditLogs])
   return <Panel title="Últimas acciones admin" icon="receipt-outline" compact><View style={{ gap: 10 }}>{latestLogs.map((log) => <AuditLogCard key={log.id} log={log} data={data} compact />)}{latestLogs.length === 0 ? <EmptyState label="Todavía no hay acciones de auditoría registradas." /> : null}</View></Panel>
-}
+})
 
-export function AuditLogCard({ compact, data, log }: { compact?: boolean; data: AdminData; log: AdminAuditLogRow }) {
+export const AuditLogCard = React.memo(function AuditLogCard({ compact, data, log }: { compact?: boolean; data: AdminData; log: AdminAuditLogRow }) {
   const { tokens } = useAppTheme()
-  const admin = data.profiles.find((profile) => profile.id === log.admin_id)
+  const admin = useMemo(() => data.profiles.find((profile) => profile.id === log.admin_id), [data.profiles, log.admin_id])
   const actorLabel = log.actor_alias || admin?.alias || 'Admin desconocido'
   const severity = log.severity || getAdminAuditSeverity(log.action)
   const severityMeta = getAdminAuditSeverityMeta(severity, tokens)
@@ -29,19 +29,20 @@ export function AuditLogCard({ compact, data, log }: { compact?: boolean; data: 
       {!compact && !log.before_state && !log.after_state && Object.keys(log.metadata || {}).length > 0 ? <Text className="mt-3 font-mono text-[11px] leading-5 text-text-secondary" numberOfLines={4}>{JSON.stringify(log.metadata || {}, null, 2)}</Text> : null}
     </View>
   )
-}
+})
 
-export function AuditChangePreview({ before, after, compact = false }: { before?: Record<string, unknown> | null; after?: Record<string, unknown> | null; compact?: boolean }) {
-  const changes = getChangedFields(before, after)
+export const AuditChangePreview = React.memo(function AuditChangePreview({ before, after, compact = false }: { before?: Record<string, unknown> | null; after?: Record<string, unknown> | null; compact?: boolean }) {
+  const changes = useMemo(() => getChangedFields(before, after), [after, before])
   if (changes.length === 0) return compact ? <Text className="text-[11px] text-text-muted">Sin cambios estructurados</Text> : null
+  const visibleCount = compact ? 2 : 6
   return (
     <View className={compact ? '' : 'mt-3 rounded-xl border border-border-default bg-surface-raised p-3'}>
       {!compact ? <Text className="mb-2 text-[10px] font-black uppercase tracking-[0.7px] text-text-muted">Antes → después</Text> : null}
-      <View style={{ gap: 7 }}>{changes.slice(0, compact ? 2 : 6).map((change) => <View key={change.key} className="flex-row items-start gap-2"><Text className="w-[96px] text-[10px] font-black text-text-muted" numberOfLines={1}>{change.key}</Text><Text className="min-w-0 flex-1 text-[11px] text-text-secondary" numberOfLines={compact ? 1 : 3}>{formatAuditValue(change.before)} → {formatAuditValue(change.after)}</Text></View>)}</View>
-      {changes.length > (compact ? 2 : 6) ? <Text className="mt-2 text-[10px] font-bold text-text-muted">+{changes.length - (compact ? 2 : 6)} cambios adicionales</Text> : null}
+      <View style={{ gap: 7 }}>{changes.slice(0, visibleCount).map((change) => <View key={change.key} className="flex-row items-start gap-2"><Text className="w-[96px] text-[10px] font-black text-text-muted" numberOfLines={1}>{change.key}</Text><Text className="min-w-0 flex-1 text-[11px] text-text-secondary" numberOfLines={compact ? 1 : 3}>{formatAuditValue(change.before)} → {formatAuditValue(change.after)}</Text></View>)}</View>
+      {changes.length > visibleCount ? <Text className="mt-2 text-[10px] font-bold text-text-muted">+{changes.length - visibleCount} cambios adicionales</Text> : null}
     </View>
   )
-}
+})
 
 function getChangedFields(before?: Record<string, unknown> | null, after?: Record<string, unknown> | null) {
   const keys = [...new Set([...Object.keys(before || {}), ...Object.keys(after || {})])].sort()

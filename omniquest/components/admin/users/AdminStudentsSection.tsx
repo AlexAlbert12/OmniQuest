@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useWindowDimensions, View } from 'react-native'
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, type Href } from 'expo-router'
 import AdminSearchBar from '../shared/AdminSearchBar'
 import VirtualizedStack from '../../ui/VirtualizedStack'
 import AdminUsersSection from './AdminUsersSection'
@@ -19,8 +19,10 @@ import { AdminScaffold } from '../shared/AdminScaffold'
 import { AdminPaginationControls, EmptyState, ListLoadingState, Panel, ProfileRowCard } from '../shared/AdminPrimitives'
 import { ADMIN_PAGE_SIZE, type ProfileRow } from '../types/admin'
 import { getSearchParam, runAdminExport } from '../utils/adminUtils'
+import { useAppFeedback } from '../../../hooks/useAppFeedback'
 
 export function AdminStudentsSection() {
+  const feedback = useAppFeedback()
   const { width } = useWindowDimensions()
   const data = useAdminData()
   const confirmation = useAdminTypedConfirmation()
@@ -52,7 +54,7 @@ export function AdminStudentsSection() {
 
   const handleExport = async () => {
     if (page.total >= 1000) return exportJobs.request('profiles', rpcFilters)
-    return runAdminExport(setExporting, () => exportAdminProfiles({ role: 'student', search, subjectId: courseId ? Number(courseId) : null, classroomId: classroomId ? Number(classroomId) : null, profileId: getSearchParam(params.profileId) || null, active: accountStatus === 'all' ? null : accountStatus === 'active', activityState: activityState === 'all' ? null : activityState, createdFrom: toAdminFilterTimestamp(createdFrom), createdTo: toAdminFilterTimestamp(createdTo, true) }))
+    return runAdminExport(feedback, setExporting, () => exportAdminProfiles({ role: 'student', search, subjectId: courseId ? Number(courseId) : null, classroomId: classroomId ? Number(classroomId) : null, profileId: getSearchParam(params.profileId) || null, active: accountStatus === 'all' ? null : accountStatus === 'active', activityState: activityState === 'all' ? null : activityState, createdFrom: toAdminFilterTimestamp(createdFrom), createdTo: toAdminFilterTimestamp(createdTo, true) }))
   }
 
   const applyGovernance = async (result: AdminGovernanceResult) => {
@@ -72,7 +74,7 @@ export function AdminStudentsSection() {
         <View className="mt-4">{page.loading && !page.refreshing ? <ListLoadingState /> : null}<VirtualizedStack data={page.rows} keyExtractor={(profile) => profile.id} renderItem={(profile) => <ProfileRowCard profile={profile} meta={`${profile.enrollment_count ?? 0} inscripción(es)`} selected={selection.isSelected(profile.id)} onToggleSelected={canManage ? () => selection.toggle(profile.id) : undefined} actions={[
           { label: 'Ver actividad', icon: 'pulse-outline', onPress: () => actions.viewProfileActivity(profile) },
           { label: 'Historial de cambios', icon: 'git-compare-outline', onPress: () => setHistoryProfile(profile) },
-          { label: 'Ver inscripciones', icon: 'albums-outline', onPress: () => actions.router.push(`/(admin)/classrooms?studentId=${profile.id}` as any) },
+          { label: 'Ver inscripciones', icon: 'albums-outline', onPress: () => actions.router.push(`/(admin)/classrooms?studentId=${profile.id}` as Href) },
           { label: profile.active === false ? 'Activar' : 'Desactivar', icon: profile.active === false ? 'checkmark-circle-outline' : 'ban-outline', destructive: profile.active !== false, disabled: !canManage, onPress: () => profile.active === false ? void actions.toggleProfileActive(profile) : (selection.selectPage([profile.id]), setGovernanceMode('deactivate-user')) },
           { label: 'Resetear contraseña', icon: 'key-outline', destructive: true, disabled: !canSecurity, onPress: () => void actions.resetPassword(profile) },
           { label: 'Eliminar progreso', icon: 'trash-outline', destructive: true, disabled: !canManage, onPress: () => void actions.deleteStudentProgress(profile) },

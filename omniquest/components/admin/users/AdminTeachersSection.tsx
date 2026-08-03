@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, Text, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, type Href } from 'expo-router'
 import { supabase } from '../../../lib/supabase'
 import AdminSearchBar from '../shared/AdminSearchBar'
 import VirtualizedStack from '../../ui/VirtualizedStack'
@@ -20,9 +20,12 @@ import { useAdminSelection } from '../hooks/useAdminSelection'
 import { AdminScaffold } from '../shared/AdminScaffold'
 import { AdminInput, AdminPaginationControls, EmptyState, ListLoadingState, Panel, ProfileRowCard } from '../shared/AdminPrimitives'
 import { ADMIN_PAGE_SIZE, type CreateTeacherResult, type ProfileRow } from '../types/admin'
-import { getSearchParam, runAdminExport, showAlert } from '../utils/adminUtils'
+import { getSearchParam, runAdminExport } from '../utils/adminUtils'
+import { useAppFeedback } from '../../../hooks/useAppFeedback'
+import { getErrorMessage } from '../../../lib/typeGuards'
 
 export function AdminTeachersSection() {
+  const feedback = useAppFeedback()
   const { width } = useWindowDimensions()
   const data = useAdminData()
   const confirmation = useAdminTypedConfirmation()
@@ -61,20 +64,20 @@ export function AdminTeachersSection() {
   const handleCreateTeacher = async () => {
     const email = teacherEmail.trim().toLowerCase()
     const alias = teacherAlias.trim() || email.split('@')[0]
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAlert('Correo no válido', 'Introduce el correo del profesor.')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return feedback.warning('Correo no válido', 'Introduce el correo del profesor.')
     setCreatingTeacher(true); setCreatedTeacher(null)
     try {
       const { data: resultData, error } = await supabase.functions.invoke('admin-create-teacher', { body: { alias, email, password: teacherPassword.trim() || undefined } })
       if (error) throw error
       setCreatedTeacher(resultData as CreateTeacherResult); setTeacherAlias(''); setTeacherEmail(''); setTeacherPassword('')
       await data.refresh(); page.refresh()
-    } catch (error: any) { showAlert('No se pudo crear el profesor', error.message || 'Revisa permisos y Edge Function.') }
+    } catch (error: unknown) { feedback.error('No se pudo crear el profesor', getErrorMessage(error, 'Revisa permisos y Edge Function.')) }
     finally { setCreatingTeacher(false) }
   }
 
   const handleExport = async () => {
     if (page.total >= 1000) return exportJobs.request('profiles', rpcFilters)
-    return runAdminExport(setExporting, () => exportAdminProfiles({ role: 'teacher', search, subjectId: courseId ? Number(courseId) : null, classroomId: classroomId ? Number(classroomId) : null, profileId: getSearchParam(params.teacherId) || null, active: accountStatus === 'all' ? null : accountStatus === 'active', activityState: activityState === 'all' ? null : activityState, createdFrom: toAdminFilterTimestamp(createdFrom), createdTo: toAdminFilterTimestamp(createdTo, true) }))
+    return runAdminExport(feedback, setExporting, () => exportAdminProfiles({ role: 'teacher', search, subjectId: courseId ? Number(courseId) : null, classroomId: classroomId ? Number(classroomId) : null, profileId: getSearchParam(params.teacherId) || null, active: accountStatus === 'all' ? null : accountStatus === 'active', activityState: activityState === 'all' ? null : activityState, createdFrom: toAdminFilterTimestamp(createdFrom), createdTo: toAdminFilterTimestamp(createdTo, true) }))
   }
 
   const applyGovernance = async (result: AdminGovernanceResult) => {
@@ -97,7 +100,7 @@ export function AdminTeachersSection() {
           <View className="mt-4">{page.loading && !page.refreshing ? <ListLoadingState /> : null}<VirtualizedStack data={page.rows} keyExtractor={(profile) => profile.id} renderItem={(profile) => <ProfileRowCard profile={profile} meta={`${profile.subject_count ?? 0} curso(s)`} selected={selection.isSelected(profile.id)} onToggleSelected={canManage ? () => selection.toggle(profile.id) : undefined} actions={[
             { label: 'Ver actividad', icon: 'pulse-outline', onPress: () => actions.viewProfileActivity(profile) },
             { label: 'Historial de cambios', icon: 'git-compare-outline', onPress: () => setHistoryProfile(profile) },
-            { label: 'Ver cursos', icon: 'book-outline', onPress: () => actions.router.push(`/(admin)/courses?teacherId=${profile.id}` as any) },
+            { label: 'Ver cursos', icon: 'book-outline', onPress: () => actions.router.push(`/(admin)/courses?teacherId=${profile.id}` as Href) },
             { label: profile.active === false ? 'Activar' : 'Desactivar', icon: profile.active === false ? 'checkmark-circle-outline' : 'ban-outline', destructive: profile.active !== false, disabled: !canManage || profile.id === data.portalContext?.user_id, onPress: () => profile.active === false ? void actions.toggleProfileActive(profile) : (selection.selectPage([profile.id]), setGovernanceMode('deactivate-user')) },
             { label: 'Resetear contraseña', icon: 'key-outline', destructive: true, disabled: !canSecurity, onPress: () => void actions.resetPassword(profile) },
           ]} />} emptyComponent={!page.loading ? <EmptyState label="No hay profesores que coincidan con los filtros." /> : null} accessibilityLabel="Profesores administrados" /></View>

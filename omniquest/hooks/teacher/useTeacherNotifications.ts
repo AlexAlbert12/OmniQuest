@@ -4,6 +4,7 @@ import type { RealtimePostgresInsertPayload } from '@supabase/supabase-js'
 import type { AppNotification, NotificationCursor, NotificationType } from '../../lib/notifications/types'
 import { deletePersistentNotifications, markPersistentNotificationsRead } from '../../lib/notifications/persistent'
 import { supabase } from '../../lib/supabase'
+import { getErrorMessage, isRecord } from '../../lib/typeGuards'
 
 export type TeacherNotificationBucket = 'all' | 'critical' | 'informative'
 export type TeacherNotificationCategory = 'all' | 'students' | 'review' | 'courses' | 'system' | 'audit'
@@ -62,7 +63,7 @@ export function useTeacherNotifications() {
   const loadSummary = useCallback(async () => {
     const { data, error: rpcError } = await supabase.rpc('get_teacher_notification_center_summary')
     if (rpcError) throw rpcError
-    const payload = isObject(data) ? data : {}
+    const payload = isRecord(data) ? data : {}
     setSummary({
       pendingReviews: Number(payload.pending_reviews || 0),
       inactiveStudents: Number(payload.inactive_students || 0),
@@ -244,7 +245,7 @@ export function useTeacherNotifications() {
 }
 
 function mapPage(value: unknown): NotificationPage {
-  const payload = isObject(value) ? value : {}
+  const payload = isRecord(value) ? value : {}
   const rows = Array.isArray(payload.rows) ? payload.rows.map(mapNotification).filter(Boolean) as AppNotification[] : []
   return {
     rows,
@@ -260,8 +261,8 @@ function mapPage(value: unknown): NotificationPage {
 }
 
 function mapNotification(value: unknown): AppNotification | null {
-  if (!isObject(value) || typeof value.id !== 'string') return null
-  const metadata = isObject(value.metadata) ? value.metadata : {}
+  if (!isRecord(value) || typeof value.id !== 'string') return null
+  const metadata = isRecord(value.metadata) ? value.metadata : {}
   const type = isNotificationType(value.type) ? value.type : 'announcement'
   return {
     id: `db:${value.id}`,
@@ -293,15 +294,9 @@ function isNotificationType(value: unknown): value is NotificationType {
   return value === 'enrollment' || value === 'student_activity' || value === 'achievement' || value === 'new_class' || value === 'announcement'
 }
 
-function isObject(value: unknown): value is Record<string, any> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-}
 
 function mergeById(current: AppNotification[], next: AppNotification[]) {
   const seen = new Set(current.map((item) => item.id))
   return [...current, ...next.filter((item) => !seen.has(item.id))]
 }
 
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback
-}

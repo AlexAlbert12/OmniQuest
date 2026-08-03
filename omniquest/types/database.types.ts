@@ -3229,9 +3229,13 @@ export type Database = {
       }
       admin_update_support_ticket_secured: {
         Args: {
-          p_admin_response?: string
+          p_assigned_admin_id?: string
+          p_internal_comment?: string
           p_priority?: string
+          p_public_response?: string
           p_status: string
+          p_tag_slugs?: string[]
+          p_template_id?: number
           p_ticket_id: number
         }
         Returns: Json
@@ -3565,6 +3569,7 @@ export type Database = {
         Args: { p_attempt_history_id: number }
         Returns: Json
       }
+      get_admin_audit_policy: { Args: never; Returns: Json }
       get_admin_audit_logs_page: {
         Args: {
           p_action?: string
@@ -3815,6 +3820,7 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_admin_support_directory: { Args: never; Returns: Json }
       get_admin_support_tickets_page: {
         Args: {
           p_limit?: number
@@ -4541,7 +4547,7 @@ export type Database = {
         Returns: number
       }
       search_app_entities: {
-        Args: { p_limit?: number; p_query: string }
+        Args: { p_limit?: number; p_offset?: number; p_query: string }
         Returns: {
           classroom_id: number
           entity_id: string
@@ -4551,6 +4557,7 @@ export type Database = {
           subject_id: number
           subtitle: string
           title: string
+          total_count: number
         }[]
       }
       set_analytics_consent: { Args: { p_enabled: boolean }; Returns: boolean }
@@ -4644,6 +4651,10 @@ export type Database = {
       teacher_notification_subject_id: {
         Args: { p_metadata: Json }
         Returns: number
+      }
+      verify_admin_audit_chain: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
       }
       track_usage_event: {
         Args: {

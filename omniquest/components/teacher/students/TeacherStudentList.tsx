@@ -118,7 +118,7 @@ export function CycleSelectButton({
   );
 }
 
-export function StudentCard({
+export const StudentCard = React.memo(function StudentCard({
   student,
   isWide,
   reminderBusy,
@@ -196,10 +196,10 @@ export function StudentCard({
       </View>
     </View>
   );
-}
+})
 
 
-export function NoActivityQuickActions({
+export const NoActivityQuickActions = React.memo(function NoActivityQuickActions({
   student,
   reminderBusy,
   onSendReminder,
@@ -232,9 +232,9 @@ export function NoActivityQuickActions({
       </View>
     </View>
   );
-}
+})
 
-export function QuickStudentAction({
+export const QuickStudentAction = React.memo(function QuickStudentAction({
   disabled,
   icon,
   label,
@@ -256,7 +256,7 @@ export function QuickStudentAction({
       <Text className="text-[11px] font-black text-brand-teacher">{label}</Text>
     </Pressable>
   );
-}
+})
 
 export function StudentMiniStat({ label, value, color }: { label: string; value: string; color: string }) {
   return (

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react'
+import React, { useCallback, useMemo, useRef } from 'react'
 import { Animated, PanResponder, Platform, Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { AppNotification } from '../../lib/notifications/types'
@@ -21,7 +21,7 @@ type NotificationListItemProps = {
 const SWIPE_LIMIT = 92
 const SWIPE_TRIGGER = 58
 
-export default function NotificationListItem({
+function NotificationListItem({
   notification,
   categoryLabel,
   role,
@@ -36,7 +36,7 @@ export default function NotificationListItem({
   const roleColor = tokens.brand[role]
   const accent = notification.color || roleColor
 
-  const resetPosition = () => {
+  const resetPosition = useCallback(() => {
     Animated.spring(translateX, {
       toValue: 0,
       useNativeDriver: true,
@@ -44,9 +44,9 @@ export default function NotificationListItem({
       stiffness: 220,
       mass: 0.8,
     }).start()
-  }
+  }, [translateX])
 
-  const commitAction = (direction: 'read' | 'delete') => {
+  const commitAction = useCallback((direction: 'read' | 'delete') => {
     Animated.timing(translateX, {
       toValue: direction === 'read' ? SWIPE_LIMIT : -SWIPE_LIMIT,
       duration: 120,
@@ -55,7 +55,7 @@ export default function NotificationListItem({
       void Promise.resolve(direction === 'read' ? onMarkAsRead() : onDelete())
       resetPosition()
     })
-  }
+  }, [onDelete, onMarkAsRead, resetPosition, translateX])
 
   const panResponder = useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_event, gesture) => (
@@ -78,7 +78,7 @@ export default function NotificationListItem({
       resetPosition()
     },
     onPanResponderTerminate: resetPosition,
-  }), [notification.isRead, swipeEnabled, translateX])
+  }), [commitAction, notification.isRead, resetPosition, swipeEnabled, translateX])
 
   return (
     <View className="overflow-hidden rounded-2xl" style={{ backgroundColor: tokens.surface.interactive }}>
@@ -193,3 +193,5 @@ export default function NotificationListItem({
     </View>
   )
 }
+
+export default React.memo(NotificationListItem)

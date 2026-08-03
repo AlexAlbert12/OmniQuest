@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useWindowDimensions, View } from 'react-native'
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, type Href } from 'expo-router'
 import AdminSearchBar from '../shared/AdminSearchBar'
 import AdminBulkSelectionBar from '../shared/AdminBulkSelectionBar'
 import AdminGovernanceModal, { type AdminGovernanceMode, type AdminGovernanceResult } from '../shared/AdminGovernanceModal'
@@ -16,8 +16,10 @@ import { AdminScaffold } from '../shared/AdminScaffold'
 import { AdminPaginationControls, ClassroomRowCard, EmptyState, ListLoadingState, Panel } from '../shared/AdminPrimitives'
 import { ADMIN_PAGE_SIZE, type ClassroomRow } from '../types/admin'
 import { buildSubjectFromClassroom, getSearchParam, runAdminExport } from '../utils/adminUtils'
+import { useAppFeedback } from '../../../hooks/useAppFeedback'
 
 export function AdminClassroomsSection() {
+  const feedback = useAppFeedback()
   const { width } = useWindowDimensions()
   const data = useAdminData()
   const confirmation = useAdminTypedConfirmation()
@@ -53,7 +55,7 @@ export function AdminClassroomsSection() {
 
   const handleExport = async () => {
     if (page.total >= 1000) return exportJobs.request('classrooms', rpcFilters)
-    return runAdminExport(setExporting, () => exportAdminClassrooms({ search, subjectId: courseId ? Number(courseId) : null, studentId: getSearchParam(params.studentId) || null, teacherId: teacherId || null, active: activeState === 'all' ? null : activeState === 'active', createdFrom: toAdminFilterTimestamp(createdFrom), createdTo: toAdminFilterTimestamp(createdTo, true) }))
+    return runAdminExport(feedback, setExporting, () => exportAdminClassrooms({ search, subjectId: courseId ? Number(courseId) : null, studentId: getSearchParam(params.studentId) || null, teacherId: teacherId || null, active: activeState === 'all' ? null : activeState === 'active', createdFrom: toAdminFilterTimestamp(createdFrom), createdTo: toAdminFilterTimestamp(createdTo, true) }))
   }
 
   const applyGovernance = async (result: AdminGovernanceResult) => {
@@ -71,11 +73,11 @@ export function AdminClassroomsSection() {
         <View className="mt-4" style={{ gap: 12 }}>
           {page.loading && !page.refreshing ? <ListLoadingState /> : null}
           {page.rows.map((classroom) => <ClassroomRowCard key={classroom.id} classroom={classroom} subject={buildSubjectFromClassroom(classroom)} enrollmentsCount={classroom.enrollments_count ?? 0} selected={selection.isSelected(classroom.id)} onToggleSelected={canManage ? () => selection.toggle(classroom.id) : undefined} actions={[
-            { label: 'Ver alumnos', icon: 'people-outline', onPress: () => actions.router.push(`/(admin)/students?classroomId=${classroom.id}` as any) },
+            { label: 'Ver alumnos', icon: 'people-outline', onPress: () => actions.router.push(`/(admin)/students?classroomId=${classroom.id}` as Href) },
             { label: 'Ver auditoría', icon: 'shield-checkmark-outline', onPress: () => actions.viewRelatedAudit('classrooms', classroom.id) },
             { label: 'Copiar código', icon: 'copy-outline', disabled: !classroom.code || classroom.code_status === 'expired', onPress: () => void actions.copyClassroomCode(classroom) },
             { label: classroom.active === false ? 'Activar' : 'Desactivar', icon: classroom.active === false ? 'checkmark-circle-outline' : 'ban-outline', destructive: classroom.active !== false, disabled: !canManage, onPress: () => classroom.active === false ? void actions.executeBulkAction({ action: 'activate_classrooms', entity: 'classrooms', ids: [classroom.id] }).then(page.refresh) : (selection.selectPage([classroom.id]), setGovernanceMode('deactivate-classroom')) },
-            { label: 'Abrir curso', icon: 'book-outline', onPress: () => classroom.subject_id ? actions.router.push(`/(admin)/courses?search=${encodeURIComponent(classroom.subject_name || '')}` as any) : undefined },
+            { label: 'Abrir curso', icon: 'book-outline', onPress: () => classroom.subject_id ? actions.router.push(`/(admin)/courses?search=${encodeURIComponent(classroom.subject_name || '')}` as Href) : undefined },
           ]} />)}
           {!page.loading && page.rows.length === 0 ? <EmptyState label="No hay clases que coincidan con los filtros." /> : null}
         </View>
