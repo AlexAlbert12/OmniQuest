@@ -1,0 +1,19 @@
+appId: com.alexalbert.omniquest
+name: Public login validation smoke
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "landing-login"
+- tapOn:
+    id: "landing-login"
+- assertVisible:
+    id: "login-email"
+- assertVisible:
+    id: "login-password"
+- tapOn:
+    id: "login-submit"
+- assertVisible:
+    text: "Introduce un correo electrónico válido.|Enter a valid email address."
+- assertVisible:
+    text: "Introduce tu contraseña.|Enter your password."

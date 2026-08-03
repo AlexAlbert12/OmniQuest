@@ -11,6 +11,7 @@ type AuthSubmitButtonProps = {
   disabled?: boolean
   icon?: keyof typeof Ionicons.glyphMap
   onPress: () => void
+  testID?: string
 }
 
 export default function AuthSubmitButton({
@@ -20,6 +21,7 @@ export default function AuthSubmitButton({
   disabled = false,
   icon = 'arrow-forward',
   onPress,
+  testID,
 }: AuthSubmitButtonProps) {
   const unavailable = loading || disabled
 
@@ -30,6 +32,7 @@ export default function AuthSubmitButton({
       accessibilityState={{ disabled: unavailable, busy: loading }}
       disabled={unavailable}
       onPress={onPress}
+      testID={testID}
       style={({ pressed }) => ({ opacity: unavailable ? 0.55 : pressed ? 0.88 : 1 })}
     >
       <LinearGradient

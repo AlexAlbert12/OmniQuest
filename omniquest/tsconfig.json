@@ -16,6 +16,10 @@
     "nativewind-env.d.ts"
   ],
   "exclude": [
-    "supabase/functions/**"
+    "node_modules/**",
+    "supabase/functions/**",
+    "tests/**",
+    "e2e/**",
+    "playwright.config.ts"
   ]
 }

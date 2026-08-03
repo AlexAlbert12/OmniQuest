@@ -238,6 +238,7 @@ export default function LoginScreen() {
           >
             <AuthInput
               label={t('auth.common.email')}
+              testID="login-email"
               icon="mail-outline"
               placeholder={t('auth.common.emailPlaceholder')}
               value={email}
@@ -261,6 +262,7 @@ export default function LoginScreen() {
 
             <AuthInput
               label={t('auth.common.password')}
+              testID="login-password"
               icon="lock-closed-outline"
               placeholder={t('auth.login.passwordPlaceholder')}
               value={password}
@@ -314,6 +316,7 @@ export default function LoginScreen() {
               label={t('auth.login.submit')}
               loadingLabel={t('auth.login.loading')}
               loading={loading}
+              testID="login-submit"
               onPress={() => void signInWithEmail()}
             />
           </AuthCard>

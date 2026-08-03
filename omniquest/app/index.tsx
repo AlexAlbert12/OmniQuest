@@ -242,6 +242,7 @@ function LandingPanel({
           onPress={onLoginPress}
           variant="primary"
           isTablet={isTablet}
+          testID="landing-login"
         />
 
         <LandingAction
@@ -352,6 +353,7 @@ function LandingAction({
   subtitle,
   title,
   variant,
+  testID,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   isTablet: boolean
@@ -360,6 +362,7 @@ function LandingAction({
   subtitle: string
   title: string
   variant: 'primary' | 'secondary'
+  testID?: string
 }) {
   const isPrimary = variant === 'primary'
   const borderColor = isPrimary ? 'transparent' : 'rgba(148, 163, 184, 0.18)'
@@ -373,6 +376,7 @@ function LandingAction({
       accessibilityState={{ disabled: loading, busy: loading }}
       onPress={onPress}
       disabled={loading}
+      testID={testID}
       style={({ pressed }) => ({
         opacity: loading ? 0.72 : pressed ? 0.9 : 1,
         width: isTablet ? 400 : '100%',

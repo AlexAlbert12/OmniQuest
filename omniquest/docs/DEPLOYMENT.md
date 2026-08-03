@@ -1,157 +1,125 @@
-# Despliegue de Supabase
+# Despliegue de OmniQuest
 
-Esta guía documenta el despliegue mínimo de Supabase para OmniQuest: migraciones, tipos, Edge Functions y secrets. Está pensada para que el proyecto sea reproducible en una demo, en un entorno local o en un proyecto remoto de Supabase.
+## 1. Requisitos
 
-## Requisitos
+- Node.js compatible con Expo SDK 54.
+- Supabase CLI y Docker para validación local.
+- Proyecto Supabase vinculado para despliegue remoto.
+- Variables públicas de Expo y secrets de backend configurados fuera del repositorio.
 
-- Supabase CLI instalada y autenticada.
-- Proyecto Supabase creado.
-- Variables públicas de Expo configuradas en `omniquest/.env`.
-- Permisos para configurar secrets y desplegar Edge Functions.
-
-## 1. Vincular proyecto remoto
-
-Desde la carpeta `omniquest/`:
+## 2. Preparación reproducible
 
 ```bash
-supabase link --project-ref TU_PROJECT_REF
+npm ci
+npm run quality:install
+npm run lint
+npm run typecheck
+npm run typecheck:tests
+npm test
+npm run test:migrations
+npm run docs:check
 ```
 
-## 2. Aplicar migraciones
+`quality:install` instala versiones controladas y compatibles de Jest, React Native Testing Library y Playwright sin modificar el lockfile de la aplicación. En CI se ejecuta después de `npm ci`.
+
+## 3. Base de datos local
 
 ```bash
-supabase db push
+npx supabase start
+npx supabase db reset
+npm run test:db
 ```
 
-Si estás trabajando en local:
+`db reset` reconstruye el esquema desde cero, aplica todas las migraciones y permite detectar dependencias accidentales entre entornos.
+
+## 4. Migraciones remotas
 
 ```bash
-supabase start
-supabase db reset
+npx supabase link --project-ref TU_PROJECT_REF
+npx supabase migration list
+npx supabase db push
 ```
 
-## 3. Configurar secrets de Edge Functions
+Antes del push revisa el runbook de [migraciones](runbooks/MIGRATIONS.md) y prepara el procedimiento de [rollback](runbooks/ROLLBACK.md).
 
-Secrets obligatorios para funciones que usan service role:
+## 5. Secrets
+
+Como mínimo, configura los secretos que utilicen las funciones habilitadas:
 
 ```bash
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY="TU_SERVICE_ROLE_KEY"
+npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY="..."
+npx supabase secrets set RESEND_API_KEY="..."
+npx supabase secrets set MAIL_FROM="OmniQuest <no-reply@dominio.example>"
 ```
 
-Secrets recomendados para envío de emails transaccionales:
+Los procesadores programados requieren además su secreto compartido correspondiente en Edge Functions y Vault:
+
+| Procesador | Secreto interno |
+|---|---|
+| `process-account-requests` | `ACCOUNT_REQUESTS_CRON_SECRET` |
+| `process-notification-delivery` | `PUSH_QUEUE_SECRET` |
+| `process-teacher-digests` | `DIGEST_QUEUE_SECRET` |
+| `cleanup-question-media` | `QUESTION_MEDIA_CLEANUP_SECRET` |
+| `process-support-email-delivery` | `SUPPORT_EMAIL_QUEUE_SECRET` |
+| `process-admin-export-jobs` | `ADMIN_EXPORT_QUEUE_SECRET` |
+| `process-teacher-audit-exports` | `TEACHER_AUDIT_EXPORT_SECRET` |
+
+No incluyas claves reales en `.env.example`, documentación, logs o commits. `auth-attempt-guard` no usa un secreto de cola, pero aplica su propio control de abuso y no debe interpretarse como una operación privilegiada anónima.
+
+## 6. Edge Functions
+
+El listado se descubre automáticamente desde `supabase/functions/`; no se mantiene una lista manual.
 
 ```bash
-supabase secrets set RESEND_API_KEY="TU_RESEND_API_KEY"
-supabase secrets set MAIL_FROM="OmniQuest <no-reply@tu-dominio.com>"
+npm run deploy:functions
 ```
 
-Las exportaciones y solicitudes de borrado asíncronas requieren un secreto
-compartido entre Vault y la Edge Function:
+También se conservan wrappers multiplataforma:
 
 ```bash
-supabase secrets set ACCOUNT_REQUESTS_CRON_SECRET="UN_SECRETO_LARGO_Y_ALEATORIO"
-supabase functions deploy process-account-requests --no-verify-jwt
-```
-
-En Supabase Vault crea también `project_url` con la URL del proyecto y
-`account_requests_secret` con exactamente el mismo valor. La migración programa
-el procesador cada cinco minutos; sin estos secretos el cron es un no-op seguro.
-
-Notas:
-
-- `SUPABASE_URL` y `SUPABASE_ANON_KEY` suelen estar disponibles automáticamente en Edge Functions de Supabase.
-- `RESEND_API_KEY` y `MAIL_FROM` no bloquean la importación de alumnos: si faltan, la app importa y marca los emails como no enviados.
-- Nunca subas `SUPABASE_SERVICE_ROLE_KEY` ni claves reales al repositorio.
-- Nunca subas `ACCOUNT_REQUESTS_CRON_SECRET`; el header secreto protege la función que ejecuta el cron.
-
-## 4. Desplegar Edge Functions
-
-Funciones actuales:
-
-```text
-admin-archive-course
-admin-create-teacher
-admin-deactivate-classroom
-admin-delete-student-progress
-admin-reset-password
-admin-toggle-user
-delete-account
-import-students
-profile-update-avatar
-student-reset-own-progress
-teacher-archive-subject
-teacher-create-topic
-teacher-delete-question
-teacher-regenerate-class-code
-teacher-remove-student-from-class
-teacher-reset-own-data
-teacher-reset-student-progress
-teacher-student-reminder
-teacher-update-subject
-teacher-update-topic
-process-account-requests
-```
-
-Despliegue directo:
-
-```bash
-supabase functions deploy admin-archive-course admin-create-teacher admin-deactivate-classroom admin-delete-student-progress admin-reset-password admin-toggle-user delete-account import-students profile-update-avatar student-reset-own-progress teacher-archive-subject teacher-create-topic teacher-delete-question teacher-regenerate-class-code teacher-remove-student-from-class teacher-reset-own-data teacher-reset-student-progress teacher-student-reminder teacher-update-subject teacher-update-topic
-```
-
-También puedes usar los scripts versionados:
-
-```bash
-# macOS/Linux/WSL/Git Bash
 ./scripts/deploy-functions.sh
+```
 
-# Windows PowerShell
+```powershell
 ./scripts/deploy-functions.ps1
 ```
 
-Si quieres desplegar solo algunas funciones, usa el comando `supabase functions deploy` con sus nombres concretos.
-
-## 5. Regenerar tipos
-
-Después de aplicar migraciones, regenera `types/database.types.ts`.
-
-Proyecto local:
+Para desplegar una selección:
 
 ```bash
-npx supabase gen types typescript --local > types/database.types.ts
+node scripts/deploy-edge-functions.mjs send-push-notification process-notification-delivery
 ```
 
-Proyecto remoto:
+El script consulta `supabase/config.toml` y añade `--no-verify-jwt` únicamente a las funciones que lo declaran. Después verifica el inventario con:
 
 ```bash
-npx supabase gen types typescript --project-id TU_PROJECT_REF > types/database.types.ts
+npx supabase functions list
+npm run docs:generate
 ```
 
-## 6. Checklist de verificación
+El catálogo actual está en [generated/BACKEND_CATALOG.md](generated/BACKEND_CATALOG.md).
 
-- `supabase db push` termina sin errores.
-- Todas las Edge Functions se despliegan correctamente.
-- `SUPABASE_SERVICE_ROLE_KEY` está configurada.
-- `RESEND_API_KEY` y `MAIL_FROM` están configuradas si quieres emails reales.
-- `types/database.types.ts` está regenerado.
-- La importación de alumnos funciona incluso si Resend no está configurado.
-- El portal admin puede ejecutar acciones sensibles.
-- El profesor puede crear/editar cursos, temas y alumnos mediante Edge Functions.
-- El alumno puede jugar, sincronizar puntos y consultar progreso.
-- Las solicitudes de exportación pasan de `queued` a `ready` y generan una notificación.
-- Las solicitudes de borrado pueden cancelarse durante el plazo de 7 días.
+## 7. Tipos Supabase
 
-## 7. Comandos habituales
+Después de cambiar el esquema remoto:
 
 ```bash
-# Ver funciones desplegadas
-supabase functions list
-
-# Ver secrets configurados
-supabase secrets list
-
-# Ver logs de una función
-supabase functions logs import-students
-
-# Reaplicar migraciones pendientes
-supabase db push
+npm run types:supabase
+npm run typecheck
 ```
+
+Revisa los cambios del archivo generado para detectar firmas RPC eliminadas o parámetros incompatibles.
+
+## 8. Build web y E2E
+
+```bash
+npm run build:web
+npx playwright install chromium
+npm run test:e2e
+```
+
+Playwright inicia Expo Web mediante `webServer`, ejecuta los smoke tests en viewport móvil y escritorio y conserva trazas, vídeos y capturas cuando corresponde.
+
+## 9. Publicación
+
+Antes de publicar, completa [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md). El pipeline de `.github/workflows/quality.yml` constituye el mínimo automatizado; no sustituye las comprobaciones de secrets, cron, correo, push, backup y observabilidad del entorno real.

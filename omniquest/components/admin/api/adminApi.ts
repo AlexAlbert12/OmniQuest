@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase'
+import type { Json } from '../../../types/database.types'
 import type {
   AdminActionResult,
   AdminBulkAction,
@@ -68,7 +69,9 @@ export async function runAdminBulkAction(options: {
   return invokeAdminAction<AdminActionResult & { affected?: number }>('admin-bulk-operations', options)
 }
 
-export async function requestAdminExportJob(exportType: AdminExportJob['export_type'], filters: Record<string, unknown>) {
+export type AdminExportFilters = { [key: string]: Json | undefined }
+
+export async function requestAdminExportJob(exportType: AdminExportJob['export_type'], filters: AdminExportFilters) {
   const { data, error } = await supabase.rpc('request_admin_export_job', {
     p_export_type: exportType,
     p_filters: filters,

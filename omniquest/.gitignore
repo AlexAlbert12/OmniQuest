@@ -49,3 +49,8 @@ app-example
 
 # Supabase local/link state
 supabase/.temp/
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/

@@ -51,6 +51,7 @@ export default function AuthStatusBanner({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={actionLabel}
+            accessibilityState={{ disabled: loading, busy: loading }}
             disabled={loading}
             onPress={onAction}
             hitSlop={6}

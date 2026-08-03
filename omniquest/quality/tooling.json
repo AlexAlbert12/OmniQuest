@@ -1,0 +1,13 @@
+{
+  "description": "Version-controlled quality tooling installed after npm ci without changing the application lockfile.",
+  "packages": [
+    "jest@~29.7.0",
+    "jest-expo@~54.0.0",
+    "@types/jest@29.5.14",
+    "@types/node@22.15.3",
+    "@testing-library/react-native@13.3.3",
+    "react-test-renderer@19.1.0",
+    "@types/react-test-renderer@19.1.0",
+    "@playwright/test@1.61.1"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["jest", "node"]
+  },
+  "include": [
+    "nativewind-env.d.ts",
+    "expo-env.d.ts",
+    "tests/**/*.test.ts",
+    "tests/**/*.test.tsx"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "supabase/functions/**",
+    "e2e/**"
+  ]
+}

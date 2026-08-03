@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Linking } from 'react-native'
 import { useAppFeedback } from '../../../hooks/useAppFeedback'
 import { getErrorMessage } from '../../../lib/typeGuards'
-import { fetchAdminExportJobs, getAdminExportDownloadUrl, requestAdminExportJob } from '../api/adminApi'
+import { fetchAdminExportJobs, getAdminExportDownloadUrl, requestAdminExportJob, type AdminExportFilters } from '../api/adminApi'
 import type { AdminExportJob } from '../types/admin'
 
 export function useAdminExportJobs() {
@@ -23,7 +23,7 @@ export function useAdminExportJobs() {
 
   useEffect(() => { void refresh() }, [refresh])
 
-  const request = useCallback(async (type: AdminExportJob['export_type'], filters: Record<string, unknown>) => {
+  const request = useCallback(async (type: AdminExportJob['export_type'], filters: AdminExportFilters) => {
     setLoading(true)
     try {
       await requestAdminExportJob(type, filters)
