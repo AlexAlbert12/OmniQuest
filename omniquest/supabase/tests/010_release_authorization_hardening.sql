@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(27);
+select plan(33);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.roles'::regclass),
@@ -86,6 +86,33 @@ select is(
 select ok(
   has_table_privilege('authenticated', 'public.roles', 'SELECT'),
   'authenticated clients can read the role catalog'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.subjects', 'SELECT')
+    and not has_table_privilege('anon', 'public.subjects', 'SELECT'),
+  'course reads are granted only to authenticated clients and remain RLS-scoped'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.subjects', 'INSERT')
+    and not has_table_privilege('authenticated', 'public.subjects', 'UPDATE')
+    and not has_table_privilege('authenticated', 'public.subjects', 'DELETE'),
+  'course writes remain restricted to server operations'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.attempt_history', 'SELECT'),
+  'authenticated users can read RLS-scoped attempt history'
+);
+select ok(
+  not has_table_privilege('anon', 'public.attempt_history', 'SELECT'),
+  'anonymous users cannot read attempt history'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.student_badges', 'SELECT'),
+  'authenticated users can read RLS-scoped badge awards'
+);
+select ok(
+  not has_table_privilege('anon', 'public.student_badges', 'SELECT'),
+  'anonymous users cannot read badge awards'
 );
 select ok(
   not has_function_privilege('anon', 'public.delete_user_relational_data(uuid)', 'EXECUTE'),
@@ -176,7 +203,8 @@ on conflict (id) do update
 set alias = excluded.alias,
     email = excluded.email,
     role_id = excluded.role_id,
-    active = excluded.active;
+    active = excluded.active,
+    expires_at = excluded.expires_at;
 
 insert into public.subjects (id, teacher_id, name, code, active, is_archived)
 values (990001, 'a0000000-0000-0000-0000-000000000001', 'Release Security Course', 'REL001', true, false);

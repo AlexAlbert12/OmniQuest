@@ -47,8 +47,8 @@ select ok(
   'authenticated sessions may invoke classroom supervision pagination'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.get_admin_audit_logs_page(text,uuid,text,text,text,timestamptz,timestamptz,text,integer,integer)', 'EXECUTE'),
-  'authenticated sessions may invoke audit pagination'
+  has_function_privilege('authenticated', 'public.get_admin_audit_logs_page_secured(text,uuid,text,text,text,timestamptz,timestamptz,text,integer,integer)', 'EXECUTE'),
+  'authenticated sessions may invoke secured audit pagination'
 );
 select ok(
   has_function_privilege('authenticated', 'public.get_admin_profile_activity_page(uuid,text,text,timestamptz,timestamptz,integer,integer)', 'EXECUTE'),
@@ -72,8 +72,8 @@ select ok(
   'anonymous sessions cannot invoke admin classroom pagination'
 );
 select ok(
-  not has_function_privilege('anon', 'public.get_admin_audit_logs_page(text,uuid,text,text,text,timestamptz,timestamptz,text,integer,integer)', 'EXECUTE'),
-  'anonymous sessions cannot invoke admin audit pagination'
+  not has_function_privilege('anon', 'public.get_admin_audit_logs_page_secured(text,uuid,text,text,text,timestamptz,timestamptz,text,integer,integer)', 'EXECUTE'),
+  'anonymous sessions cannot invoke secured admin audit pagination'
 );
 select ok(
   not has_function_privilege('anon', 'public.get_admin_profile_activity_page(uuid,text,text,timestamptz,timestamptz,integer,integer)', 'EXECUTE'),
@@ -82,7 +82,7 @@ select ok(
 
 select has_index('public', 'profiles', 'profiles_role_active_created_idx', 'profile filters have a supporting index');
 select has_index('public', 'attempt_history', 'attempt_history_student_attempted_idx', 'profile activity has a student/date index');
-select has_index('public', 'admin_audit_logs', 'admin_audit_logs_created_at_idx', 'audit pagination has a date index');
+select has_index('public', 'admin_audit_logs', 'admin_audit_logs_created_idx', 'audit pagination has a date index');
 
 select * from finish();
 rollback;

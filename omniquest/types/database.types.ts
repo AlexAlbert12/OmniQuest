@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
       account_backup_codes: {
@@ -93,37 +88,103 @@ export type Database = {
           },
         ]
       }
-      admin_audit_log: {
+      admin_audit_chain_checkpoints: {
+        Row: {
+          anchor_hash: string | null
+          created_at: string
+          final_hash: string
+          first_chain_seq: number
+          id: number
+          last_chain_seq: number
+          partition_name: string
+          row_count: number
+        }
+        Insert: {
+          anchor_hash?: string | null
+          created_at?: string
+          final_hash: string
+          first_chain_seq: number
+          id?: number
+          last_chain_seq: number
+          partition_name: string
+          row_count: number
+        }
+        Update: {
+          anchor_hash?: string | null
+          created_at?: string
+          final_hash?: string
+          first_chain_seq?: number
+          id?: number
+          last_chain_seq?: number
+          partition_name?: string
+          row_count?: number
+        }
+        Relationships: []
+      }
+      admin_audit_logs: {
         Row: {
           action: string
           admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
           created_at: string
           id: number
+          ip_hash: string | null
           metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
           target_id: string | null
           target_table: string | null
+          user_agent_hash: string | null
         }
         Insert: {
           action: string
           admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
           created_at?: string
           id?: number
+          ip_hash?: string | null
           metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
           target_id?: string | null
           target_table?: string | null
+          user_agent_hash?: string | null
         }
         Update: {
           action?: string
           admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
           created_at?: string
           id?: number
+          ip_hash?: string | null
           metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
           target_id?: string | null
           target_table?: string | null
+          user_agent_hash?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "admin_audit_log_admin_id_fkey"
+            foreignKeyName: "admin_audit_logs_admin_id_fkey1"
             columns: ["admin_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -131,38 +192,2051 @@ export type Database = {
           },
         ]
       }
-      admin_audit_logs: {
+      admin_audit_logs_2024_08: {
         Row: {
           action: string
           admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
           created_at: string
           id: number
+          ip_hash: string | null
           metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
           target_id: string | null
           target_table: string | null
+          user_agent_hash: string | null
         }
         Insert: {
           action: string
           admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
           created_at?: string
           id?: number
+          ip_hash?: string | null
           metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
           target_id?: string | null
           target_table?: string | null
+          user_agent_hash?: string | null
         }
         Update: {
           action?: string
           admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
           created_at?: string
           id?: number
+          ip_hash?: string | null
           metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
           target_id?: string | null
           target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2024_09: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2024_10: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2024_11: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2024_12: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2025_01: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2025_02: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2025_03: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2025_04: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2025_05: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2025_06: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2025_07: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2025_08: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2025_09: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2025_10: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2025_11: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2025_12: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2026_01: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2026_02: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2026_03: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2026_04: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2026_05: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2026_06: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2026_07: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2026_08: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2026_09: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2026_10: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2026_11: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2026_12: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2027_01: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_2027_02: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs_default: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          chain_hash: string | null
+          chain_seq: number
+          context_capture_reason: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          previous_hash: string | null
+          request_id: string | null
+          retention_until: string | null
+          severity: string
+          target_id: string | null
+          target_table: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          chain_hash?: string | null
+          chain_seq?: number
+          context_capture_reason?: string | null
+          created_at?: string
+          id?: number
+          ip_hash?: string | null
+          metadata?: Json
+          previous_hash?: string | null
+          request_id?: string | null
+          retention_until?: string | null
+          severity?: string
+          target_id?: string | null
+          target_table?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_settings: {
+        Row: {
+          capture_request_context: boolean
+          retention_months: number
+          singleton: boolean
+          strong_integrity: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          capture_request_context?: boolean
+          retention_months?: number
+          singleton?: boolean
+          strong_integrity?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          capture_request_context?: boolean
+          retention_months?: number
+          singleton?: boolean
+          strong_integrity?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "admin_audit_logs_admin_id_fkey"
-            columns: ["admin_id"]
+            foreignKeyName: "admin_audit_settings_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -525,8 +2599,8 @@ export type Database = {
         Row: {
           answer_id: number | null
           attempt_id: string | null
-          attempted_at: string | null
-          created_at: string | null
+          attempted_at: string
+          created_at: string
           earned_points: number
           hint_used: boolean
           id: number
@@ -550,8 +2624,8 @@ export type Database = {
         Insert: {
           answer_id?: number | null
           attempt_id?: string | null
-          attempted_at?: string | null
-          created_at?: string | null
+          attempted_at?: string
+          created_at?: string
           earned_points?: number
           hint_used?: boolean
           id?: number
@@ -575,8 +2649,8 @@ export type Database = {
         Update: {
           answer_id?: number | null
           attempt_id?: string | null
-          attempted_at?: string | null
-          created_at?: string | null
+          attempted_at?: string
+          created_at?: string
           earned_points?: number
           hint_used?: boolean
           id?: number
@@ -636,6 +2710,13 @@ export type Database = {
           {
             foreignKeyName: "attempt_history_reviewed_by_fkey"
             columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_history_student_id_fkey"
+            columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -949,22 +3030,22 @@ export type Database = {
           classroom_id: number | null
           id: number
           joined_at: string
-          student_id: string | null
-          subject_id: number | null
+          student_id: string
+          subject_id: number
         }
         Insert: {
           classroom_id?: number | null
           id?: number
           joined_at?: string
-          student_id?: string | null
-          subject_id?: number | null
+          student_id: string
+          subject_id: number
         }
         Update: {
           classroom_id?: number | null
           id?: number
           joined_at?: string
-          student_id?: string | null
-          subject_id?: number | null
+          student_id?: string
+          subject_id?: number
         }
         Relationships: [
           {
@@ -1492,33 +3573,41 @@ export type Database = {
       }
       notification_state: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: number
           is_deleted: boolean
           is_read: boolean
           notification_id: string
-          updated_at: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: number
           is_deleted?: boolean
           is_read?: boolean
           notification_id: string
-          updated_at?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: number
           is_deleted?: boolean
           is_read?: boolean
           notification_id?: string
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notification_state_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -1961,7 +4050,7 @@ export type Database = {
           badge_id: string
           created_at: string
           id: number
-          reward_xp: number
+          reward_xp: number | null
           student_id: string
         }
         Insert: {
@@ -1969,7 +4058,7 @@ export type Database = {
           badge_id: string
           created_at?: string
           id?: number
-          reward_xp?: number
+          reward_xp?: number | null
           student_id: string
         }
         Update: {
@@ -1977,7 +4066,7 @@ export type Database = {
           badge_id?: string
           created_at?: string
           id?: number
-          reward_xp?: number
+          reward_xp?: number | null
           student_id?: string
         }
         Relationships: [
@@ -2000,38 +4089,38 @@ export type Database = {
       subject_scores: {
         Row: {
           classroom_id: number | null
-          correct_answers: number
+          correct_answers: number | null
           created_at: string
           id: number
           max_score: number | null
-          played_at: string
-          played_days: string[]
-          student_id: string | null
-          subject_id: number | null
+          played_at: string | null
+          played_days: string[] | null
+          student_id: string
+          subject_id: number
           updated_at: string
         }
         Insert: {
           classroom_id?: number | null
-          correct_answers?: number
+          correct_answers?: number | null
           created_at?: string
           id?: number
           max_score?: number | null
-          played_at?: string
-          played_days?: string[]
-          student_id?: string | null
-          subject_id?: number | null
+          played_at?: string | null
+          played_days?: string[] | null
+          student_id: string
+          subject_id: number
           updated_at?: string
         }
         Update: {
           classroom_id?: number | null
-          correct_answers?: number
+          correct_answers?: number | null
           created_at?: string
           id?: number
           max_score?: number | null
-          played_at?: string
-          played_days?: string[]
-          student_id?: string | null
-          subject_id?: number | null
+          played_at?: string | null
+          played_days?: string[] | null
+          student_id?: string
+          subject_id?: number
           updated_at?: string
         }
         Relationships: [
@@ -2067,7 +4156,7 @@ export type Database = {
           description: string | null
           icon: string | null
           id: number
-          sort_order: number
+          sort_order: number | null
           subject_id: number
           title: string
         }
@@ -2079,7 +4168,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: number
-          sort_order?: number
+          sort_order?: number | null
           subject_id: number
           title: string
         }
@@ -2091,7 +4180,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: number
-          sort_order?: number
+          sort_order?: number | null
           subject_id?: number
           title?: string
         }
@@ -2295,6 +4384,85 @@ export type Database = {
           },
         ]
       }
+      support_response_templates: {
+        Row: {
+          active: boolean
+          body: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          id: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          body: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          body?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_response_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tags: {
+        Row: {
+          active: boolean
+          color: string
+          created_at: string
+          created_by: string | null
+          id: number
+          label: string
+          slug: string
+        }
+        Insert: {
+          active?: boolean
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: number
+          label: string
+          slug: string
+        }
+        Update: {
+          active?: boolean
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: number
+          label?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tags_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_ticket_attachments: {
         Row: {
           created_at: string
@@ -2353,6 +4521,54 @@ export type Database = {
           },
         ]
       }
+      support_ticket_history: {
+        Row: {
+          after_state: Json | null
+          before_state: Json | null
+          changed_by: string | null
+          comment: string | null
+          created_at: string
+          event_type: string
+          id: number
+          ticket_id: number
+        }
+        Insert: {
+          after_state?: Json | null
+          before_state?: Json | null
+          changed_by?: string | null
+          comment?: string | null
+          created_at?: string
+          event_type: string
+          id?: number
+          ticket_id: number
+        }
+        Update: {
+          after_state?: Json | null
+          before_state?: Json | null
+          changed_by?: string | null
+          comment?: string | null
+          created_at?: string
+          event_type?: string
+          id?: number
+          ticket_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_history_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "user_support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_ticket_messages: {
         Row: {
           author_id: string | null
@@ -2360,6 +4576,7 @@ export type Database = {
           body: string
           created_at: string
           id: number
+          is_internal: boolean
           ticket_id: number
           updated_at: string
         }
@@ -2369,6 +4586,7 @@ export type Database = {
           body: string
           created_at?: string
           id?: number
+          is_internal?: boolean
           ticket_id: number
           updated_at?: string
         }
@@ -2378,6 +4596,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: number
+          is_internal?: boolean
           ticket_id?: number
           updated_at?: string
         }
@@ -2391,6 +4610,49 @@ export type Database = {
           },
           {
             foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "user_support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_ticket_tags: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          tag_id: number
+          ticket_id: number
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          tag_id: number
+          ticket_id: number
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          tag_id?: number
+          ticket_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_tags_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "support_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_tags_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "user_support_tickets"
@@ -2873,8 +5135,8 @@ export type Database = {
           classroom_id: number | null
           created_at: string
           id: number
-          max_score: number
-          played_at: string
+          max_score: number | null
+          played_at: string | null
           student_id: string
           subject_id: number
           topic_id: number
@@ -2884,8 +5146,8 @@ export type Database = {
           classroom_id?: number | null
           created_at?: string
           id?: number
-          max_score?: number
-          played_at?: string
+          max_score?: number | null
+          played_at?: string | null
           student_id: string
           subject_id: number
           topic_id: number
@@ -2895,8 +5157,8 @@ export type Database = {
           classroom_id?: number | null
           created_at?: string
           id?: number
-          max_score?: number
-          played_at?: string
+          max_score?: number | null
+          played_at?: string | null
           student_id?: string
           subject_id?: number
           topic_id?: number
@@ -3003,49 +5265,65 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_preferences: {
         Row: {
           analytics_consent_updated_at: string | null
           analytics_enabled: boolean
           created_at: string
-          date_format: string
+          date_format: string | null
           haptics_enabled: boolean
-          language: string
-          time_format: string
-          timezone: string
+          language: string | null
+          time_format: string | null
+          timezone: string | null
           updated_at: string
           user_id: string
-          week_start: string
+          week_start: string | null
         }
         Insert: {
           analytics_consent_updated_at?: string | null
           analytics_enabled?: boolean
           created_at?: string
-          date_format?: string
+          date_format?: string | null
           haptics_enabled?: boolean
-          language?: string
-          time_format?: string
-          timezone?: string
+          language?: string | null
+          time_format?: string | null
+          timezone?: string | null
           updated_at?: string
           user_id: string
-          week_start?: string
+          week_start?: string | null
         }
         Update: {
           analytics_consent_updated_at?: string | null
           analytics_enabled?: boolean
           created_at?: string
-          date_format?: string
+          date_format?: string | null
           haptics_enabled?: boolean
-          language?: string
-          time_format?: string
-          timezone?: string
+          language?: string | null
+          time_format?: string | null
+          timezone?: string | null
           updated_at?: string
           user_id?: string
-          week_start?: string
+          week_start?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_sessions: {
         Row: {
@@ -3117,16 +5395,19 @@ export type Database = {
         Row: {
           admin_response: string | null
           assigned_admin_id: string | null
+          auto_priority_score: number
           category: string
           contact_email: string | null
           created_at: string
           first_responded_at: string | null
           first_response_due_at: string | null
           id: number
+          last_internal_note_at: string | null
           last_response_at: string | null
           message: string
           preferred_channel: string
           priority: string
+          priority_source: string
           resolution_due_at: string | null
           resolved_at: string | null
           role: string
@@ -3138,16 +5419,19 @@ export type Database = {
         Insert: {
           admin_response?: string | null
           assigned_admin_id?: string | null
+          auto_priority_score?: number
           category: string
           contact_email?: string | null
           created_at?: string
           first_responded_at?: string | null
           first_response_due_at?: string | null
           id?: number
+          last_internal_note_at?: string | null
           last_response_at?: string | null
           message: string
           preferred_channel?: string
           priority?: string
+          priority_source?: string
           resolution_due_at?: string | null
           resolved_at?: string | null
           role?: string
@@ -3159,16 +5443,19 @@ export type Database = {
         Update: {
           admin_response?: string | null
           assigned_admin_id?: string | null
+          auto_priority_score?: number
           category?: string
           contact_email?: string | null
           created_at?: string
           first_responded_at?: string | null
           first_response_due_at?: string | null
           id?: number
+          last_internal_note_at?: string | null
           last_response_at?: string | null
           message?: string
           preferred_channel?: string
           priority?: string
+          priority_source?: string
           resolution_due_at?: string | null
           resolved_at?: string | null
           role?: string
@@ -3181,6 +5468,13 @@ export type Database = {
           {
             foreignKeyName: "user_support_tickets_assigned_admin_id_fkey"
             columns: ["assigned_admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_support_tickets_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -3217,7 +5511,12 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_audit_severity: {
+        Args: { p_action: string; p_metadata?: Json; p_target_table?: string }
+        Returns: string
+      }
       admin_has_permission: { Args: { p_permission: string }; Returns: boolean }
+      admin_sha256_hex: { Args: { p_value: string }; Returns: string }
       admin_update_support_ticket: {
         Args: {
           p_admin_response?: string
@@ -3244,6 +5543,10 @@ export type Database = {
       apply_analytics_retention: { Args: never; Returns: Json }
       apply_attempt_sensitive_data_retention: { Args: never; Returns: Json }
       apply_teacher_audit_retention: { Args: never; Returns: number }
+      archive_teacher_question: {
+        Args: { p_question_id: number }
+        Returns: Json
+      }
       archive_teacher_topic: { Args: { p_topic_id: number }; Returns: Json }
       assert_topic_playable: {
         Args: { p_topic_id: number }
@@ -3481,7 +5784,6 @@ export type Database = {
         Args: { p_expo_push_token?: string }
         Returns: number
       }
-      delete_my_account: { Args: never; Returns: undefined }
       delete_notifications: { Args: { p_ids: string[] }; Returns: number }
       delete_user_relational_data: {
         Args: { p_user_id: string }
@@ -3569,7 +5871,6 @@ export type Database = {
         Args: { p_attempt_history_id: number }
         Returns: Json
       }
-      get_admin_audit_policy: { Args: never; Returns: Json }
       get_admin_audit_logs_page: {
         Args: {
           p_action?: string
@@ -3588,9 +5889,15 @@ export type Database = {
           actor_alias: string
           actor_email: string
           admin_id: string
+          after_state: Json
+          before_state: Json
+          chain_hash: string
+          chain_seq: number
           created_at: string
           id: number
           metadata: Json
+          previous_hash: string
+          retention_until: string
           severity: string
           target_id: string
           target_table: string
@@ -3615,15 +5922,22 @@ export type Database = {
           actor_alias: string
           actor_email: string
           admin_id: string
+          after_state: Json
+          before_state: Json
+          chain_hash: string
+          chain_seq: number
           created_at: string
           id: number
           metadata: Json
+          previous_hash: string
+          retention_until: string
           severity: string
           target_id: string
           target_table: string
           total_count: number
         }[]
       }
+      get_admin_audit_policy: { Args: never; Returns: Json }
       get_admin_classrooms_page: {
         Args: {
           p_active?: boolean
@@ -3823,17 +6137,22 @@ export type Database = {
       get_admin_support_directory: { Args: never; Returns: Json }
       get_admin_support_tickets_page: {
         Args: {
+          p_assigned_admin_id?: string
           p_limit?: number
           p_offset?: number
           p_priority?: string
           p_role?: string
           p_search?: string
+          p_sla_state?: string
           p_status?: string
+          p_tag?: string
         }
         Returns: {
           admin_response: string
+          assigned_admin_alias: string
           assigned_admin_id: string
           attachment_count: number
+          auto_priority_score: number
           category: string
           contact_email: string
           created_at: string
@@ -3844,11 +6163,14 @@ export type Database = {
           message: string
           message_count: number
           priority: string
+          priority_source: string
           resolution_due_at: string
           resolved_at: string
           role: string
+          sla_state: string
           status: string
           subject: string
+          tags: Json
           total_count: number
           updated_at: string
           user_alias: string
@@ -3858,17 +6180,22 @@ export type Database = {
       }
       get_admin_support_tickets_page_secured: {
         Args: {
+          p_assigned_admin_id?: string
           p_limit?: number
           p_offset?: number
           p_priority?: string
           p_role?: string
           p_search?: string
+          p_sla_state?: string
           p_status?: string
+          p_tag?: string
         }
         Returns: {
           admin_response: string
+          assigned_admin_alias: string
           assigned_admin_id: string
           attachment_count: number
+          auto_priority_score: number
           category: string
           contact_email: string
           created_at: string
@@ -3879,11 +6206,14 @@ export type Database = {
           message: string
           message_count: number
           priority: string
+          priority_source: string
           resolution_due_at: string
           resolved_at: string
           role: string
+          sla_state: string
           status: string
           subject: string
+          tags: Json
           total_count: number
           updated_at: string
           user_alias: string
@@ -3921,6 +6251,17 @@ export type Database = {
           id: string
           points: number
           visibility: string
+        }[]
+      }
+      get_class_weekly_ranking_profiles: {
+        Args: { p_classroom_id: number; p_limit?: number }
+        Returns: {
+          alias: string
+          avatar: string
+          id: string
+          points: number
+          visibility: string
+          weekly_points: number
         }[]
       }
       get_game_questions: {
@@ -4050,8 +6391,6 @@ export type Database = {
         }
         Returns: Json
       }
-      get_student_home_dashboard: { Args: never; Returns: Json }
-      get_student_progress_summary: { Args: never; Returns: Json }
       get_student_attempt_history: {
         Args: {
           p_classroom_id?: number
@@ -4086,6 +6425,8 @@ export type Database = {
         Returns: Json
       }
       get_student_badge_metrics: { Args: never; Returns: Json }
+      get_student_home_dashboard: { Args: never; Returns: Json }
+      get_student_progress_summary: { Args: never; Returns: Json }
       get_student_question_catalog: {
         Args: { p_classroom_id?: number; p_subject_id?: number }
         Returns: Json
@@ -4367,11 +6708,25 @@ export type Database = {
         Returns: Json
       }
       get_teacher_topic_summary: { Args: { p_topic_id: number }; Returns: Json }
+      get_weekly_ranking_profiles: {
+        Args: { p_limit?: number }
+        Returns: {
+          alias: string
+          avatar: string
+          id: string
+          points: number
+          visibility: string
+          weekly_points: number
+        }[]
+      }
+      harden_admin_audit_partition_privileges: { Args: never; Returns: number }
       initialize_guest_profile: { Args: { p_alias: string }; Returns: Json }
+      invoke_account_requests_processor: { Args: never; Returns: number }
       invoke_admin_export_processor: { Args: never; Returns: undefined }
       invoke_notification_delivery_worker: { Args: never; Returns: number }
       invoke_support_email_processor: { Args: never; Returns: undefined }
       invoke_teacher_digest_processor: { Args: never; Returns: undefined }
+      is_active_teacher: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_classroom_enrolled: {
         Args: { p_classroom_id: number }
@@ -4381,8 +6736,12 @@ export type Database = {
         Args: { p_classroom_id: number }
         Returns: boolean
       }
-      is_enrolled_in_subject: {
-        Args: { p_subject_id: number; p_user_id: string }
+      is_invite_code_available: {
+        Args: {
+          p_code: string
+          p_exclude_classroom_id?: number
+          p_exclude_subject_id?: number
+        }
         Returns: boolean
       }
       is_own_avatar_storage_path: {
@@ -4390,13 +6749,9 @@ export type Database = {
         Returns: boolean
       }
       is_subject_enrolled: { Args: { p_subject_id: number }; Returns: boolean }
-      is_subject_teacher:
-        | { Args: { p_subject_id: number }; Returns: boolean }
-        | {
-            Args: { p_subject_id: number; p_user_id: string }
-            Returns: boolean
-          }
+      is_subject_teacher: { Args: { p_subject_id: number }; Returns: boolean }
       join_subject_by_code: { Args: { p_code: string }; Returns: Json }
+      maintain_admin_audit_partitions: { Args: never; Returns: Json }
       mark_notifications_read: { Args: { p_ids: string[] }; Returns: number }
       normalize_answer_text: { Args: { value: string }; Returns: string }
       reactivate_due_admin_users: { Args: never; Returns: number }
@@ -4588,6 +6943,8 @@ export type Database = {
         Args: { p_channel: string; p_contact_email?: string }
         Returns: Json
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       start_game_attempt: {
         Args: {
           p_classroom_id?: number
@@ -4629,6 +6986,10 @@ export type Database = {
         Args: { p_priority: string }
         Returns: string
       }
+      support_priority_score: {
+        Args: { p_category: string; p_message: string; p_subject: string }
+        Returns: number
+      }
       support_resolution_interval: {
         Args: { p_priority: string }
         Returns: string
@@ -4652,10 +7013,6 @@ export type Database = {
         Args: { p_metadata: Json }
         Returns: number
       }
-      verify_admin_audit_chain: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: Json
-      }
       track_usage_event: {
         Args: {
           p_attempt_id?: string
@@ -4667,6 +7024,10 @@ export type Database = {
           p_topic_id?: number
         }
         Returns: number
+      }
+      verify_admin_audit_chain: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
       }
     }
     Enums: {
@@ -4800,3 +7161,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

@@ -62,14 +62,15 @@ using (
   or (
     coalesce(active, true)
     and not coalesce(is_archived, false)
-    and exists (
-      select 1
-      from public.enrollments enrollment
-      where enrollment.subject_id = subjects.id
-        and enrollment.student_id = auth.uid()
-    )
+    and public.is_subject_enrolled(subjects.id)
   )
 );
+
+revoke all on table public.subjects from public, anon, authenticated;
+grant select on table public.subjects to authenticated;
+
+revoke select on table public.questions, public.answers from public, anon;
+grant select on table public.questions, public.answers to authenticated;
 
 drop policy if exists "subjects_insert_own_teacher" on public.subjects;
 drop policy if exists "subjects_insert_active_teacher" on public.subjects;

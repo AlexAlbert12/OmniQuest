@@ -104,15 +104,15 @@ select lives_ok(
   'course owner can notify an enrolled student'
 );
 
+select set_config('request.jwt.claim.sub', '70000000-0000-0000-0000-000000000002', true);
 select ok(
   exists (
     select 1
-    from public.notifications n
-    where n.user_id = '70000000-0000-0000-0000-000000000002'
-      and n.related_table = 'classrooms'
-      and n.related_id = '970001'
+    from jsonb_array_elements(public.get_notifications_page('student', 20, null, null) -> 'rows') notification
+    where notification ->> 'type' = 'student_activity'
+      and notification ->> 'related_id' = '970001'
   ),
-  'controlled RPC persists the notification for the intended student'
+  'the intended student receives the notification through the protected API'
 );
 
 select set_config('request.jwt.claim.sub', '70000000-0000-0000-0000-000000000003', true);

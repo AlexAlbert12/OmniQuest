@@ -100,13 +100,13 @@ select set_config('request.jwt.claim.role', 'authenticated', true);
 select is(
   (select count(*) from public.questions where id = 910001),
   0::bigint,
-  'student cannot select questions directly'
+  'student cannot read authoring questions through RLS'
 );
 
 select is(
   (select count(*) from public.answers where question_id = 910001),
   0::bigint,
-  'student cannot select answers directly'
+  'student cannot read answer keys through RLS'
 );
 
 select ok(

@@ -19,7 +19,7 @@ select ok(not has_table_privilege('authenticated', 'public.game_answer_submissio
 select ok(to_regprocedure('public.submit_answer_resumable(uuid,bigint,bigint,text,jsonb,integer,boolean,boolean,uuid)') is not null, 'resumable submission RPC exists');
 select ok(has_function_privilege('authenticated', 'public.submit_answer_resumable(uuid,bigint,bigint,text,jsonb,integer,boolean,boolean,uuid)', 'EXECUTE'), 'students may use resumable submission');
 
-select ok(to_regprocedure('public.get_admin_audit_logs_page(text,integer,integer)') is not null, 'admin audit pagination RPC exists');
+select ok(to_regprocedure('public.get_admin_audit_logs_page_secured(text,uuid,text,text,text,timestamptz,timestamptz,text,integer,integer)') is not null, 'secured admin audit pagination RPC exists');
 select ok(to_regprocedure('public.get_teacher_audit_logs_page(text,text,integer,integer)') is not null, 'teacher audit pagination RPC exists');
 select ok(to_regprocedure('public.get_ranking_profiles_page(text,bigint,integer,integer,integer,integer)') is not null, 'ranking pagination RPC exists');
 select ok(to_regprocedure('public.get_student_attempt_history_page(text,text,bigint,bigint,bigint,integer,integer,integer)') is not null, 'student activity pagination RPC exists');

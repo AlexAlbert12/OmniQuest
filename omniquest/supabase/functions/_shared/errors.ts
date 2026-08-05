@@ -12,6 +12,10 @@ export type EdgeErrorCode =
   | 'rate_limited'
   | 'service_unavailable'
   | 'internal_error'
+  | 'authorization_unavailable'
+  | 'invalid_request'
+  | 'invalid_action'
+  | 'mail_not_configured'
 
 export class PublicFunctionError extends Error {
   code: EdgeErrorCode

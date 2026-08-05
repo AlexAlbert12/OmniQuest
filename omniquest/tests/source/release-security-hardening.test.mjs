@@ -52,3 +52,24 @@ test('CSV exports share formula-injection protection', () => {
   assert.match(adminExport, /import \{ csvCell \} from '\.\.\/_shared\/csv\.ts'/)
   assert.match(teacherExport, /import \{ csvCell \} from '\.\.\/_shared\/csv\.ts'/)
 })
+
+test('course visibility policy avoids recursive RLS evaluation through enrollments', () => {
+  const migration = read('supabase/migrations/20260803193000_teacher_authorization_hardening.sql')
+
+  assert.match(migration, /public\.is_subject_enrolled\(subjects\.id\)/)
+  assert.doesNotMatch(migration, /from public\.enrollments enrollment/)
+  assert.match(migration, /revoke all on table public\.subjects from public, anon, authenticated/)
+  assert.match(migration, /grant select on table public\.subjects to authenticated/)
+  assert.match(migration, /revoke select on table public\.questions, public\.answers from public, anon/)
+  assert.match(migration, /grant select on table public\.questions, public\.answers to authenticated/)
+})
+
+test('student progress reads are explicitly granted only through RLS-scoped tables', () => {
+  const historicalGrant = read('supabase/migrations/20260803201000_attempt_history_select_grant.sql')
+  const finalGrant = read('supabase/migrations/20260805113000_progress_read_privileges.sql')
+
+  assert.match(historicalGrant, /grant select on table public\.attempt_history to authenticated/)
+  assert.match(finalGrant, /revoke select on table public\.attempt_history, public\.student_badges from public, anon/)
+  assert.match(finalGrant, /grant select on table public\.attempt_history, public\.student_badges to authenticated/)
+  assert.doesNotMatch(finalGrant, /grant all/)
+})
