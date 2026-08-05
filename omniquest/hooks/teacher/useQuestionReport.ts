@@ -81,8 +81,9 @@ export function useQuestionReport(questionId: number, affectedPageSize: number) 
     try {
       setBusy(true)
       setError(null)
-      const { error: updateError } = await supabase.from('questions').update({ active: false }).eq('id', report.question.id)
-      if (updateError) throw updateError
+      const { data, error: archiveError } = await supabase.functions.invoke('teacher-delete-question', { body: { questionId: report.question.id } })
+      if (archiveError) throw archiveError
+      if ((data as { error?: string } | null)?.error) throw new Error((data as { error: string }).error)
       setReport((current) => current ? { ...current, question: { ...current.question, active: false } } : current)
     } catch (nextError: any) {
       setError(nextError?.message || 'No se pudo archivar la pregunta.')

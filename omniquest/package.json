@@ -38,7 +38,11 @@
     "build:web": "expo export --platform web",
     "docs:generate": "node scripts/generate-backend-catalog.mjs",
     "docs:check": "node scripts/generate-backend-catalog.mjs --check",
-    "deploy:functions": "node scripts/deploy-edge-functions.mjs"
+    "deploy:functions": "node scripts/deploy-edge-functions.mjs",
+    "demo:prepare": "node scripts/prepare-authenticated-demo.mjs",
+    "demo:diagnose-auth": "node scripts/diagnose-local-auth.mjs",
+    "demo:verify": "node scripts/verify-authenticated-demo.mjs",
+    "demo:verify:after": "node scripts/verify-authenticated-demo.mjs --after"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",

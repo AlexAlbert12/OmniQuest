@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(33);
+select plan(70);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.roles'::regclass),
@@ -86,6 +86,237 @@ select is(
 select ok(
   has_table_privilege('authenticated', 'public.roles', 'SELECT'),
   'authenticated clients can read the role catalog'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.profiles', 'SELECT')
+    and has_table_privilege('authenticated', 'public.profiles', 'UPDATE'),
+  'authenticated clients can read and update RLS-scoped profiles'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.profiles', 'INSERT')
+    and not has_table_privilege('authenticated', 'public.profiles', 'DELETE'),
+  'authenticated clients cannot create or delete profiles directly'
+);
+select ok(
+  not has_table_privilege('anon', 'public.profiles', 'SELECT')
+    and not has_table_privilege('anon', 'public.profiles', 'INSERT')
+    and not has_table_privilege('anon', 'public.profiles', 'UPDATE')
+    and not has_table_privilege('anon', 'public.profiles', 'DELETE'),
+  'anonymous clients have no direct profile access'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.notification_state', 'SELECT')
+    and has_table_privilege('authenticated', 'public.notification_state', 'INSERT')
+    and has_table_privilege('authenticated', 'public.notification_state', 'UPDATE'),
+  'authenticated clients can persist their RLS-scoped notification state'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.notification_state', 'DELETE'),
+  'authenticated clients cannot delete notification state directly'
+);
+select ok(
+  not has_table_privilege('anon', 'public.notification_state', 'SELECT')
+    and not has_table_privilege('anon', 'public.notification_state', 'INSERT')
+    and not has_table_privilege('anon', 'public.notification_state', 'UPDATE')
+    and not has_table_privilege('anon', 'public.notification_state', 'DELETE'),
+  'anonymous clients have no direct notification-state access'
+);
+select ok(
+  has_sequence_privilege('authenticated', 'public.notification_state_id_seq', 'USAGE')
+    and has_sequence_privilege('authenticated', 'public.notification_state_id_seq', 'SELECT'),
+  'authenticated clients can allocate notification-state identities'
+);
+select ok(
+  not has_sequence_privilege('anon', 'public.notification_state_id_seq', 'USAGE')
+    and not has_sequence_privilege('anon', 'public.notification_state_id_seq', 'SELECT'),
+  'anonymous clients cannot use the notification-state identity sequence'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.user_notification_preferences', 'SELECT')
+    and has_table_privilege('authenticated', 'public.user_notification_preferences', 'INSERT')
+    and has_table_privilege('authenticated', 'public.user_notification_preferences', 'UPDATE')
+    and not has_table_privilege('authenticated', 'public.user_notification_preferences', 'DELETE'),
+  'authenticated clients can manage only their RLS-scoped notification preferences'
+);
+select ok(
+  not has_table_privilege('anon', 'public.user_notification_preferences', 'SELECT')
+    and not has_table_privilege('anon', 'public.user_notification_preferences', 'INSERT')
+    and not has_table_privilege('anon', 'public.user_notification_preferences', 'UPDATE')
+    and not has_table_privilege('anon', 'public.user_notification_preferences', 'DELETE'),
+  'anonymous clients have no notification-preference access'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.get_notifications_page(text,integer,timestamptz,uuid)', 'EXECUTE')
+    and has_function_privilege('authenticated', 'public.mark_notifications_read(uuid[])', 'EXECUTE')
+    and has_function_privilege('authenticated', 'public.delete_notifications(uuid[])', 'EXECUTE'),
+  'authenticated clients can use the protected notification API'
+);
+select ok(
+  not has_function_privilege('anon', 'public.get_notifications_page(text,integer,timestamptz,uuid)', 'EXECUTE')
+    and not has_function_privilege('anon', 'public.mark_notifications_read(uuid[])', 'EXECUTE')
+    and not has_function_privilege('anon', 'public.delete_notifications(uuid[])', 'EXECUTE'),
+  'anonymous clients cannot use the protected notification API'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.classrooms', 'SELECT')
+    and has_table_privilege('authenticated', 'public.classrooms', 'INSERT')
+    and has_table_privilege('authenticated', 'public.classrooms', 'UPDATE')
+    and has_table_privilege('authenticated', 'public.classrooms', 'DELETE'),
+  'authenticated classroom access is available and remains RLS-scoped'
+);
+select ok(
+  not has_table_privilege('anon', 'public.classrooms', 'SELECT')
+    and not has_table_privilege('anon', 'public.classrooms', 'INSERT')
+    and not has_table_privilege('anon', 'public.classrooms', 'UPDATE')
+    and not has_table_privilege('anon', 'public.classrooms', 'DELETE'),
+  'anonymous clients have no direct classroom access'
+);
+select ok(
+  has_sequence_privilege('authenticated', 'public.classrooms_id_seq', 'USAGE')
+    and has_sequence_privilege('authenticated', 'public.classrooms_id_seq', 'SELECT'),
+  'authenticated teachers can allocate classroom identities through RLS-scoped writes'
+);
+select ok(
+  not has_sequence_privilege('anon', 'public.classrooms_id_seq', 'USAGE')
+    and not has_sequence_privilege('anon', 'public.classrooms_id_seq', 'SELECT'),
+  'anonymous clients cannot use the classroom identity sequence'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.subject_topics', 'SELECT')
+    and not has_table_privilege('authenticated', 'public.subject_topics', 'INSERT')
+    and not has_table_privilege('authenticated', 'public.subject_topics', 'UPDATE')
+    and not has_table_privilege('authenticated', 'public.subject_topics', 'DELETE'),
+  'authenticated clients can read RLS-scoped topics but cannot write them directly'
+);
+select ok(
+  not has_table_privilege('anon', 'public.subject_topics', 'SELECT')
+    and not has_table_privilege('anon', 'public.subject_topics', 'INSERT')
+    and not has_table_privilege('anon', 'public.subject_topics', 'UPDATE')
+    and not has_table_privilege('anon', 'public.subject_topics', 'DELETE'),
+  'anonymous clients have no direct topic access'
+);
+select ok(
+  has_table_privilege('service_role', 'public.subject_topics', 'SELECT')
+    and has_table_privilege('service_role', 'public.subject_topics', 'INSERT')
+    and has_table_privilege('service_role', 'public.subject_topics', 'UPDATE')
+    and has_table_privilege('service_role', 'public.subject_topics', 'DELETE'),
+  'teacher Edge Functions retain server-side topic access'
+);
+select ok(
+  has_sequence_privilege('service_role', 'public.subject_topics_id_seq', 'USAGE')
+    and has_sequence_privilege('service_role', 'public.subject_topics_id_seq', 'SELECT')
+    and not has_sequence_privilege('anon', 'public.subject_topics_id_seq', 'USAGE')
+    and not has_sequence_privilege('authenticated', 'public.subject_topics_id_seq', 'USAGE'),
+  'only server-side workers can allocate topic identities'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.enrollments', 'SELECT')
+    and has_table_privilege('authenticated', 'public.enrollments', 'DELETE'),
+  'authenticated clients can read and leave RLS-scoped enrollments'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.enrollments', 'INSERT')
+    and not has_table_privilege('authenticated', 'public.enrollments', 'UPDATE'),
+  'enrollment creation and mutation remain server-controlled'
+);
+select ok(
+  not has_table_privilege('anon', 'public.enrollments', 'SELECT')
+    and not has_table_privilege('anon', 'public.enrollments', 'INSERT')
+    and not has_table_privilege('anon', 'public.enrollments', 'UPDATE')
+    and not has_table_privilege('anon', 'public.enrollments', 'DELETE'),
+  'anonymous clients have no direct enrollment access'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.subject_scores', 'SELECT')
+    and has_table_privilege('authenticated', 'public.topic_scores', 'SELECT'),
+  'authenticated clients can read RLS-scoped learning scores'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.subject_scores', 'INSERT')
+    and not has_table_privilege('authenticated', 'public.subject_scores', 'UPDATE')
+    and not has_table_privilege('authenticated', 'public.subject_scores', 'DELETE')
+    and not has_table_privilege('authenticated', 'public.topic_scores', 'INSERT')
+    and not has_table_privilege('authenticated', 'public.topic_scores', 'UPDATE')
+    and not has_table_privilege('authenticated', 'public.topic_scores', 'DELETE'),
+  'learning-score writes remain server-controlled'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.user_preferences', 'SELECT')
+    and has_table_privilege('authenticated', 'public.user_preferences', 'INSERT')
+    and has_table_privilege('authenticated', 'public.user_preferences', 'UPDATE')
+    and not has_table_privilege('authenticated', 'public.user_preferences', 'DELETE'),
+  'authenticated clients can manage only their RLS-scoped settings'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.user_support_tickets', 'SELECT')
+    and has_table_privilege('authenticated', 'public.user_support_tickets', 'INSERT')
+    and not has_table_privilege('authenticated', 'public.user_support_tickets', 'UPDATE')
+    and not has_table_privilege('authenticated', 'public.user_support_tickets', 'DELETE'),
+  'authenticated clients can read and create only their RLS-scoped support tickets'
+);
+select ok(
+  has_sequence_privilege('authenticated', 'public.user_support_tickets_id_seq', 'USAGE')
+    and has_sequence_privilege('authenticated', 'public.user_support_tickets_id_seq', 'SELECT')
+    and not has_sequence_privilege('anon', 'public.user_support_tickets_id_seq', 'USAGE'),
+  'only authenticated support creation can allocate ticket identities'
+);
+select ok(
+  not has_sequence_privilege('authenticated', 'public.enrollments_id_seq', 'USAGE')
+    and not has_sequence_privilege('authenticated', 'public.subject_scores_id_seq', 'USAGE')
+    and not has_sequence_privilege('authenticated', 'public.topic_scores_id_seq', 'USAGE'),
+  'learning record identities remain server-controlled'
+);
+select ok(
+  not has_table_privilege('anon', 'public.subject_scores', 'SELECT')
+    and not has_table_privilege('anon', 'public.topic_scores', 'SELECT')
+    and not has_table_privilege('anon', 'public.user_preferences', 'SELECT')
+    and not has_table_privilege('anon', 'public.user_support_tickets', 'SELECT'),
+  'anonymous clients cannot read learning records, settings, or support tickets'
+);
+select ok(
+  (
+    select procedure.prosecdef
+      and pg_get_userbyid(procedure.proowner) = 'postgres'
+    from pg_proc procedure
+    join pg_namespace namespace on namespace.oid = procedure.pronamespace
+    where namespace.nspname = 'public'
+      and procedure.oid = 'public.create_teacher_classroom(bigint,text,text)'::regprocedure
+  )
+    and has_function_privilege('authenticated', 'public.create_teacher_classroom(bigint,text,text)', 'EXECUTE')
+    and not has_function_privilege('anon', 'public.create_teacher_classroom(bigint,text,text)', 'EXECUTE'),
+  'classroom creation executes only through the protected postgres-owned server operation'
+);
+select is(
+  (
+    select count(*)
+    from pg_class relation
+    join pg_namespace namespace on namespace.oid = relation.relnamespace
+    where namespace.nspname = 'public'
+      and relation.relkind in ('r', 'p')
+      and (
+        not has_table_privilege('service_role', relation.oid, 'SELECT')
+        or not has_table_privilege('service_role', relation.oid, 'INSERT')
+        or not has_table_privilege('service_role', relation.oid, 'UPDATE')
+        or not has_table_privilege('service_role', relation.oid, 'DELETE')
+      )
+  ),
+  0::bigint,
+  'service workers retain server-side data access on public tables'
+);
+select is(
+  (
+    select count(*)
+    from pg_class relation
+    join pg_namespace namespace on namespace.oid = relation.relnamespace
+    where namespace.nspname = 'public'
+      and relation.relkind = 'S'
+      and (
+        not has_sequence_privilege('service_role', relation.oid, 'USAGE')
+        or not has_sequence_privilege('service_role', relation.oid, 'SELECT')
+      )
+  ),
+  0::bigint,
+  'service workers can use public identity sequences'
 );
 select ok(
   has_table_privilege('authenticated', 'public.subjects', 'SELECT')
@@ -256,6 +487,19 @@ select throws_ok(
   'expired guest sessions cannot join a classroom'
 );
 
+reset role;
+update public.classrooms
+set code_expires_at = now() - interval '1 minute'
+where id = 990001;
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claim.sub', 'a0000000-0000-0000-0000-000000000003', true);
+select throws_ok(
+  $$select public.join_subject_by_code('REL002')$$,
+  'Este código de clase ha caducado.',
+  'expired classroom invitation codes cannot be used'
+);
+
 select set_config('request.jwt.claim.sub', 'a0000000-0000-0000-0000-000000000001', true);
 select ok(
   public.is_invite_code_available('NEW001'),
@@ -269,6 +513,28 @@ select is(
   (select count(*) from public.subjects where id = 990001),
   1::bigint,
   'the owning active teacher can read the course'
+);
+select ok(
+  (public.create_teacher_classroom(990001, 'Release Additional Classroom', null)->>'id')::bigint > 0,
+  'the owning active teacher can create an additional classroom through the server operation'
+);
+
+delete from public.enrollments
+where student_id = 'a0000000-0000-0000-0000-000000000002'
+  and subject_id = 990001;
+select is(
+  (select count(*) from public.enrollments where student_id = 'a0000000-0000-0000-0000-000000000002' and subject_id = 990001),
+  1::bigint,
+  'teachers cannot bypass the server operation to remove student enrollments directly'
+);
+select set_config('request.jwt.claim.sub', 'a0000000-0000-0000-0000-000000000002', true);
+delete from public.enrollments
+where student_id = 'a0000000-0000-0000-0000-000000000002'
+  and subject_id = 990001;
+select is(
+  (select count(*) from public.enrollments where student_id = 'a0000000-0000-0000-0000-000000000002' and subject_id = 990001),
+  0::bigint,
+  'students can leave their own enrollment through the RLS-scoped client operation'
 );
 
 reset role;
