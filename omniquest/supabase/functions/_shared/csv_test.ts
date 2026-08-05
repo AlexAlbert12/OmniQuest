@@ -13,3 +13,9 @@ Deno.test('csvCell neutralizes spreadsheet formulas after leading whitespace', (
   assertEquals(csvCell('+SUM(1,2)'), '"\'+SUM(1,2)"')
   assertEquals(csvCell('@malicious'), '"\'@malicious"')
 })
+
+Deno.test('csvCell neutralizes control-character formula prefixes', () => {
+  assertEquals(csvCell('\t=SUM(1,2)'), '"\'\t=SUM(1,2)"')
+  assertEquals(csvCell('\r@malicious'), '"\'\r@malicious"')
+  assertEquals(csvCell('=Demo CSV'), '"\'=Demo CSV"')
+})

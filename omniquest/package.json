@@ -42,7 +42,11 @@
     "demo:prepare": "node scripts/prepare-authenticated-demo.mjs",
     "demo:diagnose-auth": "node scripts/diagnose-local-auth.mjs",
     "demo:verify": "node scripts/verify-authenticated-demo.mjs",
-    "demo:verify:after": "node scripts/verify-authenticated-demo.mjs --after"
+    "demo:verify:after": "node scripts/verify-authenticated-demo.mjs --after",
+    "audit:walkthrough": "node scripts/audit-authenticated-walkthrough.mjs --check",
+    "audit:walkthrough:generate": "node scripts/audit-authenticated-walkthrough.mjs --write",
+    "demo:prepare-functions-env": "node scripts/prepare-local-function-env.mjs",
+    "demo:process-workers": "node scripts/process-demo-workers.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",

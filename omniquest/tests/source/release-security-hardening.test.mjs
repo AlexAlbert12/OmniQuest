@@ -49,7 +49,8 @@ test('CSV exports share formula-injection protection', () => {
   const adminExport = read('supabase/functions/process-admin-export-jobs/index.ts')
   const teacherExport = read('supabase/functions/process-teacher-audit-exports/index.ts')
 
-  assert.match(csv, /\[=\+@-\]/)
+  assert.match(csv, /\^\[\\t\\r\]/)
+  assert.match(csv, /\^\[=\+@-\]/)
   assert.match(csv, /trimStart\(\)/)
   assert.match(csv, /`'\$\{raw\}`/)
   assert.match(adminExport, /import \{ csvCell \} from '\.\.\/_shared\/csv\.ts'/)
@@ -120,16 +121,16 @@ test('notification preferences and protected notification RPCs retain explicit c
 })
 
 
-test('teacher classroom creation keeps explicit RLS-scoped privileges and protected server ownership', () => {
-  const migration = read('supabase/migrations/20260805160000_teacher_classroom_access.sql')
+test('teacher classroom creation is finalized as a protected server operation', () => {
+  const historicalMigration = read('supabase/migrations/20260805160000_teacher_classroom_access.sql')
+  const finalMatrix = read('supabase/migrations/20260805200000_authenticated_walkthrough_authorization_matrix.sql')
 
-  assert.match(migration, /revoke all on table public\.classrooms from public, anon, authenticated/)
-  assert.match(migration, /grant select, insert, update, delete on table public\.classrooms to authenticated/)
-  assert.match(migration, /grant usage, select on sequence public\.classrooms_id_seq to authenticated/)
-  assert.match(migration, /alter function public\.create_teacher_classroom\(bigint, text, text\) owner to postgres/)
-  assert.match(migration, /alter function public\.create_teacher_classroom\(bigint, text, text\) security definer/)
-  assert.match(migration, /grant execute on function public\.create_teacher_classroom\(bigint, text, text\) to authenticated, service_role/)
-  assert.doesNotMatch(migration, /grant all/)
+  assert.match(historicalMigration, /alter function public\.create_teacher_classroom\(bigint, text, text\) owner to postgres/)
+  assert.match(historicalMigration, /alter function public\.create_teacher_classroom\(bigint, text, text\) security definer/)
+  assert.match(historicalMigration, /grant execute on function public\.create_teacher_classroom\(bigint, text, text\) to authenticated, service_role/)
+  assert.match(finalMatrix, /grant select on table public\.subjects, public\.classrooms, public\.subject_topics, public\.questions, public\.answers to authenticated/)
+  assert.match(finalMatrix, /revoke all on sequence public\.classrooms_id_seq[\s\S]*from public, anon, authenticated/)
+  assert.doesNotMatch(finalMatrix, /grant (insert|update|delete) on table public\.classrooms to authenticated/)
 })
 
 
@@ -161,4 +162,19 @@ test('authenticated learning workflows use explicit RLS-scoped privileges', () =
   assert.doesNotMatch(authorizationTests, /\(with\s+\w+\s+as\s*\(\s*delete/i)
   assert.match(authorizationTests, /delete from public\.enrollments[\s\S]*teachers cannot bypass the server operation/)
   assert.match(authorizationTests, /delete from public\.enrollments[\s\S]*students can leave their own enrollment/)
+})
+
+
+test('private question media remains server-controlled during teacher question creation', () => {
+  const migration = read('supabase/migrations/20260805183000_question_media_server_authorization.sql')
+  const authorizationTests = read('supabase/tests/010_release_authorization_hardening.sql')
+
+  assert.match(migration, /grant select, insert, update, delete on table public\.question_media_assets to service_role/)
+  assert.match(migration, /alter function public\.save_teacher_question\([\s\S]*\) owner to postgres/)
+  assert.match(migration, /alter function public\.save_teacher_question\([\s\S]*\) security definer/)
+  assert.match(migration, /create or replace function public\.can_access_question_media_object\(p_name text\)/)
+  assert.match(migration, /and public\.can_access_question_media_object\(name\)/)
+  assert.doesNotMatch(migration, /grant (select|insert|update|delete).*question_media_assets to authenticated/)
+  assert.match(authorizationTests, /the owning teacher can create a question with validated private media/)
+  assert.match(authorizationTests, /protected question creation attaches the validated private-media asset/)
 })

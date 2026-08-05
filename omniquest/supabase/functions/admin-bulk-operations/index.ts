@@ -94,11 +94,11 @@ async function updateProfiles(context: any, action: BulkAction, ids: string[], r
   if (updateError) throw updateError
 
   for (const profile of profiles || []) {
-    await writeAdminUserHistory(context.adminClient, {
-      action: active ? 'admin.user.activate' : 'admin.user.deactivate', adminUserId: context.adminUserId, profileId: profile.id,
-      before: { active: profile.active, deactivation_reason: profile.deactivation_reason, deactivated_at: profile.deactivated_at, reactivate_at: profile.reactivate_at },
-      after: nextState, reason: active ? 'Reactivación administrativa' : reason,
-    })
+    const auditAction = active ? 'admin.user.activate' : 'admin.user.deactivate'
+    const before = { active: profile.active, deactivation_reason: profile.deactivation_reason, deactivated_at: profile.deactivated_at, reactivate_at: profile.reactivate_at }
+    const auditReason = active ? 'Reactivación administrativa' : reason
+    await writeAdminUserHistory(context.adminClient, { action: auditAction, adminUserId: context.adminUserId, profileId: profile.id, before, after: nextState, reason: auditReason })
+    await writeAdminAudit(context.adminClient, { action: auditAction, adminUserId: context.adminUserId, targetTable: 'profiles', targetId: profile.id, before, after: nextState, metadata: { reason: auditReason } })
   }
   return profiles?.length || 0
 }

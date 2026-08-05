@@ -134,7 +134,7 @@ function getUniformTypeIdentifier(mimeType: string) {
 function escapeCsvValue(value: CsvValue) {
   const rawText = String(value ?? '')
   // Prevent spreadsheet formula injection when exported values come from user input.
-  const text = /^[=+@-]/.test(rawText.trimStart()) ? `'${rawText}` : rawText
+  const text = /^[\t\r]/.test(rawText) || /^[=+@-]/.test(rawText.trimStart()) ? `'${rawText}` : rawText
   if (/[",\n\r]/.test(text)) {
     return `"${text.replace(/"/g, '""')}"`
   }

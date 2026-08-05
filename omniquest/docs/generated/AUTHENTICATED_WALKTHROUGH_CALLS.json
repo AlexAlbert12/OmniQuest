@@ -1,0 +1,1492 @@
+{
+  "generatedAt": "20260805200000_authenticated_walkthrough_authorization_matrix.sql",
+  "sourceFiles": 443,
+  "calls": [
+    {
+      "kind": "edge",
+      "resource": "admin-bulk-operations",
+      "path": "components/admin/api/adminApi.ts",
+      "line": 69
+    },
+    {
+      "kind": "edge",
+      "resource": "admin-create-teacher",
+      "path": "components/admin/users/AdminTeachersSection.tsx",
+      "line": 70
+    },
+    {
+      "kind": "edge",
+      "resource": "admin-delete-student-progress",
+      "path": "components/admin/hooks/useAdminActions.ts",
+      "line": 89
+    },
+    {
+      "kind": "edge",
+      "resource": "admin-reset-password",
+      "path": "components/admin/hooks/useAdminActions.ts",
+      "line": 74
+    },
+    {
+      "kind": "edge",
+      "resource": "auth-attempt-guard",
+      "path": "lib/authSecurity.ts",
+      "line": 109
+    },
+    {
+      "kind": "edge",
+      "resource": "import-students",
+      "path": "components/teacher/TeacherStudentImportModal.tsx",
+      "line": 85
+    },
+    {
+      "kind": "edge",
+      "resource": "manage-account-security",
+      "path": "components/settings/ManagedSessionsCard.tsx",
+      "line": 34
+    },
+    {
+      "kind": "edge",
+      "resource": "process-question-media",
+      "path": "lib/questionMedia.ts",
+      "line": 378
+    },
+    {
+      "kind": "edge",
+      "resource": "profile-update-avatar",
+      "path": "components/student/profile/StudentAvatarCustomizationModal.tsx",
+      "line": 118
+    },
+    {
+      "kind": "edge",
+      "resource": "profile-update-avatar",
+      "path": "hooks/teacher/useTeacherProfile.ts",
+      "line": 231
+    },
+    {
+      "kind": "edge",
+      "resource": "profile-update-avatar",
+      "path": "lib/offlineMutations.ts",
+      "line": 286
+    },
+    {
+      "kind": "edge",
+      "resource": "student-reset-own-progress",
+      "path": "hooks/useSettingsData.ts",
+      "line": 295
+    },
+    {
+      "kind": "edge",
+      "resource": "teacher-archive-subject",
+      "path": "features/teacher-subject/api.ts",
+      "line": 41
+    },
+    {
+      "kind": "edge",
+      "resource": "teacher-create-topic",
+      "path": "features/teacher-subject/api.ts",
+      "line": 23
+    },
+    {
+      "kind": "edge",
+      "resource": "teacher-delete-question",
+      "path": "app/(teacher)/topic/[id].tsx",
+      "line": 88
+    },
+    {
+      "kind": "edge",
+      "resource": "teacher-delete-question",
+      "path": "features/teacher-subject/api.ts",
+      "line": 34
+    },
+    {
+      "kind": "edge",
+      "resource": "teacher-delete-question",
+      "path": "hooks/teacher/useQuestionReport.ts",
+      "line": 84
+    },
+    {
+      "kind": "edge",
+      "resource": "teacher-reset-own-data",
+      "path": "hooks/useSettingsData.ts",
+      "line": 312
+    },
+    {
+      "kind": "edge",
+      "resource": "teacher-student-reminder",
+      "path": "app/(teacher)/student/[id]/history.tsx",
+      "line": 77
+    },
+    {
+      "kind": "edge",
+      "resource": "teacher-student-reminder",
+      "path": "components/teacher/TeacherStudentImportModal.tsx",
+      "line": 171
+    },
+    {
+      "kind": "edge",
+      "resource": "teacher-student-reminder",
+      "path": "features/teacher-students/api.ts",
+      "line": 46
+    },
+    {
+      "kind": "edge",
+      "resource": "teacher-update-subject",
+      "path": "components/teacher/TeacherSubjectForm.tsx",
+      "line": 183
+    },
+    {
+      "kind": "edge",
+      "resource": "teacher-update-topic",
+      "path": "components/teacher/TeacherTopicForm.tsx",
+      "line": 182
+    },
+    {
+      "kind": "rpc",
+      "resource": "acknowledge_teacher_audit_alert",
+      "path": "hooks/teacher/useTeacherAudit.ts",
+      "line": 120
+    },
+    {
+      "kind": "rpc",
+      "resource": "add_support_ticket_message",
+      "path": "lib/support.ts",
+      "line": 306
+    },
+    {
+      "kind": "rpc",
+      "resource": "add_teacher_student_note",
+      "path": "hooks/teacher/useTeacherStudentHistory.ts",
+      "line": 168
+    },
+    {
+      "kind": "rpc",
+      "resource": "admin_update_support_ticket_secured",
+      "path": "components/admin/support/AdminSupportSection.tsx",
+      "line": 123
+    },
+    {
+      "kind": "rpc",
+      "resource": "archive_teacher_topic",
+      "path": "hooks/teacher/useTeacherTopicDetail.ts",
+      "line": 108
+    },
+    {
+      "kind": "rpc",
+      "resource": "assign_admin_role",
+      "path": "components/admin/api/adminApi.ts",
+      "line": 123
+    },
+    {
+      "kind": "rpc",
+      "resource": "assign_manual_review_attempts",
+      "path": "hooks/teacher/useManualReview.ts",
+      "line": 115
+    },
+    {
+      "kind": "rpc",
+      "resource": "batch_review_manual_attempts",
+      "path": "hooks/teacher/useManualReview.ts",
+      "line": 150
+    },
+    {
+      "kind": "rpc",
+      "resource": "cancel_account_deletion",
+      "path": "components/settings/AccountDataRequestsCard.tsx",
+      "line": 109
+    },
+    {
+      "kind": "rpc",
+      "resource": "create_subject_with_default_topic",
+      "path": "components/teacher/TeacherSubjectForm.tsx",
+      "line": 218
+    },
+    {
+      "kind": "rpc",
+      "resource": "create_teacher_classroom",
+      "path": "features/teacher-subject/api.ts",
+      "line": 4
+    },
+    {
+      "kind": "rpc",
+      "resource": "create_teacher_notification",
+      "path": "lib/notifications/teacher.ts",
+      "line": 20
+    },
+    {
+      "kind": "rpc",
+      "resource": "deactivate_push_token",
+      "path": "lib/pushNotifications.ts",
+      "line": 104
+    },
+    {
+      "kind": "rpc",
+      "resource": "delete_notifications",
+      "path": "lib/notifications/persistent.ts",
+      "line": 149
+    },
+    {
+      "kind": "rpc",
+      "resource": "duplicate_teacher_subject",
+      "path": "features/teacher-subject/api.ts",
+      "line": 48
+    },
+    {
+      "kind": "rpc",
+      "resource": "equip_profile_cosmetics",
+      "path": "lib/avatarCosmetics.ts",
+      "line": 118
+    },
+    {
+      "kind": "rpc",
+      "resource": "finish_game_attempt",
+      "path": "hooks/useGame.ts",
+      "line": 258
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_activity_attempt_detail",
+      "path": "lib/studentSecureData.ts",
+      "line": 231
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_audit_logs_page_secured",
+      "path": "components/admin/audit/AdminAuditSection.tsx",
+      "line": 51
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_audit_logs_page_secured",
+      "path": "lib/adminExports.ts",
+      "line": 230
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_audit_policy",
+      "path": "components/admin/audit/AdminAuditSection.tsx",
+      "line": 48
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_classrooms_page",
+      "path": "components/admin/classrooms/AdminClassroomsSection.tsx",
+      "line": 54
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_dashboard_metrics",
+      "path": "components/admin/hooks/useAdminData.ts",
+      "line": 31
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_directory_filters",
+      "path": "components/admin/shared/AdminAdvancedFilters.tsx",
+      "line": 42
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_export_download_path",
+      "path": "components/admin/api/adminApi.ts",
+      "line": 90
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_export_jobs_page",
+      "path": "components/admin/api/adminApi.ts",
+      "line": 84
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_portal_context",
+      "path": "components/admin/api/adminApi.ts",
+      "line": 49
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_profile_activity_page",
+      "path": "components/admin/users/AdminProfileActivityScreen.tsx",
+      "line": 47
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_profiles_page",
+      "path": "components/admin/hooks/useAdminData.ts",
+      "line": 32
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_profiles_page",
+      "path": "components/admin/users/AdminStudentsSection.tsx",
+      "line": 53
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_profiles_page",
+      "path": "components/admin/users/AdminTeachersSection.tsx",
+      "line": 62
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_push_delivery_metrics",
+      "path": "components/admin/dashboard/AdminPushDeliveryPanel.tsx",
+      "line": 68
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_role_assignments_page",
+      "path": "components/admin/api/adminApi.ts",
+      "line": 117
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_roles",
+      "path": "components/admin/api/adminApi.ts",
+      "line": 111
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_subjects_page",
+      "path": "components/admin/courses/AdminCoursesSection.tsx",
+      "line": 54
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_support_directory",
+      "path": "lib/support.ts",
+      "line": 193
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_support_tickets_page_secured",
+      "path": "components/admin/support/AdminSupportSection.tsx",
+      "line": 56
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_support_tickets_page_secured",
+      "path": "lib/adminExports.ts",
+      "line": 264
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_usage_analytics",
+      "path": "components/admin/dashboard/AdminUsageAnalyticsPanel.tsx",
+      "line": 19
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_admin_user_change_history_page",
+      "path": "components/admin/api/adminApi.ts",
+      "line": 101
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_attempt_feedback",
+      "path": "lib/studentSecureData.ts",
+      "line": 222
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_avatar_customization_options",
+      "path": "lib/avatarCosmetics.ts",
+      "line": 83
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_class_ranking_profiles",
+      "path": "app/(student)/class/[id].tsx",
+      "line": 189
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_manual_review_configuration",
+      "path": "hooks/teacher/useManualReview.ts",
+      "line": 43
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_manual_review_history",
+      "path": "hooks/teacher/useManualReview.ts",
+      "line": 199
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_manual_review_thread",
+      "path": "hooks/teacher/useManualReview.ts",
+      "line": 198
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_notifications_page",
+      "path": "lib/notifications/persistent.ts",
+      "line": 49
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_own_support_email_history",
+      "path": "lib/support.ts",
+      "line": 224
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_own_support_tickets_page",
+      "path": "lib/support.ts",
+      "line": 135
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_profile_cosmetics",
+      "path": "lib/avatarCosmetics.ts",
+      "line": 138
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_question_media_manifest",
+      "path": "lib/questionMedia.ts",
+      "line": 269
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_ranking_profiles_page",
+      "path": "hooks/student/useStudentRanking.ts",
+      "line": 298
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_safe_game_questions",
+      "path": "hooks/useGame.ts",
+      "line": 169
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_student_attempt_history",
+      "path": "lib/studentSecureData.ts",
+      "line": 154
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_student_attempt_history_page",
+      "path": "lib/studentSecureData.ts",
+      "line": 179
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_student_badge_catalog",
+      "path": "lib/studentBadges.ts",
+      "line": 129
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_student_home_dashboard",
+      "path": "features/student-home/api.ts",
+      "line": 5
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_student_progress_summary",
+      "path": "features/student-progress/api.ts",
+      "line": 5
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_student_question_catalog",
+      "path": "lib/studentSecureData.ts",
+      "line": 137
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_support_contact_channels",
+      "path": "lib/support.ts",
+      "line": 210
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_support_thread_page",
+      "path": "lib/support.ts",
+      "line": 169
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_attention_students_page",
+      "path": "features/teacher-dashboard/api.ts",
+      "line": 13
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_audit_configuration",
+      "path": "hooks/teacher/useTeacherAudit.ts",
+      "line": 60
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_audit_logs_page_v2",
+      "path": "hooks/teacher/useTeacherAudit.ts",
+      "line": 49
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_classrooms_page",
+      "path": "features/teacher-catalog/api.ts",
+      "line": 22
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_courses_page",
+      "path": "features/teacher-catalog/api.ts",
+      "line": 12
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_dashboard_summary",
+      "path": "features/teacher-dashboard/api.ts",
+      "line": 12
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_manual_review_queue",
+      "path": "hooks/teacher/useManualReview.ts",
+      "line": 49
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_notification_center_summary",
+      "path": "hooks/teacher/useTeacherNotifications.ts",
+      "line": 64
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_notification_settings",
+      "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
+      "line": 60
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_notifications_page",
+      "path": "hooks/teacher/useTeacherNotifications.ts",
+      "line": 88
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_profile_recent_questions_page",
+      "path": "hooks/teacher/useTeacherProfile.ts",
+      "line": 177
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_profile_recent_subjects_page",
+      "path": "hooks/teacher/useTeacherProfile.ts",
+      "line": 150
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_profile_summary",
+      "path": "hooks/teacher/useTeacherProfile.ts",
+      "line": 122
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_question_affected_students_page",
+      "path": "hooks/teacher/useQuestionReport.ts",
+      "line": 42
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_question_report",
+      "path": "hooks/teacher/useQuestionReport.ts",
+      "line": 36
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_recent_activity_page",
+      "path": "features/teacher-dashboard/api.ts",
+      "line": 14
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_student_history_metrics",
+      "path": "hooks/teacher/useTeacherStudentHistory.ts",
+      "line": 96
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_student_history_reviews_page",
+      "path": "hooks/teacher/useTeacherStudentHistory.ts",
+      "line": 84
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_student_history_summary",
+      "path": "hooks/teacher/useTeacherStudentHistory.ts",
+      "line": 51
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_student_history_timeline_page",
+      "path": "hooks/teacher/useTeacherStudentHistory.ts",
+      "line": 60
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_student_history_weaknesses",
+      "path": "hooks/teacher/useTeacherStudentHistory.ts",
+      "line": 74
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_students_page",
+      "path": "features/teacher-students/api.ts",
+      "line": 14
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_subject_analytics",
+      "path": "hooks/teacher/subject/useTeacherSubjectAnalytics.ts",
+      "line": 21
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_subject_overview",
+      "path": "hooks/teacher/subject/useTeacherSubjectOverview.ts",
+      "line": 28
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_subject_questions_page",
+      "path": "hooks/teacher/subject/useTeacherSubjectQuestions.ts",
+      "line": 16
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_subject_students_page",
+      "path": "hooks/teacher/subject/useTeacherSubjectStudents.ts",
+      "line": 35
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_subject_topics_page",
+      "path": "hooks/teacher/subject/useTeacherSubjectTopics.ts",
+      "line": 12
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_topic_questions_page",
+      "path": "hooks/teacher/useTeacherTopicDetail.ts",
+      "line": 47
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_topic_summary",
+      "path": "hooks/teacher/useTeacherTopicDetail.ts",
+      "line": 39
+    },
+    {
+      "kind": "rpc",
+      "resource": "initialize_guest_profile",
+      "path": "app/_layout.tsx",
+      "line": 173
+    },
+    {
+      "kind": "rpc",
+      "resource": "initialize_guest_profile",
+      "path": "app/index.tsx",
+      "line": 123
+    },
+    {
+      "kind": "rpc",
+      "resource": "join_subject_by_code",
+      "path": "lib/studentClassJoin.ts",
+      "line": 31
+    },
+    {
+      "kind": "rpc",
+      "resource": "mark_notifications_read",
+      "path": "lib/notifications/persistent.ts",
+      "line": 138
+    },
+    {
+      "kind": "rpc",
+      "resource": "register_push_token",
+      "path": "lib/pushNotifications.ts",
+      "line": 82
+    },
+    {
+      "kind": "rpc",
+      "resource": "register_user_session",
+      "path": "lib/sessionSecurity.ts",
+      "line": 21
+    },
+    {
+      "kind": "rpc",
+      "resource": "request_account_data_export",
+      "path": "components/settings/AccountDataRequestsCard.tsx",
+      "line": 82
+    },
+    {
+      "kind": "rpc",
+      "resource": "request_account_deletion",
+      "path": "hooks/useSettingsData.ts",
+      "line": 789
+    },
+    {
+      "kind": "rpc",
+      "resource": "request_admin_export_job",
+      "path": "components/admin/api/adminApi.ts",
+      "line": 75
+    },
+    {
+      "kind": "rpc",
+      "resource": "request_teacher_audit_export",
+      "path": "hooks/teacher/useTeacherAudit.ts",
+      "line": 115
+    },
+    {
+      "kind": "rpc",
+      "resource": "review_manual_review_attempt",
+      "path": "hooks/teacher/useManualReview.ts",
+      "line": 131
+    },
+    {
+      "kind": "rpc",
+      "resource": "save_manual_review_filter",
+      "path": "hooks/teacher/useManualReview.ts",
+      "line": 188
+    },
+    {
+      "kind": "rpc",
+      "resource": "save_manual_review_rubric",
+      "path": "hooks/teacher/useManualReview.ts",
+      "line": 168
+    },
+    {
+      "kind": "rpc",
+      "resource": "save_manual_review_settings",
+      "path": "hooks/teacher/useManualReview.ts",
+      "line": 163
+    },
+    {
+      "kind": "rpc",
+      "resource": "save_manual_review_template",
+      "path": "hooks/teacher/useManualReview.ts",
+      "line": 178
+    },
+    {
+      "kind": "rpc",
+      "resource": "save_teacher_audit_filter",
+      "path": "hooks/teacher/useTeacherAudit.ts",
+      "line": 106
+    },
+    {
+      "kind": "rpc",
+      "resource": "save_teacher_question",
+      "path": "components/teacher/question-form/useTeacherQuestionForm.ts",
+      "line": 603
+    },
+    {
+      "kind": "rpc",
+      "resource": "search_app_entities",
+      "path": "components/search/GlobalSearchButton.tsx",
+      "line": 66
+    },
+    {
+      "kind": "rpc",
+      "resource": "set_analytics_consent",
+      "path": "lib/analytics.ts",
+      "line": 60
+    },
+    {
+      "kind": "rpc",
+      "resource": "set_teacher_course_notification_preference",
+      "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
+      "line": 132
+    },
+    {
+      "kind": "rpc",
+      "resource": "set_teacher_digest_preference",
+      "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
+      "line": 92
+    },
+    {
+      "kind": "rpc",
+      "resource": "set_teacher_notifications_mute",
+      "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
+      "line": 112
+    },
+    {
+      "kind": "rpc",
+      "resource": "set_teacher_notifications_mute",
+      "path": "hooks/teacher/useTeacherNotifications.ts",
+      "line": 204
+    },
+    {
+      "kind": "rpc",
+      "resource": "set_teacher_support_preference",
+      "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
+      "line": 153
+    },
+    {
+      "kind": "rpc",
+      "resource": "start_game_attempt",
+      "path": "hooks/useGame.ts",
+      "line": 192
+    },
+    {
+      "kind": "rpc",
+      "resource": "submit_answer_resumable",
+      "path": "hooks/useGame.ts",
+      "line": 416
+    },
+    {
+      "kind": "rpc",
+      "resource": "sync_student_badges",
+      "path": "lib/offlineMutations.ts",
+      "line": 295
+    },
+    {
+      "kind": "rpc",
+      "resource": "sync_student_badges",
+      "path": "lib/studentBadges.ts",
+      "line": 503
+    },
+    {
+      "kind": "rpc",
+      "resource": "track_usage_event",
+      "path": "lib/analytics.ts",
+      "line": 91
+    },
+    {
+      "kind": "rpc",
+      "resource": "verify_admin_audit_chain",
+      "path": "components/admin/audit/AdminAuditSection.tsx",
+      "line": 61
+    },
+    {
+      "kind": "storage",
+      "resource": "account-exports",
+      "path": "components/settings/AccountDataRequestsCard.tsx",
+      "line": 96
+    },
+    {
+      "kind": "storage",
+      "resource": "admin-exports",
+      "path": "components/admin/api/adminApi.ts",
+      "line": 95
+    },
+    {
+      "kind": "storage",
+      "resource": "avatars",
+      "path": "components/student/profile/StudentAvatarCustomizationModal.tsx",
+      "line": 115
+    },
+    {
+      "kind": "storage",
+      "resource": "avatars",
+      "path": "hooks/teacher/useTeacherProfile.ts",
+      "line": 225
+    },
+    {
+      "kind": "storage",
+      "resource": "avatars",
+      "path": "lib/offlineMutations.ts",
+      "line": 284
+    },
+    {
+      "kind": "storage",
+      "resource": "teacher-audit-exports",
+      "path": "hooks/teacher/useTeacherAudit.ts",
+      "line": 125
+    },
+    {
+      "kind": "table",
+      "resource": "account_deletion_requests",
+      "path": "components/settings/AccountDataRequestsCard.tsx",
+      "line": 57
+    },
+    {
+      "kind": "table",
+      "resource": "attempt_history",
+      "path": "hooks/student/useStudentProgress.ts",
+      "line": 120
+    },
+    {
+      "kind": "table",
+      "resource": "attempt_history",
+      "path": "lib/weeklyGoal.ts",
+      "line": 19
+    },
+    {
+      "kind": "table",
+      "resource": "classrooms",
+      "path": "lib/classCode.ts",
+      "line": 46
+    },
+    {
+      "kind": "table",
+      "resource": "data_export_requests",
+      "path": "components/settings/AccountDataRequestsCard.tsx",
+      "line": 52
+    },
+    {
+      "kind": "table",
+      "resource": "enrollments",
+      "path": "app/(student)/class/[id].tsx",
+      "line": 140
+    },
+    {
+      "kind": "table",
+      "resource": "enrollments",
+      "path": "app/(student)/classes.tsx",
+      "line": 166
+    },
+    {
+      "kind": "table",
+      "resource": "enrollments",
+      "path": "hooks/student/useStudentProfile.ts",
+      "line": 101
+    },
+    {
+      "kind": "table",
+      "resource": "enrollments",
+      "path": "hooks/student/useStudentRanking.ts",
+      "line": 328
+    },
+    {
+      "kind": "table",
+      "resource": "enrollments",
+      "path": "lib/notifications/derivedStudent.ts",
+      "line": 23
+    },
+    {
+      "kind": "table",
+      "resource": "enrollments",
+      "path": "lib/notifications/derivedTeacher.ts",
+      "line": 27
+    },
+    {
+      "kind": "table",
+      "resource": "enrollments",
+      "path": "lib/offlineMutations.ts",
+      "line": 258
+    },
+    {
+      "kind": "table",
+      "resource": "notification_state",
+      "path": "lib/notifications/persistent.ts",
+      "line": 168
+    },
+    {
+      "kind": "table",
+      "resource": "notification_state",
+      "path": "lib/notifications/persistent.ts",
+      "line": 201
+    },
+    {
+      "kind": "table",
+      "resource": "notification_state",
+      "path": "lib/notifications/persistent.ts",
+      "line": 213
+    },
+    {
+      "kind": "table",
+      "resource": "notification_state",
+      "path": "lib/notifications/persistent.ts",
+      "line": 226
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "app/_layout.tsx",
+      "line": 160
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "app/_layout.tsx",
+      "line": 178
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "app/(auth)/login.tsx",
+      "line": 122
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "app/(student)/badges.tsx",
+      "line": 128
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "app/(student)/classes.tsx",
+      "line": 165
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "app/(student)/notifications.tsx",
+      "line": 95
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "components/admin/users/AdminProfileActivityScreen.tsx",
+      "line": 35
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "components/teacher/TeacherSidebar.tsx",
+      "line": 71
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "components/ui/RoleHeaderAvatar.tsx",
+      "line": 35
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "hooks/student/useStudentActivity.ts",
+      "line": 93
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "hooks/student/useStudentProfile.ts",
+      "line": 96
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "hooks/student/useStudentProgress.ts",
+      "line": 114
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "hooks/student/useStudentRanking.ts",
+      "line": 118
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "hooks/student/useStudentRanking.ts",
+      "line": 228
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "hooks/useNotifications.ts",
+      "line": 94
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "hooks/useSettingsData.ts",
+      "line": 202
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "hooks/useSettingsData.ts",
+      "line": 212
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "hooks/useSettingsData.ts",
+      "line": 360
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "hooks/useSettingsData.ts",
+      "line": 388
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "hooks/useSettingsData.ts",
+      "line": 724
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "lib/notifications/derivedTeacher.ts",
+      "line": 75
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "lib/studentClassJoin.ts",
+      "line": 18
+    },
+    {
+      "kind": "table",
+      "resource": "questions",
+      "path": "components/teacher/question-form/useTeacherQuestionForm.ts",
+      "line": 286
+    },
+    {
+      "kind": "table",
+      "resource": "questions",
+      "path": "lib/notifications/derivedTeacher.ts",
+      "line": 40
+    },
+    {
+      "kind": "table",
+      "resource": "student_badges",
+      "path": "lib/notifications/derivedStudent.ts",
+      "line": 33
+    },
+    {
+      "kind": "table",
+      "resource": "subject_scores",
+      "path": "app/(student)/class/[id].tsx",
+      "line": 177
+    },
+    {
+      "kind": "table",
+      "resource": "subject_scores",
+      "path": "components/NotificationBadge.tsx",
+      "line": 53
+    },
+    {
+      "kind": "table",
+      "resource": "subject_scores",
+      "path": "hooks/student/useStudentProfile.ts",
+      "line": 102
+    },
+    {
+      "kind": "table",
+      "resource": "subject_scores",
+      "path": "hooks/student/useStudentProgress.ts",
+      "line": 115
+    },
+    {
+      "kind": "table",
+      "resource": "subject_scores",
+      "path": "lib/notifications/derivedStudent.ts",
+      "line": 28
+    },
+    {
+      "kind": "table",
+      "resource": "subject_scores",
+      "path": "lib/notifications/derivedTeacher.ts",
+      "line": 33
+    },
+    {
+      "kind": "table",
+      "resource": "subject_topics",
+      "path": "app/(student)/class/[id].tsx",
+      "line": 159
+    },
+    {
+      "kind": "table",
+      "resource": "subject_topics",
+      "path": "components/teacher/question-form/useTeacherQuestionForm.ts",
+      "line": 277
+    },
+    {
+      "kind": "table",
+      "resource": "subject_topics",
+      "path": "components/teacher/TeacherTopicForm.tsx",
+      "line": 86
+    },
+    {
+      "kind": "table",
+      "resource": "subject_topics",
+      "path": "components/teacher/TeacherTopicForm.tsx",
+      "line": 103
+    },
+    {
+      "kind": "table",
+      "resource": "subjects",
+      "path": "components/teacher/question-form/useTeacherQuestionForm.ts",
+      "line": 268
+    },
+    {
+      "kind": "table",
+      "resource": "subjects",
+      "path": "components/teacher/TeacherSubjectForm.tsx",
+      "line": 104
+    },
+    {
+      "kind": "table",
+      "resource": "subjects",
+      "path": "components/teacher/TeacherTopicForm.tsx",
+      "line": 94
+    },
+    {
+      "kind": "table",
+      "resource": "subjects",
+      "path": "hooks/teacher/useQuestionReport.ts",
+      "line": 59
+    },
+    {
+      "kind": "table",
+      "resource": "subjects",
+      "path": "hooks/teacher/useTeacherAudit.ts",
+      "line": 70
+    },
+    {
+      "kind": "table",
+      "resource": "subjects",
+      "path": "hooks/useSettingsData.ts",
+      "line": 403
+    },
+    {
+      "kind": "table",
+      "resource": "subjects",
+      "path": "hooks/useSettingsData.ts",
+      "line": 637
+    },
+    {
+      "kind": "table",
+      "resource": "subjects",
+      "path": "lib/classCode.ts",
+      "line": 33
+    },
+    {
+      "kind": "table",
+      "resource": "subjects",
+      "path": "lib/notifications/derivedTeacher.ts",
+      "line": 13
+    },
+    {
+      "kind": "table",
+      "resource": "support_ticket_attachments",
+      "path": "lib/support.ts",
+      "line": 393
+    },
+    {
+      "kind": "table",
+      "resource": "topic_scores",
+      "path": "app/(student)/class/[id].tsx",
+      "line": 171
+    },
+    {
+      "kind": "table",
+      "resource": "user_notification_preferences",
+      "path": "hooks/useSettingsData.ts",
+      "line": 594
+    },
+    {
+      "kind": "table",
+      "resource": "user_notification_preferences",
+      "path": "hooks/useSettingsData.ts",
+      "line": 640
+    },
+    {
+      "kind": "table",
+      "resource": "user_notification_preferences",
+      "path": "hooks/useSettingsData.ts",
+      "line": 647
+    },
+    {
+      "kind": "table",
+      "resource": "user_notification_preferences",
+      "path": "lib/notifications/preferences.ts",
+      "line": 14
+    },
+    {
+      "kind": "table",
+      "resource": "user_notification_preferences",
+      "path": "lib/pushNotifications.ts",
+      "line": 117
+    },
+    {
+      "kind": "table",
+      "resource": "user_preferences",
+      "path": "hooks/useSettingsData.ts",
+      "line": 572
+    },
+    {
+      "kind": "table",
+      "resource": "user_preferences",
+      "path": "hooks/useSettingsData.ts",
+      "line": 632
+    },
+    {
+      "kind": "table",
+      "resource": "user_preferences",
+      "path": "lib/analytics.ts",
+      "line": 39
+    },
+    {
+      "kind": "table",
+      "resource": "user_support_tickets",
+      "path": "lib/support.ts",
+      "line": 147
+    },
+    {
+      "kind": "table",
+      "resource": "user_support_tickets",
+      "path": "lib/support.ts",
+      "line": 266
+    }
+  ],
+  "tables": [
+    "account_deletion_requests",
+    "attempt_history",
+    "classrooms",
+    "data_export_requests",
+    "enrollments",
+    "notification_state",
+    "profiles",
+    "questions",
+    "student_badges",
+    "subject_scores",
+    "subject_topics",
+    "subjects",
+    "support_ticket_attachments",
+    "topic_scores",
+    "user_notification_preferences",
+    "user_preferences",
+    "user_support_tickets"
+  ],
+  "rpcs": [
+    "acknowledge_teacher_audit_alert",
+    "add_support_ticket_message",
+    "add_teacher_student_note",
+    "admin_update_support_ticket_secured",
+    "archive_teacher_topic",
+    "assign_admin_role",
+    "assign_manual_review_attempts",
+    "batch_review_manual_attempts",
+    "cancel_account_deletion",
+    "create_subject_with_default_topic",
+    "create_teacher_classroom",
+    "create_teacher_notification",
+    "deactivate_push_token",
+    "delete_notifications",
+    "duplicate_teacher_subject",
+    "equip_profile_cosmetics",
+    "finish_game_attempt",
+    "get_activity_attempt_detail",
+    "get_admin_audit_logs_page_secured",
+    "get_admin_audit_policy",
+    "get_admin_classrooms_page",
+    "get_admin_dashboard_metrics",
+    "get_admin_directory_filters",
+    "get_admin_export_download_path",
+    "get_admin_export_jobs_page",
+    "get_admin_portal_context",
+    "get_admin_profile_activity_page",
+    "get_admin_profiles_page",
+    "get_admin_push_delivery_metrics",
+    "get_admin_role_assignments_page",
+    "get_admin_roles",
+    "get_admin_subjects_page",
+    "get_admin_support_directory",
+    "get_admin_support_tickets_page_secured",
+    "get_admin_usage_analytics",
+    "get_admin_user_change_history_page",
+    "get_attempt_feedback",
+    "get_avatar_customization_options",
+    "get_class_ranking_profiles",
+    "get_manual_review_configuration",
+    "get_manual_review_history",
+    "get_manual_review_thread",
+    "get_notifications_page",
+    "get_own_support_email_history",
+    "get_own_support_tickets_page",
+    "get_profile_cosmetics",
+    "get_question_media_manifest",
+    "get_ranking_profiles_page",
+    "get_safe_game_questions",
+    "get_student_attempt_history",
+    "get_student_attempt_history_page",
+    "get_student_badge_catalog",
+    "get_student_home_dashboard",
+    "get_student_progress_summary",
+    "get_student_question_catalog",
+    "get_support_contact_channels",
+    "get_support_thread_page",
+    "get_teacher_attention_students_page",
+    "get_teacher_audit_configuration",
+    "get_teacher_audit_logs_page_v2",
+    "get_teacher_classrooms_page",
+    "get_teacher_courses_page",
+    "get_teacher_dashboard_summary",
+    "get_teacher_manual_review_queue",
+    "get_teacher_notification_center_summary",
+    "get_teacher_notification_settings",
+    "get_teacher_notifications_page",
+    "get_teacher_profile_recent_questions_page",
+    "get_teacher_profile_recent_subjects_page",
+    "get_teacher_profile_summary",
+    "get_teacher_question_affected_students_page",
+    "get_teacher_question_report",
+    "get_teacher_recent_activity_page",
+    "get_teacher_student_history_metrics",
+    "get_teacher_student_history_reviews_page",
+    "get_teacher_student_history_summary",
+    "get_teacher_student_history_timeline_page",
+    "get_teacher_student_history_weaknesses",
+    "get_teacher_students_page",
+    "get_teacher_subject_analytics",
+    "get_teacher_subject_overview",
+    "get_teacher_subject_questions_page",
+    "get_teacher_subject_students_page",
+    "get_teacher_subject_topics_page",
+    "get_teacher_topic_questions_page",
+    "get_teacher_topic_summary",
+    "initialize_guest_profile",
+    "join_subject_by_code",
+    "mark_notifications_read",
+    "register_push_token",
+    "register_user_session",
+    "request_account_data_export",
+    "request_account_deletion",
+    "request_admin_export_job",
+    "request_teacher_audit_export",
+    "review_manual_review_attempt",
+    "save_manual_review_filter",
+    "save_manual_review_rubric",
+    "save_manual_review_settings",
+    "save_manual_review_template",
+    "save_teacher_audit_filter",
+    "save_teacher_question",
+    "search_app_entities",
+    "set_analytics_consent",
+    "set_teacher_course_notification_preference",
+    "set_teacher_digest_preference",
+    "set_teacher_notifications_mute",
+    "set_teacher_support_preference",
+    "start_game_attempt",
+    "submit_answer_resumable",
+    "sync_student_badges",
+    "track_usage_event",
+    "verify_admin_audit_chain"
+  ],
+  "edgeFunctions": [
+    "admin-bulk-operations",
+    "admin-create-teacher",
+    "admin-delete-student-progress",
+    "admin-reset-password",
+    "auth-attempt-guard",
+    "import-students",
+    "manage-account-security",
+    "process-question-media",
+    "profile-update-avatar",
+    "student-reset-own-progress",
+    "teacher-archive-subject",
+    "teacher-create-topic",
+    "teacher-delete-question",
+    "teacher-reset-own-data",
+    "teacher-student-reminder",
+    "teacher-update-subject",
+    "teacher-update-topic"
+  ],
+  "storageBuckets": [
+    "account-exports",
+    "admin-exports",
+    "avatars",
+    "teacher-audit-exports"
+  ],
+  "errors": []
+}

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../supabase'
-import type { Database, Json, Tables } from '../../types/database.types'
+import type { Json, Tables } from '../../types/database.types'
 import type {
   AppNotification,
   NotificationAudience,
@@ -9,7 +9,6 @@ import type {
 } from './types'
 
 type PersistentNotificationRow = Tables<'notifications'>
-type PersistentNotificationUpdate = Database['public']['Tables']['notifications']['Update']
 type NotificationStateRow = Pick<Tables<'notification_state'>, 'notification_id' | 'is_read' | 'is_deleted'>
 
 type NotificationPagePayload = {
@@ -55,9 +54,7 @@ export async function fetchPersistentNotificationPage({
     })
 
     if (error) {
-      if (isMissingNotificationRpcError(error)) {
-        return fetchPersistentNotificationPageLegacy({ userId, audience, pageSize: safePageSize })
-      }
+      if (isMissingNotificationRpcError(error)) return emptyPersistentPage(false)
       throw error
     }
 
@@ -142,12 +139,7 @@ export async function markPersistentNotificationsRead(ids: string[]) {
   if (!error) return Number(data || 0)
   if (!isMissingNotificationRpcError(error)) throw error
 
-  const { error: fallbackError } = await supabase
-    .from('notifications')
-    .update({ read_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .in('id', uniqueIds)
-  if (fallbackError) throw fallbackError
-  return uniqueIds.length
+  throw missingNotificationApiError(error)
 }
 
 export async function deletePersistentNotifications(ids: string[]) {
@@ -158,12 +150,7 @@ export async function deletePersistentNotifications(ids: string[]) {
   if (!error) return Number(data || 0)
   if (!isMissingNotificationRpcError(error)) throw error
 
-  const { error: fallbackError } = await supabase
-    .from('notifications')
-    .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .in('id', uniqueIds)
-  if (fallbackError) throw fallbackError
-  return uniqueIds.length
+  throw missingNotificationApiError(error)
 }
 
 export async function updatePersistentNotificationState(id: string, state: { read?: boolean; deleted?: boolean }) {
@@ -280,38 +267,6 @@ function mapPersistentRow(value: unknown): AppNotification | null {
   }
 }
 
-async function fetchPersistentNotificationPageLegacy({
-  userId,
-  audience,
-  pageSize,
-}: {
-  userId: string
-  audience: NotificationAudience
-  pageSize: number
-}): Promise<PersistentNotificationPage> {
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('id, audience, type, title, description, icon, color, created_at, read_at, action_url, related_id, metadata')
-    .eq('user_id', userId)
-    .eq('audience', audience)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: false })
-    .limit(pageSize)
-
-  if (error) throw error
-  const notifications = (data || []).map(mapPersistentRow).filter((row: AppNotification | null): row is AppNotification => Boolean(row))
-
-  return {
-    notifications,
-    available: true,
-    cursor: null,
-    hasMore: false,
-    total: notifications.length,
-    unreadCount: notifications.filter((notification: AppNotification) => !notification.isRead).length,
-  }
-}
-
 function emptyPersistentPage(available: boolean): PersistentNotificationPage {
   return {
     notifications: [],
@@ -360,6 +315,12 @@ function isMissingNotificationRpcError(error: any) {
   const code = String(error?.code || '')
   const message = String(error?.message || '').toLowerCase()
   return code === 'PGRST202' || code === '42883' || message.includes('function') && message.includes('does not exist')
+}
+
+function missingNotificationApiError(error: unknown) {
+  const failure = new Error('La API protegida de notificaciones no está disponible. Aplica las migraciones pendientes antes de continuar.')
+  ;(failure as Error & { cause?: unknown }).cause = error
+  return failure
 }
 
 function isMissingNotificationTableError(error: any) {

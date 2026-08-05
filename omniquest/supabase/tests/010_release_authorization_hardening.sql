@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(70);
+select plan(78);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.roles'::regclass),
@@ -88,9 +88,59 @@ select ok(
   'authenticated clients can read the role catalog'
 );
 select ok(
+  has_table_privilege('service_role', 'public.question_media_assets', 'SELECT')
+    and has_table_privilege('service_role', 'public.question_media_assets', 'INSERT')
+    and has_table_privilege('service_role', 'public.question_media_assets', 'UPDATE')
+    and has_table_privilege('service_role', 'public.question_media_assets', 'DELETE'),
+  'question-media workers retain explicit server-side asset access'
+);
+select ok(
+  (
+    select procedure.prosecdef and owner.rolname = 'postgres'
+    from pg_proc procedure
+    join pg_roles owner on owner.oid = procedure.proowner
+    where procedure.oid = 'public.save_teacher_question(bigint,bigint,bigint,bigint,text,text,integer,integer,integer,text,jsonb,text,text,text,text,text,numeric,text,text)'::regprocedure
+  ),
+  'question creation executes as a postgres-owned SECURITY DEFINER operation'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.save_teacher_question(bigint,bigint,bigint,bigint,text,text,integer,integer,integer,text,jsonb,text,text,text,text,text,numeric,text,text)', 'EXECUTE')
+    and not has_function_privilege('anon', 'public.save_teacher_question(bigint,bigint,bigint,bigint,text,text,integer,integer,integer,text,jsonb,text,text,text,text,text,numeric,text,text)', 'EXECUTE'),
+  'only authenticated clients can invoke protected question creation'
+);
+select ok(
+  (
+    select procedure.prosecdef and owner.rolname = 'postgres'
+    from pg_proc procedure
+    join pg_roles owner on owner.oid = procedure.proowner
+    where procedure.oid = 'public.can_access_question_media_object(text)'::regprocedure
+  ),
+  'question-media object authorization is isolated in a postgres-owned helper'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.can_access_question_media_object(text)', 'EXECUTE')
+    and not has_function_privilege('anon', 'public.can_access_question_media_object(text)', 'EXECUTE'),
+  'only authenticated clients can invoke question-media object authorization'
+);
+select ok(
+  exists (
+    select 1
+    from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'question_media_select_authorized'
+      and qual like '%can_access_question_media_object%'
+  ),
+  'private question-media reads use the protected authorization helper'
+);
+select ok(
   has_table_privilege('authenticated', 'public.profiles', 'SELECT')
-    and has_table_privilege('authenticated', 'public.profiles', 'UPDATE'),
-  'authenticated clients can read and update RLS-scoped profiles'
+    and not has_table_privilege('authenticated', 'public.profiles', 'UPDATE')
+    and has_column_privilege('authenticated', 'public.profiles', 'alias', 'UPDATE')
+    and has_column_privilege('authenticated', 'public.profiles', 'visibility', 'UPDATE')
+    and not has_column_privilege('authenticated', 'public.profiles', 'role_id', 'UPDATE')
+    and not has_column_privilege('authenticated', 'public.profiles', 'active', 'UPDATE'),
+  'authenticated clients can read profiles and update only safe self-service columns'
 );
 select ok(
   not has_table_privilege('authenticated', 'public.profiles', 'INSERT')
@@ -159,10 +209,10 @@ select ok(
 );
 select ok(
   has_table_privilege('authenticated', 'public.classrooms', 'SELECT')
-    and has_table_privilege('authenticated', 'public.classrooms', 'INSERT')
-    and has_table_privilege('authenticated', 'public.classrooms', 'UPDATE')
-    and has_table_privilege('authenticated', 'public.classrooms', 'DELETE'),
-  'authenticated classroom access is available and remains RLS-scoped'
+    and not has_table_privilege('authenticated', 'public.classrooms', 'INSERT')
+    and not has_table_privilege('authenticated', 'public.classrooms', 'UPDATE')
+    and not has_table_privilege('authenticated', 'public.classrooms', 'DELETE'),
+  'authenticated classroom reads remain RLS-scoped and writes remain server-controlled'
 );
 select ok(
   not has_table_privilege('anon', 'public.classrooms', 'SELECT')
@@ -172,9 +222,9 @@ select ok(
   'anonymous clients have no direct classroom access'
 );
 select ok(
-  has_sequence_privilege('authenticated', 'public.classrooms_id_seq', 'USAGE')
-    and has_sequence_privilege('authenticated', 'public.classrooms_id_seq', 'SELECT'),
-  'authenticated teachers can allocate classroom identities through RLS-scoped writes'
+  not has_sequence_privilege('authenticated', 'public.classrooms_id_seq', 'USAGE')
+    and not has_sequence_privilege('authenticated', 'public.classrooms_id_seq', 'SELECT'),
+  'classroom identities remain server-controlled'
 );
 select ok(
   not has_sequence_privilege('anon', 'public.classrooms_id_seq', 'USAGE')
@@ -446,6 +496,23 @@ values (990001, 990001, 'Release Security Classroom', 'REL002', true);
 insert into public.enrollments (student_id, subject_id, classroom_id)
 values ('a0000000-0000-0000-0000-000000000002', 990001, 990001);
 
+insert into public.question_media_assets (
+  path, owner_id, subject_id, media_type, mime_type, size_bytes,
+  scan_status, processing_status, processed_at, orphaned_at
+)
+values (
+  'a0000000-0000-0000-0000-000000000001/release-image.png',
+  'a0000000-0000-0000-0000-000000000001',
+  990001,
+  'image',
+  'image/png',
+  128,
+  'clean',
+  'basic_complete',
+  now(),
+  now()
+);
+
 set local role authenticated;
 select set_config('request.jwt.claim.role', 'authenticated', true);
 select set_config('request.jwt.claim.sub', 'a0000000-0000-0000-0000-000000000002', true);
@@ -518,6 +585,43 @@ select ok(
   (public.create_teacher_classroom(990001, 'Release Additional Classroom', null)->>'id')::bigint > 0,
   'the owning active teacher can create an additional classroom through the server operation'
 );
+select ok(
+  public.save_teacher_question(
+    990001,
+    null,
+    990001,
+    null,
+    'true_false',
+    'Release media question',
+    10,
+    30,
+    1,
+    null,
+    '[{"text":"Verdadero","is_correct":true,"sort_order":1},{"text":"Falso","is_correct":false,"sort_order":2}]'::jsonb,
+    'image',
+    null,
+    'a0000000-0000-0000-0000-000000000001/release-image.png',
+    'Imagen de validación',
+    null,
+    null,
+    null,
+    null
+  ) > 0,
+  'the owning teacher can create a question with validated private media'
+);
+reset role;
+select is(
+  (
+    select count(*)
+    from public.question_media_assets
+    where path = 'a0000000-0000-0000-0000-000000000001/release-image.png'
+      and attached_question_id is not null
+      and orphaned_at is null
+  ),
+  1::bigint,
+  'protected question creation attaches the validated private-media asset'
+);
+set local role authenticated;
 
 delete from public.enrollments
 where student_id = 'a0000000-0000-0000-0000-000000000002'
