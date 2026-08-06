@@ -1,10 +1,11 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const port = Number(process.env.PLAYWRIGHT_PORT || 8081)
+const port = Number(process.env.PLAYWRIGHT_PORT || 8082)
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`
 
 export default defineConfig({
   testDir: './e2e/web',
+  globalSetup: './e2e/web/global-setup.ts',
   timeout: 45_000,
   expect: { timeout: 8_000 },
   fullyParallel: true,
@@ -24,10 +25,10 @@ export default defineConfig({
     { name: 'chromium-mobile', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
-    command: `npx expo start --web --port ${port}`,
+    command: 'npm run e2e:web-server',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
-    env: { ...process.env, CI: '1' },
+    timeout: 360_000,
+    env: { ...process.env, CI: '1', BROWSER: 'none', PLAYWRIGHT_PORT: String(port) },
   },
 })

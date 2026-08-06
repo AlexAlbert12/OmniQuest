@@ -74,6 +74,8 @@ jobs:
   web-e2e:
     name: Playwright smoke, responsive and visual captures
     runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_PORT: 8082
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -85,6 +87,7 @@ jobs:
           version: latest
       - run: npm ci
       - run: npm run quality:install
+      - run: npm run demo:prepare-functions-env
       - run: supabase start
       - run: supabase db reset
       - name: Export local Supabase environment
@@ -93,6 +96,38 @@ jobs:
           eval "$(supabase status -o env)"
           echo "EXPO_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "PLAYWRIGHT_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+      - name: Configure authenticated E2E accounts
+        shell: bash
+        run: |
+          password="$(openssl rand -hex 24)Aa1!"
+          echo "::add-mask::$password"
+          {
+            echo "E2E_STUDENT_EMAIL=e2e.student@omniquest.test"
+            echo "E2E_STUDENT_PASSWORD=$password"
+            echo "E2E_TEACHER_EMAIL=e2e.teacher@omniquest.test"
+            echo "E2E_TEACHER_PASSWORD=$password"
+            echo "E2E_ADMIN_EMAIL=e2e.admin@omniquest.test"
+            echo "E2E_ADMIN_PASSWORD=$password"
+          } >> "$GITHUB_ENV"
+      - name: Start local Edge Functions
+        shell: bash
+        run: |
+          mkdir -p test-results
+          nohup npx supabase functions serve --env-file supabase/functions/.env > test-results/edge-functions.log 2>&1 &
+          echo $! > test-results/edge-functions.pid
+          for attempt in $(seq 1 30); do
+            status=$(curl --silent --show-error --output /tmp/auth-attempt-guard.json --write-out "%{http_code}" \
+              --request POST "$EXPO_PUBLIC_SUPABASE_URL/functions/v1/auth-attempt-guard" \
+              --header "apikey: $EXPO_PUBLIC_SUPABASE_ANON_KEY" \
+              --header "Authorization: Bearer $EXPO_PUBLIC_SUPABASE_ANON_KEY" \
+              --header "Content-Type: application/json" \
+              --data '{"action":"sign_in","identifier":"e2e.readiness@omniquest.test"}' || true)
+            if [ "$status" = "200" ]; then exit 0; fi
+            sleep 2
+          done
+          cat test-results/edge-functions.log
+          exit 1
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - if: always()
@@ -102,6 +137,10 @@ jobs:
           path: |
             playwright-report
             test-results/playwright
+            test-results/edge-functions.log
           if-no-files-found: warn
       - if: always()
-        run: supabase stop --no-backup
+        shell: bash
+        run: |
+          if [ -f test-results/edge-functions.pid ]; then kill "$(cat test-results/edge-functions.pid)" 2>/dev/null || true; fi
+          supabase stop --no-backup

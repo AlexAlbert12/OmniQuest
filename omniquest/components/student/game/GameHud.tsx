@@ -1,6 +1,8 @@
 import React from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { withAlpha } from '../../../lib/color'
+import { createShadowStyle } from '../../../lib/platformShadow'
 
 export function TimerPill({ timeLeft }: { timeLeft: number }) {
   const isLow = timeLeft <= 5
@@ -10,7 +12,16 @@ export function TimerPill({ timeLeft }: { timeLeft: number }) {
     <View className="items-center justify-center">
       <View
         className="h-[92px] w-[92px] items-center justify-center rounded-full border-[8px] bg-background-primary"
-        style={{ borderColor: color, shadowColor: color, shadowOpacity: 0.3, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } }}
+        style={{
+          borderColor: color,
+          ...createShadowStyle({
+            color,
+            opacity: 0.3,
+            radius: 18,
+            offsetY: 8,
+            web: `0 8px 36px ${withAlpha(color, '4D')}`,
+          }),
+        }}
       >
         <Ionicons name="timer-outline" size={18} color={color} />
         <Text className={`mt-1 text-[22px] font-black ${isLow ? 'text-semantic-danger' : 'text-white'}`}>

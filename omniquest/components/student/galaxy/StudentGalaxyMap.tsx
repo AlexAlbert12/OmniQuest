@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { withAlpha } from '../../../lib/color'
 import { useAppTheme } from '../../../lib/appTheme'
+import { createShadowStyle } from '../../../lib/platformShadow'
 import { useResponsiveLayout } from '../../../lib/responsive'
 import AppButton from '../../ui/AppButton'
 import AppIconButton from '../../ui/AppIconButton'
@@ -746,7 +747,20 @@ function GalaxyPlanet({
       onPress={onPress}
       style={({ pressed }) => ({ width: size, height: size, opacity: pressed ? 0.86 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] })}
     >
-      <View style={[styles.planetGlow, { width: size * 0.92, height: size * 0.92, borderRadius: size, left: size * 0.04, top: size * 0.1, shadowColor: palette.glow }]} />
+      <View
+        style={[
+          styles.planetGlow,
+          { width: size * 0.92, height: size * 0.92, borderRadius: size, left: size * 0.04, top: size * 0.1 },
+          createShadowStyle({
+            color: palette.glow,
+            opacity: 0.7,
+            radius: 28,
+            offsetY: 12,
+            elevation: 16,
+            web: '0 12px 56px ' + withAlpha(palette.glow, 'B3'),
+          }),
+        ]}
+      />
       <View style={[styles.orbitRing, { width: size * 1.55, height: size * 0.33, left: -size * 0.28, top: size * 0.39, borderRadius: size, transform: [{ rotate: '-14deg' }] }]} />
       <View style={[styles.planetRim, { width: size, height: size, borderRadius: size / 2, borderColor: palette.rim }]}> 
         <LinearGradient
@@ -817,7 +831,27 @@ function TopicPlanetButton({
         transform: [{ scale: pressed ? 0.96 : 1 }],
       })}
     >
-      <View style={[styles.planetGlow, { width: size * 0.88, height: size * 0.88, borderRadius: size, left: size * 0.06, top: size * 0.1, shadowColor: palette.glow, opacity: item.state === 'active' ? 0.9 : 0.5 }]} />
+      <View
+        style={[
+          styles.planetGlow,
+          {
+            width: size * 0.88,
+            height: size * 0.88,
+            borderRadius: size,
+            left: size * 0.06,
+            top: size * 0.1,
+            opacity: item.state === 'active' ? 0.9 : 0.5,
+          },
+          createShadowStyle({
+            color: palette.glow,
+            opacity: 0.7,
+            radius: 28,
+            offsetY: 12,
+            elevation: 16,
+            web: '0 12px 56px ' + withAlpha(palette.glow, 'B3'),
+          }),
+        ]}
+      />
       <View style={[styles.topicPlanetOuter, { width: size, height: size, borderRadius: size / 2, backgroundColor: withAlpha(palette.rim, item.state === 'active' ? '3D' : '24') }]}> 
         <LinearGradient
           colors={palette.colors}
@@ -1156,10 +1190,6 @@ const styles = StyleSheet.create({
   planetGlow: {
     position: 'absolute',
     backgroundColor: 'transparent',
-    shadowOpacity: 0.7,
-    shadowRadius: 28,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 16,
   },
   orbitRing: {
     position: 'absolute',
@@ -1186,11 +1216,14 @@ const styles = StyleSheet.create({
     gap: 7,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 7,
+    ...createShadowStyle({
+      color: '#000000',
+      opacity: 0.3,
+      radius: 10,
+      offsetY: 6,
+      elevation: 7,
+      web: '0 6px 20px rgba(0, 0, 0, 0.3)',
+    }),
   },
   planetBadgeText: {
     color: '#FFFFFF',
@@ -1309,11 +1342,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOpacity: 0.28,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 8,
+    ...createShadowStyle({
+      color: '#000000',
+      opacity: 0.28,
+      radius: 10,
+      offsetY: 5,
+      elevation: 8,
+      web: '0 5px 20px rgba(0, 0, 0, 0.28)',
+    }),
   },
   startBubbleText: {
     color: '#8B5CF6',

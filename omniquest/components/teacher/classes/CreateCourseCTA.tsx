@@ -1,6 +1,7 @@
 import React from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { createShadowStyle } from '../../../lib/platformShadow'
 
 export default function CreateCourseCTA({ label = 'Crear curso', onPress, sticky = false }: {
   label?: string
@@ -10,7 +11,14 @@ export default function CreateCourseCTA({ label = 'Crear curso', onPress, sticky
   return (
     <View
       className={sticky ? 'absolute bottom-[82px] left-4 right-4' : 'mt-5'}
-      style={sticky ? { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 12 } : undefined}
+      style={sticky ? createShadowStyle({
+        color: '#000000',
+        opacity: 0.35,
+        radius: 14,
+        offsetY: 8,
+        elevation: 12,
+        web: '0 8px 28px rgba(0, 0, 0, 0.35)',
+      }) : undefined}
     >
       <Pressable
         accessibilityLabel={label}

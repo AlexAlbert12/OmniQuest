@@ -32,6 +32,7 @@
     "test:migrations": "node scripts/validate-migrations.mjs",
     "test:functions": "deno test --allow-env supabase/functions/_shared/*_test.ts",
     "test:e2e": "playwright test",
+    "e2e:web-server": "node scripts/start-playwright-web.mjs",
     "test:e2e:visual": "playwright test e2e/web/visual.spec.ts",
     "test:quality": "npm run test:source && npm run test:unit && npm run test:migrations && npm run test:functions",
     "typecheck:tests": "tsc --noEmit -p tsconfig.tests.json",
@@ -46,7 +47,8 @@
     "audit:walkthrough": "node scripts/audit-authenticated-walkthrough.mjs --check",
     "audit:walkthrough:generate": "node scripts/audit-authenticated-walkthrough.mjs --write",
     "demo:prepare-functions-env": "node scripts/prepare-local-function-env.mjs",
-    "demo:process-workers": "node scripts/process-demo-workers.mjs"
+    "demo:process-workers": "node scripts/process-demo-workers.mjs",
+    "e2e:prepare": "node scripts/prepare-authenticated-e2e.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",

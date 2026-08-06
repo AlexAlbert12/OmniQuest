@@ -8,8 +8,9 @@ const current = await readFile(path, 'utf8').catch(() => '')
 const values = parseEnvironment(current)
 for (const name of secretNames) if (!values[name]) values[name] = randomBytes(32).toString('hex')
 values.EMAIL_DELIVERY_MODE ||= 'redirect'
-values.SITE_URL ||= 'http://127.0.0.1:8081'
-values.PASSWORD_RESET_REDIRECT_TO ||= 'http://127.0.0.1:8081/reset-password'
+const localWebUrl = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${process.env.PLAYWRIGHT_PORT || '8081'}`
+values.SITE_URL ||= localWebUrl
+values.PASSWORD_RESET_REDIRECT_TO ||= `${localWebUrl}/reset-password`
 values.PASSWORD_RECOVERY_REDIRECT_URL ||= values.PASSWORD_RESET_REDIRECT_TO
 const order = [...secretNames, 'EMAIL_DELIVERY_MODE', 'SITE_URL', 'PASSWORD_RESET_REDIRECT_TO', 'PASSWORD_RECOVERY_REDIRECT_URL']
 const outputNames = [...order, ...Object.keys(values).filter((name) => !order.includes(name))]

@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import type { AvatarFrame, ProfileCosmetics } from '../../lib/avatarCosmetics'
 import { DEFAULT_AVATAR_FRAME } from '../../lib/avatarCosmetics'
+import { withAlpha } from '../../lib/color'
+import { createShadowStyle } from '../../lib/platformShadow'
 import { getStudentBadgePresentation } from '../../lib/studentBadges'
 
 export type GamifiedAvatarProps = {
@@ -55,10 +57,13 @@ export default function GamifiedAvatar({
             width: size,
             height: size,
             borderRadius: size / 2,
-            shadowColor: equippedFrame.primaryColor,
-            shadowOpacity: 0.68,
-            shadowRadius: 12,
-            elevation: 10,
+            ...createShadowStyle({
+              color: equippedFrame.primaryColor,
+              opacity: 0.68,
+              radius: 12,
+              elevation: 10,
+              web: `0 0 24px ${withAlpha(equippedFrame.primaryColor, 'AD')}`,
+            }),
           }}
         />
       ) : null}

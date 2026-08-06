@@ -7,6 +7,7 @@ import type { Classroom, TopicRow } from '../../../hooks/teacher/useTeacherSubje
 import AppButton from '../../ui/AppButton'
 import AppTabs from '../../ui/AppTabs'
 import DateTimeCalendarField from '../../ui/DateTimeCalendarField'
+import { createShadowStyle } from '../../../lib/platformShadow'
 import { SubjectPanel as Panel, type IconName } from './SubjectShared'
 
 export function SubjectClassroomsSection({
@@ -211,7 +212,14 @@ export function SubjectAddQuestionCTA({ href, sticky = false }: { href: string; 
   return (
     <View
       className={sticky ? 'absolute bottom-[82px] left-4 right-4' : ''}
-      style={sticky ? { shadowColor: '#000', shadowOpacity: 0.34, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 12 } : undefined}
+      style={sticky ? createShadowStyle({
+        color: '#000000',
+        opacity: 0.34,
+        radius: 14,
+        offsetY: 7,
+        elevation: 12,
+        web: '0 7px 28px rgba(0, 0, 0, 0.34)',
+      }) : undefined}
     >
       <Link href={href as any} asChild>
         <Pressable

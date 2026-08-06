@@ -5,6 +5,7 @@ import AppIconButton from './AppIconButton'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
 import type { SemanticColorKey } from '../../lib/designTokens'
+import { createShadowStyle } from '../../lib/platformShadow'
 
 export type AppToastVariant = SemanticColorKey | 'neutral'
 
@@ -100,7 +101,14 @@ function AppToastHost({ toast, onDismiss }: { toast: ToastState | null; onDismis
             transform: [{ translateY }],
             backgroundColor: background,
             borderColor: withAlpha(color, '99'),
-            shadowColor: tokens.background.secondary,
+            ...createShadowStyle({
+              color: tokens.background.secondary,
+              opacity: 0.32,
+              radius: 18,
+              offsetY: 9,
+              elevation: 8,
+              web: `0 9px 36px ${withAlpha(tokens.background.secondary, '52')}`,
+            }),
           },
         ]}
       >
@@ -136,10 +144,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,
-    shadowOpacity: 0.32,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 9 },
-    elevation: 8,
   },
   copy: {
     minWidth: 0,

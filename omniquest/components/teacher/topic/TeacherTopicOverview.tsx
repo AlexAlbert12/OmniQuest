@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Link } from 'expo-router'
+import { createShadowStyle } from '../../../lib/platformShadow'
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -56,7 +57,14 @@ export function TeacherTopicAddQuestionCTA({ href, isDesktop }: { href: string; 
   return (
     <View
       className={isDesktop ? '' : 'absolute bottom-[82px] left-4 right-4'}
-      style={!isDesktop ? { shadowColor: '#000', shadowOpacity: 0.34, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 12 } : undefined}
+      style={!isDesktop ? createShadowStyle({
+        color: '#000000',
+        opacity: 0.34,
+        radius: 14,
+        offsetY: 7,
+        elevation: 12,
+        web: '0 7px 28px rgba(0, 0, 0, 0.34)',
+      }) : undefined}
     >
       <Link href={href as any} asChild>
         <Pressable

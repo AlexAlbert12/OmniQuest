@@ -1,6 +1,6 @@
 # Auditoría de recorridos autenticados
 
-Estado acumulado hasta: 20260805200000_authenticated_walkthrough_authorization_matrix.sql
+Estado acumulado hasta: 20260805210000_support_ticket_admin_notification_audience.sql
 
 ## Resumen
 
