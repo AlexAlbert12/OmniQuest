@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import test from 'node:test'
 
 const root = process.cwd()
 const read = (path) => readFileSync(join(root, path), 'utf8')
+const repositoryRoot = dirname(root)
+const readRepository = (path) => readFileSync(join(repositoryRoot, path), 'utf8')
 const specifications = [
   'e2e/web/student-authenticated.spec.ts',
   'e2e/web/teacher-authenticated.spec.ts',
@@ -24,19 +26,22 @@ test('authenticated web E2E specifications cover each role with Supabase-backed 
   for (const path of specifications) {
     const source = read(path)
     assert.match(source, /loginAs\(page, '(?:student|teacher|admin)'\)/, `${path} must log in through the user interface`)
-    assert.match(source, /waitForSupabaseResponse\(/, `${path} must capture a real Supabase response`)
-    assert.match(source, /readSupabaseJson</, `${path} must assert the Supabase payload`)
+    assert.match(source, /(?:supabaseSelect|supabaseRpc)\</, `${path} must query authenticated Supabase data directly`)
+    assert.match(source, /readSupabaseJson</, `${path} must assert an application Supabase response`)
     assert.doesNotMatch(source, /password\s*:\s*['"`]/i, `${path} must not contain a password literal`)
   }
 
   const student = read(specifications[0])
   const teacher = read(specifications[1])
   const admin = read(specifications[2])
+  assert.match(student, /clickRoleNavigation\(page, 'Cursos'\)/)
   assert.match(student, /get_safe_game_questions/)
   assert.match(student, /start_game_attempt/)
   assert.match(teacher, /get_teacher_courses_page/)
+  assert.match(teacher, /get_teacher_subject_overview/)
   assert.match(teacher, /Añadir pregunta/)
   assert.match(admin, /get_admin_profiles_page/)
+  assert.match(admin, /clickRoleNavigation\(page, 'Auditoría'\)/)
   assert.match(admin, /verify_admin_audit_chain/)
 })
 
@@ -58,11 +63,21 @@ test('authenticated E2E credentials come exclusively from the six required envir
   assert.match(setup, /La configuración E2E autenticada está incompleta/)
 })
 
+test('authenticated Supabase assertions reuse the JWT returned by the UI login', () => {
+  const helper = read('e2e/web/authenticated.helpers.ts')
+  assert.match(helper, /access_token/)
+  assert.match(helper, /tokenResponse\.request\(\)\.headers\(\)\.apikey/)
+  assert.match(helper, /Authorization: `Bearer \$\{session\.accessToken\}`/)
+  assert.match(helper, /page\.request\.get/)
+  assert.match(helper, /page\.request\.post/)
+  assert.match(helper, /clickRoleNavigation/)
+})
+
 test('Playwright runs authenticated E2E in desktop and mobile Chromium with deterministic setup', () => {
   const config = read('playwright.config.ts')
   const server = read('scripts/start-playwright-web.mjs')
   const packageJson = read('package.json')
-  const workflow = read('.github/workflows/quality.yml')
+  const workflow = readRepository('.github/workflows/quality.yml')
 
   assert.match(config, /globalSetup: '\.\/e2e\/web\/global-setup\.ts'/)
   assert.match(config, /name: 'chromium-desktop'/)

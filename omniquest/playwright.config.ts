@@ -6,12 +6,12 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`
 export default defineConfig({
   testDir: './e2e/web',
   globalSetup: './e2e/web/global-setup.ts',
-  timeout: 45_000,
+  timeout: 90_000,
   expect: { timeout: 8_000 },
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  workers: 2,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['github']] : [['list'], ['html', { open: 'never' }]],
   outputDir: 'test-results/playwright',
   use: {

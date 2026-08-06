@@ -25,7 +25,7 @@ E2E_ADMIN_PASSWORD
 
 Cuando las seis variables están definidas, el `globalSetup` ejecuta `scripts/prepare-authenticated-e2e.mjs`. Este script usa exclusivamente Supabase local y prepara de forma idempotente las tres cuentas, el rol `super_admin`, un curso, una clase, un tema, una pregunta y la matrícula del alumno.
 
-Si no se define ninguna variable, los E2E públicos continúan ejecutándose y los autenticados se omiten. Una configuración parcial se rechaza para evitar resultados ambiguos.
+La ejecución completa mediante `npm run test:e2e` exige las seis variables en la misma terminal. Si falta alguna, el `globalSetup` termina inmediatamente para impedir que los recorridos autenticados aparezcan como omitidos. Para ejecutar deliberadamente solo las pruebas públicas puede definirse `E2E_ALLOW_AUTH_SKIP=1`.
 
 ## Servidor web aislado
 
@@ -61,7 +61,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-`npm run e2e:prepare` es opcional porque Playwright lo ejecuta automáticamente mediante `globalSetup`; resulta útil para diagnosticar la preparación de datos antes de abrir el navegador.
+`npm run e2e:prepare` es opcional porque Playwright lo ejecuta automáticamente mediante `globalSetup`; resulta útil para diagnosticar la preparación de datos antes de abrir el navegador. Las variables `$env:E2E_*` solo existen en la ventana actual de PowerShell, por lo que deben definirse de nuevo al abrir otra terminal.
 
 El frontend debe apuntar al entorno local:
 
