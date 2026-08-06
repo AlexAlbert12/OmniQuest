@@ -109,7 +109,7 @@ build web
 Playwright E2E
 ```
 
-La implementación versionada se encuentra en `.github/workflows/quality.yml`.
+La implementación versionada se encuentra en `../.github/workflows/quality.yml` (en la raíz del repositorio).
 
 ## 5. Política para nuevas pruebas
 

@@ -95,7 +95,7 @@ No es necesario cerrar Expo en `8081`, porque los E2E utilizan `8082`.
 
 ## GitHub Actions
 
-El workflow `.github/workflows/quality.yml` ejecuta tres trabajos independientes:
+El workflow `../.github/workflows/quality.yml` (en la raíz del repositorio) ejecuta tres trabajos independientes:
 
 1. `application`: lint, tipos, pruebas de código y build web.
 2. `backend`: migraciones, pgTAP y pruebas Deno.

@@ -17,6 +17,9 @@ jobs:
   application:
     name: Lint, types, unit tests and web build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: omniquest
     env:
       EXPO_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       EXPO_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiJ9.local-signature
@@ -26,6 +29,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: omniquest/package-lock.json
       - run: npm ci
       - run: npm run quality:install
       - run: npm run lint
@@ -39,23 +43,27 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: web-dist
-          path: dist
+          path: omniquest/dist
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: unit-coverage
-          path: coverage
+          path: omniquest/coverage
           if-no-files-found: warn
 
   backend:
     name: Migrations, RLS, RPC and Edge Functions
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: omniquest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: omniquest/package-lock.json
       - uses: supabase/setup-cli@v1
         with:
           version: latest
@@ -72,8 +80,11 @@ jobs:
         run: supabase stop --no-backup
 
   web-e2e:
-    name: Playwright smoke, responsive and visual captures
+    name: Playwright authenticated desktop and mobile
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: omniquest
     env:
       PLAYWRIGHT_PORT: 8082
     steps:
@@ -82,6 +93,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: omniquest/package-lock.json
       - uses: supabase/setup-cli@v1
         with:
           version: latest
@@ -135,9 +147,9 @@ jobs:
         with:
           name: playwright-report
           path: |
-            playwright-report
-            test-results/playwright
-            test-results/edge-functions.log
+            omniquest/playwright-report
+            omniquest/test-results/playwright
+            omniquest/test-results/edge-functions.log
           if-no-files-found: warn
       - if: always()
         shell: bash

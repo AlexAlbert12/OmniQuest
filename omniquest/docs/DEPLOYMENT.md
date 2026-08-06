@@ -122,4 +122,4 @@ Playwright inicia Expo Web mediante `webServer`, ejecuta los smoke tests en view
 
 ## 9. Publicación
 
-Antes de publicar, completa [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md). El pipeline de `.github/workflows/quality.yml` constituye el mínimo automatizado; no sustituye las comprobaciones de secrets, cron, correo, push, backup y observabilidad del entorno real.
+Antes de publicar, completa [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md). El pipeline de `../.github/workflows/quality.yml` (en la raíz del repositorio) constituye el mínimo automatizado; no sustituye las comprobaciones de secrets, cron, correo, push, backup y observabilidad del entorno real.
