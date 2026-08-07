@@ -342,26 +342,24 @@ O en Windows:
 .\scripts\deploy-functions.ps1
 ```
 
-## Limitaciones conocidas
+## Estado actual para revisión
 
-- La app tiene notificaciones persistentes internas, pero todavía no implementa push nativo completo.
-- El proveedor de email transaccional es opcional y depende de configurar Resend.
-- Algunas pantallas siguen siendo grandes y están en proceso de refactorización hacia hooks y componentes más pequeños.
-- La eliminación de cuenta combina base de datos, Auth y Storage; la parte relacional se centraliza en SQL, pero Auth/Storage son servicios externos.
-- El proyecto requiere aplicar las migraciones antes de ejecutarse contra una base de datos nueva.
-- Si se cambia el esquema Supabase, hay que regenerar los tipos para mantener TypeScript alineado.
-- La cobertura automatizada de tests aún es limitada.
+OmniQuest dispone de una implementación funcional y modular para los flujos de alumno, profesor y administrador. Antes de cada entrega, el estado se valida mediante el pipeline descrito en [`omniquest/docs/TESTING.md`](omniquest/docs/TESTING.md) y la checklist de producción.
 
-## Futuras mejoras
+- **Push nativo:** el cliente registra y desactiva tokens Expo, respeta las preferencias del usuario, procesa respuestas y deep links, y el backend encola entregas, reintentos y receipts. La recepción real requiere credenciales EAS/FCM y se valida en dispositivo físico siguiendo [`08-expo-doctor-native-preview.md`](omniquest/docs/validation/08-expo-doctor-native-preview.md).
+- **Seguridad SQL/RLS:** `supabase/tests` contiene 12 suites que cubren acceso por rol, RPCs protegidas, notificaciones, recuperación de cuenta, administración, contenido privado y autorización de los recorridos autenticados. Se ejecutan con `npm run test:db` sobre la base local recreada.
+- **Paginación:** los listados administrativos de usuarios, cursos, clases, soporte y auditoría usan RPCs paginadas; también hay paginación en ranking, actividad, historial, revisiones, notificaciones y vistas docentes de cursos, clases y contenido.
+- **Cobertura automatizada:** CI ejecuta pruebas estructurales y de comportamiento, Jest con cobertura, validación de migraciones, pruebas SQL/RLS, pruebas Deno de Edge Functions, exportación web y recorridos E2E con Playwright. Las pruebas manuales en dispositivo complementan las comprobaciones que dependen de permisos, hardware o servicios externos.
+- **Arquitectura:** las pantallas y dominios principales están separados en rutas, componentes, hooks y servicios específicos; las rutas públicas y por rol consumen una única implementación canónica por responsabilidad.
 
-- Integrar push nativo real.
-- Ampliar tests unitarios para analíticas, reglas de puntuación y transformaciones.
-- Añadir pruebas SQL/RLS para validar permisos por rol.
-- Completar la extracción de pantallas grandes en hooks y componentes reutilizables.
-- Añadir paginación avanzada en más secciones administrativas.
-- Añadir actividades programadas con fechas reales de inicio y fin.
-- Mejorar accesibilidad, estados vacíos y experiencia offline.
+## Consideraciones operativas
+
+- El correo transaccional depende de configurar Resend o el modo de entrega seleccionado para el entorno.
+- Una base nueva requiere aplicar todas las migraciones antes de arrancar la aplicación.
+- Después de modificar el esquema Supabase deben regenerarse los tipos TypeScript.
+- La eliminación de cuenta coordina base de datos, Auth y Storage; las operaciones externas se ejecutan mediante las funciones y credenciales configuradas para el entorno.
+- Las validaciones de push, deep links, cámara, galería, documentos, multimedia, compartir y comportamiento offline deben completarse en una build nativa compatible, no únicamente en navegador.
 
 ## Estado del proyecto
 
-OmniQuest es un prototipo funcional orientado a TFM. La base del producto está implementada, con especial atención a reproducibilidad, separación por roles, seguridad en Supabase, auditoría, Edge Functions, experiencia móvil y analíticas educativas basadas en datos reales.
+OmniQuest es un producto funcional orientado a TFM y preparado para revisión técnica. La implementación prioriza reproducibilidad, separación por roles, seguridad en Supabase, auditoría, procesamiento asíncrono, experiencia web y nativa, accesibilidad y analíticas educativas basadas en datos reales.

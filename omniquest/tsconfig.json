@@ -17,6 +17,7 @@
   ],
   "exclude": [
     "node_modules/**",
+    "release-artifacts/**",
     "supabase/functions/**",
     "tests/**",
     "e2e/**",

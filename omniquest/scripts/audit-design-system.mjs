@@ -6,7 +6,7 @@ const SOURCE_EXTENSION = /\.(?:ts|tsx)$/
 const HEX_LITERAL = /#[0-9a-fA-F]{3,8}\b/g
 
 const priorityScreens = [
-  'components/admin/portal/AdminPortalCore.tsx',
+  'components/admin/AdminPortal.tsx',
   'app/(teacher)/subject/[id].tsx',
   'app/(student)/homeStudent.tsx',
   'app/(student)/play/[id].tsx',

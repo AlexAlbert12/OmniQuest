@@ -6,10 +6,10 @@ import test from 'node:test'
 const root = process.cwd()
 const read = (path) => readFileSync(join(root, path), 'utf8')
 
-test('admin portal core is only a coordinator and features are physically separated', () => {
-  const core = read('components/admin/portal/AdminPortalCore.tsx')
-  assert.ok(core.split('\n').length < 250)
-  assert.doesNotMatch(core, /export type ProfileRow|function useAdminData|select\(/)
+test('admin portal entrypoint is only a coordinator and features are physically separated', () => {
+  const entrypoint = read('components/admin/AdminPortal.tsx')
+  assert.ok(entrypoint.split('\n').length < 80)
+  assert.doesNotMatch(entrypoint, /export type ProfileRow|function useAdminData|select\(/)
   for (const directory of ['api','hooks','types','utils','dashboard','users','courses','classrooms','audit','support']) {
     assert.equal(existsSync(join(root, 'components/admin', directory)), true, `${directory} should exist`)
   }

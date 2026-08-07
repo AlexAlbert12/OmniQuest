@@ -6,7 +6,7 @@ const priorityScreens = [
   'app/(teacher)/subject/[id].tsx',
   'app/(teacher)/profile.tsx',
   'components/teacher/students/StudentModals.tsx',
-  'components/admin/portal/AdminPortalCore.tsx',
+  'components/admin/AdminPortal.tsx',
   'app/(student)/homeStudent.tsx',
   'app/index.tsx',
 ]

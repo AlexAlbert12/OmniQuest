@@ -35,26 +35,25 @@ test('teacher help shows ticket status, response and contact tracking', () => {
 
 test('admin portal is split into focused sections and shared primitives', () => {
   const expected = [
-    'AdminDashboard.tsx',
-    'AdminUsersSection.tsx',
-    'AdminTeachersSection.tsx',
-    'AdminStudentsSection.tsx',
-    'AdminCoursesSection.tsx',
-    'AdminClassroomsSection.tsx',
-    'AdminAuditSection.tsx',
-    'AdminMetrics.tsx',
-    'AdminAlerts.tsx',
-    'AdminSearchBar.tsx',
-    'AdminPagination.tsx',
-    'AdminActionMenu.tsx',
+    'dashboard/AdminDashboard.tsx',
+    'users/AdminUsersSection.tsx',
+    'users/AdminTeachersSection.tsx',
+    'users/AdminStudentsSection.tsx',
+    'courses/AdminCoursesSection.tsx',
+    'classrooms/AdminClassroomsSection.tsx',
+    'audit/AdminAuditSection.tsx',
+    'dashboard/AdminMetrics.tsx',
+    'dashboard/AdminAlerts.tsx',
+    'shared/AdminSearchBar.tsx',
+    'shared/AdminPrimitives.tsx',
   ]
 
   for (const file of expected) {
-    assert.equal(existsSync(join(root, 'components/admin/portal', file)), true, `${file} should exist`)
+    assert.equal(existsSync(join(root, 'components/admin', file)), true, `${file} should exist`)
   }
 
-  const barrel = read('components/admin/AdminPortal.tsx')
-  assert.ok(barrel.split('\n').length < 20, 'AdminPortal.tsx should be a small barrel')
+  const entrypoint = read('components/admin/AdminPortal.tsx')
+  assert.ok(entrypoint.split('\n').length < 80, 'AdminPortal.tsx should remain a small route coordinator')
 })
 
 test('admin mobile navigation has five stable groups without duplicated entity tabs', () => {
