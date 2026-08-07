@@ -24,7 +24,7 @@ export default function CourseNextMission({
   const { tokens } = useAppTheme()
   const title = topic
     ? `Tema ${position ?? ''}${position ? ' · ' : ''}${topic.title}`
-    : 'Has completado la galaxia'
+    : 'Has completado el curso'
   const description = topic?.description || courseDescription || 'Selecciona un planeta para iniciar una misión.'
 
   if (compact) {

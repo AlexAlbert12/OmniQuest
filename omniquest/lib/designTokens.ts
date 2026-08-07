@@ -38,6 +38,7 @@ export type DesignColorTokens = {
     secondary: string
     muted: string
     inverse: string
+    onAccent: string
     disabled: string
   }
   brand: Record<AppRole, string>
@@ -83,6 +84,7 @@ const DARK_BASE = {
     secondary: '#C9D7EA',
     muted: '#8FA7C7',
     inverse: '#061126',
+    onAccent: '#FFFFFF',
     disabled: '#60799C',
   },
   semantic: {
@@ -134,6 +136,7 @@ const LIGHT_BASE = {
     secondary: '#334A68',
     muted: '#657B98',
     inverse: '#FFFFFF',
+    onAccent: '#FFFFFF',
     disabled: '#8797AC',
   },
   semantic: {

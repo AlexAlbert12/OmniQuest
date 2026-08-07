@@ -159,7 +159,7 @@ function GalaxyViewModeToggle({ value, onChange }: { value: GalaxyViewMode; onCh
   return (
     <View style={styles.viewModeToggle}>
       <AppTabs
-        accessibilityLabel="Modo de visualización de la galaxia"
+        accessibilityLabel="Modo de visualización de cursos"
         compact
         fill
         items={GALAXY_VIEW_OPTIONS}
@@ -177,7 +177,7 @@ export function CourseGalaxyMap({
   joining,
   onChangeInviteCode,
   onJoin,
-  emptyMessage = 'No hay galaxias que coincidan con los filtros.',
+  emptyMessage = 'No hay cursos que coincidan con los filtros.',
 }: {
   items: GalaxyCourseItem[]
   inviteCode: string
@@ -194,8 +194,8 @@ export function CourseGalaxyMap({
     ? 860
     : Math.min(desktopCanvasWidth, responsive.isWide ? 1180 : isDesktop ? 1080 : 560)
   const mapWidth = Math.max(320, Math.min(isDesktop ? responsive.width - 330 : responsive.width - 30, maxMapWidth))
-  const planetSize = responsive.isWide ? 220 : isDesktop ? 206 : responsive.isTablet ? 196 : 176
-  const rowHeight = isDesktop ? 302 : responsive.isTablet ? 294 : 332
+  const planetSize = responsive.isWide ? 220 : isDesktop ? 206 : responsive.isTablet ? 196 : 156
+  const rowHeight = isDesktop ? 302 : responsive.isTablet ? 294 : 294
   const addRowHeight = 390
   const pageSize = responsive.isWide ? 6 : isDesktop ? 5 : responsive.isTablet ? 4 : 4
   const [joinOpen, setJoinOpen] = useState(false)
@@ -207,7 +207,7 @@ export function CourseGalaxyMap({
   const safePage = Math.min(page, totalPages - 1)
   const pageItems = items.slice(safePage * pageSize, safePage * pageSize + pageSize)
   const isLastPage = safePage >= totalPages - 1
-  const addTop = pageItems.length === 0 ? 230 : pageItems.length * rowHeight + 18
+  const addTop = pageItems.length === 0 ? 252 : pageItems.length * rowHeight + 18
   const mapHeight = addTop + (isLastPage ? addRowHeight : 90)
   const visibleListItems = items.slice(0, visibleListCount)
   const groupedItems = useMemo(() => groupCourseItems(visibleListItems), [visibleListItems])
@@ -270,7 +270,7 @@ export function CourseGalaxyMap({
                         accessibilityLabel={`Más opciones de ${item.title}`}
                         accessibilityHint="Abre las acciones disponibles para este curso"
                         icon="ellipsis-horizontal"
-                        size="sm"
+                        size="md"
                         onPress={item.onMore}
                       />
                     ) : null}
@@ -323,7 +323,7 @@ export function CourseGalaxyMap({
             <GalaxyPagination
               currentPage={safePage}
               totalPages={totalPages}
-              label="Página de galaxias"
+              label="Página de cursos"
               onPrevious={() => setPage((current) => Math.max(0, current - 1))}
               onNext={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
             />
@@ -366,6 +366,7 @@ export function CourseGalaxyMap({
                       x2={targetX}
                       y2={rowHeight + 34}
                       bend={side === 'left' ? 1 : -1}
+                      dotSize={isDesktop ? 5 : 4}
                     />
                   ) : null}
 
@@ -388,10 +389,10 @@ export function CourseGalaxyMap({
                         width: labelWidth,
                         left: labelX,
                         top: planetSize + (isDesktop ? 10 : 18),
-                        minHeight: isDesktop ? 76 : 92,
-                        borderRadius: isDesktop ? 20 : 24,
-                        paddingHorizontal: isDesktop ? 16 : 20,
-                        paddingVertical: isDesktop ? 10 : 16,
+                        minHeight: isDesktop ? 76 : 80,
+                        borderRadius: 20,
+                        paddingHorizontal: 16,
+                        paddingVertical: isDesktop ? 10 : 12,
                       },
                     ]}
                   >
@@ -459,7 +460,7 @@ export function CourseGalaxyMap({
               <AddCourseGalaxyNode
                 top={addTop}
                 mapWidth={mapWidth}
-                side={pageItems.length % 2 === 0 ? 'right' : 'left'}
+                side={pageItems.length === 0 ? 'center' : pageItems.length % 2 === 0 ? 'right' : 'left'}
                 inviteCode={inviteCode}
                 joining={joining}
                 open={joinOpen}
@@ -473,7 +474,7 @@ export function CourseGalaxyMap({
             <GalaxyPagination
               currentPage={safePage}
               totalPages={totalPages}
-              label="Navegación de páginas de galaxias"
+              label="Navegación de páginas de cursos"
               onPrevious={() => setPage((current) => Math.max(0, current - 1))}
               onNext={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
             />
@@ -517,7 +518,7 @@ export function TopicGalaxyMap({ items }: { items: GalaxyTopicItem[] }) {
             <View style={[styles.listEmpty, { backgroundColor: tokens.surface.default, borderColor: tokens.border.default }]}>
               <Ionicons name="planet-outline" size={42} color={tokens.text.muted} />
               <Text style={[styles.listTitle, { color: tokens.text.primary }]}>Aún no hay temas</Text>
-              <Text style={[styles.listDescription, { color: tokens.text.secondary }]}>Tu profesor añadirá temas con preguntas para esta galaxia.</Text>
+              <Text style={[styles.listDescription, { color: tokens.text.secondary }]}>Tu profesor añadirá temas con preguntas para este curso.</Text>
             </View>
           ) : (
             <View style={[styles.listGrid, responsive.isTablet || responsive.isDesktop ? styles.listGridTablet : null]}>
@@ -549,7 +550,7 @@ export function TopicGalaxyMap({ items }: { items: GalaxyTopicItem[] }) {
         <View style={{ minHeight: 320, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
           <Ionicons name="planet-outline" size={62} color={tokens.text.muted} />
           <Text style={styles.emptyTitle}>Aún no hay planetas</Text>
-          <Text style={styles.emptyText}>Tu profesor añadirá temas con preguntas para esta galaxia.</Text>
+          <Text style={styles.emptyText}>Tu profesor añadirá temas con preguntas para este curso.</Text>
         </View>
       ) : (
         <>
@@ -658,7 +659,7 @@ function AddCourseGalaxyNode({
 }: {
   top: number
   mapWidth: number
-  side: 'left' | 'right'
+  side: 'left' | 'right' | 'center'
   inviteCode: string
   joining: boolean
   open: boolean
@@ -669,9 +670,9 @@ function AddCourseGalaxyNode({
   const responsive = useResponsiveLayout()
   const isDesktop = responsive.isDesktop
   const size = isDesktop ? 190 : 156
-  const x = side === 'left' ? 24 : mapWidth - size - 24
+  const x = side === 'center' ? (mapWidth - size) / 2 : side === 'left' ? 24 : mapWidth - size - 24
   const formWidth = Math.min(isDesktop ? 420 : 306, mapWidth - 24)
-  const formX = side === 'left' ? 12 : mapWidth - formWidth - 12
+  const formX = side === 'center' ? (mapWidth - formWidth) / 2 : side === 'left' ? 12 : mapWidth - formWidth - 12
 
   return (
     <View style={{ position: 'absolute', left: 0, right: 0, top, minHeight: open ? 330 : 260 }}>
@@ -1071,7 +1072,8 @@ const styles = StyleSheet.create({
     minHeight: 34,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    gap: 9,
     paddingHorizontal: 4,
   },
   listGroupTitle: {

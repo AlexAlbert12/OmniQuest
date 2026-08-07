@@ -111,7 +111,9 @@ export default function ActivityLogScreen() {
       loading={activity.loading}
       loadingLabel="Cargando actividad…"
       scroll={false}
-      maxContentWidth={1400}
+      fluidContent
+      horizontalPadding={isDesktop ? 28 : 18}
+      topPadding={isDesktop ? 24 : 18}
       contentContainerStyle={{ flex: 1 }}
     >
       <FlatList

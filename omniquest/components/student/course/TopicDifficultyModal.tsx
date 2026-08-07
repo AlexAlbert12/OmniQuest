@@ -74,7 +74,7 @@ export default function TopicDifficultyModal({
                       />
                     ) : null}
                     <View className="min-h-10 justify-center rounded-xl px-4" style={{ backgroundColor: meta.color }}>
-                      <Text maxFontSizeMultiplier={2} className="font-black" style={{ color: tokens.text.inverse }}>{action}</Text>
+                      <Text maxFontSizeMultiplier={2} className="font-black" style={{ color: '#FFFFFF' }}>{action}</Text>
                     </View>
                   </View>
                 </View>

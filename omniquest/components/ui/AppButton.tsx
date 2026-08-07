@@ -53,7 +53,9 @@ export default function AppButton({
   const dimensions = SIZE_STYLES[size]
   const primaryColor = role ? tokens.brand[role] : accentColor
   const palette = getVariantPalette(variant, primaryColor, tokens)
+  const disabledPalette = getDisabledPalette(tokens)
   const unavailable = disabled || loading
+  const renderedPalette = disabled ? disabledPalette : palette
   const resolvedAccessibilityLabel = accessibilityLabel || label
 
   if (!resolvedAccessibilityLabel) {
@@ -75,9 +77,9 @@ export default function AppButton({
           paddingHorizontal: iconOnly ? 0 : dimensions.paddingHorizontal,
           paddingVertical: iconOnly ? 0 : dimensions.paddingVertical,
           borderRadius: dimensions.radius,
-          backgroundColor: palette.background,
-          borderColor: palette.border,
-          opacity: unavailable ? 0.48 : pressed ? 0.8 : 1,
+          backgroundColor: renderedPalette.background,
+          borderColor: renderedPalette.border,
+          opacity: loading ? 0.76 : pressed ? 0.8 : 1,
           transform: [{ scale: pressed && !unavailable ? 0.985 : 1 }],
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
         },
@@ -86,20 +88,20 @@ export default function AppButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={palette.foreground} />
+        <ActivityIndicator size="small" color={renderedPalette.foreground} />
       ) : (
         <View style={styles.content}>
-          {icon && iconPosition === 'left' ? <Ionicons name={icon} size={dimensions.iconSize} color={palette.foreground} /> : null}
+          {icon && iconPosition === 'left' ? <Ionicons name={icon} size={dimensions.iconSize} color={renderedPalette.foreground} /> : null}
           {!iconOnly && label ? (
             <Text
               maxFontSizeMultiplier={2}
               numberOfLines={2}
-              style={[styles.label, { color: palette.foreground, fontSize: dimensions.fontSize, lineHeight: dimensions.lineHeight }]}
+              style={[styles.label, { color: renderedPalette.foreground, fontSize: dimensions.fontSize, lineHeight: dimensions.lineHeight }]}
             >
               {label}
             </Text>
           ) : null}
-          {icon && iconPosition === 'right' ? <Ionicons name={icon} size={dimensions.iconSize} color={palette.foreground} /> : null}
+          {icon && iconPosition === 'right' ? <Ionicons name={icon} size={dimensions.iconSize} color={renderedPalette.foreground} /> : null}
         </View>
       )}
     </AppPressable>
@@ -134,14 +136,22 @@ function getVariantPalette(
       return {
         background: tokens.semantic.success,
         border: tokens.semantic.success,
-        foreground: tokens.text.inverse,
+        foreground: tokens.text.onAccent,
       }
     default:
       return {
         background: primary,
         border: primary,
-        foreground: tokens.text.inverse,
+        foreground: tokens.text.onAccent,
       }
+  }
+}
+
+function getDisabledPalette(tokens: ReturnType<typeof useAppTheme>['tokens']) {
+  return {
+    background: tokens.surface.disabled,
+    border: tokens.border.subtle,
+    foreground: tokens.text.disabled,
   }
 }
 

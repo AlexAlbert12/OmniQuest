@@ -406,14 +406,14 @@ export default function StudentClassDetailScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingHorizontal: responsive.horizontalPadding,
-          paddingTop: responsive.verticalPadding,
+          paddingHorizontal: isDesktop ? 28 : 18,
+          paddingTop: isDesktop ? 24 : 18,
           paddingBottom: isDesktop ? 170 : MOBILE_BOTTOM_NAV_SPACER + 150,
         }}
         showsVerticalScrollIndicator={false}
       >
         <GalaxyScreenBackground height={Math.max(1900, Math.min(3200, topics.length * 120 + 1700))} />
-        <View className="mx-auto w-full max-w-[1480px]" style={{ maxWidth: responsive.isWide ? 1320 : 1160 }}>
+        <View className="w-full">
           <CourseGalaxyHeader
             subject={subject}
             classroom={classroom}

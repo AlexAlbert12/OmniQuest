@@ -31,6 +31,8 @@ test('buttons and tabs use shared accessible components', () => {
   assert.match(button, /primary.*secondary.*ghost.*danger.*success/s)
   assert.match(button, /accessibilityState/)
   assert.match(button, /loading/)
+  assert.match(button, /tokens\.text\.onAccent/)
+  assert.doesNotMatch(button, /tokens\.text\.inverse/)
   assert.match(tabs, /horizontal/)
   assert.match(tabs, /accessibilityRole="tab"/)
   assert.match(subject, /<AppTabs/)

@@ -316,22 +316,22 @@ export default function ClassesScreen() {
         <ScrollView
           className="flex-1"
           contentContainerStyle={{
-            paddingHorizontal: isDesktop ? 18 : 16,
-            paddingTop: isDesktop ? 28 : 30,
+            paddingHorizontal: isDesktop ? 28 : 18,
+            paddingTop: isDesktop ? 24 : 18,
             paddingBottom: isDesktop ? 70 : MOBILE_BOTTOM_NAV_SPACER + 28,
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View className="mx-auto w-full max-w-[1480px]">
+          <View className="w-full">
             <StudentPageHeader
               icon="book"
               isDesktop={isDesktop}
               title="Mis cursos"
-              subtitle="Elige una galaxia para continuar tu viaje."
+              subtitle="Elige un curso para continuar tu viaje."
               showNotifications={isDesktop}
               showAvatar={isDesktop}
               actionsPosition="top"
-              actions={(
+              actions={subjects.length > 0 ? (
                 <>
                   <Pressable
                     accessibilityRole="button"
@@ -343,17 +343,17 @@ export default function ClassesScreen() {
                     <Ionicons name={showMobileFilters ? 'close' : 'options'} size={24} color="#C7D5F2" />
                   </Pressable>
                 </>
-              )}
+              ) : undefined}
             />
 
-            <View className={isDesktop ? 'mb-8 flex-row gap-4' : 'mb-7 flex-row gap-3'}>
+            <View className={isDesktop ? 'mb-8 flex-row gap-4' : 'mb-7 flex-row flex-wrap gap-3'}>
               <MobileMetricCard
                 compact
                 icon="school"
                 color="#8B5CF6"
                 value={activeClasses}
                 label="Cursos"
-                style={{ flex: 1, minHeight: isDesktop ? 132 : 118 }}
+                style={{ flex: 1, minWidth: isDesktop ? undefined : '47%', minHeight: isDesktop ? 132 : 118 }}
               />
               <MobileMetricCard
                 compact
@@ -361,7 +361,7 @@ export default function ClassesScreen() {
                 color="#FB4772"
                 value={failedQuestions}
                 label="Repasar"
-                style={{ flex: 1, minHeight: isDesktop ? 132 : 118 }}
+                style={{ flex: 1, minWidth: isDesktop ? undefined : '47%', minHeight: isDesktop ? 132 : 118 }}
               />
               <MobileMetricCard
                 compact
@@ -369,18 +369,16 @@ export default function ClassesScreen() {
                 color="#4EC4FF"
                 value={pendingQuestions}
                 label="Practicar"
-                style={{ flex: 1, minHeight: isDesktop ? 132 : 118 }}
+                style={{ flex: 1, minWidth: isDesktop ? undefined : '47%', minHeight: isDesktop ? 132 : 118 }}
               />
-              {isDesktop ? (
-                <MobileMetricCard
-                  compact
-                  icon="sparkles"
-                  color="#F6A64A"
-                  value={`${points.toLocaleString()} XP`}
-                  label="Experiencia"
-                  style={{ flex: 1, minHeight: 132 }}
-                />
-              ) : null}
+              <MobileMetricCard
+                compact
+                icon="sparkles"
+                color="#F6A64A"
+                value={`${points.toLocaleString()} XP`}
+                label="Experiencia"
+                style={{ flex: 1, minWidth: isDesktop ? undefined : '47%', minHeight: isDesktop ? 132 : 118 }}
+              />
             </View>
 
             {subjects.length > 5 ? (
@@ -408,7 +406,7 @@ export default function ClassesScreen() {
               </View>
             ) : null}
 
-            {showMobileFilters ? (
+            {showMobileFilters && subjects.length > 0 ? (
               <View className="mb-8 rounded-[24px] border border-border-default bg-surface-disabled p-4">
                 {subjects.length <= 5 ? (
                   <View className="flex-row items-center rounded-2xl border border-border-default bg-background-primary px-4">
@@ -416,7 +414,7 @@ export default function ClassesScreen() {
                     <TextInput
                       accessibilityLabel="Buscar en mis cursos"
                       className="min-w-0 flex-1 px-3 py-4 text-white"
-                      placeholder="Buscar una galaxia..."
+                      placeholder="Buscar un curso..."
                       placeholderTextColor={tokens.text.disabled}
                       value={search}
                       onChangeText={setSearch}
@@ -497,7 +495,7 @@ export default function ClassesScreen() {
               </View>
             ) : null}
 
-            {hasActiveMobileFilters && !showMobileFilters ? (
+            {subjects.length > 0 && hasActiveMobileFilters && !showMobileFilters ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Abrir filtros activos"
@@ -539,7 +537,7 @@ export default function ClassesScreen() {
               joining={joining}
               onChangeInviteCode={setInviteCode}
               onJoin={handleJoinClass}
-              emptyMessage={subjects.length > 0 ? 'Cambia los filtros para volver a ver tus cursos.' : 'Añade tu primera galaxia con el código de clase de tu profesor.'}
+              emptyMessage={subjects.length > 0 ? 'Cambia los filtros para volver a ver tus cursos.' : 'Añade tu primer curso con el código de clase de tu profesor.'}
             />
           </View>
         </ScrollView>

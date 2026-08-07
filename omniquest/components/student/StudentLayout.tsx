@@ -52,6 +52,9 @@ export default function StudentLayout({
       )}
       mobileBottomNavigation={<StudentBottomNav active={bottomNavActive} />}
       isDesktop={isDesktop}
+      fluidContent
+      horizontalPadding={isDesktop ? 28 : 18}
+      topPadding={isDesktop ? 24 : 18}
       loading={loading}
       loadingLabel={loadingLabel}
       refreshControl={refreshControl}

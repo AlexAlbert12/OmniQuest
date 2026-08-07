@@ -52,7 +52,7 @@ export default function SubjectSummaryTab({
               </View>
               <Link href={addQuestionHref as never} asChild>
                 <Pressable accessibilityRole="link" className="min-h-11 rounded-xl bg-brand-teacher px-4 py-3">
-                  <Text className="font-black text-text-inverse">Crear pregunta</Text>
+                  <Text className="font-black text-white">Crear pregunta</Text>
                 </Pressable>
               </Link>
             </View>

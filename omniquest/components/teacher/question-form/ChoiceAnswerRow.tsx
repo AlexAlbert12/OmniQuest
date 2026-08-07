@@ -46,7 +46,7 @@ export default function ChoiceAnswerRow({
             backgroundColor: correct ? tokens.semantic.success : 'transparent',
           }}
         >
-          <Text className="font-black" style={{ color: correct ? tokens.text.inverse : tokens.brand.teacher }}>{letter}</Text>
+          <Text className="font-black" style={{ color: correct ? '#FFFFFF' : tokens.brand.teacher }}>{letter}</Text>
         </AppPressable>
 
         {readOnly ? (

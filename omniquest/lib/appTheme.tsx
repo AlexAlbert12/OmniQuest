@@ -110,6 +110,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     '--omni-text-secondary': tokens.text.secondary,
     '--omni-text-muted': tokens.text.muted,
     '--omni-text-inverse': tokens.text.inverse,
+    '--omni-text-on-accent': tokens.text.onAccent,
     '--omni-text-disabled': tokens.text.disabled,
     '--omni-brand-student': tokens.brand.student,
     '--omni-brand-teacher': tokens.brand.teacher,

@@ -29,6 +29,7 @@ type RoleScreenLayoutProps = {
   style?: StyleProp<ViewStyle>
   isDesktop?: boolean
   maxContentWidth?: number
+  fluidContent?: boolean
   horizontalPadding?: number
   topPadding?: number
   bottomPadding?: number
@@ -54,6 +55,7 @@ export default function RoleScreenLayout({
   style,
   isDesktop: isDesktopOverride,
   maxContentWidth,
+  fluidContent = false,
   horizontalPadding,
   topPadding,
   bottomPadding,
@@ -81,7 +83,7 @@ export default function RoleScreenLayout({
   const mainContentStyle: StyleProp<ViewStyle> = [
     styles.content,
     {
-      maxWidth: resolvedMaxWidth,
+      ...(fluidContent ? {} : { maxWidth: resolvedMaxWidth }),
       paddingHorizontal: resolvedHorizontalPadding,
       paddingTop: resolvedTopPadding,
       paddingBottom: resolvedBottomPadding,

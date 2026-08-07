@@ -269,7 +269,7 @@ export function SupportTicketCard({ ticket, onManage }: { ticket: AdminSupportTi
           <Text className="mt-1 text-[12px] font-semibold text-text-muted">{ticket.user_alias || 'Usuario'} · {ticket.role === 'teacher' ? 'Profesor' : 'Alumno'} · {formatAuditDate(ticket.created_at)}</Text>
         </View>
         <Pressable accessibilityLabel={`Gestionar ticket ${ticket.subject}`} accessibilityHint="Abre las opciones de respuesta y estado del ticket" accessibilityRole="button" onPress={onManage} className="h-10 flex-row items-center gap-2 rounded-xl bg-brand-admin px-4" style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
-          <Ionicons name="create-outline" size={16} color={tokens.text.inverse} /><Text className="text-[12px] font-black text-text-inverse">Gestionar</Text>
+          <Ionicons name="create-outline" size={16} color="#FFFFFF" /><Text className="text-[12px] font-black text-white">Gestionar</Text>
         </Pressable>
       </View>
       <Text className="mt-3 text-[13px] leading-5 text-text-secondary" numberOfLines={3}>{ticket.message}</Text>
@@ -352,7 +352,7 @@ export function AdminPaginationControls({ hasNext, hasPrevious, onNext, onPrevio
       <Text className="text-[12px] font-semibold text-text-secondary">{total === 0 ? 'Sin resultados' : `${firstItem}-${lastItem} de ${total}`}</Text>
       <View className="flex-row items-center gap-2">
         <Pressable accessibilityRole="button" accessibilityLabel="Página anterior" accessibilityState={{ disabled: !hasPrevious }} onPress={onPrevious} disabled={!hasPrevious} className="h-10 flex-row items-center gap-1 rounded-xl border border-border-default bg-surface-default px-3" style={({ pressed }) => ({ opacity: !hasPrevious ? 0.45 : pressed ? 0.78 : 1 })}><Ionicons name="chevron-back" size={15} color={tokens.text.primary} /><Text className="text-[12px] font-black text-text-secondary">Anterior</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Página siguiente" accessibilityState={{ disabled: !hasNext }} onPress={onNext} disabled={!hasNext} className="h-10 flex-row items-center gap-1 rounded-xl bg-brand-admin px-3" style={({ pressed }) => ({ opacity: !hasNext ? 0.45 : pressed ? 0.78 : 1 })}><Text className="text-[12px] font-black text-text-inverse">Siguiente</Text><Ionicons name="chevron-forward" size={15} color={tokens.text.inverse} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Página siguiente" accessibilityState={{ disabled: !hasNext }} onPress={onNext} disabled={!hasNext} className="h-10 flex-row items-center gap-1 rounded-xl bg-brand-admin px-3" style={({ pressed }) => ({ opacity: !hasNext ? 0.45 : pressed ? 0.78 : 1 })}><Text className="text-[12px] font-black text-white">Siguiente</Text><Ionicons name="chevron-forward" size={15} color="#FFFFFF" /></Pressable>
       </View>
     </View>
   )

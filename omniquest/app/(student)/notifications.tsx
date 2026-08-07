@@ -226,10 +226,8 @@ export default function StudentNotificationsScreen() {
           header={header}
           contentContainerStyle={{
             width: '100%',
-            maxWidth: 1240,
-            alignSelf: 'center',
             paddingHorizontal: isDesktop ? 28 : 18,
-            paddingTop: isDesktop ? 28 : 18,
+            paddingTop: isDesktop ? 24 : 18,
             paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER,
           }}
           categoryLabel={(notification) => categoryLabels[notification.type]}

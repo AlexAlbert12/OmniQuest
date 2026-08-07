@@ -177,7 +177,7 @@ function FilterChip({
   onPress: () => void
 }) {
   const { tokens } = useAppTheme()
-  const foreground = active ? tokens.text.inverse : tokens.text.secondary
+  const foreground = active ? '#FFFFFF' : tokens.text.secondary
   return (
     <AppPressable
       accessibilityLabel={`${label}, ${count} resultados`}

@@ -8,16 +8,25 @@ const testDir = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(testDir, '../..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
 
-test('student galaxy screens use the available desktop width and compact course labels', () => {
+test('student galaxy screens use fixed gutters, canonical course language and compact mobile nodes', () => {
   const classes = read('app/(student)/classes.tsx')
   const detail = read('app/(student)/class/[id].tsx')
   const galaxy = read('components/student/galaxy/StudentGalaxyMap.tsx')
+  const studentLayout = read('components/student/StudentLayout.tsx')
 
-  assert.match(classes, /max-w-\[1480px\]/)
-  assert.match(detail, /max-w-\[1480px\]/)
+  assert.doesNotMatch(classes, /max-w-\[1480px\]/)
+  assert.doesNotMatch(detail, /max-w-\[1480px\]/)
+  assert.match(classes, /paddingHorizontal: isDesktop \? 28 : 18/)
+  assert.match(detail, /paddingHorizontal: isDesktop \? 28 : 18/)
+  assert.match(classes, /Elige un curso para continuar tu viaje\./)
+  assert.match(classes, /placeholder="Buscar un curso\.\.\."/)
+  assert.match(classes, /label="Experiencia"/)
   assert.match(galaxy, /isDesktop \? 1440 : 430/)
   assert.match(galaxy, /courseTitleDesktop/)
-  assert.match(galaxy, /minHeight: isDesktop \? 76 : 92/)
+  assert.match(galaxy, /minHeight: isDesktop \? 76 : 80/)
+  assert.match(galaxy, /side=\{pageItems\.length === 0 \? 'center'/)
+  assert.match(studentLayout, /fluidContent/)
+  assert.match(studentLayout, /horizontalPadding=\{isDesktop \? 28 : 18\}/)
 })
 
 test('ranking league cards stay inside the carousel during web hover', () => {
