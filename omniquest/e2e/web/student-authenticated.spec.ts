@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { E2E_FIXTURE, clickRoleNavigation, escapeRegExp, firstRelation, hasAuthenticatedE2EEnvironment, loginAs, readSupabaseJson, supabaseSelect, waitForSupabaseResponse } from './authenticated.helpers'
+import { E2E_FIXTURE, firstRelation, hasAuthenticatedE2EEnvironment, loginAs, readSupabaseJson, supabaseSelect, waitForSupabaseResponse } from './authenticated.helpers'
 
 type EnrollmentRow = { classroom_id: number | null; subject_id: number; subjects: { id: number; name: string } | { id: number; name: string }[] | null }
 type TopicRow = { id: number; title: string }
@@ -17,21 +17,24 @@ test.describe('alumno autenticado', () => {
     expect(fixtureEnrollment?.subject_id).toBeGreaterThan(0)
     expect(fixtureEnrollment?.classroom_id).toBeGreaterThan(0)
 
-    await clickRoleNavigation(page, 'Cursos')
+    const coursesNavigation = page.getByTestId('student-nav-classes')
+    await expect(coursesNavigation).toBeVisible({ timeout: 60_000 })
+    await coursesNavigation.click()
     await expect(page).toHaveURL(/\/classes(?:\?|$)/)
     await expect(page.getByRole('heading', { name: 'Mis cursos' })).toBeVisible()
-    await expect(page.getByText(E2E_FIXTURE.courseName, { exact: true }).first()).toBeVisible()
-
     const subjectId = fixtureEnrollment!.subject_id
     const classroomId = fixtureEnrollment!.classroom_id!
+    const courseAction = page.getByTestId(`student-course-${subjectId}-${classroomId}`)
+    await expect(courseAction).toBeVisible({ timeout: 30_000 })
     const topics = await supabaseSelect<TopicRow[]>(page, session, 'subject_topics', { select: 'id,title', subject_id: `eq.${subjectId}`, classroom_id: `eq.${classroomId}`, title: `eq.${E2E_FIXTURE.topicName}` }, 'Temas autenticados del curso')
     const fixtureTopic = topics.find((topic) => topic.title === E2E_FIXTURE.topicName)
 
     expect(fixtureTopic, `No se encontró el tema ${E2E_FIXTURE.topicName}.`).toBeTruthy()
-    await page.goto(`/class/${subjectId}?classroomId=${classroomId}`)
+    await courseAction.click()
+    await expect(page).toHaveURL(new RegExp(`/class/${subjectId}(?:\\?|$)`))
     await expect(page.getByRole('heading', { name: E2E_FIXTURE.courseName })).toBeVisible()
 
-    const topicButton = page.getByRole('button', { name: new RegExp(`^${escapeRegExp(E2E_FIXTURE.topicName)}\\. (?:Siguiente tema|Disponible|Completado)$`, 'i') }).first()
+    const topicButton = page.getByTestId(`student-topic-${fixtureTopic!.id}`)
     await expect(topicButton).toBeVisible()
     const questionsPromise = waitForSupabaseResponse(page, '/rest/v1/rpc/get_safe_game_questions')
     const attemptPromise = waitForSupabaseResponse(page, '/rest/v1/rpc/start_game_attempt')

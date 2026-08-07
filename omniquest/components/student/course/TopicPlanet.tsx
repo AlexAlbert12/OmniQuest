@@ -22,7 +22,8 @@ function TopicPlanet({
 
   return (
     <AppPressable
-      accessibilityLabel={`${item.title}. ${getTopicStateLabel(item.state)}. ${item.progress}% completado. ${item.questionsCount} preguntas.`}
+      testID={item.testID}
+      accessibilityLabel={`${item.title}. ${getTopicStateLabel(item.state)}. ${item.progress}% completado. ${item.questionsCount} ${item.questionsCount === 1 ? 'pregunta' : 'preguntas'}.`}
       accessibilityHint={disabled ? 'Este tema todavía no está disponible' : item.actionLabel}
       accessibilityState={{ disabled }}
       disabled={disabled}

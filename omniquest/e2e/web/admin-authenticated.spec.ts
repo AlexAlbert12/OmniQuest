@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { clickRoleNavigation, getRoleConfiguration, hasAuthenticatedE2EEnvironment, loginAs, readSupabaseJson, supabaseRpc, waitForSupabaseResponse } from './authenticated.helpers'
+import { getRoleConfiguration, hasAuthenticatedE2EEnvironment, loginAs, readSupabaseJson, supabaseRpc, waitForSupabaseResponse } from './authenticated.helpers'
 
 type AdminProfileRow = { alias: string | null; email: string | null; role_id: string; total_count?: number }
 type AuditPolicy = { append_only?: boolean; partitioned?: boolean; strong_integrity?: boolean }
@@ -17,7 +17,9 @@ test.describe('administrador autenticado', () => {
     await page.goto('/users')
     await expect(page.getByRole('heading', { name: 'Usuarios' })).toBeVisible()
 
-    await clickRoleNavigation(page, 'Auditoría')
+    const auditNavigation = page.getByTestId('admin-nav-audit')
+    await expect(auditNavigation).toBeVisible({ timeout: 60_000 })
+    await auditNavigation.click()
     await expect(page).toHaveURL(/\/audit(?:\?|$)/)
     await expect(page.getByRole('heading', { name: 'Auditoría' })).toBeVisible()
     const policy = await supabaseRpc<AuditPolicy>(page, session, 'get_admin_audit_policy', {}, 'Política autenticada de auditoría')

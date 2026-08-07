@@ -531,6 +531,7 @@ export default function ClassesScreen() {
                   detailColor: statusBadge.color,
                   group,
                   onPress: () => router.push(buildClassHref(subject) as any),
+                  testID: `student-course-${subject.id}-${subject.classroom_id ?? 'all'}`,
                   onMore: () => handleLeaveClass(subject),
                 }
               })}

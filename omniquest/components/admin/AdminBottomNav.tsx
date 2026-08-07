@@ -18,11 +18,11 @@ export default function AdminBottomNav({ active, permissions }: { active: AdminS
   const activeGroup = resolveActiveGroup(active)
   const navItems = useMemo<MobileBottomNavigationItem<AdminMobileGroup>[]>(() => {
     const allItems: (MobileBottomNavigationItem<AdminMobileGroup> & { permission: AdminPermission })[] = [
-      { key: 'home', label: 'Inicio', href: '/(admin)/homeAdmin', icon: 'home-outline', activeIcon: 'home', permission: 'dashboard.read' },
-      { key: 'users', label: 'Usuarios', href: '/(admin)/users', icon: 'people-outline', activeIcon: 'people', permission: 'users.read' },
-      { key: 'content', label: 'Contenido', href: '/(admin)/content', icon: 'book-outline', activeIcon: 'book', permission: 'courses.read' },
-      { key: 'audit', label: 'Auditoría', href: '/(admin)/audit', icon: 'shield-checkmark-outline', activeIcon: 'shield-checkmark', permission: 'audit.read' },
-      { key: 'more', label: 'Más', href: '/(admin)/more', icon: 'ellipsis-horizontal-circle-outline', activeIcon: 'ellipsis-horizontal-circle', permission: 'dashboard.read' },
+      { key: 'home', label: 'Inicio', href: '/(admin)/homeAdmin', icon: 'home-outline', activeIcon: 'home', testID: 'admin-nav-home', permission: 'dashboard.read' },
+      { key: 'users', label: 'Usuarios', href: '/(admin)/users', icon: 'people-outline', activeIcon: 'people', testID: 'admin-nav-users', permission: 'users.read' },
+      { key: 'content', label: 'Contenido', href: '/(admin)/content', icon: 'book-outline', activeIcon: 'book', testID: 'admin-nav-content', permission: 'courses.read' },
+      { key: 'audit', label: 'Auditoría', href: '/(admin)/audit', icon: 'shield-checkmark-outline', activeIcon: 'shield-checkmark', testID: 'admin-nav-audit', permission: 'audit.read' },
+      { key: 'more', label: 'Más', href: '/(admin)/more', icon: 'ellipsis-horizontal-circle-outline', activeIcon: 'ellipsis-horizontal-circle', testID: 'admin-nav-more', permission: 'dashboard.read' },
     ]
     return allItems.filter((item) => !permissions || permissions.includes(item.permission)).map(({ permission: _permission, ...item }) => item)
   }, [permissions])

@@ -11,6 +11,7 @@ export type MobileBottomNavigationItem<Key extends string> = {
   href: string
   icon: keyof typeof Ionicons.glyphMap
   activeIcon: keyof typeof Ionicons.glyphMap
+  testID?: string
 }
 
 type MobileBottomNavigationProps<Key extends string> = {
@@ -38,6 +39,7 @@ export default function MobileBottomNavigation<Key extends string>({
     return (
       <Pressable
         key={item.key}
+        testID={item.testID}
         accessibilityLabel={item.label}
         accessibilityRole="tab"
         accessibilityState={{ selected: isActive }}

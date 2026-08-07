@@ -28,17 +28,18 @@ type NavItem = {
   label: string
   icon: IoniconName
   href?: string
+  testID?: string
 }
 
 const navItems: NavItem[] = [
-  { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(student)/homeStudent' },
-  { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(student)/classes' },
-  { section: 'progress', label: 'Progreso', icon: 'stats-chart-outline', href: '/(student)/progress' },
-  { section: 'ranking', label: 'Ranking', icon: 'trophy-outline', href: '/(student)/ranking' },
-  { section: 'badges', label: 'Logros', icon: 'ribbon-outline', href: '/(student)/badges' },
-  { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(student)/notifications' },
-  { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(student)/profile' },
-  { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(student)/settings' },
+  { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(student)/homeStudent', testID: 'student-nav-home' },
+  { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(student)/classes', testID: 'student-nav-classes' },
+  { section: 'progress', label: 'Progreso', icon: 'stats-chart-outline', href: '/(student)/progress', testID: 'student-nav-progress' },
+  { section: 'ranking', label: 'Ranking', icon: 'trophy-outline', href: '/(student)/ranking', testID: 'student-nav-ranking' },
+  { section: 'badges', label: 'Logros', icon: 'ribbon-outline', href: '/(student)/badges', testID: 'student-nav-badges' },
+  { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(student)/notifications', testID: 'student-nav-notifications' },
+  { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(student)/profile', testID: 'student-nav-profile' },
+  { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(student)/settings', testID: 'student-nav-settings' },
 ]
 
 export default function StudentSidebar({
@@ -187,6 +188,7 @@ function StudentNavButton({
 
   const content = (
     <Pressable
+      testID={item.testID}
       accessibilityRole="button"
       accessibilityLabel={item.label}
       onHoverIn={() => setIsHovered(true)}

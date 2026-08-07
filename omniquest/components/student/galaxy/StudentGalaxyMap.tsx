@@ -31,6 +31,7 @@ export type GalaxyCourseItem = {
   badgeColor: string
   detailColor: string
   onPress: () => void
+  testID?: string
   onMore?: () => void
   group?: 'in_progress' | 'practice' | 'completed'
   groupLabel?: string
@@ -41,6 +42,7 @@ export type GalaxyTopicState = 'completed' | 'active' | 'available' | 'locked' |
 export type GalaxyTopicItem = {
   key: string
   title: string
+  testID?: string
   progress: number
   state: GalaxyTopicState
   actionLabel: string
@@ -247,6 +249,7 @@ export function CourseGalaxyMap({
                     ]}
                   >
                     <AppPressable
+                      testID={item.testID}
                       accessibilityLabel={`${item.title}. ${item.progress}% completado. ${item.subtitle}`}
                       accessibilityHint="Abre el curso y muestra sus temas"
                       onPress={item.onPress}
@@ -393,6 +396,7 @@ export function CourseGalaxyMap({
                     ]}
                   >
                     <Pressable
+                      testID={item.testID}
                       accessibilityRole="button"
                       accessibilityLabel={`Abrir curso ${item.title}`}
                       accessibilityHint={`${item.progress}% completado. ${item.subtitle}`}
@@ -819,6 +823,7 @@ function TopicPlanetButton({
 
   return (
     <Pressable
+      testID={item.testID}
       accessibilityRole="button"
       accessibilityLabel={`${item.title}. ${getTopicStateLabel(item.state)}`}
       accessibilityState={{ disabled }}

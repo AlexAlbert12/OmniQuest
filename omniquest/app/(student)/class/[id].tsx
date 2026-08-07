@@ -385,6 +385,7 @@ export default function StudentClassDetailScreen() {
     return {
       key: String(topic.id),
       title: topic.title,
+      testID: `student-topic-${topic.id}`,
       progress,
       state,
       actionLabel: topic.failedQuestions > 0 ? 'Repasar' : getTopicActionLabel(topic),
