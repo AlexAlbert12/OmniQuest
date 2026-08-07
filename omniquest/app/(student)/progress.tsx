@@ -94,6 +94,7 @@ export default function ProgressScreen() {
       <ProgressOverview
         progressPercent={progress.progressPercent}
         accuracyPercent={progress.accuracyPercent}
+        answeredQuestions={progress.answeredQuestions}
         failedQuestions={progress.failedQuestions}
         weeklyAttemptsCount={progress.weeklyAttemptsCount}
         streakDays={progress.streakDays}

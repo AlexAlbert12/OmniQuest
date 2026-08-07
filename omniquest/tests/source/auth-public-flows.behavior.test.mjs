@@ -100,3 +100,33 @@ test('public and anonymous entry points keep server roles least privileged', asy
   assert.doesNotMatch(rootLayout, /user_metadata\?\.role_id/)
   assert.doesNotMatch(rootLayout, /from\('profiles'\)[\s\S]{0,180}upsert/)
 })
+
+test('guest entry requires acknowledgement and the landing only presents student and teacher paths', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const landing = await readFile('app/index.tsx', 'utf8')
+
+  assert.match(landing, /title: t\('landing\.guestNoticeTitle'\)/)
+  assert.match(landing, /label: t\('common\.cancel'\), role: 'cancel'/)
+  assert.match(landing, /label: t\('landing\.guestAccept'\)/)
+  assert.match(landing, /onGuestPress={requestGuestEntry}/)
+  assert.doesNotMatch(landing, /kind: 'progress'/)
+  assert.match(landing, /roleNoticeKey: 'auth\.roles\.student'/)
+  assert.match(landing, /roleNoticeKey: 'auth\.roles\.staff'/)
+})
+
+test('login and registration share the same accessible secondary home navigation', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const [login, register, homeLink] = await Promise.all([
+    readFile('app/(auth)/login.tsx', 'utf8'),
+    readFile('app/(auth)/register.tsx', 'utf8'),
+    readFile('components/auth/AuthHomeLink.tsx', 'utf8'),
+  ])
+
+  assert.match(login, /<AuthHomeLink \/>/)
+  assert.match(register, /<AuthHomeLink \/>/)
+  assert.doesNotMatch(login, /home-outline/)
+  assert.doesNotMatch(register, /home-outline/)
+  assert.match(homeLink, /minHeight: 44/)
+  assert.match(homeLink, /onHoverIn/)
+  assert.match(homeLink, /onFocus/)
+})

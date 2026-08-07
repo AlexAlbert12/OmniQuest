@@ -3,8 +3,9 @@ import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../../lib/appTheme'
 
-export default function ProgressOverview({ progressPercent, accuracyPercent, failedQuestions, weeklyAttemptsCount, streakDays }: {
+export default function ProgressOverview({ progressPercent, accuracyPercent, answeredQuestions, failedQuestions, weeklyAttemptsCount, streakDays }: {
   progressPercent: number
+  answeredQuestions: number
   accuracyPercent: number
   failedQuestions: number
   weeklyAttemptsCount: number
@@ -13,7 +14,7 @@ export default function ProgressOverview({ progressPercent, accuracyPercent, fai
   const { tokens } = useAppTheme()
   const metrics = [
     { icon: 'analytics' as const, label: 'Progreso', value: `${progressPercent}%`, detail: 'Contenido respondido', color: tokens.brand.student },
-    { icon: 'checkmark-circle' as const, label: 'Precisión', value: `${accuracyPercent}%`, detail: `${weeklyAttemptsCount} intentos esta semana`, color: tokens.semantic.success },
+    { icon: 'checkmark-circle' as const, label: 'Precisión', value: answeredQuestions > 0 ? `${accuracyPercent}%` : '\u2014', detail: answeredQuestions > 0 ? `${weeklyAttemptsCount} intentos esta semana` : 'Sin datos todavía', color: tokens.semantic.success },
     { icon: 'refresh-circle' as const, label: 'Para practicar', value: String(failedQuestions), detail: failedQuestions ? 'Oportunidades de mejora' : 'Todo al día', color: tokens.semantic.warning },
     { icon: 'flame' as const, label: 'Racha', value: `${streakDays} días`, detail: streakDays ? 'Mantén el ritmo' : 'Empieza hoy', color: tokens.gamification.streak },
   ]

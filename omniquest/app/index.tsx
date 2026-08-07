@@ -4,7 +4,6 @@ import { Link, useRouter } from 'expo-router'
 import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { useState } from 'react'
 import BrandLogo from '../components/BrandLogo'
-import OmniGuide from '../components/OmniGuide'
 import HomeVisualBackground from '../components/HomeVisualBackground'
 import { supabase } from '../lib/supabase'
 import { createShadowStyle } from '../lib/platformShadow'
@@ -13,7 +12,6 @@ import { useAppModal } from '../components/AppModalProvider'
 import { useI18n } from '../lib/i18n'
 import { checkAuthAttempt, formatRetryDelay } from '../lib/authSecurity'
 import { getOrCreateDeviceId } from '../lib/sessionSecurity'
-import AuthRoleNotice from '../components/auth/AuthRoleNotice'
 
 type PathKind = 'student' | 'teacher'
 
@@ -27,7 +25,8 @@ type Feature = {
   description: string
   gradient: readonly [string, string]
   icon: keyof typeof Ionicons.glyphMap
-  kind: PathKind | 'progress'
+  kind: PathKind
+  roleNoticeKey: 'auth.roles.student' | 'auth.roles.staff'
   tabLabel?: string
   title: string
   titleAccent: string
@@ -40,6 +39,7 @@ const features: Feature[] = [
     gradient: ['rgba(145, 73, 246, 0.38)', 'rgba(34, 28, 78, 0.94)'],
     icon: 'game-controller-outline',
     kind: 'student',
+    roleNoticeKey: 'auth.roles.student',
     tabLabel: 'Alumnos',
     title: 'Para',
     titleAccent: 'alumnos',
@@ -56,6 +56,7 @@ const features: Feature[] = [
     gradient: ['rgba(56, 189, 248, 0.32)', 'rgba(18, 58, 92, 0.94)'],
     icon: 'school-outline',
     kind: 'teacher',
+    roleNoticeKey: 'auth.roles.staff',
     tabLabel: 'Profesores',
     title: 'Para',
     titleAccent: 'profesores',
@@ -64,21 +65,6 @@ const features: Feature[] = [
       { icon: 'people-outline', label: 'Gestiona tus clases y alumnos' },
       { icon: 'create-outline', label: 'Crea preguntas interactivas' },
       { icon: 'bar-chart-outline', label: 'Analiza el progreso de tu clase' },
-    ],
-  },
-  {
-    accent: '#14D7C8',
-    accentSoft: '#0B373B',
-    gradient: ['rgba(20, 215, 200, 0.28)', 'rgba(12, 61, 70, 0.94)'],
-    icon: 'stats-chart-outline',
-    kind: 'progress',
-    title: 'Progreso y',
-    titleAccent: 'ranking',
-    description: 'Consulta estadísticas, rachas, insignias y preguntas que necesitan refuerzo.',
-    bullets: [
-      { icon: 'stats-chart-outline', label: 'Estadísticas detalladas' },
-      { icon: 'shield-checkmark-outline', label: 'Mantén tu racha diaria' },
-      { icon: 'trophy-outline', label: 'Compite en el ranking' },
     ],
   },
 ]
@@ -97,7 +83,7 @@ export default function IndexScreen() {
   const useDesktopFeatureLayout = !responsive.isMobile || (isWeb && responsive.isTablet)
   const availableFeatureWidth = Math.min(1120, width - (isDesktop ? 104 : 36))
   const featureCardWidth = useDesktopFeatureLayout
-    ? Math.min(isDesktop ? 350 : 220, Math.floor((availableFeatureWidth - 36) / 3))
+    ? Math.min(isDesktop ? 430 : 320, Math.floor((availableFeatureWidth - 18) / 2))
     : undefined
 
   const enterAsGuest = async () => {
@@ -137,6 +123,22 @@ export default function IndexScreen() {
     }
   }
 
+  const requestGuestEntry = () => {
+    showModal({
+      title: t('landing.guestNoticeTitle'),
+      message: `${t('landing.guestTemporary')}\n\n${t('landing.guestPrivacy')}`,
+      variant: 'warning',
+      buttons: [
+        { label: t('common.cancel'), role: 'cancel' },
+        {
+          label: t('landing.guestAccept'),
+          role: 'primary',
+          onPress: () => void enterAsGuest(),
+        },
+      ],
+    })
+  }
+
   return (
     <ScrollView
       className="flex-1 bg-background-secondary"
@@ -156,7 +158,7 @@ export default function IndexScreen() {
           className="z-10 flex-1"
           style={{
             paddingHorizontal: isDesktop ? 52 : 22,
-            paddingTop: isDesktop ? 44 : 34,
+            paddingTop: isDesktop ? 44 : 30,
           }}
         >
           <LandingPanel
@@ -165,7 +167,7 @@ export default function IndexScreen() {
             useDesktopFeatureLayout={useDesktopFeatureLayout}
             featureCardWidth={featureCardWidth}
             onLoginPress={() => router.push('/login')}
-            onGuestPress={enterAsGuest}
+            onGuestPress={requestGuestEntry}
             guestLoading={guestLoading}
           />
         </View>
@@ -196,7 +198,6 @@ function LandingPanel({
   const { t } = useI18n()
   const [selectedPath, setSelectedPath] = useState<PathKind>('student')
   const activePath = features.find((feature) => feature.kind === selectedPath) ?? features[0]
-  const progressFeature = features.find((feature) => feature.kind === 'progress')
   const isMobile = !useDesktopFeatureLayout
 
   return (
@@ -209,18 +210,21 @@ function LandingPanel({
         width: '100%',
       }}
     >
-      <BrandLogo center size={isDesktop ? 92 : isTablet ? 76 : 66} />
-      <Text
-        maxFontSizeMultiplier={2}
-        style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 28 : isTablet ? 24 : 20 }}
-        className="text-center mt-4 text-semantic-info">
-        {t('landing.journey')}
-      </Text>
-
-      <View className="mt-2 flex-row items-center gap-3">
-        <View className="h-px w-10 bg-brand-student" />
-        <OmniGuide state="normal" autoBlink size={isDesktop ? 80 : isTablet ? 80 : 40} />
-        <View className="h-px w-10 bg-brand-student" />
+      <BrandLogo center size={isDesktop ? 92 : isTablet ? 76 : 60} />
+      <View
+        className="flex-row items-center gap-3"
+        style={{ marginTop: isDesktop || isTablet ? 8 : 4 }}
+      >
+        <Text
+          maxFontSizeMultiplier={2}
+          style={{
+            fontFamily: 'Pacifico_400Regular',
+            fontSize: isDesktop ? 28 : isTablet ? 24 : 19,
+            marginTop: isDesktop || isTablet ? 16 : 10,
+          }}
+          className="text-center text-semantic-info">
+          {t('landing.journey')}
+        </Text>
       </View>
 
       <View
@@ -228,7 +232,7 @@ function LandingPanel({
           alignSelf: 'center',
           alignItems: 'center',
           justifyContent: 'center',
-          marginTop: isDesktop ? 28 : 22,
+          marginTop: isDesktop ? 28 : isTablet ? 22 : 18,
           flexDirection: isTablet ? 'row' : 'column',
           gap: isMobile ? 14 : 18,
           maxWidth: 820,
@@ -247,50 +251,13 @@ function LandingPanel({
 
         <LandingAction
           icon="glasses-outline"
-          title={guestLoading ? t('landing.guestLoading') : t('landing.guest')}
+          title={guestLoading ? t('landing.guestLoading') : isTablet ? t('landing.guest') : t('landing.guestMobile')}
           subtitle={t('landing.guestSubtitle')}
           onPress={onGuestPress}
           variant="secondary"
           isTablet={isTablet}
           loading={guestLoading}
         />
-      </View>
-
-      <View
-        accessibilityRole="summary"
-        className="mt-5 w-full max-w-[820px] rounded-3xl border border-semantic-warning bg-semantic-surface-warning px-5 py-4"
-      >
-        <View className="flex-row items-start gap-3">
-          <Ionicons name="hourglass-outline" size={22} color="#FBBF24" />
-          <View className="min-w-0 flex-1">
-            <Text maxFontSizeMultiplier={2} className="text-[14px] font-black leading-6 text-semantic-warning">
-              {t('landing.guestTemporary')}
-            </Text>
-            <Text maxFontSizeMultiplier={2} className="mt-1 text-[12px] leading-5 text-text-secondary">
-              {t('landing.guestPrivacy')}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View className="mt-4 w-full max-w-[820px]">
-        <Text maxFontSizeMultiplier={2} className="mb-2 text-center text-[14px] font-black text-text-primary">
-          {t('landing.rolesTitle')}
-        </Text>
-        <AuthRoleNotice />
-      </View>
-
-      <View className="mt-4 flex-row flex-wrap items-center justify-center gap-5">
-        <Link href="/privacy" asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel={t('landing.privacy')} accessibilityHint={t('landing.privacyHint')} hitSlop={6}>
-            <Text maxFontSizeMultiplier={2} className="font-extrabold text-semantic-info">{t('landing.privacy')}</Text>
-          </Pressable>
-        </Link>
-        <Link href="/terms" asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel={t('landing.terms')} accessibilityHint={t('landing.termsHint')} hitSlop={6}>
-            <Text maxFontSizeMultiplier={2} className="font-extrabold text-semantic-info">{t('landing.terms')}</Text>
-          </Pressable>
-        </Link>
       </View>
 
       <View className="mt-6 flex-row flex-wrap items-center justify-center gap-2">
@@ -300,6 +267,7 @@ function LandingPanel({
             accessibilityRole="link"
             accessibilityLabel={t('landing.register')}
             accessibilityHint={t('landing.registerHint')}
+            hitSlop={12}
             className="flex-row items-center gap-2"
             style={({ pressed }) => ({ opacity: pressed ? 0.74 : 1 })}
           >
@@ -309,13 +277,12 @@ function LandingPanel({
         </Link>
       </View>
 
-      <SectionDivider />
+      <SectionDivider isMobile={isMobile} />
 
       {isMobile ? (
         <>
           <PathSelector selectedPath={selectedPath} onSelect={setSelectedPath} />
           <PathFeatureCard feature={activePath} featured />
-          {progressFeature ? <PathFeatureCard feature={progressFeature} /> : null}
         </>
       ) : null}
 
@@ -365,6 +332,7 @@ function LandingAction({
   testID?: string
 }) {
   const isPrimary = variant === 'primary'
+  const isMobile = !isTablet
   const borderColor = isPrimary ? 'transparent' : 'rgba(148, 163, 184, 0.18)'
   const shadowColor = isPrimary ? '#7C66FF' : '#0F766E'
 
@@ -379,7 +347,7 @@ function LandingAction({
       testID={testID}
       style={({ pressed }) => ({
         opacity: loading ? 0.72 : pressed ? 0.9 : 1,
-        width: isTablet ? 400 : '100%',
+        width: isTablet ? 450 : '100%',
         alignSelf: 'center',
       })}
     >
@@ -394,9 +362,9 @@ function LandingAction({
           borderWidth: 1,
           flexDirection: 'row',
           justifyContent: 'space-between',
-          minHeight: 78,
-          paddingHorizontal: 22,
-          paddingVertical: 16,
+          minHeight: isMobile ? 80 : 78,
+          paddingHorizontal: isMobile ? 18 : 22,
+          paddingVertical: isMobile ? 14 : 16,
           width: '100%',
           ...createShadowStyle({
             color: shadowColor,
@@ -407,41 +375,59 @@ function LandingAction({
           }),
         }}
       >
-        <View className="flex-1 flex-row items-center gap-4">
+        <View
+          className="flex-1 flex-row items-center"
+          style={{ gap: isMobile ? 12 : 16 }}
+        >
           <View
             className="items-center justify-center"
             style={{
               backgroundColor: isPrimary ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.05)',
               borderColor: isPrimary ? 'transparent' : 'rgba(148, 163, 184, 0.14)',
-              borderRadius: 22,
+              borderRadius: isMobile ? 19 : 22,
               borderWidth: isPrimary ? 0 : 1,
-              height: 58,
-              width: 58,
+              height: isMobile ? 52 : 58,
+              width: isMobile ? 52 : 58,
             }}
           >
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Ionicons name={icon} size={30} color={isPrimary ? '#FFFFFF' : '#C8D2E8'} />
+              <Ionicons name={icon} size={isMobile ? 27 : 30} color={isPrimary ? '#FFFFFF' : '#C8D2E8'} />
             )}
           </View>
           <View className="flex-1">
-            <Text className="text-[20px] font-extrabold text-white">{title}</Text>
-            <Text className="mt-1 text-[17px] font-medium text-text-secondary">{subtitle}</Text>
+            <Text
+              adjustsFontSizeToFit={isMobile}
+              className="font-extrabold text-white"
+              minimumFontScale={0.9}
+              numberOfLines={1}
+              style={{ fontSize: isMobile ? 18 : 20 }}
+            >
+              {title}
+            </Text>
+            <Text
+              className="mt-1 font-medium text-text-secondary"
+              numberOfLines={1}
+              style={{ fontSize: isMobile ? 15 : 17 }}
+            >
+              {subtitle}
+            </Text>
           </View>
         </View>
         {!loading ? (
           <View
-            className="ml-3 items-center justify-center rounded-full"
+            className="items-center justify-center rounded-full"
             style={{
               backgroundColor: isPrimary ? 'rgba(255,255,255,0.18)' : 'rgba(148, 163, 184, 0.08)',
               borderColor: isPrimary ? 'transparent' : 'rgba(148, 163, 184, 0.15)',
               borderWidth: isPrimary ? 0 : 1,
-              height: 50,
-              width: 50,
+              height: isMobile ? 46 : 50,
+              marginLeft: isMobile ? 10 : 12,
+              width: isMobile ? 46 : 50,
             }}
           >
-            <Ionicons name="arrow-forward" size={28} color={isPrimary ? '#FFFFFF' : '#C8D2E8'} />
+            <Ionicons name="arrow-forward" size={isMobile ? 25 : 28} color={isPrimary ? '#FFFFFF' : '#C8D2E8'} />
           </View>
         ) : null}
       </LinearGradient>
@@ -449,10 +435,13 @@ function LandingAction({
   )
 }
 
-function SectionDivider() {
+function SectionDivider({ isMobile }: { isMobile: boolean }) {
   const { t } = useI18n()
   return (
-    <View className="mt-8 w-full flex-row items-center gap-4">
+    <View
+      className="w-full flex-row items-center gap-4"
+      style={{ marginTop: isMobile ? 24 : 32 }}
+    >
       <View className="h-px flex-1 bg-brand-teacher" />
       <Text
         className="text-center text-[14px] font-extrabold text-white"
@@ -479,25 +468,25 @@ function PathSelector({
 
   return (
     <View
-      className="mt-8 w-full flex-row border p-1.5"
+      className="mt-6 w-full flex-row border p-1.5"
       style={{
         backgroundColor: 'rgba(16, 42, 82, 0.72)',
         borderColor: 'rgba(99, 177, 235, 0.22)',
         borderRadius: 28,
-        minHeight: 66,
+        minHeight: 60,
       }}
     >
       {options.map((option) => {
         const isSelected = selectedPath === option.kind
         const content = (
-          <View className="flex-row items-center justify-center gap-3">
+          <View className="flex-row items-center justify-center" style={{ gap: 10 }}>
             <Ionicons
               name={option.icon}
-              size={23}
+              size={21}
               color={isSelected ? '#FFFFFF' : '#AEBBDD'}
             />
             <Text
-              className="text-[18px] font-extrabold"
+              className={isSelected ? 'text-[17px] font-extrabold' : 'text-[17px] font-semibold'}
               style={{ color: isSelected ? '#FFFFFF' : '#AEBBDD' }}
             >
               {option.tabLabel}
@@ -523,12 +512,12 @@ function PathSelector({
                 colors={option.kind === 'teacher' ? ['#38BDF8', '#2F9FEA'] : ['#883AF1', '#B775FF']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={{ alignItems: 'center', borderRadius: 21, justifyContent: 'center', minHeight: 54 }}
+                style={{ alignItems: 'center', borderRadius: 21, justifyContent: 'center', minHeight: 48 }}
               >
                 {content}
               </LinearGradient>
             ) : (
-              <View className="items-center justify-center" style={{ minHeight: 54 }}>
+              <View className="items-center justify-center" style={{ minHeight: 48 }}>
                 {content}
               </View>
             )}
@@ -540,73 +529,76 @@ function PathSelector({
 }
 
 function PathFeatureCard({ feature, featured = false }: { feature: Feature; featured?: boolean }) {
+  const mobileCardGradient = feature.kind === 'student'
+    ? ['rgba(18, 34, 66, 0.98)', 'rgba(38, 29, 70, 0.96)'] as const
+    : ['rgba(16, 38, 68, 0.98)', 'rgba(12, 54, 70, 0.96)'] as const
+
   return (
     <LinearGradient
-      colors={feature.gradient}
+      colors={mobileCardGradient}
       start={{ x: 1, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={{
-        borderColor: featured ? 'rgba(148, 163, 184, 0.18)' : `${feature.accent}40`,
-        borderRadius: 32,
+        borderColor: featured ? `${feature.accent}52` : `${feature.accent}40`,
+        borderRadius: 26,
         borderWidth: 1,
-        marginTop: featured ? 26 : 28,
-        padding: 24,
+        marginTop: featured ? 22 : 24,
+        padding: 20,
         width: '100%',
         ...createShadowStyle({
           color: feature.accent,
-          opacity: featured ? 0.14 : 0.1,
-          radius: 24,
-          offsetY: 12,
-          web: `0 18px 34px ${feature.accent}1F`,
+          opacity: featured ? 0.1 : 0.08,
+          radius: 20,
+          offsetY: 10,
+          web: `0 14px 28px ${feature.accent}18`,
         }),
       }}
     >
-      <View className="flex-row items-start gap-5">
+      <View className="flex-row items-start gap-4">
         <View
           className="items-center justify-center"
           style={{
             backgroundColor: feature.accent,
-            borderRadius: 22,
-            height: 68,
-            width: 68,
+            borderRadius: 19,
+            height: 58,
+            width: 58,
           }}
         >
-          <Ionicons name={feature.icon} size={32} color="#FFFFFF" />
+          <Ionicons name={feature.icon} size={28} color="#FFFFFF" />
         </View>
 
         <View className="flex-1">
-          <Text className="text-[26px] font-extrabold text-white">
+          <Text className="text-[23px] font-extrabold text-white">
             {feature.title} <Text style={{ color: feature.accent }}>{feature.titleAccent}</Text>
           </Text>
-          <Text className="mt-2 text-[18px] leading-7 text-text-secondary">{feature.description}</Text>
+          <Text className="mt-1.5 text-[16px] font-medium leading-6 text-text-secondary">{feature.description}</Text>
         </View>
       </View>
 
-      <View className="mt-7 gap-4">
-        {feature.bullets.map((bullet) => (
+      <View className="mt-5">
+        {feature.bullets.map((bullet, index) => (
           <View
             key={bullet.label}
-            className="flex-row items-center gap-4 border"
+            className="flex-row items-center"
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.035)',
-              borderColor: 'rgba(148, 163, 184, 0.10)',
-              borderRadius: 22,
-              minHeight: 74,
-              paddingHorizontal: 18,
-              paddingVertical: 14,
+              borderBottomColor: 'rgba(148, 163, 184, 0.12)',
+              borderBottomWidth: index < feature.bullets.length - 1 ? 1 : 0,
+              gap: 12,
+              minHeight: 60,
+              paddingHorizontal: 4,
+              paddingVertical: 10,
             }}
           >
             <View
               className="items-center justify-center"
               style={{
-                borderRadius: 15,
-                height: 44,
-                width: 44,
+                height: 36,
+                width: 36,
               }}
             >
-              <Ionicons name={bullet.icon} size={26} color={feature.accent} />
+              <Ionicons name={bullet.icon} size={22} color={feature.accent} />
             </View>
-            <Text className="flex-1 text-[18px] font-bold leading-6 text-text-primary">{bullet.label}</Text>
+            <Text className="flex-1 text-[16px] font-semibold leading-[22px] text-text-primary">{bullet.label}</Text>
           </View>
         ))}
       </View>
@@ -671,14 +663,16 @@ function FeatureCard({
       </Text>
 
       {showDetails && (
-        <View className="mt-6 w-full gap-3">
-          {feature.bullets.map((bullet) => (
-            <View key={bullet.label} className="flex-row items-center gap-4">
-              <Ionicons name={bullet.icon} size={18} color={feature.accent} />
-              <Text className="flex-1 text-[15px] text-text-primary">{bullet.label}</Text>
-            </View>
-          ))}
-        </View>
+        <>
+          <View className="mt-6 w-full gap-3">
+            {feature.bullets.map((bullet) => (
+              <View key={bullet.label} className="flex-row items-center gap-4">
+                <Ionicons name={bullet.icon} size={18} color={feature.accent} />
+                <Text className="flex-1 text-[15px] text-text-primary">{bullet.label}</Text>
+              </View>
+            ))}
+          </View>
+        </>
       )}
 
       {isCompact && (
@@ -715,6 +709,7 @@ function FeatureCard({
 }
 
 function LandingFooter({ isDesktop }: { isDesktop: boolean }) {
+  const { t } = useI18n()
   return (
     <View
       className="z-10 border-t border-border-default bg-background-secondary"
@@ -736,15 +731,16 @@ function LandingFooter({ isDesktop }: { isDesktop: boolean }) {
         </View>
 
         <View className="flex-row items-center gap-8">
-          <View accessibilityRole="image" accessibilityLabel="Proyecto alojado en GitHub">
-            <Ionicons name="logo-github" size={25} color="#8BA6D3" />
-          </View>
-          <View accessibilityRole="image" accessibilityLabel="Trabajo Fin de Máster universitario">
-            <Ionicons name="school-outline" size={27} color="#8BA6D3" />
-          </View>
-          <View accessibilityRole="image" accessibilityLabel="Contacto del proyecto">
-            <Ionicons name="mail-outline" size={27} color="#8BA6D3" />
-          </View>
+          <Link href="/privacy" asChild>
+            <Pressable accessibilityRole="link" accessibilityLabel={t('landing.privacy')} accessibilityHint={t('landing.privacyHint')} hitSlop={6}>
+              <Text maxFontSizeMultiplier={2} className="font-extrabold text-semantic-info">{t('landing.privacy')}</Text>
+            </Pressable>
+          </Link>
+          <Link href="/terms" asChild>
+            <Pressable accessibilityRole="link" accessibilityLabel={t('landing.terms')} accessibilityHint={t('landing.termsHint')} hitSlop={6}>
+              <Text maxFontSizeMultiplier={2} className="font-extrabold text-semantic-info">{t('landing.terms')}</Text>
+            </Pressable>
+          </Link>
         </View>
       </View>
     </View>

@@ -30,8 +30,8 @@ export default function MobileBottomNavigation<Key extends string>({
   scrollable = false,
 }: MobileBottomNavigationProps<Key>) {
   const router = useRouter()
-  const { colors } = useAppTheme()
-  const inactiveColor = colors.textMuted
+  const { colors, tokens } = useAppTheme()
+  const inactiveColor = tokens.text.secondary
 
   const navigationItems = items.map((item) => {
     const isActive = item.key === activeKey
@@ -58,6 +58,11 @@ export default function MobileBottomNavigation<Key extends string>({
             size={ICON_SIZE}
             color={isActive ? accentColor : inactiveColor}
             style={styles.icon}
+          />
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={[styles.activeIndicator, { backgroundColor: isActive ? accentColor : 'transparent' }]}
           />
         </View>
 
@@ -154,12 +159,20 @@ const styles = StyleSheet.create({
   iconShell: {
     width: 40,
     height: 34,
+    position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
   },
   icon: {
     width: 30,
     textAlign: 'center',
+  },
+  activeIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    width: 14,
+    height: 3,
+    borderRadius: 999,
   },
   pressedItem: {
     opacity: 0.65,

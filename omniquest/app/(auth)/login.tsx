@@ -1,16 +1,14 @@
 import React, { useState } from 'react'
-import { Ionicons } from '@expo/vector-icons'
 import { Link } from 'expo-router'
 import { Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import AuthCapsLockWarning from '../../components/auth/AuthCapsLockWarning'
 import AuthCard from '../../components/auth/AuthCard'
+import AuthHomeLink from '../../components/auth/AuthHomeLink'
 import AuthInput from '../../components/auth/AuthInput'
-import AuthRoleNotice from '../../components/auth/AuthRoleNotice'
 import AuthStatusBanner from '../../components/auth/AuthStatusBanner'
 import AuthSubmitButton from '../../components/auth/AuthSubmitButton'
 import BrandLogo from '../../components/BrandLogo'
 import HomeVisualBackground from '../../components/HomeVisualBackground'
-import OmniGuide from '../../components/OmniGuide'
 import {
   getAuthErrorMessage,
   getEmailRedirectTo,
@@ -185,37 +183,19 @@ export default function LoginScreen() {
     <ScrollView className="flex-1 bg-background-secondary" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
       <View className="overflow-hidden bg-background-secondary" style={{ minHeight: Math.max(height, 760), borderRadius: isWeb ? 0 : 34 }}>
         <HomeVisualBackground isDesktop={isDesktop} />
-        <View className="z-10 flex-1 items-center justify-center" style={{ paddingHorizontal: isDesktop ? 32 : 22, paddingVertical: 32 }}>
-          <View className="absolute left-5 top-5 z-20">
-            <Link href="/" asChild>
-              <Pressable
-                accessibilityRole="link"
-                accessibilityLabel={t('auth.common.home')}
-                className="flex-row items-center gap-2 px-4 py-3"
-                style={({ pressed }) => ({
-                  backgroundColor: 'rgba(16, 42, 82, 0.88)',
-                  borderColor: 'rgba(99, 177, 235, 0.32)',
-                  borderWidth: 1,
-                  borderRadius: 999,
-                  opacity: pressed ? 0.8 : 1,
-                })}
-              >
-                <Ionicons name="home-outline" size={18} color="#8CD5FF" />
-                <Text maxFontSizeMultiplier={2} className="font-extrabold text-text-secondary">{t('auth.common.home')}</Text>
-              </Pressable>
-            </Link>
-          </View>
+        <View
+          className="z-10 flex-1 items-center"
+          style={{
+            justifyContent: isTablet ? 'center' : 'flex-start',
+            paddingBottom: 32,
+            paddingHorizontal: isDesktop ? 32 : 22,
+            paddingTop: isTablet ? 32 : 100,
+          }}
+        >
+          <AuthHomeLink />
 
-          <View className="items-center px-2">
+          <View className="items-center px-2" style={{ marginBottom: isTablet ? 32 : 24 }}>
             <BrandLogo center size={isDesktop ? 68 : 52} />
-            <Text maxFontSizeMultiplier={2} style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }} className="mt-1 text-center text-semantic-info">
-              {t('auth.login.journey')}
-            </Text>
-            <View className="mb-5 mt-4 flex-row items-center gap-3">
-              <View className="h-px w-16 bg-brand-student" />
-              <OmniGuide state="normal" autoBlink size={isDesktop ? 80 : isTablet ? 70 : 48} />
-              <View className="h-px w-16 bg-brand-student" />
-            </View>
           </View>
 
           <AuthCard
@@ -227,10 +207,10 @@ export default function LoginScreen() {
             maxWidth={isTablet ? 620 : 460}
             footer={(
               <View className="flex-row flex-wrap items-center justify-center gap-1">
-                <Text maxFontSizeMultiplier={2} className="text-[13px] font-semibold text-text-muted">{t('auth.login.noStudentAccount')}</Text>
+                <Text maxFontSizeMultiplier={2} className="font-semibold text-text-muted" style={{ fontSize: isTablet ? 13 : 14 }}>{t('auth.login.noStudentAccount')}</Text>
                 <Link href="/register" asChild>
-                  <Pressable accessibilityRole="link" hitSlop={6}>
-                    <Text maxFontSizeMultiplier={2} className="text-[13px] font-extrabold text-semantic-info">{t('auth.login.registerLink')}</Text>
+                  <Pressable accessibilityRole="link" hitSlop={10}>
+                    <Text maxFontSizeMultiplier={2} className="font-extrabold text-semantic-info" style={{ fontSize: isTablet ? 13 : 14 }}>{t('auth.login.registerLink')}</Text>
                   </Pressable>
                 </Link>
               </View>
@@ -285,21 +265,6 @@ export default function LoginScreen() {
             />
 
             <AuthCapsLockWarning visible={capsLock} />
-
-            <View className="flex-row items-center justify-end">
-              <Link href="/forgot-password" asChild>
-                <Pressable accessibilityRole="link" hitSlop={6}>
-                  <Text maxFontSizeMultiplier={2} className="text-[13px] font-bold text-semantic-info">{t('auth.login.forgot')}</Text>
-                </Pressable>
-              </Link>
-            </View>
-
-            <AuthRoleNotice compact />
-
-            <AuthStatusBanner
-              variant="info"
-              message={t('auth.login.managedSessions')}
-            />
 
             {status ? (
               <AuthStatusBanner

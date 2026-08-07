@@ -1,18 +1,16 @@
 import React, { useMemo, useState } from 'react'
-import { Ionicons } from '@expo/vector-icons'
 import { Link, useRouter } from 'expo-router'
 import { Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import AuthCapsLockWarning from '../../components/auth/AuthCapsLockWarning'
 import AuthCard from '../../components/auth/AuthCard'
+import AuthHomeLink from '../../components/auth/AuthHomeLink'
 import AuthInput from '../../components/auth/AuthInput'
-import AuthRoleNotice from '../../components/auth/AuthRoleNotice'
 import AuthStatusBanner from '../../components/auth/AuthStatusBanner'
 import AuthSubmitButton from '../../components/auth/AuthSubmitButton'
 import EmailVerificationPanel from '../../components/auth/EmailVerificationPanel'
 import PasswordStrength from '../../components/auth/PasswordStrength'
 import BrandLogo from '../../components/BrandLogo'
 import HomeVisualBackground from '../../components/HomeVisualBackground'
-import OmniGuide from '../../components/OmniGuide'
 import { getAuthErrorMessage, getEmailRedirectTo, getPasswordStrength, normalizeEmail } from '../../lib/auth'
 import { checkAuthAttempt, formatRetryDelay } from '../../lib/authSecurity'
 import { buildPublicStudentSignUpOptions, prepareAuthSubmission, validateRegistrationForm } from '../../lib/authFormValidation'
@@ -156,25 +154,10 @@ export default function RegisterScreen() {
       <View className="overflow-hidden bg-background-secondary" style={{ minHeight: Math.max(height, 860), borderRadius: isWeb ? 0 : 34 }}>
         <HomeVisualBackground isDesktop={isDesktop} />
         <View className="z-10 flex-1 items-center justify-center" style={{ paddingHorizontal: isDesktop ? 32 : 22, paddingVertical: 32 }}>
-          <View className="absolute left-5 top-5 z-20">
-            <Link href="/" asChild>
-              <Pressable accessibilityRole="link" accessibilityLabel={t('auth.common.home')} className="flex-row items-center gap-2 rounded-full border border-border-active bg-semantic-surface-info px-4 py-3">
-                <Ionicons name="home-outline" size={18} color="#8CD5FF" />
-                <Text maxFontSizeMultiplier={2} className="font-extrabold text-text-secondary">{t('auth.common.home')}</Text>
-              </Pressable>
-            </Link>
-          </View>
+          <AuthHomeLink />
 
-          <View className="items-center px-2">
+          <View className="items-center px-2 mb-8">
             <BrandLogo center size={isDesktop ? 68 : 48} />
-            <Text maxFontSizeMultiplier={2} style={{ fontFamily: 'Pacifico_400Regular', fontSize: isDesktop ? 21 : 16 }} className="mt-1 text-center text-semantic-info">
-              {t('auth.register.heading')}
-            </Text>
-            <View className="mb-5 mt-4 flex-row items-center gap-3">
-              <View className="h-px w-16 bg-brand-student" />
-              <OmniGuide state={verificationEmail ? 'happy' : 'normal'} autoBlink={!verificationEmail} size={isDesktop ? 80 : isTablet ? 70 : 48} />
-              <View className="h-px w-16 bg-brand-student" />
-            </View>
           </View>
 
           <AuthCard
@@ -184,12 +167,13 @@ export default function RegisterScreen() {
             subtitle={verificationEmail ? t('auth.register.verificationSubtitle') : t('auth.register.subtitle')}
             isDesktop={isDesktop}
             maxWidth={isTablet ? 620 : 470}
+            surfaceTone="muted-role"
             footer={!verificationEmail ? (
               <View className="flex-row flex-wrap items-center justify-center gap-1">
-                <Text maxFontSizeMultiplier={2} className="text-[13px] font-semibold text-text-muted">{t('auth.register.haveAccount')}</Text>
+                <Text maxFontSizeMultiplier={2} className="font-semibold text-text-muted" style={{ fontSize: isTablet ? 13 : 14 }}>{t('auth.register.haveAccount')}</Text>
                 <Link href="/(auth)/login" asChild>
-                  <Pressable accessibilityRole="link" hitSlop={6}>
-                    <Text maxFontSizeMultiplier={2} className="text-[13px] font-extrabold text-semantic-info">{t('auth.register.loginLink')}</Text>
+                  <Pressable accessibilityRole="link" hitSlop={10}>
+                    <Text maxFontSizeMultiplier={2} className="font-extrabold text-semantic-info" style={{ fontSize: isTablet ? 13 : 14 }}>{t('auth.register.loginLink')}</Text>
                   </Pressable>
                 </Link>
               </View>
@@ -209,7 +193,6 @@ export default function RegisterScreen() {
               </>
             ) : (
               <>
-                <AuthRoleNotice />
                 <AuthInput
                   label={t('auth.common.alias')}
                   icon="person-outline"

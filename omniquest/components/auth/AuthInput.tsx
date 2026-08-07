@@ -95,10 +95,14 @@ export default function AuthInput({
             accessibilityHint={t('auth.password.toggleHint')}
             accessibilityState={{ selected: Boolean(secureVisible) }}
             onPress={onToggleSecureText}
-            hitSlop={7}
             focusable
-            className="mr-3 items-center justify-center rounded-full p-2"
-            style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
+            className="mr-1 items-center justify-center rounded-full"
+            style={({ pressed }) => ({
+              backgroundColor: pressed ? 'rgba(148, 163, 184, 0.10)' : 'transparent',
+              height: 44,
+              opacity: pressed ? 0.72 : 1,
+              width: 44,
+            })}
           >
             <Ionicons
               name={secureVisible ? 'eye-outline' : 'eye-off-outline'}

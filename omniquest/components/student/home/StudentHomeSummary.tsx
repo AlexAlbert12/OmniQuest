@@ -10,12 +10,14 @@ export default function StudentHomeSummary({
   attemptCount,
   failedQuestions,
   accuracyPercent,
+  isDesktop,
   onOpenProgress,
 }: {
   progressPercent: number
   attemptCount: number
   failedQuestions: number
   accuracyPercent: number
+  isDesktop: boolean
   onOpenProgress: () => void
 }) {
   const { tokens } = useAppTheme()
@@ -23,7 +25,7 @@ export default function StudentHomeSummary({
     { label: 'Avance', value: `${progressPercent}%`, icon: 'analytics-outline' as const, color: tokens.semantic.success },
     { label: 'Preguntas', value: String(attemptCount), icon: 'help-circle-outline' as const, color: tokens.brand.student },
     { label: 'Para repasar', value: String(failedQuestions), icon: 'refresh-circle' as const, color: tokens.semantic.warning },
-    { label: 'Precisión', value: `${accuracyPercent}%`, icon: 'speedometer-outline' as const, color: tokens.gamification.streak },
+    { label: 'Precisión', value: attemptCount > 0 ? `${accuracyPercent}%` : '\u2014', icon: 'speedometer-outline' as const, color: tokens.semantic.info },
   ]
 
   return (
@@ -44,12 +46,30 @@ export default function StudentHomeSummary({
       </View>
       <View className="flex-row flex-wrap gap-3">
         {metrics.map((metric) => (
-          <View key={metric.label} className="min-w-[140px] flex-1 rounded-[20px] border border-border-default bg-surface-default p-4">
-            <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(metric.color, '24') }}>
-              <Ionicons name={metric.icon} size={21} color={metric.color} />
+          <View
+            key={metric.label}
+            className="min-w-[140px] flex-1 rounded-[20px] border border-border-subtle bg-surface-raised px-4"
+            style={{ paddingVertical: isDesktop ? 13 : 16 }}
+          >
+            <View
+              className="items-center justify-center"
+              style={{
+                width: isDesktop ? 34 : 40,
+                height: isDesktop ? 34 : 40,
+                borderRadius: isDesktop ? 10 : 12,
+                backgroundColor: withAlpha(metric.color, '24'),
+              }}
+            >
+              <Ionicons name={metric.icon} size={isDesktop ? 19 : 21} color={metric.color} />
             </View>
-            <Text maxFontSizeMultiplier={2} className="mt-3 text-[24px] font-black text-white">{metric.value}</Text>
-            <Text maxFontSizeMultiplier={2} className="mt-1 text-[12px] font-bold text-text-muted">{metric.label}</Text>
+            <Text
+              maxFontSizeMultiplier={2}
+              className="font-black text-text-primary"
+              style={{ marginTop: isDesktop ? 7 : 12, fontSize: isDesktop ? 22 : 24, lineHeight: isDesktop ? 26 : 29 }}
+            >
+              {metric.value}
+            </Text>
+            <Text maxFontSizeMultiplier={2} className="mt-0.5 text-[12px] font-bold text-text-muted">{metric.label}</Text>
           </View>
         ))}
       </View>

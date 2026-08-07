@@ -58,14 +58,22 @@ test('CSV exports share formula-injection protection', () => {
 })
 
 test('course visibility policy avoids recursive RLS evaluation through enrollments', () => {
-  const migration = read('supabase/migrations/20260803193000_teacher_authorization_hardening.sql')
+  const historicalMigration = read('supabase/migrations/20260803193000_teacher_authorization_hardening.sql')
+  const repairMigration = read('supabase/migrations/20260807193000_fix_subject_rls_recursion.sql')
 
-  assert.match(migration, /public\.is_subject_enrolled\(subjects\.id\)/)
-  assert.doesNotMatch(migration, /from public\.enrollments enrollment/)
-  assert.match(migration, /revoke all on table public\.subjects from public, anon, authenticated/)
-  assert.match(migration, /grant select on table public\.subjects to authenticated/)
-  assert.match(migration, /revoke select on table public\.questions, public\.answers from public, anon/)
-  assert.match(migration, /grant select on table public\.questions, public\.answers to authenticated/)
+  assert.match(historicalMigration, /public\.is_subject_enrolled\(subjects\.id\)/)
+  assert.doesNotMatch(historicalMigration, /from public\.enrollments enrollment/)
+  assert.match(historicalMigration, /revoke all on table public\.subjects from public, anon, authenticated/)
+  assert.match(historicalMigration, /grant select on table public\.subjects to authenticated/)
+  assert.match(historicalMigration, /revoke select on table public\.questions, public\.answers from public, anon/)
+  assert.match(historicalMigration, /grant select on table public\.questions, public\.answers to authenticated/)
+
+  assert.match(repairMigration, /create or replace function public\.is_subject_enrolled\(p_subject_id bigint\)/)
+  assert.match(repairMigration, /security definer[\s\S]*set row_security = off/)
+  assert.match(repairMigration, /alter function public\.is_subject_enrolled\(bigint\) owner to postgres/)
+  assert.match(repairMigration, /drop policy if exists "subjects_select_authenticated_no_recursion"/)
+  assert.match(repairMigration, /public\.is_subject_enrolled\(subjects\.id\)/)
+  assert.doesNotMatch(repairMigration, /from public\.enrollments enrollment/)
 })
 
 test('student progress reads are explicitly granted only through RLS-scoped tables', () => {

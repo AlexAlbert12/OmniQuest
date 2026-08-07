@@ -4,6 +4,7 @@ import type {
   StudentHomeAction,
   StudentHomeDashboardPayload,
   StudentHomeRankingProfile,
+  StudentHomeRankingPreviewRow,
   StudentHomeRankingSummary,
   StudentHomeSubject,
   StudentHomeSubjectRow,
@@ -19,6 +20,7 @@ export function buildStudentHomeViewModel(payload: StudentHomeDashboardPayload):
   const failedQuestions = progressRows.reduce((sum, subject) => sum + subject.failedQuestions, 0)
   const points = payload.profile?.points ?? 0
   const attemptCount = payload.progressSummary?.totalAttempts ?? 0
+  const rankingSummary = buildRankingSummary(payload.ranking, payload.currentUserId, points, attemptCount)
 
   return {
     profile: payload.profile,
@@ -26,7 +28,8 @@ export function buildStudentHomeViewModel(payload: StudentHomeDashboardPayload):
     subjectRows,
     progressSummary: payload.progressSummary,
     ranking: payload.ranking,
-    rankingSummary: buildRankingSummary(payload.ranking, payload.currentUserId, points),
+    rankingSummary,
+    rankingPreview: buildRankingPreview(payload.ranking, rankingSummary, payload.currentUserId, payload.profile),
     achievements: buildAchievementPreview({
       points,
       streakDays: payload.streakDays,
@@ -124,8 +127,13 @@ function getSubjectProgressRows(subjects: StudentHomeSubject[], progressRows: St
     })
 }
 
-function buildRankingSummary(ranking: StudentHomeRankingProfile[], currentUserId: string | null, points: number): StudentHomeRankingSummary | null {
-  if (ranking.length === 0) return null
+export function buildRankingSummary(
+  ranking: StudentHomeRankingProfile[],
+  currentUserId: string | null,
+  points: number,
+  attemptCount: number,
+): StudentHomeRankingSummary | null {
+  if (ranking.length === 0 || (attemptCount === 0 && points === 0)) return null
   const currentIndex = currentUserId ? ranking.findIndex((row) => row.id === currentUserId) : -1
   return {
     position: currentIndex >= 0 ? currentIndex + 1 : ranking.filter((row) => (row.points ?? 0) > points).length + 1,
@@ -133,7 +141,35 @@ function buildRankingSummary(ranking: StudentHomeRankingProfile[], currentUserId
     points,
     leaderAlias: ranking[0]?.alias || 'Líder',
     leaderPoints: ranking[0]?.points ?? 0,
+    estimated: currentIndex < 0,
   }
+}
+
+export function buildRankingPreview(
+  ranking: StudentHomeRankingProfile[],
+  summary: StudentHomeRankingSummary | null,
+  currentUserId: string | null,
+  profile: StudentHomeDashboardPayload['profile'],
+): StudentHomeRankingPreviewRow[] {
+  const topRows = ranking.slice(0, 3).map((row, index) => ({
+    ...row,
+    position: index + 1,
+    estimated: false,
+  }))
+
+  if (!summary || !currentUserId || topRows.some((row) => row.id === currentUserId)) return topRows
+
+  const currentRow = ranking.find((row) => row.id === currentUserId) ?? {
+    id: currentUserId,
+    alias: profile.alias,
+    avatar: profile.avatar,
+    points: profile.points,
+  }
+
+  return [
+    ...topRows.slice(0, 2),
+    { ...currentRow, position: summary.position, estimated: summary.estimated },
+  ]
 }
 
 function buildAchievementPreview({ points, streakDays, subjectsCount, attemptCount, accuracyPercent }: {

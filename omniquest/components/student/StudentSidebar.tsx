@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import BrandLogo from '../BrandLogo'
 import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 import OmniGuide from '../../components/OmniGuide'
 import GamifiedAvatar from '../gamification/GamifiedAvatar'
 import { useProfileCosmetics } from '../../hooks/useProfileCosmetics'
@@ -214,7 +215,7 @@ function StudentNavButton({
             outputRange: ['rgba(8,24,51,0)', isActive ? 'rgba(26,35,92,0.92)' : 'rgba(11,30,61,0.82)'],
           }),
           ...(Platform.OS === 'web'
-            ? ({ boxShadow: isActive ? '0 10px 24px rgba(124, 92, 255, 0.18)' : 'none' } as any)
+            ? ({ boxShadow: isActive ? '0 10px 24px ' + withAlpha(accentColor, '2E') : 'none' } as any)
             : {
                 shadowColor: accentColor,
                 shadowOffset: { width: 0, height: 10 },

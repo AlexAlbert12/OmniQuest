@@ -28,6 +28,11 @@ export type StudentHomeRankingProfile = {
   points: number | null
 }
 
+export type StudentHomeRankingPreviewRow = StudentHomeRankingProfile & {
+  position: number
+  estimated: boolean
+}
+
 export type StudentHomeAction = {
   title: string
   description: string
@@ -59,6 +64,7 @@ export type StudentHomeRankingSummary = {
   points: number
   leaderAlias: string
   leaderPoints: number
+  estimated: boolean
 }
 
 export type StudentHomeViewModel = {
@@ -68,6 +74,7 @@ export type StudentHomeViewModel = {
   progressSummary: StudentProgressSummary | null
   ranking: StudentHomeRankingProfile[]
   rankingSummary: StudentHomeRankingSummary | null
+  rankingPreview: StudentHomeRankingPreviewRow[]
   achievements: StudentHomeAchievementPreview[]
   recommendedAction: StudentHomeAction
   continueRow: StudentHomeSubjectRow | null

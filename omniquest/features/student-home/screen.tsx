@@ -54,11 +54,12 @@ export default function StudentHome() {
       points={points}
     >
       <StudentPageHeader
+        className={!responsive.isDesktop ? 'mb-5' : undefined}
         icon="home"
         isDesktop={responsive.isDesktop}
         title={`¡Hola, ${alias}!`}
         subtitle="Tu siguiente paso está preparado. Empieza por la acción recomendada."
-        actions={(
+        actions={responsive.isDesktop ? (
           <AppButton
             accessibilityLabel="Actualizar pantalla de inicio"
             icon="refresh"
@@ -67,7 +68,7 @@ export default function StudentHome() {
             variant="secondary"
             onPress={home.refresh}
           />
-        )}
+        ) : undefined}
       />
 
       {home.error ? (
@@ -83,6 +84,7 @@ export default function StudentHome() {
       <View className={home.error ? 'mt-5' : ''}>
         <StudentRecommendedAction
           action={home.recommendedAction}
+          compact={!responsive.isDesktop}
           onPress={() => router.push(home.recommendedAction.href as any)}
         />
       </View>
@@ -111,6 +113,7 @@ export default function StudentHome() {
           attemptCount={home.attemptCount}
           failedQuestions={home.failedQuestions}
           accuracyPercent={home.progressSummary?.accuracyPercent ?? 0}
+          isDesktop={responsive.isDesktop}
           onOpenProgress={() => router.push('/(student)/progress' as any)}
         />
       </View>
@@ -124,9 +127,9 @@ export default function StudentHome() {
         </View>
         <View className={responsive.isDesktop ? 'flex-1' : ''}>
           <StudentHomeRankingPreview
-            rows={home.ranking}
+            rows={home.rankingPreview}
             summary={home.rankingSummary}
-            currentUserId={home.currentUserId}
+            currentUserId={home.rankingSummary ? home.currentUserId : null}
             emptyTitle="Aún no hay clasificación"
             emptyMessage="Completa una actividad para aparecer en el ranking"
             onOpen={() => router.push('/(student)/ranking' as any)}

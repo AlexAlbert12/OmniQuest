@@ -35,7 +35,11 @@ describe('AuthInput', () => {
       />,
     )
 
-    fireEvent.press(screen.getByRole('button', { name: 'Mostrar contraseña' }))
+    const toggle = screen.getByRole('button', { name: 'Mostrar contraseña' })
+
+    expect(toggle.props.style).toEqual(expect.objectContaining({ height: 44, width: 44 }))
+    expect(toggle.props.accessibilityState).toEqual(expect.objectContaining({ selected: false }))
+    fireEvent.press(toggle)
     expect(onToggle).toHaveBeenCalledTimes(1)
   })
 })

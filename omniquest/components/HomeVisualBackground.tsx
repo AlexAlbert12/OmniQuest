@@ -22,16 +22,23 @@ const finalHomeBackground = {
   blobAccent: '#14D7C8',
 } as const
 
-const sparseHomeStars = [
-  { left: '12%', top: '12%', size: 2, opacity: 0.6 },
-  { left: '81%', top: '15%', size: 3, opacity: 0.48 },
-  { left: '18%', top: '41%', size: 2, opacity: 0.46 },
-  { left: '88%', top: '47%', size: 2, opacity: 0.54 },
-  { left: '9%', top: '72%', size: 3, opacity: 0.34 },
-  { left: '74%', top: '78%', size: 2, opacity: 0.38 },
+const desktopHomeStars = [
+  { left: '12%', top: '12%', size: 3, opacity: 0.34 },
+  { left: '81%', top: '15%', size: 3, opacity: 0.3 },
+  { left: '18%', top: '41%', size: 3, opacity: 0.26 },
+  { left: '88%', top: '47%', size: 3, opacity: 0.3 },
+  { left: '9%', top: '72%', size: 3, opacity: 0.22 },
+] as const
+
+const mobileHomeStars = [
+  { left: '7%', top: '24%', size: 3, opacity: 0.2 },
+  { left: '93%', top: '55%', size: 3, opacity: 0.22 },
+  { left: '8%', top: '90%', size: 3, opacity: 0.16 },
 ] as const
 
 export default function HomeVisualBackground({ isDesktop }: { isDesktop: boolean }) {
+  const stars = isDesktop ? desktopHomeStars : mobileHomeStars
+
   return (
     <View
       pointerEvents="none"
@@ -75,7 +82,7 @@ export default function HomeVisualBackground({ isDesktop }: { isDesktop: boolean
         width={isDesktop ? 460 : 240}
       />
 
-      {sparseHomeStars.map((star, index) => (
+      {stars.map((star, index) => (
         <View
           key={`${star.left}-${index}`}
           className="absolute rounded-full bg-white"

@@ -11,6 +11,7 @@ const EMPTY_VIEW_MODEL: StudentHomeViewModel = {
   progressSummary: null,
   ranking: [],
   rankingSummary: null,
+  rankingPreview: [],
   achievements: [],
   recommendedAction: {
     title: 'Empieza tu primera aventura',

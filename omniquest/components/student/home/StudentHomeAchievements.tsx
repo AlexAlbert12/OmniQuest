@@ -42,7 +42,10 @@ const StudentHomeAchievementRow = React.memo(function StudentHomeAchievementRow(
   const progress = Math.min(100, Math.round((achievement.current / Math.max(achievement.target, 1)) * 100))
 
   return (
-    <View className="flex-row items-center gap-3 rounded-xl border border-border-subtle bg-surface-raised p-3">
+    <View
+      className="flex-row items-center gap-3 rounded-xl border bg-surface-raised p-3"
+      style={{ borderColor: withAlpha(tokens.border.subtle, '80') }}
+    >
       <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(color, '24') }}>
         <Ionicons name={achievement.unlocked ? 'checkmark-circle' : achievement.icon} size={22} color={color} />
       </View>

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import AppButton from '../../ui/AppButton'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
-import type { StudentHomeRankingProfile, StudentHomeRankingSummary } from './types'
+import type { StudentHomeRankingPreviewRow, StudentHomeRankingSummary } from './types'
 
 export default function StudentHomeRankingPreview({
   rows,
@@ -14,7 +14,7 @@ export default function StudentHomeRankingPreview({
   emptyMessage = 'Completa una actividad para aparecer en el ranking',
   onOpen,
 }: {
-  rows: StudentHomeRankingProfile[]
+  rows: StudentHomeRankingPreviewRow[]
   summary: StudentHomeRankingSummary | null
   currentUserId: string | null
   emptyTitle?: string
@@ -29,7 +29,11 @@ export default function StudentHomeRankingPreview({
         <View className="min-w-0 flex-1">
           <Text className="text-[18px] font-black text-white">Ranking</Text>
           <Text className="mt-1 text-[13px] text-text-muted">
-            {summary ? `Tu posición estimada: ${summary.position}` : emptyTitle}
+            {summary
+              ? `${summary.estimated ? 'Tu posición estimada' : 'Tu posición'}: ${summary.position}`
+              : rows.length > 0
+                ? 'Completa una actividad para calcular tu posición'
+                : emptyTitle}
           </Text>
         </View>
         <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(tokens.gamification.xp, '24') }}>
@@ -45,19 +49,19 @@ export default function StudentHomeRankingPreview({
             </Text>
           </View>
         ) : null}
-        {rows.slice(0, 3).map((row, index) => {
+        {rows.map((row) => {
           const isCurrent = row.id === currentUserId
           return (
             <View
               key={row.id}
               className="flex-row items-center gap-3 rounded-xl border px-3 py-2.5"
               style={{
-                borderColor: isCurrent ? tokens.border.active : tokens.border.subtle,
+                borderColor: isCurrent ? tokens.border.active : withAlpha(tokens.border.subtle, '80'),
                 backgroundColor: isCurrent ? tokens.surface.selected : tokens.surface.raised,
               }}
             >
-              <Text className="w-6 text-center text-[12px] font-black" style={{ color: index === 0 ? tokens.gamification.xp : tokens.text.muted }}>
-                {index + 1}
+              <Text className="w-7 text-center text-[12px] font-black" style={{ color: row.position === 1 ? tokens.gamification.xp : tokens.text.muted }}>
+                {row.estimated ? `≈${row.position}` : row.position}
               </Text>
               <Text maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[13px] font-black text-white">
                 {row.alias || 'Alumno'}{isCurrent ? ' · Tú' : ''}

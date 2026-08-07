@@ -13,6 +13,7 @@ type AuthCardProps = {
   accentColor?: string
   isDesktop?: boolean
   maxWidth?: number
+  surfaceTone?: 'default' | 'muted-role'
   style?: StyleProp<ViewStyle>
 }
 
@@ -25,15 +26,19 @@ export default function AuthCard({
   accentColor = '#7C5CFF',
   isDesktop = false,
   maxWidth = 520,
+  surfaceTone = 'default',
   style,
 }: AuthCardProps) {
+  const tintAlpha = surfaceTone === 'muted-role' ? '26' : '2E'
+
   return (
     <LinearGradient
-      colors={[`${accentColor}2E`, 'rgba(18, 28, 69, 0.96)', 'rgba(5, 14, 31, 0.98)']}
+      colors={[`${accentColor}${tintAlpha}`, 'rgba(18, 28, 69, 0.96)', 'rgba(5, 14, 31, 0.98)']}
       start={{ x: 1, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={[
         {
+          backgroundColor: '#071126',
           borderColor: `${accentColor}4D`,
           borderRadius: 30,
           borderWidth: 1,
