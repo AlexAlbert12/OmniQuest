@@ -92,6 +92,15 @@ test('shared interactive components expose accessibility semantics and web focus
   assert.match(css, /prefers-reduced-motion/)
 })
 
+test('Edge Function deployment uses a Node 24 compatible Supabase launcher', () => {
+  const script = read('scripts/deploy-edge-functions.mjs')
+
+  assert.match(script, /require\.resolve\('supabase\/dist\/supabase\.js'\)/)
+  assert.match(script, /spawnSync\(process\.execPath/)
+  assert.match(script, /if \(result\.error\)/)
+  assert.doesNotMatch(script, /npx\.cmd/)
+})
+
 test('locale and theme preferences are persisted instead of forcing dark mode', () => {
   const locale = read('lib/i18n.tsx')
   const theme = read('lib/appTheme.tsx')
