@@ -7,6 +7,7 @@ import { Text, View } from 'react-native'
 import { AppThemeProvider, useAppTheme } from '../lib/appTheme'
 import { I18nProvider, useI18n } from '../lib/i18n'
 import { usePushNotificationObserver } from '../hooks/usePushNotificationObserver'
+import { usePasswordRecoveryLinkObserver } from '../hooks/usePasswordRecoveryLinkObserver'
 import { StatusBar } from 'expo-status-bar'
 import { NotificationProvider } from '../hooks/useNotifications'
 import { AppModalProvider } from '../components/AppModalProvider'
@@ -83,6 +84,7 @@ function RootNavigator() {
   const rootSegment = segments[0]
   const { theme, colors, ready } = useAppTheme()
   const { ready: localeReady, t } = useI18n()
+  usePasswordRecoveryLinkObserver()
   usePushNotificationObserver()
 
   useEffect(() => {

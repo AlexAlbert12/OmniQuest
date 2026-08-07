@@ -86,13 +86,16 @@ Los recorridos autenticados de alumno, profesor y administrador se encuentran en
 
 Playwright inicia Expo en el puerto dedicado `8082` mediante `scripts/start-playwright-web.mjs`. Puede cambiarse con `PLAYWRIGHT_PORT`; el script comprueba previamente el puerto para evitar que Expo solicite interactivamente usar otro durante una ejecución no interactiva. Si no hay configuración pública de Supabase explícita en el proceso, el lanzador obtiene la URL y la clave anónima de la instancia local activa sin persistirlas. La caché de Metro se conserva para acelerar los arranques locales; define `PLAYWRIGHT_CLEAR_CACHE=1` cuando necesites reconstruirla desde cero.
 
-### Móvil
+### Móvil y build instalable
 
 ```bash
+npm run test:native-readiness
+npx expo-doctor@latest
+npx expo install --check
 maestro test .maestro/public-login-smoke.yaml
 ```
 
-Maestro valida un flujo mínimo sobre una build instalada. Este paso se ejecuta manualmente o en una infraestructura móvil dedicada; no se simula con pruebas de texto fuente.
+El perfil EAS `preview` genera un APK de distribución interna. Además del smoke público, `.maestro` contiene flujos autenticados de alumno, profesor y administrador con credenciales inyectadas en ejecución. La validación de dispositivo real, entorno `preview`, push FCM, galería, documentos, multimedia, compartir, offline y recuperación mediante deep link está descrita en `docs/validation/08-expo-doctor-native-preview.md`.
 
 ## 4. Pipeline mínimo
 

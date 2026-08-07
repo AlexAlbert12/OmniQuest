@@ -1,0 +1,27 @@
+appId: com.alexalbert.omniquest
+name: Admin authenticated navigation smoke
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "landing-login"
+- tapOn:
+    id: "landing-login"
+- tapOn:
+    id: "login-email"
+- inputText: ${MAESTRO_ADMIN_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${MAESTRO_ADMIN_PASSWORD}
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "admin-nav-users"
+    timeout: 30000
+- tapOn:
+    id: "admin-nav-users"
+- assertVisible: "Usuarios|Users"
+- tapOn:
+    id: "admin-nav-audit"
+- assertVisible: "Auditoría|Audit"

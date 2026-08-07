@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "796098977325",
+    "project_id": "omniquest-1698a",
+    "storage_bucket": "omniquest-1698a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:796098977325:android:15dc62b122af45a38ea2a4",
+        "android_client_info": {
+          "package_name": "com.alexalbert.omniquest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgZt732GO0kYp23aFjsenFWlbRdIZqtDU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

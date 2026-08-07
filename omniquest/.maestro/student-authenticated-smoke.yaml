@@ -1,0 +1,24 @@
+appId: com.alexalbert.omniquest
+name: Student authenticated navigation smoke
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "landing-login"
+- tapOn:
+    id: "landing-login"
+- tapOn:
+    id: "login-email"
+- inputText: ${MAESTRO_STUDENT_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${MAESTRO_STUDENT_PASSWORD}
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "student-nav-classes"
+    timeout: 30000
+- tapOn:
+    id: "student-nav-classes"
+- assertVisible: "Mis cursos|My courses"

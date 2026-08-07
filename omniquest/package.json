@@ -48,7 +48,8 @@
     "audit:walkthrough:generate": "node scripts/audit-authenticated-walkthrough.mjs --write",
     "demo:prepare-functions-env": "node scripts/prepare-local-function-env.mjs",
     "demo:process-workers": "node scripts/process-demo-workers.mjs",
-    "e2e:prepare": "node scripts/prepare-authenticated-e2e.mjs"
+    "e2e:prepare": "node scripts/prepare-authenticated-e2e.mjs",
+    "test:native-readiness": "node scripts/validate-native-release-readiness.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",

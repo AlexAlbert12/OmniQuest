@@ -21,15 +21,16 @@ const navItems: {
   label: string
   icon: keyof typeof Ionicons.glyphMap
   href?: string
+  testID?: string
 }[] = [
-    { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(teacher)/homeTeacher' },
-    { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(teacher)/classes' },
-    { section: 'students', label: 'Estudiantes', icon: 'people-outline', href: '/(teacher)/students' },
-    { section: 'reviews', label: 'Revisión', icon: 'create-outline', href: '/(teacher)/reviews' },
-    { section: 'audit', label: 'Auditoría', icon: 'shield-checkmark-outline', href: '/(teacher)/audit' },
-    { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(teacher)/notifications' },
-    { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(teacher)/profile' },
-    { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(teacher)/settings' },
+    { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(teacher)/homeTeacher', testID: 'teacher-nav-home' },
+    { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(teacher)/classes', testID: 'teacher-nav-classes' },
+    { section: 'students', label: 'Estudiantes', icon: 'people-outline', href: '/(teacher)/students', testID: 'teacher-nav-students' },
+    { section: 'reviews', label: 'Revisión', icon: 'create-outline', href: '/(teacher)/reviews', testID: 'teacher-nav-reviews' },
+    { section: 'audit', label: 'Auditoría', icon: 'shield-checkmark-outline', href: '/(teacher)/audit', testID: 'teacher-nav-audit' },
+    { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(teacher)/notifications', testID: 'teacher-nav-notifications' },
+    { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(teacher)/profile', testID: 'teacher-nav-profile' },
+    { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(teacher)/settings', testID: 'teacher-nav-settings' },
   ]
 
 export default function TeacherSidebar({
@@ -164,7 +165,7 @@ function TeacherNavButton({
   accentColor,
   isDark,
 }: {
-  item: { section: TeacherSection; label: string; icon: keyof typeof Ionicons.glyphMap; href?: string }
+  item: { section: TeacherSection; label: string; icon: keyof typeof Ionicons.glyphMap; href?: string; testID?: string }
   isActive: boolean
   accentColor: string
   isDark: boolean
@@ -192,6 +193,9 @@ function TeacherNavButton({
 
   const content = (
     <Pressable
+      testID={item.testID}
+      accessibilityRole="button"
+      accessibilityLabel={item.label}
       onHoverIn={() => setIsHovered(true)}
       onHoverOut={() => setIsHovered(false)}
       onPressIn={() => setIsPressed(true)}

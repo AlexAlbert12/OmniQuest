@@ -1,0 +1,24 @@
+appId: com.alexalbert.omniquest
+name: Teacher authenticated navigation smoke
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "landing-login"
+- tapOn:
+    id: "landing-login"
+- tapOn:
+    id: "login-email"
+- inputText: ${MAESTRO_TEACHER_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${MAESTRO_TEACHER_PASSWORD}
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "teacher-nav-classes"
+    timeout: 30000
+- tapOn:
+    id: "teacher-nav-classes"
+- assertVisible: "Cursos y clases|Courses and classes"
