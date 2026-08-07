@@ -57,3 +57,6 @@ test-results/
 
 # Safe local Edge Function template
 !supabase/functions/.env.example
+
+# Pre-deploy backups and release evidence (may contain personal data)
+release-artifacts/

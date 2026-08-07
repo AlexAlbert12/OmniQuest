@@ -37,10 +37,24 @@ npm run test:db
 ```bash
 npx supabase link --project-ref TU_PROJECT_REF
 npx supabase migration list
+npx supabase db push --dry-run
+```
+
+Antes de ejecutar el push real, revisa el runbook de [migraciones](runbooks/MIGRATIONS.md), prepara el [backup](runbooks/BACKUP.md) y registra la versión anterior con:
+
+```bash
+npm run release:baseline -- --backup-ref "Supabase backup/PITR <fecha-hora UTC>" --frontend-ref "<git-tag-commit-EAS-build-o-release-web>"
+```
+
+En un proyecto sin un backup gestionado adecuado puedes sustituir `--backup-ref` por `--logical-backup`. El baseline guarda la lista remota de migraciones, el dry run, el inventario de funciones y descarga las Edge Functions actualmente desplegadas antes de sustituirlas. `release-artifacts/` no se versiona porque un dump lógico puede contener datos personales.
+
+Solo después de revisar esas evidencias:
+
+```bash
 npx supabase db push
 ```
 
-Antes del push revisa el runbook de [migraciones](runbooks/MIGRATIONS.md) y prepara el procedimiento de [rollback](runbooks/ROLLBACK.md).
+El procedimiento de reversión está en [rollback](runbooks/ROLLBACK.md). No se eliminan filas del historial de migraciones para hacer rollback.
 
 ## 5. Secrets
 
@@ -123,3 +137,5 @@ Playwright inicia Expo Web mediante `webServer`, ejecuta los smoke tests en view
 ## 9. Publicación
 
 Antes de publicar, completa [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md). El pipeline de `../.github/workflows/quality.yml` (en la raíz del repositorio) constituye el mínimo automatizado; no sustituye las comprobaciones de secrets, cron, correo, push, backup y observabilidad del entorno real.
+
+Tras el despliegue abre una ventana de observación y sigue [OBSERVABILITY.md](runbooks/OBSERVABILITY.md). El snippet `supabase/snippets/operational_health.sql` comprueba ejecuciones de cron, respuestas de `pg_net`, colas, exportaciones, correo, push tickets sin receipt y anomalías de auditoría.
