@@ -15,7 +15,6 @@ import {
   type QuestionType,
 } from '../../../lib/gameQuestionLogic'
 import {
-  AnswerFeedback,
   AnswerOption,
   MoveButton,
   PairConnectionChip,
@@ -148,7 +147,7 @@ function TextAnswerQuestion({
   }
 
   return (
-    <View className="gap-4 rounded-[22px] border border-border-default bg-surface-default p-5">
+    <View className="gap-4">
       <View className="flex-row items-center gap-3">
         <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-interactive">
           <Ionicons name="chatbox-ellipses-outline" size={21} color={tokens.brand.student} />
@@ -174,12 +173,6 @@ function TextAnswerQuestion({
         }`}
       />
 
-      <AnswerFeedback
-        status={answerStatus}
-        correctTitle="Respuesta correcta"
-        incorrectTitle="Respuesta incorrecta"
-        incorrectDetail="Revisa el contenido y vuelve a intentarlo en la siguiente partida."
-      />
 
       {!hasAnswered ? (
         <SubmitAnswerButton disabled={isSubmitting || !value.trim()} onPress={handleSubmit} />
@@ -224,23 +217,21 @@ function FillBlankQuestion({
   }
 
   return (
-    <View className="gap-4 rounded-[22px] border border-border-default bg-surface-default p-5">
-      <View className="flex-row items-start gap-3 rounded-2xl border border-border-default bg-surface-default p-4">
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-interactive">
+    <View className="gap-4">
+      <View className="flex-row items-start gap-3">
+        <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-interactive">
           <Ionicons name="text-outline" size={21} color={tokens.semantic.info} />
         </View>
         <View className="min-w-0 flex-1">
           <Text className="font-black text-text-primary">Completa los huecos en orden</Text>
-          <Text className="mt-1 text-[12px] leading-5 text-text-secondary">
-            Escribe una respuesta por hueco. El servidor corregirá mayúsculas y espacios extra automáticamente.
-          </Text>
+          <Text className="mt-1 text-[12px] leading-5 text-text-secondary">Escribe una respuesta por hueco y respeta el orden del enunciado.</Text>
         </View>
-        <View className="rounded-full border border-border-default bg-surface-raised px-3 py-1">
+        <View className="rounded-full bg-surface-raised px-3 py-1">
           <Text className="text-[12px] font-black text-brand-student">{completedCount}/{blankCount}</Text>
         </View>
       </View>
 
-      <View className="flex-row flex-wrap items-center gap-2 rounded-2xl border border-border-default bg-background-primary p-4">
+      <View className="flex-row flex-wrap items-center gap-2 rounded-2xl border border-border-subtle bg-background-primary p-3">
         {markerCount > 0 ? (
           promptParts.map((part, index) => (
             <React.Fragment key={`${part}-${index}`}>
@@ -257,10 +248,9 @@ function FillBlankQuestion({
       </View>
 
       {markerCount === 0 ? (
-        <View className="rounded-2xl border border-border-active bg-surface-selected p-4">
-          <Text className="text-[13px] font-bold text-text-secondary">
-            Completa el hueco indicado. En próximas preguntas verás el espacio dentro del enunciado cuando esté marcado con ____.
-          </Text>
+        <View className="flex-row items-center gap-2 px-1">
+          <Ionicons name="information-circle-outline" size={16} color={tokens.semantic.info} />
+          <Text className="text-[12px] font-semibold text-text-secondary">Completa el hueco marcado con ___.</Text>
         </View>
       ) : null}
 
@@ -276,7 +266,7 @@ function FillBlankQuestion({
               : tokens.semantic.danger
 
           return (
-            <View key={index} className="rounded-2xl border bg-surface-default p-4" style={{ borderColor }}>
+            <View key={index} className="rounded-2xl border bg-surface-raised px-4 py-3" style={{ borderColor }}>
               <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-text-muted">
                 Hueco {index + 1}
               </Text>
@@ -293,12 +283,6 @@ function FillBlankQuestion({
         })}
       </View>
 
-      <AnswerFeedback
-        status={answerStatus}
-        correctTitle="Huecos correctos"
-        incorrectTitle="Algún hueco no coincide"
-        incorrectDetail="Comprueba que has escrito todos los huecos y que están en el mismo orden que en el enunciado."
-      />
 
       {!hasAnswered ? (
         <SubmitAnswerButton disabled={isSubmitting || !isReady} onPress={handleSubmit} />
@@ -356,7 +340,7 @@ function OrderingQuestion({
   }
 
   return (
-    <View className="gap-3 rounded-[22px] border border-border-default bg-surface-default p-5">
+    <View className="gap-3">
       <Text className="text-[13px] font-bold text-text-secondary">Ordena los elementos de arriba a abajo.</Text>
       {orderedAnswers.map((answer, index) => {
         const rowColor = !hasAnswered ? tokens.border.default : answerStatus === 'correct' ? tokens.semantic.success : tokens.semantic.danger
@@ -464,10 +448,10 @@ function PairingQuestion({
   }
 
   return (
-    <View className="gap-4 rounded-[22px] border border-border-default bg-surface-default p-5">
-      <View className="flex-row flex-wrap items-center justify-between gap-3 rounded-2xl border border-border-default bg-surface-default p-4">
+    <View className="gap-4">
+      <View className="flex-row flex-wrap items-center justify-between gap-3">
         <View className="min-w-0 flex-1 flex-row items-start gap-3">
-          <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-interactive">
+          <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-interactive">
             <Ionicons name={labels.icon} size={22} color={labels.accent} />
           </View>
           <View className="min-w-0 flex-1">
@@ -475,7 +459,7 @@ function PairingQuestion({
             <Text className="mt-1 text-[12px] leading-5 text-text-secondary">{labels.detail}</Text>
           </View>
         </View>
-        <View className="rounded-full border border-border-default bg-surface-raised px-3 py-1">
+        <View className="rounded-full bg-surface-raised px-3 py-1">
           <Text className="text-[12px] font-black text-brand-student">{completedCount}/{leftAnswers.length}</Text>
         </View>
       </View>
@@ -522,13 +506,9 @@ function PairingQuestion({
                       {selected ? (
                         <PairConnectionChip left={answer.text} right={selected.text} />
                       ) : (
-                        <View className="mt-3 rounded-xl border border-border-default bg-background-primary px-3 py-2">
-                          <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-text-muted">
-                            {labels.rightLabel}
-                          </Text>
-                          <Text className="mt-1 text-[15px] font-black text-text-secondary">
-                            Selecciona {labels.rightLabel.toLowerCase()} en la columna derecha
-                          </Text>
+                        <View className="mt-2 flex-row items-center gap-2">
+                          <Ionicons name="arrow-forward" size={14} color={tokens.text.muted} />
+                          <Text className="text-[12px] font-semibold text-text-secondary">Elige {labels.rightLabel.toLowerCase()} en la columna derecha</Text>
                         </View>
                       )}
                     </View>
@@ -553,7 +533,7 @@ function PairingQuestion({
           <Text className="mb-3 text-[12px] font-black uppercase tracking-[0.06em] text-text-muted">
             2. Toca {labels.rightLabel.toLowerCase()}
           </Text>
-          <View className="gap-3 rounded-2xl border border-border-default bg-background-primary p-3">
+          <View className="gap-3">
             {options.length > 0 ? options.map((option) => {
               const ownerIndex = findOptionOwner(selections, option.key)
               const usedByCurrent = ownerIndex === activeIndex
@@ -602,7 +582,7 @@ function PairingQuestion({
       </View>
 
       {selectedConnections.length > 0 ? (
-        <View className="rounded-2xl border border-border-default bg-background-primary p-4">
+        <View className="pt-1">
           <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-text-muted">Relaciones elegidas</Text>
           <View className="mt-3 flex-row flex-wrap gap-2">
             {selectedConnections.map((connection) => (
@@ -618,19 +598,9 @@ function PairingQuestion({
       ) : null}
 
       {!hasAnswered && !isSubmitting && !isReady ? (
-        <View className="rounded-2xl border border-border-default bg-surface-default p-4">
-          <Text className="text-[13px] font-semibold text-text-secondary">
-            Completa todas las relaciones para activar el botón de comprobar.
-          </Text>
-        </View>
+        <Text className="text-center text-[12px] font-semibold text-text-muted">Completa todas las relaciones para activar Comprobar.</Text>
       ) : null}
 
-      <AnswerFeedback
-        status={answerStatus}
-        correctTitle="Relaciones correctas"
-        incorrectTitle="Alguna relación no coincide"
-        incorrectDetail="Vuelve a fijarte en cada origen y destino. En este tipo la respuesta solo cuenta si todas las relaciones son correctas."
-      />
 
       {!hasAnswered ? (
         <SubmitAnswerButton disabled={isSubmitting || !isReady} onPress={handleSubmit} />

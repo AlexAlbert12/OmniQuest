@@ -40,13 +40,20 @@ export default function CourseProgressPanel({
   const { tokens } = useAppTheme()
 
   return (
-    <View className="mt-6 rounded-[28px] border border-border-default bg-surface-default p-5">
-      <View className="mb-5 flex-row flex-wrap items-center justify-between gap-3">
+    <View className={isDesktop ? 'mt-6 rounded-[28px] border border-border-default bg-surface-default p-5' : 'mt-5'}>
+      <View className={isDesktop ? 'mb-5 flex-row flex-wrap items-center justify-between gap-3' : 'mb-4 flex-row flex-wrap items-start justify-between gap-3'}>
         <View className="min-w-[220px] flex-1">
           <Text className="text-[24px] font-black text-white">Progreso del curso</Text>
           <Text className="mt-1 text-[14px] text-text-muted">Resumen de aprendizaje, repaso y clasificación.</Text>
         </View>
-        <AppButton label="Ver actividad" variant="secondary" size="sm" icon="time-outline" onPress={onOpenActivity} />
+        <AppButton
+          label="Ver actividad"
+          variant="secondary"
+          size="sm"
+          icon="time-outline"
+          onPress={onOpenActivity}
+          style={isDesktop ? undefined : { minHeight: 44, backgroundColor: tokens.surface.raised, borderColor: tokens.border.subtle }}
+        />
       </View>
 
       <View className="flex-row flex-wrap gap-3">
@@ -56,9 +63,9 @@ export default function CourseProgressPanel({
         <MobileMetricCard compact icon="diamond" color={tokens.semantic.info} value={totals.earnedXp} suffix=" XP" label="Experiencia" style={{ flex: 1, minWidth: 130, minHeight: 112 }} />
       </View>
 
-      <View className={isDesktop ? 'mt-6 flex-row items-start gap-5' : 'mt-6 gap-5'}>
+      <View className={isDesktop ? 'mt-6 flex-row items-start gap-5' : 'mt-3'}>
         <View className={isDesktop ? 'flex-1' : ''}>
-          <SectionHeading title="Preguntas para repasar" actionLabel="Ver todas" onAction={onOpenActivity} />
+          <SectionHeading title="Preguntas para repasar" actionLabel="Ver todas" onAction={onOpenActivity} marginTop={isDesktop ? 28 : 0} />
           {failedQuestions.length > 0 ? (
             <View className="gap-3">
               {failedQuestions.slice(0, 2).map((question) => (
@@ -70,8 +77,8 @@ export default function CourseProgressPanel({
           )}
         </View>
 
-        <View className={isDesktop ? 'flex-1' : ''}>
-          <SectionHeading title="Ranking de la clase" />
+        <View className={isDesktop ? 'flex-1' : 'mt-6'}>
+          <SectionHeading title="Ranking de la clase" marginTop={isDesktop ? 28 : 0} />
           <View className="gap-2 rounded-2xl border border-border-default bg-surface-raised p-3">
             {classRanking.length > 0 ? (
               classRanking.slice(0, 3).map((row, index) => <RankingRow key={row.studentId} row={row} index={index} />)
@@ -85,7 +92,7 @@ export default function CourseProgressPanel({
         </View>
       </View>
 
-      <SectionHeading title="Últimos intentos" actionLabel="Ver todo" onAction={onOpenActivity} />
+      <SectionHeading title="Últimos intentos" actionLabel="Ver todo" onAction={onOpenActivity} marginTop={isDesktop ? 28 : 24} />
       <View className="overflow-hidden rounded-2xl border border-border-default bg-surface-raised">
         {recentAttempts.length > 0 ? (
           recentAttempts.slice(0, 3).map((attempt, index) => (
@@ -99,9 +106,9 @@ export default function CourseProgressPanel({
   )
 }
 
-function SectionHeading({ title, actionLabel, onAction }: { title: string; actionLabel?: string; onAction?: () => void }) {
+function SectionHeading({ title, actionLabel, onAction, marginTop = 28 }: { title: string; actionLabel?: string; onAction?: () => void; marginTop?: number }) {
   return (
-    <View className="mb-3 mt-7 flex-row items-center justify-between gap-3">
+    <View className="mb-3 flex-row items-center justify-between gap-3" style={{ marginTop }}>
       <Text maxFontSizeMultiplier={2} className="text-[20px] font-black text-white">{title}</Text>
       {actionLabel && onAction ? (
         <AppPressable accessibilityLabel={actionLabel} onPress={onAction} style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}>

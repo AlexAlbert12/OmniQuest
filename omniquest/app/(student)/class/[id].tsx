@@ -1,11 +1,12 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, Text, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../../lib/supabase'
 import { difficultyOptions, normalizeDifficulty, type DifficultyLevel } from '../../../lib/difficulty'
 import StudentBottomNav from '../../../components/student/StudentBottomNav'
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
+import { MOBILE_BOTTOM_NAV_HEIGHT, MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { GalaxyScreenBackground, TopicGalaxyMap } from '../../../components/student/galaxy/StudentGalaxyMap'
 import { fetchStudentAttemptHistory, fetchStudentQuestionCatalog } from '../../../lib/studentSecureData'
 import { useAppTheme } from '../../../lib/appTheme'
@@ -77,10 +78,15 @@ type ClassRankingItem = {
   points: number
 }
 
+const MOBILE_STICKY_MISSION_HEIGHT = 58
+const MOBILE_STICKY_MISSION_GAP = 12
+const MOBILE_STICKY_CONTENT_GAP = 16
+
 export default function StudentClassDetailScreen() {
   const { id, classroomId } = useLocalSearchParams<{ id: string; classroomId?: string }>()
   const router = useRouter()
   const responsive = useResponsiveLayout()
+  const insets = useSafeAreaInsets()
   const [subject, setSubject] = useState<Subject | null>(null)
   const [classroom, setClassroom] = useState<Classroom | null>(null)
   const [topics, setTopics] = useState<Topic[]>([])
@@ -89,6 +95,8 @@ export default function StudentClassDetailScreen() {
   const [classRanking, setClassRanking] = useState<ClassRankingItem[]>([])
   const [studentId, setStudentId] = useState<string | null>(null)
   const [difficultyChooserTopic, setDifficultyChooserTopic] = useState<Topic | null>(null)
+  const [inlineMissionBottom, setInlineMissionBottom] = useState<number | null>(null)
+  const [showMobileStickyMission, setShowMobileStickyMission] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const subjectId = Array.isArray(id) ? id[0] : id
@@ -117,6 +125,7 @@ export default function StudentClassDetailScreen() {
     if (!studentId || classRanking.length === 0) return 'Ranking'
     const rankIndex = classRanking.findIndex((row) => row.studentId === studentId)
     if (rankIndex < 0) return 'Ranking'
+    if (classRanking.length === 1) return '1.º de 1'
     const percentile = Math.max(1, Math.round(((rankIndex + 1) / Math.max(classRanking.length, 1)) * 100))
     return `Top ${percentile}%`
   }, [classRanking, studentId])
@@ -344,6 +353,17 @@ export default function StudentClassDetailScreen() {
     if (topic) openTopic(topic, true)
   }
 
+  const handleInlineMissionLayout = useCallback((event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout
+    setInlineMissionBottom(y + height)
+  }, [])
+
+  const handleCourseScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (isDesktop || inlineMissionBottom === null || !recommendedTopic) return
+    const shouldShow = event.nativeEvent.contentOffset.y > inlineMissionBottom + 8
+    setShowMobileStickyMission((current) => current === shouldShow ? current : shouldShow)
+  }, [inlineMissionBottom, isDesktop, recommendedTopic])
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-background-primary">
@@ -400,6 +420,9 @@ export default function StudentClassDetailScreen() {
   const recommendedTopicPosition = recommendedTopic
     ? Math.max(1, topics.findIndex((topic) => topic.id === recommendedTopic.id) + 1)
     : null
+  const mobileBottomPadding = recommendedTopic
+    ? MOBILE_BOTTOM_NAV_HEIGHT + insets.bottom + MOBILE_STICKY_MISSION_HEIGHT + MOBILE_STICKY_MISSION_GAP + MOBILE_STICKY_CONTENT_GAP
+    : MOBILE_BOTTOM_NAV_SPACER
 
   return (
     <View className="flex-1 bg-background-secondary">
@@ -408,11 +431,13 @@ export default function StudentClassDetailScreen() {
         contentContainerStyle={{
           paddingHorizontal: isDesktop ? 28 : 18,
           paddingTop: isDesktop ? 24 : 18,
-          paddingBottom: isDesktop ? 170 : MOBILE_BOTTOM_NAV_SPACER + 150,
+          paddingBottom: isDesktop ? 170 : mobileBottomPadding,
         }}
+        onScroll={!isDesktop && recommendedTopic ? handleCourseScroll : undefined}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        <GalaxyScreenBackground height={Math.max(1900, Math.min(3200, topics.length * 120 + 1700))} />
+        <GalaxyScreenBackground subtle height={Math.max(1900, Math.min(3200, topics.length * 120 + 1700))} />
         <View className="w-full">
           <CourseGalaxyHeader
             subject={subject}
@@ -422,12 +447,14 @@ export default function StudentClassDetailScreen() {
             onBack={() => router.back()}
           />
 
-          <CourseNextMission
-            topic={recommendedTopic}
-            position={recommendedTopicPosition}
-            courseDescription={subject.description}
-            onContinue={recommendedTopic ? () => openTopic(recommendedTopic, recommendedTopic.failedQuestions > 0) : undefined}
-          />
+          <View onLayout={!isDesktop && recommendedTopic ? handleInlineMissionLayout : undefined}>
+            <CourseNextMission
+              topic={recommendedTopic}
+              position={recommendedTopicPosition}
+              courseDescription={subject.description}
+              onContinue={recommendedTopic ? () => openTopic(recommendedTopic, recommendedTopic.failedQuestions > 0) : undefined}
+            />
+          </View>
 
           <TopicGalaxyMap items={topicGalaxyItems} />
 
@@ -446,12 +473,12 @@ export default function StudentClassDetailScreen() {
         </View>
       </ScrollView>
 
-      {recommendedTopic ? (
+      {recommendedTopic && (isDesktop || showMobileStickyMission) ? (
         <View
           pointerEvents="box-none"
           style={isDesktop
             ? { position: 'absolute', right: 24, bottom: 24, width: 520, zIndex: 30 }
-            : { position: 'absolute', left: 14, right: 14, bottom: 82, zIndex: 30 }}
+            : { position: 'absolute', left: 14, right: 14, bottom: MOBILE_BOTTOM_NAV_HEIGHT + insets.bottom + MOBILE_STICKY_MISSION_GAP, zIndex: 30 }}
         >
           <CourseNextMission
             compact

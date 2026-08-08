@@ -47,7 +47,7 @@ export default function GameDialogs({
         showOmni
         omniState="thinking"
         title="¿Usar pista?"
-        message="Se marcará una ayuda en la pregunta actual. Si aciertas, el servidor aplicará la penalización de puntos."
+        message="Se destacará una ayuda en la pregunta actual. Si aciertas, se aplicarán -10 XP."
         cancelLabel="Cancelar"
         confirmLabel="Usar pista"
         onCancel={onCancelAction}
@@ -59,7 +59,7 @@ export default function GameDialogs({
         showOmni
         omniState="thinking"
         title="¿Saltar pregunta?"
-        message="Perderás 20 puntos y la pregunta quedará como no superada."
+        message="Perderás 20 XP y la pregunta quedará como no superada."
         cancelLabel="Cancelar"
         confirmLabel="Saltar pregunta"
         onCancel={onCancelAction}

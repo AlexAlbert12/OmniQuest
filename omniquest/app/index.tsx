@@ -401,14 +401,14 @@ function LandingAction({
               adjustsFontSizeToFit={isMobile}
               className="font-extrabold text-white"
               minimumFontScale={0.9}
-              numberOfLines={1}
+              numberOfLines={2}
               style={{ fontSize: isMobile ? 18 : 20 }}
             >
               {title}
             </Text>
             <Text
               className="mt-1 font-medium text-text-secondary"
-              numberOfLines={1}
+              numberOfLines={2}
               style={{ fontSize: isMobile ? 15 : 17 }}
             >
               {subtitle}

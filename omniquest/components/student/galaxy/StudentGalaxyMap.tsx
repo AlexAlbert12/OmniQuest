@@ -90,8 +90,9 @@ const STAR_POSITIONS: { left: `${number}%`; top: number; size: number; opacity: 
   { left: '92%', top: 2670, size: 3, opacity: 0.55 },
 ]
 
-export function GalaxyScreenBackground({ height = 2800 }: { height?: number }) {
+export function GalaxyScreenBackground({ height = 2800, subtle = false }: { height?: number; subtle?: boolean }) {
   const starLayers = Math.max(1, Math.ceil(height / 2700))
+  const decorationOpacity = subtle ? 0.7 : 1
   const stars = Array.from({ length: starLayers }, (_, layerIndex) =>
     STAR_POSITIONS.map((star) => ({ ...star, top: star.top + layerIndex * 2700 }))
   ).flat()
@@ -105,10 +106,10 @@ export function GalaxyScreenBackground({ height = 2800 }: { height?: number }) {
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      <View style={[styles.nebula, { width: 420, height: 420, left: -220, top: 40, backgroundColor: '#2B174C', opacity: 0.22 }]} />
-      <View style={[styles.nebula, { width: 520, height: 520, right: -300, top: 360, backgroundColor: '#083D50', opacity: 0.22 }]} />
-      <View style={[styles.nebula, { width: 540, height: 540, left: -310, top: 1020, backgroundColor: '#25124C', opacity: 0.18 }]} />
-      <View style={[styles.nebula, { width: 560, height: 560, right: -330, top: 1650, backgroundColor: '#074A4B', opacity: 0.17 }]} />
+      <View style={[styles.nebula, { width: 420, height: 420, left: -220, top: 40, backgroundColor: '#2B174C', opacity: 0.22 * decorationOpacity }]} />
+      <View style={[styles.nebula, { width: 520, height: 520, right: -300, top: 360, backgroundColor: '#083D50', opacity: 0.22 * decorationOpacity }]} />
+      <View style={[styles.nebula, { width: 540, height: 540, left: -310, top: 1020, backgroundColor: '#25124C', opacity: 0.18 * decorationOpacity }]} />
+      <View style={[styles.nebula, { width: 560, height: 560, right: -330, top: 1650, backgroundColor: '#074A4B', opacity: 0.17 * decorationOpacity }]} />
       {stars.map((star, index) => (
         <View
           key={`${star.left}-${star.top}-${index}`}
@@ -120,7 +121,7 @@ export function GalaxyScreenBackground({ height = 2800 }: { height?: number }) {
             height: star.size,
             borderRadius: 999,
             backgroundColor: index % 4 === 0 ? '#8DD8FF' : '#DCE9FF',
-            opacity: star.opacity,
+            opacity: star.opacity * decorationOpacity,
           }}
         />
       ))}
@@ -492,7 +493,9 @@ export function TopicGalaxyMap({ items }: { items: GalaxyTopicItem[] }) {
   const maxMapWidth = responsive.isWide ? 1120 : isDesktop ? 1020 : responsive.isTablet ? 840 : 560
   const mapWidth = Math.max(320, Math.min(isDesktop ? responsive.width - 330 : responsive.width - 24, maxMapWidth))
   const nodeSize = responsive.isWide ? 178 : isDesktop ? 166 : responsive.isTablet ? 158 : 146
-  const rowHeight = isDesktop ? 286 : responsive.isTablet ? 274 : 266
+  const rowHeight = isDesktop ? 286 : responsive.isTablet ? 274 : 260
+  const mapTopPadding = isDesktop ? 68 : responsive.isTablet ? 64 : 56
+  const minimumMapHeight = isDesktop ? 360 : responsive.isTablet ? 340 : 312
   const pageSize = responsive.isWide ? 6 : isDesktop ? 5 : responsive.isTablet ? 4 : 5
   const [viewMode, setViewMode] = useAccessibleGalaxyViewMode()
   const [page, setPage] = useState(0)
@@ -500,7 +503,7 @@ export function TopicGalaxyMap({ items }: { items: GalaxyTopicItem[] }) {
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize))
   const safePage = Math.min(page, totalPages - 1)
   const pageItems = items.slice(safePage * pageSize, safePage * pageSize + pageSize)
-  const mapHeight = Math.max(360, pageItems.length * rowHeight + 60)
+  const mapHeight = Math.max(minimumMapHeight, pageItems.length * rowHeight + (isDesktop ? 60 : 52))
   const visibleListItems = items.slice(0, visibleListCount)
 
   useEffect(() => {
@@ -565,7 +568,7 @@ export function TopicGalaxyMap({ items }: { items: GalaxyTopicItem[] }) {
           ) : null}
           <View
             accessibilityLabel={`Mapa visual de temas. Página ${safePage + 1} de ${totalPages}. Cambia a Vista lista para una alternativa lineal.`}
-            style={{ width: mapWidth, minHeight: mapHeight + 68, paddingTop: 68, alignSelf: 'center', position: 'relative' }}
+            style={{ width: mapWidth, minHeight: mapHeight + mapTopPadding, paddingTop: mapTopPadding, alignSelf: 'center', position: 'relative' }}
           >
             {pageItems.map((item, pageIndex) => {
               const globalIndex = safePage * pageSize + pageIndex

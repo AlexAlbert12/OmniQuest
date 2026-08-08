@@ -9,9 +9,11 @@ import type { StudentHomeAction } from './types'
 
 export default function StudentRecommendedAction({
   action,
+  compact = false,
   onPress,
 }: {
   action: StudentHomeAction
+  compact?: boolean
   onPress: () => void
 }) {
   const { tokens } = useAppTheme()
@@ -28,7 +30,7 @@ export default function StudentRecommendedAction({
       onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
     >
-      <View className="overflow-hidden rounded-[28px] border border-border-active p-6">
+      <View className="overflow-hidden rounded-[28px] border border-border-active" style={{ padding: compact ? 20 : 24 }}>
         <LinearGradient
           colors={[withAlpha(toneColor, '3D'), tokens.surface.raised, tokens.surface.default]}
           start={{ x: 0, y: 0 }}
@@ -48,29 +50,35 @@ export default function StudentRecommendedAction({
           }}
         />
 
-        <View className="relative flex-row flex-wrap items-center gap-5">
+        <View className="relative flex-row flex-wrap items-center" style={{ gap: compact ? 16 : 20 }}>
           <View
-            className="h-16 w-16 items-center justify-center rounded-[20px] border"
-            style={{ backgroundColor: withAlpha(toneColor, '26'), borderColor: withAlpha(toneColor, '80') }}
+            className="items-center justify-center border"
+            style={{
+              width: compact ? 56 : 64,
+              height: compact ? 56 : 64,
+              borderRadius: compact ? 18 : 20,
+              backgroundColor: withAlpha(toneColor, '26'),
+              borderColor: withAlpha(toneColor, '80'),
+            }}
           >
-            <Ionicons name={action.icon} size={32} color={toneColor} />
+            <Ionicons name={action.icon} size={compact ? 28 : 32} color={toneColor} />
           </View>
 
-          <View className="min-w-[220px] flex-1">
+          <View className="min-w-0 flex-1" style={{ minWidth: compact ? 0 : 220 }}>
             <Text className="text-[12px] font-black uppercase tracking-[1.4px]" style={{ color: toneColor }}>
               Siguiente paso
             </Text>
-            <Text maxFontSizeMultiplier={2} className="mt-2 text-[26px] font-black leading-8 text-white">
+            <Text maxFontSizeMultiplier={2} className="font-black text-white" style={{ marginTop: compact ? 6 : 8, fontSize: compact ? 24 : 26, lineHeight: compact ? 30 : 32 }}>
               {action.title}
             </Text>
-            <Text maxFontSizeMultiplier={2} className="mt-2 max-w-[720px] text-[14px] leading-6 text-text-secondary">
+            <Text maxFontSizeMultiplier={2} className="max-w-[720px] text-[14px] text-text-secondary" style={{ marginTop: compact ? 6 : 8, lineHeight: compact ? 21 : 24 }}>
               {action.description}
             </Text>
           </View>
 
-          <View className="min-h-12 flex-row items-center justify-center gap-2 rounded-2xl px-5 py-3" style={{ backgroundColor: toneColor }}>
-            <Text maxFontSizeMultiplier={2} className="text-[14px] font-black text-white">{action.buttonLabel}</Text>
-            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          <View className="min-h-12 flex-row items-center justify-center gap-2 rounded-2xl px-5 py-3" style={{ backgroundColor: toneColor, width: compact ? '100%' : undefined }}>
+            <Text maxFontSizeMultiplier={2} className="text-[14px] font-black text-text-inverse">{action.buttonLabel}</Text>
+            <Ionicons name="arrow-forward" size={18} color={tokens.text.inverse} />
           </View>
         </View>
       </View>

@@ -38,7 +38,7 @@ export default function GameHeader({
           <View className="flex-row items-center gap-2">
             {isDesktop ? (
               <View className="rounded-xl border border-border-default bg-surface-default px-3 py-2">
-                <Text className="text-[13px] font-black text-brand-student">{score} pts</Text>
+                <Text className="text-[13px] font-black text-brand-student">{score} XP</Text>
               </View>
             ) : null}
             <LivesBadge lives={lives} />

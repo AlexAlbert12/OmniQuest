@@ -29,6 +29,7 @@ export type {
   StudentHomeAction,
   StudentHomeProfile,
   StudentHomeRankingProfile,
+  StudentHomeRankingPreviewRow,
   StudentHomeRankingSummary,
   StudentHomeSubject,
   StudentHomeSubjectRow,

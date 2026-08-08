@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from 'react'
-import { Animated, Easing, Pressable, Text, View } from 'react-native'
+import { Animated, Easing, Pressable, Text, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import OmniGuide from '../../OmniGuide'
 import AnswerFeedbackMotion from '../../gamification/AnswerFeedbackMotion'
 import CelebrationParticles from '../../gamification/CelebrationParticles'
 import XpGainBurst from '../../gamification/XpGainBurst'
+import { useAppTheme } from '../../../lib/appTheme'
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
@@ -73,8 +74,11 @@ export function QuestionFeedbackCard({
   streak: number
 }) {
   const isCorrect = feedback.status === 'correct'
+  const { width } = useWindowDimensions()
+  const { tokens } = useAppTheme()
+  const isDesktop = width >= 1024
   const isPending = feedback.status === 'pending'
-  const color = isPending ? '#F6A64A' : isCorrect ? '#34D399' : '#FB7185'
+  const color = isPending ? tokens.semantic.warning : isCorrect ? tokens.semantic.success : tokens.gamification.performanceLow
   const title = isPending ? 'En revisión' : isCorrect ? '¡Correcto!' : 'Incorrecto'
   const subtitle = isPending
     ? 'Tu profesor corregirá esta respuesta.'
@@ -108,8 +112,8 @@ export function QuestionFeedbackCard({
   })
 
   return (
-    <AnswerFeedbackMotion status={feedback.status} style={{ marginTop: 20 }}>
-      <View className="overflow-hidden rounded-[28px] border bg-surface-default p-5" style={{ borderColor: `${color}88` }}>
+    <AnswerFeedbackMotion status={feedback.status} style={{ marginTop: isDesktop ? 20 : 16 }}>
+      <View className="overflow-hidden rounded-[28px] border bg-surface-default" style={{ borderColor: `${color}88`, padding: isDesktop ? 20 : 16 }}>
         <View className="absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ backgroundColor: `${color}18` }} />
         {isCorrect ? <CelebrationParticles color={color} /> : null}
         {isCorrect && feedback.earnedPoints > 0 ? (
@@ -117,15 +121,15 @@ export function QuestionFeedbackCard({
         ) : null}
       <View className="items-center">
         <Animated.View style={{ transform: [{ scale: iconScale }] }}>
-          <OmniGuide state={isPending ? 'thinking' : isCorrect ? 'happy' : 'error'} size={96} />
+          <OmniGuide state={isPending ? 'thinking' : isCorrect ? 'happy' : 'error'} size={isDesktop ? 96 : 82} />
         </Animated.View>
-        <Text className="mt-4 text-center text-[28px] font-black text-white">{title}</Text>
-        <Text className="mt-2 text-center text-[14px] leading-6 text-text-secondary">{subtitle}</Text>
+        <Text className={`${isDesktop ? 'mt-4 text-[28px]' : 'mt-2 text-[25px]'} text-center font-black text-white`}>{title}</Text>
+        <Text className={`mt-2 text-center text-[14px] ${isDesktop ? 'leading-6' : 'leading-5'} text-text-secondary`}>{subtitle}</Text>
 
-        <View className="mt-5 w-full rounded-2xl border border-border-default bg-background-primary p-4">
+        <View className={`${isDesktop ? 'mt-5 p-4' : 'mt-4 px-4 py-3'} w-full rounded-2xl border border-border-subtle bg-background-primary`}>
           <View className="flex-row items-center justify-center gap-2">
-            <Ionicons name={isPending ? 'hourglass-outline' : isCorrect ? 'flash' : 'refresh'} size={24} color={color} />
-            <Text className="text-[26px] font-black text-white">
+            <Ionicons name={isPending ? 'hourglass-outline' : isCorrect ? 'flash' : 'refresh'} size={isDesktop ? 24 : 21} color={color} />
+            <Text className={`${isDesktop ? 'text-[26px]' : 'text-[22px]'} font-black text-white`}>
               {isPending ? 'Pendiente' : isCorrect ? `+${feedback.earnedPoints} XP` : 'A repasar'}
             </Text>
           </View>
@@ -138,14 +142,14 @@ export function QuestionFeedbackCard({
       </View>
 
       {!isCorrect && !isPending && feedback.correctAnswerText ? (
-        <View className="mt-4 rounded-2xl border border-border-default bg-background-primary p-4">
+        <View className={`${isDesktop ? 'mt-4 p-4' : 'mt-3 px-4 py-3'} rounded-2xl border border-border-subtle bg-background-primary`}>
           <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-text-muted">Respuesta correcta</Text>
           <Text className="mt-2 text-[15px] font-bold leading-6 text-white">{feedback.correctAnswerText}</Text>
         </View>
       ) : null}
 
       {feedback.explanation ? (
-        <View className="mt-4 rounded-2xl border border-border-default bg-surface-raised p-4">
+        <View className={`${isDesktop ? 'mt-4 p-4' : 'mt-3 px-4 py-3'} rounded-2xl border border-border-subtle bg-surface-raised`}>
           <View className="flex-row items-center gap-2">
             <Ionicons name="bulb" size={17} color="#FBBF24" />
             <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-gamification-xp">Explicación</Text>
@@ -159,8 +163,8 @@ export function QuestionFeedbackCard({
         accessibilityRole="button"
         hitSlop={6}
         onPress={onContinue}
-        className="mt-5 flex-row items-center justify-center gap-2 rounded-2xl px-5 py-4"
-        style={({ pressed }) => ({ backgroundColor: isCorrect ? '#6D5AF6' : color, opacity: pressed ? 0.82 : 1 })}
+        className={`${isDesktop ? 'mt-5 py-4' : 'mt-4 py-3'} min-h-12 flex-row items-center justify-center gap-2 rounded-2xl px-5`}
+        style={({ pressed }) => ({ backgroundColor: isCorrect ? tokens.brand.student : color, opacity: pressed ? 0.82 : 1 })}
       >
         <Text className="text-[16px] font-black text-white">Siguiente pregunta</Text>
         <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />

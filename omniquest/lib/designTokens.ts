@@ -46,6 +46,7 @@ export type DesignColorTokens = {
   semanticSurface: Record<SemanticColorKey, string>
   gamification: Record<GamificationColorKey, string> & {
     rank: Record<RankingTierKey, string>
+    performanceLow: string
   }
 }
 
@@ -103,6 +104,7 @@ const DARK_BASE = {
     xp: '#FBBF24',
     streak: '#F97316',
     badge: '#F6C453',
+    performanceLow: '#F9707D',
     rank: {
       bronze: '#CD7F32',
       silver: '#CBD5E1',
@@ -155,6 +157,7 @@ const LIGHT_BASE = {
     xp: '#A86600',
     streak: '#C4510A',
     badge: '#9A6B00',
+    performanceLow: '#C7465C',
     rank: {
       bronze: '#9A5B24',
       silver: '#64748B',

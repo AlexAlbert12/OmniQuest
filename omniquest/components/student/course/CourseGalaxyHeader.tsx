@@ -29,7 +29,7 @@ export default function CourseGalaxyHeader({
       backAction={{ label: 'Mis cursos', onPress: onBack }}
       isDesktop={isDesktop}
       title={subject.name}
-      subtitle={`${totals.progress}% avance · ${totals.failed} ${totals.failed === 1 ? 'fallo pendiente' : 'fallos pendientes'}${classroom ? ` · ${classroom.name}` : ''}`}
+      subtitle={`${totals.progress}% avance  ·  ${totals.failed} ${totals.failed === 1 ? 'fallo pendiente' : 'fallos pendientes'}${classroom ? `  ·  ${classroom.name}` : ''}`}
       titleNumberOfLines={2}
       showNotifications={isDesktop}
       showAvatar={isDesktop}
@@ -53,18 +53,6 @@ export default function CourseGalaxyHeader({
               <Ionicons name="book" size={isDesktop ? 34 : 28} color={tokens.text.inverse} />
             )}
           </LinearGradient>
-        </View>
-      )}
-      actions={(
-        <View className="flex-row flex-wrap items-center gap-4">
-          <View className="flex-row items-center gap-2">
-            <Ionicons name="flame" size={22} color={tokens.gamification.streak} />
-            <Text className="text-[18px] font-black text-white">{totals.failed}</Text>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <Ionicons name="diamond" size={22} color={tokens.semantic.info} />
-            <Text className="text-[18px] font-black text-white">{totals.earnedXp.toLocaleString()}</Text>
-          </View>
         </View>
       )}
     />

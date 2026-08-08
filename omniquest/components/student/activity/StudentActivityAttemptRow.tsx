@@ -3,7 +3,6 @@ import { ActivityIndicator, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import AppButton from '../../ui/AppButton'
 import AppPressable from '../../ui/AppPressable'
-import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import QuestionMedia from '../../questions/QuestionMedia'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
@@ -20,6 +19,7 @@ import {
 
 export type StudentActivityAttemptRowProps = {
   attempt: ActivityAttempt
+  isDesktop: boolean
   isExpanded: boolean
   isDetailLoading: boolean
   onToggle: () => void
@@ -28,6 +28,7 @@ export type StudentActivityAttemptRowProps = {
 
 export default React.memo(function StudentActivityAttemptRow({
   attempt,
+  isDesktop,
   isExpanded,
   isDetailLoading,
   onToggle,
@@ -60,10 +61,10 @@ export default React.memo(function StudentActivityAttemptRow({
         accessibilityHint={isExpanded ? 'Contrae el detalle del intento' : 'Carga y muestra el feedback de este intento'}
         accessibilityState={{ expanded: isExpanded }}
         onPress={onToggle}
-        className="min-h-[76px] flex-row items-center gap-4 p-4"
+        className={`min-h-[76px] flex-row items-center ${isDesktop ? 'gap-4 p-4' : 'gap-3 px-[14px] py-3'}`}
       >
         <View
-          className="h-12 w-12 items-center justify-center rounded-xl"
+          className={`${isDesktop ? 'h-12 w-12' : 'h-11 w-11'} items-center justify-center rounded-xl`}
           style={{ backgroundColor: withAlpha(reviewStatus.color, '20') }}
         >
           <Ionicons name={reviewStatus.icon} size={26} color={reviewStatus.color} />
@@ -90,7 +91,7 @@ export default React.memo(function StudentActivityAttemptRow({
 
         <View className="items-end gap-1">
           <Text maxFontSizeMultiplier={2} className="text-[12px]" style={{ color: tokens.text.muted }}>{formatAttemptTime(attempt.attempted_at)}</Text>
-          <View className="rounded-md px-2 py-0.5" style={{ backgroundColor: withAlpha(reviewStatus.color, '20') }}>
+          <View className="rounded-md px-2 py-0.5" style={{ backgroundColor: withAlpha(reviewStatus.color, '14') }}>
             <Text maxFontSizeMultiplier={2} className="text-[12px] font-black" style={{ color: reviewStatus.color }}>
               {earnedPoints > 0 ? `+${earnedPoints} XP` : '0 XP'}
             </Text>
@@ -100,7 +101,7 @@ export default React.memo(function StudentActivityAttemptRow({
       </AppPressable>
 
       {isExpanded ? (
-        <View className="border-t p-4" style={{ borderColor: tokens.border.default }}>
+        <View className="border-t p-4" style={{ borderColor: tokens.border.subtle }}>
           {isDetailLoading ? (
             <View className="items-center py-5" accessibilityRole="progressbar" accessibilityLabel="Cargando feedback del intento">
               <ActivityIndicator color={tokens.brand.student} />
@@ -122,33 +123,8 @@ export default React.memo(function StudentActivityAttemptRow({
               ) : null}
               <DetailBlock icon="person-circle" label="Tu respuesta" value={submittedAnswer} highlightColor={reviewStatus.color} />
 
-              {reviewStatus.waiting ? (
-                <View className="rounded-2xl border p-4" style={{ borderColor: withAlpha(reviewStatus.color, '70'), backgroundColor: withAlpha(reviewStatus.color, '12') }}>
-                  <View className="flex-row items-center gap-2">
-                    <Ionicons name={reviewStatus.icon} size={20} color={reviewStatus.color} />
-                    <Text maxFontSizeMultiplier={2} className="text-[13px] font-black" style={{ color: reviewStatus.color }}>{reviewStatus.label}</Text>
-                  </View>
-                  <Text maxFontSizeMultiplier={2} className="mt-2 text-[12px] leading-5" style={{ color: tokens.text.secondary }}>{reviewStatus.description}</Text>
-                </View>
-              ) : (
-                <>
-                  <DetailBlock
-                    icon="bulb"
-                    label="Feedback de aprendizaje"
-                    value={explanation}
-                    highlightColor={attempt.is_correct ? tokens.semantic.success : tokens.semantic.warning}
-                  />
-                  <View className="flex-row items-start gap-3 rounded-xl border p-3" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}>
-                    <Ionicons name="shield-checkmark" size={18} color={tokens.semantic.info} />
-                    <Text maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[12px] leading-5" style={{ color: tokens.text.secondary }}>
-                      El historial no reconstruye el banco de respuestas. Practica el tema para volver a comprobar el contenido en su contexto.
-                    </Text>
-                  </View>
-                </>
-              )}
-
               {reviewComments.length > 0 ? (
-                <View className="rounded-2xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.disabled }}>
+                <View className="rounded-2xl border p-4" style={{ borderColor: tokens.border.subtle, backgroundColor: tokens.surface.disabled }}>
                   <View className="mb-3 flex-row items-center gap-2">
                     <Ionicons name="chatbubble-ellipses" size={18} color={tokens.brand.student} />
                     <Text maxFontSizeMultiplier={2} className="text-[13px] font-black" style={{ color: tokens.text.secondary }}>Comentarios del profesor</Text>
@@ -169,13 +145,28 @@ export default React.memo(function StudentActivityAttemptRow({
                 <DetailBlock icon="chatbubble-ellipses" label="Comentario del profesor" value={attempt.review_notes} highlightColor={tokens.brand.student} />
               ) : null}
 
-              <View className="flex-row flex-wrap gap-3">
-                <MiniMetric icon="timer" label="Tiempo empleado" value={formatTimeTaken(attempt.time_taken_seconds)} />
-                <MiniMetric icon="flash" label="XP ganado" value={`${earnedPoints} XP`} />
-                <MiniMetric icon="school" label="Curso" value={subjectName} />
-                <MiniMetric icon="pricetag" label="Tema" value={topicTitle} />
-                {attempt.hint_used ? <MiniMetric icon="bulb" label="Pista" value="Usada" /> : null}
-                {attempt.was_skipped ? <MiniMetric icon="play-skip-forward" label="Estado" value="Saltada" /> : null}
+              <View className="gap-3">
+                <View className="flex-row gap-3">
+                  <CompactMetric icon="timer" label="Tiempo" value={formatTimeTaken(attempt.time_taken_seconds)} />
+                  <CompactMetric icon="flash" label="XP ganado" value={`${earnedPoints} XP`} />
+                </View>
+                {isDesktop ? (
+                  <View className="flex-row gap-3">
+                    <ContextMetric icon="school" label="Curso" value={subjectName} />
+                    <ContextMetric icon="pricetag" label="Tema" value={topicTitle} />
+                  </View>
+                ) : (
+                  <View className="gap-2">
+                    <ContextMetric icon="school" label="Curso" value={subjectName} />
+                    <ContextMetric icon="pricetag" label="Tema" value={topicTitle} />
+                  </View>
+                )}
+                {attempt.hint_used || attempt.was_skipped ? (
+                  <View className="flex-row gap-3">
+                    {attempt.hint_used ? <CompactMetric icon="bulb" label="Pista" value="Usada" /> : null}
+                    {attempt.was_skipped ? <CompactMetric icon="play-skip-forward" label="Estado" value="Saltada" /> : null}
+                  </View>
+                ) : null}
               </View>
 
               <AppButton
@@ -223,7 +214,7 @@ function DetailBlock({
   const { tokens } = useAppTheme()
   const foreground = highlightColor || tokens.text.primary
   return (
-    <View className="rounded-xl border p-3" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}>
+    <View className="rounded-xl border p-3" style={{ borderColor: tokens.border.subtle, backgroundColor: tokens.surface.raised }}>
       <View className="mb-2 flex-row items-center gap-2">
         <Ionicons name={icon} size={15} color={highlightColor || tokens.text.muted} />
         <Text maxFontSizeMultiplier={2} className="text-[11px] font-black uppercase tracking-wide" style={{ color: tokens.text.muted }}>{label}</Text>
@@ -233,16 +224,32 @@ function DetailBlock({
   )
 }
 
-function MiniMetric({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+function CompactMetric({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
   const { tokens } = useAppTheme()
   return (
-    <MobileMetricCard
-      className="min-w-[150px] flex-1 rounded-xl"
-      color={tokens.brand.student}
-      compact
-      icon={icon}
-      label={label}
-      value={value || 'Sin información'}
-    />
+    <View className="min-h-[72px] min-w-0 flex-1 justify-center rounded-xl border px-3 py-2" style={{ borderColor: tokens.border.subtle, backgroundColor: tokens.surface.raised }}>
+      <View className="flex-row items-center gap-2">
+        <Ionicons name={icon} size={16} color={tokens.brand.student} />
+        <Text maxFontSizeMultiplier={2} className="text-[11px] font-black uppercase tracking-wide" style={{ color: tokens.text.muted }}>{label}</Text>
+      </View>
+      <Text maxFontSizeMultiplier={2} className="mt-1 text-[16px] font-black" style={{ color: tokens.text.primary }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+        {value || 'Sin información'}
+      </Text>
+    </View>
+  )
+}
+
+function ContextMetric({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+  const { tokens } = useAppTheme()
+  return (
+    <View className="min-w-0 flex-1 flex-row items-start gap-3 rounded-xl border px-3 py-3" style={{ borderColor: tokens.border.subtle, backgroundColor: tokens.surface.raised }}>
+      <Ionicons name={icon} size={17} color={tokens.brand.student} />
+      <View className="min-w-0 flex-1">
+        <Text maxFontSizeMultiplier={2} className="text-[11px] font-black uppercase tracking-wide" style={{ color: tokens.text.muted }}>{label}</Text>
+        <Text maxFontSizeMultiplier={2} className="mt-1 text-[13px] font-bold leading-5" style={{ color: tokens.text.primary }} numberOfLines={2}>
+          {value || 'Sin información'}
+        </Text>
+      </View>
+    </View>
   )
 }

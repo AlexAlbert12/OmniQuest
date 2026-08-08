@@ -107,6 +107,9 @@ function PlayScreenContent() {
 
   const currentQuestion = game.currentQuestion as GameQuestion | undefined
   const questionType = normalizeQuestionType(currentQuestion?.type)
+  const isComplexInteraction = questionType === 'fill_blank' || questionType === 'match_pairs' || questionType === 'drag_drop'
+  const showQuestionDescriptor = questionType === 'multiple_choice' || questionType === 'true_false'
+  const interactionMaxWidth = isDesktop ? (isComplexInteraction ? 840 : 720) : 640
   const totalQuestions = Math.max(game.questions.length, 1)
   const progressPercentage = ((game.currentIndex + 1) / totalQuestions) * 100
   const pointsBase = currentQuestion?.points_base ?? 150
@@ -146,27 +149,28 @@ function PlayScreenContent() {
 
           <GameSyncStatus
             state={game.syncState}
-            resumed={game.resumedFromSnapshot}
             error={game.syncError}
             onRetry={game.retryPendingAnswer}
           />
 
           {isDesktop ? (
-            <GameStatsBar points={pointsBase} streak={game.streak} position={position} category={category} lives={game.lives} />
+            <GameStatsBar points={pointsBase} streak={game.streak} position={position} category={category} />
           ) : null}
 
-          <View className={isDesktop ? 'mt-6 flex-1 items-center justify-center' : 'mt-5 flex-1 items-center justify-start'}>
-            <View className="w-full" style={{ maxWidth: isDesktop ? 760 : 640 }}>
+          <View className={isDesktop ? 'mt-6 flex-1 items-center justify-center' : 'mt-4 flex-1 items-center justify-start'}>
+            <View className="w-full" style={{ maxWidth: interactionMaxWidth }}>
               <View className="items-center px-1">
-                <TimerPill timeLeft={game.timeLeft} />
-                <View className="mt-5 flex-row items-center gap-3">
-                  <Ionicons name="sparkles" size={16} color={tokens.brand.student} />
-                  <Text className={`${isDesktop ? 'text-[22px]' : 'text-[19px]'} font-black text-brand-student`}>
-                    Pregunta {game.currentIndex + 1}
-                  </Text>
-                  <Ionicons name="sparkles" size={16} color={tokens.brand.student} />
-                </View>
-                <Text className={`${isDesktop ? 'text-[30px] leading-10' : 'text-[24px] leading-8'} mt-4 max-w-[720px] text-center font-black text-text-primary`}>
+                <TimerPill timeLeft={game.timeLeft} compact={!isDesktop} />
+                {isDesktop ? (
+                  <View className="mt-5 flex-row items-center gap-3">
+                    <Ionicons name="sparkles" size={16} color={tokens.brand.student} />
+                    <Text className="text-[22px] font-black text-brand-student">
+                      Pregunta {game.currentIndex + 1}
+                    </Text>
+                    <Ionicons name="sparkles" size={16} color={tokens.brand.student} />
+                  </View>
+                ) : null}
+                <Text className={`${isDesktop ? 'mt-4 text-[30px] leading-10' : 'mt-3 text-[24px] leading-8'} max-w-[720px] text-center font-black text-text-primary`}>
                   {currentQuestion?.text}
                 </Text>
                 {currentQuestion?.media_type ? (
@@ -178,26 +182,24 @@ function PlayScreenContent() {
                     compact={!isDesktop}
                   />
                 ) : null}
-                <View className="mt-4 flex-row items-center gap-2 rounded-full bg-surface-default px-4 py-2">
-                  <Ionicons name="star" size={18} color={tokens.semantic.info} />
-                  <Text className="text-[13px] font-semibold text-text-secondary">{getQuestionInstruction(questionType)}</Text>
-                </View>
+                {showQuestionDescriptor ? (
+                  <View className={`${isDesktop ? 'mt-4' : 'mt-3'} flex-row items-center gap-2 rounded-full bg-surface-default px-4 py-2`}>
+                    <Ionicons name="star" size={18} color={tokens.semantic.info} />
+                    <Text className="text-[13px] font-semibold text-text-secondary">{getQuestionInstruction(questionType)}</Text>
+                  </View>
+                ) : null}
 
                 {game.hintedAnswerId ? (
-                  <View className="mt-3 w-full rounded-2xl border border-semantic-warning bg-semantic-surface-warning p-4">
-                    <View className="flex-row items-center gap-2">
-                      <Ionicons name="bulb" size={18} color={tokens.semantic.warning} />
-                      <Text className="font-black uppercase tracking-[0.04em] text-gamification-xp">Pista activa</Text>
-                    </View>
-                    <Text className="mt-2 text-[13px] text-text-secondary">
-                      La respuesta se validará en el servidor y tendrá penalización si aciertas.
-                    </Text>
+                  <View className="mt-2 w-full flex-row items-center gap-2 rounded-xl bg-semantic-surface-warning px-3 py-2">
+                    <Ionicons name="bulb" size={16} color={tokens.semantic.warning} />
+                    <Text className="text-[12px] font-black text-gamification-xp">Pista activa</Text>
+                    <Text className="min-w-0 flex-1 text-[12px] text-text-secondary">Opción destacada · -10 XP si aciertas</Text>
                   </View>
                 ) : null}
               </View>
 
               <View
-                className={`${isDesktop ? 'mt-6 rounded-[26px]' : 'mt-6 rounded-[24px]'} border border-border-default bg-surface-default p-2`}
+                className={`${isDesktop ? 'mt-5 rounded-[26px] p-5' : 'mt-4 rounded-[24px] p-4'} border border-border-default bg-surface-default`}
                 style={createShadowStyle({
                   color: tokens.brand.student,
                   opacity: isDesktop ? 0.18 : 0.12,

@@ -5,6 +5,7 @@ import OmniGuide, { type OmniSize, type OmniState } from '../../OmniGuide'
 import AnimatedXpCounter from '../../gamification/AnimatedXpCounter'
 import BadgeUnlockModal from '../../gamification/BadgeUnlockModal'
 import type { StudentBadge } from '../../../lib/studentBadges'
+import { useAppTheme } from '../../../lib/appTheme'
 
 type GameSummary = {
   questionsTotal: number
@@ -124,11 +125,12 @@ function GameSummaryPanel({
   summary: GameSummary
 }) {
   const answered = Math.max(summary.answered, summary.correct + summary.incorrect)
+  const { tokens } = useAppTheme()
   const precision = answered > 0 ? Math.round((summary.correct / answered) * 100) : 0
   const xp = summary.xp || fallbackScore || 0
   const totalQuestions = summary.questionsTotal || answered
   const reviewCount = summary.reviewQuestions.length
-  const circleColor = precision >= 70 ? '#8B5CF6' : '#FB7185'
+  const circleColor = precision >= 70 ? tokens.brand.student : tokens.gamification.performanceLow
 
   return (
     <View className="my-6">

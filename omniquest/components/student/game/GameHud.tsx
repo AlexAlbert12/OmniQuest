@@ -4,16 +4,19 @@ import { Ionicons } from '@expo/vector-icons'
 import { withAlpha } from '../../../lib/color'
 import { createShadowStyle } from '../../../lib/platformShadow'
 
-export function TimerPill({ timeLeft }: { timeLeft: number }) {
+export function TimerPill({ timeLeft, compact = false }: { timeLeft: number; compact?: boolean }) {
   const isLow = timeLeft <= 5
   const color = isLow ? '#FB7185' : '#8B5CF6'
 
   return (
     <View className="items-center justify-center">
       <View
-        className="h-[92px] w-[92px] items-center justify-center rounded-full border-[8px] bg-background-primary"
+        className="items-center justify-center rounded-full bg-background-primary"
         style={{
           borderColor: color,
+          width: compact ? 82 : 92,
+          height: compact ? 82 : 92,
+          borderWidth: compact ? 7 : 8,
           ...createShadowStyle({
             color,
             opacity: 0.3,
@@ -23,8 +26,8 @@ export function TimerPill({ timeLeft }: { timeLeft: number }) {
           }),
         }}
       >
-        <Ionicons name="timer-outline" size={18} color={color} />
-        <Text className={`mt-1 text-[22px] font-black ${isLow ? 'text-semantic-danger' : 'text-white'}`}>
+        <Ionicons name="timer-outline" size={compact ? 16 : 18} color={color} />
+        <Text className={`${compact ? 'mt-0.5 text-[20px]' : 'mt-1 text-[22px]'} font-black ${isLow ? 'text-semantic-danger' : 'text-white'}`}>
           00:{timeLeft.toString().padStart(2, '0')}
         </Text>
       </View>
@@ -52,22 +55,19 @@ export function GameStatsBar({
   streak,
   position,
   category,
-  lives,
 }: {
   points: number
   streak: number
   position: string
   category: string
-  lives: number
 }) {
   const hasStreakBonus = streak >= 3
 
   return (
     <View className="mt-5 flex-row flex-wrap items-center justify-center gap-2">
-      <GameStatPill icon="flash" color="#FBBF24" label={`${points} XP`} highlighted />
+      <GameStatPill icon="flash" color="#FBBF24" label={`${points} XP posibles`} highlighted />
       <GameStatPill icon="flame" color="#FF7B45" label={hasStreakBonus ? `Racha ${streak}` : `Racha ${streak}`} />
       <GameStatPill icon="podium-outline" color="#9B6CFF" label={`Posición ${position}`} />
-      <GameStatPill icon="heart" color="#FF647C" label={`${lives} vidas`} />
       <GameStatPill icon="albums-outline" color="#60A5FA" label={category} />
     </View>
   )
@@ -106,9 +106,9 @@ export function BottomHud({
   onSkip: () => void
 }) {
   return (
-    <View className="mt-5 flex-row gap-3 rounded-[22px] border border-border-default bg-surface-default p-3">
-      <HudAction icon="bulb" title="Pista" detail="-10 pts" color="#FBBF24" onPress={onHint} />
-      <HudAction icon="play-skip-forward" title="Saltar" detail="-20 pts" color="#A78BFA" onPress={onSkip} />
+    <View className="mt-4 flex-row gap-3">
+      <HudAction icon="bulb" title="Pista" detail="-10 XP" color="#FBBF24" emphasized onPress={onHint} />
+      <HudAction icon="play-skip-forward" title="Saltar" detail="-20 XP" color="#A78BFA" onPress={onSkip} />
     </View>
   )
 }
@@ -119,18 +119,24 @@ function HudAction({
   detail,
   color,
   onPress,
+  emphasized = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   title: string
   detail: string
   color: string
   onPress: () => void
+  emphasized?: boolean
 }) {
   return (
     <Pressable
       onPress={onPress}
-      className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-border-default bg-surface-raised px-3 py-3"
-      style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+      className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl border px-3 py-3 ${emphasized ? '' : 'border-border-subtle bg-surface-raised'}`}
+      style={({ pressed }) => ({
+        borderColor: emphasized ? withAlpha(color, '70') : undefined,
+        backgroundColor: emphasized ? withAlpha(color, '14') : undefined,
+        opacity: pressed ? 0.78 : 1,
+      })}
     >
       <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: `${color}20` }}>
         <Ionicons name={icon} size={19} color={color} />

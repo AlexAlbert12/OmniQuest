@@ -45,13 +45,14 @@ export default function ActivityLogScreen() {
     return (
       <StudentActivityAttemptRow
         attempt={attempt}
+        isDesktop={isDesktop}
         isExpanded={expandedAttemptId === item.attempt.id}
         isDetailLoading={loadingAttemptId === item.attempt.id}
         onToggle={() => void toggleAttempt(item.attempt.id)}
         onPractice={() => handlePractice(item)}
       />
     )
-  }, [detailedAttempts, expandedAttemptId, handlePractice, loadingAttemptId, toggleAttempt])
+  }, [detailedAttempts, expandedAttemptId, handlePractice, isDesktop, loadingAttemptId, toggleAttempt])
 
   const listHeader = (
     <View>
@@ -60,8 +61,7 @@ export default function ActivityLogScreen() {
         icon="time-outline"
         isDesktop={isDesktop}
         title="Historial de actividad"
-        mobileTitle="Actividad"
-        subtitle="Revisa tu progreso y vuelve a practicar sin reconstruir el banco de respuestas."
+        subtitle="Consulta tus intentos anteriores y vuelve a practicar desde el tema correspondiente."
       />
       {activity.error ? (
         <View className="mb-4">
@@ -97,7 +97,7 @@ export default function ActivityLogScreen() {
       contentLabel="Historial de actividad del alumno"
       desktopSidebar={activity.profile ? (
         <StudentSidebar
-          activeSection="home"
+          activeSection="profile"
           alias={activity.profile.alias || 'Estudiante'}
           avatar={activity.profile.avatar}
           level={activity.level}

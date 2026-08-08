@@ -22,9 +22,7 @@ export default function CourseNextMission({
   style?: StyleProp<ViewStyle>
 }) {
   const { tokens } = useAppTheme()
-  const title = topic
-    ? `Tema ${position ?? ''}${position ? ' · ' : ''}${topic.title}`
-    : 'Has completado el curso'
+  const title = topic ? buildMissionTitle(topic, position) : 'Has completado el curso'
   const description = topic?.description || courseDescription || 'Selecciona un planeta para iniciar una misión.'
 
   if (compact) {
@@ -38,22 +36,24 @@ export default function CourseNextMission({
             borderWidth: 1,
             borderColor: tokens.border.active,
             backgroundColor: tokens.background.overlay,
-            padding: 12,
+            minHeight: 58,
+            paddingHorizontal: 10,
+            paddingVertical: 8,
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 12,
+            gap: 9,
           },
           style,
         ]}
       >
-        <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(tokens.brand.student, '29') }}>
-          <Ionicons name="rocket" size={22} color={tokens.brand.student} />
+        <View className="h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(tokens.brand.student, '29') }}>
+          <Ionicons name="rocket" size={19} color={tokens.brand.student} />
         </View>
         <View className="min-w-0 flex-1">
-          <Text className="text-[11px] font-black uppercase tracking-[1px] text-brand-student">Siguiente misión</Text>
-          <Text maxFontSizeMultiplier={2} numberOfLines={2} className="mt-1 text-[14px] font-black text-white">{title}</Text>
+          <Text className="text-[10px] font-black uppercase tracking-[1px] text-brand-student">Siguiente misión</Text>
+          <Text maxFontSizeMultiplier={2} numberOfLines={1} className="mt-0.5 text-[13px] font-black text-white">{title}</Text>
         </View>
-        <AppButton label={`Continuar con Tema ${position ?? ''}`.trim()} icon="play" role="student" size="sm" onPress={onContinue} />
+        <AppButton label="Continuar" accessibilityHint={`Abre ${title}`} icon="play" role="student" size="sm" onPress={onContinue} />
       </View>
     )
   }
@@ -69,8 +69,33 @@ export default function CourseNextMission({
         <Ionicons name={topic ? 'book-outline' : 'checkmark-done'} size={30} color={tokens.brand.student} />
       </View>
       {topic && onContinue ? (
-        <AppButton label={`Continuar con Tema ${position ?? ''}`.trim()} icon="play" role="student" onPress={onContinue} />
+        <AppButton label={buildMissionActionLabel(topic, position)} accessibilityHint={`Abre ${title}`} icon="play" role="student" onPress={onContinue} />
       ) : null}
     </View>
   )
+}
+
+function buildMissionTitle(topic: StudentCourseTopic, position: number | null) {
+  const title = topic.title.trim()
+  if (topic.id === 'general' || !position) return title
+  const ordinal = `Tema ${position}`
+  const normalizedTitle = normalizeTopicLabel(title)
+  const normalizedOrdinal = normalizeTopicLabel(ordinal)
+  if (
+    normalizedTitle === normalizedOrdinal
+    || normalizedTitle.startsWith(`${normalizedOrdinal} `)
+    || normalizedTitle.startsWith(`${normalizedOrdinal}:`)
+    || normalizedTitle.startsWith(`${normalizedOrdinal} ·`)
+    || normalizedTitle.startsWith(`${normalizedOrdinal} -`)
+  ) return title
+  return `${ordinal} · ${title}`
+}
+
+function buildMissionActionLabel(topic: StudentCourseTopic, position: number | null) {
+  if (topic.id === 'general' || !position) return 'Continuar'
+  return `Continuar con Tema ${position}`
+}
+
+function normalizeTopicLabel(value: string) {
+  return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('es-ES')
 }

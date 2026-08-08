@@ -46,7 +46,6 @@ test('profile reuses shared metric cards and activity is grouped without an answ
   assert.doesNotMatch(profile, /function SummaryTile/)
   assert.match(activity, /buildActivityRows/)
   assert.match(activity, /ActivityDateHeader/)
-  assert.match(activity, /Feedback de aprendizaje/)
   assert.doesNotMatch(activity, /label="Respuesta correcta"/)
 })
 
@@ -57,4 +56,33 @@ test('shared headers protect descenders and settings navigation uses explicit bo
   assert.match(header, /lineHeight: isDesktop \? 54 : 42/)
   assert.match(header, /paddingBottom: isDesktop \? 4 : 3/)
   assert.match(settings, /borderWidth: 1,\n\s+borderColor: active \? accentColor : colors\.border/)
+})
+
+test('course detail mobile refinement avoids duplicate mission labels and only shows sticky CTA after the inline mission leaves view', () => {
+  const detail = read('app/(student)/class/[id].tsx')
+  const mission = read('components/student/course/CourseNextMission.tsx')
+  const progress = read('components/student/course/CourseProgressPanel.tsx')
+  const galaxy = read('components/student/galaxy/StudentGalaxyMap.tsx')
+
+  assert.match(detail, /showMobileStickyMission/)
+  assert.match(detail, /handleInlineMissionLayout/)
+  assert.match(detail, /handleCourseScroll/)
+  assert.match(detail, /MOBILE_BOTTOM_NAV_HEIGHT \+ insets\.bottom/)
+  assert.match(detail, /recommendedTopic && \(isDesktop \|\| showMobileStickyMission\)/)
+  assert.match(detail, /if \(classRanking\.length === 1\) return '1\.º de 1'/)
+  assert.match(detail, /<GalaxyScreenBackground subtle/)
+
+  assert.match(mission, /buildMissionTitle/)
+  assert.match(mission, /normalizedTitle === normalizedOrdinal/)
+  assert.match(mission, /label="Continuar"/)
+  assert.doesNotMatch(mission, /`Tema \$\{position \?\? ''\}\$\{position \? ' · ' : ''\}\$\{topic\.title\}`/)
+
+  assert.match(progress, /isDesktop \? 'mt-6 rounded-\[28px\]/)
+  assert.match(progress, /: 'mt-5'/)
+  assert.match(progress, /minHeight: 44/)
+  assert.match(progress, /marginTop=\{isDesktop \? 28 : 24\}/)
+
+  assert.match(galaxy, /const rowHeight = isDesktop \? 286 : responsive\.isTablet \? 274 : 260/)
+  assert.match(galaxy, /const minimumMapHeight = isDesktop \? 360 : responsive\.isTablet \? 340 : 312/)
+  assert.match(galaxy, /decorationOpacity = subtle \? 0\.7 : 1/)
 })
