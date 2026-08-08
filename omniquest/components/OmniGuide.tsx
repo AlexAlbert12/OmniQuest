@@ -1,6 +1,7 @@
 import { Image } from 'expo-image'
 import { useEffect, useRef, useState } from 'react'
 import { Animated, Easing, type StyleProp, type ViewStyle } from 'react-native'
+import { USE_NATIVE_ANIMATION_DRIVER } from '../lib/animation'
 
 export type OmniState = 'normal' | 'blink' | 'happy' | 'thinking' | 'error'
 export type OmniSize = 'sm' | 'md' | 'lg' | 'xl'
@@ -74,13 +75,13 @@ export default function OmniGuide({
         toValue: 1,
         duration: 220,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
       }),
       Animated.spring(scale, {
         toValue: 1,
         friction: 8,
         tension: 72,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
       }),
     ])
 
@@ -91,13 +92,13 @@ export default function OmniGuide({
             toValue: 1,
             duration: 300,
             easing: Easing.inOut(Easing.cubic),
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
           }),
           Animated.timing(rotation, {
             toValue: 0,
             duration: 260,
             easing: Easing.inOut(Easing.cubic),
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
           }),
         ])
       : entrance

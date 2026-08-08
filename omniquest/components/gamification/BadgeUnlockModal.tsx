@@ -6,6 +6,7 @@ import CelebrationParticles from './CelebrationParticles'
 import type { StudentBadge } from '../../lib/studentBadges'
 import { useAppHaptics } from '../../lib/haptics'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
+import { USE_NATIVE_ANIMATION_DRIVER } from '../../lib/animation'
 
 export default function BadgeUnlockModal({
   badge,
@@ -38,18 +39,18 @@ export default function BadgeUnlockModal({
       Animated.timing(opacity, {
         toValue: 1,
         duration: 210,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
       }),
       Animated.spring(scale, {
         toValue: 1,
         damping: 7,
         stiffness: 150,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
       }),
       Animated.loop(
         Animated.sequence([
-          Animated.timing(glow, { toValue: 1, duration: 850, useNativeDriver: true }),
-          Animated.timing(glow, { toValue: 0, duration: 850, useNativeDriver: true }),
+          Animated.timing(glow, { toValue: 1, duration: 850, useNativeDriver: USE_NATIVE_ANIMATION_DRIVER }),
+          Animated.timing(glow, { toValue: 0, duration: 850, useNativeDriver: USE_NATIVE_ANIMATION_DRIVER }),
         ]),
         { iterations: 2 }
       ),

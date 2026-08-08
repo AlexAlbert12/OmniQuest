@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { Animated, Easing, Text } from 'react-native'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
+import { USE_NATIVE_ANIMATION_DRIVER } from '../../lib/animation'
 
 export default function XpGainBurst({ amount, visible }: { amount: number; visible: boolean }) {
   const reducedMotion = useReducedMotion()
@@ -20,26 +21,26 @@ export default function XpGainBurst({ amount, visible }: { amount: number; visib
         Animated.timing(opacity, {
           toValue: 1,
           duration: reducedMotion ? 1 : 150,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
         }),
         Animated.delay(reducedMotion ? 250 : 560),
         Animated.timing(opacity, {
           toValue: 0,
           duration: reducedMotion ? 1 : 220,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
         }),
       ]),
       Animated.timing(translateY, {
         toValue: reducedMotion ? 0 : -30,
         duration: reducedMotion ? 1 : 930,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
       }),
       Animated.spring(scale, {
         toValue: 1,
         damping: 7,
         stiffness: 190,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
       }),
     ])
 

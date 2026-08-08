@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react'
 import { Animated, Easing, View } from 'react-native'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
+import { USE_NATIVE_ANIMATION_DRIVER } from '../../lib/animation'
 
 const PARTICLE_COLORS = ['#FBBF24', '#A78BFA', '#38BDF8', '#34D399', '#FB7185', '#F97316']
 
@@ -21,7 +22,7 @@ export default function CelebrationParticles({ active = true, color, size = 220 
       toValue: 1,
       duration: 1050,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
     })
     animation.start()
     return () => animation.stop()

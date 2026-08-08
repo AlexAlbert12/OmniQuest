@@ -27,9 +27,10 @@ export default function DailyPracticeRecommendation({
         icon={recommendation ? 'sparkles' : 'book'}
         title={recommendation ? `Practica ${recommendation.title}` : 'Continúa tu ruta de aprendizaje'}
         subtitle={recommendation?.reason || 'Entra en tus cursos y completa la siguiente actividad disponible.'}
-        meta={recommendation ? `+${recommendation.rewardXp} XP posibles` : `${coursesCount} cursos activos`}
+        meta={recommendation ? `+${recommendation.rewardXp} XP posibles` : `${coursesCount} ${coursesCount === 1 ? 'curso activo' : 'cursos activos'}`}
         ctaLabel={recommendation ? recommendation.actionLabel : 'Ver cursos'}
         color={recommendation?.color || accentColor}
+        stackActionOnMobile
         onPress={() => recommendation ? onPractice(recommendation) : onBrowseCourses()}
       />
       {recommendation ? (

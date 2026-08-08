@@ -5,6 +5,7 @@ import OmniGuide from '../../OmniGuide'
 import AnswerFeedbackMotion from '../../gamification/AnswerFeedbackMotion'
 import CelebrationParticles from '../../gamification/CelebrationParticles'
 import XpGainBurst from '../../gamification/XpGainBurst'
+import { USE_NATIVE_ANIMATION_DRIVER } from '../../../lib/animation'
 import { useAppTheme } from '../../../lib/appTheme'
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -95,13 +96,13 @@ export function QuestionFeedbackCard({
         toValue: 1,
         duration: 380,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
       }),
       Animated.timing(pulse, {
         toValue: 0,
         duration: 260,
         easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
       }),
     ]).start()
   }, [feedback.status, pulse])

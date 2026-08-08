@@ -6,6 +6,7 @@ import { getTimeAgo } from '../../lib/time'
 import { useAppTheme } from '../../lib/appTheme'
 import type { AppRole } from '../../lib/designTokens'
 import { withAlpha } from '../../lib/color'
+import { USE_NATIVE_ANIMATION_DRIVER } from '../../lib/animation'
 
 type NotificationListItemProps = {
   notification: AppNotification
@@ -39,7 +40,7 @@ function NotificationListItem({
   const resetPosition = useCallback(() => {
     Animated.spring(translateX, {
       toValue: 0,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
       damping: 18,
       stiffness: 220,
       mass: 0.8,
@@ -50,7 +51,7 @@ function NotificationListItem({
     Animated.timing(translateX, {
       toValue: direction === 'read' ? SWIPE_LIMIT : -SWIPE_LIMIT,
       duration: 120,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
     }).start(() => {
       void Promise.resolve(direction === 'read' ? onMarkAsRead() : onDelete())
       resetPosition()

@@ -31,6 +31,13 @@ test('student progress leads with an actionable daily recommendation', () => {
   assert.match(progress, /Oportunidades de práctica/)
   assert.match(progress, /Oportunidades de mejora/)
   assert.match(progress, /últimos 30 días/)
+  assert.match(progress, /item\.id !== progress\.recommendation\?\.id/)
+  assert.match(progress, /primaryRecommendationShown/)
+  assert.match(progress, /Precisión global/)
+  assert.match(progress, /streakDays === 1 \? 'día' : 'días'/)
+  assert.match(progress, /Revisar historial/)
+  assert.match(progress, /stackActionOnMobile/)
+  assert.doesNotMatch(progress, /Este formato de pregunta está reduciendo tu precisión global/)
 })
 
 test('ranking highlights the current student and keeps server pagination', () => {

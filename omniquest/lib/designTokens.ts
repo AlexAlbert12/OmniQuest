@@ -57,8 +57,8 @@ export type SemanticIconDefinition = {
 }
 
 const BRAND_COLORS: Record<AppRole, string> = {
-  student: '#38BDF8',
-  teacher: '#38BDF8',
+  student: '#09acf4',
+  teacher: '#09acf4',
   admin: '#A78BFA',
 }
 

@@ -20,7 +20,7 @@ type GameSummary = {
 export default function ResultState({
   icon,
   iconColor,
-  omniSize = 132,
+  omniSize = 100,
   omniState,
   title,
   detail,
@@ -137,7 +137,7 @@ function GameSummaryPanel({
       <View className="rounded-[28px] border border-border-default bg-surface-raised p-5">
         <Text className="text-center text-[12px] font-black uppercase tracking-[0.08em] text-text-muted">Resultado principal</Text>
         <View className="mt-5 items-center">
-          <View className="h-36 w-36 items-center justify-center rounded-full border-[10px] bg-background-primary" style={{ borderColor: circleColor }}>
+          <View className="h-32 w-32 items-center justify-center rounded-full border-[10px] bg-background-primary" style={{ borderColor: circleColor }}>
             <Text className="text-[38px] font-black text-white">{summary.correct}/{totalQuestions}</Text>
             <Text className="text-[14px] font-bold text-text-secondary">correctas</Text>
           </View>
@@ -146,7 +146,7 @@ function GameSummaryPanel({
             prefix="+"
             suffix=" XP"
             accessibilityLabel={`${xp} puntos de experiencia ganados`}
-            style={{ marginTop: 16, color: '#9B6CFF', fontSize: 32, fontWeight: '900' }}
+            style={{ marginTop: 16, color: '#FFFFFF', fontSize: 32, fontWeight: '900' }}
           />
         </View>
 

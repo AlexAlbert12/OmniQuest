@@ -298,8 +298,8 @@ function buildPracticeOpportunities(rows: ReinforcementAttemptRow[], tokens: Des
       topicId: item.topicId,
       topicName: item.topicName,
       actionLabel: 'Practicar ahora',
-      reason: accuracy < 50 ? 'Es el tema con menor precisión reciente.' : 'Concentra varios fallos recientes que puedes recuperar.',
-      evidence: `${item.total} intentos de los últimos 30 días · ${accuracy}% de precisión`,
+      reason: accuracy < 50 ? 'Es el tema con menor precisión en los últimos 30 días.' : 'Concentra varios fallos de los últimos 30 días que puedes recuperar.',
+      evidence: `Precisión de ${item.topicName} · últimos 30 días: ${accuracy}% · ${item.total} ${item.total === 1 ? 'intento' : 'intentos'}`,
       improvementPotential: `Puedes mejorar hasta ${potential} puntos de precisión`,
       rewardXp: Math.min(120, Math.max(20, item.failed * 20)),
     } satisfies PracticeOpportunity
@@ -310,17 +310,17 @@ function buildPracticeOpportunities(rows: ReinforcementAttemptRow[], tokens: Des
     return {
       id: `type-${item.type}`,
       title: getQuestionTypeLabel(item.type),
-      detail: `${item.failed} preguntas para revisar`,
+      detail: `${item.failed} ${item.failed === 1 ? 'pregunta para revisar' : 'preguntas para revisar'}`,
       badge: 'Patrón detectado',
       icon: getQuestionTypeIcon(item.type),
       color: tokens.brand.student,
       failedCount: item.failed,
       accuracyPercent: accuracy,
       totalAttempts: item.total,
-      actionLabel: 'Ver historial',
-      reason: 'Este formato de pregunta está reduciendo tu precisión global.',
-      evidence: `${item.total} respuestas analizadas · ${accuracy}% de precisión`,
-      improvementPotential: `Mejorar este formato puede elevar tu precisión general`,
+      actionLabel: 'Revisar historial',
+      reason: 'Este formato concentra parte de tus fallos recientes.',
+      evidence: `${item.total} ${item.total === 1 ? 'respuesta' : 'respuestas'} · ${accuracy}% de precisión`,
+      improvementPotential: accuracy <= 25 ? 'Potencial de mejora alto' : accuracy <= 50 ? 'Potencial de mejora medio' : 'Oportunidad de mejora',
       rewardXp: Math.min(80, Math.max(20, item.failed * 10)),
     } satisfies PracticeOpportunity
   }).filter((item) => item.accuracyPercent <= 60)

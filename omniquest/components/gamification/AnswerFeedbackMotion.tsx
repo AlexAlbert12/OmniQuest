@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { Animated, Easing, type ViewStyle } from 'react-native'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
+import { USE_NATIVE_ANIMATION_DRIVER } from '../../lib/animation'
 
 export default function AnswerFeedbackMotion({
   children,
@@ -29,28 +30,28 @@ export default function AnswerFeedbackMotion({
       Animated.timing(opacity, {
         toValue: 1,
         duration: 220,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
       }),
       Animated.spring(scale, {
         toValue: 1,
         damping: 8,
         stiffness: 170,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
       }),
       Animated.timing(translateY, {
         toValue: 0,
         duration: 280,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_ANIMATION_DRIVER,
       }),
     ])
 
     const shake = status === 'incorrect'
       ? Animated.sequence([
-          Animated.timing(translateX, { toValue: -7, duration: 55, useNativeDriver: true }),
-          Animated.timing(translateX, { toValue: 7, duration: 75, useNativeDriver: true }),
-          Animated.timing(translateX, { toValue: -4, duration: 60, useNativeDriver: true }),
-          Animated.timing(translateX, { toValue: 0, duration: 55, useNativeDriver: true }),
+          Animated.timing(translateX, { toValue: -7, duration: 55, useNativeDriver: USE_NATIVE_ANIMATION_DRIVER }),
+          Animated.timing(translateX, { toValue: 7, duration: 75, useNativeDriver: USE_NATIVE_ANIMATION_DRIVER }),
+          Animated.timing(translateX, { toValue: -4, duration: 60, useNativeDriver: USE_NATIVE_ANIMATION_DRIVER }),
+          Animated.timing(translateX, { toValue: 0, duration: 55, useNativeDriver: USE_NATIVE_ANIMATION_DRIVER }),
         ])
       : Animated.delay(1)
 

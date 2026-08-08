@@ -5,6 +5,7 @@ import AppIconButton from './AppIconButton'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
 import type { SemanticColorKey } from '../../lib/designTokens'
+import { USE_NATIVE_ANIMATION_DRIVER } from '../../lib/animation'
 import { createShadowStyle } from '../../lib/platformShadow'
 
 export type AppToastVariant = SemanticColorKey | 'neutral'
@@ -69,14 +70,14 @@ function AppToastHost({ toast, onDismiss }: { toast: ToastState | null; onDismis
     translateY.setValue(-24)
     opacity.setValue(0)
     Animated.parallel([
-      Animated.timing(translateY, { toValue: 0, duration: 180, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: 180, useNativeDriver: USE_NATIVE_ANIMATION_DRIVER }),
+      Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: USE_NATIVE_ANIMATION_DRIVER }),
     ]).start()
 
     const timer = setTimeout(() => {
       Animated.parallel([
-        Animated.timing(translateY, { toValue: -16, duration: 150, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0, duration: 150, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: -16, duration: 150, useNativeDriver: USE_NATIVE_ANIMATION_DRIVER }),
+        Animated.timing(opacity, { toValue: 0, duration: 150, useNativeDriver: USE_NATIVE_ANIMATION_DRIVER }),
       ]).start(onDismiss)
     }, toast.durationMs ?? 3600)
 
