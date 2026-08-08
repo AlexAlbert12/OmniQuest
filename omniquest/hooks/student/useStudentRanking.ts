@@ -6,7 +6,7 @@ import { useAppTheme } from '../../lib/appTheme'
 import { fetchProfileCosmeticsForUsers, type ProfileCosmetics } from '../../lib/avatarCosmetics'
 import type { RankingTierKey } from '../../lib/designTokens'
 
-export type RankingScope = 'season' | 'weekly' | 'global' | 'class'
+export type RankingScope = 'weekly' | 'global' | 'class'
 
 export type RankingProfile = {
   id: string
@@ -19,14 +19,6 @@ export type RankingProfile = {
   correct_answers: number
   last_activity_at: string | null
   cosmetics?: ProfileCosmetics
-}
-
-export type RankingSeason = {
-  id: string | null
-  name: string
-  startsAt: string | null
-  endsAt: string | null
-  resetAt: string | null
 }
 
 export type RankingClassOption = {
@@ -65,7 +57,6 @@ type RankingPayload = {
   rows: RankingProfile[]
   total: number
   current: RankingProfile | null
-  season: RankingSeason
   tieBreak: string
 }
 
@@ -88,13 +79,11 @@ export function useStudentRanking(pageSize: number) {
   const [rows, setRows] = useState<RankingProfile[]>([])
   const [current, setCurrent] = useState<RankingProfile | null>(null)
   const [total, setTotal] = useState(0)
-  const [scope, setScopeState] = useState<RankingScope>('season')
+  const [scope, setScopeState] = useState<RankingScope>('global')
   const [page, setPage] = useState(0)
   const [selectedLeagueName, setSelectedLeagueNameState] = useState<string | null>(null)
   const [classOptions, setClassOptions] = useState<RankingClassOption[]>([])
   const [selectedClassroomId, setSelectedClassroomIdState] = useState<number | null>(null)
-  const [season, setSeason] = useState<RankingSeason>({ id: null, name: 'Temporada actual', startsAt: null, endsAt: null, resetAt: null })
-  const [tieBreak, setTieBreak] = useState('Más XP; después más respuestas correctas; después haber alcanzado la puntuación antes.')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [privacySaving, setPrivacySaving] = useState(false)
@@ -179,8 +168,6 @@ export function useStudentRanking(pageSize: number) {
       setTotal(pagePayload.total)
       setClassOptions(nextClassOptions)
       if (effectiveClassroomId !== selectedClassroomId) setSelectedClassroomIdState(effectiveClassroomId)
-      setSeason(pagePayload.season)
-      setTieBreak(pagePayload.tieBreak)
     } catch (cause) {
       console.error('Error fetching ranking:', cause)
       setError(cause instanceof Error ? cause.message : 'No se pudo cargar el ranking.')
@@ -258,8 +245,6 @@ export function useStudentRanking(pageSize: number) {
     selectedLeagueName,
     classOptions,
     selectedClassroomId,
-    season,
-    tieBreak,
     leagues,
     currentLeague,
     currentRank,
@@ -306,18 +291,10 @@ async function fetchRankingPage({
   if (error) throw error
 
   const payload = asRecord(data)
-  const seasonData = asRecord(payload.season)
   return {
     rows: Array.isArray(payload.rows) ? payload.rows.map(normalizeRankingProfile).filter(isRankingProfile) : [],
     total: Math.max(0, Number(payload.total || 0)),
     current: payload.current ? normalizeRankingProfile(payload.current) : null,
-    season: {
-      id: typeof seasonData.id === 'string' ? seasonData.id : null,
-      name: typeof seasonData.name === 'string' ? seasonData.name : 'Temporada actual',
-      startsAt: typeof seasonData.starts_at === 'string' ? seasonData.starts_at : null,
-      endsAt: typeof seasonData.ends_at === 'string' ? seasonData.ends_at : null,
-      resetAt: typeof seasonData.reset_at === 'string' ? seasonData.reset_at : null,
-    },
     tieBreak: typeof payload.tie_break === 'string'
       ? payload.tie_break
       : 'Más XP; después más respuestas correctas; después haber alcanzado la puntuación antes.',
@@ -383,7 +360,6 @@ function emptyPayload(): RankingPayload {
     rows: [],
     total: 0,
     current: null,
-    season: { id: null, name: 'Temporada actual', startsAt: null, endsAt: null, resetAt: null },
     tieBreak: 'Más XP; después más respuestas correctas; después haber alcanzado la puntuación antes.',
   }
 }

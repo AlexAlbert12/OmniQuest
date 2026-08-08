@@ -2,6 +2,7 @@ import React from 'react'
 import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import GamifiedAvatar from '../../gamification/GamifiedAvatar'
+import { formatCount } from '../../../lib/formatCount'
 import { getLeagueProgress, type RankingLeague, type RankingProfile, type StudentRankingProfile } from '../../../hooks/student/useStudentRanking'
 
 export default function CurrentPositionCard({
@@ -24,7 +25,8 @@ export default function CurrentPositionCard({
   isGuest: boolean
 }) {
   const progress = getLeagueProgress(points, league)
-  const percentile = rank && total > 0 ? Math.max(1, Math.ceil((rank / total) * 100)) : null
+  const participantTotal = rank ? Math.max(total, rank) : total
+  const percentile = rank && participantTotal > 1 ? Math.max(1, Math.ceil((rank / participantTotal) * 100)) : null
   return (
     <View className="overflow-hidden rounded-3xl border border-border-default bg-surface-default p-5">
       <View className="absolute -right-10 -top-10 h-36 w-36 rounded-full opacity-20" style={{ backgroundColor: league.color }} />
@@ -40,16 +42,18 @@ export default function CurrentPositionCard({
         <View className="min-w-[180px] flex-1">
           <Text className="text-[12px] font-black uppercase tracking-[0.06em] text-text-muted">Tu posición actual</Text>
           <Text className="mt-1 text-[28px] font-black text-text-primary">
-            {isGuest ? 'Modo invitado' : rank ? `${rank}º de ${Math.max(total, rank)}` : 'Sin posición'}
+            {isGuest ? 'Modo invitado' : rank ? `${rank}.º de ${participantTotal}` : 'Sin posición'}
           </Text>
           <Text className="mt-1 text-[13px] leading-5 text-text-secondary">
             {isGuest
               ? 'Regístrate para competir de forma permanente.'
               : !participates
                 ? 'Tu posición solo es visible para ti porque has desactivado tu participación.'
-                : percentile
-                  ? `Estás en el top ${percentile}% de este ranking.`
-                  : 'Completa actividades para entrar en la clasificación.'}
+                : rank && participantTotal === 1
+                  ? 'Eres el único participante por ahora.'
+                  : percentile
+                    ? `Estás en el top ${percentile}% de este ranking.`
+                    : 'Completa actividades para entrar en la clasificación.'}
           </Text>
         </View>
         <View className="items-end">
@@ -58,7 +62,7 @@ export default function CurrentPositionCard({
             <Text className="font-black" style={{ color: league.color }}>{league.name}</Text>
           </View>
           <Text className="mt-2 text-[22px] font-black text-gamification-xp">{points.toLocaleString()} XP</Text>
-          {current ? <Text className="mt-1 text-[11px] text-text-muted">{current.correct_answers} respuestas correctas</Text> : null}
+          {current ? <Text className="mt-1 text-[11px] text-text-muted">{formatCount(current.correct_answers, 'respuesta correcta', 'respuestas correctas')}</Text> : null}
         </View>
       </View>
       <View className="mt-5">

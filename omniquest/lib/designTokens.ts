@@ -103,7 +103,7 @@ const DARK_BASE = {
   gamification: {
     xp: '#FBBF24',
     streak: '#F97316',
-    badge: '#F6C453',
+    badge: '#09acf4',
     performanceLow: '#F9707D',
     rank: {
       bronze: '#CD7F32',

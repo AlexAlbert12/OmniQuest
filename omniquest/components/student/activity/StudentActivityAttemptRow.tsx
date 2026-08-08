@@ -43,7 +43,6 @@ export default React.memo(function StudentActivityAttemptRow({
   const topicTitle = topic?.title || 'Práctica libre'
   const subjectName = subject?.name || 'Curso no disponible'
   const submittedAnswer = getSubmittedAnswerText(attempt, answers)
-  const explanation = question?.explanation?.trim() || 'Vuelve a practicar este contenido para reforzar el concepto.'
   const earnedPoints = Math.max(0, Number(attempt.earned_points ?? (attempt.is_correct ? 10 : 0)))
   const reviewStatus = getStudentReviewStatus(attempt.manual_review_status, attempt.is_correct, tokens)
   const reviewComments = Array.isArray(attempt.review_comments) ? attempt.review_comments : []

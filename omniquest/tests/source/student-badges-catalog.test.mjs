@@ -47,7 +47,26 @@ test('achievement screen uses data-driven categories, detail and load-more pagin
   assert.match(screen, /Destacar en mi perfil/)
   assert.match(screen, /kind: 'profile\.cosmetics'/)
   assert.match(screen, /Cargar más logros/)
+  assert.match(screen, /const PAGE_SIZE = 50/)
   assert.match(screen, /fetchBadges\(page \+ 1, true\)/)
   assert.match(profile, /cosmetics=\{cosmetics\}/)
   assert.match(avatar, /Insignia destacada:/)
+})
+
+
+test('achievement screen uses user-facing copy, consistent pending state and stable modal hover', () => {
+  const screen = read('app/(student)/badges.tsx')
+  const model = read('lib/studentBadges.ts')
+  const tabs = read('components/ui/AppTabs.tsx')
+
+  assert.match(screen, /Explora tus insignias por categoría y abre cualquiera para consultar sus detalles y progreso\./)
+  assert.doesNotMatch(screen, /se cargan desde el catálogo/)
+  assert.doesNotMatch(screen, /MetricTile[^\r\n]*label="Conseguidas"/)
+  assert.match(screen, /label="Racha" value=\{formatCount\(summary\.streakDays, 'día', 'días'\)\}/)
+  assert.match(screen, /FilterButton label="Pendientes"/)
+  assert.match(model, /statusLabel: unlocked \? 'Conseguida' : 'Pendiente'/)
+  assert.match(screen, /omni-no-hover-lift flex-1 items-center justify-center/)
+  assert.match(screen, /omni-no-hover-lift w-full max-w-\[560px\]/)
+  assert.match(screen, /withAlpha\(accentColor, '14'\)/)
+  assert.match(tabs, /gap: 8/)
 })

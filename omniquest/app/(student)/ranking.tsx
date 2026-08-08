@@ -3,7 +3,7 @@ import { RefreshControl, Text, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
-import { formatLongDate } from '../../lib/dateFormat'
+import { formatCount } from '../../lib/formatCount'
 import { useAppTheme } from '../../lib/appTheme'
 import StudentLayout from '../../components/student/StudentLayout'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
@@ -50,12 +50,7 @@ export default function RankingScreen() {
       onSignOut={() => { void supabase.auth.signOut() }}
       refreshControl={<RefreshControl refreshing={ranking.refreshing} onRefresh={ranking.reload} tintColor={tokens.brand.student} />}
     >
-      <StudentPageHeader
-        icon="trophy"
-        isDesktop={isDesktop}
-        subtitle="Compite con privacidad, temporadas claras y desempates transparentes."
-        title="Ranking"
-      />
+      <StudentPageHeader icon="trophy" isDesktop={isDesktop} subtitle="Compite con privacidad y reglas de clasificación transparentes." title="Ranking" />
 
       {ranking.error ? (
         <View className="mt-4">
@@ -63,15 +58,7 @@ export default function RankingScreen() {
         </View>
       ) : null}
 
-      <View className="mt-5 gap-5">
-        <SeasonSummary
-          name={ranking.season.name}
-          startsAt={ranking.season.startsAt}
-          resetAt={ranking.season.resetAt}
-          scope={ranking.scope}
-          tieBreak={ranking.tieBreak}
-        />
-
+      <View className="mt-4 gap-4">
         <CurrentPositionCard
           profile={ranking.profile}
           current={ranking.current}
@@ -121,10 +108,10 @@ export default function RankingScreen() {
             <View className="min-w-[220px] flex-1">
               <Text className="text-[19px] font-black text-text-primary">Clasificación</Text>
               <Text className="mt-1 text-[12px] leading-5 text-text-secondary">
-                {ranking.selectedLeague ? `Filtrada por la liga ${ranking.selectedLeague.name}.` : 'Incluye todas las ligas del periodo seleccionado.'}
+                {ranking.selectedLeague ? `Filtrada por la liga ${ranking.selectedLeague.name}.` : 'Incluye todas las ligas del ámbito seleccionado.'}
               </Text>
             </View>
-            <Text className="text-[12px] font-black text-text-muted">{ranking.total.toLocaleString()} participantes</Text>
+            <Text className="text-[12px] font-black text-text-muted">{formatCount(ranking.total, 'participante', 'participantes')}</Text>
           </View>
 
           {isDesktop ? (
@@ -147,46 +134,6 @@ export default function RankingScreen() {
   )
 }
 
-function SeasonSummary({
-  name,
-  startsAt,
-  resetAt,
-  scope,
-  tieBreak,
-}: {
-  name: string
-  startsAt: string | null
-  resetAt: string | null
-  scope: string
-  tieBreak: string
-}) {
-  const { tokens } = useAppTheme()
-  const resetLabel = scope === 'global' || scope === 'class'
-    ? 'Este ranking no se reinicia con la temporada; la fecha se muestra como referencia.'
-    : resetAt
-      ? `Se reinicia el ${formatLongDate(resetAt)}.`
-      : 'La próxima fecha de reinicio todavía no está disponible.'
-  return (
-    <View className="rounded-2xl border border-border-default bg-surface-default p-5">
-      <View className="flex-row flex-wrap items-start gap-4">
-        <View className="h-11 w-11 items-center justify-center rounded-xl bg-semantic-surface-info">
-          <Ionicons name="calendar-outline" size={22} color={tokens.semantic.info} />
-        </View>
-        <View className="min-w-[220px] flex-1">
-          <Text className="text-[16px] font-black text-text-primary">{name}</Text>
-          <Text className="mt-1 text-[13px] leading-5 text-text-secondary">
-            {startsAt ? `Comenzó el ${formatLongDate(startsAt)}. ` : ''}{resetLabel}
-          </Text>
-        </View>
-      </View>
-      <View className="mt-4 rounded-xl border border-border-subtle bg-surface-raised p-4">
-        <Text className="text-[11px] font-black uppercase tracking-[0.05em] text-text-muted">Cómo se resuelven los empates</Text>
-        <Text className="mt-2 text-[13px] leading-5 text-text-secondary">{tieBreak}</Text>
-      </View>
-    </View>
-  )
-}
-
 function getEmptyMessage({ scope, hasClasses, selectedClassName, selectedLeagueName }: {
   scope: string
   hasClasses: boolean
@@ -195,7 +142,6 @@ function getEmptyMessage({ scope, hasClasses, selectedClassName, selectedLeagueN
 }) {
   const leagueSuffix = selectedLeagueName ? ` en la liga ${selectedLeagueName}` : ''
   if (scope === 'weekly') return `Aún no hay XP ganado esta semana${leagueSuffix}.`
-  if (scope === 'season') return `Aún no hay actividad en esta temporada${leagueSuffix}.`
   if (scope === 'global') return `Aún no hay estudiantes en el ranking global${leagueSuffix}.`
   if (!hasClasses) return 'Todavía no perteneces a ninguna clase.'
   if (!selectedClassName) return 'Selecciona una clase para consultar su ranking.'

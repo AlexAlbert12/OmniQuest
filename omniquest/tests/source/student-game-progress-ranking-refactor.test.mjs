@@ -22,7 +22,7 @@ test('progress screen delegates data and sections', () => {
   }
 })
 
-test('ranking screen delegates data, seasons and privacy', () => {
+test('ranking screen delegates data, leagues and privacy without seasonal UI', () => {
   const screen = read('app/(student)/ranking.tsx')
   assert.ok(screen.split('\n').length < 320)
   for (const name of ['useStudentRanking', 'LeagueCarousel', 'CurrentPositionCard', 'RankingTabs', 'RankingTable', 'RankingMobileList']) {
@@ -31,7 +31,14 @@ test('ranking screen delegates data, seasons and privacy', () => {
   const hook = read('hooks/student/useStudentRanking.ts')
   assert.match(hook, /visibility/)
   assert.match(hook, /setRankingParticipation/)
-  assert.match(hook, /scope.*season/s)
+  assert.match(hook, /useState<RankingScope>\('global'\)/)
+  assert.doesNotMatch(hook, /RankingScope = .*season/)
+  assert.doesNotMatch(screen, /SeasonSummary|Temporada 0|temporadas claras/)
+  assert.match(screen, /formatCount\(ranking\.total, 'participante', 'participantes'\)/)
+  assert.match(read('components/student/ranking/RankingTabs.tsx'), /Semanal[\s\S]*Global[\s\S]*Clase/)
+  assert.doesNotMatch(read('components/student/ranking/RankingTabs.tsx'), /Temporada|calendar/)
+  assert.match(read('components/student/ranking/CurrentPositionCard.tsx'), /Eres el único participante por ahora/)
+  assert.match(read('components/student/ranking/LeagueCarousel.tsx'), /borderColor: active \? league\.color : tokens\.border\.default/)
 })
 
 test('database migration protects stale game answers and defines ranking seasons', () => {

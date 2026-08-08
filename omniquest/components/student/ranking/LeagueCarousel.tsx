@@ -1,7 +1,8 @@
 import React from 'react'
-import { ScrollView, Text, View } from 'react-native'
+import { ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import AppPressable from '../../ui/AppPressable'
+import { useAppTheme } from '../../../lib/appTheme'
 import { getLeagueProgress, type RankingLeague } from '../../../hooks/student/useStudentRanking'
 
 export default function LeagueCarousel({
@@ -17,6 +18,9 @@ export default function LeagueCarousel({
   points: number
   onSelect: (league: RankingLeague | null) => void
 }) {
+  const { width } = useWindowDimensions()
+  const { tokens } = useAppTheme()
+  const cardWidth = width < 640 ? 150 : 190
   return (
     <View style={{ overflow: 'hidden' }}>
       <View className="mb-3 flex-row items-end justify-between gap-3">
@@ -30,7 +34,7 @@ export default function LeagueCarousel({
           </AppPressable>
         ) : null}
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 10 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 28 }}>
         {leagues.map((league) => {
           const active = selectedLeague?.name === league.name || (!selectedLeague && currentLeague.name === league.name)
           const progress = getLeagueProgress(points, league)
@@ -41,8 +45,8 @@ export default function LeagueCarousel({
               accessibilityHint="Filtra el ranking por esta liga"
               accessibilityState={{ selected: selectedLeague?.name === league.name }}
               onPress={() => onSelect(league)}
-              className="omni-no-hover-lift w-[190px] rounded-2xl border bg-surface-default p-4"
-              style={{ borderColor: active ? league.color : undefined }}
+              className="omni-no-hover-lift rounded-2xl border bg-surface-default p-4"
+              style={{ width: cardWidth, borderColor: active ? league.color : tokens.border.default }}
             >
               <View className="flex-row items-center justify-between">
                 <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${league.color}22` }}>
@@ -55,7 +59,7 @@ export default function LeagueCarousel({
                 {league.nextMinPoints === null ? `${league.minPoints.toLocaleString()}+ XP` : `${league.minPoints.toLocaleString()}–${(league.nextMinPoints - 1).toLocaleString()} XP`}
               </Text>
               <View className="mt-3 h-2 overflow-hidden rounded-full bg-surface-interactive">
-                <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: league.color }} />
+                <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: league.color, opacity: active ? 0.78 : 0.56 }} />
               </View>
             </AppPressable>
           )

@@ -3,6 +3,7 @@ import { Text, View } from 'react-native'
 import VirtualizedStack from '../../ui/VirtualizedStack'
 import GamifiedAvatar from '../../gamification/GamifiedAvatar'
 import { formatRelativeDate } from '../../../lib/dateFormat'
+import { formatCount } from '../../../lib/formatCount'
 import type { RankingProfile } from '../../../hooks/student/useStudentRanking'
 
 type RankingMobileListProps = {
@@ -25,7 +26,7 @@ const RankingMobileRow = React.memo(function RankingMobileRow({ row, own }: Rank
       <GamifiedAvatar alias={row.alias} avatarUrl={row.avatar} cosmetics={row.cosmetics} size={46} showLevel={false} />
       <View className="min-w-0 flex-1">
         <Text className="text-[15px] font-black text-text-primary">{row.alias}{own ? ' · Tú' : ''}</Text>
-        <Text className="mt-1 text-[11px] text-text-muted">{row.correct_answers} aciertos · {formatRelativeDate(row.last_activity_at)}</Text>
+        <Text className="mt-1 text-[11px] text-text-muted">{formatCount(row.correct_answers, 'acierto', 'aciertos')} · {formatRelativeDate(row.last_activity_at)}</Text>
       </View>
       <Text className="text-[16px] font-black text-gamification-xp">{row.points.toLocaleString()} XP</Text>
     </View>

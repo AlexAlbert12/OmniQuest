@@ -31,6 +31,7 @@ import { readThroughCache, updateOfflineCache } from '../../lib/offlineCache'
 import { enqueueOfflineMutation } from '../../lib/offlineMutations'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { withAlpha } from '../../lib/color'
+import { formatCount } from '../../lib/formatCount'
 import { useNotifications } from '../../hooks/useNotifications'
 import { LinearGradient } from 'expo-linear-gradient'
 import OmniGuide from '@/components/OmniGuide'
@@ -49,7 +50,7 @@ type BadgesCacheSnapshot = {
   catalog: StudentBadgeCatalogPage
 }
 
-const PAGE_SIZE = 12
+const PAGE_SIZE = 50
 const EMPTY_SUMMARY: StudentBadgeCatalogSummary = {
   total: 0,
   unlocked: 0,
@@ -262,9 +263,6 @@ export default function BadgesScreen() {
               <View className="absolute right-[-30px] top-[-32px] h-36 w-36 rounded-full" style={{ backgroundColor: withAlpha(accentColor, '25') }} />
               <View className="absolute bottom-[-34px] left-[-18px] h-28 w-44 rounded-full bg-surface-selected" />
               <View className="relative flex-row items-center gap-5">
-                <View className="h-24 w-24 items-center justify-center rounded-2xl border border-brand-admin bg-brand-admin">
-                  <Ionicons name="ribbon" size={44} color="#9FD6FF" />
-                </View>
                 <View className="min-w-0 flex-1">
                   <Text className="text-[16px] font-bold text-text-secondary">Colección de logros</Text>
                   <Text className="mt-1 text-[36px] font-black text-white">
@@ -279,9 +277,8 @@ export default function BadgesScreen() {
             </View>
 
             <View className={isDesktop ? 'flex-1 flex-row gap-4' : 'flex-row gap-3'}>
-              <MetricTile icon="checkmark-circle" color="#34D399" label="Conseguidas" value={String(summary.unlocked)} />
               <MetricTile icon="lock-closed" color="#F6A64A" label="Pendientes" value={String(summary.locked)} />
-              <MetricTile icon="flame" color="#FF7B45" label="Días de racha" value={String(summary.streakDays)} />
+              <MetricTile icon="flame" color="#FF7B45" label="Racha" value={formatCount(summary.streakDays, 'día', 'días')} />
             </View>
           </View>
 
@@ -294,13 +291,13 @@ export default function BadgesScreen() {
               <View className="min-w-0 flex-1">
                 <Text className="text-[15px] font-black text-white">Colección por categorías</Text>
                 <Text className="mt-1 text-[12px] leading-5 text-text-muted">
-                  Las categorías y sus logros se cargan desde el catálogo. Abre una insignia para consultar todos sus detalles.
+                  Explora tus insignias por categoría y abre cualquiera para consultar sus detalles y progreso.
                 </Text>
               </View>
               <View className="flex-row rounded-xl border border-border-default bg-surface-raised p-1">
                 <FilterButton label="Todas" active={activeFilter === 'all'} onPress={() => setActiveFilter('all')} />
                 <FilterButton label="Conseguidas" active={activeFilter === 'unlocked'} onPress={() => setActiveFilter('unlocked')} />
-                <FilterButton label="Bloqueadas" active={activeFilter === 'locked'} onPress={() => setActiveFilter('locked')} />
+                <FilterButton label="Pendientes" active={activeFilter === 'locked'} onPress={() => setActiveFilter('locked')} />
               </View>
             </View>
 
@@ -361,7 +358,7 @@ export default function BadgesScreen() {
               </View>
             ) : badges.length > 0 ? (
               <Text className="mt-5 border-t border-border-subtle pt-4 text-center text-[11px] text-text-muted">
-                Mostrando {badges.length} de {resultTotal} logros
+                {formatCount(resultTotal, 'logro', 'logros')} en esta selección
               </Text>
             ) : null}
           </View>
@@ -487,6 +484,7 @@ const BadgeCard = React.memo(function BadgeCard({
 }) {
   const progressPercent = Math.min(100, Math.round((badge.current / Math.max(badge.target, 1)) * 100))
   const handlePress = useCallback(() => onSelect(badge), [badge, onSelect])
+  const { accentColor } = useAppTheme()
 
   return (
     <Pressable
@@ -506,9 +504,12 @@ const BadgeCard = React.memo(function BadgeCard({
         </View>
         <View className="items-end gap-1.5">
           {featured ? (
-            <View className="flex-row items-center gap-1 rounded-full bg-brand-student px-2.5 py-1">
-              <Ionicons name="star" size={11} color="#FFFFFF" />
-              <Text className="text-[10px] font-black text-white">Destacado</Text>
+            <View
+              className="flex-row items-center gap-1 rounded-full border px-2 py-0.5"
+              style={{ backgroundColor: withAlpha(accentColor, '14'), borderColor: withAlpha(accentColor, '55') }}
+            >
+              <Ionicons name="star" size={10} color={accentColor} />
+              <Text className="text-[9px] font-black" style={{ color: accentColor }}>Destacado</Text>
             </View>
           ) : null}
           <View
@@ -542,7 +543,7 @@ const BadgeCard = React.memo(function BadgeCard({
             <Text className="mt-1 text-[10px] text-text-muted">{formatAwardedAt(badge.awardedAt)}</Text>
           ) : null}
         </View>
-        <Text className="text-[12px] font-black text-brand-admin">{badge.xp}</Text>
+        <Text className="text-[12px] font-black text-brand-student">{badge.xp}</Text>
       </View>
     </Pressable>
   )
@@ -567,10 +568,10 @@ function BadgeDetailModal({
 
   return (
     <Modal animationType="fade" onRequestClose={onClose} transparent visible>
-      <Pressable className="flex-1 items-center justify-center bg-black/70 px-5 py-10" onPress={onClose}>
+      <Pressable className="omni-no-hover-lift flex-1 items-center justify-center bg-black/70 px-5 py-10" onPress={onClose}>
         <Pressable
           accessibilityViewIsModal
-          className="w-full max-w-[560px] overflow-hidden rounded-3xl border border-border-default bg-surface-default"
+          className="omni-no-hover-lift w-full max-w-[560px] overflow-hidden rounded-3xl border border-border-default bg-surface-default"
           onPress={(event) => event.stopPropagation()}
         >
           <LinearGradient colors={[`${badge.color}35`, '#101D36', '#0A1427']}>
@@ -625,7 +626,7 @@ function BadgeDetailModal({
                   style={{ opacity: busy ? 0.7 : 1 }}
                 >
                   {busy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name={featured ? 'star-outline' : 'star'} size={18} color="#FFFFFF" />}
-                  <Text className="text-[13px] font-black text-white">
+                  <Text className="text-[13px] font-bold text-white">
                     {busy ? 'Guardando...' : featured ? 'Quitar del perfil' : 'Destacar en mi perfil'}
                   </Text>
                 </Pressable>

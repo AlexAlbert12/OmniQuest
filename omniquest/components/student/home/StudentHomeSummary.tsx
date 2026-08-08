@@ -24,7 +24,7 @@ export default function StudentHomeSummary({
   const metrics = [
     { label: 'Avance', value: `${progressPercent}%`, icon: 'analytics-outline' as const, color: tokens.semantic.success },
     { label: 'Preguntas', value: String(attemptCount), icon: 'help-circle-outline' as const, color: tokens.brand.student },
-    { label: 'Para repasar', value: String(failedQuestions), icon: 'refresh-circle' as const, color: tokens.semantic.warning },
+    { label: 'Para repasar', value: String(failedQuestions), icon: 'refresh-circle-outline' as const, color: tokens.semantic.warning },
     { label: 'Precisión', value: attemptCount > 0 ? `${accuracyPercent}%` : '\u2014', icon: 'speedometer-outline' as const, color: tokens.semantic.info },
   ]
 
@@ -48,7 +48,7 @@ export default function StudentHomeSummary({
         {metrics.map((metric) => (
           <View
             key={metric.label}
-            className="min-w-[140px] flex-1 rounded-[20px] border border-border-subtle bg-surface-raised px-4"
+            className="min-w-[140px] flex-1 flex-row gap-4 items-center rounded-[20px] border border-border-subtle bg-surface-raised px-4"
             style={{ paddingVertical: isDesktop ? 13 : 16 }}
           >
             <View
@@ -62,14 +62,16 @@ export default function StudentHomeSummary({
             >
               <Ionicons name={metric.icon} size={isDesktop ? 19 : 21} color={metric.color} />
             </View>
-            <Text
-              maxFontSizeMultiplier={2}
-              className="font-black text-text-primary"
-              style={{ marginTop: isDesktop ? 7 : 12, fontSize: isDesktop ? 22 : 24, lineHeight: isDesktop ? 26 : 29 }}
-            >
-              {metric.value}
-            </Text>
-            <Text maxFontSizeMultiplier={2} className="mt-0.5 text-[12px] font-bold text-text-muted">{metric.label}</Text>
+            <View className="flex-1">
+              <Text
+                maxFontSizeMultiplier={2}
+                className="font-black text-text-primary"
+                style={{ fontSize: isDesktop ? 22 : 24, lineHeight: isDesktop ? 26 : 29 }}
+              >
+                {metric.value}
+              </Text>
+              <Text maxFontSizeMultiplier={2} className="mt-0.5 text-[12px] font-bold text-text-muted">{metric.label}</Text>
+            </View>
           </View>
         ))}
       </View>

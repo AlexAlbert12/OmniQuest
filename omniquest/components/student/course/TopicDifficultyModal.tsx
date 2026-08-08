@@ -5,7 +5,6 @@ import AppBottomSheet from '../../ui/AppBottomSheet'
 import AppButton from '../../ui/AppButton'
 import AppPressable from '../../ui/AppPressable'
 import { getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty'
-import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
 import type { StudentCourseTopic } from './types'
 
@@ -20,7 +19,6 @@ export default function TopicDifficultyModal({
   onClose: () => void
   onChoose: (difficulty: DifficultyLevel, reviewFailed: boolean) => void
 }) {
-  const { tokens } = useAppTheme()
 
   return (
     <AppBottomSheet

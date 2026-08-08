@@ -259,7 +259,6 @@ export function ClassroomRowCard({ actions, classroom, enrollmentsCount, subject
 }
 
 export function SupportTicketCard({ ticket, onManage }: { ticket: AdminSupportTicketRow; onManage: () => void }) {
-  const { tokens } = useAppTheme()
   return (
     <View className="rounded-xl border border-border-default bg-surface-default p-4">
       <View className="flex-row flex-wrap items-start justify-between gap-3">

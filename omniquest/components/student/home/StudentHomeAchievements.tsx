@@ -22,7 +22,9 @@ function StudentHomeAchievements({
           <Text className="text-[18px] font-black text-white">Logros próximos</Text>
           <Text className="mt-1 text-[13px] text-text-muted">Tres objetivos para mantener el ritmo.</Text>
         </View>
-        <Ionicons name="ribbon-outline" size={25} color={tokens.brand.student} />
+        <View className="h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(tokens.gamification.badge, '24') }}>
+          <Ionicons name="ribbon" size={25} color={tokens.brand.student} />
+        </View>
       </View>
 
       <View className="mt-4 gap-3">
