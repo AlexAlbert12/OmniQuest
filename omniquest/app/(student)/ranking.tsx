@@ -1,7 +1,6 @@
 import React from 'react'
 import { RefreshControl, Text, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { supabase } from '../../lib/supabase'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { formatCount } from '../../lib/formatCount'
 import { useAppTheme } from '../../lib/appTheme'
@@ -19,6 +18,7 @@ import {
   RankingTabs,
 } from '../../components/student/ranking'
 import { useStudentRanking } from '../../hooks/student/useStudentRanking'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export default function RankingScreen() {
   const { width } = useWindowDimensions()
@@ -47,7 +47,7 @@ export default function RankingScreen() {
       level={getStudentLevel(profilePoints)}
       points={profilePoints}
       nextLevelProgress={getNextLevelProgress(profilePoints)}
-      onSignOut={() => { void supabase.auth.signOut() }}
+      onSignOut={() => { void signOutCurrentDeviceSession() }}
       refreshControl={<RefreshControl refreshing={ranking.refreshing} onRefresh={ranking.reload} tintColor={tokens.brand.student} />}
     >
       <StudentPageHeader icon="trophy" isDesktop={isDesktop} subtitle="Compite con privacidad y reglas de clasificación transparentes." title="Ranking" />

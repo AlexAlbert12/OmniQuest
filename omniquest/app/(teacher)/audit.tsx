@@ -15,8 +15,8 @@ import TeacherAuditTimeline from '../../components/teacher/audit/TeacherAuditTim
 import TeacherAuditExports from '../../components/teacher/audit/TeacherAuditExports'
 import { useTeacherAudit } from '../../hooks/teacher/useTeacherAudit'
 import { useAppTheme } from '../../lib/appTheme'
-import { supabase } from '../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export default function TeacherAuditScreen() {
   const router = useRouter()
@@ -40,7 +40,7 @@ export default function TeacherAuditScreen() {
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOutCurrentDeviceSession()
     router.replace('/(auth)/login' as any)
   }
 

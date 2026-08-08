@@ -18,8 +18,8 @@ import StudentActivityFilters from '../../components/student/activity/StudentAct
 import type { ActivityListItem } from '../../components/student/activity/types'
 import { normalizeSingleRelation } from '../../components/student/activity/utils'
 import { STUDENT_ACTIVITY_PAGE_SIZE, useStudentActivity } from '../../hooks/student/useStudentActivity'
-import { supabase } from '../../lib/supabase'
 import { useAppTheme } from '../../lib/appTheme'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export default function ActivityLogScreen() {
   const { width } = useWindowDimensions()
@@ -103,7 +103,7 @@ export default function ActivityLogScreen() {
           level={activity.level}
           points={activity.points}
           nextLevelProgress={activity.nextLevelProgress}
-          onSignOut={() => void supabase.auth.signOut()}
+          onSignOut={() => void signOutCurrentDeviceSession()}
         />
       ) : null}
       mobileBottomNavigation={<StudentBottomNav active="profile" />}

@@ -53,10 +53,7 @@ export default function StudentProfileHero({
             <Text className="text-[30px] font-black leading-[38px]" style={{ color: tokens.text.inverse }} maxFontSizeMultiplier={2}>
               {alias}
             </Text>
-            <Text className="mt-1 text-[14px] leading-5" style={{ color: withAlpha(tokens.text.inverse, 'CC') }}>
-              Tu identidad de aprendizaje en OmniQuest
-            </Text>
-            <View className="mt-4 self-start flex-row items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: withAlpha(tokens.text.inverse, '18') }}>
+            <View className="mt-2 self-start flex-row items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: withAlpha(tokens.text.inverse, '18') }}>
               <Ionicons name="star" size={16} color={tokens.gamification.xp} />
               <Text className="text-[14px] font-black" style={{ color: tokens.text.inverse }}>Nivel {level}</Text>
             </View>

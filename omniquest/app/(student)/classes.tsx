@@ -27,6 +27,7 @@ import { readThroughCache, updateOfflineCache } from '../../lib/offlineCache'
 import { enqueueOfflineMutation } from '../../lib/offlineMutations'
 import { useOfflineSync } from '../../hooks/useOfflineSync'
 import { isValidInviteCode, normalizeInviteCode } from '../../lib/classCode'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 type Profile = {
   id: string
@@ -309,7 +310,7 @@ export default function ClassesScreen() {
             level={level}
             points={points}
             nextLevelProgress={nextLevelProgress}
-            onSignOut={() => supabase.auth.signOut()}
+            onSignOut={() => signOutCurrentDeviceSession()}
           />
         ) : null}
 

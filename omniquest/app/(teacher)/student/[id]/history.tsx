@@ -27,6 +27,7 @@ import {
   StudentHistoryTimeline,
   StudentHistoryWeaknesses,
 } from '../../../../components/teacher/student-history'
+import { signOutCurrentDeviceSession } from '../../../../lib/pushNotifications'
 
 const historyTabs: { key: TeacherStudentHistoryTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'activity', label: 'Actividad', icon: 'time-outline' },
@@ -204,7 +205,7 @@ export default function TeacherStudentHistoryScreen() {
   return (
     <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
       <View className="flex-1 flex-row">
-        {isDesktop ? <TeacherSidebar activeSection="students" subjectsCount={summary.subjectsCount} onSignOut={() => supabase.auth.signOut()} /> : null}
+        {isDesktop ? <TeacherSidebar activeSection="students" subjectsCount={summary.subjectsCount} onSignOut={() => signOutCurrentDeviceSession()} /> : null}
         {content}
       </View>
       {!isDesktop ? <TeacherBottomNav active="students" /> : null}

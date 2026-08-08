@@ -21,6 +21,7 @@ import type { AppNotification } from '../../lib/notifications/types'
 import { useAppTheme } from '../../lib/appTheme'
 import { useResponsiveLayout } from '../../lib/responsive'
 import { supabase } from '../../lib/supabase'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 const bucketTabs = [
   { key: 'all' as const, label: 'Todas', icon: 'list-outline' as const },
@@ -51,7 +52,7 @@ export default function TeacherNotificationsScreen() {
   }, [notifications, showModal])
 
   const handleSignOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    await signOutCurrentDeviceSession()
     router.replace('/(auth)/login' as never)
   }, [router])
 

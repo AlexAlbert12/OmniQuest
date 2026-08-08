@@ -3,8 +3,7 @@ import Constants from 'expo-constants'
 import * as Device from 'expo-device'
 import { Platform } from 'react-native'
 import { supabase } from './supabase'
-
-const PUSH_TOKEN_STORAGE_KEY = 'omniquest:expo-push-token'
+import { PUSH_TOKEN_STORAGE_KEY } from './pushTokenStorage'
 
 export type PushRegistrationResult = {
   status: 'registered' | 'denied' | 'unsupported' | 'error'
@@ -108,11 +107,18 @@ export async function deactivateCurrentDevicePushToken() {
   await AsyncStorage.removeItem(PUSH_TOKEN_STORAGE_KEY)
 }
 
-export async function syncPushRegistrationFromPreferences() {
-  if (Platform.OS === 'web') return
+export async function signOutCurrentDeviceSession() {
+  await deactivateCurrentDevicePushToken().catch((error) => {
+    console.warn('[push] could not deactivate device token before sign-out', error)
+  })
+  return supabase.auth.signOut()
+}
+
+export async function syncPushRegistrationFromPreferences(): Promise<PushRegistrationResult | null> {
+  if (Platform.OS === 'web') return null
   const { data: session } = await supabase.auth.getSession()
   const userId = session.session?.user.id
-  if (!userId) return
+  if (!userId) return null
 
   const { data, error } = await supabase
     .from('user_notification_preferences')
@@ -120,8 +126,9 @@ export async function syncPushRegistrationFromPreferences() {
     .eq('user_id', userId)
     .maybeSingle()
 
-  if (error || !data?.push_enabled) return
-  await registerCurrentDeviceForPush()
+  if (error) return { status: 'error', message: error.message }
+  if (!data?.push_enabled) return null
+  return registerCurrentDeviceForPush()
 }
 
 export async function subscribeToPushResponses(onUrl: (url: string) => void) {

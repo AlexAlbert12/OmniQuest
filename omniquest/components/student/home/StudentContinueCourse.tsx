@@ -19,7 +19,7 @@ export default function StudentContinueCourse({
 
   if (!row) {
     return (
-      <View className="rounded-[24px] border border-border-default bg-surface-default p-5">
+      <View className="rounded-[24px] flex-row justify-between items-center border border-border-default bg-surface-default p-5">
         <View className="flex-row items-center gap-4">
           <View className="h-14 w-14 items-center justify-center rounded-2xl bg-semantic-surface-info">
             <Ionicons name="school-outline" size={28} color={tokens.semantic.info} />
@@ -29,7 +29,7 @@ export default function StudentContinueCourse({
             <Text className="mt-1 text-[14px] leading-5 text-text-secondary">Todavía no tienes cursos activos.</Text>
           </View>
         </View>
-        <AppButton label="Explorar mis cursos" icon="arrow-forward" iconPosition="right" role="student" onPress={onOpenAll} style={{ marginTop: 18 }} />
+        <AppButton label="Explorar mis cursos" icon="arrow-forward" iconPosition="right" role="student" onPress={onOpenAll}/>
       </View>
     )
   }

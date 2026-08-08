@@ -7,6 +7,7 @@ import { AdminScaffold } from '../shared/AdminScaffold'
 import { Panel } from '../shared/AdminPrimitives'
 import { supabase } from '../../../lib/supabase'
 import type { AdminPermission, IconName } from '../types/admin'
+import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
 
 export function AdminUsersHubScreen() {
   const data = useAdminData()
@@ -21,7 +22,7 @@ export function AdminContentHubScreen() {
 export function AdminMoreScreen() {
   const data = useAdminData()
   const router = useRouter()
-  const signOut = async () => { await supabase.auth.signOut(); router.replace('/(auth)/login' as any) }
+  const signOut = async () => { await signOutCurrentDeviceSession(); router.replace('/(auth)/login' as any) }
   return <AdminScaffold activeSection="more" title="Más" subtitle="Soporte, cuenta y configuración administrativa." data={data}><HubGrid items={[{ title: 'Soporte', description: 'Cola de tickets, asignación, SLA y conversación.', icon: 'headset-outline', href: '/(admin)/support', permission: 'support.read' }, { title: 'Perfil', description: 'Identidad de la cuenta y rol administrativo.', icon: 'person-circle-outline', href: '/(admin)/profile', permission: 'dashboard.read' }, { title: 'Configuración', description: 'Seguridad, privacidad y preferencias del portal.', icon: 'settings-outline', href: '/(admin)/settings', permission: 'dashboard.read' }]} permissions={data.portalContext?.permissions} /><Pressable accessibilityRole="button" accessibilityLabel="Cerrar sesión" onPress={() => void signOut()} className="mt-4 flex-row items-center justify-center gap-3 rounded-2xl border border-semantic-danger bg-semantic-surface-danger px-5 py-4"><Ionicons name="log-out-outline" size={21} /><Text className="font-black text-semantic-danger">Cerrar sesión</Text></Pressable></AdminScaffold>
 }
 

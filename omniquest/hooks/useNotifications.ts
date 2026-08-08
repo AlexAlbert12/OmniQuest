@@ -434,6 +434,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
 export function useNotifications(audience: NotificationAudience = 'teacher') {
   const context = useContext(NotificationContext)
+  const contextMarkAsRead = context?.markAsRead
+  const contextMarkAllAsRead = context?.markAllAsRead
+  const contextDeleteNotification = context?.deleteNotification
+  const contextDeleteNotifications = context?.deleteNotifications
+  const contextRefresh = context?.refresh
+  const contextLoadMore = context?.loadMore
+  const contextClearError = context?.clearError
+  const markAsRead = useCallback((id: string) => { if (!contextMarkAsRead) throw new Error('useNotifications debe usarse dentro de NotificationProvider'); return contextMarkAsRead(audience, id) }, [audience, contextMarkAsRead])
+  const markAllAsRead = useCallback(() => { if (!contextMarkAllAsRead) throw new Error('useNotifications debe usarse dentro de NotificationProvider'); return contextMarkAllAsRead(audience) }, [audience, contextMarkAllAsRead])
+  const deleteNotification = useCallback((id: string) => { if (!contextDeleteNotification) throw new Error('useNotifications debe usarse dentro de NotificationProvider'); return contextDeleteNotification(audience, id) }, [audience, contextDeleteNotification])
+  const deleteNotifications = useCallback((ids: string[]) => { if (!contextDeleteNotifications) throw new Error('useNotifications debe usarse dentro de NotificationProvider'); return contextDeleteNotifications(audience, ids) }, [audience, contextDeleteNotifications])
+  const refresh = useCallback(() => { if (!contextRefresh) throw new Error('useNotifications debe usarse dentro de NotificationProvider'); return contextRefresh(audience) }, [audience, contextRefresh])
+  const loadMore = useCallback(() => { if (!contextLoadMore) throw new Error('useNotifications debe usarse dentro de NotificationProvider'); return contextLoadMore(audience) }, [audience, contextLoadMore])
+  const clearError = useCallback(() => { if (!contextClearError) throw new Error('useNotifications debe usarse dentro de NotificationProvider'); return contextClearError(audience) }, [audience, contextClearError])
 
   if (!context) throw new Error('useNotifications debe usarse dentro de NotificationProvider')
 
@@ -442,13 +456,13 @@ export function useNotifications(audience: NotificationAudience = 'teacher') {
   return {
     ...state,
     activeAudience: context.activeAudience,
-    markAsRead: (id: string) => context.markAsRead(audience, id),
-    markAllAsRead: () => context.markAllAsRead(audience),
-    deleteNotification: (id: string) => context.deleteNotification(audience, id),
-    deleteNotifications: (ids: string[]) => context.deleteNotifications(audience, ids),
-    refresh: () => context.refresh(audience),
-    loadMore: () => context.loadMore(audience),
-    clearError: () => context.clearError(audience),
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    deleteNotifications,
+    refresh,
+    loadMore,
+    clearError,
   }
 }
 

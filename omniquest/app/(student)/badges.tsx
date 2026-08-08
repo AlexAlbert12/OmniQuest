@@ -35,6 +35,7 @@ import { formatCount } from '../../lib/formatCount'
 import { useNotifications } from '../../hooks/useNotifications'
 import { LinearGradient } from 'expo-linear-gradient'
 import OmniGuide from '@/components/OmniGuide'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 type Profile = {
   id: string
@@ -212,7 +213,7 @@ export default function BadgesScreen() {
 
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOutCurrentDeviceSession()
     router.replace('/login' as Href)
   }
 

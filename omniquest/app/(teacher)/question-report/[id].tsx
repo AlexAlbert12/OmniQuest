@@ -20,6 +20,7 @@ import { supabase } from '../../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { exportCsvFile, slugifyFilename } from '../../../lib/reportExports'
 import type { ClassroomComparisonPoint, QuestionReportPeriod, TemporalTrendPoint } from '../../../lib/teacherQuestionReport'
+import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
 
 const PERIODS: { key: QuestionReportPeriod; label: string; icon: any }[] = [
   { key: '7d', label: '7 días', icon: 'calendar-outline' },
@@ -51,7 +52,7 @@ export default function TeacherQuestionReportScreen() {
   const [archiveOpen, setArchiveOpen] = useState(false)
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOutCurrentDeviceSession()
     router.replace('/(auth)/login' as any)
   }
 

@@ -2,7 +2,6 @@ import React, { useCallback } from 'react'
 import { Text, useWindowDimensions, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { supabase } from '../../lib/supabase'
 import { useAppTheme } from '../../lib/appTheme'
 import StudentLayout from '../../components/student/StudentLayout'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
@@ -15,6 +14,7 @@ import PracticeOpportunityList from '../../components/student/progress/PracticeO
 import CourseProgressList from '../../components/student/progress/CourseProgressList'
 import LatestResults from '../../components/student/progress/LatestResults'
 import { useStudentProgress, type PracticeOpportunity, type StudentCourseProgress } from '../../hooks/student/useStudentProgress'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export default function ProgressScreen() {
   const { width } = useWindowDimensions()
@@ -90,7 +90,7 @@ export default function ProgressScreen() {
       isDesktop={isDesktop}
       loading={progress.loading}
       loadingLabel="Analizando tu progreso..."
-      onSignOut={() => { void supabase.auth.signOut() }}
+      onSignOut={() => { void signOutCurrentDeviceSession() }}
     >
       <StudentPageHeader icon="stats-chart" isDesktop={isDesktop} title="Progreso" subtitle="Entiende qué practicar, por qué se recomienda y qué puedes ganar." />
 

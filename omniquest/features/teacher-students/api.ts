@@ -1,6 +1,7 @@
 import { callTeacherRpc, type TeacherStudentsPagePayload } from '../../lib/teacherServerData'
 import { supabase } from '../../lib/supabase'
 import type { StudentRow, StudentSortKey, StudentStatusFilter, TeacherActionResult } from './types'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export function fetchTeacherStudentsPage({ subjectId, classroomId, status, search, order, page, pageSize }: {
   subjectId: number | 'all'
@@ -51,6 +52,6 @@ export async function sendTeacherStudentMessage(studentIds: string[], subjectIds
 }
 
 export async function signOutTeacherStudents() {
-  const { error } = await supabase.auth.signOut()
+  const { error } = await signOutCurrentDeviceSession()
   if (error) throw error
 }

@@ -18,16 +18,20 @@ export function usePushNotificationObserver() {
       await configurePushNotificationHandler().catch(() => undefined)
       const unsubscribe = await subscribeToPushResponses((url) => router.push(url as never))
       if (mounted) unsubscribeResponse = unsubscribe
-      await syncPushRegistrationFromPreferences().catch((error) => {
-        console.warn('[push] could not synchronize device token', error)
-      })
+      const registration = await syncPushRegistrationFromPreferences().catch((error) => ({
+        status: 'error' as const,
+        message: error instanceof Error ? error.message : String(error),
+      }))
+      if (registration?.status === 'error') console.warn('[push] could not synchronize device token', registration.message)
     }
 
     void start()
 
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        void syncPushRegistrationFromPreferences()
+        void syncPushRegistrationFromPreferences().then((registration) => {
+          if (registration?.status === 'error') console.warn('[push] could not synchronize device token', registration.message)
+        }).catch((error) => console.warn('[push] could not synchronize device token', error))
       }
     })
 

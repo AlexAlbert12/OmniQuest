@@ -16,6 +16,7 @@ import { useTeacherProfile, type TeacherRecentQuestion } from '../../hooks/teach
 import { useAppTheme } from '../../lib/appTheme'
 import { useResponsiveLayout } from '../../lib/responsive'
 import { supabase } from '../../lib/supabase'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 const ROUTES = {
   classes: '/(teacher)/classes',
@@ -44,7 +45,7 @@ export default function TeacherProfileScreen() {
   const activeStudents = summary.metrics.participatingStudents
 
   const handleSignOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    await signOutCurrentDeviceSession()
     router.replace(ROUTES.login)
   }, [router])
 

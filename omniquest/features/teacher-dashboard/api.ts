@@ -6,6 +6,7 @@ import {
   type TeacherRecentActivity,
 } from '../../lib/teacherServerData'
 import { supabase } from '../../lib/supabase'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export async function fetchTeacherDashboard() {
   const [summary, attentionPage, activityPage] = await Promise.all([
@@ -17,6 +18,6 @@ export async function fetchTeacherDashboard() {
 }
 
 export async function signOutTeacher() {
-  const { error } = await supabase.auth.signOut()
+  const { error } = await signOutCurrentDeviceSession()
   if (error) throw error
 }

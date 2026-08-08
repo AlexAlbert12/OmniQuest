@@ -20,6 +20,7 @@ import { useAppTheme } from '../../lib/appTheme'
 import { supabase } from '../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import type { ManualReviewFilters, ManualReviewQueueRow, ManualReviewStatus } from '../../lib/teacherManualReview'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 const STATUS_OPTIONS: { key: 'all' | ManualReviewStatus; label: string; icon: any }[] = [
   { key: 'all', label: 'Todas', icon: 'list-outline' },
@@ -57,7 +58,7 @@ export default function TeacherReviewsScreen() {
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOutCurrentDeviceSession()
     router.replace('/(auth)/login' as any)
   }
 

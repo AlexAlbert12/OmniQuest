@@ -17,6 +17,7 @@ import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { supabase } from '../../lib/supabase'
 import { readThroughCache } from '../../lib/offlineCache'
 import { useAppModal } from '../../components/AppModalProvider'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
 type Profile = { alias: string; avatar: string | null; points: number | null }
@@ -108,7 +109,9 @@ export default function StudentNotificationsScreen() {
     }
   }, [])
 
-  useFocusEffect(useCallback(() => { void fetchProfile() }, [fetchProfile]))
+  useFocusEffect(useCallback(() => {
+    void Promise.all([fetchProfile(), refresh()])
+  }, [fetchProfile, refresh]))
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -128,7 +131,7 @@ export default function StudentNotificationsScreen() {
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOutCurrentDeviceSession()
     router.replace('/(auth)/login' as any)
   }
 

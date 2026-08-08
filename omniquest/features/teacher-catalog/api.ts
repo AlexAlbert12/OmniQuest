@@ -1,6 +1,7 @@
 import { callTeacherRpc, type TeacherClassroomsPayload, type TeacherCoursesPayload } from '../../lib/teacherServerData'
 import { supabase } from '../../lib/supabase'
 import type { TeacherCourseFilter, TeacherCourseSort } from './types'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export function fetchTeacherCoursesPage({ page, pageSize, search, status, sort }: {
   page: number
@@ -27,6 +28,6 @@ export function fetchTeacherClassroomsPage({ page, pageSize, search }: { page: n
 }
 
 export async function signOutTeacherCatalog() {
-  const { error } = await supabase.auth.signOut()
+  const { error } = await signOutCurrentDeviceSession()
   if (error) throw error
 }

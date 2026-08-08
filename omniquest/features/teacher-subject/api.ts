@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export async function createTeacherClassroom(input: { subjectId: number; name: string; academicYear?: string | null }) {
   const { data, error } = await supabase.rpc('create_teacher_classroom', {
@@ -53,6 +54,6 @@ export async function duplicateTeacherSubject(subjectId: number) {
 }
 
 export async function signOutTeacherSubject() {
-  const { error } = await supabase.auth.signOut()
+  const { error } = await signOutCurrentDeviceSession()
   if (error) throw error
 }

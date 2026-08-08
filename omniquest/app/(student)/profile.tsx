@@ -16,8 +16,8 @@ import {
   StudentProfileQuickActions,
 } from '../../components/student/profile'
 import { useStudentProfile } from '../../hooks/student/useStudentProfile'
-import { supabase } from '../../lib/supabase'
 import { useAppTheme } from '../../lib/appTheme'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 const STUDENT_ROUTES = {
   activityLog: '/(student)/activity-log',
@@ -38,7 +38,7 @@ export default function ProfileScreen() {
   const isDesktop = width >= 1024
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOutCurrentDeviceSession()
     router.replace(STUDENT_ROUTES.login)
   }
 

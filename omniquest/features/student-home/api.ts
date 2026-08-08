@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { StudentHomeDashboardPayload } from './types'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export async function fetchStudentHomeDashboard(): Promise<StudentHomeDashboardPayload> {
   const { data, error } = await supabase.rpc('get_student_home_dashboard')
@@ -9,6 +10,6 @@ export async function fetchStudentHomeDashboard(): Promise<StudentHomeDashboardP
 }
 
 export async function signOutStudent() {
-  const { error } = await supabase.auth.signOut()
+  const { error } = await signOutCurrentDeviceSession()
   if (error) throw error
 }

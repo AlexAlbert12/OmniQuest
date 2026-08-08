@@ -25,6 +25,7 @@ import { useAppTheme } from '../../../lib/appTheme'
 import { supabase } from '../../../lib/supabase'
 import { useTeacherTopicDetail, type VisibilityFilter } from '../../../hooks/teacher/useTeacherTopicDetail'
 import type { TeacherTopicQuestion } from '../../../lib/teacherServerData'
+import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
 
 const difficultyItems: { key: DifficultyLevel | 'all'; label: string }[] = [
   { key: 'all', label: 'Todas' },
@@ -66,7 +67,7 @@ export default function TopicDetailScreen() {
     : 'Sin definir'
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOutCurrentDeviceSession()
     router.replace('/(auth)/login' as never)
   }
 
