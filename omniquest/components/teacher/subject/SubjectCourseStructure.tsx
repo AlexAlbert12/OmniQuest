@@ -9,6 +9,7 @@ import AppTabs from '../../ui/AppTabs'
 import DateTimeCalendarField from '../../ui/DateTimeCalendarField'
 import { createShadowStyle } from '../../../lib/platformShadow'
 import { SubjectPanel as Panel, type IconName } from './SubjectShared'
+import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 
 export function SubjectClassroomsSection({
   classrooms,
@@ -117,7 +118,7 @@ export function SubjectTopicsSection({
             ...topicRows.map((topic) => ({
               key: topic.id,
               label: topic.title,
-              icon: topic.icon && topic.icon.includes('-outline') ? topic.icon as IconName : 'book-outline' as IconName,
+              icon: normalizeAcademicIcon(topic.icon, 'book-outline'),
             })),
           ]}
           onChange={onSelectTopic}

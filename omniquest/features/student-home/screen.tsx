@@ -1,7 +1,7 @@
 import React from 'react'
-import { Text, View } from 'react-native'
+import { View } from 'react-native'
 import { useRouter } from 'expo-router'
-import OmniGuide from '../../components/OmniGuide'
+import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import StudentLayout from '../../components/student/StudentLayout'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import AppStatusBanner from '../../components/ui/AppStatusBanner'
@@ -23,16 +23,7 @@ export default function StudentHome() {
   const responsive = useResponsiveLayout()
   const home = useStudentHome()
 
-  if (home.loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background-primary px-6">
-        <OmniGuide state="blink" size={116} />
-        <Text maxFontSizeMultiplier={2} className="mt-4 text-center text-text-muted">
-          Omni está preparando tu siguiente misión...
-        </Text>
-      </View>
-    )
-  }
+  if (home.loading) return <OmniLoadingScreen />
 
   const points = home.profile?.points ?? 0
   const alias = home.profile?.alias || 'Alumno'

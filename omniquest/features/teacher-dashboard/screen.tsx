@@ -1,5 +1,6 @@
+import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React, { useMemo } from 'react'
-import { ActivityIndicator, RefreshControl, Text, View } from 'react-native'
+import { RefreshControl, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
@@ -50,14 +51,7 @@ export default function TeacherHomeScreen() {
     return [...studentItems, ...emptyCourses].slice(0, 6)
   }, [attention, summary.emptyCourses])
 
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background-primary">
-        <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text className="mt-4 text-text-muted">Cargando resumen docente...</Text>
-      </View>
-    )
-  }
+  if (loading) return <OmniLoadingScreen />
 
   const primaryRoute = summary.openReviewCount > 0
     ? '/(teacher)/reviews'

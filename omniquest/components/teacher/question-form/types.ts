@@ -47,6 +47,7 @@ export type TeacherQuestionFormState = {
   points: string
   optionsCount: number
   explanation: string
+  hint: string
   selectedDifficulty: DifficultyLevel
   topics: TopicOption[]
   selectedTopicId: string | null

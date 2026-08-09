@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   Text,
@@ -10,7 +9,6 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
-import AppConfirmModal from '../../components/AppConfirmModal'
 import { supabase } from '../../lib/supabase'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentSidebar from '../../components/student/StudentSidebar'
@@ -23,11 +21,12 @@ import { useAppModal } from '../../components/AppModalProvider'
 import { useResponsiveLayout } from '../../lib/responsive'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { CourseGalaxyMap } from '../../components/student/galaxy/StudentGalaxyMap'
-import { readThroughCache, updateOfflineCache } from '../../lib/offlineCache'
+import { readThroughCache } from '../../lib/offlineCache'
 import { enqueueOfflineMutation } from '../../lib/offlineMutations'
 import { useOfflineSync } from '../../hooks/useOfflineSync'
 import { isValidInviteCode, normalizeInviteCode } from '../../lib/classCode'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
+import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 
 type Profile = {
   id: string
@@ -82,8 +81,6 @@ export default function ClassesScreen() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
-  const [leavingSubjectId, setLeavingSubjectId] = useState<number | null>(null)
-  const [subjectToLeave, setSubjectToLeave] = useState<Subject | null>(null)
   const [openFilterMenu, setOpenFilterMenu] = useState<'state' | 'sort' | null>(null)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
 
@@ -251,52 +248,8 @@ export default function ClassesScreen() {
     }
   }
 
-  const executeLeaveClass = async (subject: Subject) => {
-    setLeavingSubjectId(subject.classroom_id ?? subject.id)
 
-    try {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
-
-      if (!userId) {
-        throw new Error('No hay sesión activa.')
-      }
-
-      await enqueueOfflineMutation({
-        userId,
-        kind: 'class.leave',
-        entityKey: `class:${subject.id}:${subject.classroom_id ?? 'default'}`,
-        conflictPolicy: 'client_wins',
-        payload: { subjectId: subject.id, classroomId: subject.classroom_id },
-      })
-      setSubjects((current) => current.filter((row) => getCourseRowKey(row) !== getCourseRowKey(subject)))
-      await updateOfflineCache<ClassesCacheSnapshot>(userId, 'student:classes', (snapshot) => ({
-        ...snapshot,
-        subjects: snapshot.subjects.filter((row) => getCourseRowKey(row) !== getCourseRowKey(subject)),
-      }))
-      showAlert('Cambio pendiente', `Has salido de ${subject.name}. El cambio se confirmará al sincronizar.`)
-    } catch (error: any) {
-      showAlert('Error', error.message || 'No se pudo abandonar la clase.')
-    } finally {
-      setLeavingSubjectId(null)
-    }
-  }
-
-  const handleLeaveClass = (subject: Subject) => {
-    setSubjectToLeave(subject)
-  }
-
-  if (loading) {
-    return (
-      <View className="flex-1 bg-background-secondary">
-        <HomeVisualBackground isDesktop={isDesktop} />
-        <View className="z-10 flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={accentColor} />
-          <Text className="mt-4" style={{ color: tokens.text.secondary }}>Cargando tus cursos...</Text>
-        </View>
-      </View>
-    )
-  }
+  if (loading) return <OmniLoadingScreen />
 
   return (
     <View className="flex-1 bg-background-secondary">
@@ -531,7 +484,6 @@ export default function ClassesScreen() {
                   group,
                   onPress: () => router.push(buildClassHref(subject) as any),
                   testID: `student-course-${subject.id}-${subject.classroom_id ?? 'all'}`,
-                  onMore: () => handleLeaveClass(subject),
                 }
               })}
               inviteCode={inviteCode}
@@ -545,20 +497,6 @@ export default function ClassesScreen() {
       </View>
 
       {!isDesktop ? <StudentBottomNav active="classes" /> : null}
-      <AppConfirmModal
-        visible={Boolean(subjectToLeave)}
-        variant="danger"
-        title="¿Abandonar clase?"
-        message={`Vas a salir de “${subjectToLeave?.name ?? ''}${subjectToLeave?.classroom_name ? ` · ${subjectToLeave.classroom_name}` : ''}”. Si quieres volver, necesitarás el código de invitación.`}
-        cancelLabel="Cancelar"
-        confirmLabel="Abandonar clase"
-        busy={subjectToLeave ? leavingSubjectId === (subjectToLeave.classroom_id ?? subjectToLeave.id) : false}
-        onCancel={() => setSubjectToLeave(null)}
-        onConfirm={() => {
-          if (!subjectToLeave) return
-          void executeLeaveClass(subjectToLeave).then(() => setSubjectToLeave(null))
-        }}
-      />
     </View>
   )
 }

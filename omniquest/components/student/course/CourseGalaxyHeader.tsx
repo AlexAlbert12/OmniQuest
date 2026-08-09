@@ -6,6 +6,7 @@ import StudentPageHeader from '../StudentPageHeader'
 import { withAlpha } from '../../../lib/color'
 import { useAppTheme } from '../../../lib/appTheme'
 import type { StudentCourseClassroom, StudentCourseSubject, StudentCourseTotals } from './types'
+import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 
 export default function CourseGalaxyHeader({
   subject,
@@ -22,7 +23,7 @@ export default function CourseGalaxyHeader({
 }) {
   const { tokens } = useAppTheme()
   const color = subject.theme_color || tokens.brand.student
-  const iconName = getValidIoniconName(subject.icon)
+  const iconName = normalizeAcademicIcon(subject.icon, 'book-outline')
 
   return (
     <StudentPageHeader
@@ -43,15 +44,7 @@ export default function CourseGalaxyHeader({
             className="h-full w-full items-center justify-center rounded-full border-4"
             style={{ borderColor: withAlpha(color, 'CC') }}
           >
-            {subject.icon ? (
-              iconName ? (
-                <Ionicons name={iconName} size={isDesktop ? 34 : 28} color={tokens.text.inverse} />
-              ) : (
-                <Text className={isDesktop ? 'text-[32px]' : 'text-[26px]'}>{subject.icon}</Text>
-              )
-            ) : (
-              <Ionicons name="book" size={isDesktop ? 34 : 28} color={tokens.text.inverse} />
-            )}
+            <Ionicons name={iconName} size={isDesktop ? 34 : 28} color={tokens.text.inverse} />
           </LinearGradient>
         </View>
       )}
@@ -59,7 +52,3 @@ export default function CourseGalaxyHeader({
   )
 }
 
-function getValidIoniconName(icon: string | null | undefined): keyof typeof Ionicons.glyphMap | null {
-  if (!icon) return null
-  return icon in Ionicons.glyphMap ? icon as keyof typeof Ionicons.glyphMap : null
-}

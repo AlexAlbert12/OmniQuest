@@ -1,3 +1,4 @@
+import OmniLoadingScreen from '../../../../components/ui/OmniLoadingScreen'
 import React from 'react'
 import {
   ActivityIndicator,
@@ -85,14 +86,7 @@ export default function TeacherStudentHistoryScreen() {
     }
   }
 
-  if (history.loadingSummary) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: tokens.background.primary }}>
-        <ActivityIndicator size="large" color={tokens.brand.teacher} />
-        <Text className="mt-4" style={{ color: tokens.text.muted }}>Generando el resumen docente...</Text>
-      </View>
-    )
-  }
+  if (history.loadingSummary) return <OmniLoadingScreen />
 
   const summary = history.summary
   if (!summary) {

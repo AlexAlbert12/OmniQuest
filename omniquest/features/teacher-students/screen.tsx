@@ -1,5 +1,6 @@
+import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React from 'react'
-import { ActivityIndicator, RefreshControl, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { RefreshControl, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../lib/appTheme'
 import { useTeacherStudentsController } from './useTeacherStudentsController'
@@ -27,14 +28,7 @@ export default function TeacherStudentsScreen() {
     sendBulkReminder, sendStudentMessage, exportCurrentPage, openNotifications, signOut,
   } = useTeacherStudentsController(pageSize)
 
-  if (directory.loading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: tokens.background.primary }}>
-        <ActivityIndicator size="large" color={tokens.brand.teacher} />
-        <Text className="mt-4" style={{ color: tokens.text.muted }}>Cargando una página de alumnos...</Text>
-      </View>
-    )
-  }
+  if (directory.loading) return <OmniLoadingScreen />
 
   const sharedModalProps = (
     <>

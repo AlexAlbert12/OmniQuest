@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav'
@@ -26,6 +27,7 @@ import { supabase } from '../../../lib/supabase'
 import { useTeacherTopicDetail, type VisibilityFilter } from '../../../hooks/teacher/useTeacherTopicDetail'
 import type { TeacherTopicQuestion } from '../../../lib/teacherServerData'
 import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
+import OmniLoadingScreen from '../../../components/ui/OmniLoadingScreen'
 
 const difficultyItems: { key: DifficultyLevel | 'all'; label: string }[] = [
   { key: 'all', label: 'Todas' },
@@ -139,11 +141,7 @@ export default function TopicDetailScreen() {
             subtitleNumberOfLines={3}
             leading={(
               <View className="h-20 w-20 items-center justify-center rounded-2xl border" style={{ borderColor: tokens.border.active, backgroundColor: tokens.surface.selected }}>
-                {topic.icon && !topic.icon.includes('-outline') ? (
-                  <Text className="text-[42px]">{topic.icon}</Text>
-                ) : (
-                  <Ionicons name="book-outline" size={42} color={tokens.brand.teacher} />
-                )}
+                <Ionicons name={normalizeAcademicIcon(topic.icon, 'book-outline')} size={42} color={tokens.brand.teacher} />
               </View>
             )}
             actions={(
@@ -316,15 +314,7 @@ export default function TopicDetailScreen() {
   )
 }
 
-function LoadingState() {
-  const { tokens } = useAppTheme()
-  return (
-    <View className="flex-1 items-center justify-center" style={{ backgroundColor: tokens.background.primary }}>
-      <ActivityIndicator size="large" color={tokens.brand.teacher} />
-      <Text className="mt-4" style={{ color: tokens.text.muted }}>Cargando tema...</Text>
-    </View>
-  )
-}
+function LoadingState() { return <OmniLoadingScreen /> }
 
 function StatusPill({ icon, label, value, color }: {
   icon: keyof typeof Ionicons.glyphMap

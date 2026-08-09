@@ -1,6 +1,6 @@
+import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   Text,
@@ -126,14 +126,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
     router.replace(roleRoute(data.isTeacher, ROUTES.teacherSettings, ROUTES.studentSettings))
   }
 
-  if (data.loading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={accentColor} />
-        <Text className="mt-4" style={{ color: colors.textMuted }}>{t('settings.loading')}</Text>
-      </View>
-    )
-  }
+  if (data.loading) return <OmniLoadingScreen />
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.background }}>

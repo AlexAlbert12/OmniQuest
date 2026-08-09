@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, Text, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
+import { Pressable, ScrollView, Text, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -12,6 +12,11 @@ import { fetchStudentAttemptHistory, fetchStudentQuestionCatalog } from '../../.
 import { useAppTheme } from '../../../lib/appTheme'
 import { useAppModal } from '../../../components/AppModalProvider'
 import { useResponsiveLayout } from '../../../lib/responsive'
+import { enqueueOfflineMutation } from '../../../lib/offlineMutations'
+import { updateOfflineCache } from '../../../lib/offlineCache'
+import AppButton from '../../../components/ui/AppButton'
+import AppConfirmModal from '../../../components/AppConfirmModal'
+import OmniLoadingScreen from '../../../components/ui/OmniLoadingScreen'
 import {
   CourseGalaxyHeader,
   CourseNextMission,
@@ -98,6 +103,8 @@ export default function StudentClassDetailScreen() {
   const [inlineMissionBottom, setInlineMissionBottom] = useState<number | null>(null)
   const [showMobileStickyMission, setShowMobileStickyMission] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [leaveConfirmationVisible, setLeaveConfirmationVisible] = useState(false)
+  const [leavingClass, setLeavingClass] = useState(false)
 
   const subjectId = Array.isArray(id) ? id[0] : id
   const selectedClassroomId = Array.isArray(classroomId) ? classroomId[0] : classroomId
@@ -353,6 +360,25 @@ export default function StudentClassDetailScreen() {
     if (topic) openTopic(topic, true)
   }
 
+  const executeLeaveClass = useCallback(async () => {
+    if (!subject || !classroom || leavingClass) return
+    setLeavingClass(true)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+      if (!userId) throw new Error('No hay sesión activa.')
+      await enqueueOfflineMutation({ userId, kind: 'class.leave', entityKey: `class:${subject.id}:${classroom.id}`, conflictPolicy: 'client_wins', payload: { subjectId: subject.id, classroomId: classroom.id } })
+      await updateOfflineCache<any>(userId, 'student:classes', (snapshot) => ({ ...snapshot, subjects: Array.isArray(snapshot?.subjects) ? snapshot.subjects.filter((row: any) => !(Number(row?.id) === subject.id && Number(row?.classroom_id) === classroom.id)) : [] }))
+      setLeaveConfirmationVisible(false)
+      showModal({ title: 'Clase abandonada', message: `Has salido de ${subject.name}. Si quieres volver, necesitarás el código de invitación.`, variant: 'success' })
+      router.replace('/(student)/classes' as any)
+    } catch (error: any) {
+      showModal({ title: 'No se pudo abandonar la clase', message: error?.message || 'Inténtalo de nuevo en unos segundos.', variant: 'error' })
+    } finally {
+      setLeavingClass(false)
+    }
+  }, [classroom, leavingClass, router, showModal, subject])
+
   const handleInlineMissionLayout = useCallback((event: LayoutChangeEvent) => {
     const { y, height } = event.nativeEvent.layout
     setInlineMissionBottom(y + height)
@@ -364,14 +390,7 @@ export default function StudentClassDetailScreen() {
     setShowMobileStickyMission((current) => current === shouldShow ? current : shouldShow)
   }, [inlineMissionBottom, isDesktop, recommendedTopic])
 
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background-primary">
-        <ActivityIndicator size="large" color={tokens.brand.student} />
-        <Text className="mt-4 text-text-muted">Cargando temas...</Text>
-      </View>
-    )
-  }
+  if (loading) return <OmniLoadingScreen />
 
   if (!subject) {
     return (
@@ -470,6 +489,13 @@ export default function StudentClassDetailScreen() {
             onOpenActivity={() => router.push('/(student)/activity-log' as any)}
             onOpenFailedQuestion={openFailedQuestion}
           />
+
+
+          {classroom ? (
+            <View className={`${isDesktop ? 'mt-6 items-end' : 'mt-5'} pb-2`}>
+              <AppButton label="Abandonar clase" icon="log-out-outline" variant="danger" onPress={() => setLeaveConfirmationVisible(true)} style={isDesktop ? { minWidth: 190 } : { width: '100%' }} />
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -497,6 +523,17 @@ export default function StudentClassDetailScreen() {
         topic={difficultyChooserTopic}
         onClose={() => setDifficultyChooserTopic(null)}
         onChoose={(difficulty, reviewFailed) => difficultyChooserTopic ? chooseDifficulty(difficultyChooserTopic, difficulty, reviewFailed) : undefined}
+      />
+      <AppConfirmModal
+        visible={leaveConfirmationVisible}
+        variant="danger"
+        title="¿Abandonar clase?"
+        message={`Vas a salir de “${subject.name}${classroom?.name ? ` · ${classroom.name}` : ''}”. Si quieres volver, necesitarás el código de invitación.`}
+        cancelLabel="Cancelar"
+        confirmLabel="Abandonar clase"
+        busy={leavingClass}
+        onCancel={() => setLeaveConfirmationVisible(false)}
+        onConfirm={() => void executeLeaveClass()}
       />
       {!isDesktop ? <StudentBottomNav active="classes" /> : null}
     </View>

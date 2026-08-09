@@ -7,12 +7,12 @@ const root = process.cwd()
 const read = (path) => readFileSync(join(root, path), 'utf8')
 const json = (path) => JSON.parse(read(path))
 
-test('Expo configuration enables real localization, automatic appearance and native push', () => {
+test('Expo configuration enables real localization, official dark appearance and native push', () => {
   const app = json('app.json').expo
   const pkg = json('package.json')
   const plugins = JSON.stringify(app.plugins)
 
-  assert.equal(app.userInterfaceStyle, 'automatic')
+  assert.equal(app.userInterfaceStyle, 'dark')
   assert.match(plugins, /expo-notifications/)
   assert.match(plugins, /expo-localization/)
   for (const dependency of ['expo-notifications', 'expo-device', 'expo-localization', 'expo-network']) {
@@ -20,7 +20,7 @@ test('Expo configuration enables real localization, automatic appearance and nat
   }
 })
 
-test('root providers initialize persisted locale, adaptive theme and push response routing', () => {
+test('root providers initialize persisted locale, official theme and push response routing', () => {
   const source = read('app/_layout.tsx')
   assert.match(source, /<I18nProvider>/)
   assert.match(source, /<AppThemeProvider>/)
@@ -101,15 +101,17 @@ test('Edge Function deployment uses a Node 24 compatible Supabase launcher', () 
   assert.doesNotMatch(script, /npx\.cmd/)
 })
 
-test('locale and theme preferences are persisted instead of forcing dark mode', () => {
+test('locale is persisted while OmniQuest keeps a single official dark theme', () => {
   const locale = read('lib/i18n.tsx')
   const theme = read('lib/appTheme.tsx')
   const settings = read('components/settings/SettingsSections.tsx')
 
   assert.match(locale, /expo-localization/)
   assert.match(locale, /LOCALE_STORAGE_KEY/)
-  assert.match(theme, /AppThemePreference = AppThemeMode \| 'system'/)
-  assert.match(theme, /useColorScheme\(\)/)
-  assert.doesNotMatch(theme, /setTheme\s*=.*setThemePreference\('dark'\)/s)
-  assert.match(settings, /settings\.appearance\.system/)
+  assert.match(theme, /AppThemeMode = 'dark'/)
+  assert.match(theme, /OFFICIAL_THEME: AppThemeMode = 'dark'/)
+  assert.match(theme, /OFFICIAL_ACCENT_COLOR = '#09acf4'/)
+  assert.doesNotMatch(theme, /useColorScheme/)
+  assert.doesNotMatch(theme, /AsyncStorage/)
+  assert.doesNotMatch(settings, /settings\.appearance\.(?:system|dark|light)/)
 })

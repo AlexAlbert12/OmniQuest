@@ -92,6 +92,7 @@ export function useTeacherQuestionForm({
   const [points, setPoints] = useState('10')
   const [optionsCount, setOptionsCount] = useState(4)
   const [explanation, setExplanation] = useState('')
+  const [hint, setHint] = useState('')
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel>(normalizedInitialDifficulty)
   const [topics, setTopics] = useState<TopicOption[]>([])
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(() =>
@@ -202,6 +203,7 @@ export function useTeacherQuestionForm({
     points,
     optionsCount,
     explanation,
+    hint,
     selectedDifficulty,
     selectedTopicId,
     answers,
@@ -216,6 +218,7 @@ export function useTeacherQuestionForm({
     answers,
     dragdropPairsText,
     explanation,
+    hint,
     fillAnswersText,
     matchPairsText,
     media,
@@ -239,6 +242,7 @@ export function useTeacherQuestionForm({
     setPoints(state.points || '10')
     setOptionsCount(Math.max(2, Math.min(6, state.optionsCount || 4)))
     setExplanation(state.explanation || '')
+    setHint(state.hint || '')
     setSelectedDifficulty(normalizeDifficulty(state.selectedDifficulty) || 1)
     setSelectedTopicId(state.selectedTopicId || null)
     setAnswers(Array.isArray(state.answers) && state.answers.length ? state.answers : [{ text: '', isCorrect: true }, { text: '', isCorrect: false }])
@@ -285,7 +289,7 @@ export function useTeacherQuestionForm({
           isEdit && normalizedQuestionId
             ? supabase
                 .from('questions')
-                .select('id, text, type, difficulty, points_base, time_limit_seconds, topic_id, classroom_id, explanation, media_type, media_url, media_path, media_alt_text, media_caption, answers(text, is_correct, sort_order)')
+                .select('id, text, type, difficulty, points_base, time_limit_seconds, topic_id, classroom_id, explanation, hint, media_type, media_url, media_path, media_alt_text, media_caption, answers(text, is_correct, sort_order)')
                 .eq('id', Number(normalizedQuestionId))
                 .eq('subject_id', Number(normalizedSubjectId))
                 .single()
@@ -312,6 +316,7 @@ export function useTeacherQuestionForm({
           setTimeLimit(String(questionData.time_limit_seconds || 30))
           setPoints(String(questionData.points_base || 10))
           setExplanation(questionData.explanation || '')
+          setHint(questionData.hint || '')
           setMedia({
             type: questionData.media_type || null,
             url: mediaManifest?.url || null,
@@ -600,7 +605,7 @@ export function useTeacherQuestionForm({
 
       const { error } = await measureRpc(
         'save_teacher_question',
-        async () => supabase.rpc('save_teacher_question', {
+        async () => supabase.rpc('save_teacher_question_v2', {
           p_subject_id: Number(normalizedSubjectId),
           p_question_id: isEdit ? Number(normalizedQuestionId) : null,
           p_classroom_id: isNumericId(normalizedInitialClassroomId) ? Number(normalizedInitialClassroomId) : null,
@@ -611,6 +616,7 @@ export function useTeacherQuestionForm({
           p_time_limit_seconds: parsedTimeLimit as number,
           p_difficulty: selectedDifficulty,
           p_explanation: explanation.trim() || null,
+          p_hint: hint.trim() || null,
           p_answers: answersToSave as unknown as Json,
           p_media_type: mediaType,
           p_media_url: null,
@@ -672,6 +678,7 @@ export function useTeacherQuestionForm({
     points,
     optionsCount,
     explanation,
+    hint,
     selectedDifficulty,
     topics,
     selectedTopicId,
@@ -706,6 +713,7 @@ export function useTeacherQuestionForm({
     setTimeLimit: (value: string) => setTimeLimit(sanitizeIntegerInput(value)),
     setPoints: (value: string) => setPoints(sanitizeIntegerInput(value)),
     setExplanation,
+    setHint,
     setSelectedDifficulty,
     setSelectedTopicId,
     setOpenExpectedAnswer,

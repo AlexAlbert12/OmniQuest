@@ -5,6 +5,7 @@ import AppPressable from '../../ui/AppPressable'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
 import type { GalaxyTopicItem } from '../galaxy/StudentGalaxyMap'
+import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 
 function TopicPlanet({
   item,
@@ -18,7 +19,7 @@ function TopicPlanet({
   const { tokens } = useAppTheme()
   const disabled = item.state === 'locked' || item.state === 'empty'
   const color = accentColor || item.color || tokens.brand.student
-  const icon = getValidIoniconName(item.icon) || (disabled ? 'lock-closed-outline' : 'play-outline')
+  const icon = disabled && !item.icon ? 'lock-closed-outline' : normalizeAcademicIcon(item.icon, disabled ? 'lock-closed-outline' : 'play-outline')
 
   return (
     <AppPressable
@@ -71,7 +72,3 @@ function getTopicStateLabel(state: GalaxyTopicItem['state']) {
   return 'Sin preguntas'
 }
 
-function getValidIoniconName(icon: string | null | undefined): keyof typeof Ionicons.glyphMap | null {
-  if (!icon) return null
-  return icon in Ionicons.glyphMap ? icon as keyof typeof Ionicons.glyphMap : null
-}

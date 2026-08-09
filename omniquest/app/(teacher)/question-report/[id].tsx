@@ -1,5 +1,6 @@
+import OmniLoadingScreen from '../../../components/ui/OmniLoadingScreen'
 import React, { useState } from 'react'
-import { ActivityIndicator, RefreshControl, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { RefreshControl, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar'
@@ -71,14 +72,7 @@ export default function TeacherQuestionReportScreen() {
     )
   }
 
-  if (report.loading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: tokens.background.primary }}>
-        <ActivityIndicator size="large" color={tokens.brand.teacher} />
-        <Text className="mt-4" style={{ color: tokens.text.secondary }}>Preparando diagnóstico...</Text>
-      </View>
-    )
-  }
+  if (report.loading) return <OmniLoadingScreen />
 
   const question = report.report?.question
 

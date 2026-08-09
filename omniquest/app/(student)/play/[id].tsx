@@ -189,11 +189,13 @@ function PlayScreenContent() {
                   </View>
                 ) : null}
 
-                {game.hintedAnswerId ? (
-                  <View className="mt-2 w-full flex-row items-center gap-2 rounded-xl bg-semantic-surface-warning px-3 py-2">
-                    <Ionicons name="bulb" size={16} color={tokens.semantic.warning} />
-                    <Text className="text-[12px] font-black text-gamification-xp">Pista activa</Text>
-                    <Text className="min-w-0 flex-1 text-[12px] text-text-secondary">Opción destacada · -10 XP si aciertas</Text>
+                {game.hintVisible && currentQuestion?.hint?.trim() ? (
+                  <View className="mt-3 w-full flex-row items-start gap-2 rounded-xl bg-semantic-surface-warning px-3 py-3">
+                    <Ionicons name="bulb" size={17} color={tokens.semantic.warning} />
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-[12px] font-black text-gamification-xp">Pista</Text>
+                      <Text className="mt-1 text-[13px] leading-5 text-text-secondary">{currentQuestion.hint.trim()}</Text>
+                    </View>
                   </View>
                 ) : null}
               </View>
@@ -232,7 +234,7 @@ function PlayScreenContent() {
           </View>
 
           {!game.hasAnswered && !game.isSubmitting && !game.pendingAnswer && !game.feedback && !game.questionConflict ? (
-            <BottomHud onHint={() => setPendingAction('hint')} onSkip={() => setPendingAction('skip')} />
+            <BottomHud showHint={Boolean(currentQuestion?.hint?.trim())} onHint={() => setPendingAction('hint')} onSkip={() => setPendingAction('skip')} />
           ) : null}
         </View>
       </ScrollView>

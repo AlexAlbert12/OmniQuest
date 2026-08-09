@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { withAlpha } from '../../../lib/color'
+import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 import type {
   TeacherDashboardSummary,
   TeacherRecentActivity,
@@ -40,7 +41,7 @@ export function TeacherRecentCourses({ courses }: { courses: TeacherDashboardSum
             style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
           >
             <View className="h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(color, '28') }}>
-              {course.icon ? <Text className="text-[24px]">{course.icon}</Text> : <Ionicons name="book-outline" size={23} color={color} />}
+              <Ionicons name={normalizeAcademicIcon(course.icon, 'book-outline')} size={23} color={color} />
             </View>
             <View className="min-w-0 flex-1">
               <Text className="text-[16px] font-black text-text-primary" numberOfLines={2}>{course.name}</Text>

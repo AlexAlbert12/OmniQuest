@@ -25,7 +25,7 @@ export default function StudentProfileHero({ alias, avatar, level, points, nextL
   const remaining = Math.max(0, 100 - nextLevelProgress)
   const heroText = theme === 'dark' ? tokens.text.inverse : tokens.text.primary
   const progressWidth = `${Math.max(nextLevelProgress, nextLevelProgress > 0 ? 8 : 0)}%`
-  const gradientColors = [tokens.brand.student, tokens.brand.student, tokens.background.secondary, tokens.background.primary] as const
+  const gradientColors = [tokens.brand.student, tokens.brand.student, tokens.background.primary] as const
   const gradientLocations = isMobile ? [0, 0.9, 0.98, 1] as const : [0, 0.68, 0.86, 1] as const
 
   return (
@@ -34,7 +34,7 @@ export default function StudentProfileHero({ alias, avatar, level, points, nextL
       locations={gradientLocations}
       start={isMobile ? { x: 0, y: 0 } : { x: 0, y: 0.25 }}
       end={isMobile ? { x: 0, y: 1 } : { x: 1, y: 0.6 }}
-      style={{ borderRadius: 24, borderWidth: 1, borderColor: tokens.border.active, overflow: 'hidden' }}
+      style={{ borderRadius: 30, overflow: 'hidden' }}
     >
       <View style={{ minHeight: 198, padding: 20 }}>
         <View className="absolute -right-8 top-4 h-24 w-44 rounded-full" style={{ backgroundColor: withAlpha(heroText, '0D') }} />

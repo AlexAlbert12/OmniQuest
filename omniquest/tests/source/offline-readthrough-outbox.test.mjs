@@ -64,7 +64,7 @@ test('student courses, profile, badges, notifications, progress and history read
   assert.match(notifications, /notifications:\$\{audience\}/)
   assert.match(notifications, /enqueueOfflineMutation/)
   assert.match(read('app/(student)/classes.tsx'), /kind: 'class\.join'/)
-  assert.match(read('app/(student)/classes.tsx'), /kind: 'class\.leave'/)
+  assert.match(read('app/(student)/class/[id].tsx'), /kind: 'class\.leave'/)
   assert.match(read('app/(student)/profile.tsx'), /kind: 'profile\.cosmetics'/)
   assert.match(read('app/(student)/profile.tsx'), /stageAvatarForOffline/)
 })

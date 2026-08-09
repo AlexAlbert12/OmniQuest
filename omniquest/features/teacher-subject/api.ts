@@ -22,7 +22,7 @@ export async function createTeacherTopic(input: {
   availableUntil: string | null
 }) {
   const { data, error } = await supabase.functions.invoke('teacher-create-topic', {
-    body: { ...input, icon: '📘' },
+    body: { ...input, icon: 'book-outline' },
   })
   if (error) throw error
   const result = (data || {}) as { error?: string; topic?: { id: number } }

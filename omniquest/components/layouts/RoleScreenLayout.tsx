@@ -1,6 +1,5 @@
 import React from 'react'
 import {
-  ActivityIndicator,
   ScrollView,
   Text,
   View,
@@ -14,6 +13,8 @@ import { useAppTheme } from '../../lib/appTheme'
 import type { AppRole } from '../../lib/designTokens'
 import { useResponsiveLayout } from '../../lib/responsive'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import OmniGuide from '../OmniGuide'
+import { useI18n } from '../../lib/i18n'
 
 type RoleScreenLayoutProps = {
   role: AppRole
@@ -64,17 +65,17 @@ export default function RoleScreenLayout({
 }: RoleScreenLayoutProps) {
   const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
+  const { t } = useI18n()
   const isDesktop = isDesktopOverride ?? responsive.isDesktop
   const resolvedHorizontalPadding = horizontalPadding ?? responsive.horizontalPadding
   const resolvedTopPadding = topPadding ?? responsive.verticalPadding
   const resolvedBottomPadding = bottomPadding ?? (isDesktop ? 36 : mobileBottomNavigation ? MOBILE_BOTTOM_NAV_SPACER : 32)
   const resolvedMaxWidth = maxContentWidth ?? responsive.contentMaxWidth
-  const loadingColor = tokens.brand[role]
 
   const content = loading ? (
     <View style={styles.loading} accessibilityRole="progressbar" accessibilityLabel={loadingLabel}>
-      <ActivityIndicator size="large" color={loadingColor} />
-      <Text maxFontSizeMultiplier={2} style={[styles.loadingLabel, { color: tokens.text.muted }]}>{loadingLabel}</Text>
+      <OmniGuide state="blink" size={116} />
+      <Text maxFontSizeMultiplier={2} style={[styles.loadingLabel, { color: tokens.text.muted }]}>{t('loading.omni')}</Text>
     </View>
   ) : (
     children

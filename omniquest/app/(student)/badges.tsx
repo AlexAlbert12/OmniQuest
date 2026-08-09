@@ -1,3 +1,4 @@
+import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
@@ -217,14 +218,7 @@ export default function BadgesScreen() {
     router.replace('/login' as Href)
   }
 
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background-primary">
-        <OmniGuide state="blink" size={112} />
-        <Text className="mt-4 text-text-muted">Omni está preparando tus insignias...</Text>
-      </View>
-    )
-  }
+  if (loading) return <OmniLoadingScreen />
 
   return (
     <View className="flex-1 bg-background-primary">

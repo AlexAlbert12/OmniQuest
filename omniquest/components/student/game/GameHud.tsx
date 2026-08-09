@@ -101,13 +101,15 @@ function GameStatPill({
 export function BottomHud({
   onHint,
   onSkip,
+  showHint = false,
 }: {
   onHint: () => void
   onSkip: () => void
+  showHint?: boolean
 }) {
   return (
     <View className="mt-4 flex-row gap-3">
-      <HudAction icon="bulb" title="Pista" detail="-10 XP" color="#FBBF24" emphasized onPress={onHint} />
+      {showHint ? <HudAction icon="bulb" title="Pista" detail="-10 XP" color="#FBBF24" emphasized onPress={onHint} /> : null}
       <HudAction icon="play-skip-forward" title="Saltar" detail="-20 XP" color="#A78BFA" onPress={onSkip} />
     </View>
   )

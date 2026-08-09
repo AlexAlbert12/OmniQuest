@@ -1,3 +1,4 @@
+import OmniLoadingScreen from '../ui/OmniLoadingScreen'
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
@@ -270,10 +271,11 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
       void trackUsageEvent('support_ticket_created', { properties: { role, category, priority } })
       await load()
       await openTicket(result.ticket)
-      showAlert(
-        t('support.form.created'),
-        result.attachmentError ? `${t('support.form.createdDetail')} ${result.attachmentError}` : t('support.form.createdDetail')
-      )
+      showModal({
+        title: t('support.form.created'),
+        message: result.attachmentError ? `${t('support.form.createdDetail')} ${result.attachmentError}` : t('support.form.createdDetail'),
+        variant: 'success',
+      })
     } catch (error) {
       showAlert(t('support.error.create'), getErrorMessage(error, t('support.error.retry')))
     } finally {
@@ -303,14 +305,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
     }
   }
 
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={accentColor} />
-        <Text className="mt-3" style={{ color: colors.textSecondary }}>{t('support.loading')}</Text>
-      </View>
-    )
-  }
+  if (loading) return <OmniLoadingScreen />
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.background }}>

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { withAlpha } from '../../../lib/color'
 import type { TeacherCourse, TeacherCourseAnalytics } from './types'
+import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 
 export default function TeacherCourseCard({
   analytics,
@@ -31,7 +32,7 @@ export default function TeacherCourseCard({
         style={({ pressed }) => ({ backgroundColor: pressed ? '#102343' : 'transparent' })}
       >
         <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(color, '26') }}>
-          {course.icon ? <Text className="text-[20px]">{course.icon}</Text> : <Ionicons name="book-outline" size={20} color={color} />}
+          <Ionicons name={normalizeAcademicIcon(course.icon, 'book-outline')} size={20} color={color} />
         </View>
         <View className="min-w-0 flex-[1.5]">
           <Text className="font-black text-white" numberOfLines={1}>{course.name}</Text>
@@ -59,7 +60,7 @@ export default function TeacherCourseCard({
     >
       <View className="flex-row items-start gap-4">
         <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(color, '26') }}>
-          {course.icon ? <Text className="text-[28px]">{course.icon}</Text> : <Ionicons name="book-outline" size={27} color={color} />}
+          <Ionicons name={normalizeAcademicIcon(course.icon, 'book-outline')} size={27} color={color} />
         </View>
         <View className="min-w-0 flex-1">
           <Text className="text-[18px] font-black text-white" numberOfLines={1}>{course.name}</Text>

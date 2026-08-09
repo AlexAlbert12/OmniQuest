@@ -24,6 +24,7 @@ export type GameQuestion = {
   category?: string | null
   subject?: string | null
   explanation?: string | null
+  hint?: string | null
   answers: GameAnswer[]
   pair_options?: string[]
   blank_count?: number | null

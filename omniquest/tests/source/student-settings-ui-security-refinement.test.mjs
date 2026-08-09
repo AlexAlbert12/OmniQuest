@@ -11,7 +11,7 @@ test('settings keep cyan as the structural accent and remove the accent-color pi
   const sections = read('components/settings/SettingsSections.tsx')
   const hook = read('hooks/useSettingsData.ts')
 
-  assert.match(theme, /const DEFAULT_ACCENT = '#09acf4'/)
+  assert.match(theme, /OFFICIAL_ACCENT_COLOR = '#09acf4'/)
   assert.match(theme, /keepStructuralAccent/)
   assert.doesNotMatch(theme, /APP_ACCENT_STORAGE_KEY/)
   assert.doesNotMatch(sections, /settings\.accent\./)

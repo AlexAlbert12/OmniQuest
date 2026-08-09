@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { Alert, Platform } from 'react-native'
 import { useAppToast } from '../components/ui/AppToast'
+import { translateUiText, useI18n } from '../lib/i18n'
 
 export type AppFeedbackDetail = string | Error | null | undefined
 
@@ -21,25 +22,27 @@ export type AppFeedback = {
 
 export function useAppFeedback(): AppFeedback {
   const { showToast } = useAppToast()
+  const { locale } = useI18n()
+  const localize = useCallback((value: string) => translateUiText(locale, value), [locale])
 
   const success = useCallback((title: string, detail?: AppFeedbackDetail) => {
-    showToast({ title, message: normalizeDetail(detail), variant: 'success' })
-  }, [showToast])
+    showToast({ title: localize(title), message: normalizeDetail(detail) ? localize(normalizeDetail(detail) as string) : undefined, variant: 'success' })
+  }, [localize, showToast])
 
   const error = useCallback((title: string, detail?: AppFeedbackDetail) => {
-    showToast({ title, message: normalizeDetail(detail), variant: 'danger', durationMs: 5200 })
-  }, [showToast])
+    showToast({ title: localize(title), message: normalizeDetail(detail) ? localize(normalizeDetail(detail) as string) : undefined, variant: 'danger', durationMs: 5200 })
+  }, [localize, showToast])
 
   const warning = useCallback((title: string, detail?: AppFeedbackDetail) => {
-    showToast({ title, message: normalizeDetail(detail), variant: 'warning', durationMs: 4400 })
-  }, [showToast])
+    showToast({ title: localize(title), message: normalizeDetail(detail) ? localize(normalizeDetail(detail) as string) : undefined, variant: 'warning', durationMs: 4400 })
+  }, [localize, showToast])
 
   const confirm = useCallback((options: AppFeedbackConfirmOptions) => new Promise<boolean>((resolve) => {
     const confirmLabel = options.confirmLabel || 'Confirmar'
     const cancelLabel = options.cancelLabel || 'Cancelar'
 
     if (Platform.OS === 'web') {
-      const accepted = typeof window !== 'undefined' && window.confirm(`${options.title}\n\n${options.message}`)
+      const accepted = typeof window !== 'undefined' && window.confirm(`${localize(options.title)}\n\n${localize(options.message)}`)
       resolve(accepted)
       return
     }
@@ -52,15 +55,15 @@ export function useAppFeedback(): AppFeedback {
     }
 
     Alert.alert(
-      options.title,
-      options.message,
+      localize(options.title),
+      localize(options.message),
       [
-        { text: cancelLabel, style: 'cancel', onPress: () => finish(false) },
-        { text: confirmLabel, style: options.destructive ? 'destructive' : 'default', onPress: () => finish(true) },
+        { text: localize(cancelLabel), style: 'cancel', onPress: () => finish(false) },
+        { text: localize(confirmLabel), style: options.destructive ? 'destructive' : 'default', onPress: () => finish(true) },
       ],
       { cancelable: true, onDismiss: () => finish(false) },
     )
-  }), [])
+  }), [localize])
 
   return useMemo(() => ({ success, error, warning, confirm }), [confirm, error, success, warning])
 }

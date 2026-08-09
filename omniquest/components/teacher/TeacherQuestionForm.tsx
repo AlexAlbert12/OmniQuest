@@ -1,6 +1,5 @@
 import React from 'react'
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   Text,
@@ -13,6 +12,7 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { useAppTheme } from '../../lib/appTheme'
 import AppButton from '../ui/AppButton'
 import AppStatusBanner from '../ui/AppStatusBanner'
+import OmniLoadingScreen from '../ui/OmniLoadingScreen'
 import {
   FillBlankEditor,
   MatchingPairsEditor,
@@ -37,14 +37,7 @@ export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
   const isDesktop = width >= 1080
   const typeColumns = width >= 1320 ? 3 : width >= 720 ? 2 : 1
 
-  if (form.initializing) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: tokens.background.primary }}>
-        <ActivityIndicator size="large" color={tokens.brand.teacher} />
-        <Text className="mt-4" style={{ color: tokens.text.muted }}>Cargando pregunta...</Text>
-      </View>
-    )
-  }
+  if (form.initializing) return <OmniLoadingScreen />
 
   const renderAnswersStep = () => {
     switch (form.selectedType) {
@@ -145,6 +138,7 @@ export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
                   timeLimit={form.timeLimit}
                   points={form.points}
                   explanation={form.explanation}
+                  hint={form.hint}
                   timeLimitError={form.timeLimitError}
                   pointsError={form.pointsError}
                   isDesktop={isDesktop}
@@ -153,6 +147,7 @@ export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
                   onChangeTimeLimit={form.setTimeLimit}
                   onChangePoints={form.setPoints}
                   onChangeExplanation={form.setExplanation}
+                  onChangeHint={form.setHint}
                 />
               ) : null}
 

@@ -7,6 +7,7 @@ import AppPressable from '../../ui/AppPressable'
 import { useAppTheme } from '../../../lib/appTheme'
 import { formatRelativeDate } from '../../../lib/dateFormat'
 import type { TeacherRecentQuestion, TeacherRecentSubject } from '../../../hooks/teacher/useTeacherProfile'
+import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 
 type ResourceState<T> = { items: T[]; loading: boolean; loaded: boolean; error: string | null; total: number }
 
@@ -33,7 +34,7 @@ export default function TeacherProfileLazyResources(props: Props) {
         renderItem={(subject) => (
           <ResourceRow
             key={subject.id}
-            iconText={subject.icon || '📘'}
+            icon={normalizeAcademicIcon(subject.icon, 'book-outline')}
             title={subject.name}
             description={`${subject.studentCount} alumnos · ${subject.classroomCount} clases · ${formatRelativeDate(subject.createdAt)}`}
             onPress={() => props.onOpenSubject(subject.id)}
@@ -104,7 +105,7 @@ function LazyPanel<T extends { id: number }>({
   )
 }
 
-function ResourceRow({ icon, iconText, title, description, onPress }: { icon?: keyof typeof Ionicons.glyphMap; iconText?: string; title: string; description: string; onPress: () => void }) {
+function ResourceRow({ icon, title, description, onPress }: { icon?: keyof typeof Ionicons.glyphMap; title: string; description: string; onPress: () => void }) {
   const { tokens } = useAppTheme()
   return (
     <AppPressable
@@ -115,7 +116,7 @@ function ResourceRow({ icon, iconText, title, description, onPress }: { icon?: k
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, padding: 12, backgroundColor: tokens.surface.raised, opacity: pressed ? 0.8 : 1 })}
     >
       <View style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: tokens.surface.interactive }}>
-        {iconText ? <Text style={{ fontSize: 20 }}>{iconText}</Text> : <Ionicons name={icon || 'document-outline'} size={20} color={tokens.brand.teacher} />}
+        <Ionicons name={icon || 'document-outline'} size={20} color={tokens.brand.teacher} />
       </View>
       <View style={{ minWidth: 0, flex: 1 }}>
         <Text numberOfLines={2} maxFontSizeMultiplier={2} style={{ color: tokens.text.primary, fontSize: 13, lineHeight: 18, fontWeight: '900' }}>{title}</Text>

@@ -288,13 +288,13 @@ function inferModalVariant(title?: string, message?: string, buttons?: NativeAle
 }
 
 function isErrorText(text: string) {
-  return /\berror\b|no se pudo|no hemos podido|no puede|fall[oó]|inv[aá]lid|excepci[oó]n|problema/.test(text)
+  return /\berror\b|no se pudo|no hemos podido|no puede|fall[oó]|inv[aá]lid|excepci[oó]n|problema|could not|failed|invalid|exception|problem/.test(text)
 }
 
 function isWarningText(text: string) {
-  return /aviso|advertencia|permiso|seguro|confirm|borrar|eliminar|abandonar|archivar|cerrar sesi[oó]n|cuidado/.test(text)
+  return /aviso|advertencia|permiso|seguro|confirm|borrar|eliminar|abandonar|archivar|cerrar sesi[oó]n|cuidado|warning|permission|sure|delete|leave|archive|sign out|careful/.test(text)
 }
 
 function isSuccessText(text: string) {
-  return /[ée]xito|correctamente|guardad|cread|actualizad|completad|desbloquead|confirmaci[oó]n/.test(text)
+  return /[ée]xito|correctamente|guardad|cread|actualizad|completad|desbloquead|confirmaci[oó]n|success|successfully|saved|created|updated|completed|unlocked|confirmation/.test(text)
 }

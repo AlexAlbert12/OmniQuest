@@ -1,5 +1,6 @@
+import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React, { useMemo, useState } from 'react'
-import { ActivityIndicator, RefreshControl, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { RefreshControl, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
@@ -44,14 +45,7 @@ export default function TeacherAuditScreen() {
     router.replace('/(auth)/login' as any)
   }
 
-  if (audit.loading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: tokens.background.primary }}>
-        <ActivityIndicator size="large" color={tokens.brand.teacher} />
-        <Text className="mt-4" style={{ color: tokens.text.secondary }}>Cargando auditoría...</Text>
-      </View>
-    )
-  }
+  if (audit.loading) return <OmniLoadingScreen />
 
   return (
     <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>

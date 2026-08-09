@@ -107,6 +107,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [answerStatus, setAnswerStatus] = useState<'correct' | 'incorrect' | null>(null);
   const [hintedAnswerId, setHintedAnswerId] = useState<number | null>(null);
+  const [hintVisible, setHintVisible] = useState(false);
   const [feedback, setFeedback] = useState<QuestionFeedback | null>(null);
   const [feedbackNextStatus, setFeedbackNextStatus] = useState<'gameOver' | 'finished' | null>(null);
   const [summary, setSummary] = useState<GameSummary>(emptySummary);
@@ -133,8 +134,10 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
         attemptIdRef.current = snapshot.attemptId;
         scoreRef.current = snapshot.score;
         hintUsedRef.current = snapshot.hintUsed;
+        const restoredIndex = Math.min(snapshot.currentIndex, restoredQuestions.length - 1);
         setQuestions(restoredQuestions);
-        setCurrentIndex(Math.min(snapshot.currentIndex, restoredQuestions.length - 1));
+        setCurrentIndex(restoredIndex);
+        setHintVisible(Boolean(snapshot.hintUsed && restoredQuestions[restoredIndex]?.hint?.trim()));
         setScore(snapshot.score);
         setLives(snapshot.lives);
         setStreak(snapshot.streak);
@@ -165,8 +168,8 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       }
 
       const { data: questionsData, error: questionsError } = await measureRpc(
-        'get_safe_game_questions',
-        async () => supabase.rpc('get_safe_game_questions', {
+        'get_safe_game_questions_v2',
+        async () => supabase.rpc('get_safe_game_questions_v2', {
           p_subject_id: numericSubjectId,
           p_classroom_id: numericClassroomId ?? undefined,
           p_topic_id: numericTopicId ?? undefined,
@@ -217,6 +220,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       setIsSubmitting(false);
       setAnswerStatus(null);
       setHintedAnswerId(null);
+      setHintVisible(false);
       setFeedback(null);
       setFeedbackNextStatus(null);
       setSummary({ ...emptySummary, questionsTotal: safeQuestions.length });
@@ -353,6 +357,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     setIsSubmitting(false);
     setAnswerStatus(null);
     setHintedAnswerId(null);
+    setHintVisible(false);
     setFeedback(null);
     setFeedbackNextStatus(null);
     hintUsedRef.current = false;
@@ -671,10 +676,13 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   };
 
   const useHint = () => {
-    if (hasAnswered || isSubmitting || status !== 'playing' || hintUsedRef.current) return false;
+    const question = questions[currentIndex];
+    const hint = typeof question?.hint === 'string' ? question.hint.trim() : '';
+    if (!hint || hasAnswered || isSubmitting || status !== 'playing' || hintUsedRef.current) return false;
 
     hintUsedRef.current = true;
-    setHintedAnswerId(-1);
+    setHintedAnswerId(null);
+    setHintVisible(true);
     void haptics.impact();
     return true;
   };
@@ -731,6 +739,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
     isSubmitting,
     answerStatus,
     hintedAnswerId,
+    hintVisible,
     feedback,
     summary,
     isOffline,

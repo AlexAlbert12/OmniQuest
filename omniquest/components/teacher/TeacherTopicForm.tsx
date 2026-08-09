@@ -1,6 +1,6 @@
+import OmniLoadingScreen from '../ui/OmniLoadingScreen'
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Platform,
   Pressable,
@@ -19,12 +19,13 @@ import TeacherBottomNav from './TeacherBottomNav';
 import AppButton from '../ui/AppButton';
 import DateTimeCalendarField from '../ui/DateTimeCalendarField';
 import { parseDateTimeInput, toDateTimeInputValue } from '../../lib/calendar';
+import { TOPIC_ICON_CHOICES, normalizeAcademicIcon, type AcademicIconName } from '../../lib/academicIcons';
 
 type TeacherTopicFormProps = {
   topicId?: string;
 };
 
-const iconChoices = ['📘', '🧠', '🧮', '🔬', '🌍', '✍️', '🎯', '⚡'] as const;
+const iconChoices = TOPIC_ICON_CHOICES;
 
 type TopicRow = {
   id: number
@@ -54,7 +55,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
   const [topic, setTopic] = useState<TopicRow | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [icon, setIcon] = useState<(typeof iconChoices)[number]>('📘');
+  const [icon, setIcon] = useState<AcademicIconName>('book-outline');
   const [sortOrder, setSortOrder] = useState('1');
   const [availableUntilInput, setAvailableUntilInput] = useState('');
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -114,9 +115,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
           ...rawTopic,
           subjects: subjectData as SubjectOwnerRow,
         };
-        const topicIcon = nextTopic.icon && iconChoices.includes(nextTopic.icon as (typeof iconChoices)[number])
-          ? (nextTopic.icon as (typeof iconChoices)[number])
-          : '📘';
+        const topicIcon = normalizeAcademicIcon(nextTopic.icon, 'book-outline');
 
         setTopic(nextTopic);
         setTitle(nextTopic.title || '');
@@ -202,14 +201,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
     }
   };
 
-  if (loadingInitial) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background-primary">
-        <ActivityIndicator size="large" color="#6574FF" />
-        <Text className="mt-4 text-text-muted">Cargando tema...</Text>
-      </View>
-    );
-  }
+  if (loadingInitial) return <OmniLoadingScreen />;
 
   return (
     <View className="flex-1 bg-background-primary">
@@ -235,15 +227,17 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
                     <View className={`${width >= 760 ? 'w-[34%]' : ''}`}>
                       <Label text="Icono" />
                       <View className="mt-3 flex-row flex-wrap" style={{ marginHorizontal: -6 }}>
-                        {iconChoices.map((emoji) => {
-                          const active = icon === emoji;
+                        {iconChoices.map((choice) => {
+                          const active = icon === choice.icon;
                           return (
-                            <View key={emoji} style={{ width: '25%', paddingHorizontal: 6, paddingBottom: 10 }}>
+                            <View key={choice.icon} style={{ width: '25%', paddingHorizontal: 6, paddingBottom: 10 }}>
                               <Pressable
-                                onPress={() => setIcon(emoji)}
+                                accessibilityLabel={`Icono ${choice.label}`}
+                                accessibilityState={{ selected: active }}
+                                onPress={() => setIcon(choice.icon)}
                                 className={`h-20 items-center justify-center rounded-xl border ${active ? 'border-border-active bg-surface-selected' : 'border-border-default bg-surface-raised'}`}
                               >
-                                <Text className="text-[32px]">{emoji}</Text>
+                                <Ionicons name={choice.icon} size={30} color={active ? '#38BDF8' : '#9FB0CA'} />
                               </Pressable>
                             </View>
                           );
@@ -331,7 +325,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
                   <Text className="mt-1 text-[14px] text-text-secondary">Así aparecerá dentro de la clase.</Text>
                   <View className="mt-4 rounded-2xl border border-border-active bg-brand-student p-5">
                     <View className="mx-auto h-20 w-20 items-center justify-center rounded-full bg-surface-selected">
-                      <Text className="text-[36px]">{icon}</Text>
+                      <Ionicons name={icon} size={34} color="#38BDF8" />
                     </View>
                     <Text className="mt-4 text-center text-[28px] font-black text-white">{previewTitle}</Text>
                     <Text className="mt-2 text-center text-[15px] text-text-secondary">{previewDescription}</Text>

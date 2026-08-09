@@ -3921,6 +3921,7 @@ export type Database = {
           created_at: string
           difficulty: number | null
           explanation: string | null
+          hint: string | null
           id: number
           media_alt_text: string | null
           media_caption: string | null
@@ -3941,6 +3942,7 @@ export type Database = {
           created_at?: string
           difficulty?: number | null
           explanation?: string | null
+          hint?: string | null
           id?: number
           media_alt_text?: string | null
           media_caption?: string | null
@@ -3961,6 +3963,7 @@ export type Database = {
           created_at?: string
           difficulty?: number | null
           explanation?: string | null
+          hint?: string | null
           id?: number
           media_alt_text?: string | null
           media_caption?: string | null
@@ -6391,6 +6394,17 @@ export type Database = {
         }
         Returns: Json
       }
+      get_safe_game_questions_v2: {
+        Args: {
+          p_classroom_id?: number
+          p_difficulty?: number
+          p_general_topic?: boolean
+          p_review_failed?: boolean
+          p_subject_id: number
+          p_topic_id?: number
+        }
+        Returns: Json
+      }
       get_student_attempt_history: {
         Args: {
           p_classroom_id?: number
@@ -6884,6 +6898,31 @@ export type Database = {
           p_classroom_id?: number
           p_difficulty?: number
           p_explanation?: string
+          p_media_alt_text?: string
+          p_media_caption?: string
+          p_media_duration_seconds?: number
+          p_media_path?: string
+          p_media_subtitles_vtt?: string
+          p_media_transcript?: string
+          p_media_type?: string
+          p_media_url?: string
+          p_points_base?: number
+          p_question_id?: number
+          p_subject_id: number
+          p_text?: string
+          p_time_limit_seconds?: number
+          p_topic_id?: number
+          p_type?: string
+        }
+        Returns: number
+      }
+      save_teacher_question_v2: {
+        Args: {
+          p_answers?: Json
+          p_classroom_id?: number
+          p_difficulty?: number
+          p_explanation?: string
+          p_hint?: string
           p_media_alt_text?: string
           p_media_caption?: string
           p_media_duration_seconds?: number

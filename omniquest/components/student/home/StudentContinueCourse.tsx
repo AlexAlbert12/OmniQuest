@@ -5,6 +5,7 @@ import AppButton from '../../ui/AppButton'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
 import type { StudentHomeSubjectRow } from './types'
+import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 
 export default function StudentContinueCourse({
   row,
@@ -56,11 +57,7 @@ export default function StudentContinueCourse({
       />
       <View className="relative flex-row flex-wrap items-center gap-4">
         <View className="h-16 w-16 items-center justify-center rounded-[20px]" style={{ backgroundColor: withAlpha(color, '29') }}>
-          {row.subject.icon ? (
-            <Text className="text-[30px]">{row.subject.icon}</Text>
-          ) : (
-            <Ionicons name="book" size={30} color={color} />
-          )}
+          <Ionicons name={normalizeAcademicIcon(row.subject.icon, 'book-outline')} size={30} color={color} />
         </View>
         <View className="min-w-[190px] flex-1">
           <Text className="text-[12px] font-black uppercase tracking-[1.2px] text-text-muted">Continuar curso</Text>

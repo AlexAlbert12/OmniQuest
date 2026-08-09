@@ -1,7 +1,7 @@
 import React from 'react'
 import { ActivityIndicator, Image, Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useAppTheme, type AppThemePreference } from '../../lib/appTheme'
+import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
 import { withAlpha } from '../../lib/color'
 import {
@@ -217,52 +217,10 @@ export function SettingsPreferencesPanel({
   onToggleHaptics: (enabled: boolean) => void
   formatPreferenceLabel: FormatPreferenceLabel
 }) {
-  const { themePreference, setTheme, colors } = useAppTheme()
   const { t } = useI18n()
-  const themeOptions: { value: AppThemePreference; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { value: 'system', label: t('settings.appearance.system'), icon: 'phone-portrait-outline' },
-    { value: 'dark', label: t('settings.appearance.dark'), icon: 'moon-outline' },
-    { value: 'light', label: t('settings.appearance.light'), icon: 'sunny-outline' },
-  ]
 
   return (
     <Panel title={t('settings.section.preferences')}>
-      <View
-        className="mb-4 rounded-lg border p-3"
-        style={{ backgroundColor: colors.surfaceRaised, borderColor: colors.border }}
-      >
-        <Text className="text-[12px] font-bold" style={{ color: colors.text }}>{t('settings.appearance.title')}</Text>
-        <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>
-          {t('settings.appearance.description')}
-        </Text>
-        <View className="mt-3 flex-row gap-2">
-          {themeOptions.map((option) => {
-            const selected = themePreference === option.value
-            return (
-              <Pressable
-                key={option.value}
-                accessibilityLabel={`${t('settings.appearance.title')}: ${option.label}`}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                hitSlop={4}
-                onPress={() => setTheme(option.value)}
-                className="min-h-[48px] flex-1 items-center justify-center rounded-xl border px-2 py-2"
-                style={({ pressed }) => ({
-                  opacity: pressed ? 0.82 : 1,
-                  borderColor: selected ? accentColor : colors.border,
-                  backgroundColor: selected ? withAlpha(accentColor, '20') : colors.surface,
-                })}
-              >
-                <Ionicons name={option.icon} size={20} color={selected ? accentColor : colors.textMuted} />
-                <Text className="mt-1 text-[11px] font-black" style={{ color: selected ? accentColor : colors.textSecondary }}>
-                  {option.label}
-                </Text>
-              </Pressable>
-            )
-          })}
-        </View>
-      </View>
-
       <NotificationRow
         icon="phone-portrait-outline"
         title="Respuesta táctil"

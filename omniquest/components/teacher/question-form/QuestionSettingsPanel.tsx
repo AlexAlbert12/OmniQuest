@@ -20,6 +20,7 @@ export default function QuestionSettingsPanel({
   timeLimit,
   points,
   explanation,
+  hint,
   timeLimitError,
   pointsError,
   isDesktop,
@@ -28,6 +29,7 @@ export default function QuestionSettingsPanel({
   onChangeTimeLimit,
   onChangePoints,
   onChangeExplanation,
+  onChangeHint,
 }: {
   topics: TopicOption[]
   selectedTopicId: string | null
@@ -35,6 +37,7 @@ export default function QuestionSettingsPanel({
   timeLimit: string
   points: string
   explanation: string
+  hint: string
   timeLimitError: string
   pointsError: string
   isDesktop: boolean
@@ -43,6 +46,7 @@ export default function QuestionSettingsPanel({
   onChangeTimeLimit: (value: string) => void
   onChangePoints: (value: string) => void
   onChangeExplanation: (value: string) => void
+  onChangeHint: (value: string) => void
 }) {
   const { tokens } = useAppTheme()
   return (
@@ -116,6 +120,21 @@ export default function QuestionSettingsPanel({
           onChange={onChangePoints}
         />
       </View>
+
+      <FieldLabel className="mt-5">Pista para el alumno (opcional)</FieldLabel>
+      <TextInput
+        accessibilityLabel="Pista de la pregunta"
+        className="mt-2 min-h-[96px] rounded-xl border px-4 py-3 text-[15px]"
+        style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive, color: tokens.text.primary }}
+        placeholder="Escribe una ayuda breve que oriente sin revelar directamente la respuesta."
+        placeholderTextColor={tokens.text.muted}
+        maxLength={280}
+        multiline
+        textAlignVertical="top"
+        value={hint}
+        onChangeText={onChangeHint}
+      />
+      <Text className="mt-2 text-[12px]" style={{ color: tokens.text.muted }}>La opción Pista solo aparecerá al alumno cuando este campo tenga contenido.</Text>
 
       <FieldLabel className="mt-5">Explicación después de responder</FieldLabel>
       <TextInput

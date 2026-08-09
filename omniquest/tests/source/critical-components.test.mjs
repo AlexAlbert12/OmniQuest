@@ -20,7 +20,7 @@ test('game submission is server-scored and does not calculate correctness in the
 
   assert.match(source, /rpc[\s\S]*['"]submit_answer_resumable['"]/)
   assert.match(source, /p_attempt_id:\s*attemptIdRef\.current/)
-  assert.match(source, /get_safe_game_questions/)
+  assert.match(source, /rpc\(['"]get_safe_game_questions_v2['"]/)
   assert.doesNotMatch(source, /\.is_correct\s*===\s*true\s*\?\s*.*points_base/)
 })
 
@@ -34,7 +34,8 @@ test('teacher question form delegates validation and persistence to the reusable
   assert.match(form, /QuestionSettingsPanel/)
   assert.match(form, /QuestionValidationPanel/)
   assert.match(validation, /getQuestionValidationIssues/)
-  assert.match(hook, /rpc\(['"]save_teacher_question['"]/)
+  assert.match(hook, /rpc\(['"]save_teacher_question_v2['"]/)
+  assert.match(hook, /p_hint:\s*hint\.trim\(\) \|\| null/)
   assert.match(hook, /p_answers:\s*answersToSave/)
 })
 

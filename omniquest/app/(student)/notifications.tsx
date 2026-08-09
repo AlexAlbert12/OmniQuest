@@ -1,5 +1,6 @@
+import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Text, useWindowDimensions, View } from 'react-native'
+import { Text, useWindowDimensions, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import AppButton from '../../components/ui/AppButton'
@@ -140,14 +141,7 @@ export default function StudentNotificationsScreen() {
     router.replace('/(auth)/login' as any)
   }
 
-  if (loading || profileLoading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: tokens.background.primary }}>
-        <ActivityIndicator size="large" color={tokens.brand.student} />
-        <Text className="mt-4" style={{ color: tokens.text.muted }}>Cargando notificaciones…</Text>
-      </View>
-    )
-  }
+  if (loading || profileLoading) return <OmniLoadingScreen />
 
   const header = (
     <>

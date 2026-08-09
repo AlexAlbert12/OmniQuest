@@ -4,9 +4,9 @@
 
 ## Resumen
 
-- Migraciones: **85**
+- Migraciones: **86**
 - Tablas públicas detectadas: **68**
-- Funciones/RPC públicas detectadas: **236**
+- Funciones/RPC públicas detectadas: **238**
 - Edge Functions: **32**
 
 ## Edge Functions
@@ -226,6 +226,7 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `get_ranking_profiles`
 - `get_ranking_profiles_page`
 - `get_safe_game_questions`
+- `get_safe_game_questions_v2`
 - `get_student_attempt_history`
 - `get_student_attempt_history_page`
 - `get_student_badge_catalog`
@@ -334,6 +335,7 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `save_manual_review_template`
 - `save_teacher_audit_filter`
 - `save_teacher_question`
+- `save_teacher_question_v2`
 - `search_app_entities`
 - `seed_support_ticket_message`
 - `set_analytics_consent`

@@ -1,5 +1,6 @@
+import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React from 'react'
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { FlatList, Pressable, RefreshControl, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
@@ -23,9 +24,7 @@ export default function TeacherClassesScreen() {
   const pageSize = isDesktop ? 12 : 6
   const catalog = useTeacherCatalog(pageSize)
 
-  if (catalog.activePayload.loading && catalog.items.length === 0) {
-    return <View className="flex-1 items-center justify-center bg-background-primary"><ActivityIndicator size="large" color="#8B5CF6" /><Text className="mt-4 text-text-muted">Cargando catálogo docente...</Text></View>
-  }
+  if (catalog.activePayload.loading && catalog.items.length === 0) return <OmniLoadingScreen />
 
   return (
     <View className="flex-1 bg-background-primary">

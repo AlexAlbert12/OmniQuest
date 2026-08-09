@@ -42,7 +42,7 @@ test('student code never reads questions or answers directly', () => {
 test('game uses the safe question and post-attempt feedback RPCs', () => {
   const source = read('hooks/useGame.ts')
 
-  assert.match(source, /rpc\(['"]get_safe_game_questions['"]/)
+  assert.match(source, /rpc\(['"]get_safe_game_questions_v2['"]/)
   assert.match(source, /fetchAttemptFeedback\(/)
   assert.doesNotMatch(source, /rpc\(['"]get_game_questions['"]/)
   assert.doesNotMatch(source, /currentQ\.explanation/)

@@ -1,12 +1,11 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as SystemUI from 'expo-system-ui'
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { Platform, StyleSheet, View, useColorScheme } from 'react-native'
+import React, { createContext, useContext, useEffect, useMemo } from 'react'
+import { Platform, StyleSheet, View } from 'react-native'
 import { vars } from 'nativewind'
 import { createDesignColorTokens, type DesignColorTokens } from './designTokens'
 
-export type AppThemeMode = 'dark' | 'light'
-export type AppThemePreference = AppThemeMode | 'system'
+export type AppThemeMode = 'dark'
+export type AppThemePreference = 'dark'
 
 export type AppThemeColors = {
   background: string
@@ -36,9 +35,8 @@ type AppThemeContextValue = {
   ready: boolean
 }
 
-const APP_THEME_STORAGE_KEY = 'omniquest:theme'
-const DEFAULT_THEME: AppThemePreference = 'system'
-const DEFAULT_ACCENT = '#09acf4'
+export const OFFICIAL_ACCENT_COLOR = '#09acf4'
+export const OFFICIAL_THEME: AppThemeMode = 'dark'
 
 function createLegacyThemeColors(tokens: DesignColorTokens): AppThemeColors {
   return {
@@ -61,26 +59,8 @@ function createLegacyThemeColors(tokens: DesignColorTokens): AppThemeColors {
 
 const AppThemeContext = createContext<AppThemeContextValue | undefined>(undefined)
 
-function getWebStorage() {
-  if (typeof window === 'undefined') return null
-  return window.localStorage
-}
-
-async function readStorageItem(key: string) {
-  if (Platform.OS === 'web') return getWebStorage()?.getItem(key) ?? null
-  return AsyncStorage.getItem(key)
-}
-
-async function writeStorageItem(key: string, value: string) {
-  if (Platform.OS === 'web') {
-    getWebStorage()?.setItem(key, value)
-    return
-  }
-  await AsyncStorage.setItem(key, value)
-}
-
-function isThemePreference(value: string | null): value is AppThemePreference {
-  return value === 'dark' || value === 'light' || value === 'system'
+function keepOfficialTheme(_nextTheme: AppThemePreference) {
+  // OmniQuest ships with a single official dark visual theme.
 }
 
 function keepStructuralAccent(_nextAccent: string) {
@@ -88,14 +68,10 @@ function keepStructuralAccent(_nextAccent: string) {
 }
 
 export function AppThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemTheme = useColorScheme()
-  const [themePreference, setThemePreference] = useState<AppThemePreference>(DEFAULT_THEME)
-  const accentColor = DEFAULT_ACCENT
-  const [ready, setReady] = useState(false)
-  const theme: AppThemeMode = themePreference === 'system'
-    ? systemTheme === 'light' ? 'light' : 'dark'
-    : themePreference
-  const tokens = useMemo(() => createDesignColorTokens(theme, accentColor), [accentColor, theme])
+  const theme = OFFICIAL_THEME
+  const themePreference = OFFICIAL_THEME
+  const accentColor = OFFICIAL_ACCENT_COLOR
+  const tokens = useMemo(() => createDesignColorTokens(theme, accentColor), [theme, accentColor])
   const colors = useMemo(() => createLegacyThemeColors(tokens), [tokens])
   const nativeWindVariables = useMemo(() => vars({
     '--omni-background-primary': tokens.background.primary,
@@ -137,37 +113,13 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   }), [tokens])
 
   useEffect(() => {
-    let mounted = true
-    const load = async () => {
-      try {
-        const savedTheme = await readStorageItem(APP_THEME_STORAGE_KEY)
-        if (!mounted) return
-        if (isThemePreference(savedTheme)) setThemePreference(savedTheme)
-      } catch {
-        // Keep the device defaults when storage is temporarily unavailable.
-      } finally {
-        if (mounted) setReady(true)
-      }
-    }
-    void load()
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      document.documentElement.style.colorScheme = theme
-      document.documentElement.dataset.theme = theme
+      document.documentElement.style.colorScheme = OFFICIAL_THEME
+      document.documentElement.dataset.theme = OFFICIAL_THEME
       document.documentElement.style.setProperty('--omni-border-active', accentColor)
     }
     void SystemUI.setBackgroundColorAsync(colors.background).catch(() => undefined)
-  }, [accentColor, colors.background, theme])
-
-  const setTheme = (nextTheme: AppThemePreference) => {
-    setThemePreference(nextTheme)
-    void writeStorageItem(APP_THEME_STORAGE_KEY, nextTheme)
-  }
+  }, [accentColor, colors.background])
 
   const value = useMemo(() => ({
     theme,
@@ -175,10 +127,10 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     colors,
     tokens,
     accentColor,
-    setTheme,
+    setTheme: keepOfficialTheme,
     setAccentColor: keepStructuralAccent,
-    ready,
-  }), [theme, themePreference, colors, tokens, accentColor, ready])
+    ready: true,
+  }), [theme, themePreference, colors, tokens, accentColor])
 
   return (
     <AppThemeContext.Provider value={value}>
@@ -187,32 +139,13 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-export type ResolvedAppThemeContextValue = Omit<AppThemeContextValue, 'tokens'> & {
-  tokens: DesignColorTokens
-}
+export type ResolvedAppThemeContextValue = Omit<AppThemeContextValue, 'tokens'> & { tokens: DesignColorTokens }
 
 export function useAppTheme(): ResolvedAppThemeContextValue {
   const context = useContext(AppThemeContext)
   if (!context) throw new Error('useAppTheme must be used inside AppThemeProvider')
-
-  // Fast Refresh or a partial file copy can temporarily leave mounted consumers
-  // with the legacy context shape, which did not include `tokens`. Resolve the
-  // canonical palette here so every consumer always receives a complete theme.
   const tokens = context.tokens ?? createDesignColorTokens(context.theme, context.accentColor)
-
-  if (context.tokens) {
-    return context as ResolvedAppThemeContextValue
-  }
-
-  return {
-    ...context,
-    tokens,
-  }
+  return context.tokens ? context as ResolvedAppThemeContextValue : { ...context, tokens }
 }
 
-const styles = StyleSheet.create({
-  themeRoot: {
-    flex: 1,
-    minWidth: 0,
-  },
-})
+const styles = StyleSheet.create({ themeRoot: { flex: 1, minWidth: 0 } })

@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const classroomId = body.classroomId === undefined || body.classroomId === null ? null : Number(body.classroomId)
     const title = String(body.title || '').trim()
     const description = normalizeOptionalText(body.description)
-    const icon = normalizeOptionalText(body.icon) || '📘'
+    const icon = normalizeOptionalText(body.icon) || 'book-outline'
     const sortOrder = body.sortOrder === undefined || body.sortOrder === null ? null : Number(body.sortOrder)
     const availableUntil = normalizeIsoDate(body.availableUntil)
 

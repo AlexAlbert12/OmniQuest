@@ -1,6 +1,8 @@
+import OmniLoadingScreen from '../../../components/ui/OmniLoadingScreen'
 import React from 'react'
-import { ActivityIndicator, RefreshControl, Text, View } from 'react-native'
+import { RefreshControl, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav'
@@ -46,14 +48,7 @@ export default function SubjectDetailScreen() {
     setShowStudentImportModal(true)
   }, [importStudents, setActiveTab, setShowStudentImportModal])
 
-  if (detail.loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background-primary">
-        <ActivityIndicator size="large" color={tokens.brand.teacher} />
-        <Text className="mt-4 text-text-muted">Cargando curso...</Text>
-      </View>
-    )
-  }
+  if (detail.loading) return <OmniLoadingScreen />
 
   if (!detail.subject) {
     const loadFailed = Boolean(detail.tabError)
@@ -132,7 +127,7 @@ export default function SubjectDetailScreen() {
           subtitleNumberOfLines={3}
           leading={(
             <View className={`${isDesktop ? 'h-20 w-20' : 'h-16 w-16'} items-center justify-center rounded-2xl border border-border-active bg-surface-selected`}>
-              <Ionicons name={iconForSubject(subject.icon)} size={isDesktop ? 42 : 34} color={tokens.brand.teacher} />
+              <Ionicons name={normalizeAcademicIcon(subject.icon, 'school-outline')} size={isDesktop ? 42 : 34} color={tokens.brand.teacher} />
             </View>
           )}
           actions={(
@@ -320,12 +315,3 @@ function formatDate(value?: string | null) {
   return Number.isFinite(date.getTime()) ? date.toLocaleDateString('es-ES') : 'sin fecha'
 }
 
-function iconForSubject(icon?: string | null): keyof typeof Ionicons.glyphMap {
-  const normalized = (icon || '').toLowerCase()
-  if (normalized.includes('math') || normalized.includes('calcul')) return 'calculator-outline'
-  if (normalized.includes('language') || normalized.includes('book')) return 'book-outline'
-  if (normalized.includes('science') || normalized.includes('flask')) return 'flask-outline'
-  if (normalized.includes('history')) return 'time-outline'
-  if (normalized.includes('tech') || normalized.includes('code')) return 'code-slash-outline'
-  return 'school-outline'
-}

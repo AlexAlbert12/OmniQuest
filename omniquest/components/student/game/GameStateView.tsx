@@ -1,6 +1,6 @@
 import React from 'react'
 import { Text, View } from 'react-native'
-import OmniGuide from '../../OmniGuide'
+import OmniLoadingScreen from '../../ui/OmniLoadingScreen'
 import GameShell from './GameShell'
 import ResultState from './GameResultState'
 import type { DesignColorTokens } from '../../../lib/designTokens'
@@ -38,16 +38,7 @@ export default function GameStateView({
   onBack: () => void
   onReviewMistakes: () => void
 }) {
-  if (status === 'loading') {
-    return (
-      <GameShell>
-        <View className="flex-1 items-center justify-center">
-          <OmniGuide state="blink" size={116} />
-          <Text className="mt-4 text-text-secondary">Omni está preparando la pregunta...</Text>
-        </View>
-      </GameShell>
-    )
-  }
+  if (status === 'loading') return <OmniLoadingScreen />
 
   if (status === 'error') {
     return (

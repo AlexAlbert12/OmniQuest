@@ -9,12 +9,11 @@ export default function OfflineSyncBanner() {
     failed,
     conflicts,
     syncing,
-    showingCachedData,
     retryNow,
     discardFailures,
   } = useOfflineSync()
 
-  const visible = !online || pending > 0 || failed > 0 || conflicts > 0 || syncing || showingCachedData
+  const visible = !online || pending > 0 || failed > 0 || conflicts > 0 || syncing
   if (!visible) return null
 
   const hasProblems = failed > 0 || conflicts > 0
@@ -25,9 +24,7 @@ export default function OfflineSyncBanner() {
       ? 'Sincronizando cambios…'
       : !online
         ? `Sin conexión · mostrando datos guardados${pending > 0 ? ` · ${pending} pendiente${pending === 1 ? '' : 's'}` : ''}`
-        : pending > 0
-          ? `${pending} cambio${pending === 1 ? '' : 's'} pendiente${pending === 1 ? '' : 's'} de sincronizar`
-          : 'Mostrando una copia local mientras se recupera la conexión'
+        : `${pending} cambio${pending === 1 ? '' : 's'} pendiente${pending === 1 ? '' : 's'} de sincronizar`
 
   const resolve = () => {
     const retry = () => void retryNow()

@@ -11,11 +11,11 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { withAlpha } from '../../../lib/color'
+import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 import { useAppTheme } from '../../../lib/appTheme'
 import { createShadowStyle } from '../../../lib/platformShadow'
 import { useResponsiveLayout } from '../../../lib/responsive'
 import AppButton from '../../ui/AppButton'
-import AppIconButton from '../../ui/AppIconButton'
 import AppPressable from '../../ui/AppPressable'
 import AppTabs from '../../ui/AppTabs'
 import TopicPlanet from '../course/TopicPlanet'
@@ -32,7 +32,6 @@ export type GalaxyCourseItem = {
   detailColor: string
   onPress: () => void
   testID?: string
-  onMore?: () => void
   group?: 'in_progress' | 'practice' | 'completed'
   groupLabel?: string
 }
@@ -130,6 +129,7 @@ export function GalaxyScreenBackground({ height = 2800, subtle = false }: { heig
 }
 
 export type GalaxyViewMode = 'galaxy' | 'list'
+export const DEFAULT_GALAXY_VIEW_MODE: GalaxyViewMode = 'galaxy'
 
 const GALAXY_VIEW_OPTIONS = [
   { key: 'galaxy' as const, label: 'Vista galáctica', icon: 'planet-outline' as const, activeIcon: 'planet' as const },
@@ -137,7 +137,7 @@ const GALAXY_VIEW_OPTIONS = [
 ]
 
 function useAccessibleGalaxyViewMode() {
-  const [viewMode, setViewMode] = useState<GalaxyViewMode>('galaxy')
+  const [viewMode, setViewMode] = useState<GalaxyViewMode>(DEFAULT_GALAXY_VIEW_MODE)
 
   useEffect(() => {
     let mounted = true
@@ -257,7 +257,7 @@ export function CourseGalaxyMap({
                       style={({ pressed }) => [styles.listMainAction, { opacity: pressed ? 0.78 : 1 }]}
                     >
                       <View style={[styles.listIcon, { backgroundColor: withAlpha(item.color || tokens.brand.student, '24') }]}>
-                        <Ionicons name={getValidIoniconName(item.icon) || 'book-outline'} size={23} color={item.color || tokens.brand.student} />
+                        <Ionicons name={normalizeAcademicIcon(item.icon, 'book-outline')} size={23} color={item.color || tokens.brand.student} />
                       </View>
                       <View style={styles.listCopy}>
                         <Text maxFontSizeMultiplier={2} style={[styles.listTitle, { color: tokens.text.primary }]}>{item.title}</Text>
@@ -266,15 +266,6 @@ export function CourseGalaxyMap({
                       </View>
                       <Ionicons name="chevron-forward" size={20} color={tokens.text.muted} />
                     </AppPressable>
-                    {item.onMore ? (
-                      <AppIconButton
-                        accessibilityLabel={`Más opciones de ${item.title}`}
-                        accessibilityHint="Abre las acciones disponibles para este curso"
-                        icon="ellipsis-horizontal"
-                        size="md"
-                        onPress={item.onMore}
-                      />
-                    ) : null}
                   </View>
                 ))}
               </View>
@@ -403,7 +394,7 @@ export function CourseGalaxyMap({
                       accessibilityLabel={`Abrir curso ${item.title}`}
                       accessibilityHint={`${item.progress}% completado. ${item.subtitle}`}
                       onPress={item.onPress}
-                      style={({ pressed }) => ({ flex: 1, justifyContent: 'center', opacity: pressed ? 0.82 : 1, paddingRight: item.onMore ? 30 : 0 })}
+                      style={({ pressed }) => ({ flex: 1, justifyContent: 'center', opacity: pressed ? 0.82 : 1 })}
                     >
                       <Text
                         maxFontSizeMultiplier={2}
@@ -429,30 +420,7 @@ export function CourseGalaxyMap({
                         {' · '}{item.subtitle}
                       </Text>
                     </Pressable>
-                    {item.onMore ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`Más opciones de ${item.title}`}
-                        accessibilityHint="Abre el menú de acciones del curso"
-                        onPress={item.onMore}
-                        hitSlop={8}
-                        style={({ pressed }) => ({
-                          position: 'absolute',
-                          right: 10,
-                          top: 10,
-                          width: 34,
-                          height: 34,
-                          borderRadius: 17,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: tokens.background.overlay,
-                          opacity: pressed ? 0.72 : 1,
-                        })}
-                      >
-                        <Ionicons name="ellipsis-horizontal" size={18} color={tokens.text.secondary} />
-                      </Pressable>
-                    ) : null}
-                  </View>
+                </View>
                 </View>
               )
             })}
@@ -746,7 +714,7 @@ function GalaxyPlanet({
   badgeColor: string
   onPress: () => void
 }) {
-  const validIcon = getValidIoniconName(icon)
+  const validIcon = normalizeAcademicIcon(icon, 'book-outline')
 
   return (
     <Pressable
@@ -816,7 +784,7 @@ function TopicPlanetButton({
   size: number
 }) {
   const disabled = item.state === 'locked' || item.state === 'empty'
-  const validIcon = getValidIoniconName(item.icon)
+  const validIcon = normalizeAcademicIcon(item.icon, 'play-outline')
   const mainIcon: keyof typeof Ionicons.glyphMap = item.state === 'completed'
     ? 'checkmark'
     : item.state === 'locked'
@@ -1047,10 +1015,6 @@ function getTopicStateLabel(state: GalaxyTopicState) {
   return 'Disponible'
 }
 
-function getValidIoniconName(icon: string | null | undefined): keyof typeof Ionicons.glyphMap | null {
-  if (icon && icon in Ionicons.glyphMap) return icon as keyof typeof Ionicons.glyphMap
-  return null
-}
 
 const styles = StyleSheet.create({
   viewModeToggle: {
