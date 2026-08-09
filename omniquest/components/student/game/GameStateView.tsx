@@ -1,5 +1,4 @@
 import React from 'react'
-import { Text, View } from 'react-native'
 import OmniLoadingScreen from '../../ui/OmniLoadingScreen'
 import GameShell from './GameShell'
 import ResultState from './GameResultState'

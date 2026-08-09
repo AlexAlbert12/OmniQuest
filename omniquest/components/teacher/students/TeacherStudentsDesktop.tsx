@@ -28,7 +28,7 @@ export function TeacherStudentPrioritySections({
         icon="warning-outline"
         color="#F59E0B"
         students={attentionStudents.slice(0, 4)}
-        emptyMessage="No hay estudiantes prioritarios con los filtros actuales."
+        emptyMessage="No hay alumnos prioritarios con los filtros actuales."
         onViewDetails={onViewDetails}
       />
       <PrioritySection
@@ -217,7 +217,7 @@ export default function TeacherStudentsDesktopTable({
           </View>
           )
         }}
-        accessibilityLabel="Tabla de estudiantes"
+        accessibilityLabel="Tabla de alumnos"
       />
     </View>
   )

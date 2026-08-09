@@ -53,7 +53,7 @@ test('shared headers protect descenders and settings navigation uses explicit bo
   const header = read('components/ui/RolePageHeader.tsx')
   const settings = read('components/settings/SettingsUi.tsx')
 
-  assert.match(header, /lineHeight: isDesktop \? 54 : 42/)
+  assert.match(header, /lineHeight: isDesktop \? 54 : compactMobileTitle \? 38 : 42/)
   assert.match(header, /paddingBottom: isDesktop \? 4 : 3/)
   assert.match(settings, /borderWidth: 1,\n\s+borderColor: active \? accentColor : colors\.border/)
 })

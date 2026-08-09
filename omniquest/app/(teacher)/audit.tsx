@@ -1,6 +1,6 @@
 import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React, { useMemo, useState } from 'react'
-import { RefreshControl, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { RefreshControl, ScrollView, TextInput, useWindowDimensions, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'

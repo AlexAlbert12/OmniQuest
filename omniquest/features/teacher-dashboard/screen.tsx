@@ -78,7 +78,7 @@ export default function TeacherHomeScreen() {
         isDesktop={isDesktop}
         title={`¡Bienvenido de nuevo, ${summary.teacherAlias}!`}
         mobileTitle="Inicio"
-        subtitle="Indicadores calculados en servidor para priorizar lo que requiere tu atención."
+        subtitle="Prioriza alumnos, revisiones y cursos desde un único panel."
         notificationOnPress={() => router.push('/(teacher)/notifications' as never)}
       />
 
@@ -90,7 +90,6 @@ export default function TeacherHomeScreen() {
 
       <TeacherTodayFocus
         primaryLabel={summary.openReviewCount > 0 ? 'Revisar pendientes' : summary.totals.courses > 0 ? 'Crear pregunta' : 'Crear curso'}
-        teacherAlias={summary.teacherAlias}
         onPrimary={() => router.push(primaryRoute as never)}
       />
 
@@ -114,17 +113,17 @@ export default function TeacherHomeScreen() {
       />
 
       <View className={`${isDesktop ? 'flex-row' : ''} mt-7 gap-6`}>
-        <View className={isDesktop ? 'min-w-0 flex-[1.5]' : ''}>
+        <View className={isDesktop ? 'min-w-0 flex-[1.5] gap-6' : 'gap-6'}>
           <TeacherDashboardPanel title="Cursos recientes" actionLabel="Ver todos" onAction={() => router.push('/(teacher)/classes' as never)}>
             <TeacherRecentCourses courses={summary.recentCourses} />
           </TeacherDashboardPanel>
-        </View>
-        <View className={isDesktop ? 'min-w-0 flex-1 gap-6' : 'gap-6'}>
-          <TeacherDashboardPanel title="Actividad reciente" actionLabel="Notificaciones" onAction={() => router.push('/(teacher)/notifications' as never)}>
-            <TeacherRecentActivityList items={recentActivity} />
-          </TeacherDashboardPanel>
           <TeacherDashboardPanel title="Preguntas a revisar" actionLabel="Cursos" onAction={() => router.push('/(teacher)/classes' as never)}>
             <TeacherProblemQuestions questions={summary.problematicQuestions} />
+          </TeacherDashboardPanel>
+        </View>
+        <View className={isDesktop ? 'min-w-0 flex-1' : ''}>
+          <TeacherDashboardPanel title="Actividad reciente" actionLabel="Notificaciones" onAction={() => router.push('/(teacher)/notifications' as never)}>
+            <TeacherRecentActivityList items={recentActivity} />
           </TeacherDashboardPanel>
         </View>
       </View>

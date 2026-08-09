@@ -44,7 +44,7 @@ test('teacher desktop toolbars render horizontally instead of vertical ScrollVie
   const subject = read('app/(teacher)/subject/[id].tsx')
 
   assert.match(students, /flexDirection: 'row', flexWrap: 'wrap'/)
-  assert.match(students, /Filtrar estudiantes por estado/)
+  assert.match(students, /Filtrar alumnos por estado/)
   assert.match(subject, /accessibilityLabel="Secciones del curso"/)
   assert.doesNotMatch(subject, /horizontal=\{!isWide\}[\s\S]{0,300}teacherSubjectTabItems/)
 })

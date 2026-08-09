@@ -116,7 +116,7 @@ export default function TeacherStudentsScreen() {
           <TeacherPageHeader
             icon="people"
             isDesktop
-            title="Estudiantes"
+            title="Alumnos"
             subtitle="Paginación y métricas calculadas en servidor para no descargar todo el historial."
             notificationOnPress={() => openNotifications()}
           />
@@ -129,7 +129,7 @@ export default function TeacherStudentsScreen() {
                 <CycleSelectButton label="Curso" value={directory.selectedSubjectId} allLabel="Todos" options={directory.subjects.map((subject) => ({ id: subject.id, label: subject.name }))} onChange={directory.setSelectedSubjectId} />
                 <CycleSelectButton label="Clase" value={directory.selectedClassroomId} allLabel="Todas" options={directory.classroomOptions.map((classroom) => ({ id: classroom.id, label: classroom.name }))} onChange={directory.setSelectedClassroomId} />
                 <View className="h-12 min-w-[300px] flex-1 flex-row items-center rounded-xl border px-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive }}>
-                  <TextInput accessibilityLabel="Buscar estudiante, curso o clase" className="min-w-0 flex-1" style={{ color: tokens.text.primary }} placeholder="Buscar estudiante, curso o clase..." placeholderTextColor={tokens.text.muted} value={directory.search} onChangeText={directory.setSearch} />
+                  <TextInput accessibilityLabel="Buscar alumno, curso o clase" className="min-w-0 flex-1" style={{ color: tokens.text.primary }} placeholder="Buscar alumno, curso o clase..." placeholderTextColor={tokens.text.muted} value={directory.search} onChangeText={directory.setSearch} />
                   <Ionicons name="search-outline" size={20} color={tokens.text.muted} />
                 </View>
                 <AppButton label="Exportar página" icon="download-outline" variant="secondary" disabled={!directory.students.length} onPress={exportCurrentPage} />
@@ -137,18 +137,18 @@ export default function TeacherStudentsScreen() {
               <View style={{ flexDirection: isWide ? 'row' : 'column', gap: 12 }}>
                 <View className="min-w-0 flex-1">
                   <Text className="mb-2 text-[10px] font-black uppercase" style={{ color: tokens.text.muted }}>Estado</Text>
-                  <AppTabs<StudentStatusFilter> compact role="teacher" accessibilityLabel="Filtrar estudiantes por estado" items={statusFilterOptions.map((option) => ({ key: option.value, label: option.label }))} value={directory.selectedStatus} onChange={directory.setSelectedStatus} />
+                  <AppTabs<StudentStatusFilter> compact role="teacher" accessibilityLabel="Filtrar alumnos por estado" items={statusFilterOptions.map((option) => ({ key: option.value, label: option.label }))} value={directory.selectedStatus} onChange={directory.setSelectedStatus} />
                 </View>
                 <View className="min-w-0 flex-1">
                   <Text className="mb-2 text-[10px] font-black uppercase" style={{ color: tokens.text.muted }}>Ordenar</Text>
-                  <AppTabs<StudentSortKey> compact role="teacher" accessibilityLabel="Ordenar estudiantes" items={sortOptions.map((option) => ({ key: option.value, label: option.label }))} value={directory.selectedSort} onChange={directory.setSelectedSort} />
+                  <AppTabs<StudentSortKey> compact role="teacher" accessibilityLabel="Ordenar alumnos" items={sortOptions.map((option) => ({ key: option.value, label: option.label }))} value={directory.selectedSort} onChange={directory.setSelectedSort} />
                 </View>
               </View>
             </View>
           </View>
 
           <View className={isWide ? 'flex-row flex-wrap gap-4' : 'gap-4'}>
-            <MetricCard semantic="student" title="Total estudiantes" value={String(stats.total)} detail="Calculado por la RPC" />
+            <MetricCard semantic="student" title="Total alumnos" value={String(stats.total)} detail="Calculado por la RPC" />
             <MetricCard semantic="attention" title="Necesitan atención" value={String(stats.needsHelp)} detail="Apoyo o inactividad" />
             <MetricCard icon="time-outline" title="Sin actividad" value={String(stats.noActivity)} detail="Pendientes de empezar" color={tokens.semantic.info} />
             <MetricCard semantic="success" title="Con actividad" value={String(stats.withActivity)} detail={`${stats.active} activos o excelentes`} />
@@ -169,7 +169,7 @@ export default function TeacherStudentsScreen() {
             ) : (
               <View className="items-center rounded-2xl border p-8" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
                 <Ionicons name="people-outline" size={48} color={tokens.text.muted} />
-                <Text className="mt-3 font-bold" style={{ color: tokens.text.primary }}>No hay estudiantes para mostrar</Text>
+                <Text className="mt-3 font-bold" style={{ color: tokens.text.primary }}>No hay alumnos para mostrar</Text>
               </View>
             )}
             <StudentPaginationControls page={directory.page} pageCount={directory.pageCount} total={directory.total} pageSize={directory.pageSize} onPrevious={() => directory.setPage(Math.max(0, directory.page - 1))} onNext={() => directory.setPage(Math.min(directory.pageCount - 1, directory.page + 1))} />

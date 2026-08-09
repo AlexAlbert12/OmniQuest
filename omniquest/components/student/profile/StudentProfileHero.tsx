@@ -24,7 +24,7 @@ export default function StudentProfileHero({ alias, avatar, level, points, nextL
   const isDesktop = width >= 1024
   const remaining = Math.max(0, 100 - nextLevelProgress)
   const heroText = theme === 'dark' ? tokens.text.inverse : tokens.text.primary
-  const progressWidth = `${Math.max(nextLevelProgress, nextLevelProgress > 0 ? 8 : 0)}%`
+  const progressWidth: `${number}%` = `${Math.max(nextLevelProgress, nextLevelProgress > 0 ? 8 : 0)}%`
   const gradientColors = [tokens.brand.student, tokens.brand.student, tokens.background.primary] as const
   const gradientLocations = isMobile ? [0, 0.9, 0.98, 1] as const : [0, 0.68, 0.86, 1] as const
 

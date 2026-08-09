@@ -40,9 +40,13 @@ import {
 } from '../../lib/support'
 import { supabase } from '../../lib/supabase'
 import { trackUsageEvent } from '../../lib/analytics'
+import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
+import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 import RolePageHeader from '../ui/RolePageHeader'
 import StudentBottomNav from '../student/StudentBottomNav'
+import StudentSidebar from '../student/StudentSidebar'
 import TeacherBottomNav from '../teacher/TeacherBottomNav'
+import TeacherSidebar from '../teacher/TeacherSidebar'
 import AppButton from '../ui/AppButton'
 import { useAppModal } from '../AppModalProvider'
 
@@ -65,6 +69,10 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   const [replying, setReplying] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [email, setEmail] = useState('')
+  const [shellAlias, setShellAlias] = useState(role === 'teacher' ? 'Profesor' : 'Alumno')
+  const [shellAvatar, setShellAvatar] = useState<string | null>(null)
+  const [shellPoints, setShellPoints] = useState(0)
+  const [subjectsCount, setSubjectsCount] = useState(0)
   const [tickets, setTickets] = useState<SupportTicket[]>([])
   const [ticketsTotal, setTicketsTotal] = useState(0)
   const [ticketsHasMore, setTicketsHasMore] = useState(false)
@@ -90,6 +98,10 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   const [replyAttachment, setReplyAttachment] = useState<PickedSupportAttachment | null>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
   const isDesktop = width >= 1024
+  const canSubmitTicket = subject.trim().length >= 5 && body.trim().length >= 15
+  const externalContactChannels = useMemo(() => contactChannels.filter((channel) => channel.channel_type !== 'in_app' && Boolean(channel.value)), [contactChannels])
+  const studentLevel = getStudentLevel(shellPoints)
+  const studentNextLevelProgress = getNextLevelProgress(shellPoints)
 
   const showAlert = useCallback((title: string, description: string) => {
     showModal({ title, message: description, variant: 'info' })
@@ -125,11 +137,21 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
       // Keep the compatibility wrapper exported for older callers while this screen uses
       // the paginated server contract directly.
       void fetchOwnSupportTickets
-      const [ticketPage, channels, deliveryHistory] = await Promise.all([
+      const [ticketPage, channels, deliveryHistory, profileResult, subjectsResult] = await Promise.all([
         fetchOwnSupportTicketsPage({ limit: 10, offset: 0 }),
         fetchSupportContactChannels(),
         fetchOwnSupportEmailHistory(10, 0),
+        supabase.from('profiles').select('alias, avatar, points').eq('id', data.session.user.id).maybeSingle(),
+        role === 'teacher'
+          ? supabase.from('subjects').select('id').eq('teacher_id', data.session.user.id).eq('is_archived', false)
+          : Promise.resolve({ data: [] as { id: number }[], error: null }),
       ])
+      if (!profileResult.error && profileResult.data) {
+        setShellAlias(profileResult.data.alias?.trim() || (role === 'teacher' ? 'Profesor' : 'Alumno'))
+        setShellAvatar(profileResult.data.avatar || null)
+        setShellPoints(Number(profileResult.data.points || 0))
+      }
+      if (!subjectsResult.error) setSubjectsCount((subjectsResult.data || []).length)
       const nextTickets = ticketPage.tickets
       setTickets(nextTickets)
       setTicketsTotal(ticketPage.total)
@@ -156,11 +178,20 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
     } finally {
       setLoading(false)
     }
-  }, [openTicket, params.ticket, router, showAlert, t])
+  }, [openTicket, params.ticket, role, router, showAlert, t])
 
   useFocusEffect(useCallback(() => {
     void load()
   }, [load]))
+
+  const backToSettings = useCallback(() => {
+    router.replace(`/${role === 'teacher' ? '(teacher)' : '(student)'}/settings?section=about` as never)
+  }, [role, router])
+
+  const handleSignOut = useCallback(async () => {
+    await signOutCurrentDeviceSession()
+    router.replace('/(auth)/login' as never)
+  }, [router])
 
   const loadMoreTickets = useCallback(async () => {
     if (!ticketsHasMore || loadingMoreTickets) return
@@ -307,205 +338,268 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
 
   if (loading) return <OmniLoadingScreen />
 
+  const faqPanel = (
+    <SupportPanel title={t('support.faq.title')} icon="help-circle-outline">
+      <View className="gap-2">
+        {faqs.map((faq, index) => (
+          <Pressable
+            key={faq.question}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: openFaq === index }}
+            onPress={() => setOpenFaq(openFaq === index ? null : index)}
+            className="rounded-xl border p-4"
+            style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}
+          >
+            <View className="flex-row items-center justify-between gap-3">
+              <Text className="min-w-0 flex-1 font-black" style={{ color: colors.text }}>{faq.question}</Text>
+              <Ionicons name={openFaq === index ? 'chevron-up' : 'chevron-down'} size={17} color={colors.textSecondary} />
+            </View>
+            {openFaq === index ? <Text className="mt-3 text-[12px] leading-5" style={{ color: colors.textSecondary }}>{faq.answer}</Text> : null}
+          </Pressable>
+        ))}
+      </View>
+    </SupportPanel>
+  )
+
+  const createTicketPanel = (
+    <SupportPanel title={t('support.form.title')} icon="create-outline">
+      <SupportInput label={t('support.form.subject')} value={subject} onChangeText={setSubject} colors={colors} placeholder={t('support.form.subjectPlaceholder')} />
+      <SupportInput label={t('support.form.description')} value={body} onChangeText={setBody} colors={colors} placeholder={t('support.form.descriptionPlaceholder')} multiline />
+
+      <ChoiceGroup
+        label={t('support.form.category')}
+        values={categoryKeys}
+        value={category}
+        onChange={setCategory}
+        labelFor={(value) => t(`support.category.${value}`)}
+        accentColor={accentColor}
+        colors={colors}
+        balancedMobile
+        isDesktop={isDesktop}
+      />
+      <ChoiceGroup
+        label={t('support.form.priority')}
+        values={priorityKeys}
+        value={priority}
+        onChange={setPriority}
+        labelFor={(value) => t(`support.priority.${value}`)}
+        accentColor={accentColor}
+        colors={colors}
+        isDesktop={isDesktop}
+      />
+      <ChoiceGroup
+        label={t('support.form.contactPreference')}
+        values={contactPreferenceKeys}
+        value={preferredChannel}
+        onChange={setPreferredChannel}
+        labelFor={(value) => value === 'in_app' ? t('support.channel.inApp') : value === 'email' ? t('support.channel.email') : t('support.channel.both')}
+        accentColor={accentColor}
+        colors={colors}
+        isDesktop={isDesktop}
+      />
+
+      <AttachmentPicker attachment={attachment} colors={colors} onPick={() => void pickAttachment()} onRemove={() => setAttachment(null)} t={t} />
+      <AppButton
+        accessibilityHint={t('support.form.submitHint')}
+        disabled={!canSubmitTicket}
+        fullWidth
+        icon="send-outline"
+        label={submitting ? t('support.form.sending') : t('support.form.submit')}
+        loading={submitting}
+        onPress={() => void submitTicket()}
+        role={role}
+        size="md"
+        style={{ marginTop: 16 }}
+      />
+    </SupportPanel>
+  )
+
+  const ticketsPanel = (
+    <SupportPanel title={`${t('support.tickets.title')} (${ticketsTotal})`} icon="ticket-outline">
+      <View className="mb-4 flex-row gap-3">
+        <SummaryItem compact={ticketsTotal === 0} label={t('support.status.open')} value={summary.open} color="#F6A64A" colors={colors} />
+        <SummaryItem compact={ticketsTotal === 0} label={t('support.status.in_progress')} value={summary.inProgress} color="#58B5FF" colors={colors} />
+        <SummaryItem compact={ticketsTotal === 0} label={t('support.status.resolved')} value={summary.resolved} color="#34D399" colors={colors} />
+      </View>
+      <View className="gap-3">
+        {tickets.map((ticket) => (
+          <TicketCard key={ticket.id} ticket={ticket} selected={ticket.id === selectedTicket?.id} onPress={() => void openTicket(ticket)} colors={colors} accentColor={accentColor} t={t} formatDate={formatDate} />
+        ))}
+        {tickets.length === 0 ? <Text className="py-4 text-center" style={{ color: colors.textMuted }}>{t('support.tickets.empty')}</Text> : null}
+        {ticketsHasMore ? (
+          <AppButton
+            label={t('support.tickets.loadMore')}
+            icon="chevron-down-outline"
+            variant="secondary"
+            loading={loadingMoreTickets}
+            onPress={() => void loadMoreTickets()}
+          />
+        ) : null}
+      </View>
+    </SupportPanel>
+  )
+
+  const conversationPanel = selectedTicket ? (
+    <SupportPanel title={`#${selectedTicket.id} · ${selectedTicket.subject}`} icon="chatbubbles-outline">
+      <TicketSla ticket={selectedTicket} colors={colors} t={t} formatDate={formatDate} />
+      {threadLoading ? <ActivityIndicator className="my-8" color={accentColor} /> : (
+        <View className="mt-4 gap-3">
+          {threadHasMore ? (
+            <AppButton
+              label={t('support.thread.loadOlder')}
+              icon="time-outline"
+              variant="secondary"
+              loading={loadingOlderMessages}
+              onPress={() => void loadOlderMessages()}
+            />
+          ) : null}
+          {messages.map((message) => (
+            <MessageBubble key={message.id} message={message} attachments={attachments.filter((item) => item.message_id === message.id)} role={role} colors={colors} t={t} formatDate={formatDate} showAlert={showAlert} />
+          ))}
+          {attachments.filter((item) => item.message_id === null).map((item) => (
+            <AttachmentButton key={item.id} attachment={item} colors={colors} t={t} showAlert={showAlert} />
+          ))}
+        </View>
+      )}
+
+      {selectedTicket.status !== 'closed' ? (
+        <View className="mt-5 border-t pt-4" style={{ borderTopColor: colors.border }}>
+          <SupportInput label={t('support.reply.title')} value={replyBody} onChangeText={setReplyBody} colors={colors} placeholder={t('support.reply.placeholder')} multiline />
+          <AttachmentPicker attachment={replyAttachment} colors={colors} onPick={() => void pickAttachment(true)} onRemove={() => setReplyAttachment(null)} t={t} />
+          <AppButton
+            disabled={replyBody.trim().length < 2}
+            fullWidth
+            icon="send-outline"
+            label={t('support.reply.send')}
+            loading={replying}
+            onPress={() => void submitReply()}
+            role={role}
+            style={{ marginTop: 12 }}
+          />
+        </View>
+      ) : null}
+    </SupportPanel>
+  ) : (
+    <SupportPanel title={t('support.detail.title')} icon="chatbubble-ellipses-outline">
+      {ticketsTotal === 0 ? (
+        <SupportEmptyState title={t('support.detail.noTicketsTitle')} description={t('support.detail.noTicketsDescription')} colors={colors} />
+      ) : (
+        <SupportEmptyState title={t('support.detail.empty')} colors={colors} />
+      )}
+    </SupportPanel>
+  )
+
+  const channelsPanel = externalContactChannels.length > 0 ? (
+    <SupportPanel title={t('support.channels.title')} icon="call-outline">
+      <View className="gap-3">
+        {externalContactChannels.map((channel) => (
+          <View key={channel.channel_key} className="rounded-xl border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
+            <Text className="font-black" style={{ color: colors.text }}>{channel.label}</Text>
+            {channel.description ? <Text className="mt-1 text-[12px] leading-5" style={{ color: colors.textSecondary }}>{channel.description}</Text> : null}
+            {channel.value ? <Text selectable className="mt-2 text-[11px] font-bold" style={{ color: accentColor }}>{channel.value}</Text> : null}
+            <AppButton
+              style={{ marginTop: 10 }}
+              accessibilityLabel={t('support.channels.openNamed', { name: channel.label })}
+              label={t('support.channels.open')}
+              icon={channel.channel_type === 'email' ? 'mail-outline' : 'open-outline'}
+              size="sm"
+              variant="secondary"
+              onPress={() => void openSupportContactChannel(channel).catch((error) => showAlert(t('support.channels.openErrorTitle'), getErrorMessage(error, t('support.channels.openErrorDetail'))))}
+            />
+          </View>
+        ))}
+      </View>
+    </SupportPanel>
+  ) : null
+
+  const emailHistoryPanel = (
+    <SupportPanel title={t('support.emailHistory.title')} icon="mail-outline">
+      <View className="gap-3">
+        {emailHistory.map((delivery) => (
+          <View key={delivery.id} className="rounded-xl border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
+            <View className="flex-row items-center gap-2">
+              <Ionicons name={delivery.status === 'sent' ? 'checkmark-circle-outline' : delivery.status === 'failed' ? 'alert-circle-outline' : 'time-outline'} size={17} color={delivery.status === 'sent' ? colors.success : delivery.status === 'failed' ? colors.danger : accentColor} />
+              <Text className="min-w-0 flex-1 font-black" numberOfLines={2} style={{ color: colors.text }}>{delivery.subject}</Text>
+            </View>
+            <Text className="mt-2 text-[11px]" style={{ color: colors.textMuted }}>Ticket #{delivery.ticket_id} · {delivery.status} · {formatDate(delivery.sent_at || delivery.created_at, { dateStyle: 'medium', timeStyle: 'short' })}</Text>
+            {delivery.error_message ? <Text className="mt-1 text-[11px]" style={{ color: colors.danger }}>{delivery.error_message}</Text> : null}
+          </View>
+        ))}
+        {emailHistory.length === 0 ? <Text style={{ color: colors.textMuted }}>{t('support.emailHistory.empty')}</Text> : null}
+        {emailHistory.length < emailHistoryTotal ? (
+          <AppButton
+            label={t('support.emailHistory.loadMore')}
+            icon="chevron-down-outline"
+            variant="secondary"
+            loading={loadingMoreEmailHistory}
+            onPress={() => void loadMoreEmailHistory()}
+          />
+        ) : null}
+      </View>
+    </SupportPanel>
+  )
+
   return (
     <View className="flex-1" style={{ backgroundColor: colors.background }}>
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: isDesktop ? 28 : 16, paddingTop: isDesktop ? 22 : 18, paddingBottom: isDesktop ? 40 : MOBILE_BOTTOM_NAV_SPACER }}
-        showsVerticalScrollIndicator={false}
-      >
-        <RolePageHeader
-          role={role}
-          icon="help-buoy-outline"
-          isDesktop={isDesktop}
-          title={t('support.title')}
-          subtitle={t(role === 'teacher' ? 'support.subtitle.teacher' : 'support.subtitle.student')}
-          notificationOnPress={() => router.push(`/${role === 'teacher' ? '(teacher)' : '(student)'}/notifications` as never)}
-        />
+      <View className="flex-1 flex-row">
+        {isDesktop ? role === 'teacher' ? (
+          <TeacherSidebar activeSection="settings" subjectsCount={subjectsCount} onSignOut={handleSignOut} alias={shellAlias} avatar={shellAvatar} />
+        ) : (
+          <StudentSidebar activeSection="settings" alias={shellAlias} avatar={shellAvatar} level={studentLevel} points={shellPoints} nextLevelProgress={studentNextLevelProgress} onSignOut={handleSignOut} />
+        ) : null}
 
-        <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
-          <View className="min-w-0 flex-[1.25] gap-5">
-            <SupportPanel title={t('support.form.title')} icon="create-outline">
-              <SupportInput label={t('support.form.subject')} value={subject} onChangeText={setSubject} colors={colors} placeholder={t('support.form.subjectPlaceholder')} />
-              <SupportInput label={t('support.form.description')} value={body} onChangeText={setBody} colors={colors} placeholder={t('support.form.descriptionPlaceholder')} multiline />
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: isDesktop ? 28 : 16, paddingTop: isDesktop ? 22 : 18, paddingBottom: isDesktop ? 40 : MOBILE_BOTTOM_NAV_SPACER }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('settings.back')}
+            hitSlop={8}
+            onPress={backToSettings}
+            className="mb-3 flex-row items-center gap-2 self-start rounded-lg px-1 py-2"
+            style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
+          >
+            <Ionicons name="arrow-back" size={18} color={accentColor} />
+            <Text className="text-[13px] font-bold" style={{ color: accentColor }}>{t('settings.back')}</Text>
+          </Pressable>
 
-              <ChoiceGroup
-                label={t('support.form.category')}
-                values={categoryKeys}
-                value={category}
-                onChange={setCategory}
-                labelFor={(value) => t(`support.category.${value}`)}
-                accentColor={accentColor}
-                colors={colors}
-              />
-              <ChoiceGroup
-                label={t('support.form.priority')}
-                values={priorityKeys}
-                value={priority}
-                onChange={setPriority}
-                labelFor={(value) => t(`support.priority.${value}`)}
-                accentColor={accentColor}
-                colors={colors}
-              />
-              <ChoiceGroup
-                label="Canal de respuesta preferido"
-                values={contactPreferenceKeys}
-                value={preferredChannel}
-                onChange={setPreferredChannel}
-                labelFor={(value) => value === 'in_app' ? 'OmniQuest' : value === 'email' ? 'Email' : 'Ambos'}
-                accentColor={accentColor}
-                colors={colors}
-              />
+          <RolePageHeader
+            role={role}
+            compactMobileTitle
+            icon="help-buoy-outline"
+            isDesktop={isDesktop}
+            title={t('support.title')}
+            subtitle={t(role === 'teacher' ? 'support.subtitle.teacher' : 'support.subtitle.student')}
+            notificationOnPress={() => router.push(`/${role === 'teacher' ? '(teacher)' : '(student)'}/notifications` as never)}
+          />
 
-              <AttachmentPicker attachment={attachment} colors={colors} onPick={() => void pickAttachment()} onRemove={() => setAttachment(null)} t={t} />
-              <Pressable
-                accessibilityRole="button"
-                disabled={submitting}
-                onPress={() => void submitTicket()}
-                className="mt-4 min-h-[48px] flex-row items-center justify-center gap-2 rounded-xl px-5 py-3"
-                style={({ pressed }) => ({ backgroundColor: accentColor, opacity: submitting ? 0.55 : pressed ? 0.82 : 1 })}
-              >
-                {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="send-outline" size={18} color="#FFFFFF" />}
-                <Text className="font-black text-white">{submitting ? t('support.form.sending') : t('support.form.submit')}</Text>
-              </Pressable>
-            </SupportPanel>
-
-            <SupportPanel title={`${t('support.tickets.title')} (${ticketsTotal})`} icon="ticket-outline">
-              <View className="mb-4 flex-row gap-3">
-                <SummaryItem label={t('support.status.open')} value={summary.open} color="#F6A64A" colors={colors} />
-                <SummaryItem label={t('support.status.in_progress')} value={summary.inProgress} color="#58B5FF" colors={colors} />
-                <SummaryItem label={t('support.status.resolved')} value={summary.resolved} color="#34D399" colors={colors} />
+          {isDesktop ? (
+            <View className="flex-row gap-5">
+              <View className="min-w-0 flex-[1.25] gap-5">
+                {createTicketPanel}
+                {ticketsPanel}
               </View>
-              <View className="gap-3">
-                {tickets.map((ticket) => (
-                  <TicketCard key={ticket.id} ticket={ticket} selected={ticket.id === selectedTicket?.id} onPress={() => void openTicket(ticket)} colors={colors} accentColor={accentColor} t={t} formatDate={formatDate} />
-                ))}
-                {tickets.length === 0 ? <Text className="py-6 text-center" style={{ color: colors.textMuted }}>{t('support.tickets.empty')}</Text> : null}
-                {ticketsHasMore ? (
-                  <AppButton
-                    label="Cargar más tickets"
-                    icon="chevron-down-outline"
-                    variant="secondary"
-                    loading={loadingMoreTickets}
-                    onPress={() => void loadMoreTickets()}
-                  />
-                ) : null}
+              <View className="min-w-0 flex-1 gap-5">
+                {faqPanel}
+                {conversationPanel}
+                {channelsPanel}
+                {emailHistoryPanel}
               </View>
-            </SupportPanel>
-          </View>
-
-          <View className={isDesktop ? 'min-w-0 flex-1 gap-5' : 'gap-5'}>
-            {selectedTicket ? (
-              <SupportPanel title={`#${selectedTicket.id} · ${selectedTicket.subject}`} icon="chatbubbles-outline">
-                <TicketSla ticket={selectedTicket} colors={colors} t={t} formatDate={formatDate} />
-                {threadLoading ? <ActivityIndicator className="my-8" color={accentColor} /> : (
-                  <View className="mt-4 gap-3">
-                    {threadHasMore ? (
-                      <AppButton
-                        label="Cargar mensajes anteriores"
-                        icon="time-outline"
-                        variant="secondary"
-                        loading={loadingOlderMessages}
-                        onPress={() => void loadOlderMessages()}
-                      />
-                    ) : null}
-                    {messages.map((message) => (
-                      <MessageBubble key={message.id} message={message} attachments={attachments.filter((item) => item.message_id === message.id)} role={role} colors={colors} t={t} formatDate={formatDate} showAlert={showAlert} />
-                    ))}
-                    {attachments.filter((item) => item.message_id === null).map((item) => (
-                      <AttachmentButton key={item.id} attachment={item} colors={colors} t={t} showAlert={showAlert} />
-                    ))}
-                  </View>
-                )}
-
-                {selectedTicket.status !== 'closed' ? (
-                  <View className="mt-5 border-t pt-4" style={{ borderTopColor: colors.border }}>
-                    <SupportInput label={t('support.reply.title')} value={replyBody} onChangeText={setReplyBody} colors={colors} placeholder={t('support.reply.placeholder')} multiline />
-                    <AttachmentPicker attachment={replyAttachment} colors={colors} onPick={() => void pickAttachment(true)} onRemove={() => setReplyAttachment(null)} t={t} />
-                    <Pressable
-                      accessibilityRole="button"
-                      disabled={replying || replyBody.trim().length < 2}
-                      onPress={() => void submitReply()}
-                      className="mt-3 min-h-[46px] flex-row items-center justify-center gap-2 rounded-xl px-4"
-                      style={({ pressed }) => ({ backgroundColor: accentColor, opacity: replying || replyBody.trim().length < 2 ? 0.5 : pressed ? 0.82 : 1 })}
-                    >
-                      {replying ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="send-outline" size={17} color="#FFFFFF" />}
-                      <Text className="font-black text-white">{t('support.reply.send')}</Text>
-                    </Pressable>
-                  </View>
-                ) : null}
-              </SupportPanel>
-            ) : (
-              <SupportPanel title={t('support.detail.title')} icon="chatbubble-ellipses-outline">
-                <Text className="py-8 text-center" style={{ color: colors.textMuted }}>{t('support.detail.empty')}</Text>
-              </SupportPanel>
-            )}
-
-            <SupportPanel title="Canales de contacto" icon="call-outline">
-              <View className="gap-3">
-                {contactChannels.map((channel) => (
-                  <View key={channel.channel_key} className="rounded-xl border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
-                    <Text className="font-black" style={{ color: colors.text }}>{channel.label}</Text>
-                    {channel.description ? <Text className="mt-1 text-[12px] leading-5" style={{ color: colors.textSecondary }}>{channel.description}</Text> : null}
-                    {channel.value ? <Text selectable className="mt-2 text-[11px] font-bold" style={{ color: accentColor }}>{channel.value}</Text> : null}
-                    {channel.channel_type !== 'in_app' && channel.value ? (
-                      <AppButton
-                        style={{ marginTop: 10 }}
-                        accessibilityLabel={`Abrir canal ${channel.label}`}
-                        label="Abrir canal"
-                        icon={channel.channel_type === 'email' ? 'mail-outline' : 'open-outline'}
-                        size="sm"
-                        variant="secondary"
-                        onPress={() => void openSupportContactChannel(channel).catch((error) => showAlert('No se pudo abrir el canal', getErrorMessage(error, 'Comprueba el enlace configurado.')))}
-                      />
-                    ) : null}
-                  </View>
-                ))}
-                {contactChannels.length === 0 ? <Text style={{ color: colors.textMuted }}>El administrador todavía no ha publicado canales externos.</Text> : null}
-              </View>
-            </SupportPanel>
-
-            <SupportPanel title="Historial de emails enviados" icon="mail-outline">
-              <View className="gap-3">
-                {emailHistory.map((delivery) => (
-                  <View key={delivery.id} className="rounded-xl border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
-                    <View className="flex-row items-center gap-2">
-                      <Ionicons name={delivery.status === 'sent' ? 'checkmark-circle-outline' : delivery.status === 'failed' ? 'alert-circle-outline' : 'time-outline'} size={17} color={delivery.status === 'sent' ? colors.success : delivery.status === 'failed' ? colors.danger : accentColor} />
-                      <Text className="min-w-0 flex-1 font-black" numberOfLines={2} style={{ color: colors.text }}>{delivery.subject}</Text>
-                    </View>
-                    <Text className="mt-2 text-[11px]" style={{ color: colors.textMuted }}>Ticket #{delivery.ticket_id} · {delivery.status} · {formatDate(delivery.sent_at || delivery.created_at, { dateStyle: 'medium', timeStyle: 'short' })}</Text>
-                    {delivery.error_message ? <Text className="mt-1 text-[11px]" style={{ color: colors.danger }}>{delivery.error_message}</Text> : null}
-                  </View>
-                ))}
-                {emailHistory.length === 0 ? <Text style={{ color: colors.textMuted }}>Aún no hay emails de soporte registrados.</Text> : null}
-                {emailHistory.length < emailHistoryTotal ? (
-                  <AppButton
-                    label="Cargar más emails"
-                    icon="chevron-down-outline"
-                    variant="secondary"
-                    loading={loadingMoreEmailHistory}
-                    onPress={() => void loadMoreEmailHistory()}
-                  />
-                ) : null}
-              </View>
-            </SupportPanel>
-
-            <SupportPanel title={t('support.faq.title')} icon="help-circle-outline">
-              <View className="gap-2">
-                {faqs.map((faq, index) => (
-                  <Pressable key={faq.question} onPress={() => setOpenFaq(openFaq === index ? null : index)} className="rounded-xl border p-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
-                    <View className="flex-row items-center justify-between gap-3">
-                      <Text className="min-w-0 flex-1 font-black" style={{ color: colors.text }}>{faq.question}</Text>
-                      <Ionicons name={openFaq === index ? 'chevron-up' : 'chevron-down'} size={17} color={colors.textSecondary} />
-                    </View>
-                    {openFaq === index ? <Text className="mt-3 text-[12px] leading-5" style={{ color: colors.textSecondary }}>{faq.answer}</Text> : null}
-                  </Pressable>
-                ))}
-              </View>
-            </SupportPanel>
-          </View>
-        </View>
-      </ScrollView>
+            </View>
+          ) : (
+            <View className="gap-5">
+              {faqPanel}
+              {createTicketPanel}
+              {ticketsPanel}
+              {conversationPanel}
+              {channelsPanel}
+              {emailHistoryPanel}
+            </View>
+          )}
+        </ScrollView>
+      </View>
       {!isDesktop ? role === 'teacher' ? <TeacherBottomNav active="settings" /> : <StudentBottomNav active="settings" /> : null}
     </View>
   )
@@ -523,16 +617,52 @@ function SupportInput({ label, value, onChangeText, placeholder, multiline = fal
   return <View className="mb-4"><Text className="mb-2 text-[12px] font-bold" style={{ color: colors.textSecondary }}>{label}</Text><TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.textMuted} multiline={multiline} textAlignVertical={multiline ? 'top' : 'center'} className={`rounded-xl border px-4 py-3 ${multiline ? 'min-h-[120px]' : ''}`} style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised, color: colors.text }} /></View>
 }
 
-function ChoiceGroup<T extends string>({ label, values, value, onChange, labelFor, accentColor, colors }: { label: string; values: T[]; value: T; onChange: (value: T) => void; labelFor: (value: T) => string; accentColor: string; colors: ReturnType<typeof useAppTheme>['colors'] }) {
-  return <View className="mb-4"><Text className="mb-2 text-[12px] font-bold" style={{ color: colors.textSecondary }}>{label}</Text><View className="flex-row flex-wrap gap-2">{values.map((item) => <Pressable key={item} accessibilityRole="radio" accessibilityState={{ selected: item === value }} onPress={() => onChange(item)} className="rounded-full border px-3 py-2" style={{ borderColor: item === value ? accentColor : colors.border, backgroundColor: item === value ? `${accentColor}22` : colors.surfaceRaised }}><Text className="text-[11px] font-black" style={{ color: item === value ? accentColor : colors.textSecondary }}>{labelFor(item)}</Text></Pressable>)}</View></View>
+function ChoiceGroup<T extends string>({ label, values, value, onChange, labelFor, accentColor, colors, balancedMobile = false, isDesktop = false }: { label: string; values: T[]; value: T; onChange: (value: T) => void; labelFor: (value: T) => string; accentColor: string; colors: ReturnType<typeof useAppTheme>['colors']; balancedMobile?: boolean; isDesktop?: boolean }) {
+  return (
+    <View className="mb-4">
+      <Text className="mb-2 text-[12px] font-bold" style={{ color: colors.textSecondary }}>{label}</Text>
+      <View className="flex-row flex-wrap gap-2">
+        {values.map((item) => (
+          <Pressable
+            key={item}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: item === value }}
+            onPress={() => onChange(item)}
+            className="min-h-[42px] items-center justify-center rounded-full border px-3 py-2"
+            style={{
+              borderColor: item === value ? accentColor : colors.border,
+              backgroundColor: item === value ? `${accentColor}22` : colors.surfaceRaised,
+              ...(!isDesktop && balancedMobile ? { flexBasis: '30%' as `${number}%`, flexGrow: 1 } : {}),
+            }}
+          >
+            <Text className="text-center text-[11px] font-black" style={{ color: item === value ? accentColor : colors.textSecondary }}>{labelFor(item)}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  )
 }
 
 function AttachmentPicker({ attachment, onPick, onRemove, colors, t }: { attachment: PickedSupportAttachment | null; onPick: () => void; onRemove: () => void; colors: ReturnType<typeof useAppTheme>['colors']; t: ReturnType<typeof useI18n>['t'] }) {
   return <View className="rounded-xl border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>{attachment ? <View className="flex-row items-center gap-3"><Ionicons name="document-attach-outline" size={20} color={colors.textSecondary} /><View className="min-w-0 flex-1"><Text className="font-bold" numberOfLines={1} style={{ color: colors.text }}>{attachment.fileName}</Text><Text className="text-[11px]" style={{ color: colors.textMuted }}>{formatBytes(attachment.sizeBytes)}</Text></View><Pressable accessibilityLabel={t('support.attachment.remove')} onPress={onRemove}><Ionicons name="close-circle" size={22} color={colors.danger} /></Pressable></View> : <Pressable onPress={onPick} className="flex-row items-center justify-center gap-2 py-2"><Ionicons name="attach-outline" size={19} color={colors.textSecondary} /><Text className="font-bold" style={{ color: colors.textSecondary }}>{t('support.attachment.add')}</Text></Pressable>}</View>
 }
 
-function SummaryItem({ label, value, color, colors }: { label: string; value: number; color: string; colors: ReturnType<typeof useAppTheme>['colors'] }) {
-  return <View className="min-w-0 flex-1 rounded-xl border p-3" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}><Text className="text-[20px] font-black" style={{ color }}>{value}</Text><Text className="mt-1 text-[10px] font-bold" numberOfLines={1} style={{ color: colors.textMuted }}>{label}</Text></View>
+function SummaryItem({ label, value, color, colors, compact = false }: { label: string; value: number; color: string; colors: ReturnType<typeof useAppTheme>['colors']; compact?: boolean }) {
+  return (
+    <View className={`min-w-0 flex-1 rounded-xl border ${compact ? 'px-3 py-2' : 'p-3'}`} style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
+      <Text className={`${compact ? 'text-[18px]' : 'text-[20px]'} font-black`} style={{ color }}>{value}</Text>
+      <Text className={`${compact ? 'mt-0.5' : 'mt-1'} text-[10px] font-bold`} numberOfLines={1} style={{ color: colors.textMuted }}>{label}</Text>
+    </View>
+  )
+}
+
+function SupportEmptyState({ title, description, colors }: { title: string; description?: string; colors: ReturnType<typeof useAppTheme>['colors'] }) {
+  return (
+    <View className="items-center px-4 py-7">
+      <Text className="text-center text-[14px] font-black" style={{ color: colors.text }}>{title}</Text>
+      {description ? <Text className="mt-2 max-w-[360px] text-center text-[12px] leading-5" style={{ color: colors.textMuted }}>{description}</Text> : null}
+    </View>
+  )
 }
 
 function TicketCard({ ticket, selected, onPress, colors, accentColor, t, formatDate }: { ticket: SupportTicket; selected: boolean; onPress: () => void; colors: ReturnType<typeof useAppTheme>['colors']; accentColor: string; t: ReturnType<typeof useI18n>['t']; formatDate: ReturnType<typeof useI18n>['formatDate'] }) {

@@ -35,6 +35,8 @@ export type RolePageHeaderProps = {
   leading?: ReactNode
   /** Optional shorter title used on mobile. */
   mobileTitle?: string
+  /** Slightly reduces only the mobile title scale for long screen names. */
+  compactMobileTitle?: boolean
   notificationCount?: number
   notificationOnPress?: () => void
   showAvatar?: boolean
@@ -65,6 +67,7 @@ export default function RolePageHeader({
   isDesktop,
   leading,
   mobileTitle,
+  compactMobileTitle = false,
   notificationCount,
   notificationOnPress,
   showAvatar = true,
@@ -126,10 +129,10 @@ export default function RolePageHeader({
               accessibilityRole="header"
               allowFontScaling
               maxFontSizeMultiplier={2}
-              className={`${isDesktop ? 'text-[40px]' : 'text-[30px]'} min-w-0 flex-1 font-black`}
+              className={`${isDesktop ? 'text-[40px]' : compactMobileTitle ? 'text-[27px]' : 'text-[30px]'} min-w-0 flex-1 font-black`}
               style={{
                 color: colors.text,
-                lineHeight: isDesktop ? 54 : 42,
+                lineHeight: isDesktop ? 54 : compactMobileTitle ? 38 : 42,
                 paddingBottom: isDesktop ? 4 : 3,
                 includeFontPadding: true,
                 overflow: 'visible',

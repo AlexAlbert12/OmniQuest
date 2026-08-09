@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { withAlpha } from '../../../lib/color'
+import { formatCount } from '../../../lib/formatCount'
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -17,11 +18,9 @@ export type TeacherAttentionItem = {
 
 export function TeacherTodayFocus({
   primaryLabel,
-  teacherAlias,
   onPrimary,
 }: {
   primaryLabel: string
-  teacherAlias: string
   onPrimary: () => void
 }) {
   return (
@@ -35,7 +34,7 @@ export function TeacherTodayFocus({
         <View className="absolute -right-8 top-4 h-28 w-44 rounded-3xl bg-surface-selected" style={{ transform: [{ rotate: '-22deg' }] }} />
         <View className="min-w-0 flex-1">
           <Text className="text-[12px] font-black uppercase tracking-[1.5px] text-brand-teacher">Tu prioridad de hoy</Text>
-          <Text className="mt-2 text-[28px] font-black leading-9 text-white" numberOfLines={2}>Hola, {teacherAlias}. Empieza por lo pendiente.</Text>
+          <Text className="mt-2 text-[26px] font-black leading-8 text-white md:text-[28px] md:leading-9">Empieza por lo pendiente</Text>
           <Text className="mt-2 max-w-[620px] text-[15px] leading-6 text-text-secondary">
             Atiende primero a los alumnos bloqueados y a las respuestas que esperan revisión.
           </Text>
@@ -98,7 +97,7 @@ export function TeacherPriorityOverview({
               <Text className="font-black text-white" numberOfLines={1}>{item.title}</Text>
               <Text className="mt-1 text-[12px] text-text-secondary" numberOfLines={2}>{item.detail}</Text>
             </View>
-            <Text className="text-[12px] font-black" style={{ color: item.color }}>{item.actionLabel}</Text>
+            <Text className="text-[12px] font-black text-brand-teacher">{item.actionLabel}</Text>
           </Pressable>
         )) : (
           <EmptyPriority icon="checkmark-circle-outline" text="No hay alumnos bloqueados detectados." />
@@ -111,6 +110,7 @@ export function TeacherPriorityOverview({
         title="Preguntas abiertas por revisar"
         subtitle="Respuestas que esperan tu criterio"
         onViewAll={onOpenReviews}
+        centerContent={isDesktop}
       >
         <Pressable onPress={onOpenReviews} className="min-h-[78px] flex-row items-center gap-4 rounded-xl border border-border-active bg-surface-disabled p-4">
           <View className="h-12 w-12 items-center justify-center rounded-xl bg-surface-selected">
@@ -122,7 +122,7 @@ export function TeacherPriorityOverview({
               {openReviewCount > 0 ? 'Abre la cola y corrige las respuestas.' : 'No hay respuestas abiertas pendientes.'}
             </Text>
           </View>
-          <Ionicons name="arrow-forward" size={19} color="#C4B5FD" />
+          <Ionicons name="arrow-forward" size={19} color="#09ACF4" />
         </Pressable>
       </PrioritySection>
 
@@ -132,24 +132,26 @@ export function TeacherPriorityOverview({
         title="Cursos y clases activos"
         subtitle="Acceso directo a la gestión"
         onViewAll={onOpenClasses}
+        centerContent={isDesktop}
       >
         <Pressable onPress={onOpenClasses} className="min-h-[78px] flex-row items-center gap-4 rounded-xl border border-border-default bg-surface-raised p-4">
           <View className="h-12 w-12 items-center justify-center rounded-xl bg-semantic-surface-info">
             <Ionicons name="school-outline" size={23} color="#38BDF8" />
           </View>
           <View className="min-w-0 flex-1">
-            <Text className="font-black text-white">{coursesCount} cursos · {classroomsCount} clases</Text>
+            <Text className="font-black text-white">{formatCount(coursesCount, 'curso', 'cursos')} · {formatCount(classroomsCount, 'clase', 'clases')}</Text>
             <Text className="mt-1 text-[12px] text-text-secondary">Abre contenidos, alumnos y resultados.</Text>
           </View>
-          <Ionicons name="arrow-forward" size={19} color="#7DD3FC" />
+          <Ionicons name="arrow-forward" size={19} color="#09ACF4" />
         </Pressable>
       </PrioritySection>
     </View>
   )
 }
 
-function PrioritySection({ accent, children, index, onViewAll, subtitle, title }: {
+function PrioritySection({ accent, centerContent = false, children, index, onViewAll, subtitle, title }: {
   accent: string
+  centerContent?: boolean
   children: React.ReactNode
   index: string
   onViewAll: () => void
@@ -167,10 +169,10 @@ function PrioritySection({ accent, children, index, onViewAll, subtitle, title }
           <Text className="mt-1 text-[11px] text-text-muted">{subtitle}</Text>
         </View>
         <Pressable onPress={onViewAll} hitSlop={8}>
-          <Ionicons name="arrow-forward" size={18} color={accent} />
+          <Ionicons name="arrow-forward" size={18} color="#09ACF4" />
         </Pressable>
       </View>
-      <View className="gap-3">{children}</View>
+      <View className={`gap-3 ${centerContent ? 'flex-1 justify-center' : ''}`}>{children}</View>
     </View>
   )
 }

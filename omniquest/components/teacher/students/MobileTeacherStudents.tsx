@@ -297,7 +297,7 @@ export default function MobileTeacherStudents({
             onRequestPasswordRecovery={onRequestPasswordRecovery}
           />
         )}
-        accessibilityLabel="Estudiantes de la página"
+        accessibilityLabel="Alumnos de la página"
       />
 
       <MobileStudentsPagination

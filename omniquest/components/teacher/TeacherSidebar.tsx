@@ -26,7 +26,7 @@ const navItems: {
 }[] = [
     { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(teacher)/homeTeacher', testID: 'teacher-nav-home' },
     { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(teacher)/classes', testID: 'teacher-nav-classes' },
-    { section: 'students', label: 'Estudiantes', icon: 'people-outline', href: '/(teacher)/students', testID: 'teacher-nav-students' },
+    { section: 'students', label: 'Alumnos', icon: 'people-outline', href: '/(teacher)/students', testID: 'teacher-nav-students' },
     { section: 'reviews', label: 'Revisión', icon: 'create-outline', href: '/(teacher)/reviews', testID: 'teacher-nav-reviews' },
     { section: 'audit', label: 'Auditoría', icon: 'shield-checkmark-outline', href: '/(teacher)/audit', testID: 'teacher-nav-audit' },
     { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(teacher)/notifications', testID: 'teacher-nav-notifications' },

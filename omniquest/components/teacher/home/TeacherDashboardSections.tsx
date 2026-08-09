@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { withAlpha } from '../../../lib/color'
 import { normalizeAcademicIcon } from '../../../lib/academicIcons'
+import { formatCount } from '../../../lib/formatCount'
 import type {
   TeacherDashboardSummary,
   TeacherRecentActivity,
@@ -46,12 +47,12 @@ export function TeacherRecentCourses({ courses }: { courses: TeacherDashboardSum
             <View className="min-w-0 flex-1">
               <Text className="text-[16px] font-black text-text-primary" numberOfLines={2}>{course.name}</Text>
               <Text className="mt-1 text-[12px] text-text-secondary">
-                {course.enrolledCount} alumnos · {course.questionsCount} preguntas · {course.classroomCount} clases
+                {formatCount(course.enrolledCount, 'alumno', 'alumnos')} · {formatCount(course.questionsCount, 'pregunta', 'preguntas')} · {formatCount(course.classroomCount, 'clase', 'clases')}
               </Text>
             </View>
             <View className="items-end">
               <Text className="text-[15px] font-black text-brand-teacher">{course.averageScore} XP</Text>
-              <Text className="mt-1 text-[11px] text-text-muted">media</Text>
+              <Text className="mt-1 text-[11px] text-text-muted">Media</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#8FA7C7" />
           </Pressable>
@@ -70,19 +71,22 @@ export function TeacherRecentActivityList({ items }: { items: TeacherRecentActiv
     <View className="gap-3">
       {items.map((item) => {
         const enrollment = item.type === 'enrollment'
-        const color = enrollment ? '#38BDF8' : item.isCorrect ? '#34D399' : '#F59E0B'
+        const pendingReview = item.type === 'attempt' && item.isCorrect == null
+        const incorrect = item.type === 'attempt' && item.isCorrect === false
+        const color = enrollment ? '#38BDF8' : pendingReview ? '#F59E0B' : incorrect ? '#FB7185' : '#34D399'
+        const icon = enrollment ? 'person-add-outline' : pendingReview ? 'time-outline' : incorrect ? 'close' : 'checkmark'
         const title = enrollment
           ? `${item.studentName} se unió a ${item.subjectName}`
-          : `${item.studentName} ${item.isCorrect ? 'acertó' : 'respondió'} en ${item.subjectName}`
+          : `${item.studentName} ${item.isCorrect === true ? 'acertó' : 'respondió'} en ${item.subjectName}`
         const detail = enrollment ? item.classroomName || 'Nueva inscripción' : item.questionText || 'Pregunta completada'
         return (
           <View key={item.id} className="flex-row items-center gap-3">
             <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '25') }}>
-              <Ionicons name={enrollment ? 'person-add-outline' : item.isCorrect ? 'checkmark' : 'help'} size={18} color={color} />
+              <Ionicons name={icon} size={18} color={color} />
             </View>
             <View className="min-w-0 flex-1">
               <Text className="text-[13px] font-bold text-text-primary" numberOfLines={2}>{title}</Text>
-              <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={2}>{detail}</Text>
+              <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>{detail}</Text>
             </View>
             <Text className="text-[11px] text-text-muted">{formatRelative(item.eventAt)}</Text>
           </View>
@@ -109,9 +113,9 @@ export function TeacherProblemQuestions({ questions }: { questions: TeacherDashb
               accessibilityRole="button"
               accessibilityLabel={`Editar ${question.text}`}
               onPress={() => router.push(`/(teacher)/subject/edit-question?id=${question.id}&subjectId=${question.subjectId}` as never)}
-              className="rounded-lg bg-semantic-surface-danger px-3 py-2"
+              className="rounded-lg border border-border-active bg-surface-selected px-3 py-2"
             >
-              <Text className="text-[11px] font-black text-semantic-danger">Editar</Text>
+              <Text className="text-[11px] font-black text-brand-teacher">Editar</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
