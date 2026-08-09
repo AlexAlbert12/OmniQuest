@@ -7,6 +7,7 @@ import BrandLogo from '../BrandLogo'
 import { useAppTheme } from '../../lib/appTheme'
 import { supabase } from '../../lib/supabase'
 
+import { releaseWebFocus } from '../../lib/webFocus'
 export type TeacherSection = 'home' | 'classes' | 'students' | 'reviews' | 'notifications' | 'audit' | 'profile' | 'settings'
 
 type TeacherSidebarProps = {
@@ -124,6 +125,7 @@ export default function TeacherSidebar({
       </View>
       <Link href="/(teacher)/profile" asChild>
         <Pressable
+          onPress={releaseWebFocus}
           className="mt-auto rounded-2xl border p-4"
           style={{
             borderColor: isDark ? '#162B50' : '#2E4E78',
@@ -194,6 +196,7 @@ function TeacherNavButton({
   const content = (
     <Pressable
       testID={item.testID}
+      onPress={releaseWebFocus}
       accessibilityRole="button"
       accessibilityLabel={item.label}
       onHoverIn={() => setIsHovered(true)}

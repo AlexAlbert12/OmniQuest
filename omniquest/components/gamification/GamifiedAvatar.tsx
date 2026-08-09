@@ -49,8 +49,8 @@ export default function GamifiedAvatar({
     <View style={[{ width: size + badgeSize * 0.3, height: size + badgeSize * 0.28 }, style]}>
       {isLegendary ? (
         <View
-          pointerEvents="none"
           style={{
+            pointerEvents: 'none',
             position: 'absolute',
             left: 0,
             top: 0,

@@ -6752,6 +6752,7 @@ export type Database = {
       is_subject_teacher: { Args: { p_subject_id: number }; Returns: boolean }
       join_subject_by_code: { Args: { p_code: string }; Returns: Json }
       maintain_admin_audit_partitions: { Args: never; Returns: Json }
+      mark_all_notifications_read: { Args: { p_audience: string }; Returns: number }
       mark_notifications_read: { Args: { p_ids: string[] }; Returns: number }
       normalize_answer_text: { Args: { value: string }; Returns: string }
       reactivate_due_admin_users: { Args: never; Returns: number }

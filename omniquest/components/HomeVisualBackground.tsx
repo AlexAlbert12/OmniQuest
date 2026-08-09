@@ -41,9 +41,8 @@ export default function HomeVisualBackground({ isDesktop }: { isDesktop: boolean
 
   return (
     <View
-      pointerEvents="none"
       className="absolute inset-0 overflow-hidden"
-      style={{ backgroundColor: finalHomeBackground.base }}
+      style={{ pointerEvents: 'none', backgroundColor: finalHomeBackground.base }}
     >
       <LinearGradient
         colors={[

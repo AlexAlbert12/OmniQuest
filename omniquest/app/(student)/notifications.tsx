@@ -1,5 +1,3 @@
-// NotificationFeed composes NotificationListItem and NotificationEmptyState and keeps the
-// visible action “Marcar todas como leídas” alongside swipe alternatives.
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Text, useWindowDimensions, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
@@ -12,6 +10,7 @@ import StudentPageHeader from '../../components/student/StudentPageHeader'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import { useNotifications, type AppNotification, type NotificationType } from '../../hooks/useNotifications'
 import { useAppTheme } from '../../lib/appTheme'
+import { formatCount } from '../../lib/formatCount'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { supabase } from '../../lib/supabase'
@@ -21,6 +20,7 @@ import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 type NotificationFilter = 'all' | 'unread' | NotificationType
 type Profile = { alias: string; avatar: string | null; points: number | null }
+type EmptyStateCopy = { title: string; message: string }
 
 const filterOptions: { key: NotificationFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'all', label: 'Todas', icon: 'list-outline' },
@@ -75,14 +75,16 @@ export default function StudentNotificationsScreen() {
     return notifications.filter((notification) => notification.type === selectedFilter)
   }, [notifications, selectedFilter])
 
-  const tabs = useMemo(() => filterOptions.map((option) => ({
-    ...option,
-    badge: option.key === 'all'
+  const tabs = useMemo(() => filterOptions.map((option) => {
+    const count = option.key === 'all'
       ? total
       : option.key === 'unread'
         ? unreadCount
-        : notifications.filter((notification) => notification.type === option.key).length,
-  })), [notifications, total, unreadCount])
+        : notifications.filter((notification) => notification.type === option.key).length
+    return { ...option, badge: count > 0 ? count : undefined }
+  }), [notifications, total, unreadCount])
+
+  const emptyState = useMemo(() => getEmptyStateCopy({ selectedFilter, total, unreadCount, hasMore }), [hasMore, selectedFilter, total, unreadCount])
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -115,8 +117,11 @@ export default function StudentNotificationsScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
-    await Promise.all([refresh(), fetchProfile()])
-    setRefreshing(false)
+    try {
+      await Promise.all([refresh(), fetchProfile()])
+    } finally {
+      setRefreshing(false)
+    }
   }, [fetchProfile, refresh])
 
   useEffect(() => {
@@ -150,54 +155,38 @@ export default function StudentNotificationsScreen() {
         icon="notifications"
         isDesktop={isDesktop}
         title="Notificaciones"
-        subtitle={unreadCount > 0 ? `Tienes ${unreadCount} novedad${unreadCount === 1 ? '' : 'es'} por revisar` : 'Todo está al día en tus cursos'}
+        subtitle={unreadCount > 0 ? `Tienes ${formatCount(unreadCount, 'novedad', 'novedades')} por revisar` : 'Todo está al día en tus cursos'}
         showNotifications={false}
-        actions={(
-          <View className="flex-row gap-2">
-            <AppButton
-              accessibilityLabel="Actualizar notificaciones"
-              icon="refresh-outline"
-              iconOnly={!isDesktop}
-              label={isDesktop ? 'Actualizar' : undefined}
-              loading={refreshing}
-              size="sm"
-              variant="secondary"
-              onPress={() => void onRefresh()}
-            />
-            {unreadCount > 0 ? (
-              <AppButton
-                accessibilityLabel="Marcar todas las notificaciones cargadas como leídas"
-                icon="checkmark-done-outline"
-                iconOnly={!isDesktop}
-                label={isDesktop ? 'Marcar cargadas como leídas' : undefined}
-                role="student"
-                size="sm"
-                onPress={() => void markAllAsRead()}
-              />
-            ) : null}
-          </View>
-        )}
+        actions={unreadCount > 0 ? (
+          <AppButton
+            accessibilityLabel="Marcar todas las notificaciones como leídas"
+            icon="checkmark-done-outline"
+            iconOnly={!isDesktop}
+            label={isDesktop ? 'Marcar todas como leídas' : undefined}
+            role="student"
+            size="sm"
+            onPress={() => void markAllAsRead()}
+          />
+        ) : null}
       />
 
       <AppTabs<NotificationFilter>
         accessibilityLabel="Filtrar notificaciones"
         compact
+        mobileRail={!isDesktop}
         role="student"
         items={tabs}
         value={selectedFilter}
         onChange={setSelectedFilter}
       />
 
-      <View className="mb-3 mt-5 flex-row items-center justify-between gap-3">
-        <View className="min-w-0 flex-1">
-          <Text className="text-[20px] font-black" style={{ color: tokens.text.primary }}>{getSectionTitle(selectedFilter)}</Text>
+      <View className="mb-3 mt-5">
+        <Text className="text-[20px] font-black" style={{ color: tokens.text.primary }}>{getSectionTitle(selectedFilter)}</Text>
+        {total > 0 ? (
           <Text className="mt-1 text-[11px]" style={{ color: tokens.text.muted }}>
-            Usa los botones visibles para marcar o eliminar; en móvil también puedes deslizar.
+            Gestiona aquí las novedades de tus cursos, actividad y logros.
           </Text>
-        </View>
-        <View className="rounded-full px-3 py-1.5" style={{ backgroundColor: tokens.surface.interactive }}>
-          <Text className="text-[11px] font-black" style={{ color: tokens.text.secondary }}>{filteredNotifications.length}/{total}</Text>
-        </View>
+        ) : null}
       </View>
     </>
   )
@@ -227,6 +216,7 @@ export default function StudentNotificationsScreen() {
           loadingMore={loadingMore}
           refreshing={refreshing}
           header={header}
+          emptyState={emptyState}
           contentContainerStyle={{
             width: '100%',
             paddingHorizontal: isDesktop ? 28 : 18,
@@ -241,7 +231,7 @@ export default function StudentNotificationsScreen() {
           onLoadMore={loadMore}
         />
       </View>
-      {!isDesktop ? <StudentBottomNav active="notifications" /> : null}
+      {!isDesktop ? <StudentBottomNav active={null} /> : null}
     </View>
   )
 }
@@ -250,4 +240,23 @@ function getSectionTitle(filter: NotificationFilter) {
   if (filter === 'all') return 'Novedades'
   if (filter === 'unread') return 'Sin leer'
   return categoryLabels[filter]
+}
+
+function getEmptyStateCopy({ selectedFilter, total, unreadCount, hasMore }: { selectedFilter: NotificationFilter; total: number; unreadCount: number; hasMore: boolean }): EmptyStateCopy {
+  if (selectedFilter === 'all') {
+    if (total === 0) return { title: 'No hay notificaciones', message: 'Cuando haya novedades de tus cursos, logros o actividad aparecerán aquí.' }
+    return hasMore
+      ? { title: 'Hay más notificaciones por cargar', message: 'Carga el siguiente bloque para completar el listado.' }
+      : { title: 'Actualizando tus novedades', message: 'La información guardada se está sincronizando con el listado.' }
+  }
+
+  if (selectedFilter === 'unread') {
+    if (unreadCount === 0) return { title: 'Todo está leído', message: 'Has revisado todas tus novedades. Las próximas aparecerán aquí.' }
+    return hasMore
+      ? { title: 'Quedan novedades sin leer', message: 'Carga más notificaciones para continuar revisándolas.' }
+      : { title: 'Actualizando las novedades sin leer', message: 'El contador y el listado se están sincronizando.' }
+  }
+
+  if (hasMore) return { title: `Puede haber más de ${categoryLabels[selectedFilter].toLowerCase()}`, message: 'Carga el siguiente bloque para completar este filtro.' }
+  return { title: `No hay notificaciones de ${categoryLabels[selectedFilter].toLowerCase()}`, message: 'Cuando aparezca una novedad de esta categoría la verás aquí.' }
 }

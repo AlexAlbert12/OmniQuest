@@ -24,6 +24,7 @@ type AppTabsProps<Key extends string | number> = {
   compact?: boolean
   fill?: boolean
   accessibilityLabel?: string
+  mobileRail?: boolean
 }
 
 export default function AppTabs<Key extends string | number>({
@@ -34,6 +35,7 @@ export default function AppTabs<Key extends string | number>({
   compact = false,
   fill = false,
   accessibilityLabel = 'Secciones',
+  mobileRail = false,
 }: AppTabsProps<Key>) {
   const { accentColor, tokens } = useAppTheme()
   const activeColor = role ? tokens.brand[role] : accentColor
@@ -46,7 +48,7 @@ export default function AppTabs<Key extends string | number>({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={[styles.row, fill && styles.fillRow]}
+        contentContainerStyle={[styles.row, mobileRail && styles.mobileRailRow, fill && styles.fillRow]}
       >
         {items.map((item) => {
           const selected = item.key === value
@@ -61,6 +63,7 @@ export default function AppTabs<Key extends string | number>({
               style={({ pressed }) => [
                 styles.tab,
                 compact ? styles.compactTab : styles.regularTab,
+                mobileRail ? styles.mobileRailTab : null,
                 fill ? styles.fillTab : null,
                 {
                   backgroundColor: selected ? withAlpha(activeColor, '24') : 'transparent',
@@ -119,6 +122,10 @@ const styles = StyleSheet.create({
   fillRow: {
     minWidth: '100%',
   },
+  mobileRailRow: {
+    paddingLeft: 2,
+    paddingRight: 28,
+  },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -134,6 +141,9 @@ const styles = StyleSheet.create({
   compactTab: {
     minHeight: 36,
     paddingHorizontal: 11,
+  },
+  mobileRailTab: {
+    minHeight: 42,
   },
   fillTab: {
     flex: 1,

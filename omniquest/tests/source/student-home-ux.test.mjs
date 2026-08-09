@@ -15,9 +15,9 @@ test('student home uses cyan role styling and honest empty, ranking and mobile n
   const bottomNav = read('components/ui/mobile/MobileBottomNavigation.tsx')
   const layout = read('components/layouts/RoleScreenLayout.tsx')
 
-  assert.match(tokens, /student: '#38BDF8'/)
-  assert.match(tokens, /teacher: '#38BDF8'/)
-  assert.match(home, /actions=\{responsive\.isDesktop \? \(/)
+  assert.match(tokens, /student: '#09acf4'/)
+  assert.match(tokens, /teacher: '#09acf4'/)
+  assert.doesNotMatch(home, /Actualizar pantalla de inicio|icon="refresh"/)
   assert.match(home, /compact=\{!responsive\.isDesktop\}/)
   assert.match(home, /rows=\{home\.rankingPreview\}/)
 

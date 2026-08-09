@@ -52,8 +52,8 @@ export default function XpGainBurst({ amount, visible }: { amount: number; visib
 
   return (
     <Animated.View
-      pointerEvents="none"
       style={{
+        pointerEvents: 'none',
         opacity,
         position: 'absolute',
         right: 18,

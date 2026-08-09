@@ -19,8 +19,8 @@ type NotificationListItemProps = {
   onDelete: () => void | Promise<void>
 }
 
-const SWIPE_LIMIT = 92
-const SWIPE_TRIGGER = 58
+const SWIPE_LIMIT = 80
+const SWIPE_TRIGGER = 50
 
 function NotificationListItem({
   notification,
@@ -85,11 +85,11 @@ function NotificationListItem({
     <View className="overflow-hidden rounded-2xl" style={{ backgroundColor: tokens.surface.interactive }}>
       {swipeEnabled ? (
         <View className="absolute inset-0 flex-row items-stretch justify-between">
-          <View className="w-[92px] items-center justify-center" style={{ backgroundColor: withAlpha(tokens.semantic.success, '36') }}>
+          <View className="w-20 items-center justify-center" style={{ backgroundColor: withAlpha(tokens.semantic.success, '36') }}>
             <Ionicons name="checkmark-done" size={24} color={tokens.semantic.success} />
             <Text className="mt-1 text-[10px] font-black" style={{ color: tokens.semantic.success }}>Leída</Text>
           </View>
-          <View className="w-[92px] items-center justify-center" style={{ backgroundColor: withAlpha(tokens.semantic.danger, '36') }}>
+          <View className="w-20 items-center justify-center" style={{ backgroundColor: withAlpha(tokens.semantic.danger, '36') }}>
             <Ionicons name="trash" size={23} color={tokens.semantic.danger} />
             <Text className="mt-1 text-[10px] font-black" style={{ color: tokens.semantic.danger }}>Eliminar</Text>
           </View>
@@ -123,7 +123,6 @@ function NotificationListItem({
             className="min-w-0 flex-1"
             style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
           >
-            <View className="flex-row items-start justify-between gap-2">
               <View className="min-w-0 flex-1">
                 <View className="flex-row flex-wrap items-center gap-2">
                   <Text
@@ -160,6 +159,7 @@ function NotificationListItem({
                   ) : null}
                 </View>
               </View>
+            </Pressable>
 
               <View className="flex-row gap-2" accessibilityLabel="Acciones de notificación">
                 {!notification.isRead ? (
@@ -187,8 +187,6 @@ function NotificationListItem({
                   <Ionicons name="trash-outline" size={17} color={tokens.semantic.danger} />
                 </Pressable>
               </View>
-            </View>
-          </Pressable>
         </View>
       </Animated.View>
     </View>

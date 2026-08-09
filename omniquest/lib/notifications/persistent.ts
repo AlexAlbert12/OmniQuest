@@ -142,6 +142,14 @@ export async function markPersistentNotificationsRead(ids: string[]) {
   throw missingNotificationApiError(error)
 }
 
+export async function markAllPersistentNotificationsRead(audience: NotificationAudience) {
+  const { data, error } = await supabase.rpc('mark_all_notifications_read', { p_audience: audience })
+  if (!error) return Number(data || 0)
+  if (!isMissingNotificationRpcError(error)) throw error
+
+  throw missingNotificationApiError(error)
+}
+
 export async function deletePersistentNotifications(ids: string[]) {
   const uniqueIds = uniqueDatabaseIds(ids)
   if (uniqueIds.length === 0) return 0

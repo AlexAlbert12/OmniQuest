@@ -31,7 +31,7 @@ export default function CelebrationParticles({ active = true, color, size = 220 
   if (!active || reducedMotion) return null
 
   return (
-    <View pointerEvents="none" style={{ position: 'absolute', width: size, height: size }}>
+    <View style={{ pointerEvents: 'none', position: 'absolute', width: size, height: size }}>
       {particles.map((particle, index) => {
         const translateX = progress.interpolate({
           inputRange: [0, 1],

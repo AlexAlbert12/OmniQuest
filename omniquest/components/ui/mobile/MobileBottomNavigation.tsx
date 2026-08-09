@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAppTheme } from '../../../lib/appTheme'
+import { releaseWebFocus } from '../../../lib/webFocus'
 
 export type MobileBottomNavigationItem<Key extends string> = {
   key: Key
@@ -15,7 +16,7 @@ export type MobileBottomNavigationItem<Key extends string> = {
 }
 
 type MobileBottomNavigationProps<Key extends string> = {
-  activeKey: Key
+  activeKey: Key | null
   accentColor: string
   items: MobileBottomNavigationItem<Key>[]
   scrollable?: boolean
@@ -45,7 +46,10 @@ export default function MobileBottomNavigation<Key extends string>({
         accessibilityState={{ selected: isActive }}
         disabled={isActive}
         hitSlop={4}
-        onPress={() => router.push(item.href as never)}
+        onPress={() => {
+          releaseWebFocus()
+          router.push(item.href as never)
+        }}
         style={({ pressed }) => [
           styles.item,
           scrollable ? styles.scrollableItem : styles.flexItem,

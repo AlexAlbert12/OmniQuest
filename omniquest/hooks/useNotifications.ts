@@ -24,6 +24,7 @@ import {
   fetchPersistentNotificationPage,
   getDatabaseNotificationId,
   loadNotificationStateFromDB,
+  markAllPersistentNotificationsRead,
   markPersistentNotificationsRead,
   mergeNotificationSources,
   shouldLoadDerivedNotifications,
@@ -141,19 +142,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const applySnapshot = useCallback((audience: NotificationAudience, snapshot: NotificationCacheSnapshot) => {
-    setReadIds(new Set(snapshot.readIds))
-    setDeletedIds(new Set(snapshot.deletedIds))
+    const normalized = normalizeNotificationSnapshot(snapshot)
+    setReadIds(new Set(normalized.readIds))
+    setDeletedIds(new Set(normalized.deletedIds))
     setAudienceState((current) => ({
       ...current,
       [audience]: {
-        notifications: snapshot.notifications,
+        notifications: normalized.notifications,
         loading: false,
         loadingMore: false,
         error: null,
-        hasMore: snapshot.hasMore,
-        total: snapshot.total,
-        unreadCount: snapshot.unreadCount,
-        cursor: snapshot.cursor,
+        hasMore: normalized.hasMore,
+        total: normalized.total,
+        unreadCount: normalized.unreadCount,
+        cursor: normalized.cursor,
       },
     }))
   }, [])
@@ -184,7 +186,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         )
       : []
 
-    const persistentNotifications = filterNotificationsByPreferences(persistentPage.notifications, preferences)
+    // Persistent rows were already admitted by create_notification according to the user's
+    // preferences. Filtering them again on the client can make server totals disagree with
+    // the visible list after preferences change, so only derived notifications are filtered.
+    const persistentNotifications = persistentPage.notifications
     const notifications = cursor === null
       ? mergeNotificationSources(persistentNotifications, derivedNotifications)
       : persistentNotifications
@@ -374,11 +379,29 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   )
 
   const markAllAsRead = useCallback(async (audience: NotificationAudience) => {
-    const ids = stateRef.current[audience].notifications
-      .filter((notification) => !notification.isRead)
-      .map((notification) => notification.id)
-    await markIdsAsRead(audience, ids)
-  }, [markIdsAsRead])
+    if (!userId) return
+    const currentState = stateRef.current[audience]
+    const loadedUnreadIds = currentState.notifications.filter((notification) => !notification.isRead).map((notification) => notification.id)
+
+    try {
+      await markAllPersistentNotificationsRead(audience)
+      const derivedUnreadIds = loadedUnreadIds.filter((id) => !getDatabaseNotificationId(id))
+      setReadIds((current) => new Set([...current, ...loadedUnreadIds]))
+      setAudienceState((current) => ({
+        ...current,
+        [audience]: {
+          ...current[audience],
+          notifications: current[audience].notifications.map((notification) => ({ ...notification, isRead: true })),
+          unreadCount: 0,
+        },
+      }))
+      await patchNotificationCacheMarkAllRead(userId, audience)
+      await persistBatchState({ ids: derivedUnreadIds, read: true })
+    } catch (error) {
+      console.warn('No se pudieron marcar todas las notificaciones remotas; se actualizarán las visibles:', error)
+      await markIdsAsRead(audience, loadedUnreadIds)
+    }
+  }, [markIdsAsRead, persistBatchState, userId])
 
   const deleteNotification = useCallback(
     async (audience: NotificationAudience, id: string) => deleteIds(audience, [id]),
@@ -464,6 +487,24 @@ export function useNotifications(audience: NotificationAudience = 'teacher') {
     loadMore,
     clearError,
   }
+}
+
+function normalizeNotificationSnapshot(snapshot: NotificationCacheSnapshot): NotificationCacheSnapshot {
+  const loadedUnread = snapshot.notifications.filter((notification) => !notification.isRead).length
+  const hasNoRenderableRows = snapshot.notifications.length === 0 && !snapshot.hasMore
+  const total = hasNoRenderableRows ? 0 : Math.max(snapshot.total, snapshot.notifications.length)
+  const unreadCount = total === 0 ? 0 : Math.min(total, Math.max(snapshot.unreadCount, loadedUnread))
+
+  return { ...snapshot, total, unreadCount }
+}
+
+async function patchNotificationCacheMarkAllRead(userId: string, audience: NotificationAudience) {
+  await updateOfflineCache<NotificationCacheSnapshot>(userId, `notifications:${audience}`, (snapshot) => ({
+    ...snapshot,
+    notifications: snapshot.notifications.map((notification) => ({ ...notification, isRead: true })),
+    unreadCount: 0,
+    readIds: [...new Set([...snapshot.readIds, ...snapshot.notifications.map((notification) => notification.id)])],
+  }))
 }
 
 async function patchNotificationCacheBatch(

@@ -38,8 +38,8 @@ export default function StudentRecommendedAction({
           style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
         />
         <View
-          pointerEvents="none"
           style={{
+            pointerEvents: 'none',
             position: 'absolute',
             right: -44,
             top: -52,

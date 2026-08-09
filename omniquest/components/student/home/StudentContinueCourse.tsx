@@ -43,8 +43,8 @@ export default function StudentContinueCourse({
   return (
     <View className="overflow-hidden rounded-[24px] border border-border-default bg-surface-default p-5">
       <View
-        pointerEvents="none"
         style={{
+          pointerEvents: 'none',
           position: 'absolute',
           right: -70,
           top: -70,

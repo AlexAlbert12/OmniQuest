@@ -23,6 +23,11 @@ type NotificationFeedRow =
   | { kind: 'date'; key: string; label: string; count: number }
   | { kind: 'notification'; key: string; notification: AppNotification }
 
+type NotificationEmptyCopy = {
+  title: string
+  message: string
+}
+
 type NotificationFeedProps = {
   audience: FeedRole
   notifications: AppNotification[]
@@ -34,6 +39,7 @@ type NotificationFeedProps = {
   refreshing: boolean
   header?: React.ReactElement | null
   contentContainerStyle?: StyleProp<ViewStyle>
+  emptyState?: NotificationEmptyCopy
   categoryLabel: (notification: AppNotification) => string
   onPress: (notification: AppNotification) => void | Promise<void>
   onMarkAsRead: (notification: AppNotification) => void | Promise<void>
@@ -96,6 +102,7 @@ function NotificationFeed({
   refreshing,
   header,
   contentContainerStyle,
+  emptyState,
   categoryLabel,
   onPress,
   onMarkAsRead,
@@ -134,7 +141,15 @@ function NotificationFeed({
       keyExtractor={keyExtractor}
       renderItem={renderItem}
       ListHeaderComponent={header}
-      ListEmptyComponent={<NotificationEmptyState audience={audience} unreadOnly={unreadOnly} />}
+      ListEmptyComponent={(
+        <NotificationEmptyState
+          audience={audience}
+          unreadOnly={unreadOnly}
+          compact={compact}
+          title={emptyState?.title}
+          message={emptyState?.message}
+        />
+      )}
       ListFooterComponent={hasMore ? (
         <View className="items-center py-5">
           {loadingMore ? (

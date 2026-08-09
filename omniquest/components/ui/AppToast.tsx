@@ -91,7 +91,7 @@ function AppToastHost({ toast, onDismiss }: { toast: ToastState | null; onDismis
   const background = variant === 'neutral' ? tokens.surface.raised : tokens.semanticSurface[variant]
 
   return (
-    <View pointerEvents="box-none" style={styles.viewport}>
+    <View style={[styles.viewport, { pointerEvents: 'box-none' }]}>
       <Animated.View
         accessibilityLiveRegion="polite"
         accessibilityRole="alert"

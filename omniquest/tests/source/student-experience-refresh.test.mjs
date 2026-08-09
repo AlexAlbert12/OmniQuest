@@ -67,13 +67,14 @@ test('badges expose compact categories and the next unlock', () => {
 test('student and teacher notifications share swipe actions and empty states', () => {
   const student = read('app/(student)/notifications.tsx')
   const teacher = read('app/(teacher)/notifications.tsx')
+  const feed = read('components/notifications/NotificationFeed.tsx')
   const item = read('components/notifications/NotificationListItem.tsx')
 
-  for (const source of [student, teacher]) {
-    assert.match(source, /NotificationListItem/)
-    assert.match(source, /NotificationEmptyState/)
-    assert.match(source, /Marcar todas como leídas/)
-  }
+  for (const source of [student, teacher]) assert.match(source, /NotificationFeed/)
+  assert.match(student, /Marcar todas como leídas/)
+  assert.match(teacher, /Marcar leídas|Marcar todas como leídas/)
+  assert.match(feed, /NotificationListItem/)
+  assert.match(feed, /NotificationEmptyState/)
   assert.match(item, /PanResponder/)
   assert.match(item, /commitAction\('read'\)/)
   assert.match(item, /commitAction\('delete'\)/)

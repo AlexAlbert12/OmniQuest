@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router'
 import OmniGuide from '../../components/OmniGuide'
 import StudentLayout from '../../components/student/StudentLayout'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
-import AppButton from '../../components/ui/AppButton'
 import AppStatusBanner from '../../components/ui/AppStatusBanner'
 import {
   StudentContinueCourse,
@@ -59,16 +58,6 @@ export default function StudentHome() {
         isDesktop={responsive.isDesktop}
         title={`¡Hola, ${alias}!`}
         subtitle="Tu siguiente paso está preparado. Empieza por la acción recomendada."
-        actions={responsive.isDesktop ? (
-          <AppButton
-            accessibilityLabel="Actualizar pantalla de inicio"
-            icon="refresh"
-            iconOnly
-            loading={home.refreshing}
-            variant="secondary"
-            onPress={home.refresh}
-          />
-        ) : undefined}
       />
 
       {home.error ? (

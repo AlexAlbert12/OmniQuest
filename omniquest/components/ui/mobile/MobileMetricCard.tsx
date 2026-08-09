@@ -56,11 +56,10 @@ export default function MobileMetricCard({
   const content = (
     <>
       <LinearGradient
-        pointerEvents="none"
         colors={[withAlpha(resolvedColor, compact ? '2B' : '38'), colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
+        style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
       />
       <View className="absolute -right-6 -top-6 h-20 w-20 rounded-full" style={{ backgroundColor: withAlpha(resolvedColor, '18') }} />
       <View

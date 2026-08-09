@@ -1,5 +1,6 @@
 import '../global.css'
 import { Pacifico_400Regular, useFonts } from '@expo-google-fonts/pacifico'
+import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useState } from 'react'
 import { Stack, usePathname, useRouter, useSegments } from 'expo-router'
 import { supabase } from '../lib/supabase'
@@ -77,6 +78,7 @@ function RootNavigator() {
   const [isInitialized, setIsInitialized] = useState(false)
   const [fontsLoaded, fontError] = useFonts({
     Pacifico_400Regular,
+    ...Ionicons.font,
   })
   const router = useRouter()
   const pathname = usePathname()

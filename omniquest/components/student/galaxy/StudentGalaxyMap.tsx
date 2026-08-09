@@ -98,7 +98,7 @@ export function GalaxyScreenBackground({ height = 2800, subtle = false }: { heig
   ).flat()
 
   return (
-    <View pointerEvents="none" style={[StyleSheet.absoluteFill, { minHeight: height, overflow: 'hidden' }]}> 
+    <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none', minHeight: height, overflow: 'hidden' }]}>
       <LinearGradient
         colors={['#10172C', '#070817', '#020712', '#020A16']}
         locations={[0, 0.28, 0.65, 1]}
@@ -914,7 +914,7 @@ function GalaxyDottedConnector({
   }, [bend, x1, x2, y1, y2])
 
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
       {dots.map((dot, index) => (
         <View
           key={`${dot.x}-${dot.y}-${index}`}

@@ -8,7 +8,7 @@ import MobileBottomNavigation, {
 export type StudentBottomNavKey = 'home' | 'classes' | 'progress' | 'profile' | 'settings' | 'ranking' | 'badges' | 'notifications'
 type VisibleStudentBottomNavKey = 'home' | 'classes' | 'progress' | 'ranking' | 'profile'
 
-export default function StudentBottomNav({ active }: { active: StudentBottomNavKey }) {
+export default function StudentBottomNav({ active }: { active: StudentBottomNavKey | null }) {
   const { tokens } = useAppTheme()
   const { t } = useI18n()
   const navItems = useMemo<MobileBottomNavigationItem<VisibleStudentBottomNavKey>[]>(() => [
@@ -28,7 +28,7 @@ export default function StudentBottomNav({ active }: { active: StudentBottomNavK
   )
 }
 
-function getVisibleActiveKey(active: StudentBottomNavKey): VisibleStudentBottomNavKey {
-  if (active === 'badges' || active === 'notifications' || active === 'settings') return 'profile'
+function getVisibleActiveKey(active: StudentBottomNavKey | null): VisibleStudentBottomNavKey | null {
+  if (active === 'badges' || active === 'notifications' || active === 'settings') return null
   return active
 }

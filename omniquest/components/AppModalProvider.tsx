@@ -5,6 +5,7 @@ import OmniGuide, { type OmniState } from './OmniGuide'
 import AppBottomSheet from './ui/AppBottomSheet'
 import AppButton, { type AppButtonVariant } from './ui/AppButton'
 import AppStatusBanner, { type AppStatusBannerVariant } from './ui/AppStatusBanner'
+import { releaseWebFocus } from '../lib/webFocus'
 
 export type NativeAlertButton = {
   text?: string
@@ -73,6 +74,7 @@ export function AppModalProvider({ children }: { children: ReactNode }) {
 
   const showModal = useCallback((nextModal: Omit<AppModalState, 'buttons'> & { buttons?: AppModalButton[] }) => {
     setBusyButtonIndex(null)
+    releaseWebFocus()
     setModal({
       ...nextModal,
       buttons: nextModal.buttons?.length ? nextModal.buttons : [{ label: 'Aceptar', role: 'primary' }],

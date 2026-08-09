@@ -9,6 +9,7 @@ import { withAlpha } from '../../lib/color'
 import OmniGuide from '../../components/OmniGuide'
 import GamifiedAvatar from '../gamification/GamifiedAvatar'
 import { useProfileCosmetics } from '../../hooks/useProfileCosmetics'
+import { releaseWebFocus } from '../../lib/webFocus'
 
 export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings'
 
@@ -110,6 +111,7 @@ export default function StudentSidebar({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Abrir perfil"
+            onPress={releaseWebFocus}
             className="rounded-2xl border"
             style={{
               padding: 8,
@@ -190,6 +192,7 @@ function StudentNavButton({
   const content = (
     <Pressable
       testID={item.testID}
+      onPress={releaseWebFocus}
       accessibilityRole="button"
       accessibilityLabel={item.label}
       onHoverIn={() => setIsHovered(true)}

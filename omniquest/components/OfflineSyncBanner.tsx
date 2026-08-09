@@ -45,7 +45,7 @@ export default function OfflineSyncBanner() {
   }
 
   return (
-    <View pointerEvents="box-none" style={styles.overlay}>
+    <View style={[styles.overlay, { pointerEvents: 'box-none' }]}>
       <View accessibilityLiveRegion="polite" style={[styles.banner, { borderColor: color }]}> 
         <Ionicons name={hasProblems ? 'warning-outline' : online ? 'sync-outline' : 'cloud-offline-outline'} size={17} color={color} />
         <Text numberOfLines={2} style={styles.message}>{message}</Text>

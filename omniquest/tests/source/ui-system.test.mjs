@@ -14,8 +14,8 @@ test('the global palette exposes role, semantic and gamification tokens', () => 
     'background', 'surface', 'border', 'text', 'brand', 'semantic', 'gamification',
   ]) assert.match(tokens, new RegExp(`${path}:`))
 
-  assert.match(tokens, /student: '#38BDF8'/)
-  assert.match(tokens, /teacher: '#38BDF8'/)
+  assert.match(tokens, /student: '#09acf4'/)
+  assert.match(tokens, /teacher: '#09acf4'/)
   assert.match(tokens, /admin: '#A78BFA'/)
   assert.match(tokens, /semanticIcons/)
   assert.match(theme, /tokens: DesignColorTokens/)

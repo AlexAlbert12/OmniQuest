@@ -475,10 +475,12 @@ export default function StudentClassDetailScreen() {
 
       {recommendedTopic && (isDesktop || showMobileStickyMission) ? (
         <View
-          pointerEvents="box-none"
-          style={isDesktop
-            ? { position: 'absolute', right: 24, bottom: 24, width: 520, zIndex: 30 }
-            : { position: 'absolute', left: 14, right: 14, bottom: MOBILE_BOTTOM_NAV_HEIGHT + insets.bottom + MOBILE_STICKY_MISSION_GAP, zIndex: 30 }}
+          style={[
+            { pointerEvents: 'box-none' },
+            isDesktop
+              ? { position: 'absolute', right: 24, bottom: 24, width: 520, zIndex: 30 }
+              : { position: 'absolute', left: 14, right: 14, bottom: MOBILE_BOTTOM_NAV_HEIGHT + insets.bottom + MOBILE_STICKY_MISSION_GAP, zIndex: 30 },
+          ]}
         >
           <CourseNextMission
             compact

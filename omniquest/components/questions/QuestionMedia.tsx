@@ -256,7 +256,7 @@ function VideoMedia({
         </Pressable>
       ) : null}
       {activeCue ? (
-        <View pointerEvents="none" style={styles.subtitleOverlay}>
+        <View style={[styles.subtitleOverlay, { pointerEvents: 'none' }]}>
           <Text style={styles.subtitleText}>{activeCue.text}</Text>
         </View>
       ) : null}

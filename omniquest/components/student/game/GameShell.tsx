@@ -8,7 +8,7 @@ export default function GameShell({ children }: { children: React.ReactNode }) {
 
   return (
     <View className="flex-1 overflow-hidden bg-background-secondary">
-      <View className="absolute inset-0" pointerEvents="none">
+      <View className="absolute inset-0" style={{ pointerEvents: 'none' }}>
         <HomeVisualBackground isDesktop={isDesktop} />
       </View>
 
