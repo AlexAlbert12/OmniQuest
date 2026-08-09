@@ -29,7 +29,7 @@ export default function TeacherDeliveryPreferencesPanel() {
       <Panel title="Entrega y canales">
         <View style={{ minHeight: 120, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color={tokens.brand.teacher} />
-          <Text style={{ marginTop: 10, color: tokens.text.muted }}>Cargando preferencias del servidor…</Text>
+          <Text style={{ marginTop: 10, color: tokens.text.muted }}>Cargando preferencias…</Text>
         </View>
       </Panel>
     )
@@ -51,7 +51,7 @@ export default function TeacherDeliveryPreferencesPanel() {
       <Section
         icon="mail-outline"
         title="Frecuencia del resumen docente"
-        description="El resumen diario o semanal se genera realmente en servidor y queda registrado en el historial de entregas."
+        description="Elige si quieres recibir un resumen diario o semanal y consulta aquí su historial."
       >
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {([
@@ -223,7 +223,7 @@ export default function TeacherDeliveryPreferencesPanel() {
       <Section
         icon="receipt-outline"
         title="Historial del resumen docente"
-        description="Últimos envíos procesados por el servicio de correo."
+        description="Últimos resúmenes enviados a tu correo."
       >
         <View style={{ gap: 8 }}>
           {settings.history.slice(0, 5).map((delivery) => (

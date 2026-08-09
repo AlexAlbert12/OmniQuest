@@ -37,9 +37,8 @@ type AppThemeContextValue = {
 }
 
 const APP_THEME_STORAGE_KEY = 'omniquest:theme'
-const APP_ACCENT_STORAGE_KEY = 'omniquest:accent'
 const DEFAULT_THEME: AppThemePreference = 'system'
-const DEFAULT_ACCENT = '#7C5CFF'
+const DEFAULT_ACCENT = '#09acf4'
 
 function createLegacyThemeColors(tokens: DesignColorTokens): AppThemeColors {
   return {
@@ -84,10 +83,14 @@ function isThemePreference(value: string | null): value is AppThemePreference {
   return value === 'dark' || value === 'light' || value === 'system'
 }
 
+function keepStructuralAccent(_nextAccent: string) {
+  // OmniQuest keeps the structural accent fixed to the product cyan.
+}
+
 export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   const systemTheme = useColorScheme()
   const [themePreference, setThemePreference] = useState<AppThemePreference>(DEFAULT_THEME)
-  const [accentColor, setAccentColorState] = useState(DEFAULT_ACCENT)
+  const accentColor = DEFAULT_ACCENT
   const [ready, setReady] = useState(false)
   const theme: AppThemeMode = themePreference === 'system'
     ? systemTheme === 'light' ? 'light' : 'dark'
@@ -137,13 +140,9 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     let mounted = true
     const load = async () => {
       try {
-        const [savedTheme, savedAccent] = await Promise.all([
-          readStorageItem(APP_THEME_STORAGE_KEY),
-          readStorageItem(APP_ACCENT_STORAGE_KEY),
-        ])
+        const savedTheme = await readStorageItem(APP_THEME_STORAGE_KEY)
         if (!mounted) return
         if (isThemePreference(savedTheme)) setThemePreference(savedTheme)
-        if (savedAccent && /^#([0-9A-F]{3}){1,2}$/i.test(savedAccent)) setAccentColorState(savedAccent)
       } catch {
         // Keep the device defaults when storage is temporarily unavailable.
       } finally {
@@ -170,12 +169,6 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     void writeStorageItem(APP_THEME_STORAGE_KEY, nextTheme)
   }
 
-  const setAccentColor = (nextAccent: string) => {
-    if (!/^#([0-9A-F]{3}){1,2}$/i.test(nextAccent)) return
-    setAccentColorState(nextAccent)
-    void writeStorageItem(APP_ACCENT_STORAGE_KEY, nextAccent)
-  }
-
   const value = useMemo(() => ({
     theme,
     themePreference,
@@ -183,7 +176,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     tokens,
     accentColor,
     setTheme,
-    setAccentColor,
+    setAccentColor: keepStructuralAccent,
     ready,
   }), [theme, themePreference, colors, tokens, accentColor, ready])
 

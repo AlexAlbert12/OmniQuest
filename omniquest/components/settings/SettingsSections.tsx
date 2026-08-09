@@ -1,5 +1,5 @@
 import React from 'react'
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Image, Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme, type AppThemePreference } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
@@ -11,13 +11,11 @@ import {
   NotificationRow,
   Panel,
   PreferenceRow,
-  SelectPill,
 } from './SettingsUi'
 import ManagedSessionsCard from './ManagedSessionsCard'
 import AccountDataRequestsCard from './AccountDataRequestsCard'
 import {
   SecurityAccountStatusCard,
-  SecurityDangerCard,
   SecurityPasswordCard,
   type PasswordChecks,
 } from './SettingsSecurity'
@@ -31,7 +29,7 @@ import type {
   SettingsMenuSectionKey,
   UserPreferencesState,
 } from './SettingsTypes'
-
+import StudentRankingPrivacyCard from './StudentRankingPrivacyCard'
 type PreferenceOptions = Record<PreferenceKey, string[]>
 type FormatPreferenceLabel = (key: PreferenceKey, value: string) => string
 
@@ -101,56 +99,46 @@ export function SettingsProfilePanel({
   isTeacher,
   width,
   userInitials,
+  avatar,
   saving,
   accentColor,
   name,
   email,
-  preferences,
-  openPreferenceKey,
-  preferenceOptions,
-  savingPreference,
   onNameChange,
   onSaveProfile,
-  onTogglePreferenceMenu,
-  onSelectPreference,
-  formatPreferenceLabel,
   onOpenSecurity,
 }: {
   isTeacher: boolean
   width: number
   userInitials: string
+  avatar?: string | null
   saving: boolean
   accentColor: string
   name: string
   email: string
-  preferences: UserPreferencesState
-  openPreferenceKey: PreferenceKey | null
-  preferenceOptions: PreferenceOptions
-  savingPreference: PreferenceKey | null
   onNameChange: (value: string) => void
   onSaveProfile: () => void
-  onTogglePreferenceMenu: (key: PreferenceKey) => void
-  onSelectPreference: (key: PreferenceKey, value: string) => void
-  formatPreferenceLabel: FormatPreferenceLabel
   onOpenSecurity: () => void
 }) {
-  const { colors } = useAppTheme()
+  const { colors, tokens } = useAppTheme()
   const { t } = useI18n()
+  const isWide = width >= 520
+  const hasRemoteAvatar = Boolean(avatar && /^https?:\/\//i.test(avatar))
+
   return (
     <Panel title={t(isTeacher ? 'settings.profile.title.teacher' : 'settings.profile.title.student')}>
-      <View className={width >= 520 ? 'flex-row gap-5' : 'gap-4'}>
-        <View className="items-center">
-          <View className="h-24 w-24 items-center justify-center rounded-full bg-surface-selected">
-            <Text className="text-[28px] font-black text-white">{userInitials}</Text>
-          </View>
-          <Pressable
-            onPress={onSaveProfile}
-            disabled={saving}
-            className="mt-5 rounded-lg px-5 py-3"
-            style={{ backgroundColor: accentColor }}
+      <View className={isWide ? 'flex-row items-start gap-5' : 'gap-4'}>
+        <View className="items-center" style={isWide ? { paddingTop: 2 } : undefined}>
+          <View
+            className="h-24 w-24 items-center justify-center overflow-hidden rounded-full border"
+            style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}
           >
-            <Text className="text-[12px] font-bold text-white">{saving ? t('settings.profile.saving') : t('settings.profile.save')}</Text>
-          </Pressable>
+            {hasRemoteAvatar ? (
+              <Image source={{ uri: avatar as string }} className="h-full w-full" resizeMode="cover" />
+            ) : (
+              <Text className="text-[28px] font-black" style={{ color: tokens.text.primary }}>{userInitials}</Text>
+            )}
+          </View>
         </View>
 
         <View className="min-w-0 flex-1 gap-3">
@@ -173,19 +161,25 @@ export function SettingsProfilePanel({
               style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised, color: colors.textSecondary }}
             />
           </Field>
-          <Field label={t('settings.profile.language')}>
-            <SelectPill
-              value={formatPreferenceLabel('language', preferences.language)}
-              selectedValue={preferences.language}
-              open={openPreferenceKey === 'language'}
-              onToggle={() => onTogglePreferenceMenu('language')}
-              options={preferenceOptions.language}
-              onSelect={(value) => onSelectPreference('language', value)}
-              optionLabel={(value) => formatPreferenceLabel('language', value)}
-              disabled={Boolean(savingPreference)}
-              loading={savingPreference === 'language'}
-            />
-          </Field>
+
+          <Pressable
+            onPress={onSaveProfile}
+            disabled={saving}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: saving, busy: saving }}
+            className={`${isWide ? 'min-w-[180px] self-end' : 'w-full'} mt-2 min-h-[46px] flex-row items-center justify-center gap-2 rounded-lg px-5 py-3`}
+            style={({ pressed }) => ({
+              backgroundColor: saving ? tokens.surface.disabled : accentColor,
+              borderWidth: 1,
+              borderColor: saving ? colors.border : accentColor,
+              opacity: pressed && !saving ? 0.86 : 1,
+            })}
+          >
+            {saving ? <ActivityIndicator size="small" color={tokens.text.disabled} /> : null}
+            <Text className="text-[12px] font-bold" style={{ color: saving ? tokens.text.disabled : tokens.text.onAccent }}>
+              {saving ? t('settings.profile.saving') : t('settings.profile.save')}
+            </Text>
+          </Pressable>
         </View>
       </View>
       <View className="mt-4 border-t border-border-subtle pt-4">
@@ -202,26 +196,22 @@ export function SettingsProfilePanel({
 
 export function SettingsPreferencesPanel({
   accentColor,
-  accentColors,
   preferences,
   openPreferenceKey,
   preferenceOptions,
   savingPreference,
   savingHaptics,
-  onAccentColorChange,
   onTogglePreferenceMenu,
   onSelectPreference,
   onToggleHaptics,
   formatPreferenceLabel,
 }: {
   accentColor: string
-  accentColors: readonly string[]
   preferences: UserPreferencesState
   openPreferenceKey: PreferenceKey | null
   preferenceOptions: PreferenceOptions
   savingPreference: PreferenceKey | null
   savingHaptics: boolean
-  onAccentColorChange: (color: string) => void
   onTogglePreferenceMenu: (key: PreferenceKey) => void
   onSelectPreference: (key: PreferenceKey, value: string) => void
   onToggleHaptics: (enabled: boolean) => void
@@ -270,36 +260,6 @@ export function SettingsPreferencesPanel({
               </Pressable>
             )
           })}
-        </View>
-      </View>
-
-      <View
-        className="mb-4 rounded-lg border p-3"
-        style={{ backgroundColor: colors.surfaceRaised, borderColor: colors.border }}
-      >
-        <Text className="text-[12px] font-bold" style={{ color: colors.text }}>{t('settings.accent.title')}</Text>
-        <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>
-          {t('settings.accent.description')}
-        </Text>
-        <View className="mt-2 flex-row flex-wrap gap-3">
-          {accentColors.map((color) => (
-            <Pressable
-              key={color}
-              accessibilityLabel={t('settings.accent.use', { color })}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: accentColor === color }}
-              hitSlop={5}
-              onPress={() => onAccentColorChange(color)}
-              className="h-10 w-10 items-center justify-center rounded-full"
-              style={{
-                backgroundColor: color,
-                borderWidth: accentColor === color ? 3 : 1,
-                borderColor: accentColor === color ? colors.text : colors.border,
-              }}
-            >
-              {accentColor === color ? <Ionicons name="checkmark" size={16} color="#FFFFFF" /> : null}
-            </Pressable>
-          ))}
         </View>
       </View>
 
@@ -459,6 +419,8 @@ export function SettingsPrivacyPanel({
   isTeacher,
   profileVisibility,
   profileVisibilityAvailable,
+  savingProfileVisibility = false,
+  isGuest = false,
   analyticsEnabled,
   savingAnalytics,
   accentColor,
@@ -469,6 +431,8 @@ export function SettingsPrivacyPanel({
   isTeacher: boolean
   profileVisibility: ProfileVisibility | null
   profileVisibilityAvailable: boolean
+  savingProfileVisibility?: boolean
+  isGuest?: boolean
   analyticsEnabled: boolean
   savingAnalytics: boolean
   accentColor: string
@@ -480,45 +444,57 @@ export function SettingsPrivacyPanel({
   const { t } = useI18n()
   return (
     <Panel title={t('settings.section.privacy')}>
-      <View className="mb-4 rounded-lg border p-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
-        <View className="flex-row flex-wrap items-center justify-between gap-3">
-          <View className="min-w-0 flex-1">
-            <Text className="font-bold" style={{ color: colors.text }}>{t('settings.privacy.visibility')}</Text>
-            <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>
-              {isTeacher
-                ? t('settings.privacy.visibility.teacher')
-                : t('settings.privacy.visibility.student')}
+      {!isTeacher ? (
+        <StudentRankingPrivacyCard
+          visibility={profileVisibility}
+          available={profileVisibilityAvailable}
+          saving={savingProfileVisibility}
+          isGuest={isGuest}
+          onChange={onProfileVisibilityChange}
+        />
+      ) : null}
+
+      {isTeacher ? (
+        <View className="mb-4 rounded-lg border p-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
+          <View className="flex-row flex-wrap items-center justify-between gap-3">
+            <View className="min-w-0 flex-1">
+              <Text className="font-bold" style={{ color: colors.text }}>{t('settings.privacy.visibility')}</Text>
+              <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>
+                {isTeacher
+                  ? t('settings.privacy.visibility.teacher')
+                  : t('settings.privacy.visibility.student')}
+              </Text>
+            </View>
+
+            <View className="flex-row gap-2">
+              <VisibilityButton
+                label={t('settings.privacy.public')}
+                value="public"
+                selected={profileVisibility === 'public'}
+                available={profileVisibilityAvailable}
+                accentColor={accentColor}
+                colors={colors}
+                onPress={onProfileVisibilityChange}
+              />
+              <VisibilityButton
+                label={t('settings.privacy.private')}
+                value="private"
+                selected={profileVisibility === 'private'}
+                available={profileVisibilityAvailable}
+                accentColor={accentColor}
+                colors={colors}
+                onPress={onProfileVisibilityChange}
+              />
+            </View>
+          </View>
+
+          {!profileVisibilityAvailable ? (
+            <Text className="mt-3 text-[12px] leading-5 text-gamification-xp">
+              {t('settings.privacy.unavailable')}
             </Text>
-          </View>
-
-          <View className="flex-row gap-2">
-            <VisibilityButton
-              label={t('settings.privacy.public')}
-              value="public"
-              selected={profileVisibility === 'public'}
-              available={profileVisibilityAvailable}
-              accentColor={accentColor}
-              colors={colors}
-              onPress={onProfileVisibilityChange}
-            />
-            <VisibilityButton
-              label={t('settings.privacy.private')}
-              value="private"
-              selected={profileVisibility === 'private'}
-              available={profileVisibilityAvailable}
-              accentColor={accentColor}
-              colors={colors}
-              onPress={onProfileVisibilityChange}
-            />
-          </View>
+          ) : null}
         </View>
-
-        {!profileVisibilityAvailable ? (
-          <Text className="mt-3 text-[12px] leading-5 text-gamification-xp">
-            {t('settings.privacy.unavailable')}
-          </Text>
-        ) : null}
-      </View>
+      ) : null}
 
       <View className="mb-4 overflow-hidden rounded-xl border" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
         <NotificationRow
@@ -622,6 +598,7 @@ export function SettingsDataPanel({
             title={t(isTeacher ? 'danger.scores.teacher.title' : 'danger.scores.student.title')}
             description={t(isTeacher ? 'settings.data.scores.teacher' : 'settings.data.scores.student')}
             deletingData={deletingData}
+            tone="partial"
             onPress={() => onDeletePartialData('scores')}
           />
           <DangerDataRow
@@ -629,6 +606,7 @@ export function SettingsDataPanel({
             title={t(isTeacher ? 'danger.enrollments.teacher.title' : 'danger.enrollments.student.title')}
             description={isTeacher ? t('settings.data.enrollments.teacher') : undefined}
             deletingData={deletingData}
+            tone="partial"
             onPress={() => onDeletePartialData('enrollments')}
           />
           <DangerDataRow
@@ -640,6 +618,7 @@ export function SettingsDataPanel({
                 : t('settings.data.all.student')
             }
             deletingData={deletingData}
+            tone="major"
             onPress={() => onDeletePartialData('all')}
           />
         </View>
@@ -653,21 +632,25 @@ function DangerDataRow({
   title,
   description,
   deletingData,
+  tone = 'partial',
   onPress,
 }: {
   icon: IconName
   title: string
   description?: string
   deletingData: boolean
+  tone?: 'partial' | 'major'
   onPress: () => void
 }) {
   const { colors } = useAppTheme()
+  const dangerBorder = withAlpha(colors.danger, tone === 'major' ? '8F' : '55')
+  const dangerSurface = tone === 'major' ? withAlpha(colors.danger, '12') : colors.surface
   return (
     <Pressable
       onPress={onPress}
       disabled={deletingData}
-      className="flex-row items-center justify-between rounded-lg border border-semantic-danger bg-semantic-surface-danger p-3"
-      style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+      className="flex-row items-center justify-between rounded-lg border p-3"
+      style={({ pressed }) => ({ borderColor: dangerBorder, backgroundColor: dangerSurface, opacity: pressed ? 0.78 : 1 })}
     >
       <View className="flex-row items-center gap-3">
         <Ionicons name={icon} size={16} color={colors.danger} />
@@ -700,7 +683,6 @@ export function SettingsSecurityPanel({
   email,
   emailConfirmedAt,
   lastSignInAt,
-  deletingAccount,
   onOpenSecurity,
   onCurrentPasswordChange,
   onNewPasswordChange,
@@ -710,7 +692,6 @@ export function SettingsSecurityPanel({
   onToggleConfirmPassword,
   onChangePassword,
   onSignOut,
-  onDeleteAccount,
 }: {
   securityOnly: boolean
   accentColor: string
@@ -725,7 +706,6 @@ export function SettingsSecurityPanel({
   email: string
   emailConfirmedAt: string | null
   lastSignInAt: string | null
-  deletingAccount: boolean
   onOpenSecurity: () => void
   onCurrentPasswordChange: (value: string) => void
   onNewPasswordChange: (value: string) => void
@@ -735,7 +715,6 @@ export function SettingsSecurityPanel({
   onToggleConfirmPassword: () => void
   onChangePassword: () => void
   onSignOut: () => void
-  onDeleteAccount: () => void
 }) {
   const { t } = useI18n()
   return (
@@ -776,11 +755,6 @@ export function SettingsSecurityPanel({
           />
 
           <ManagedSessionsCard />
-
-          <SecurityDangerCard
-            deletingAccount={deletingAccount}
-            onDeleteAccount={onDeleteAccount}
-          />
         </View>
       )}
     </Panel>

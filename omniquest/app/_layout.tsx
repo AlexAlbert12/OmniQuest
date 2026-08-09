@@ -230,7 +230,7 @@ function RootNavigator() {
 
       void syncAnalyticsConsentFromServer(session.user.id)
 
-      if (profile.role_id === 'teacher' || profile.role_id === 'admin') {
+      if (profile.role_id === 'student' || profile.role_id === 'teacher' || profile.role_id === 'admin') {
         try {
           const managedSession = await registerCurrentSession()
           if (managedSession.revoked) {

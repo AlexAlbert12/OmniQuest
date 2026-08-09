@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native'
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import AppConfirmModal from '../../components/AppConfirmModal'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
@@ -38,12 +40,14 @@ const ROUTES = {
   teacherHelpCenter: '/(teacher)/help-center' as AppHref,
   teacherNotifications: '/(teacher)/notifications' as AppHref,
   teacherSecurity: '/(teacher)/security' as AppHref,
+  studentSettings: '/(student)/settings' as AppHref,
+  teacherSettings: '/(teacher)/settings' as AppHref,
 }
 
 const studentSettingsSectionDefinitions: { key: SettingsMenuSectionKey; labelKey: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
   { key: 'general', labelKey: 'settings.section.general', icon: 'settings-outline', anchor: 'general' },
   { key: 'profile', labelKey: 'settings.section.profile', icon: 'person-outline', anchor: 'profile' },
-  { key: 'preferences', labelKey: 'settings.section.preferences', icon: 'globe-outline', anchor: 'preferences' },
+  { key: 'preferences', labelKey: 'settings.section.preferences.short', icon: 'globe-outline', anchor: 'preferences' },
   { key: 'notifications', labelKey: 'settings.section.notifications', icon: 'notifications-outline', anchor: 'notifications' },
   { key: 'privacy', labelKey: 'settings.section.privacy', icon: 'shield-checkmark-outline', anchor: 'privacy' },
   { key: 'data', labelKey: 'settings.section.data', icon: 'server-outline', anchor: 'data' },
@@ -68,7 +72,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const { width } = useWindowDimensions()
   const router = useRouter()
   const { section } = useLocalSearchParams<{ section?: string }>()
-  const { colors, accentColor, setAccentColor } = useAppTheme()
+  const { colors, accentColor } = useAppTheme()
   const { t } = useI18n()
   const scrollRef = useRef<ScrollView | null>(null)
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsMenuSectionKey>('general')
@@ -118,10 +122,14 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
     router.push(roleRoute(data.isTeacher, ROUTES.teacherHelpCenter, ROUTES.studentHelpCenter))
   }
 
+  const backToSettings = () => {
+    router.replace(roleRoute(data.isTeacher, ROUTES.teacherSettings, ROUTES.studentSettings))
+  }
+
   if (data.loading) {
     return (
       <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color={accentColor} />
         <Text className="mt-4" style={{ color: colors.textMuted }}>{t('settings.loading')}</Text>
       </View>
     )
@@ -159,6 +167,20 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
               paddingTop: isDesktop ? 24 : 18,
             }}
           >
+            {securityOnly ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('settings.back')}
+                hitSlop={8}
+                onPress={backToSettings}
+                className="mb-3 flex-row items-center gap-2 self-start rounded-lg px-1 py-2"
+                style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
+              >
+                <Ionicons name="arrow-back" size={18} color={accentColor} />
+                <Text className="text-[13px] font-bold" style={{ color: accentColor }}>{t('settings.back')}</Text>
+              </Pressable>
+            ) : null}
+
             <RolePageHeader
               role={data.isTeacher ? 'teacher' : 'student'}
               icon={securityOnly ? 'lock-closed' : 'settings'}
@@ -211,7 +233,6 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                   accentColor={accentColor}
                   data={data}
                   isDesktop={isDesktop}
-                  onAccentColorChange={setAccentColor}
                   onOpenHelpCenter={openHelpCenter}
                   onOpenSecurity={openSecurity}
                   onSelectSection={setActiveSettingsSection}

@@ -125,7 +125,6 @@ const preferenceLabels = {
   },
 } as const
 
-export const accentColors = ['#7C5CFF', '#3B82F6', '#38BDF8', '#58D17A', '#F6A64A', '#EF5350', '#D94A9A'] as const
 
 function isMissingSchemaError(errorCode?: string) {
   return errorCode === '42P01' || errorCode === '42703' || errorCode === 'PGRST204'
@@ -253,6 +252,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   const [openNotificationFrequency, setOpenNotificationFrequency] = useState(false)
   const [profileVisibility, setProfileVisibility] = useState<ProfileVisibility | null>(null)
   const [profileVisibilityAvailable, setProfileVisibilityAvailable] = useState(false)
+  const [savingProfileVisibility, setSavingProfileVisibility] = useState(false)
   const [exportingData, setExportingData] = useState(false)
   const [deletingData, setDeletingData] = useState(false)
   const [pendingDestructiveAction, setPendingDestructiveAction] = useState<DestructiveActionType | null>(null)
@@ -267,7 +267,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   const userInitials = getInitials(name)
   const passwordChecks = useMemo(() => {
     const hasCurrentPassword = currentPassword.length > 0
-    const hasMinimumLength = newPassword.length >= 6
+    const hasMinimumLength = newPassword.length >= 8
     const hasConfirmation = confirmPassword.length > 0
     const passwordsMatch = hasConfirmation && newPassword === confirmPassword
     const isDifferentFromCurrent = newPassword.length > 0 && newPassword !== currentPassword
@@ -347,14 +347,15 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   }
 
   const handleProfileVisibilityChange = async (visibility: ProfileVisibility) => {
-    if (!userId) return
+    if (!userId || savingProfileVisibility) return
     if (!profileVisibilityAvailable) {
       showAlert(
         'Visibilidad no disponible',
-        'La columna profiles.visibility no aparece en el esquema actual. Añade la columna y regenera los tipos antes de activar esta preferencia.'
+        'La visibilidad del perfil no está disponible temporalmente. Inténtalo de nuevo más tarde.'
       )
       return
     }
+    setSavingProfileVisibility(true)
 
     try {
       const { error } = await supabase
@@ -365,18 +366,27 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
       if (error) throw error
 
       setProfileVisibility(visibility)
-      showAlert('Visibilidad actualizada', `Tu perfil ahora es ${visibility === 'public' ? 'público' : 'privado'}.`)
+      showAlert(
+        isTeacher ? 'Visibilidad actualizada' : 'Privacidad del ranking actualizada',
+        isTeacher
+          ? `Tu perfil ahora es ${visibility === 'public' ? 'público' : 'privado'}.`
+          : visibility === 'public'
+            ? 'Volverás a aparecer en las clasificaciones autorizadas.'
+            : 'Ya no aparecerás ante otros usuarios en el ranking.'
+      )
     } catch (error: unknown) {
       if (isMissingSchemaError(getErrorCode(error))) {
         setProfileVisibilityAvailable(false)
         setProfileVisibility(null)
         showAlert(
           'Visibilidad no disponible',
-          'La columna profiles.visibility no está disponible todavía. Añádela en Supabase y regenera types/database.types.ts.'
+          'La visibilidad del perfil no está disponible temporalmente. Inténtalo de nuevo más tarde.'
         )
       } else {
         showAlert('Error', getErrorMessage(error) || 'No se pudo actualizar la visibilidad del perfil.')
       }
+    } finally {
+      setSavingProfileVisibility(false)
     }
   }
 
@@ -877,7 +887,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
       if (isMissingNotificationPreferencesTableError(getErrorCode(error))) {
         showAlert(
           'Configuración pendiente',
-          'Falta la tabla user_notification_preferences en Supabase. Aplica la migración para guardar notificaciones.'
+          'Las preferencias de notificaciones no están disponibles temporalmente. Inténtalo de nuevo más tarde.'
         )
       } else {
         showAlert('No se pudo guardar', getErrorMessage(error) || 'No se pudieron guardar tus notificaciones.')
@@ -916,7 +926,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
       if (isMissingNotificationPreferencesTableError(getErrorCode(error))) {
         showAlert(
           'Configuración pendiente',
-          'Falta la tabla user_notification_preferences en Supabase. Aplica la migración para guardar notificaciones.'
+          'Las preferencias de notificaciones no están disponibles temporalmente. Inténtalo de nuevo más tarde.'
         )
       } else {
         showAlert('No se pudo guardar', getErrorMessage(error) || 'No se pudieron guardar tus notificaciones.')
@@ -955,7 +965,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     } catch (error: unknown) {
       setTeacherNotificationSettings(previous)
       if (isMissingNotificationPreferencesTableError(getErrorCode(error))) {
-        showAlert('Configuración pendiente', 'Aplica la migración de preferencias docentes para guardar estos ajustes.')
+        showAlert('Preferencia no disponible', 'Estas preferencias no se pueden guardar temporalmente. Inténtalo de nuevo más tarde.')
       } else {
         showAlert('No se pudo guardar', getErrorMessage(error) || 'No se pudieron guardar las preferencias docentes.')
       }
@@ -995,7 +1005,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
       if (isMissingPreferencesTableError(getErrorCode(error))) {
         showAlert(
           'Configuración pendiente',
-          'Falta la tabla user_preferences en Supabase. Aplica la migración para guardar estas preferencias.'
+          'Estas preferencias no están disponibles temporalmente. Inténtalo de nuevo más tarde.'
         )
       } else {
         showAlert('No se pudo guardar', getErrorMessage(error) || 'No se pudieron guardar tus preferencias.')
@@ -1023,7 +1033,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
       if (isMissingPreferencesTableError(getErrorCode(error))) {
         showAlert(
           'Configuración pendiente',
-          'Aplica la migración de gamificación para guardar la respuesta táctil.'
+          'La respuesta táctil no se puede actualizar temporalmente. Inténtalo de nuevo más tarde.'
         )
       } else {
         showAlert('No se pudo guardar', getErrorMessage(error) || 'No se pudo actualizar la respuesta táctil.')
@@ -1052,7 +1062,6 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   }
 
   return {
-    accentColors,
     alias,
     changingPassword,
     closeDestructiveConfirmation,
@@ -1101,6 +1110,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     savingNotificationKey,
     savingTeacherNotificationKey,
     savingPreference,
+    savingProfileVisibility,
     savingHaptics,
     savingAnalytics,
     selectNotificationFrequency,

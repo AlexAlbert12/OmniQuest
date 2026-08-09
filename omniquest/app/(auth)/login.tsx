@@ -123,7 +123,7 @@ export default function LoginScreen() {
           .eq('id', data.session.user.id)
           .maybeSingle()
 
-        if (profile?.role_id === 'teacher' || profile?.role_id === 'admin') {
+        if (profile?.role_id === 'student' || profile?.role_id === 'teacher' || profile?.role_id === 'admin') {
           const managedSession = await registerCurrentSession()
           if (managedSession.revoked) {
             await supabase.auth.signOut({ scope: 'local' })

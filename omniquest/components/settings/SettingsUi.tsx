@@ -33,6 +33,28 @@ export function SettingsMenu({
 }) {
   const { accentColor, colors } = useAppTheme()
   const { t } = useI18n()
+  const horizontalScrollRef = React.useRef<ScrollView | null>(null)
+  const itemLayoutsRef = React.useRef<Record<string, { x: number; width: number }>>({})
+  const scrollXRef = React.useRef(0)
+  const [viewportWidth, setViewportWidth] = React.useState(0)
+  const [layoutVersion, setLayoutVersion] = React.useState(0)
+
+  React.useEffect(() => {
+    if (variant === 'side' || viewportWidth <= 0) return
+    const layout = itemLayoutsRef.current[activeSection]
+    if (!layout) return
+
+    const safeInset = 16
+    const currentX = scrollXRef.current
+    const visibleLeft = currentX + safeInset
+    const visibleRight = currentX + viewportWidth - safeInset
+    let targetX = currentX
+
+    if (layout.x < visibleLeft) targetX = Math.max(0, layout.x - safeInset)
+    else if (layout.x + layout.width > visibleRight) targetX = Math.max(0, layout.x + layout.width - viewportWidth + safeInset)
+
+    if (Math.abs(targetX - currentX) > 1) horizontalScrollRef.current?.scrollTo({ x: targetX, animated: true })
+  }, [activeSection, layoutVersion, variant, viewportWidth])
 
   const renderMenuItem = (section: SettingsMenuItem) => {
     const active = section.key === activeSection
@@ -41,6 +63,12 @@ export function SettingsMenu({
     return (
       <Pressable
         key={section.key}
+        onLayout={(event) => {
+          const { x, width } = event.nativeEvent.layout
+          const previous = itemLayoutsRef.current[section.key]
+          itemLayoutsRef.current[section.key] = { x, width }
+          if (active && (!previous || previous.x !== x || previous.width !== width)) setLayoutVersion((value) => value + 1)
+        }}
         accessibilityRole="tab"
         accessibilityLabel={section.label}
         accessibilityState={{ selected: active }}
@@ -98,11 +126,15 @@ export function SettingsMenu({
   return (
     <View className="rounded-xl p-2" style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }}>
       <ScrollView
+        ref={horizontalScrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
+        onLayout={(event) => setViewportWidth(event.nativeEvent.layout.width)}
+        onScroll={(event) => { scrollXRef.current = event.nativeEvent.contentOffset.x }}
+        scrollEventThrottle={16}
         contentContainerStyle={{
           gap: 8,
-          paddingRight: 8,
+          paddingHorizontal: 16,
         }}
       >
         {sections.map(renderMenuItem)}
@@ -271,7 +303,8 @@ export function NotificationRow({
   disabled?: boolean
   loading?: boolean
 }) {
-  const { accentColor, colors } = useAppTheme()
+  const { accentColor, colors, theme } = useAppTheme()
+  const offTrackColor = theme === 'dark' ? '#334155' : '#CBD5E1'
 
   return (
     <View className="flex-row items-center gap-3 border-b py-3" style={{ borderBottomColor: colors.border }}>
@@ -288,10 +321,12 @@ export function NotificationRow({
           accessibilityLabel={title}
           accessibilityRole="switch"
           accessibilityState={{ checked: enabled, disabled: disabled || loading }}
+          hitSlop={8}
           value={enabled}
           onValueChange={onPress}
           disabled={disabled || loading}
-          trackColor={{ false: colors.borderStrong, true: accentColor }}
+          trackColor={{ false: offTrackColor, true: accentColor }}
+          ios_backgroundColor={offTrackColor}
           thumbColor="#FFFFFF"
         />
       </View>

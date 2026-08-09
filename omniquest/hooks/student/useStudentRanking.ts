@@ -86,7 +86,6 @@ export function useStudentRanking(pageSize: number) {
   const [selectedClassroomId, setSelectedClassroomIdState] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [privacySaving, setPrivacySaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const selectedLeague = selectedLeagueName
@@ -206,25 +205,6 @@ export function useStudentRanking(pageSize: number) {
     setSelectedClassroomIdState(id)
   }, [])
 
-  const setRankingParticipation = useCallback(async (participates: boolean) => {
-    if (!profile) return
-    setPrivacySaving(true)
-    setError(null)
-    try {
-      const visibility = participates ? 'public' : 'private'
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ visibility })
-        .eq('id', profile.id)
-      if (updateError) throw updateError
-      setProfile((currentProfile) => currentProfile ? { ...currentProfile, visibility } : currentProfile)
-      await load(true)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo actualizar la privacidad del ranking.')
-    } finally {
-      setPrivacySaving(false)
-    }
-  }, [load, profile])
 
   const currentPoints = current?.points ?? (scope === 'global' ? profile?.points ?? 0 : 0)
   const currentLeague = getRankingLeague(currentPoints, leagues)
@@ -254,13 +234,11 @@ export function useStudentRanking(pageSize: number) {
     isGuest,
     loading,
     refreshing,
-    privacySaving,
     error,
     setScope,
     setPage,
     setSelectedLeagueName,
     setSelectedClassroomId,
-    setRankingParticipation,
     reload: () => load(true),
   }
 }

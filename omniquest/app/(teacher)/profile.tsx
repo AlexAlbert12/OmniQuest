@@ -15,7 +15,6 @@ import AppStatusBanner from '../../components/ui/AppStatusBanner'
 import { useTeacherProfile, type TeacherRecentQuestion } from '../../hooks/teacher/useTeacherProfile'
 import { useAppTheme } from '../../lib/appTheme'
 import { useResponsiveLayout } from '../../lib/responsive'
-import { supabase } from '../../lib/supabase'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 const ROUTES = {

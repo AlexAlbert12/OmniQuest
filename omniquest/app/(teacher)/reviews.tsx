@@ -17,7 +17,6 @@ import ManualReviewBatchSheet from '../../components/teacher/reviews/ManualRevie
 import ManualReviewConfigurationSheet from '../../components/teacher/reviews/ManualReviewConfigurationSheet'
 import { useManualReview } from '../../hooks/teacher/useManualReview'
 import { useAppTheme } from '../../lib/appTheme'
-import { supabase } from '../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import type { ManualReviewFilters, ManualReviewQueueRow, ManualReviewStatus } from '../../lib/teacherManualReview'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'

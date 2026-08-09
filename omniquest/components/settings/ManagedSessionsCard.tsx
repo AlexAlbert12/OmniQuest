@@ -32,7 +32,20 @@ export default function ManagedSessionsCard() {
 
   const invoke = useCallback(async (body: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke('manage-account-security', { body })
-    if (error) throw error
+    if (error) {
+      const response = (error as { context?: { clone?: () => { json: () => Promise<unknown> } } }).context
+      let publicMessage = ''
+      if (response?.clone) {
+        try {
+          const payload = await response.clone().json() as { error?: string; message?: string }
+          publicMessage = payload?.error || payload?.message || ''
+        } catch {
+          // Keep the standard Functions error when the response body is not JSON.
+        }
+      }
+      if (publicMessage) throw new Error(publicMessage)
+      throw error
+    }
     if (data?.error) throw new Error(data.error)
     return data
   }, [])
@@ -79,6 +92,8 @@ export default function ManagedSessionsCard() {
       setBusy(null)
     }
   }
+
+  const activeOtherSessions = sessions.filter((session) => !session.revoked_at && session.device_id !== currentDevice)
 
   const generateCodes = async () => {
     setBusy('codes')
@@ -136,10 +151,12 @@ export default function ManagedSessionsCard() {
         </View>
       )}
 
-      <Pressable disabled={Boolean(busy)} onPress={() => void revokeOthers()} className="mt-4 min-h-[46px] flex-row items-center justify-center gap-2 rounded-xl border px-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised, opacity: busy ? 0.6 : 1 }}>
-        <Ionicons name="log-out-outline" size={17} color={colors.danger} />
-        <Text className="font-black" style={{ color: colors.danger }}>{t('sessions.closeOthers')}</Text>
-      </Pressable>
+      {activeOtherSessions.length > 0 ? (
+        <Pressable disabled={Boolean(busy)} onPress={() => void revokeOthers()} className="mt-4 min-h-[46px] flex-row items-center justify-center gap-2 rounded-xl border px-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised, opacity: busy ? 0.6 : 1 }}>
+          <Ionicons name="log-out-outline" size={17} color={colors.danger} />
+          <Text className="font-black" style={{ color: colors.danger }}>{t('sessions.closeOthers')}</Text>
+        </Pressable>
+      ) : null}
       <Pressable disabled={Boolean(busy)} onPress={() => void generateCodes()} className="mt-3 min-h-[46px] flex-row items-center justify-center gap-2 rounded-xl border px-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised, opacity: busy ? 0.6 : 1 }}>
         <Ionicons name="key-outline" size={17} color={accentColor} />
         <Text className="font-black" style={{ color: accentColor }}>{t('sessions.codes.generate', { count: codesRemaining })}</Text>

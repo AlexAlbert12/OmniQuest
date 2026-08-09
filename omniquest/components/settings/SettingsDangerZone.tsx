@@ -16,46 +16,6 @@ export type DestructiveActionType = 'scores' | 'enrollments' | 'all' | 'account'
 
 export const REQUIRED_DESTRUCTIVE_CONFIRMATION = 'ELIMINAR'
 
-export function SecurityDangerCard({
-  deletingAccount,
-  onDeleteAccount,
-}: {
-  deletingAccount: boolean
-  onDeleteAccount: () => void
-}) {
-  const { colors } = useAppTheme()
-  const { t } = useI18n()
-  return (
-    <View className="rounded-2xl border p-4" style={{ borderColor: colors.danger, backgroundColor: colors.surface }}>
-      <View className="flex-row items-start gap-3">
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-semantic-surface-danger">
-          <Ionicons name="warning-outline" size={21} color="#FB7185" />
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className="text-[16px] font-black" style={{ color: colors.text }}>{t('danger.title')}</Text>
-          <Text className="mt-1 text-[12px] leading-5" style={{ color: colors.danger }}>{t('danger.description')}</Text>
-        </View>
-      </View>
-
-      <Pressable
-        onPress={onDeleteAccount}
-        disabled={deletingAccount}
-        className="mt-4 flex-row items-center justify-between rounded-xl border border-semantic-danger bg-semantic-surface-danger p-4"
-        style={({ pressed }) => ({ opacity: deletingAccount ? 0.65 : pressed ? 0.84 : 1 })}
-      >
-        <View className="min-w-0 flex-1 flex-row items-center gap-3">
-          <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-          <View className="min-w-0 flex-1">
-            <Text className="font-black" style={{ color: colors.danger }}>{t('danger.account.request')}</Text>
-            <Text className="mt-1 text-[12px]" style={{ color: colors.danger }}>{t('danger.account.requestDescription')}</Text>
-          </View>
-        </View>
-        {deletingAccount ? <ActivityIndicator color="#FF6B6B" /> : <Ionicons name="chevron-forward" size={18} color="#FF6B6B" />}
-      </Pressable>
-    </View>
-  )
-}
-
 export function DestructiveConfirmModal({
   visible,
   action,

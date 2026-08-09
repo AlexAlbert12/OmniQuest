@@ -24,7 +24,6 @@ export type RoleSettingsSectionsProps = {
   onOpenHelpCenter: () => void
   onOpenSecurity: () => void
   onSelectSection: (section: SettingsMenuSectionKey) => void
-  onAccentColorChange: (color: string) => void
   securityOnly: boolean
   width: number
 }
@@ -38,7 +37,6 @@ export function RoleSettingsSections({
   onOpenHelpCenter,
   onOpenSecurity,
   onSelectSection,
-  onAccentColorChange,
   securityOnly,
   width,
 }: RoleSettingsSectionsProps) {
@@ -58,19 +56,13 @@ export function RoleSettingsSections({
           isTeacher={isTeacher}
           width={width}
           userInitials={data.userInitials}
+          avatar={data.profile?.avatar}
           saving={data.saving}
           accentColor={accentColor}
           name={data.name}
           email={data.email}
-          preferences={data.preferences}
-          openPreferenceKey={data.openPreferenceKey}
-          preferenceOptions={data.preferenceOptions}
-          savingPreference={data.savingPreference}
           onNameChange={data.setName}
           onSaveProfile={data.handleSaveProfile}
-          onTogglePreferenceMenu={data.togglePreferenceMenu}
-          onSelectPreference={(key, value) => void data.selectPreference(key, value)}
-          formatPreferenceLabel={data.formatPreferenceLabel}
           onOpenSecurity={onOpenSecurity}
         />
       ) : null}
@@ -78,13 +70,11 @@ export function RoleSettingsSections({
       {!securityOnly && activeSettingsSection === 'preferences' ? (
         <SettingsPreferencesPanel
           accentColor={accentColor}
-          accentColors={data.accentColors}
           preferences={data.preferences}
           openPreferenceKey={data.openPreferenceKey}
           preferenceOptions={data.preferenceOptions}
           savingPreference={data.savingPreference}
           savingHaptics={data.savingHaptics}
-          onAccentColorChange={onAccentColorChange}
           onTogglePreferenceMenu={data.togglePreferenceMenu}
           onSelectPreference={(key, value) => void data.selectPreference(key, value)}
           onToggleHaptics={(enabled) => void data.updateHapticsEnabled(enabled)}
@@ -112,6 +102,8 @@ export function RoleSettingsSections({
           isTeacher={isTeacher}
           profileVisibility={data.profileVisibility}
           profileVisibilityAvailable={data.profileVisibilityAvailable}
+          savingProfileVisibility={data.savingProfileVisibility}
+          isGuest={data.profile?.role_id === 'guest'}
           analyticsEnabled={data.preferences.analyticsEnabled}
           savingAnalytics={data.savingAnalytics}
           accentColor={accentColor}
@@ -146,7 +138,6 @@ export function RoleSettingsSections({
           email={data.email}
           emailConfirmedAt={data.emailConfirmedAt}
           lastSignInAt={data.lastSignInAt}
-          deletingAccount={data.deletingAccount}
           onOpenSecurity={onOpenSecurity}
           onCurrentPasswordChange={data.setCurrentPassword}
           onNewPasswordChange={data.setNewPassword}
@@ -156,7 +147,6 @@ export function RoleSettingsSections({
           onToggleConfirmPassword={() => data.setShowConfirmPassword((value) => !value)}
           onChangePassword={data.handleChangePassword}
           onSignOut={data.handleSignOut}
-          onDeleteAccount={data.handleDeleteAccount}
         />
       ) : null}
 

@@ -15,7 +15,7 @@ Deno.serve(async(req)=>{
     if(userError||!userData.user) return publicErrorResponse('No autorizado.',401,'unauthorized')
     const userId=userData.user.id
     const {data:profile}=await admin.from('profiles').select('role_id,active').eq('id',userId).maybeSingle()
-    if(!profile||profile.active===false||!['teacher','admin'].includes(profile.role_id)) return publicErrorResponse('Acceso restringido.',403,'forbidden')
+    if(!profile||profile.active===false||!['student','teacher','admin'].includes(profile.role_id)) return publicErrorResponse('Acceso restringido.',403,'forbidden')
     const body=await req.json().catch(()=>({})) as {action?:string;sessionId?:string;currentDeviceId?:string}
     if(body.action==='list_sessions'){
       const {data,error}=await admin.from('user_sessions').select('id,device_id,device_name,platform,first_seen_at,last_seen_at,revoked_at').eq('user_id',userId).order('last_seen_at',{ascending:false}); if(error) throw error
@@ -39,7 +39,7 @@ Deno.serve(async(req)=>{
       for(const code of codes) rows.push({user_id:userId,code_hash:await hash(code)})
       const {error:deleteError}=await admin.from('account_backup_codes').delete().eq('user_id',userId); if(deleteError) throw deleteError
       const {error:insertError}=await admin.from('account_backup_codes').insert(rows); if(insertError) throw insertError
-      await admin.rpc('create_notification',{p_user_id:userId,p_audience:profile.role_id==='teacher'?'teacher':'student',p_type:'announcement',p_title:'Códigos de respaldo renovados',p_description:'Se han generado nuevos códigos de recuperación. Los anteriores ya no son válidos.',p_icon:'key-outline',p_color:'#9FD6FF',p_action_url:null,p_related_table:'account_backup_codes',p_related_id:userId,p_metadata:{count:codes.length},p_fingerprint:`backup-codes:${userId}:${Date.now()}`})
+      await admin.rpc('create_notification',{p_user_id:userId,p_audience:profile.role_id==='admin'?'admin':profile.role_id==='teacher'?'teacher':'student',p_type:'announcement',p_title:'Códigos de respaldo renovados',p_description:'Se han generado nuevos códigos de recuperación. Los anteriores ya no son válidos.',p_icon:'key-outline',p_color:'#9FD6FF',p_action_url:null,p_related_table:'account_backup_codes',p_related_id:userId,p_metadata:{count:codes.length},p_fingerprint:`backup-codes:${userId}:${Date.now()}`})
       return json({codes})
     }
     return publicErrorResponse('Acción no soportada.',400,'invalid_action')

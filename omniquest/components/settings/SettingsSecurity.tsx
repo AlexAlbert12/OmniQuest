@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons'
 import { withAlpha } from '../../lib/color'
 import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
-import { SecurityDangerCard } from './SettingsDangerZone'
 import type { IconName } from './SettingsTypes'
 
 export type PasswordChecks = {
@@ -71,6 +70,7 @@ export function SecurityPasswordCard({
           onChangeText={onCurrentPasswordChange}
           visible={showCurrentPassword}
           onToggleVisible={onToggleCurrentPassword}
+          label={t('security.password.current')}
           placeholder={t('security.password.current')}
           autoComplete="current-password"
           textContentType="password"
@@ -80,6 +80,7 @@ export function SecurityPasswordCard({
           onChangeText={onNewPasswordChange}
           visible={showNewPassword}
           onToggleVisible={onToggleNewPassword}
+          label={t('security.password.new')}
           placeholder={t('security.password.new')}
           autoComplete="new-password"
           textContentType="newPassword"
@@ -89,6 +90,7 @@ export function SecurityPasswordCard({
           onChangeText={onConfirmPasswordChange}
           visible={showConfirmPassword}
           onToggleVisible={onToggleConfirmPassword}
+          label={t('security.password.confirm')}
           placeholder={t('security.password.confirm')}
           autoComplete="new-password"
           textContentType="newPassword"
@@ -106,18 +108,21 @@ export function SecurityPasswordCard({
       <Pressable
         onPress={onSubmit}
         disabled={!checks.canSubmit}
-        className="mt-4 flex-row items-center justify-center gap-2 rounded-xl px-5 py-4"
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !checks.canSubmit, busy: changingPassword }}
+        className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border px-5 py-4"
         style={({ pressed }) => ({
-          backgroundColor: accentColor,
-          opacity: !checks.canSubmit ? 0.5 : pressed ? 0.86 : 1,
+          backgroundColor: checks.canSubmit ? accentColor : tokens.surface.disabled,
+          borderColor: checks.canSubmit ? accentColor : colors.border,
+          opacity: pressed && checks.canSubmit ? 0.86 : 1,
         })}
       >
         {changingPassword ? (
-          <ActivityIndicator color="#FFFFFF" />
+          <ActivityIndicator color={tokens.text.disabled} />
         ) : (
           <>
-            <Ionicons name="shield-checkmark-outline" size={18} color="#FFFFFF" />
-            <Text className="text-[14px] font-black text-white">{t('security.password.update')}</Text>
+            <Ionicons name="shield-checkmark-outline" size={18} color={checks.canSubmit ? tokens.text.onAccent : tokens.text.disabled} />
+            <Text className="text-[14px] font-black" style={{ color: checks.canSubmit ? tokens.text.onAccent : tokens.text.disabled }}>{t('security.password.update')}</Text>
           </>
         )}
       </Pressable>
@@ -126,6 +131,7 @@ export function SecurityPasswordCard({
 }
 
 function PasswordInput({
+  label,
   value,
   onChangeText,
   visible,
@@ -134,6 +140,7 @@ function PasswordInput({
   autoComplete,
   textContentType,
 }: {
+  label: string
   value: string
   onChangeText: (value: string) => void
   visible: boolean
@@ -143,24 +150,28 @@ function PasswordInput({
   textContentType?: any
 }) {
   const { colors } = useAppTheme()
+  const { t } = useI18n()
   return (
-    <View className="flex-row items-center rounded-xl border px-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        secureTextEntry={!visible}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textMuted}
-        autoCapitalize="none"
-        autoCorrect={false}
-        autoComplete={autoComplete}
-        textContentType={textContentType}
-        className="min-w-0 flex-1 py-3 text-[13px]"
-        style={{ color: colors.text }}
-      />
-      <Pressable onPress={onToggleVisible} className="ml-3 h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: colors.surfaceMuted }}>
-        <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.textSecondary} />
-      </Pressable>
+    <View>
+      <Text className="mb-2 text-[12px] font-bold" style={{ color: colors.textSecondary }}>{label}</Text>
+      <View className="flex-row items-center rounded-xl border px-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={!visible}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textMuted}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
+          className="min-w-0 flex-1 py-3 text-[13px]"
+          style={{ color: colors.text }}
+        />
+        <Pressable accessibilityRole="button" accessibilityLabel={t(visible ? 'auth.password.hide' : 'auth.password.show')} onPress={onToggleVisible} className="ml-3 h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: colors.surfaceMuted }}>
+          <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.textSecondary} />
+        </Pressable>
+      </View>
     </View>
   )
 }
@@ -269,4 +280,3 @@ function SecurityStatusRow({
   )
 }
 
-export { SecurityDangerCard }

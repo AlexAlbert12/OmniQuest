@@ -13,7 +13,6 @@ import {
   CurrentPositionCard,
   LeagueCarousel,
   RankingMobileList,
-  RankingPrivacyCard,
   RankingTable,
   RankingTabs,
 } from '../../components/student/ranking'
@@ -68,13 +67,6 @@ export default function RankingScreen() {
           league={ranking.currentLeague}
           participates={ranking.participates}
           isGuest={ranking.isGuest}
-        />
-
-        <RankingPrivacyCard
-          participates={ranking.participates}
-          saving={ranking.privacySaving}
-          isGuest={ranking.isGuest}
-          onChange={(participates) => { void ranking.setRankingParticipation(participates) }}
         />
 
         <RankingTabs value={ranking.scope} onChange={ranking.setScope} />

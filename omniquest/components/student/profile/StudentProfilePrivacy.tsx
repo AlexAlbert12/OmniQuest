@@ -12,7 +12,7 @@ type Props = {
 
 export default function StudentProfilePrivacy({ isPublic, onOpenSettings }: Props) {
   const { tokens } = useAppTheme()
-  const visibleLabel = isPublic ? 'Visible' : 'Privado'
+  const visibleLabel = isPublic ? 'Perfil visible' : 'Perfil privado'
   const statusColor = isPublic ? tokens.semantic.success : tokens.semantic.warning
 
   return (

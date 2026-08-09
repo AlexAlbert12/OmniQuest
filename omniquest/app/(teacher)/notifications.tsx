@@ -3,7 +3,6 @@ import { View } from 'react-native'
 import { useRouter } from 'expo-router'
 import TeacherScreenLayout from '../../components/layouts/TeacherScreenLayout'
 import NotificationFeed from '../../components/notifications/NotificationFeed'
-// NotificationFeed reuses NotificationListItem and NotificationEmptyState; the visible action remains “Marcar todas como leídas”.
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
@@ -20,7 +19,6 @@ import {
 import type { AppNotification } from '../../lib/notifications/types'
 import { useAppTheme } from '../../lib/appTheme'
 import { useResponsiveLayout } from '../../lib/responsive'
-import { supabase } from '../../lib/supabase'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 const bucketTabs = [

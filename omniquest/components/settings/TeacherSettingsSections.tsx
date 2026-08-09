@@ -29,7 +29,6 @@ type TeacherSettingsSectionsProps = {
   onOpenHelpCenter: () => void
   onOpenSecurity: () => void
   onSelectSection: (section: SettingsMenuSectionKey) => void
-  onAccentColorChange: (color: string) => void
   securityOnly: boolean
   width: number
 }
@@ -41,7 +40,6 @@ export default function TeacherSettingsSections({
   isDesktop,
   onOpenHelpCenter,
   onOpenSecurity,
-  onAccentColorChange,
   securityOnly,
   width,
 }: TeacherSettingsSectionsProps) {
@@ -59,30 +57,22 @@ export default function TeacherSettingsSections({
             isTeacher
             width={width}
             userInitials={data.userInitials}
+            avatar={data.profile?.avatar}
             saving={data.saving}
             accentColor={accentColor}
             name={data.name}
             email={data.email}
-            preferences={data.preferences}
-            openPreferenceKey={data.openPreferenceKey}
-            preferenceOptions={data.preferenceOptions}
-            savingPreference={data.savingPreference}
             onNameChange={data.setName}
             onSaveProfile={data.handleSaveProfile}
-            onTogglePreferenceMenu={data.togglePreferenceMenu}
-            onSelectPreference={(key, value) => void data.selectPreference(key, value)}
-            formatPreferenceLabel={data.formatPreferenceLabel}
             onOpenSecurity={onOpenSecurity}
           />
           <SettingsPreferencesPanel
             accentColor={accentColor}
-            accentColors={data.accentColors}
             preferences={data.preferences}
             openPreferenceKey={data.openPreferenceKey}
             preferenceOptions={data.preferenceOptions}
             savingPreference={data.savingPreference}
             savingHaptics={data.savingHaptics}
-            onAccentColorChange={onAccentColorChange}
             onTogglePreferenceMenu={data.togglePreferenceMenu}
             onSelectPreference={(key, value) => void data.selectPreference(key, value)}
             onToggleHaptics={(enabled) => void data.updateHapticsEnabled(enabled)}
@@ -163,7 +153,6 @@ export default function TeacherSettingsSections({
           email={data.email}
           emailConfirmedAt={data.emailConfirmedAt}
           lastSignInAt={data.lastSignInAt}
-          deletingAccount={data.deletingAccount}
           onOpenSecurity={onOpenSecurity}
           onCurrentPasswordChange={data.setCurrentPassword}
           onNewPasswordChange={data.setNewPassword}
@@ -173,7 +162,6 @@ export default function TeacherSettingsSections({
           onToggleConfirmPassword={() => data.setShowConfirmPassword((value) => !value)}
           onChangePassword={data.handleChangePassword}
           onSignOut={data.handleSignOut}
-          onDeleteAccount={data.handleDeleteAccount}
         />
       ) : null}
 

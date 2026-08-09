@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import React, { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, Linking, Platform, Pressable, Text, View } from 'react-native'
 import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 import { useI18n } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
 
@@ -154,7 +155,7 @@ export default function AccountDataRequestsCard({
         )}
       </View>
 
-      <View className="rounded-xl border p-4" style={{ borderColor: colors.danger, backgroundColor: colors.surfaceRaised }}>
+      <View className="rounded-xl border p-4" style={{ borderColor: colors.danger, backgroundColor: withAlpha(colors.danger, '12') }}>
         <View className="flex-row items-start gap-3">
           <Ionicons name="trash-outline" size={22} color={colors.danger} />
           <View className="min-w-0 flex-1">
@@ -176,7 +177,7 @@ export default function AccountDataRequestsCard({
             ) : null}
           </View>
         ) : (
-          <Pressable disabled={deletingAccount} onPress={onRequestDeletion} className="mt-4 min-h-[46px] flex-row items-center justify-center gap-2 rounded-lg border" style={{ borderColor: colors.danger, opacity: deletingAccount ? 0.6 : 1 }}>
+          <Pressable disabled={deletingAccount} onPress={onRequestDeletion} className="mt-4 min-h-[46px] flex-row items-center justify-center gap-2 rounded-lg border" style={{ borderColor: colors.danger, backgroundColor: withAlpha(colors.danger, '0F'), opacity: deletingAccount ? 0.6 : 1 }}>
             <Ionicons name="warning-outline" size={18} color={colors.danger} />
             <Text className="font-black" style={{ color: colors.danger }}>{t('accountRequests.deletion.request')}</Text>
           </Pressable>

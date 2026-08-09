@@ -17,6 +17,7 @@ import {
 } from '../../components/student/profile'
 import { useStudentProfile } from '../../hooks/student/useStudentProfile'
 import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 const STUDENT_ROUTES = {
@@ -79,8 +80,8 @@ export default function ProfileScreen() {
             level={profile.level}
             points={profile.points}
             streakDays={profile.streakDays}
-            achievements={profile.unlockedBadges.length}
-            achievementsTotal={profile.badges.length}
+            achievements={profile.achievementsCount}
+            achievementsTotal={profile.achievementsTotal}
             onOpenProgress={() => router.push(STUDENT_ROUTES.progress)}
             onOpenAchievements={() => router.push(STUDENT_ROUTES.badges)}
           />
@@ -104,13 +105,16 @@ export default function ProfileScreen() {
                 <InfoRow icon="mail-outline" label="Correo" value={profile.email || 'Sin correo disponible'} />
                 <InfoRow icon="calendar-outline" label="Miembro desde" value={profile.memberSince} />
               </View>
-              <View className="mt-4">
-                <StudentProfileQuickActions
-                  onOpenProgress={() => router.push(STUDENT_ROUTES.progress)}
-                  onOpenActivity={() => router.push(STUDENT_ROUTES.activityLog)}
-                  onOpenAchievements={() => router.push(STUDENT_ROUTES.badges)}
-                  onOpenSettings={() => router.push(STUDENT_ROUTES.settingsProfile)}
-                />
+              <View className="mt-5 border-t pt-4" style={{ borderTopColor: tokens.border.subtle }}>
+                <Text className="text-[11px] font-black uppercase tracking-wide" style={{ color: tokens.text.muted }}>Accesos rápidos</Text>
+                <View className="mt-3">
+                  <StudentProfileQuickActions
+                    onOpenProgress={() => router.push(STUDENT_ROUTES.progress)}
+                    onOpenActivity={() => router.push(STUDENT_ROUTES.activityLog)}
+                    onOpenAchievements={() => router.push(STUDENT_ROUTES.badges)}
+                    onOpenSettings={() => router.push(STUDENT_ROUTES.settingsProfile)}
+                  />
+                </View>
               </View>
             </View>
           </View>
@@ -149,8 +153,8 @@ function InfoRow({
 }) {
   const { tokens } = useAppTheme()
   return (
-    <View className="flex-row items-center gap-3 rounded-xl p-3" style={{ backgroundColor: tokens.surface.raised }}>
-      <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: tokens.surface.interactive }}>
+    <View className="flex-row items-center gap-3 rounded-xl p-3" style={{ backgroundColor: withAlpha(tokens.surface.raised, '88') }}>
+      <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(tokens.surface.interactive, 'B8') }}>
         <Ionicons name={icon} size={18} color={tokens.text.secondary} />
       </View>
       <View className="min-w-0 flex-1">

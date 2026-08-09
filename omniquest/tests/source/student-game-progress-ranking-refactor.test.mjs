@@ -22,7 +22,7 @@ test('progress screen delegates data and sections', () => {
   }
 })
 
-test('ranking screen delegates data, leagues and privacy without seasonal UI', () => {
+test('ranking screen delegates data and leagues without owning privacy settings', () => {
   const screen = read('app/(student)/ranking.tsx')
   assert.ok(screen.split('\n').length < 320)
   for (const name of ['useStudentRanking', 'LeagueCarousel', 'CurrentPositionCard', 'RankingTabs', 'RankingTable', 'RankingMobileList']) {
@@ -30,7 +30,8 @@ test('ranking screen delegates data, leagues and privacy without seasonal UI', (
   }
   const hook = read('hooks/student/useStudentRanking.ts')
   assert.match(hook, /visibility/)
-  assert.match(hook, /setRankingParticipation/)
+  assert.doesNotMatch(hook, /setRankingParticipation|privacySaving/)
+  assert.doesNotMatch(screen, /RankingPrivacyCard/)
   assert.match(hook, /useState<RankingScope>\('global'\)/)
   assert.doesNotMatch(hook, /RankingScope = .*season/)
   assert.doesNotMatch(screen, /SeasonSummary|Temporada 0|temporadas claras/)
@@ -39,6 +40,13 @@ test('ranking screen delegates data, leagues and privacy without seasonal UI', (
   assert.doesNotMatch(read('components/student/ranking/RankingTabs.tsx'), /Temporada|calendar/)
   assert.match(read('components/student/ranking/CurrentPositionCard.tsx'), /Eres el único participante por ahora/)
   assert.match(read('components/student/ranking/LeagueCarousel.tsx'), /borderColor: active \? league\.color : tokens\.border\.default/)
+
+  const settings = read('components/settings/SettingsSections.tsx')
+  const privacyCard = read('components/settings/StudentRankingPrivacyCard.tsx')
+  assert.match(settings, /StudentRankingPrivacyCard/)
+  assert.match(privacyCard, /Privacidad del ranking/)
+  assert.match(privacyCard, /Participar en ranking/)
+  assert.match(privacyCard, /Dejar de participar/)
 })
 
 test('database migration protects stale game answers and defines ranking seasons', () => {

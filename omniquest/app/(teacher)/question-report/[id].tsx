@@ -16,7 +16,6 @@ import AffectedStudentsList from '../../../components/teacher/question-report/Af
 import QuestionReportActions from '../../../components/teacher/question-report/QuestionReportActions'
 import { useQuestionReport } from '../../../hooks/teacher/useQuestionReport'
 import { useAppTheme } from '../../../lib/appTheme'
-import { supabase } from '../../../lib/supabase'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { exportCsvFile, slugifyFilename } from '../../../lib/reportExports'
 import type { ClassroomComparisonPoint, QuestionReportPeriod, TemporalTrendPoint } from '../../../lib/teacherQuestionReport'

@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router'
 import { useAdminData } from '../hooks/useAdminData'
 import { AdminScaffold } from '../shared/AdminScaffold'
 import { Panel } from '../shared/AdminPrimitives'
-import { supabase } from '../../../lib/supabase'
 import type { AdminPermission, IconName } from '../types/admin'
 import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
 
