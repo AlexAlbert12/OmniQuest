@@ -12,7 +12,7 @@ const EMPTY: TeacherSubjectOverview = {
   subjectsCount: 0,
   summary: {
     enrolledCount: 0, questionsCount: 0, totalAnswers: 0, correctAnswers: 0,
-    answeredClassQuestions: 0, possibleClassQuestions: 0, activeStudents: 0,
+    answeredClassQuestions: 0, possibleClassQuestions: 0, activeStudents: 0, evaluatedStudents: 0, unassessedStudents: 0,
     averageXp: 0, averageAccuracy: 0, averageGrade: 0, participation: 0, progress: 0,
   },
   latestQuestion: null,

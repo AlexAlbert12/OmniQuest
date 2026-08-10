@@ -3,7 +3,9 @@ import { fireEvent, render } from '@testing-library/react-native'
 import AuthInput from '@/components/auth/AuthInput'
 
 jest.mock('@/lib/i18n', () => ({
+  translateUiText: (_locale: string, input: string) => input,
   useI18n: () => ({
+    locale: 'es-ES',
     t: (key: string) => ({
       'auth.password.hide': 'Ocultar contraseña',
       'auth.password.show': 'Mostrar contraseña',

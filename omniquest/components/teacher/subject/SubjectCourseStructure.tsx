@@ -1,35 +1,36 @@
 import React from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { Link } from 'expo-router'
 import { difficultyOptions, type DifficultyLevel } from '../../../lib/difficulty'
 import type { Classroom, TopicRow } from '../../../hooks/teacher/useTeacherSubjectDetail'
 import AppButton from '../../ui/AppButton'
 import AppDropdown from '../../ui/AppDropdown'
 import AppTabs from '../../ui/AppTabs'
 import DateTimeCalendarField from '../../ui/DateTimeCalendarField'
-import { createShadowStyle } from '../../../lib/platformShadow'
 import { SubjectPanel as Panel, type IconName } from './SubjectShared'
 import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 
-export function SubjectClassroomContextSelector({ classrooms, selectedClassroomId, onSelect }: {
+export function SubjectClassroomContextSelector({ classrooms, selectedClassroomId, onSelect, compact = false }: {
   classrooms: Classroom[]
   selectedClassroomId: number | null
   onSelect: (classroomId: number) => void
+  compact?: boolean
 }) {
   if (classrooms.length === 0) return null
 
   return (
-    <View className="mb-4 rounded-2xl border border-border-default bg-surface-default p-4">
-      <View className="flex-row flex-wrap items-center gap-3">
-        <View className="h-11 w-11 items-center justify-center rounded-xl bg-surface-selected">
-          <Ionicons name="people-outline" size={20} color="#38BDF8" />
+    <View className={`mb-4 rounded-2xl border border-border-default bg-surface-default ${compact ? 'p-3' : 'p-4'}`}>
+      <View className={compact ? 'gap-3' : 'flex-row flex-wrap items-center gap-3'}>
+        <View className="flex-row items-center gap-3">
+          <View className={`${compact ? 'h-10 w-10' : 'h-11 w-11'} items-center justify-center rounded-xl bg-surface-selected`}>
+            <Ionicons name="people-outline" size={compact ? 19 : 20} color="#38BDF8" />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className="text-[11px] font-black uppercase tracking-wide text-text-muted">Clase activa</Text>
+            {!compact ? <Text className="mt-1 text-[12px] text-text-secondary">Este contexto se mantiene al cambiar entre Resumen, Temas, Preguntas, Alumnos y Analítica.</Text> : null}
+          </View>
         </View>
-        <View className="min-w-[180px] flex-1">
-          <Text className="text-[11px] font-black uppercase tracking-wide text-text-muted">Clase activa</Text>
-          <Text className="mt-1 text-[12px] text-text-secondary">Este contexto se mantiene al cambiar entre Resumen, Temas, Preguntas, Alumnos y Analítica.</Text>
-        </View>
-        <View className="min-w-[260px] flex-[0.8]">
+        <View className={compact ? 'w-full' : 'min-w-[260px] flex-[0.8]'}>
           <AppDropdown
             accessibilityLabel="Seleccionar clase activa"
             value={selectedClassroomId ?? classrooms[0].id}
@@ -101,6 +102,7 @@ export function SubjectTopicsSection({
   selectedTopicId,
   selectedClassroomName,
   topicRows,
+  isMobile = false,
 }: {
   creating: boolean
   newTopicAvailableUntil: string
@@ -117,6 +119,7 @@ export function SubjectTopicsSection({
   selectedTopicId: number | 'all' | 'general'
   selectedClassroomName?: string | null
   topicRows: TopicRow[]
+  isMobile?: boolean
 }) {
   return (
     <Panel title={`Temas de ${selectedClassroomName || 'la clase activa'}`}>
@@ -132,6 +135,7 @@ export function SubjectTopicsSection({
               icon: normalizeAcademicIcon(topic.icon, 'book-outline'),
             })),
           ]}
+          mobileRail={isMobile}
           onChange={onSelectTopic}
           role="teacher"
           value={selectedTopicId}
@@ -194,9 +198,9 @@ export function SubjectTopicsSection({
             <DateTimeCalendarField value={newTopicAvailableUntil} onChange={onAvailableUntilChange} />
           </View>
           <View className="min-w-[240px] flex-1">
-            <Text className="mb-2 text-[12px] font-semibold text-text-secondary">Dificultad inicial</Text>
+            <Text className="mb-2 text-[12px] font-semibold text-text-secondary">Dificultad de la primera pregunta</Text>
             <AppTabs
-              accessibilityLabel="Dificultad inicial"
+              accessibilityLabel="Dificultad de la primera pregunta"
               compact
               fill
               items={difficultyOptions.map((option) => ({ key: option.value, label: option.shortLabel }))}
@@ -217,33 +221,5 @@ export function SubjectTopicsSection({
         </View>
       </View>
     </Panel>
-  )
-}
-
-export function SubjectAddQuestionCTA({ href, sticky = false }: { href: string; sticky?: boolean }) {
-  return (
-    <View
-      className={sticky ? 'absolute bottom-[82px] left-4 right-4' : ''}
-      style={sticky ? createShadowStyle({
-        color: '#000000',
-        opacity: 0.34,
-        radius: 14,
-        offsetY: 7,
-        elevation: 12,
-        web: '0 7px 28px rgba(0, 0, 0, 0.34)',
-      }) : undefined}
-    >
-      <Link href={href as any} asChild>
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel="Añadir pregunta"
-          accessibilityHint="Abre el formulario para crear una pregunta en este curso"
-          className="min-h-14 flex-row items-center justify-center gap-2 rounded-2xl border border-border-active bg-brand-teacher px-5 py-3"
-        >
-          <Ionicons name="add" size={21} color="#FFFFFF" />
-          <Text className="text-[15px] font-black text-white">Añadir pregunta</Text>
-        </Pressable>
-      </Link>
-    </View>
   )
 }

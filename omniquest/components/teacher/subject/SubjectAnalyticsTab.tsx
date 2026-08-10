@@ -35,11 +35,11 @@ export default function SubjectAnalyticsTab({ analytics, isDesktop }: {
                     </View>
                     <View className="min-w-0 flex-1">
                       <Text className="font-black text-text-primary" numberOfLines={2}>{student.name}</Text>
-                      <Text className="mt-1 text-[11px] text-text-muted">{student.accuracyPercent}% precisión · {student.participation}% progreso</Text>
+                      <Text className="mt-1 text-[11px] text-text-muted">{student.hasActivity ? `${student.accuracyPercent}% precisión · ${student.participation}% progreso` : 'Sin actividad · Sin evaluar'}</Text>
                     </View>
                     <View className="items-end">
                       <Text className="font-black text-text-primary">{student.score} XP</Text>
-                      <Text className="mt-1 text-[11px] text-text-muted">{student.grade.toFixed(1)}/10</Text>
+                      <Text className="mt-1 text-[11px] text-text-muted">{student.hasActivity ? `${student.grade.toFixed(1)}/10` : 'Sin evaluar'}</Text>
                     </View>
                   </View>
                 ))}
@@ -78,7 +78,7 @@ export default function SubjectAnalyticsTab({ analytics, isDesktop }: {
           </SubjectPanel>
 
           <SubjectPanel title="Distribución de notas">
-            <GradeDistributionBars distribution={distribution} total={summary.answered} />
+            <GradeDistributionBars distribution={distribution} total={summary.answered} unassessed={summary.unassessed} />
           </SubjectPanel>
         </View>
       </View>

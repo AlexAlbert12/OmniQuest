@@ -6,8 +6,8 @@ set local search_path = public, extensions;
 select plan(6);
 
 select ok(
-  position('Notable (7-8.9)' in pg_get_functiondef('public.get_teacher_subject_overview(bigint,bigint)'::regprocedure)) > 0
-  and position('Aprobado (5-6.9)' in pg_get_functiondef('public.get_teacher_subject_overview(bigint,bigint)'::regprocedure)) > 0
+  position('Notable (7-8,9)' in pg_get_functiondef('public.get_teacher_subject_overview(bigint,bigint)'::regprocedure)) > 0
+  and position('Aprobado (5-6,9)' in pg_get_functiondef('public.get_teacher_subject_overview(bigint,bigint)'::regprocedure)) > 0
   and position('Suspenso (<5)' in pg_get_functiondef('public.get_teacher_subject_overview(bigint,bigint)'::regprocedure)) > 0,
   'course overview uses the canonical Spanish grade bands'
 );
@@ -29,7 +29,7 @@ select ok(
 );
 
 select ok(
-  position('where total_answers > 0 and grade < 5' in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0,
+  position('where has_activity and grade < 5' in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0,
   'students without answers are not classified as failed grades'
 );
 

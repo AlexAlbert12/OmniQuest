@@ -45,7 +45,7 @@ test('teacher catalog mobile rails and sort copy are deliberate and tabs keep a 
   assert.match(screen, /Orden: \{teacherCourseSorts/)
   assert.doesNotMatch(tabs, /className="omni-no-hover-lift"/)
   assert.match(css, /\[role='tab'\]:not\(\[aria-disabled='true'\]\):hover \{[\s\S]*?translateY\(-0\.5px\) scale\(1\.005\)/)
-  assert.match(tabs, /paddingLeft: 6/)
+  assert.match(tabs, /paddingLeft: 8/)
 })
 
 test('teacher catalog product copy avoids implementation language and remains localizable', () => {

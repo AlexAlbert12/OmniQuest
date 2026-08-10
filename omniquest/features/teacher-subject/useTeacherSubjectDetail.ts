@@ -5,6 +5,7 @@ import { parseDateTimeInput } from '../../lib/calendar'
 import { copyCourseCode, shareCourseCode } from '../../lib/courseCodeActions'
 import { useI18n } from '../../lib/i18n'
 import { useAppModal } from '../../components/AppModalProvider'
+import { useAppFeedback } from '../../hooks/useAppFeedback'
 import type { StudentReport, SubjectScore } from '../../lib/teacherSubjectAnalytics'
 import { useTeacherSubjectOverview } from '../../hooks/teacher/subject/useTeacherSubjectOverview'
 import { useTeacherSubjectTopics } from '../../hooks/teacher/subject/useTeacherSubjectTopics'
@@ -18,6 +19,7 @@ export * from './types'
 export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subjectId: string; tab?: string | string[]; classroomId?: string | string[] }) {
   const router = useRouter()
   const { showModal } = useAppModal()
+  const feedback = useAppFeedback()
   const { locale } = useI18n()
   const subjectIdNumber = Number(subjectId)
   const requestedClassroomId = getPositiveNumberParam(classroomId)
@@ -146,9 +148,14 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
     played_at: student.lastActivity,
   })), [selectedClassroomId, studentReportRows])
 
-  const gradeDistribution = useMemo(() => addGradeColors(
-    activeTab === 'analytics' ? analyticsResource.data.gradeDistribution : studentsResource.data.gradeDistribution
-  ), [activeTab, analyticsResource.data.gradeDistribution, studentsResource.data.gradeDistribution])
+  const gradeDistribution = useMemo(() => {
+    const rows = activeTab === 'summary'
+      ? overview.data.gradeDistribution
+      : activeTab === 'analytics'
+        ? analyticsResource.data.gradeDistribution
+        : studentsResource.data.gradeDistribution
+    return addGradeColors(rows)
+  }, [activeTab, analyticsResource.data.gradeDistribution, overview.data.gradeDistribution, studentsResource.data.gradeDistribution])
 
   const overviewActivity = useMemo<ActivityItem[]>(() => overview.data.recentActivity.map((row) => ({
     icon: row.isCorrect ? 'checkmark-circle-outline' : 'alert-circle-outline',
@@ -320,21 +327,21 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
     if (!subject) return
     try {
       await copyCourseCode(subject.code)
-      showModal({ title: 'Código copiado', message: `Código ${subject.code} copiado al portapapeles.`, variant: 'success' })
+      feedback.success('Código copiado', `Código ${subject.code} copiado al portapapeles.`)
     } catch (error) {
-      showAlert('No se pudo copiar el código', error instanceof Error ? error.message : 'Inténtalo de nuevo.')
+      feedback.error('No se pudo copiar el código', error)
     }
-  }, [showAlert, showModal, subject])
+  }, [feedback, subject])
 
   const handleShareCode = useCallback(async () => {
     if (!subject) return
     try {
       const result = await shareCourseCode({ code: subject.code, subjectName: subject.name, locale })
-      if (result === 'copied') showModal({ title: 'Código copiado', message: `Código ${subject.code} copiado al portapapeles.`, variant: 'success' })
+      if (result === 'copied') feedback.success('Código copiado', `Código ${subject.code} copiado al portapapeles.`)
     } catch (error) {
-      showAlert('No se pudo compartir el código', error instanceof Error ? error.message : 'Inténtalo de nuevo.')
+      feedback.error('No se pudo compartir el código', error)
     }
-  }, [locale, showAlert, showModal, subject])
+  }, [feedback, locale, subject])
 
   return {
     activeTab,

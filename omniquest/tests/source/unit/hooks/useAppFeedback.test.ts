@@ -7,6 +7,11 @@ jest.mock('@/components/ui/AppToast', () => ({
   useAppToast: jest.fn(),
 }))
 
+jest.mock('@/lib/i18n', () => ({
+  translateUiText: (_locale: string, input: string) => input,
+  useI18n: () => ({ locale: 'es-ES' }),
+}))
+
 const mockUseAppToast = useAppToast as jest.Mock
 const mockShowToast = jest.fn()
 

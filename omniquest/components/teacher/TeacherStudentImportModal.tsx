@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react'
-import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { Modal, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../ui/mobile/MobileMetricCard'
+import AppButton from '../ui/AppButton'
 import { supabase } from '../../lib/supabase'
 import { isValidEmail, normalizeEmail } from '../../lib/auth'
 
@@ -280,34 +281,28 @@ export default function TeacherStudentImportModal({
               />
             ) : null}
 
-            <View className={`${isPhone ? 'mt-5 gap-3' : 'mt-5 flex-row flex-wrap justify-end gap-3'}`}>
-              <Pressable
-                onPress={resetAndClose}
-                disabled={importing || sendingReminder}
-                className="rounded-xl px-5 py-3"
-                style={({ pressed }) => ({
-                  borderWidth: 1,
-                  borderColor: '#20375E',
-                  backgroundColor: '#09162C',
-                  opacity: pressed ? 0.82 : 1,
-                })}
-              >
-                <Text className="font-bold text-text-secondary">Cerrar</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => void importStudents()}
-                disabled={importing || sendingReminder || validEmails.length === 0}
-                className="flex-row items-center justify-center gap-2 rounded-xl px-5 py-3"
-                style={({ pressed }) => ({
-                  backgroundColor: '#6D5AF6',
-                  opacity: importing || sendingReminder || validEmails.length === 0 ? 0.55 : pressed ? 0.82 : 1,
-                })}
-              >
-                {importing ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="person-add-outline" size={18} color="#FFFFFF" />}
-                <Text className="font-black text-white">{importing ? 'Importando...' : result ? 'Importar otra lista' : 'Importar alumnos'}</Text>
-              </Pressable>
-            </View>
           </ScrollView>
+
+          <View className={`${isPhone ? 'flex-row px-4 pb-5 pt-3' : 'flex-row justify-end px-5 py-4'} gap-3 border-t border-border-default bg-surface-raised`}>
+            <AppButton
+              label="Cerrar"
+              accessibilityLabel="Cerrar importación de alumnos"
+              disabled={importing || sendingReminder}
+              variant="secondary"
+              style={isPhone ? { flex: 1 } : undefined}
+              onPress={resetAndClose}
+            />
+            <AppButton
+              label={result ? 'Importar otra lista' : 'Importar alumnos'}
+              accessibilityLabel={importing ? 'Importando alumnos' : 'Importar alumnos'}
+              icon="person-add-outline"
+              loading={importing}
+              disabled={importing || sendingReminder || validEmails.length === 0}
+              role="teacher"
+              style={isPhone ? { flex: 1.35 } : undefined}
+              onPress={() => { void importStudents() }}
+            />
+          </View>
         </View>
       </View>
     </Modal>

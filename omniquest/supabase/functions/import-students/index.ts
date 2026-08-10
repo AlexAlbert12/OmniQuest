@@ -159,28 +159,31 @@ Deno.serve(async (req) => {
           .maybeSingle()
 
         if (profileError) throw profileError
-        if (profile?.role_id === 'teacher') {
-          throw publicError('Ese correo pertenece a una cuenta de profesor.', 409, 'conflict')
-        }
 
         if (!profile) {
+          if (status === 'existing') {
+            throw publicError('Ese correo pertenece a una cuenta existente sin un perfil de alumno válido.', 409, 'conflict')
+          }
           const { error: profileInsertError } = await adminClient
             .from('profiles')
-            .insert({
-              id: studentId,
-              alias,
-              role_id: 'student',
-              points: 0,
-              active: true,
-              visibility: 'public',
-            })
+            .insert({ id: studentId, alias, role_id: 'student', points: 0, active: true, visibility: 'public' })
           if (profileInsertError) throw profileInsertError
-        } else if (profile.role_id !== 'student') {
+        } else if (profile.role_id === 'student') {
+          // Existing student accounts are safe to enrol without changing their role.
+        } else if (profile.role_id === 'guest') {
           const { error: profileUpdateError } = await adminClient
             .from('profiles')
             .update({ role_id: 'student', active: true, visibility: 'public' })
             .eq('id', studentId)
           if (profileUpdateError) throw profileUpdateError
+          const { error: authUpdateError } = await adminClient.auth.admin.updateUserById(studentId, {
+            user_metadata: { ...(currentUser?.user_metadata || {}), role_id: 'student' },
+          })
+          if (authUpdateError) throw authUpdateError
+        } else if (profile.role_id === 'teacher' || profile.role_id === 'admin') {
+          throw publicError('Ese correo pertenece a una cuenta de personal y no puede importarse como alumno.', 409, 'conflict')
+        } else {
+          throw publicError('La cuenta existente tiene un rol incompatible con la importación de alumnos.', 409, 'conflict')
         }
 
         const { data: existingEnrollment, error: enrollmentReadError } = await adminClient
@@ -279,7 +282,7 @@ function normalizeEmailList(input: string[]) {
 
 async function listAuthUsersByEmail(adminClient: any, emails: string[]) {
   const targets = new Set(emails)
-  const users = new Map<string, { id: string; email?: string }>()
+  const users = new Map<string, { id: string; email?: string; user_metadata?: Record<string, unknown> }>()
   let page = 1
   const perPage = 1000
 
@@ -288,7 +291,7 @@ async function listAuthUsersByEmail(adminClient: any, emails: string[]) {
     if (error) throw error
 
     const pageUsers = data?.users || []
-    pageUsers.forEach((user: { id: string; email?: string }) => {
+    pageUsers.forEach((user: { id: string; email?: string; user_metadata?: Record<string, unknown> }) => {
       const email = user.email?.toLowerCase()
       if (email && targets.has(email)) {
         users.set(email, user)

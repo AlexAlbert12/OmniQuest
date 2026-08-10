@@ -35,6 +35,10 @@ export type RolePageHeaderProps = {
   leading?: ReactNode
   /** Optional shorter title used on mobile. */
   mobileTitle?: string
+  /** Optional shorter supporting copy used only on mobile. */
+  mobileSubtitle?: string
+  /** Gives detail screens a dedicated mobile utility row and a full-width identity row. */
+  mobileStackedIdentity?: boolean
   /** Slightly reduces only the mobile title scale for long screen names. */
   compactMobileTitle?: boolean
   notificationCount?: number
@@ -51,9 +55,8 @@ export type RolePageHeaderProps = {
 /**
  * Shared page header for authenticated student and teacher screens.
  *
- * The visual language is based on the student Ranking screen: a lightweight
- * icon, strong title, supporting copy, and a consistent actions area. Role
- * wrappers provide defaults without duplicating the layout.
+ * `mobileStackedIdentity` is used by dense detail screens: utilities stay in
+ * the first row while the icon/title receive almost the full mobile width.
  */
 export default function RolePageHeader({
   role,
@@ -67,6 +70,8 @@ export default function RolePageHeader({
   isDesktop,
   leading,
   mobileTitle,
+  mobileSubtitle,
+  mobileStackedIdentity = false,
   compactMobileTitle = false,
   notificationCount,
   notificationOnPress,
@@ -81,103 +86,91 @@ export default function RolePageHeader({
   const { colors, tokens } = useAppTheme()
   const { t } = useI18n()
   const displayTitle = !isDesktop && mobileTitle ? mobileTitle : title
+  const displaySubtitle = !isDesktop && mobileSubtitle !== undefined ? mobileSubtitle : subtitle
   const resolvedIconColor = iconColor || tokens.brand[role]
   const Avatar = role === 'teacher' ? TeacherHeaderAvatar : StudentHeaderAvatar
   const actionsOnTop = Boolean(actions) && (actionsPosition === 'top' || (actionsPosition === 'auto' && isDesktop))
   const actionsBelow = Boolean(actions) && (actionsPosition === 'below' || (actionsPosition === 'auto' && !isDesktop))
   const showTopControls = Boolean(utilityActions) || actionsOnTop || showNotifications || showAvatar
 
+  const backControl = backAction ? (
+    <Pressable
+      accessibilityLabel={backAction.label || t('common.back')}
+      accessibilityHint="Vuelve a la pantalla anterior"
+      accessibilityRole="button"
+      focusable
+      hitSlop={8}
+      onPress={backAction.onPress}
+      className="flex-row items-center gap-2 self-start rounded-xl px-3 py-2"
+      style={({ pressed }) => ({ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, opacity: pressed ? 0.78 : 1 })}
+    >
+      <Ionicons name="arrow-back" size={16} color={colors.text} />
+      <Text allowFontScaling maxFontSizeMultiplier={2} className="text-[12px] font-bold" style={{ color: colors.text, lineHeight: 18 }}>
+        {backAction.label || t('common.back')}
+      </Text>
+    </Pressable>
+  ) : null
+
+  const topControls = showTopControls ? (
+    <View className="flex-row items-center gap-2">
+      {utilityActions}
+      {actionsOnTop ? actions : null}
+      {showNotifications ? <NotificationBadge audience={role} count={notificationCount} onPress={notificationOnPress} showStreak={showStreak} /> : null}
+      {showAvatar ? <Avatar /> : null}
+    </View>
+  ) : null
+
+  const identity = (
+    <View className="flex-row items-center gap-3">
+      {leading ?? (icon ? (
+        <Ionicons accessibilityElementsHidden importantForAccessibility="no-hide-descendants" name={icon} size={isDesktop ? 40 : 30} color={resolvedIconColor} />
+      ) : null)}
+      <Text
+        accessibilityRole="header"
+        allowFontScaling
+        maxFontSizeMultiplier={2}
+        className={`${isDesktop ? 'text-[40px]' : compactMobileTitle ? 'text-[27px]' : 'text-[30px]'} min-w-0 flex-1 font-black`}
+        style={{ color: colors.text, lineHeight: isDesktop ? 54 : compactMobileTitle ? 38 : 42, paddingBottom: isDesktop ? 4 : 3, includeFontPadding: true, overflow: 'visible' }}
+        numberOfLines={titleNumberOfLines}
+      >
+        {displayTitle}
+      </Text>
+    </View>
+  )
+
+  const supportingCopy = displaySubtitle ? (
+    <Text allowFontScaling maxFontSizeMultiplier={2} className="mt-1 max-w-[780px] text-[13px] leading-5" style={{ color: colors.textMuted }} numberOfLines={subtitleNumberOfLines}>
+      {displaySubtitle}
+    </Text>
+  ) : null
+
+  if (!isDesktop && mobileStackedIdentity) {
+    return (
+      <View className={`mb-6 ${className}`}>
+        <View className="flex-row items-center justify-between gap-3">
+          {backControl ?? <View />}
+          {topControls}
+        </View>
+        <View className="mt-4">
+          {identity}
+          {supportingCopy}
+        </View>
+        {actionsBelow ? <View className="mt-4 flex-row flex-wrap items-center gap-3">{actions}</View> : null}
+      </View>
+    )
+  }
+
   return (
     <View className={`mb-6 ${className}`}>
       <View className="flex-row items-start justify-between gap-4">
         <View className="min-w-0 flex-1">
-          {backAction ? (
-            <Pressable
-              accessibilityLabel={backAction.label || t('common.back')}
-              accessibilityHint="Vuelve a la pantalla anterior"
-              accessibilityRole="button"
-              focusable
-              hitSlop={8}
-              onPress={backAction.onPress}
-              className="mb-3 flex-row items-center gap-2 self-start rounded-xl px-3 py-2"
-              style={({ pressed }) => ({
-                borderWidth: 1,
-                borderColor: colors.border,
-                backgroundColor: colors.surface,
-                opacity: pressed ? 0.78 : 1,
-              })}
-            >
-              <Ionicons name="arrow-back" size={16} color={colors.text} />
-              <Text allowFontScaling maxFontSizeMultiplier={2} className="text-[12px] font-bold" style={{ color: colors.text, lineHeight: 18 }}>
-                {backAction.label || t('common.back')}
-              </Text>
-            </Pressable>
-          ) : null}
-
-          <View className="flex-row items-center gap-3">
-            {leading ?? (icon ? (
-              <Ionicons
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-                name={icon}
-                size={isDesktop ? 40 : 30}
-                color={resolvedIconColor}
-              />
-            ) : null)}
-
-            <Text
-              accessibilityRole="header"
-              allowFontScaling
-              maxFontSizeMultiplier={2}
-              className={`${isDesktop ? 'text-[40px]' : compactMobileTitle ? 'text-[27px]' : 'text-[30px]'} min-w-0 flex-1 font-black`}
-              style={{
-                color: colors.text,
-                lineHeight: isDesktop ? 54 : compactMobileTitle ? 38 : 42,
-                paddingBottom: isDesktop ? 4 : 3,
-                includeFontPadding: true,
-                overflow: 'visible',
-              }}
-              numberOfLines={titleNumberOfLines}
-            >
-              {displayTitle}
-            </Text>
-          </View>
-
-          {subtitle ? (
-            <Text
-              allowFontScaling
-              maxFontSizeMultiplier={2}
-              className="mt-1 max-w-[780px] text-[13px] leading-5"
-              style={{ color: colors.textMuted }}
-              numberOfLines={subtitleNumberOfLines}
-            >
-              {subtitle}
-            </Text>
-          ) : null}
+          {backControl ? <View className="mb-3">{backControl}</View> : null}
+          {identity}
+          {supportingCopy}
         </View>
-
-        {showTopControls ? (
-          <View className="flex-row items-center gap-3">
-            {utilityActions}
-            {actionsOnTop ? actions : null}
-            {showNotifications ? (
-              <NotificationBadge
-                audience={role}
-                count={notificationCount}
-                onPress={notificationOnPress}
-                showStreak={showStreak}
-              />
-            ) : null}
-            {showAvatar ? <Avatar /> : null}
-          </View>
-        ) : null}
+        {topControls}
       </View>
-
-      {actionsBelow ? (
-        <View className="mt-4 flex-row flex-wrap items-center justify-end gap-3">
-          {actions}
-        </View>
-      ) : null}
+      {actionsBelow ? <View className="mt-4 flex-row flex-wrap items-center justify-end gap-3">{actions}</View> : null}
     </View>
   )
 }

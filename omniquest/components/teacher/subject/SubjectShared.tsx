@@ -9,12 +9,14 @@ export type IconName = keyof typeof Ionicons.glyphMap
 export function SubjectPanel({
   actionLabel,
   children,
+  headerAction,
   onAction,
   title,
 }: {
   title: string
   children: React.ReactNode
   actionLabel?: string
+  headerAction?: React.ReactNode
   onAction?: () => void
 }) {
   const { tokens } = useAppTheme();
@@ -23,15 +25,9 @@ export function SubjectPanel({
     <View className="rounded-xl border p-5" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
       <View className="mb-4 flex-row items-center justify-between gap-3">
         <Text className="text-[16px] font-black" style={{ color: tokens.text.primary }}>{title}</Text>
-        {actionLabel ? (
-          <AppButton
-            label={actionLabel}
-            variant="ghost"
-            size="sm"
-            role="teacher"
-            onPress={onAction || (() => undefined)}
-          />
-        ) : null}
+        {headerAction ?? (actionLabel ? (
+          <AppButton label={actionLabel} variant="ghost" size="sm" role="teacher" onPress={onAction || (() => undefined)} />
+        ) : null)}
       </View>
       {children}
     </View>
@@ -41,9 +37,11 @@ export function SubjectPanel({
 export function GradeDistributionBars({
   distribution,
   total,
+  unassessed = 0,
 }: {
   distribution: { label: string; color: string; count: number }[]
   total: number
+  unassessed?: number
 }) {
   const { tokens } = useAppTheme();
 
@@ -51,6 +49,7 @@ export function GradeDistributionBars({
     return (
       <View className="rounded-xl border border-dashed p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
         <Text className="text-center text-[12px]" style={{ color: tokens.text.muted }}>Aún no hay notas para distribuir.</Text>
+        {unassessed > 0 ? <Text className="mt-2 text-center text-[11px] font-semibold" style={{ color: tokens.text.secondary }}>{unassessed} alumno{unassessed === 1 ? '' : 's'} sin actividad / sin evaluar</Text> : null}
       </View>
     );
   }
@@ -62,7 +61,7 @@ export function GradeDistributionBars({
         <Text className="text-[18px] font-black" style={{ color: tokens.text.primary }}>{total}</Text>
       </View>
       {distribution.map((item) => {
-        const percent = Math.round((item.count / total) * 100);
+        const percent = Math.min(100, Math.max(0, Math.round((item.count / total) * 100)));
         return (
           <View key={item.label}>
             <View className="mb-1 flex-row items-center justify-between gap-3">
@@ -77,6 +76,12 @@ export function GradeDistributionBars({
           </View>
         );
       })}
+      {unassessed > 0 ? (
+        <View className="mt-1 flex-row items-center justify-between gap-3 border-t border-border-subtle pt-3">
+          <Text className="text-[11px] font-semibold" style={{ color: tokens.text.muted }}>Sin actividad / sin evaluar</Text>
+          <Text className="text-[11px] font-black" style={{ color: tokens.text.secondary }}>{unassessed} alumno{unassessed === 1 ? '' : 's'}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }

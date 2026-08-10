@@ -3,7 +3,8 @@ import { fireEvent, render } from '@testing-library/react-native'
 import AuthStatusBanner from '@/components/auth/AuthStatusBanner'
 
 jest.mock('@/lib/i18n', () => ({
-  useI18n: () => ({ t: (key: string) => key === 'auth.common.sending' ? 'Enviando' : key }),
+  translateUiText: (_locale: string, input: string) => input,
+  useI18n: () => ({ locale: 'es-ES', t: (key: string) => key === 'auth.common.sending' ? 'Enviando' : key }),
 }))
 
 describe('AuthStatusBanner', () => {

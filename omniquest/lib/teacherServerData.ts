@@ -181,6 +181,8 @@ export type TeacherSubjectOverview = {
     answeredClassQuestions: number
     possibleClassQuestions: number
     activeStudents: number
+    evaluatedStudents: number
+    unassessedStudents: number
     averageXp: number
     averageAccuracy: number
     averageGrade: number
@@ -258,6 +260,11 @@ export type TeacherSubjectStudentsPayload = PagedPayload<TeacherSubjectStudent> 
     averageXp: number
     questionsCount: number
     activeThisWeek: number
+    unassessed: number
+    generatedXp: number
+    playedSessionsTotal: number
+    bestStudent: TeacherSubjectStudent | null
+    attention: TeacherSubjectStudent[]
   }
   gradeDistribution: Array<{ label: string; count: number }>
 }

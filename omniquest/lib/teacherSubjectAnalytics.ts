@@ -69,7 +69,9 @@ export function buildStudentListRows(
 export function getStudentStatus(student: StudentReport): StudentStatusFilter {
   if (!student.hasActivity) return 'no_activity'
   if (student.participation < 35 || student.grade < 5) return 'needs_help'
-  if (student.participation < 60) return 'inactive'
+  const lastActivityTime = student.lastActivity ? new Date(student.lastActivity).getTime() : 0
+  const inactiveByRecency = lastActivityTime > 0 && lastActivityTime < Date.now() - (14 * 24 * 60 * 60 * 1000)
+  if (inactiveByRecency || student.participation < 60) return 'inactive'
   return 'active'
 }
 
@@ -89,23 +91,11 @@ export function getStudentStatusFilterLabel(status: StudentStatusFilter) {
   return 'Todos'
 }
 
-export function getNextStudentStatusFilter(status: StudentStatusFilter): StudentStatusFilter {
-  const options: StudentStatusFilter[] = ['all', 'active', 'inactive', 'no_activity', 'needs_help']
-  const index = options.indexOf(status)
-  return options[(index + 1) % options.length]
-}
-
 export function getStudentSortLabel(sortKey: StudentSortKey) {
   if (sortKey === 'progress') return 'Progreso'
   if (sortKey === 'grade') return 'Nota'
   if (sortKey === 'recent' || sortKey === 'last_activity') return 'Actividad'
   return 'XP'
-}
-
-export function getNextStudentSortKey(sortKey: StudentSortKey): StudentSortKey {
-  const options: StudentSortKey[] = ['xp', 'progress', 'grade', 'recent']
-  const index = options.indexOf(sortKey)
-  return options[(index + 1) % options.length]
 }
 
 export function getGradeColor(value: number) {

@@ -1499,6 +1499,15 @@ export function translateUiText(locale: AppLocale, input: string): string {
     [/^Abre la acción (.+)$/, (_m, action) => `Open the ${translateFragment(action)} action`],
     [/^Muestra las funciones para (.+)$/, (_m, label) => `Show features for ${translateFragment(label)}`],
 
+    [/^(\d+) evaluado(?:s)? · (\d+) sin actividad$/, (_m, evaluated, inactive) => `${evaluated} ${plural(evaluated, 'evaluated student', 'evaluated students')} · ${inactive} with no activity`],
+    [/^(\d+) sin actividad$/, (_m, count) => `${count} with no activity`],
+    [/^Estado: (.+) · Orden: (.+)$/, (_m, status, sort) => `Status: ${translateFragment(status)} · Sort: ${translateFragment(sort)}`],
+    [/^Mostrando (\d+) de (\d+) alumnos$/, (_m, shown, total) => `Showing ${shown} of ${total} students`],
+    [/^(\d+) clases? disponibles\.$/, (_m, count) => `${count} ${plural(count, 'class', 'classes')} available.`],
+    [/^(\d+) preguntas? · (\d+) resultados? · (\d+) XP media$/, (_m, questions, results, xp) => `${questions} ${plural(questions, 'question', 'questions')} · ${results} ${plural(results, 'result', 'results')} · ${xp} average XP`],
+    [/^(\d+) clases? · (.+)$/, (_m, count, className) => `${count} ${plural(count, 'class', 'classes')} · ${translateFragment(className)}`],
+    [/^(\d+) alumnos? sin actividad \/ sin evaluar$/, (_m, count) => `${count} ${plural(count, 'student', 'students')} with no activity / not assessed`],
+
     // Teacher UI.
     [/^El silencio temporal termina el (.+)\. Las alertas críticas continúan activas\.$/, (_m, date) => `Temporary mute ends on ${date}. Critical alerts remain active.`],
     [/^curso (.+)$/, (_m, id) => `course ${id}`],

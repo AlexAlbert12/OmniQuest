@@ -1,14 +1,13 @@
-import React from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React from 'react'
+import { Pressable, Text, TextInput, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
+import AppDropdown from '../../ui/AppDropdown'
 import PaginationControls from '../../ui/PaginationControls'
 import VirtualizedStack from '../../ui/VirtualizedStack'
 import {
   getGradeColor,
   getInitials,
-  getNextStudentSortKey,
-  getNextStudentStatusFilter,
   getStudentSortLabel,
   getStudentStatus,
   getStudentStatusFilterLabel,
@@ -17,13 +16,32 @@ import {
   type StudentReport,
   type StudentSortKey,
   type StudentStatusFilter,
-  type SubjectScore,
-} from '../../../lib/teacherSubjectAnalytics';
-import { SubjectPanel, GradeDistributionBars, type IconName } from './SubjectShared';
+} from '../../../lib/teacherSubjectAnalytics'
+import { SubjectPanel, GradeDistributionBars } from './SubjectShared'
+import { formatCount } from '../../../lib/formatCount'
+
+const statusOptions: Array<{ value: StudentStatusFilter; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+  { value: 'all', label: 'Todos', icon: 'people-outline' },
+  { value: 'active', label: 'Activos', icon: 'checkmark-circle-outline' },
+  { value: 'inactive', label: 'Inactivos', icon: 'time-outline' },
+  { value: 'no_activity', label: 'Sin actividad', icon: 'pause-circle-outline' },
+  { value: 'needs_help', label: 'Necesitan apoyo', icon: 'alert-circle-outline' },
+]
+
+const sortOptions: Array<{ value: StudentSortKey; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+  { value: 'xp', label: 'XP', icon: 'star-outline' },
+  { value: 'progress', label: 'Progreso', icon: 'trending-up-outline' },
+  { value: 'grade', label: 'Nota', icon: 'school-outline' },
+  { value: 'recent', label: 'Actividad reciente', icon: 'time-outline' },
+]
 
 export function SubjectStudentsTab({
+  activeThisWeek,
+  attentionStudents,
   averageXp,
+  bestStudent,
   enrollmentsCount,
+  generatedXp,
   gradeDistribution,
   isDesktop,
   isWide,
@@ -34,21 +52,19 @@ export function SubjectStudentsTab({
   onStudentStatusFilterChange,
   page,
   pageSize,
+  playedSessionsTotal,
   questionsCount,
-  activeThisWeek,
   scorePerformanceCount,
-  scores,
   studentListRows,
-  studentReportRows,
   studentSearch,
   studentSortKey,
   studentStatusFilter,
   totalStudents,
+  unassessedCount,
 }: {
   isDesktop: boolean
   isWide: boolean
   enrollmentsCount: number
-  studentReportRows: StudentReport[]
   studentListRows: StudentReport[]
   studentSearch: string
   studentStatusFilter: StudentStatusFilter
@@ -58,69 +74,57 @@ export function SubjectStudentsTab({
   page: number
   pageSize: number
   questionsCount: number
-  scores: SubjectScore[]
   gradeDistribution: { label: string; color: string; count: number }[]
   scorePerformanceCount: number
   totalStudents: number
+  unassessedCount: number
+  generatedXp: number
+  playedSessionsTotal: number
+  bestStudent: StudentReport | null
+  attentionStudents: StudentReport[]
   onStudentSearchChange: (value: string) => void
   onStudentStatusFilterChange: (value: StudentStatusFilter) => void
   onStudentSortKeyChange: (value: StudentSortKey) => void
   onImportStudents: () => void
   onPageChange: (page: number) => void
 }) {
-  const weeklyActivePercent = enrollmentsCount > 0 ? Math.round((activeThisWeek / enrollmentsCount) * 100) : 0;
-  const studentsNeedingAttention = studentReportRows.filter((student) => {
-    const status = getStudentStatus(student);
-    return status === 'needs_help' || status === 'no_activity';
-  });
-  const bestStudent = studentReportRows.find((student) => student.hasActivity);
-  const generatedXp = scores.reduce((total, score) => total + (score.max_score ?? 0), 0);
+  const weeklyActivePercent = enrollmentsCount > 0 ? Math.round((activeThisWeek / enrollmentsCount) * 100) : 0
+  const evaluatedDetail = scorePerformanceCount > 0 ? `${formatCount(scorePerformanceCount, 'evaluado', 'evaluados')} · ${unassessedCount} sin actividad` : `${unassessedCount} sin actividad`
+  const activityCapacity = Math.max(enrollmentsCount * Math.max(questionsCount, 1), 1)
 
   return (
     <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
       <View className={isDesktop ? 'flex-[1.55] gap-5' : 'gap-5'}>
-        <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
-          <StudentMetricCard icon="people" label="Alumnos inscritos" value={String(enrollmentsCount)} detail={`${studentReportRows.length} en esta página`} color="#8B5CF6" />
-          <StudentMetricCard icon="checkmark-circle" label="Activos esta semana" value={String(activeThisWeek)} detail={`${weeklyActivePercent}% del total`} color="#34D399" />
-          <StudentMetricCard icon="star" label="XP media" value={`${averageXp} XP`} detail="Media del alumnado matriculado" color="#3B82F6" />
-          <StudentMetricCard icon="trophy" label="Mejor en esta página" value={`${bestStudent?.score ?? 0} XP`} detail={bestStudent?.name || 'Sin actividad'} color="#F59E0B" />
+        <View className={isWide ? 'flex-row gap-4' : 'flex-row flex-wrap gap-3'}>
+          <StudentMetricCard compact={!isWide} icon="people" label="Alumnos inscritos" value={String(enrollmentsCount)} detail={evaluatedDetail} color="#8B5CF6" />
+          <StudentMetricCard compact={!isWide} icon="checkmark-circle" label="Activos esta semana" value={String(activeThisWeek)} detail={`${weeklyActivePercent}% del total`} color="#34D399" />
+          <StudentMetricCard compact={!isWide} icon="star" label="XP media" value={`${averageXp} XP`} detail="Media del alumnado matriculado" color="#3B82F6" />
+          <StudentMetricCard compact={!isWide} icon="trophy" label="Mejor alumno" value={`${bestStudent?.score ?? 0} XP`} detail={bestStudent?.name || 'Sin actividad'} color="#F59E0B" />
         </View>
 
         <View className="rounded-xl border border-border-default bg-surface-default p-4">
-          <View className="mb-4 flex-row flex-wrap items-center gap-3">
-            <View className="h-11 min-w-[220px] flex-1 flex-row items-center rounded-lg border border-border-default bg-surface-default px-3">
-              <TextInput
-                className="min-w-0 flex-1 text-[13px] text-white"
-                placeholder="Buscar alumno..."
-                placeholderTextColor="#60799C"
-                value={studentSearch}
-                onChangeText={onStudentSearchChange}
-              />
-              <Ionicons name="search-outline" size={17} color="#8FA7C7" />
+          <View className="mb-4 gap-3">
+            <View className={isWide ? 'flex-row flex-wrap items-end gap-3' : 'gap-3'}>
+              <View className="h-12 min-w-[220px] flex-1 flex-row items-center rounded-xl border border-border-default bg-surface-default px-3">
+                <TextInput className="min-w-0 flex-1 text-[13px] text-white" placeholder="Buscar alumno..." placeholderTextColor="#60799C" value={studentSearch} onChangeText={onStudentSearchChange} />
+                <Ionicons name="search-outline" size={17} color="#8FA7C7" />
+              </View>
+              <View className={isWide ? 'w-[190px]' : 'w-full'}>
+                <AppDropdown<StudentStatusFilter> accessibilityLabel="Filtrar alumnos por estado" label="Estado" value={studentStatusFilter} options={statusOptions} onChange={onStudentStatusFilterChange} />
+              </View>
+              <View className={isWide ? 'w-[190px]' : 'w-full'}>
+                <AppDropdown<StudentSortKey> accessibilityLabel="Ordenar alumnos" label="Ordenar por" value={studentSortKey} options={sortOptions} onChange={onStudentSortKeyChange} />
+              </View>
+              <Pressable
+                onPress={onImportStudents}
+                className={`${isWide ? 'h-12' : 'min-h-12 w-full justify-center'} flex-row items-center gap-2 rounded-xl px-4`}
+                style={({ pressed }) => ({ borderWidth: 1, borderColor: '#38BDF8', backgroundColor: '#0D2848', opacity: pressed ? 0.82 : 1 })}
+              >
+                <Ionicons name="person-add-outline" size={17} color="#38BDF8" />
+                <Text className="text-[12px] font-black text-brand-teacher">Importar alumnos</Text>
+              </Pressable>
             </View>
-            <InlineSelect
-              label={`Estado: ${getStudentStatusFilterLabel(studentStatusFilter)}`}
-              icon="chevron-down"
-              onPress={() => onStudentStatusFilterChange(getNextStudentStatusFilter(studentStatusFilter))}
-            />
-            <InlineSelect
-              label={`Ordenar por: ${getStudentSortLabel(studentSortKey)}`}
-              icon="chevron-down"
-              onPress={() => onStudentSortKeyChange(getNextStudentSortKey(studentSortKey))}
-            />
-            <Pressable
-              onPress={onImportStudents}
-              className="h-11 flex-row items-center gap-2 rounded-lg px-4"
-              style={({ pressed }) => ({
-                borderWidth: 1,
-                borderColor: '#6D5AF6',
-                backgroundColor: '#111B3D',
-                opacity: pressed ? 0.82 : 1,
-              })}
-            >
-              <Ionicons name="person-add-outline" size={17} color="#C4B5FD" />
-              <Text className="text-[12px] font-black text-brand-teacher">Importar alumnos</Text>
-            </Pressable>
+            <Text className="text-[11px] text-text-muted">Estado: {getStudentStatusFilterLabel(studentStatusFilter)} · Orden: {getStudentSortLabel(studentSortKey)}</Text>
           </View>
 
           <View className="hidden flex-row border-b border-border-default px-2 pb-3 md:flex">
@@ -148,231 +152,132 @@ export function SubjectStudentsTab({
             accessibilityLabel="Alumnos del curso"
           />
 
-          <PaginationControls
-            page={page}
-            pageSize={pageSize}
-            total={totalStudents}
-            onPrevious={() => onPageChange(Math.max(0, page - 1))}
-            onNext={() => onPageChange(page + 1)}
-          />
-          <Text className="mt-2 text-right text-[11px] text-text-muted">
-            Mostrando {studentListRows.length} de {totalStudents} alumnos
-          </Text>
+          <PaginationControls page={page} pageSize={pageSize} total={totalStudents} onPrevious={() => onPageChange(Math.max(0, page - 1))} onNext={() => onPageChange(page + 1)} />
+          <Text className="mt-2 text-right text-[11px] text-text-muted">Mostrando {studentListRows.length} de {totalStudents} alumnos</Text>
         </View>
       </View>
 
       <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
         <SubjectPanel title="Distribución de notas">
-          <GradeDistributionBars distribution={gradeDistribution} total={scorePerformanceCount} />
+          <GradeDistributionBars distribution={gradeDistribution} total={scorePerformanceCount} unassessed={unassessedCount} />
         </SubjectPanel>
 
         <SubjectPanel title="Actividad de la clase">
           <ProgressLine label="Activos esta semana" value={activeThisWeek} total={Math.max(enrollmentsCount, 1)} color="#8B5CF6" />
-          <ProgressLine label="Retos completados" value={studentReportRows.reduce((total, student) => total + student.playedSessions, 0)} total={Math.max(studentReportRows.length * Math.max(questionsCount, 1), 1)} color="#7C5CFF" />
+          <ProgressLine label="Retos completados" value={playedSessionsTotal} total={activityCapacity} color="#7C5CFF" />
           <ProgressLine label="XP generado" value={generatedXp} total={Math.max(generatedXp + 500, 1)} color="#3B82F6" />
         </SubjectPanel>
 
         <SubjectPanel title="Alumnos que necesitan atención">
           <View style={{ gap: 12 }}>
-            {studentsNeedingAttention.slice(0, 4).map((student) => (
-              <StudentAttentionItem key={student.id} student={student} />
-            ))}
-            {studentsNeedingAttention.length === 0 ? (
-              <Text className="text-[12px] text-text-muted">No hay alumnos en riesgo ahora mismo.</Text>
-            ) : null}
+            {attentionStudents.map((student) => <StudentAttentionItem key={student.id} student={student} />)}
+            {attentionStudents.length === 0 ? <Text className="text-[12px] text-text-muted">No hay alumnos en riesgo ahora mismo.</Text> : null}
           </View>
         </SubjectPanel>
 
         <View className="rounded-xl border border-border-default bg-surface-raised p-5">
           <View className="flex-row gap-3">
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-brand-teacher">
-              <Ionicons name="bulb-outline" size={19} color="#FFFFFF" />
-            </View>
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-brand-teacher"><Ionicons name="bulb-outline" size={19} color="#FFFFFF" /></View>
             <View className="min-w-0 flex-1">
               <Text className="font-black text-white">Consejo para profesores</Text>
-              <Text className="mt-2 text-[12px] leading-5 text-text-secondary">
-                Revisa alumnos con baja participación y anímalos a completar retos pendientes.
-              </Text>
+              <Text className="mt-2 text-[12px] leading-5 text-text-secondary">Revisa alumnos con baja participación y anímalos a completar retos pendientes.</Text>
             </View>
           </View>
         </View>
       </View>
     </View>
-  );
+  )
 }
 
-function StudentMetricCard({ icon, label, value, detail, color }: {
+function StudentMetricCard({ icon, label, value, detail, color, compact }: {
   icon: keyof typeof Ionicons.glyphMap
   label: string
   value: string
   detail?: string
   color: string
+  compact?: boolean
 }) {
-  return (
-    <MobileMetricCard
-      className="min-w-[190px] flex-1"
-      color={color}
-      detail={detail}
-      icon={icon}
-      label={label}
-      value={value}
-    />
-  )
-}
-
-function InlineSelect({ label, icon, onPress }: { label: string; icon: IconName; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="h-11 flex-row items-center gap-2 rounded-lg border border-border-default bg-surface-default px-4"
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-    >
-      <Text className="text-[12px] font-semibold text-text-secondary">{label}</Text>
-      <Ionicons name={icon} size={15} color="#8FA7C7" />
-    </Pressable>
-  );
+  return <MobileMetricCard className={compact ? 'min-w-[150px] flex-1' : 'min-w-[190px] flex-1'} compact={compact} color={color} detail={detail} icon={icon} label={label} value={value} />
 }
 
 function StudentTableHeader({ label, flex }: { label: string; flex: number }) {
-  return (
-    <Text className="text-[10px] font-black uppercase text-text-muted" style={{ flex }}>
-      {label}
-    </Text>
-  );
+  return <Text className="text-[10px] font-black uppercase text-text-muted" style={{ flex }}>{label}</Text>
 }
 
 function StudentClassRow({ student, index, mobile = false }: { student: StudentReport; index: number; mobile?: boolean }) {
-  const status = getStudentStatus(student);
-  const statusMeta = getStudentStatusMeta(status);
-  const gradeColor = getGradeColor(student.grade);
+  const status = getStudentStatus(student)
+  const statusMeta = getStudentStatusMeta(status)
+  const gradeColor = getGradeColor(student.grade)
 
   if (mobile) {
     return (
       <View className="rounded-2xl border border-border-default bg-surface-default p-4">
         <View className="flex-row items-start gap-3">
-          <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? '#F59E0B' : '#1E3356' }}>
-            <Text className="text-[12px] font-black text-white">{index + 1}</Text>
-          </View>
+          <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? '#F59E0B' : '#1E3356' }}><Text className="text-[12px] font-black text-white">{index + 1}</Text></View>
           <View className="min-w-0 flex-1">
             <Text className="font-black text-white" numberOfLines={1}>{student.name}</Text>
             <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>@{slugifyStudentName(student.name)} · {formatRelative(student.lastActivity, index)}</Text>
           </View>
-          <View className="rounded-full px-3 py-1" style={{ backgroundColor: `${statusMeta.color}24` }}>
-            <Text className="text-[11px] font-black" style={{ color: statusMeta.color }}>{statusMeta.label}</Text>
-          </View>
+          <View className="rounded-full px-3 py-1" style={{ backgroundColor: `${statusMeta.color}24` }}><Text className="text-[11px] font-black" style={{ color: statusMeta.color }}>{statusMeta.label}</Text></View>
         </View>
-
-        <View className="mt-4 h-2 overflow-hidden rounded-full bg-surface-interactive">
-          <View className="h-full rounded-full bg-brand-teacher" style={{ width: `${student.participation}%` }} />
-        </View>
-
+        <View className="mt-4 h-2 overflow-hidden rounded-full bg-surface-interactive"><View className="h-full rounded-full bg-brand-teacher" style={{ width: `${student.participation}%` }} /></View>
         <View className="mt-4 flex-row flex-wrap gap-2">
-          <StudentMobileStat label="Progreso" value={`${student.participation}%`} color="#7C5CFF" />
-          <StudentMobileStat label="XP" value={`${student.score.toLocaleString('es-ES')}`} color="#3B82F6" />
-          <StudentMobileStat label="Retos" value={String(student.playedSessions)} color="#A78BFA" />
-          <StudentMobileStat label="Nota" value={student.hasActivity ? student.grade.toFixed(1) : '-'} color={gradeColor} />
+          <StudentMobileStat label="Progreso" value={`${student.participation}%`} color="white" />
+          <StudentMobileStat label="XP" value={`${student.score.toLocaleString('es-ES')}`} color="#09acf4" />
+          <StudentMobileStat label="Partidas" value={String(student.playedSessions)} color="#white" />
+          <StudentMobileStat label="Nota" value={student.hasActivity ? student.grade.toFixed(1) : 'Sin evaluar'} color={student.hasActivity ? gradeColor : '#8FA7C7'} />
         </View>
       </View>
-    );
+    )
   }
 
   return (
     <View className="flex-row flex-wrap items-center gap-y-3 border-b border-border-subtle px-2 py-4">
-      <View className="min-w-[45px] flex-[0.35]">
-        <View className="h-7 w-7 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? '#F59E0B' : '#1E3356' }}>
-          <Text className="text-[11px] font-black text-white">{index + 1}</Text>
-        </View>
-      </View>
+      <View className="min-w-[45px] flex-[0.35]"><View className="h-7 w-7 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? '#F59E0B' : '#1E3356' }}><Text className="text-[11px] font-black text-white">{index + 1}</Text></View></View>
       <View className="min-w-[180px] flex-[1.4] flex-row items-center gap-3">
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-selected">
-          <Text className="font-black text-semantic-info">{getInitials(student.name)}</Text>
-        </View>
-        <View className="min-w-0 flex-1">
-          <Text className="font-black text-white" numberOfLines={1}>{student.name}</Text>
-          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>@{slugifyStudentName(student.name)}</Text>
-        </View>
+        <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-selected"><Text className="font-black text-semantic-info">{getInitials(student.name)}</Text></View>
+        <View className="min-w-0 flex-1"><Text className="font-black text-white" numberOfLines={1}>{student.name}</Text><Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>@{slugifyStudentName(student.name)}</Text></View>
       </View>
-      <View className="min-w-[130px] flex-[1] flex-row items-center gap-3">
-        <View className="h-2 flex-1 overflow-hidden rounded-full bg-surface-interactive">
-          <View className="h-full rounded-full bg-brand-teacher" style={{ width: `${student.participation}%` }} />
-        </View>
-        <Text className="w-10 text-right text-[12px] font-bold text-white">{student.participation}%</Text>
-      </View>
-      <View className="min-w-[90px] flex-[0.75]">
-        <Text className="text-[12px] font-black text-white">{student.score.toLocaleString('es-ES')} XP</Text>
-      </View>
+      <View className="min-w-[130px] flex-[1] flex-row items-center gap-3"><View className="h-2 flex-1 overflow-hidden rounded-full bg-surface-interactive"><View className="h-full rounded-full bg-brand-teacher" style={{ width: `${student.participation}%` }} /></View><Text className="w-10 text-right text-[12px] font-bold text-white">{student.participation}%</Text></View>
+      <View className="min-w-[90px] flex-[0.75]"><Text className="text-[12px] font-black text-white">{student.score.toLocaleString('es-ES')} XP</Text></View>
       <Text className="min-w-[60px] flex-[0.55] text-[12px] font-bold text-white">{student.playedSessions}</Text>
-      <View className="min-w-[90px] flex-[0.8]">
-        <View className="self-start rounded-md border px-2 py-1" style={{ borderColor: gradeColor }}>
-          <Text className="text-[12px] font-black" style={{ color: gradeColor }}>
-            {student.hasActivity ? student.grade.toFixed(1) : '-'}
-          </Text>
-        </View>
-      </View>
-      <View className="min-w-[105px] flex-[0.85] flex-row items-center gap-2">
-        <View className="h-2 w-2 rounded-full" style={{ backgroundColor: statusMeta.color }} />
-        <Text className="text-[12px] font-semibold" style={{ color: statusMeta.color }}>{statusMeta.label}</Text>
-      </View>
-      <Text className="min-w-[110px] flex-[0.9] text-[12px] text-text-secondary">
-        {formatRelative(student.lastActivity, index)}
-      </Text>
+      <View className="min-w-[90px] flex-[0.8]"><View className="self-start rounded-md border px-2 py-1" style={{ borderColor: student.hasActivity ? gradeColor : '#60799C' }}><Text className="text-[12px] font-black" style={{ color: student.hasActivity ? gradeColor : '#8FA7C7' }}>{student.hasActivity ? student.grade.toFixed(1) : '—'}</Text></View></View>
+      <View className="min-w-[105px] flex-[0.85] flex-row items-center gap-2"><View className="h-2 w-2 rounded-full" style={{ backgroundColor: statusMeta.color }} /><Text className="text-[12px] font-semibold" style={{ color: statusMeta.color }}>{statusMeta.label}</Text></View>
+      <Text className="min-w-[110px] flex-[0.9] text-[12px] text-text-secondary">{formatRelative(student.lastActivity, index)}</Text>
     </View>
-  );
+  )
 }
 
 function StudentMobileStat({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <View className="min-w-[92px] flex-1 rounded-xl border border-border-default bg-surface-default p-3">
-      <Text className="text-[11px] font-semibold text-text-muted">{label}</Text>
-      <Text className="mt-1 text-[15px] font-black" style={{ color }} numberOfLines={1}>{value}</Text>
-    </View>
-  );
+  return <View className="min-w-[92px] flex-1 rounded-xl border border-border-default bg-surface-default p-3"><Text className="text-[11px] font-semibold text-text-muted">{label}</Text><Text className="mt-1 text-[15px] font-black" style={{ color }} numberOfLines={1}>{value}</Text></View>
 }
 
 function ProgressLine({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
-  const percent = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0;
-
-  return (
-    <View className="mb-4">
-      <View className="mb-2 flex-row items-center justify-between gap-3">
-        <Text className="text-[12px] font-semibold text-white">{label}</Text>
-        <Text className="text-[12px] text-text-secondary">{value.toLocaleString('es-ES')}</Text>
-      </View>
-      <View className="h-2 overflow-hidden rounded-full bg-surface-interactive">
-        <View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: color }} />
-      </View>
-    </View>
-  );
+  const percent = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0
+  return <View className="mb-4"><View className="mb-2 flex-row items-center justify-between gap-3"><Text className="text-[12px] font-semibold text-white">{label}</Text><Text className="text-[12px] text-text-secondary">{value.toLocaleString('es-ES')}</Text></View><View className="h-2 overflow-hidden rounded-full bg-surface-interactive"><View className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: color }} /></View></View>
 }
 
 function StudentAttentionItem({ student }: { student: StudentReport }) {
-  const reason = getAttentionReason(student);
+  const reason = getAttentionReason(student)
   return (
     <View className="flex-row items-center gap-3">
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-selected">
-        <Text className="text-[12px] font-black text-semantic-info">{getInitials(student.name)}</Text>
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="text-[13px] font-bold text-white" numberOfLines={1}>{student.name}</Text>
-        <Text className="text-[11px] text-text-secondary">{reason.label}</Text>
-      </View>
-      <View className="rounded-md border px-2 py-1" style={{ borderColor: reason.color }}>
-        <Text className="text-[11px] font-black" style={{ color: reason.color }}>{reason.value}</Text>
-      </View>
+      <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-selected"><Text className="text-[12px] font-black text-semantic-info">{getInitials(student.name)}</Text></View>
+      <View className="min-w-0 flex-1"><Text className="text-[13px] font-bold text-white" numberOfLines={1}>{student.name}</Text><Text className="text-[11px] text-text-secondary">{reason.label}</Text></View>
+      <View className="rounded-md border px-2 py-1" style={{ borderColor: reason.color }}><Text className="text-[11px] font-black" style={{ color: reason.color }}>{reason.value}</Text></View>
     </View>
-  );
+  )
 }
 
 function getAttentionReason(student: StudentReport) {
-  if (!student.hasActivity) return { label: 'Sin actividad', value: '—', color: '#8FA7C7' };
-  if (student.grade < 5) return { label: 'Nota media baja', value: student.grade.toFixed(1), color: '#F43F5E' };
-  if (student.participation < 35) return { label: 'Baja participación', value: `${student.participation}%`, color: '#F59E0B' };
-  return { label: 'Requiere seguimiento', value: `${student.participation}%`, color: '#F59E0B' };
+  if (!student.hasActivity) return { label: 'Sin actividad', value: '—', color: '#8FA7C7' }
+  if (student.grade < 5) return { label: 'Nota media baja', value: student.grade.toFixed(1), color: '#F43F5E' }
+  if (student.participation < 35) return { label: 'Baja participación', value: `${student.participation}%`, color: '#F59E0B' }
+  return { label: 'Requiere seguimiento', value: `${student.participation}%`, color: '#F59E0B' }
 }
 
 function formatRelative(value: string | null | undefined, index: number) {
-  if (!value) return index < 2 ? 'Hoy' : 'Esta semana';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Reciente';
-  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  if (!value) return index < 2 ? 'Hoy' : 'Esta semana'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Reciente'
+  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 }

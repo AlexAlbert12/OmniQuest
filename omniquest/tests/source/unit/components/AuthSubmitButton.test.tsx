@@ -2,6 +2,21 @@ import React from 'react'
 import { fireEvent, render } from '@testing-library/react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import AuthSubmitButton from '@/components/auth/AuthSubmitButton'
+import { createDesignColorTokens } from '@/lib/designTokens'
+
+jest.mock('@/lib/i18n', () => ({
+  translateUiText: (_locale: string, input: string) => input,
+  useI18n: () => ({ locale: 'es-ES', t: (key: string) => key }),
+}))
+
+jest.mock('@/lib/appTheme', () => {
+  const { createDesignColorTokens } = jest.requireActual('@/lib/designTokens')
+  return {
+    useAppTheme: () => ({ tokens: createDesignColorTokens('dark', '#09acf4') }),
+  }
+})
+
+const tokens = createDesignColorTokens('dark', '#09acf4')
 
 describe('AuthSubmitButton', () => {
   it('invokes the submitted action when enabled', () => {
@@ -31,7 +46,7 @@ describe('AuthSubmitButton', () => {
 
     expect(button.props.accessibilityState).toEqual(expect.objectContaining({ disabled: true }))
     expect(button.props.style).toEqual(expect.objectContaining({ opacity: 1 }))
-    expect(gradient.props.colors).toEqual(['#263650', '#30354F'])
+    expect(gradient.props.colors).toEqual([tokens.surface.disabled, tokens.surface.disabled])
     fireEvent.press(button)
     expect(onPress).not.toHaveBeenCalled()
   })

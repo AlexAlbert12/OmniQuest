@@ -17,7 +17,6 @@ import SubjectTabState from '../../../components/teacher/subject/SubjectTabState
 import { SubjectQuestionsTab } from '../../../components/teacher/subject/SubjectQuestionsTab'
 import { SubjectStudentsTab } from '../../../components/teacher/subject/SubjectStudentsTab'
 import {
-  SubjectAddQuestionCTA,
   SubjectClassroomContextSelector,
   SubjectClassroomsSection,
   SubjectTopicsSection,
@@ -38,7 +37,7 @@ export default function SubjectDetailScreen() {
   const subjectId = firstParam(params.id)
   const importStudents = firstParam(params.importStudents)
   const isDesktop = responsive.isDesktop
-  const isWide = !responsive.isMobile
+  const isWide = responsive.isDesktop
 
   const detail = useTeacherSubjectDetail({ subjectId, tab: params.tab, classroomId: params.classroomId })
   const { setActiveTab, setShowStudentImportModal } = detail
@@ -110,7 +109,7 @@ export default function SubjectDetailScreen() {
         mobileBottomNavigation={<TeacherBottomNav active="classes" />}
         isDesktop={isDesktop}
         horizontalPadding={isDesktop ? undefined : 14}
-        bottomPadding={isDesktop ? 36 : 166}
+        bottomPadding={isDesktop ? 36 : 104}
         refreshControl={(
           <RefreshControl
             refreshing={detail.refreshing}
@@ -124,11 +123,14 @@ export default function SubjectDetailScreen() {
           isDesktop={isDesktop}
           title={subject.name}
           titleNumberOfLines={2}
-          subtitle={`${subject.description || 'Curso sin descripción'} · Código: ${subject.code} · ${detail.classrooms.length} clase${detail.classrooms.length === 1 ? '' : 's'} · Creado ${formatDate(subject.created_at)}`}
+          mobileStackedIdentity
+          compactMobileTitle
+          mobileSubtitle={`${detail.classrooms.length} clase${detail.classrooms.length === 1 ? '' : 's'} · ${detail.selectedClassroom?.name || 'Sin clase activa'}`}
+          subtitle={`${subject.description || 'Curso sin descripción'} · Código: ${subject.code} · ${detail.classrooms.length} clase${detail.classrooms.length === 1 ? '' : 's'} · Clase activa: ${detail.selectedClassroom?.name || 'Sin seleccionar'} · Creado ${formatDate(subject.created_at)}`}
           subtitleNumberOfLines={3}
           leading={(
-            <View className={`${isDesktop ? 'h-20 w-20' : 'h-16 w-16'} items-center justify-center rounded-2xl border border-border-active bg-surface-selected`}>
-              <Ionicons name={normalizeAcademicIcon(subject.icon, 'school-outline')} size={isDesktop ? 42 : 34} color={tokens.brand.teacher} />
+            <View className={`${isDesktop ? 'h-20 w-20' : 'h-14 w-14'} items-center justify-center rounded-2xl border border-border-active bg-surface-selected`}>
+              <Ionicons name={normalizeAcademicIcon(subject.icon, 'school-outline')} size={isDesktop ? 42 : 30} color={tokens.brand.teacher} />
             </View>
           )}
           actions={(
@@ -156,7 +158,6 @@ export default function SubjectDetailScreen() {
                 role="teacher"
                 onPress={() => router.push(`/(teacher)/edit-subject?id=${subject.id}` as never)}
               />
-              {isDesktop ? <SubjectAddQuestionCTA href={addQuestionHref} /> : null}
             </>
           )}
         />
@@ -164,6 +165,7 @@ export default function SubjectDetailScreen() {
         <SubjectClassroomContextSelector
           classrooms={detail.classrooms}
           selectedClassroomId={detail.selectedClassroomId}
+          compact={!isDesktop}
           onSelect={(classroomId) => {
             detail.setSelectedClassroomId(classroomId)
             detail.setSelectedTopicId('all')
@@ -174,6 +176,7 @@ export default function SubjectDetailScreen() {
           <AppTabs<SubjectTabKey>
             accessibilityLabel="Secciones del curso"
             items={teacherSubjectTabItems}
+            mobileRail={!isDesktop}
             onChange={changeTab}
             role="teacher"
             value={detail.activeTab}
@@ -196,6 +199,7 @@ export default function SubjectDetailScreen() {
               isDesktop={isDesktop}
               onOpenAnalytics={() => changeTab('analytics')}
               onCopyCode={() => { void detail.handleCopyCode() }}
+              onShareCode={() => { void detail.handleShareCode() }}
               overview={detail.overview}
               subject={subject}
             />
@@ -222,6 +226,7 @@ export default function SubjectDetailScreen() {
             }}
             onTitleChange={detail.setNewTopicTitle}
             selectedClassroomName={detail.selectedClassroom?.name}
+            isMobile={!isDesktop}
             selectedTopicId={detail.selectedTopicId}
             topicRows={detail.topicRows}
           />
@@ -232,10 +237,10 @@ export default function SubjectDetailScreen() {
             filteredQuestions={detail.questions}
             onDeleteQuestion={detail.handleDelete}
             onDifficultyChange={detail.setSelectedDifficulty}
+            onTopicChange={detail.setSelectedTopicId}
             selectedClassroomId={detail.selectedClassroomId}
             selectedDifficulty={detail.selectedDifficulty}
             selectedTopicId={detail.selectedTopicId}
-            selectedTopicLabel={detail.selectedTopicLabel}
             subjectId={subject.id}
             topics={detail.topics}
           />
@@ -243,8 +248,12 @@ export default function SubjectDetailScreen() {
 
         {!detail.tabLoading && !detail.tabError && detail.activeTab === 'students' ? (
           <SubjectStudentsTab
+            activeThisWeek={detail.studentsSummary.activeThisWeek}
+            attentionStudents={detail.studentsSummary.attention}
             averageXp={detail.studentsSummary.averageXp}
+            bestStudent={detail.studentsSummary.bestStudent}
             enrollmentsCount={detail.studentsSummary.enrolled}
+            generatedXp={detail.studentsSummary.generatedXp}
             gradeDistribution={detail.gradeDistribution}
             isDesktop={isDesktop}
             isWide={isWide}
@@ -255,16 +264,15 @@ export default function SubjectDetailScreen() {
             onStudentStatusFilterChange={detail.setStudentStatusFilter}
             page={detail.studentPage}
             pageSize={detail.studentPageSize}
+            playedSessionsTotal={detail.studentsSummary.playedSessionsTotal}
             questionsCount={detail.studentsSummary.questionsCount}
-            activeThisWeek={detail.studentsSummary.activeThisWeek}
             scorePerformanceCount={detail.studentsSummary.answered}
-            scores={detail.scores}
             studentListRows={detail.studentListRows}
-            studentReportRows={detail.studentReportRows}
             studentSearch={detail.studentSearch}
             studentSortKey={detail.studentSortKey}
             studentStatusFilter={detail.studentStatusFilter}
             totalStudents={detail.studentsTotal}
+            unassessedCount={detail.studentsSummary.unassessed}
           />
         ) : null}
 
@@ -273,7 +281,6 @@ export default function SubjectDetailScreen() {
         ) : null}
       </TeacherScreenLayout>
 
-      {!isDesktop ? <SubjectAddQuestionCTA href={addQuestionHref} sticky /> : null}
 
       <TeacherStudentImportModal
         visible={detail.showStudentImportModal}

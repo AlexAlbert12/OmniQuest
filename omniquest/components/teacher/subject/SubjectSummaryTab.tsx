@@ -3,6 +3,7 @@ import { Link } from 'expo-router'
 import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
+import AppButton from '../../ui/AppButton'
 import { GradeDistributionBars, SubjectPanel } from './SubjectShared'
 import type { ActivityItem, Subject } from '../../../hooks/teacher/useTeacherSubjectDetail'
 import type { TeacherSubjectOverview } from '../../../lib/teacherServerData'
@@ -14,6 +15,7 @@ export default function SubjectSummaryTab({
   isDesktop,
   onOpenAnalytics,
   onCopyCode,
+  onShareCode,
   overview,
   subject,
 }: {
@@ -23,6 +25,7 @@ export default function SubjectSummaryTab({
   isDesktop: boolean
   onOpenAnalytics: () => void
   onCopyCode: () => void
+  onShareCode: () => void
   overview: TeacherSubjectOverview
   subject: Subject
 }) {
@@ -85,7 +88,7 @@ export default function SubjectSummaryTab({
 
         <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
           <SubjectPanel title="Distribución de notas">
-            <GradeDistributionBars distribution={gradeDistribution} total={overview.summary.activeStudents} />
+            <GradeDistributionBars distribution={gradeDistribution} total={overview.summary.evaluatedStudents} unassessed={overview.summary.unassessedStudents} />
           </SubjectPanel>
 
           <View className="rounded-xl border border-border-active bg-surface-selected p-5">
@@ -94,10 +97,13 @@ export default function SubjectSummaryTab({
               <Text className="font-black text-text-primary">Código del curso</Text>
             </View>
             <Text className="mt-3 text-[12px] leading-5 text-text-secondary">Comparte este código para que el alumnado se una.</Text>
-            <Pressable accessibilityRole="button" onPress={onCopyCode} className="mt-4 min-h-11 flex-row items-center justify-between rounded-xl bg-surface-default px-4 py-3">
-              <Text className="font-mono text-[16px] font-black text-brand-teacher">{subject.code}</Text>
-              <Ionicons name="copy-outline" size={18} color="#A78BFA" />
-            </Pressable>
+            <View className="mt-4 rounded-xl border border-border-default bg-surface-default px-4 py-4">
+              <Text className="text-center font-mono text-[22px] font-black tracking-[0.12em] text-brand-teacher">{subject.code}</Text>
+              <View className="mt-4 flex-row flex-wrap justify-center gap-2">
+                <AppButton label="Copiar código" accessibilityLabel={`Copiar código ${subject.code}`} icon="copy-outline" size="sm" role="teacher" onPress={onCopyCode} />
+                <AppButton label="Compartir" accessibilityLabel="Compartir código del curso" icon="share-social-outline" size="sm" variant="secondary" onPress={onShareCode} />
+              </View>
+            </View>
           </View>
         </View>
       </View>
