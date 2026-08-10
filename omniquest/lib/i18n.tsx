@@ -1508,6 +1508,12 @@ export function translateUiText(locale: AppLocale, input: string): string {
     [/^(\d+) clases? · (.+)$/, (_m, count, className) => `${count} ${plural(count, 'class', 'classes')} · ${translateFragment(className)}`],
     [/^(\d+) alumnos? sin actividad \/ sin evaluar$/, (_m, count) => `${count} ${plural(count, 'student', 'students')} with no activity / not assessed`],
 
+    [/^Paso (\d+) de (\d+)$/, (_m, step, total) => `Step ${step} of ${total}`],
+    [/^Paso (\d+)$/, (_m, step) => `Step ${step}`],
+    [/^Guardado localmente a las (.+)$/, (_m, time) => `Saved locally at ${time}`],
+    [/^La simulación otorgaría (\d+) XP después de aplicar la penalización de la pista\.$/, (_m, xp) => `The simulation would award ${xp} XP after applying the hint penalty.`],
+    [/^La simulación otorgaría (\d+) XP\.$/, (_m, xp) => `The simulation would award ${xp} XP.`],
+
     // Teacher UI.
     [/^El silencio temporal termina el (.+)\. Las alertas críticas continúan activas\.$/, (_m, date) => `Temporary mute ends on ${date}. Critical alerts remain active.`],
     [/^curso (.+)$/, (_m, id) => `course ${id}`],

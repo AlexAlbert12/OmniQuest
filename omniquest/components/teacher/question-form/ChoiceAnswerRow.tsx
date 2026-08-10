@@ -11,6 +11,7 @@ export default function ChoiceAnswerRow({
   correct,
   editable = true,
   readOnly = false,
+  invalid = false,
   onMarkCorrect,
   onChangeText,
 }: {
@@ -19,6 +20,7 @@ export default function ChoiceAnswerRow({
   correct: boolean
   editable?: boolean
   readOnly?: boolean
+  invalid?: boolean
   onMarkCorrect?: () => void
   onChangeText?: (value: string) => void
 }) {
@@ -30,7 +32,7 @@ export default function ChoiceAnswerRow({
     <View
       className="rounded-xl border px-4 py-3"
       style={{
-        borderColor: correct ? tokens.semantic.success : tokens.border.default,
+        borderColor: invalid ? tokens.semantic.danger : correct ? tokens.semantic.success : tokens.border.default,
         backgroundColor: correct ? withAlpha(tokens.semantic.success, '18') : tokens.surface.interactive,
       }}
     >

@@ -1,40 +1,32 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { TeacherQuestionFormState } from '../components/teacher/question-form/types'
 
-const PREFIX = 'omniquest:teacher-question-draft:v1'
+const PREFIX = 'omniquest:teacher-question-draft:v2'
+const LEGACY_PREFIX = 'omniquest:teacher-question-draft:v1:'
+export const TEACHER_QUESTION_DRAFT_TTL_MS = 14 * 24 * 60 * 60 * 1000
 
 export type StoredTeacherQuestionDraft = {
-  version: 1
+  version: 2
   savedAt: string
+  expiresAt: string
   state: Omit<TeacherQuestionFormState, 'topics'>
 }
 
-export function getTeacherQuestionDraftKey({
-  mode,
-  subjectId,
-  questionId,
-}: {
-  mode: 'create' | 'edit'
-  subjectId: string | null
-  questionId: string | null
-}) {
-  return `${PREFIX}:${mode}:${subjectId || 'unknown'}:${questionId || 'new'}`
+export function getTeacherQuestionDraftKey({ mode, userId, subjectId, classroomId, questionId, sourceQuestionId }: { mode: 'create' | 'edit'; userId: string | null; subjectId: string | null; classroomId: number | null; questionId: string | null; sourceQuestionId?: string | null }) {
+  return `${PREFIX}:${userId || 'anonymous'}:${mode}:${subjectId || 'unknown'}:${classroomId || 'unknown'}:${questionId || sourceQuestionId || 'new'}`
 }
 
 export async function saveTeacherQuestionDraft(key: string, state: Omit<TeacherQuestionFormState, 'topics'>) {
+  const savedAt = new Date()
   const payload: StoredTeacherQuestionDraft = {
-    version: 1,
-    savedAt: new Date().toISOString(),
+    version: 2,
+    savedAt: savedAt.toISOString(),
+    expiresAt: new Date(savedAt.getTime() + TEACHER_QUESTION_DRAFT_TTL_MS).toISOString(),
     state: {
       ...state,
       media: {
         ...state.media,
-        pendingAsset: state.media.pendingAsset
-          ? {
-              ...state.media.pendingAsset,
-              file: undefined,
-            }
-          : null,
+        pendingAsset: state.media.pendingAsset ? { ...state.media.pendingAsset, file: undefined } : null,
       },
     },
   }
@@ -47,7 +39,11 @@ export async function readTeacherQuestionDraft(key: string): Promise<StoredTeach
   if (!raw) return null
   try {
     const parsed = JSON.parse(raw) as Partial<StoredTeacherQuestionDraft>
-    if (parsed.version !== 1 || !parsed.savedAt || !parsed.state) return null
+    const expiresAt = parsed.expiresAt ? new Date(parsed.expiresAt).getTime() : 0
+    if (parsed.version !== 2 || !parsed.savedAt || !parsed.state || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      await AsyncStorage.removeItem(key)
+      return null
+    }
     return parsed as StoredTeacherQuestionDraft
   } catch {
     await AsyncStorage.removeItem(key)
@@ -57,4 +53,11 @@ export async function readTeacherQuestionDraft(key: string): Promise<StoredTeach
 
 export async function removeTeacherQuestionDraft(key: string) {
   await AsyncStorage.removeItem(key)
+}
+
+export async function removeTeacherQuestionDraftsForUser(userId: string | null | undefined) {
+  const keys = await AsyncStorage.getAllKeys()
+  const userMarker = userId ? `:${userId}:` : null
+  const removable = keys.filter((key) => key.startsWith(LEGACY_PREFIX) || (key.startsWith(`${PREFIX}:`) && Boolean(userMarker && key.includes(userMarker))))
+  if (removable.length) await AsyncStorage.multiRemove(removable)
 }

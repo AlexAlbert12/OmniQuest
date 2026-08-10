@@ -4,6 +4,7 @@ import * as Device from 'expo-device'
 import { Platform } from 'react-native'
 import { supabase } from './supabase'
 import { PUSH_TOKEN_STORAGE_KEY } from './pushTokenStorage'
+import { removeTeacherQuestionDraftsForUser } from './questionDraftStorage'
 
 export type PushRegistrationResult = {
   status: 'registered' | 'denied' | 'unsupported' | 'error'
@@ -108,8 +109,13 @@ export async function deactivateCurrentDevicePushToken() {
 }
 
 export async function signOutCurrentDeviceSession() {
+  const { data: sessionData } = await supabase.auth.getSession()
+  const userId = sessionData.session?.user.id || null
   await deactivateCurrentDevicePushToken().catch((error) => {
     console.warn('[push] could not deactivate device token before sign-out', error)
+  })
+  await removeTeacherQuestionDraftsForUser(userId).catch((error) => {
+    console.warn('[drafts] could not clear teacher question drafts before sign-out', error)
   })
   return supabase.auth.signOut()
 }

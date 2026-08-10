@@ -2,9 +2,13 @@ import React, { useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import QuestionMedia from '../questions/QuestionMedia'
+import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 import {
   pickQuestionMedia,
+  QUESTION_MEDIA_MAX_AUDIO_SECONDS,
   QUESTION_MEDIA_MAX_BYTES,
+  QUESTION_MEDIA_MAX_VIDEO_SECONDS,
   type PickedQuestionMedia,
   type QuestionMediaType,
 } from '../../lib/questionMedia'
@@ -27,21 +31,18 @@ type Props = {
   onChange: (value: TeacherQuestionMediaValue) => void
   disabled?: boolean
   onError: (message: string) => void
+  validationError?: string
 }
 
-const options: {
-  type: QuestionMediaType
-  label: string
-  detail: string
-  icon: keyof typeof Ionicons.glyphMap
-}[] = [
-  { type: 'image', label: 'Imagen', detail: 'JPG, PNG, WebP o GIF', icon: 'image-outline' },
-  { type: 'audio', label: 'Audio', detail: 'MP3, M4A, WAV u OGG', icon: 'volume-high-outline' },
-  { type: 'video', label: 'Vídeo', detail: 'MP4, WebM o MOV', icon: 'videocam-outline' },
+const options: { type: QuestionMediaType; label: string; detail: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { type: 'image', label: 'Imagen', detail: 'JPG, PNG, WebP o GIF · máx. 25 MB', icon: 'image-outline' },
+  { type: 'audio', label: 'Audio', detail: `MP3, M4A, WAV u OGG · máx. ${QUESTION_MEDIA_MAX_AUDIO_SECONDS / 60} min / 25 MB`, icon: 'volume-high-outline' },
+  { type: 'video', label: 'Vídeo', detail: `MP4, WebM o MOV · máx. ${QUESTION_MEDIA_MAX_VIDEO_SECONDS / 60} min / 25 MB`, icon: 'videocam-outline' },
 ]
 
-export default function TeacherQuestionMediaEditor({ value, onChange, disabled = false, onError }: Props) {
+export default function TeacherQuestionMediaEditor({ value, onChange, disabled = false, onError, validationError }: Props) {
   const [picking, setPicking] = useState<QuestionMediaType | null>(null)
+  const { tokens } = useAppTheme()
   const previewUrl = value.pendingAsset?.uri || value.url
 
   const choose = async (type: QuestionMediaType) => {
@@ -50,20 +51,8 @@ export default function TeacherQuestionMediaEditor({ value, onChange, disabled =
     try {
       const asset = await pickQuestionMedia(type)
       if (!asset) return
-      if (asset.fileSize && asset.fileSize > QUESTION_MEDIA_MAX_BYTES) {
-        throw new Error('El archivo supera el límite de 25 MB.')
-      }
-      onChange({
-        ...value,
-        type,
-        url: null,
-        path: null,
-        durationSeconds: asset.durationSeconds,
-        transcript: type === 'audio' ? value.transcript : '',
-        subtitlesVtt: type === 'video' ? value.subtitlesVtt : '',
-        pendingAsset: asset,
-        removeExisting: value.removeExisting || Boolean(value.path),
-      })
+      if (asset.fileSize && asset.fileSize > QUESTION_MEDIA_MAX_BYTES) throw new Error('El archivo supera el límite de 25 MB.')
+      onChange({ ...value, type, url: null, path: null, durationSeconds: asset.durationSeconds, transcript: type === 'audio' ? value.transcript : '', subtitlesVtt: type === 'video' ? value.subtitlesVtt : '', pendingAsset: asset, removeExisting: value.removeExisting || Boolean(value.path) })
     } catch (error: any) {
       onError(error?.message || 'No se pudo seleccionar el archivo multimedia.')
     } finally {
@@ -71,40 +60,19 @@ export default function TeacherQuestionMediaEditor({ value, onChange, disabled =
     }
   }
 
-  const clear = () => {
-    onChange({
-      type: null,
-      url: null,
-      path: null,
-      durationSeconds: null,
-      altText: '',
-      caption: '',
-      transcript: '',
-      subtitlesVtt: '',
-      pendingAsset: null,
-      removeExisting: value.removeExisting || Boolean(value.path),
-    })
-  }
+  const clear = () => onChange({ type: null, url: null, path: null, durationSeconds: null, altText: '', caption: '', transcript: '', subtitlesVtt: '', pendingAsset: null, removeExisting: value.removeExisting || Boolean(value.path) })
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { borderColor: validationError ? tokens.semantic.danger : tokens.border.default, backgroundColor: tokens.surface.default }]}>
       <View style={styles.headingRow}>
-        <View style={styles.iconBubble}>
-          <Ionicons name="sparkles-outline" size={19} color="#A78BFA" />
-        </View>
+        <View style={[styles.iconBubble, { backgroundColor: withAlpha(tokens.brand.teacher, '22') }]}><Ionicons name="sparkles-outline" size={19} color={tokens.brand.teacher} /></View>
         <View style={styles.headingCopy}>
-          <Text style={styles.title}>Contenido multimedia</Text>
-          <Text style={styles.subtitle}>Añade una imagen, un audio o un vídeo para contextualizar la pregunta.</Text>
+          <Text style={[styles.title, { color: tokens.text.primary }]}>Contenido multimedia</Text>
+          <Text style={[styles.subtitle, { color: tokens.text.secondary }]}>Añade una imagen, un audio o un vídeo para contextualizar la pregunta.</Text>
         </View>
         {value.type ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Eliminar contenido multimedia"
-            hitSlop={8}
-            onPress={clear}
-            style={({ pressed }) => [styles.removeButton, pressed && styles.pressed]}
-          >
-            <Ionicons name="trash-outline" size={18} color="#FB7185" />
+          <Pressable accessibilityRole="button" accessibilityLabel="Eliminar contenido multimedia" hitSlop={8} onPress={clear} style={({ pressed }) => [styles.removeButton, { borderColor: withAlpha(tokens.semantic.danger, '70'), backgroundColor: withAlpha(tokens.semantic.danger, '18') }, pressed && styles.pressed]}>
+            <Ionicons name="trash-outline" size={18} color={tokens.semantic.danger} />
           </Pressable>
         ) : null}
       </View>
@@ -121,20 +89,12 @@ export default function TeacherQuestionMediaEditor({ value, onChange, disabled =
               accessibilityState={{ selected: active, disabled: disabled || Boolean(picking) }}
               disabled={disabled || Boolean(picking)}
               onPress={() => void choose(option.type)}
-              style={({ pressed }) => [
-                styles.option,
-                active && styles.optionActive,
-                pressed && styles.pressed,
-              ]}
+              style={({ pressed }) => [styles.option, { borderColor: active ? tokens.brand.teacher : tokens.border.default, backgroundColor: active ? withAlpha(tokens.brand.teacher, '18') : tokens.surface.interactive }, pressed && styles.pressed]}
             >
-              {loading ? (
-                <ActivityIndicator color="#A78BFA" />
-              ) : (
-                <Ionicons name={option.icon} size={22} color={active ? '#C4B5FD' : '#8FA7C7'} />
-              )}
+              {loading ? <ActivityIndicator color={tokens.brand.teacher} /> : <Ionicons name={option.icon} size={22} color={active ? tokens.brand.teacher : tokens.text.muted} />}
               <View style={styles.optionCopy}>
-                <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>{option.label}</Text>
-                <Text style={styles.optionDetail}>{option.detail}</Text>
+                <Text style={[styles.optionLabel, { color: active ? tokens.brand.teacher : tokens.text.primary }]}>{option.label}</Text>
+                <Text style={[styles.optionDetail, { color: tokens.text.muted }]}>{option.detail}</Text>
               </View>
             </Pressable>
           )
@@ -143,250 +103,64 @@ export default function TeacherQuestionMediaEditor({ value, onChange, disabled =
 
       {value.type && (previewUrl || value.path) ? (
         <View style={styles.previewArea}>
-          <QuestionMedia
-            type={value.type}
-            url={previewUrl}
-            path={value.path}
-            transcript={value.transcript}
-            subtitlesVtt={value.subtitlesVtt}
-            altText={value.altText}
-            caption={value.caption}
-            compact
-          />
+          <QuestionMedia type={value.type} url={previewUrl} path={value.path} transcript={value.transcript} subtitlesVtt={value.subtitlesVtt} altText={value.altText} caption={value.caption} compact />
 
-          {value.type === 'image' ? (
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Texto alternativo</Text>
-              <TextInput
-                accessibilityLabel="Texto alternativo de la imagen"
-                value={value.altText}
-                onChangeText={(altText) => onChange({ ...value, altText })}
-                placeholder="Describe la imagen para lectores de pantalla"
-                placeholderTextColor="#7085A5"
-                style={styles.input}
-                maxLength={300}
-              />
-            </View>
-          ) : null}
-
-          {value.type === 'audio' ? (
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Transcripción obligatoria</Text>
-              <TextInput
-                accessibilityLabel="Transcripción del audio"
-                value={value.transcript}
-                onChangeText={(transcript) => onChange({ ...value, transcript })}
-                placeholder="Escribe el contenido hablado para que también pueda leerse"
-                placeholderTextColor="#7085A5"
-                style={[styles.input, styles.multilineInput]}
-                multiline
-                textAlignVertical="top"
-                maxLength={20000}
-              />
-            </View>
-          ) : null}
-
-          {value.type === 'video' ? (
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Subtítulos WebVTT obligatorios</Text>
-              <TextInput
-                accessibilityLabel="Subtítulos WebVTT del vídeo"
-                value={value.subtitlesVtt}
-                onChangeText={(subtitlesVtt) => onChange({ ...value, subtitlesVtt })}
-                placeholder={'WEBVTT\n\n00:00.000 --> 00:03.000\nTexto del subtítulo'}
-                placeholderTextColor="#7085A5"
-                style={[styles.input, styles.multilineInput]}
-                multiline
-                textAlignVertical="top"
-                autoCapitalize="none"
-                maxLength={40000}
-              />
-            </View>
-          ) : null}
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Pie o contexto opcional</Text>
-            <TextInput
-              accessibilityLabel="Pie del contenido multimedia"
-              value={value.caption}
-              onChangeText={(caption) => onChange({ ...value, caption })}
-              placeholder="Ej.: Observa el mapa antes de responder"
-              placeholderTextColor="#7085A5"
-              style={styles.input}
-              maxLength={300}
-            />
-          </View>
+          {value.type === 'image' ? <MediaField label="Texto alternativo" accessibilityLabel="Texto alternativo de la imagen" value={value.altText} onChange={(altText) => onChange({ ...value, altText })} placeholder="Describe la imagen para lectores de pantalla" maxLength={300} /> : null}
+          {value.type === 'audio' ? <MediaField label="Transcripción obligatoria" accessibilityLabel="Transcripción del audio" value={value.transcript} onChange={(transcript) => onChange({ ...value, transcript })} placeholder="Escribe el contenido hablado para que también pueda leerse" maxLength={20000} multiline /> : null}
+          {value.type === 'video' ? <MediaField label="Subtítulos WebVTT obligatorios" accessibilityLabel="Subtítulos WebVTT del vídeo" value={value.subtitlesVtt} onChange={(subtitlesVtt) => onChange({ ...value, subtitlesVtt })} placeholder={'WEBVTT\n\n00:00.000 --> 00:03.000\nTexto del subtítulo'} maxLength={40000} multiline autoCapitalize="none" /> : null}
+          <MediaField label="Pie o contexto opcional" accessibilityLabel="Pie del contenido multimedia" value={value.caption} onChange={(caption) => onChange({ ...value, caption })} placeholder="Ej.: Observa el mapa antes de responder" maxLength={300} />
 
           <View style={styles.fileInfo}>
-            <Ionicons name="cloud-upload-outline" size={15} color="#60A5FA" />
-            <Text style={styles.fileInfoText} numberOfLines={1}>
-              {value.pendingAsset?.fileName || 'Archivo guardado'} · máximo 25 MB
-              {value.durationSeconds ? ` · ${formatDuration(value.durationSeconds)}` : ''}
-            </Text>
+            <Ionicons name="cloud-upload-outline" size={15} color={tokens.semantic.info} />
+            <Text style={[styles.fileInfoText, { color: tokens.text.muted }]} numberOfLines={1}>{value.pendingAsset?.fileName || 'Archivo guardado'} · máximo 25 MB{value.durationSeconds ? ` · ${formatDuration(value.durationSeconds)}` : ''}</Text>
           </View>
         </View>
       ) : (
-        <View style={styles.emptyState}>
-          <Ionicons name="albums-outline" size={28} color="#60789A" />
-          <Text style={styles.emptyText}>La pregunta funcionará también sin contenido multimedia.</Text>
+        <View style={[styles.emptyState, { borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive }]}>
+          <Ionicons name="albums-outline" size={28} color={tokens.text.muted} />
+          <Text style={[styles.emptyText, { color: tokens.text.muted }]}>La pregunta funcionará también sin contenido multimedia.</Text>
         </View>
       )}
+
+      {validationError ? <Text style={[styles.validationError, { color: tokens.semantic.danger }]}>{validationError}</Text> : null}
+    </View>
+  )
+}
+
+function MediaField({ label, accessibilityLabel, value, onChange, placeholder, maxLength, multiline = false, autoCapitalize }: { label: string; accessibilityLabel: string; value: string; onChange: (value: string) => void; placeholder: string; maxLength: number; multiline?: boolean; autoCapitalize?: 'none' }) {
+  const { tokens } = useAppTheme()
+  return (
+    <View style={styles.fieldGroup}>
+      <Text style={[styles.fieldLabel, { color: tokens.text.secondary }]}>{label}</Text>
+      <TextInput accessibilityLabel={accessibilityLabel} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={tokens.text.muted} style={[styles.input, multiline && styles.multilineInput, { borderColor: tokens.border.default, color: tokens.text.primary, backgroundColor: tokens.surface.interactive }]} multiline={multiline} textAlignVertical={multiline ? 'top' : 'center'} autoCapitalize={autoCapitalize} maxLength={maxLength} />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderWidth: 1,
-    borderColor: '#2A456A',
-    borderRadius: 16,
-    padding: 16,
-    backgroundColor: '#0A2042',
-  },
-  headingRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  iconBubble: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1D1850',
-  },
-  headingCopy: {
-    minWidth: 0,
-    flex: 1,
-  },
-  title: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  subtitle: {
-    marginTop: 4,
-    color: '#AFC2DB',
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '600',
-  },
-  removeButton: {
-    width: 40,
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#6B263A',
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2A0E1B',
-  },
-  optionGrid: {
-    marginTop: 16,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  option: {
-    minWidth: 150,
-    minHeight: 66,
-    flexGrow: 1,
-    flexBasis: 0,
-    borderWidth: 1,
-    borderColor: '#28466F',
-    borderRadius: 14,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#071A36',
-  },
-  optionActive: {
-    borderColor: '#8B5CF6',
-    backgroundColor: '#18164A',
-  },
-  optionCopy: {
-    minWidth: 0,
-    flex: 1,
-  },
-  optionLabel: {
-    color: '#DDE7F4',
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  optionLabelActive: {
-    color: '#C4B5FD',
-  },
-  optionDetail: {
-    marginTop: 2,
-    color: '#8095B4',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  previewArea: {
-    marginTop: 14,
-  },
-  fieldGroup: {
-    marginTop: 12,
-  },
-  fieldLabel: {
-    color: '#B8C8DD',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  input: {
-    minHeight: 46,
-    marginTop: 7,
-    borderWidth: 1,
-    borderColor: '#2A456A',
-    borderRadius: 12,
-    paddingHorizontal: 13,
-    color: '#FFFFFF',
-    backgroundColor: '#071A36',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  multilineInput: {
-    minHeight: 112,
-    paddingTop: 12,
-  },
-  fileInfo: {
-    marginTop: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  fileInfoText: {
-    minWidth: 0,
-    flex: 1,
-    color: '#8FA7C7',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  emptyState: {
-    minHeight: 94,
-    marginTop: 14,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#294873',
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    backgroundColor: '#071A36',
-  },
-  emptyText: {
-    marginTop: 8,
-    color: '#8095B4',
-    fontSize: 12,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  pressed: {
-    opacity: 0.72,
-  },
+  card: { borderWidth: 1, borderRadius: 16, padding: 16 },
+  headingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  iconBubble: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  headingCopy: { minWidth: 0, flex: 1 },
+  title: { fontSize: 16, fontWeight: '900' },
+  subtitle: { marginTop: 4, fontSize: 12, lineHeight: 18, fontWeight: '600' },
+  removeButton: { width: 40, height: 40, borderWidth: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  optionGrid: { marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  option: { minWidth: 150, minHeight: 66, flexGrow: 1, flexBasis: 0, borderWidth: 1, borderRadius: 14, paddingHorizontal: 13, paddingVertical: 11, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  optionCopy: { minWidth: 0, flex: 1 },
+  optionLabel: { fontSize: 13, fontWeight: '900' },
+  optionDetail: { marginTop: 2, fontSize: 10, lineHeight: 15, fontWeight: '600' },
+  previewArea: { marginTop: 14 },
+  fieldGroup: { marginTop: 12 },
+  fieldLabel: { fontSize: 12, fontWeight: '800' },
+  input: { minHeight: 46, marginTop: 7, borderWidth: 1, borderRadius: 12, paddingHorizontal: 13, fontSize: 14, fontWeight: '600' },
+  multilineInput: { minHeight: 112, paddingTop: 12 },
+  fileInfo: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  fileInfoText: { minWidth: 0, flex: 1, fontSize: 11, fontWeight: '700' },
+  emptyState: { minHeight: 94, marginTop: 14, borderWidth: 1, borderStyle: 'dashed', borderRadius: 14, alignItems: 'center', justifyContent: 'center', padding: 16 },
+  emptyText: { marginTop: 8, fontSize: 12, textAlign: 'center', fontWeight: '600' },
+  validationError: { marginTop: 10, fontSize: 12, lineHeight: 17, fontWeight: '800' },
+  pressed: { opacity: 0.72 },
 })
 
 function formatDuration(value: number) {

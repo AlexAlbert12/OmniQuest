@@ -4,8 +4,9 @@ import AppButton from '../../ui/AppButton'
 import { useAppTheme } from '../../../lib/appTheme'
 import { parseLines } from './utils'
 import QuestionFormSection from './QuestionFormSection'
+import QuestionInlineError from './QuestionInlineError'
 
-export default function OrderingEditor({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+export default function OrderingEditor({ value, error, onChange }: { value: string; error?: string; onChange: (value: string) => void }) {
   const { tokens } = useAppTheme()
   const parsed = useMemo(() => parseLines(value), [value])
   const [rows, setRows] = useState<string[]>(() => ensureRows(parsed))
@@ -93,6 +94,7 @@ export default function OrderingEditor({ value, onChange }: { value: string; onC
           </View>
         ))}
       </View>
+      <QuestionInlineError message={error} />
       <AppButton label="Añadir elemento" icon="add" variant="secondary" style={{ marginTop: 12 }} onPress={add} />
     </QuestionFormSection>
   )

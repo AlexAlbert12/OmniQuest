@@ -5,8 +5,11 @@ export type TeacherQuestionSchemaInput = {
   questionText: string
   timeLimit: string
   points: string
+  explanation: string
+  hint: string
   mediaType: string | null
   mediaAltText: string
+  mediaCaption: string
   mediaTranscript: string
   mediaSubtitlesVtt: string
   visibleAnswers: AnswerItem[]

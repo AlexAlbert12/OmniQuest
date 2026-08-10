@@ -5,14 +5,17 @@ import AppButton from '../../ui/AppButton'
 import { useAppTheme } from '../../../lib/appTheme'
 import { ensurePairDraftRows, parsePairDraftLines, serializePairDraftLines } from './utils'
 import QuestionFormSection from './QuestionFormSection'
+import QuestionInlineError from './QuestionInlineError'
 
 export default function MatchingPairsEditor({
   mode,
   value,
+  error,
   onChange,
 }: {
   mode: 'match' | 'dragdrop'
   value: string
+  error?: string
   onChange: (value: string) => void
 }) {
   const { tokens } = useAppTheme()
@@ -95,6 +98,7 @@ export default function MatchingPairsEditor({
           </View>
         ))}
       </View>
+      <QuestionInlineError message={error} />
       <AppButton
         label="Añadir relación"
         icon="add"

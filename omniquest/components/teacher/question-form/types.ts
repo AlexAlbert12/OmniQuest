@@ -24,6 +24,13 @@ export type TopicOption = {
   title: string
 }
 
+export type ClassroomOption = {
+  id: number
+  name: string
+  code: string | null
+  academicYear: string | null
+}
+
 export type QuestionValidationIssue = {
   step: QuestionWizardStep
   field: string
@@ -34,6 +41,7 @@ export type TeacherQuestionFormOptions = {
   mode: 'create' | 'edit'
   subjectId?: string
   questionId?: string
+  sourceQuestionId?: string | null
   initialTopicId?: string | null
   initialClassroomId?: string | null
   initialDifficulty?: string | null
@@ -49,6 +57,7 @@ export type TeacherQuestionFormState = {
   explanation: string
   hint: string
   selectedDifficulty: DifficultyLevel
+  selectedClassroomId: number | null
   topics: TopicOption[]
   selectedTopicId: string | null
   answers: AnswerItem[]
@@ -64,6 +73,10 @@ export const QUESTION_TIME_LIMIT_MIN = 5
 export const QUESTION_TIME_LIMIT_MAX = 300
 export const QUESTION_POINTS_MIN = 1
 export const QUESTION_POINTS_MAX = 100
+export const QUESTION_TEXT_MAX = 2000
+export const QUESTION_EXPLANATION_MAX = 4000
+export const QUESTION_ANSWER_MAX = 2000
+export const QUESTION_HINT_MAX = 280
 
 export const questionTypes: QuestionTypeCard[] = [
   { id: 'multiple', title: 'Opción múltiple', detail: 'Una pregunta con varias opciones y una respuesta correcta.', icon: 'list', accent: '#8B5CF6', supported: true },

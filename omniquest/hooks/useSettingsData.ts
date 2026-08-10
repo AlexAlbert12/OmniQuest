@@ -6,7 +6,7 @@ import { useFocusEffect, useRouter, type Href } from 'expo-router'
 import { supabase } from '../lib/supabase'
 import { useI18n, type AppLocale } from '../lib/i18n'
 import { useAppHaptics } from '../lib/haptics'
-import { deactivateCurrentDevicePushToken, registerCurrentDeviceForPush } from '../lib/pushNotifications'
+import { registerCurrentDeviceForPush, signOutCurrentDeviceSession } from '../lib/pushNotifications'
 import { getNextLevelProgress, getStudentLevel } from '../lib/studentLevel'
 import { updateAnalyticsConsent } from '../lib/analytics'
 import type { Database } from '../types/database.types'
@@ -846,8 +846,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   }
 
   const executeSignOut = async () => {
-    await deactivateCurrentDevicePushToken().catch(() => undefined)
-    await supabase.auth.signOut()
+    await signOutCurrentDeviceSession()
     router.replace(LOGIN_ROUTE)
   }
 

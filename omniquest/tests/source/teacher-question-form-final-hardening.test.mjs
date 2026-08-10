@@ -1,0 +1,91 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import test from 'node:test'
+
+const root = process.cwd()
+const read = (path) => readFileSync(join(root, path), 'utf8')
+
+test('mobile question authoring is a focused full-screen wizard with a persistent action footer', () => {
+  const form = read('components/teacher/TeacherQuestionForm.tsx')
+  const wizard = read('components/teacher/question-form/QuestionWizardNavigation.tsx')
+  const types = read('components/teacher/question-form/QuestionTypeSelector.tsx')
+  assert.doesNotMatch(form, /TeacherBottomNav/)
+  assert.doesNotMatch(form, /MOBILE_BOTTOM_NAV_SPACER/)
+  assert.match(form, /absolute bottom-0 left-0 right-0 border-t/)
+  assert.match(form, /showGlobalSearch=\{false\}/)
+  assert.match(wizard, /Paso \$\{activeStep\} de \$\{questionWizardSteps\.length\}/)
+  assert.match(wizard, /<AppBottomSheet/)
+  assert.match(types, /min-h-\[122px\]/)
+  assert.match(types, /Puede requerir revisión/)
+})
+
+test('question drafts are scoped by user, course and classroom, expire and are cleared on sign-out', () => {
+  const storage = read('lib/questionDraftStorage.ts')
+  const hook = read('components/teacher/question-form/useTeacherQuestionForm.ts')
+  const push = read('lib/pushNotifications.ts')
+  const settings = read('hooks/useSettingsData.ts')
+  assert.match(storage, /TEACHER_QUESTION_DRAFT_TTL_MS = 14 \* 24 \* 60 \* 60 \* 1000/)
+  assert.match(storage, /userId.*subjectId.*classroomId/s)
+  assert.match(storage, /expiresAt/)
+  assert.match(hook, /selectedClassroomId/)
+  assert.match(hook, /canAccessPendingAsset/)
+  assert.match(push, /removeTeacherQuestionDraftsForUser\(userId\)/)
+  assert.match(settings, /signOutCurrentDeviceSession\(\)/)
+})
+
+test('question form resolves one concrete classroom before loading topics and supports source-question seeding', () => {
+  const route = read('app/(teacher)/subject/add-question.tsx')
+  const hook = read('components/teacher/question-form/useTeacherQuestionForm.ts')
+  const form = read('components/teacher/TeacherQuestionForm.tsx')
+  assert.match(route, /sourceQuestionId/)
+  assert.match(hook, /ensure_default_classroom/)
+  assert.match(hook, /fetchTopicsForClassroom\(subjectNumericId, desiredClassroomId\)/)
+  assert.match(hook, /p_classroom_id: selectedClassroomId/)
+  assert.match(hook, /normalizedSourceQuestionId/)
+  assert.match(hook, /cloneQuestionMedia/)
+  assert.match(form, /label="Clase"/)
+  assert.match(form, /subtitle=\{form\.contextLabel/)
+})
+
+test('question validation is visible inline and authoring limits are explained before save', () => {
+  const form = read('components/teacher/TeacherQuestionForm.tsx')
+  const prompt = read('components/teacher/question-form/QuestionPromptEditor.tsx')
+  const settings = read('components/teacher/question-form/QuestionSettingsPanel.tsx')
+  const media = read('components/teacher/TeacherQuestionMediaEditor.tsx')
+  const schema = read('lib/questionFormSchema.js')
+  assert.match(form, /visibleValidationIssues/)
+  assert.match(prompt, /questionTextError/)
+  assert.match(settings, /Explicación después de responder \(opcional\)/)
+  assert.match(settings, /hint\.length.*QUESTION_HINT_MAX/s)
+  assert.match(settings, /icon="remove"/)
+  assert.match(settings, /icon="add"/)
+  assert.match(media, /QUESTION_MEDIA_MAX_AUDIO_SECONDS \/ 60/)
+  assert.match(media, /QUESTION_MEDIA_MAX_VIDEO_SECONDS \/ 60/)
+  assert.match(media, /25 MB/)
+  assert.match(schema, /exactamente una respuesta correcta/)
+  assert.match(schema, /una solución por cada hueco/)
+})
+
+test('preview simulates hints, checking, feedback, explanation timing and reset', () => {
+  const preview = read('components/teacher/question-form/QuestionPreview.tsx')
+  assert.match(preview, /hintVisible/)
+  assert.match(preview, /Probar pista/)
+  assert.match(preview, /Comprobar/)
+  assert.match(preview, /feedbackStatus/)
+  assert.match(preview, /Explicación después de responder/)
+  assert.match(preview, /Reiniciar vista previa/)
+  assert.match(preview, /GameQuestionRenderer/)
+})
+
+test('server hardening owns question type, role, accessibility and answer invariants', () => {
+  const migration = read('supabase/migrations/20260810133000_teacher_question_wizard_hardening.sql')
+  assert.match(migration, /role_id, coalesce\(active, true\)/)
+  assert.match(migration, /v_role not in \('teacher', 'admin'\)/)
+  assert.match(migration, /questions_type_check/)
+  assert.match(migration, /p_type not in \('multiple_choice', 'true_false', 'open_answer', 'fill_blank', 'ordering', 'match_pairs', 'drag_drop'\)/)
+  assert.match(migration, /Las imágenes necesitan texto alternativo/)
+  assert.match(migration, /v_correct_count <> 1/)
+  assert.match(migration, /v_answer_count <> v_blank_count/)
+  assert.match(migration, /answers_text_length_check/)
+})
