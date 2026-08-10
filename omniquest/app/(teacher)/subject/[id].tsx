@@ -18,6 +18,7 @@ import { SubjectQuestionsTab } from '../../../components/teacher/subject/Subject
 import { SubjectStudentsTab } from '../../../components/teacher/subject/SubjectStudentsTab'
 import {
   SubjectAddQuestionCTA,
+  SubjectClassroomContextSelector,
   SubjectClassroomsSection,
   SubjectTopicsSection,
 } from '../../../components/teacher/subject/SubjectCourseStructure'
@@ -30,7 +31,7 @@ import { useAppTheme } from '../../../lib/appTheme'
 import { useResponsiveLayout } from '../../../lib/responsive'
 
 export default function SubjectDetailScreen() {
-  const params = useLocalSearchParams<{ id: string | string[]; tab?: string | string[]; importStudents?: string | string[] }>()
+  const params = useLocalSearchParams<{ id: string | string[]; tab?: string | string[]; classroomId?: string | string[]; importStudents?: string | string[] }>()
   const router = useRouter()
   const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
@@ -39,7 +40,7 @@ export default function SubjectDetailScreen() {
   const isDesktop = responsive.isDesktop
   const isWide = !responsive.isMobile
 
-  const detail = useTeacherSubjectDetail({ subjectId, tab: params.tab })
+  const detail = useTeacherSubjectDetail({ subjectId, tab: params.tab, classroomId: params.classroomId })
   const { setActiveTab, setShowStudentImportModal } = detail
 
   React.useEffect(() => {
@@ -123,7 +124,7 @@ export default function SubjectDetailScreen() {
           isDesktop={isDesktop}
           title={subject.name}
           titleNumberOfLines={2}
-          subtitle={`${subject.description || 'Curso sin descripción'} · Código: ${subject.code} · ${detail.classrooms.length} clase${detail.classrooms.length === 1 ? '' : 's'} · Clase activa: ${detail.selectedClassroom?.name || 'Sin clase'} · Creado ${formatDate(subject.created_at)}`}
+          subtitle={`${subject.description || 'Curso sin descripción'} · Código: ${subject.code} · ${detail.classrooms.length} clase${detail.classrooms.length === 1 ? '' : 's'} · Creado ${formatDate(subject.created_at)}`}
           subtitleNumberOfLines={3}
           leading={(
             <View className={`${isDesktop ? 'h-20 w-20' : 'h-16 w-16'} items-center justify-center rounded-2xl border border-border-active bg-surface-selected`}>
@@ -145,7 +146,7 @@ export default function SubjectDetailScreen() {
                 icon="share-social-outline"
                 iconOnly={!isDesktop}
                 variant="secondary"
-                onPress={() => detail.showAlert('Código del curso', `Comparte este código con tus alumnos: ${subject.code}`)}
+                onPress={() => { void detail.handleShareCode() }}
               />
               <AppButton
                 label={isDesktop ? 'Editar curso' : undefined}
@@ -158,6 +159,15 @@ export default function SubjectDetailScreen() {
               {isDesktop ? <SubjectAddQuestionCTA href={addQuestionHref} /> : null}
             </>
           )}
+        />
+
+        <SubjectClassroomContextSelector
+          classrooms={detail.classrooms}
+          selectedClassroomId={detail.selectedClassroomId}
+          onSelect={(classroomId) => {
+            detail.setSelectedClassroomId(classroomId)
+            detail.setSelectedTopicId('all')
+          }}
         />
 
         <View className="mb-5">
@@ -178,11 +188,6 @@ export default function SubjectDetailScreen() {
               newClassroomName={detail.newClassroomName}
               onCreate={detail.handleCreateClassroom}
               onNameChange={detail.setNewClassroomName}
-              onSelect={(classroomId) => {
-                detail.setSelectedClassroomId(classroomId)
-                detail.setSelectedTopicId('all')
-              }}
-              selectedClassroomId={detail.selectedClassroomId}
             />
             <SubjectSummaryTab
               activity={detail.recentActivity}
@@ -190,7 +195,7 @@ export default function SubjectDetailScreen() {
               gradeDistribution={detail.gradeDistribution}
               isDesktop={isDesktop}
               onOpenAnalytics={() => changeTab('analytics')}
-              onShowCode={() => detail.showAlert('Código del curso', `Comparte este código con tus alumnos: ${subject.code}`)}
+              onCopyCode={() => { void detail.handleCopyCode() }}
               overview={detail.overview}
               subject={subject}
             />
@@ -225,10 +230,8 @@ export default function SubjectDetailScreen() {
         {!detail.tabLoading && !detail.tabError && detail.activeTab === 'questions' ? (
           <SubjectQuestionsTab
             filteredQuestions={detail.questions}
-            isDesktop={isDesktop}
             onDeleteQuestion={detail.handleDelete}
             onDifficultyChange={detail.setSelectedDifficulty}
-            questionsCount={detail.questionTotal}
             selectedClassroomId={detail.selectedClassroomId}
             selectedDifficulty={detail.selectedDifficulty}
             selectedTopicId={detail.selectedTopicId}
@@ -253,8 +256,8 @@ export default function SubjectDetailScreen() {
             page={detail.studentPage}
             pageSize={detail.studentPageSize}
             questionsCount={detail.studentsSummary.questionsCount}
-            reportParticipation={detail.studentsSummary.participation}
-            scorePerformanceCount={detail.studentReportRows.filter((student) => student.hasActivity).length}
+            activeThisWeek={detail.studentsSummary.activeThisWeek}
+            scorePerformanceCount={detail.studentsSummary.answered}
             scores={detail.scores}
             studentListRows={detail.studentListRows}
             studentReportRows={detail.studentReportRows}

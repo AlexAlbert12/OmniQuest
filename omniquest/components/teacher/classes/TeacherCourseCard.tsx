@@ -25,7 +25,7 @@ export default function TeacherCourseCard({
   if (isDesktop) {
     return (
       <Pressable
-        accessibilityLabel={`Gestionar ${course.name}`}
+        accessibilityLabel={`Abrir curso ${course.name}`}
         accessibilityRole="button"
         onPress={() => router.push(`/(teacher)/subject/${course.id}` as any)}
         className="min-h-16 flex-row items-center gap-4 border-b border-border-default px-4 py-3"
@@ -36,13 +36,13 @@ export default function TeacherCourseCard({
         </View>
         <View className="min-w-0 flex-[1.5]">
           <Text className="font-black text-white" numberOfLines={1}>{course.name}</Text>
-          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>{course.description || `Código ${course.code}`}</Text>
+          <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={1}>{course.description || `Código ${course.code}`}</Text>
         </View>
         <Text className="w-20 text-center text-[12px] font-bold text-text-secondary">{analytics.enrolledCount}</Text>
         <Text className="w-20 text-center text-[12px] font-bold text-text-secondary">{analytics.questionsCount}</Text>
         <View className="w-28 items-center">
           <View className={`rounded-full px-3 py-1 ${needsAttention ? 'bg-semantic-surface-warning' : 'bg-semantic-surface-success'}`}>
-            <Text className={`text-[11px] font-black ${needsAttention ? 'text-gamification-badge' : 'text-text-secondary'}`}>{participation}% activo</Text>
+            <Text className={`text-[11px] font-black ${needsAttention ? 'text-gamification-badge' : 'text-text-secondary'}`}>{participation}%</Text>
           </View>
         </View>
         <Ionicons name="chevron-forward" size={18} color="#8FA7C7" />
@@ -52,7 +52,7 @@ export default function TeacherCourseCard({
 
   return (
     <Pressable
-      accessibilityLabel={`Gestionar ${course.name}`}
+      accessibilityLabel={`Abrir curso ${course.name}`}
       accessibilityRole="button"
       onPress={() => router.push(`/(teacher)/subject/${course.id}` as any)}
       className="overflow-hidden rounded-2xl border bg-surface-default p-4"
@@ -67,11 +67,9 @@ export default function TeacherCourseCard({
           <Text className="mt-1 text-[13px] leading-5 text-text-secondary" numberOfLines={2}>
             {analytics.enrolledCount} alumnos · {analytics.questionsCount} preguntas · {analytics.topicsCount} temas
           </Text>
-          <View className="mt-3 flex-row items-center justify-between gap-3">
-            <Text className={`text-[12px] font-black ${needsAttention ? 'text-gamification-badge' : 'text-text-secondary'}`}>
-              {needsAttention ? 'Necesita atención' : `${participation}% participación`}
-            </Text>
-            <Text className="text-[12px] font-black text-brand-teacher">Gestionar</Text>
+          <View className="mt-3 flex-row flex-wrap items-center gap-2">
+            <Text className={`text-[12px] font-black ${needsAttention ? 'text-gamification-badge' : 'text-text-secondary'}`}>{participation}% participación</Text>
+            {needsAttention ? <View className="rounded-full bg-semantic-surface-warning px-2 py-1"><Text className="text-[10px] font-black text-gamification-badge">Necesita atención</Text></View> : null}
           </View>
         </View>
         <Ionicons name="chevron-forward" size={20} color="#AFC2DB" />

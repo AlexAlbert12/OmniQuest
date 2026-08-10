@@ -35,7 +35,7 @@ export function SubjectStudentsTab({
   page,
   pageSize,
   questionsCount,
-  reportParticipation,
+  activeThisWeek,
   scorePerformanceCount,
   scores,
   studentListRows,
@@ -53,7 +53,7 @@ export function SubjectStudentsTab({
   studentSearch: string
   studentStatusFilter: StudentStatusFilter
   studentSortKey: StudentSortKey
-  reportParticipation: number
+  activeThisWeek: number
   averageXp: number
   page: number
   pageSize: number
@@ -68,8 +68,11 @@ export function SubjectStudentsTab({
   onImportStudents: () => void
   onPageChange: (page: number) => void
 }) {
-  const activeStudents = studentReportRows.filter((student) => getStudentStatus(student) === 'active').length;
-  const studentsNeedingAttention = studentReportRows.filter((student) => getStudentStatus(student) === 'needs_help');
+  const weeklyActivePercent = enrollmentsCount > 0 ? Math.round((activeThisWeek / enrollmentsCount) * 100) : 0;
+  const studentsNeedingAttention = studentReportRows.filter((student) => {
+    const status = getStudentStatus(student);
+    return status === 'needs_help' || status === 'no_activity';
+  });
   const bestStudent = studentReportRows.find((student) => student.hasActivity);
   const generatedXp = scores.reduce((total, score) => total + (score.max_score ?? 0), 0);
 
@@ -78,8 +81,8 @@ export function SubjectStudentsTab({
       <View className={isDesktop ? 'flex-[1.55] gap-5' : 'gap-5'}>
         <View className={isWide ? 'flex-row gap-4' : 'gap-4'}>
           <StudentMetricCard icon="people" label="Alumnos inscritos" value={String(enrollmentsCount)} detail={`${studentReportRows.length} en esta página`} color="#8B5CF6" />
-          <StudentMetricCard icon="checkmark-circle" label="Activos esta semana" value={String(activeStudents)} detail={`${reportParticipation}% del total`} color="#34D399" />
-          <StudentMetricCard icon="star" label="XP media de la clase" value={`${averageXp} XP`} detail="Media de puntos con bonus" color="#3B82F6" />
+          <StudentMetricCard icon="checkmark-circle" label="Activos esta semana" value={String(activeThisWeek)} detail={`${weeklyActivePercent}% del total`} color="#34D399" />
+          <StudentMetricCard icon="star" label="XP media" value={`${averageXp} XP`} detail="Media del alumnado matriculado" color="#3B82F6" />
           <StudentMetricCard icon="trophy" label="Mejor en esta página" value={`${bestStudent?.score ?? 0} XP`} detail={bestStudent?.name || 'Sin actividad'} color="#F59E0B" />
         </View>
 
@@ -164,12 +167,12 @@ export function SubjectStudentsTab({
         </SubjectPanel>
 
         <SubjectPanel title="Actividad de la clase">
-          <ProgressLine label="Alumnos activos" value={activeStudents} total={Math.max(studentReportRows.length, 1)} color="#8B5CF6" />
+          <ProgressLine label="Activos esta semana" value={activeThisWeek} total={Math.max(enrollmentsCount, 1)} color="#8B5CF6" />
           <ProgressLine label="Retos completados" value={studentReportRows.reduce((total, student) => total + student.playedSessions, 0)} total={Math.max(studentReportRows.length * Math.max(questionsCount, 1), 1)} color="#7C5CFF" />
           <ProgressLine label="XP generado" value={generatedXp} total={Math.max(generatedXp + 500, 1)} color="#3B82F6" />
         </SubjectPanel>
 
-        <SubjectPanel title="Alumnos que necesitan atención" actionLabel="Ver todo">
+        <SubjectPanel title="Alumnos que necesitan atención">
           <View style={{ gap: 12 }}>
             {studentsNeedingAttention.slice(0, 4).map((student) => (
               <StudentAttentionItem key={student.id} student={student} />
@@ -343,6 +346,7 @@ function ProgressLine({ label, value, total, color }: { label: string; value: nu
 }
 
 function StudentAttentionItem({ student }: { student: StudentReport }) {
+  const reason = getAttentionReason(student);
   return (
     <View className="flex-row items-center gap-3">
       <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-selected">
@@ -350,13 +354,20 @@ function StudentAttentionItem({ student }: { student: StudentReport }) {
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[13px] font-bold text-white" numberOfLines={1}>{student.name}</Text>
-        <Text className="text-[11px] text-text-secondary">{student.hasActivity ? 'Baja nota media' : 'Sin actividad'}</Text>
+        <Text className="text-[11px] text-text-secondary">{reason.label}</Text>
       </View>
-      <View className="rounded-md border border-semantic-danger px-2 py-1">
-        <Text className="text-[11px] font-black text-semantic-danger">{student.hasActivity ? student.grade.toFixed(1) : '0%'}</Text>
+      <View className="rounded-md border px-2 py-1" style={{ borderColor: reason.color }}>
+        <Text className="text-[11px] font-black" style={{ color: reason.color }}>{reason.value}</Text>
       </View>
     </View>
   );
+}
+
+function getAttentionReason(student: StudentReport) {
+  if (!student.hasActivity) return { label: 'Sin actividad', value: '—', color: '#8FA7C7' };
+  if (student.grade < 5) return { label: 'Nota media baja', value: student.grade.toFixed(1), color: '#F43F5E' };
+  if (student.participation < 35) return { label: 'Baja participación', value: `${student.participation}%`, color: '#F59E0B' };
+  return { label: 'Requiere seguimiento', value: `${student.participation}%`, color: '#F59E0B' };
 }
 
 function formatRelative(value: string | null | undefined, index: number) {

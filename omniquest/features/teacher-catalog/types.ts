@@ -12,7 +12,7 @@ export type TeacherCatalogItem =
   | { kind: 'classroom'; value: TeacherCatalogClassroomItem }
 
 export const teacherCourseFilters: { key: TeacherCourseFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'all', label: 'Todas', icon: 'apps-outline' },
+  { key: 'all', label: 'Todos', icon: 'apps-outline' },
   { key: 'unconfigured', label: 'Sin configurar', icon: 'construct-outline' },
   { key: 'no_activity', label: 'Sin actividad', icon: 'pause-circle-outline' },
   { key: 'in_progress', label: 'En curso', icon: 'time-outline' },

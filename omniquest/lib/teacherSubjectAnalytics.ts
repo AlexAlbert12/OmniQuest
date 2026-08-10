@@ -109,8 +109,9 @@ export function getNextStudentSortKey(sortKey: StudentSortKey): StudentSortKey {
 }
 
 export function getGradeColor(value: number) {
-  if (value >= 8) return '#34D399'
-  if (value >= 6) return '#F59E0B'
+  if (value >= 9) return '#34D399'
+  if (value >= 7) return '#3B82F6'
+  if (value >= 5) return '#F59E0B'
   return '#F43F5E'
 }
 

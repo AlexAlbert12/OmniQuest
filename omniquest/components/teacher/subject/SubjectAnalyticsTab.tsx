@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import { GradeDistributionBars, SubjectPanel } from './SubjectShared'
 import type { TeacherSubjectAnalyticsPayload } from '../../../lib/teacherServerData'
+import { formatCount } from '../../../lib/formatCount'
 
 export default function SubjectAnalyticsTab({ analytics, isDesktop }: {
   analytics: TeacherSubjectAnalyticsPayload
@@ -11,14 +12,15 @@ export default function SubjectAnalyticsTab({ analytics, isDesktop }: {
 }) {
   const summary = analytics.summary
   const distribution = addColors(analytics.gradeDistribution)
+  const maxActivityCount = Math.max(1, ...analytics.temporalEvolution.map((item) => item.activityCount))
 
   return (
     <View className="gap-5">
       <View className={isDesktop ? 'flex-row gap-4' : 'flex-row flex-wrap gap-3'}>
         <Metric label="Alumnos evaluados" value={`${summary.answered}/${summary.enrolled}`} detail={`${summary.participation}% participación`} icon="people-outline" />
-        <Metric label="Nota media" value={`${Number(summary.averageGrade).toFixed(1)}/10`} detail={`${summary.averageAccuracy}% precisión`} icon="shield-checkmark-outline" />
+        <Metric label="Nota media" value={`${Number(summary.averageGrade).toFixed(1)}/10`} detail={`${summary.averageAccuracy}% precisión global`} icon="shield-checkmark-outline" />
         <Metric label="Fallos" value={String(summary.failedAnswers)} detail={`${summary.correctAnswers} respuestas correctas`} icon="close-circle-outline" />
-        <Metric label="XP media" value={String(summary.averageXp)} detail="Puntuación media" icon="star-outline" />
+        <Metric label="XP media" value={`${summary.averageXp} XP`} detail="Media del alumnado matriculado" icon="star-outline" />
       </View>
 
       <View className={isDesktop ? 'flex-row gap-6' : 'gap-5'}>
@@ -51,9 +53,9 @@ export default function SubjectAnalyticsTab({ analytics, isDesktop }: {
                 <View key={item.label} className="flex-row items-center gap-3">
                   <Text className="w-20 text-[11px] text-text-muted">{item.label}</Text>
                   <View className="h-2 flex-1 overflow-hidden rounded-full bg-surface-interactive">
-                    <View className="h-full rounded-full bg-brand-teacher" style={{ width: `${Math.min(100, item.activityCount * 10)}%` }} />
+                    <View className="h-full rounded-full bg-brand-teacher" style={{ width: `${Math.round((item.activityCount / maxActivityCount) * 100)}%` }} />
                   </View>
-                  <Text className="w-16 text-right text-[11px] font-bold text-text-secondary">{item.activityCount} actos</Text>
+                  <Text className="w-16 text-right text-[11px] font-bold text-text-secondary">{formatCount(item.activityCount, 'respuesta', 'respuestas')}</Text>
                 </View>
               ))}
             </View>
@@ -76,7 +78,7 @@ export default function SubjectAnalyticsTab({ analytics, isDesktop }: {
           </SubjectPanel>
 
           <SubjectPanel title="Distribución de notas">
-            <GradeDistributionBars distribution={distribution} total={Math.max(summary.enrolled, 1)} />
+            <GradeDistributionBars distribution={distribution} total={summary.answered} />
           </SubjectPanel>
         </View>
       </View>

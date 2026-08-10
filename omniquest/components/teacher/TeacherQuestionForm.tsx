@@ -86,6 +86,7 @@ export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
               subtitle="Crea una pregunta paso a paso y comprueba el resultado antes de publicarla."
               showNotifications={false}
               showAvatar={false}
+              showGlobalSearch={false}
               className="mb-0"
             />
 

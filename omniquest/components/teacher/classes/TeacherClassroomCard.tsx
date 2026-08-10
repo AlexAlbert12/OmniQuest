@@ -17,7 +17,7 @@ export default function TeacherClassroomCard({
 }) {
   const router = useRouter()
   const openClassroom = () => {
-    if (course) router.push(`/(teacher)/subject/${course.id}` as any)
+    if (course) router.push(`/(teacher)/subject/${course.id}?classroomId=${classroom.id}` as any)
   }
 
   if (isDesktop) {
@@ -35,7 +35,7 @@ export default function TeacherClassroomCard({
         </View>
         <View className="min-w-0 flex-[1.4]">
           <Text className="font-black text-white" numberOfLines={1}>{classroom.name}</Text>
-          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>{course?.name || 'Curso no disponible'}</Text>
+          <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={1}>{course?.name || 'Curso no disponible'}</Text>
         </View>
         <Text className="min-w-24 flex-1 text-[12px] text-text-secondary">{classroom.academic_year || 'Curso actual'}</Text>
         <Text className="w-20 text-center text-[12px] font-bold text-text-secondary">{analytics.studentsCount}</Text>
@@ -67,7 +67,7 @@ export default function TeacherClassroomCard({
           </Text>
           <View className="mt-3 flex-row items-center justify-between">
             <Text className="text-[12px] font-bold text-text-muted">{classroom.code ? `Código ${classroom.code}` : classroom.academic_year || 'Sin código'}</Text>
-            <Text className="text-[12px] font-black text-semantic-info">Abrir curso</Text>
+            <Text className="text-[12px] font-black text-semantic-info">Abrir clase</Text>
           </View>
         </View>
         <Ionicons name="chevron-forward" size={20} color="#AFC2DB" />

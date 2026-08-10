@@ -238,7 +238,7 @@ export default function TeacherStudentImportModal({
                   })}
                 >
                   <Ionicons name="document-attach-outline" size={17} color="#C4B5FD" />
-                  <Text className="text-[12px] font-black text-brand-teacher">CSV/TXT</Text>
+                  <Text className="text-[12px] font-black text-white">CSV/TXT</Text>
                 </Pressable>
               </View>
 
@@ -490,7 +490,7 @@ function PostImportAction({
       })}
     >
       <Ionicons name={icon} size={16} color="#C4B5FD" />
-      <Text className="text-[12px] font-black text-brand-teacher">{label}</Text>
+      <Text className="text-[12px] font-black text-white">{label}</Text>
     </Pressable>
   )
 }

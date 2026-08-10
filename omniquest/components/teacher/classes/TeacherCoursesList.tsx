@@ -21,7 +21,7 @@ export default function TeacherCoursesList({ analyticsByCourse, courses, isDeskt
           <Text className="flex-[1.5] text-[11px] font-black uppercase text-text-muted">Nombre</Text>
           <Text className="w-20 text-center text-[11px] font-black uppercase text-text-muted">Alumnos</Text>
           <Text className="w-20 text-center text-[11px] font-black uppercase text-text-muted">Preguntas</Text>
-          <Text className="w-28 text-center text-[11px] font-black uppercase text-text-muted">Estado</Text>
+          <Text className="w-28 text-center text-[11px] font-black uppercase text-text-muted">Participación</Text>
           <View className="w-[18px]" />
         </View>
       ) : null}

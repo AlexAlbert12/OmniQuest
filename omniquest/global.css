@@ -120,11 +120,17 @@ a[href],
   button:not(:disabled):hover,
   a[href]:hover,
   [role='button']:not([aria-disabled='true']):hover,
-  [role='tab']:not([aria-disabled='true']):hover,
   [role='radio']:not([aria-disabled='true']):hover,
   [tabindex='0']:not(input):not(textarea):not(select):not([aria-disabled='true']):hover {
     transform: translateY(-1px) scale(1.012);
     filter: brightness(1.08);
+  }
+
+  /* Tabs keep the product hover lift, but with a much smaller scale so their
+     border stays visually inside the surrounding tab rail. */
+  [role='tab']:not([aria-disabled='true']):hover {
+    transform: translateY(-0.5px) scale(1.005);
+    filter: brightness(1.06);
   }
 }
 

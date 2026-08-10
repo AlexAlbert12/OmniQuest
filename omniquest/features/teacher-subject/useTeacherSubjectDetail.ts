@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'expo-router'
 import { type DifficultyLevel } from '../../lib/difficulty'
 import { parseDateTimeInput } from '../../lib/calendar'
+import { copyCourseCode, shareCourseCode } from '../../lib/courseCodeActions'
+import { useI18n } from '../../lib/i18n'
 import { useAppModal } from '../../components/AppModalProvider'
-import type { StudentReport, StudentSortKey, StudentStatusFilter, SubjectScore } from '../../lib/teacherSubjectAnalytics'
+import type { StudentReport, SubjectScore } from '../../lib/teacherSubjectAnalytics'
 import { useTeacherSubjectOverview } from '../../hooks/teacher/subject/useTeacherSubjectOverview'
 import { useTeacherSubjectTopics } from '../../hooks/teacher/subject/useTeacherSubjectTopics'
 import { useTeacherSubjectQuestions } from '../../hooks/teacher/subject/useTeacherSubjectQuestions'
@@ -13,12 +15,14 @@ import { archiveTeacherSubject, createTeacherClassroom, createTeacherTopic, dele
 import { teacherSubjectTabItems, type ActivityItem, type Classroom, type Question, type Subject, type SubjectTabKey, type Topic, type TopicRow } from './types'
 
 export * from './types'
-export function useTeacherSubjectDetail({ subjectId, tab }: { subjectId: string; tab?: string | string[] }) {
+export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subjectId: string; tab?: string | string[]; classroomId?: string | string[] }) {
   const router = useRouter()
   const { showModal } = useAppModal()
+  const { locale } = useI18n()
   const subjectIdNumber = Number(subjectId)
+  const requestedClassroomId = getPositiveNumberParam(classroomId)
   const [activeTab, setActiveTab] = useState<SubjectTabKey>(() => getSubjectTabFromParam(tab))
-  const [selectedClassroomId, setSelectedClassroomId] = useState<number | null>(null)
+  const [selectedClassroomId, setSelectedClassroomId] = useState<number | null>(requestedClassroomId)
   const [newClassroomName, setNewClassroomName] = useState('')
   const [creatingClassroom, setCreatingClassroom] = useState(false)
   const [newTopicTitle, setNewTopicTitle] = useState('')
@@ -29,10 +33,12 @@ export function useTeacherSubjectDetail({ subjectId, tab }: { subjectId: string;
   const [showStudentImportModal, setShowStudentImportModal] = useState(false)
 
   useEffect(() => setActiveTab(getSubjectTabFromParam(tab)), [tab])
+  useEffect(() => { if (requestedClassroomId) setSelectedClassroomId(requestedClassroomId) }, [requestedClassroomId])
 
-  const resolveClassroom = useCallback((classroomId: number) => {
-    setSelectedClassroomId((current) => current || classroomId)
-  }, [])
+  const resolveClassroom = useCallback((resolvedClassroomId: number) => {
+    setSelectedClassroomId((current) => current === resolvedClassroomId ? current : resolvedClassroomId)
+    if (requestedClassroomId !== resolvedClassroomId) router.setParams({ classroomId: String(resolvedClassroomId) } as any)
+  }, [requestedClassroomId, router])
 
   const overview = useTeacherSubjectOverview({
     subjectId: subjectIdNumber,
@@ -190,7 +196,9 @@ export function useTeacherSubjectDetail({ subjectId, tab }: { subjectId: string;
     try {
       const created = await createTeacherClassroom({ subjectId: subject.id, name: newClassroomName.trim(), academicYear: subject.academic_year })
       setNewClassroomName('')
-      setSelectedClassroomId(Number(created.id))
+      const createdClassroomId = Number(created.id)
+      setSelectedClassroomId(createdClassroomId)
+      router.setParams({ classroomId: String(createdClassroomId) } as any)
       await overview.refresh()
       showModal({ title: 'Clase creada', message: 'La clase se ha añadido al curso.', variant: 'success' })
     } catch (error) {
@@ -198,7 +206,7 @@ export function useTeacherSubjectDetail({ subjectId, tab }: { subjectId: string;
     } finally {
       setCreatingClassroom(false)
     }
-  }, [newClassroomName, overview, showAlert, showModal, subject])
+  }, [newClassroomName, overview, router, showAlert, showModal, subject])
 
   const handleCreateTopic = useCallback(async () => {
     const cleanAvailableUntil = newTopicAvailableUntil.trim()
@@ -290,7 +298,7 @@ export function useTeacherSubjectDetail({ subjectId, tab }: { subjectId: string;
       variant: 'info',
       buttons: [
         { label: 'Editar', role: 'primary', onPress: () => router.push(`/(teacher)/edit-subject?id=${subject.id}` as any) },
-        { label: 'Duplicar', role: 'primary', onPress: () => { void handleDuplicate() } },
+        { label: 'Duplicar', role: 'primary', onPress: handleDuplicate },
         { label: 'Archivar', role: 'danger', onPress: handleArchive },
         { label: 'Cancelar', role: 'cancel' },
       ],
@@ -302,10 +310,31 @@ export function useTeacherSubjectDetail({ subjectId, tab }: { subjectId: string;
     router.replace('/(auth)/login' as any)
   }, [router])
 
-  const handleClassroomChange = useCallback((classroomId: number) => {
-    setSelectedClassroomId(classroomId)
+  const handleClassroomChange = useCallback((nextClassroomId: number) => {
+    setSelectedClassroomId(nextClassroomId)
     questionsResource.setTopicId('all')
-  }, [questionsResource])
+    router.setParams({ classroomId: String(nextClassroomId) } as any)
+  }, [questionsResource, router])
+
+  const handleCopyCode = useCallback(async () => {
+    if (!subject) return
+    try {
+      await copyCourseCode(subject.code)
+      showModal({ title: 'Código copiado', message: `Código ${subject.code} copiado al portapapeles.`, variant: 'success' })
+    } catch (error) {
+      showAlert('No se pudo copiar el código', error instanceof Error ? error.message : 'Inténtalo de nuevo.')
+    }
+  }, [showAlert, showModal, subject])
+
+  const handleShareCode = useCallback(async () => {
+    if (!subject) return
+    try {
+      const result = await shareCourseCode({ code: subject.code, subjectName: subject.name, locale })
+      if (result === 'copied') showModal({ title: 'Código copiado', message: `Código ${subject.code} copiado al portapapeles.`, variant: 'success' })
+    } catch (error) {
+      showAlert('No se pudo compartir el código', error instanceof Error ? error.message : 'Inténtalo de nuevo.')
+    }
+  }, [locale, showAlert, showModal, subject])
 
   return {
     activeTab,
@@ -317,8 +346,10 @@ export function useTeacherSubjectDetail({ subjectId, tab }: { subjectId: string;
     fetchData: refreshCurrent,
     gradeDistribution,
     handleClassMenu,
+    handleCopyCode,
     handleCreateClassroom,
     handleCreateTopic,
+    handleShareCode,
     handleDelete,
     handleSignOut,
     loading: overview.loading,
@@ -371,6 +402,12 @@ export function useTeacherSubjectDetail({ subjectId, tab }: { subjectId: string;
     topicRows,
     topics,
   }
+}
+
+function getPositiveNumberParam(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value
+  const parsed = Number(raw)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
 }
 
 function getSubjectTabFromParam(value: string | string[] | undefined): SubjectTabKey {

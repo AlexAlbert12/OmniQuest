@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     minWidth: '100%',
   },
   mobileRailRow: {
-    paddingLeft: 2,
+    paddingLeft: 6,
     paddingRight: 28,
   },
   tab: {

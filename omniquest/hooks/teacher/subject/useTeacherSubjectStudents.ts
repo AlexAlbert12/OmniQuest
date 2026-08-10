@@ -11,7 +11,7 @@ const EMPTY: TeacherSubjectStudentsPayload = {
   items: [], total: 0, limit: PAGE_SIZE, offset: 0,
   summary: {
     enrolled: 0, answered: 0, participation: 0, averageGrade: 0, averageAccuracy: 0,
-    failedAnswers: 0, correctAnswers: 0, averageXp: 0, questionsCount: 0,
+    failedAnswers: 0, correctAnswers: 0, averageXp: 0, questionsCount: 0, activeThisWeek: 0,
   },
   gradeDistribution: [],
 }

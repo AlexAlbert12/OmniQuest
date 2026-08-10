@@ -9,7 +9,7 @@ import { releaseWebFocus } from '../lib/webFocus'
 
 export type NativeAlertButton = {
   text?: string
-  onPress?: () => void
+  onPress?: () => void | Promise<void>
   style?: 'default' | 'cancel' | 'destructive'
 }
 
@@ -17,7 +17,7 @@ export type AppModalVariant = 'success' | 'warning' | 'error' | 'info'
 
 export type AppModalButton = {
   label: string
-  onPress?: () => void
+  onPress?: () => void | Promise<void>
   role: 'primary' | 'cancel' | 'danger'
 }
 
@@ -120,19 +120,21 @@ export function AppModalProvider({ children }: { children: ReactNode }) {
     setModal(null)
   }, [])
 
-  const handleButtonPress = useCallback((button: AppModalButton, index: number) => {
+  const handleButtonPress = useCallback(async (button: AppModalButton, index: number) => {
     if (!button.onPress) {
       closeModal()
       return
     }
 
+    const activeModal = modal
     setBusyButtonIndex(index)
     try {
-      button.onPress()
+      await button.onPress()
+      setModal((current) => current === activeModal ? null : current)
     } finally {
-      closeModal()
+      setBusyButtonIndex(null)
     }
-  }, [closeModal])
+  }, [closeModal, modal])
 
   return (
     <AppModalContext.Provider value={contextValue}>
@@ -161,7 +163,7 @@ function StyledAppModal({
 }: {
   busyButtonIndex: number | null
   modal: AppModalState | null
-  onButtonPress: (button: AppModalButton, index: number) => void
+  onButtonPress: (button: AppModalButton, index: number) => void | Promise<void>
   onClose: () => void
 }) {
   const config = modal ? variantConfig[modal.variant] : variantConfig.info

@@ -47,10 +47,8 @@ function buildQuestionHref({
 
 export const SubjectQuestionsTab = React.memo(function SubjectQuestionsTab({
   filteredQuestions,
-  isDesktop,
   onDeleteQuestion,
   onDifficultyChange,
-  questionsCount,
   selectedClassroomId,
   selectedDifficulty,
   selectedTopicId,
@@ -64,47 +62,27 @@ export const SubjectQuestionsTab = React.memo(function SubjectQuestionsTab({
   selectedDifficulty: DifficultyLevel | 'all'
   selectedTopicLabel: string
   filteredQuestions: QuestionListItemDto[]
-  questionsCount: number
   topics: QuestionTopicDto[]
-  isDesktop: boolean
   onDifficultyChange: (value: DifficultyLevel | 'all') => void
   onDeleteQuestion: (questionId: number) => void
 }) {
-  const router = useRouter()
   const addQuestionHref = useMemo(() => buildQuestionHref({
     classroomId: selectedClassroomId,
     difficulty: selectedDifficulty,
     subjectId,
     topicId: selectedTopicId,
   }), [selectedClassroomId, selectedDifficulty, selectedTopicId, subjectId])
-  const openAddQuestion = useCallback(() => router.push(addQuestionHref), [addQuestionHref, router])
-
   return (
-    <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
-      <View className={isDesktop ? 'flex-[1.45] gap-5' : 'gap-5'}>
-        <SubjectQuestionsPanel
-          addQuestionHref={addQuestionHref}
-          filteredQuestions={filteredQuestions}
-          onDeleteQuestion={onDeleteQuestion}
-          onDifficultyChange={onDifficultyChange}
-          selectedDifficulty={selectedDifficulty}
-          selectedTopicLabel={selectedTopicLabel}
-          subjectId={subjectId}
-          topics={topics}
-        />
-      </View>
-
-      <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
-        <SubjectPanel title="Gestión rápida">
-          <View className="mb-3">
-            <AppButton label="Nueva pregunta" accessibilityLabel="Crear nueva pregunta" icon="add" role="teacher" fullWidth onPress={openAddQuestion} />
-          </View>
-          <Text className="text-[12px] text-text-muted">
-            Total preguntas: <Text className="font-bold text-white">{questionsCount}</Text>
-          </Text>
-        </SubjectPanel>
-      </View>
-    </View>
+    <SubjectQuestionsPanel
+      addQuestionHref={addQuestionHref}
+      filteredQuestions={filteredQuestions}
+      onDeleteQuestion={onDeleteQuestion}
+      onDifficultyChange={onDifficultyChange}
+      selectedDifficulty={selectedDifficulty}
+      selectedTopicLabel={selectedTopicLabel}
+      subjectId={subjectId}
+      topics={topics}
+    />
   )
 })
 

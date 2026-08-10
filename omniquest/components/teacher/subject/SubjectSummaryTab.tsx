@@ -13,7 +13,7 @@ export default function SubjectSummaryTab({
   gradeDistribution,
   isDesktop,
   onOpenAnalytics,
-  onShowCode,
+  onCopyCode,
   overview,
   subject,
 }: {
@@ -22,7 +22,7 @@ export default function SubjectSummaryTab({
   gradeDistribution: { label: string; color: string; count: number }[]
   isDesktop: boolean
   onOpenAnalytics: () => void
-  onShowCode: () => void
+  onCopyCode: () => void
   overview: TeacherSubjectOverview
   subject: Subject
 }) {
@@ -31,9 +31,9 @@ export default function SubjectSummaryTab({
   return (
     <View className="gap-5">
       <View className={isDesktop ? 'flex-row gap-4' : 'flex-row flex-wrap gap-3'}>
-        <SummaryMetric icon="people-outline" label="Participación" value={`${summary.participation}%`} detail={`${summary.activeStudents}/${summary.enrolledCount} alumnos activos`} />
-        <SummaryMetric icon="shield-checkmark-outline" label="Precisión" value={`${summary.averageAccuracy}%`} detail={`${summary.correctAnswers}/${summary.totalAnswers} respuestas correctas`} />
-        <SummaryMetric icon="star-outline" label="XP media" value={`${summary.averageXp}`} detail="Puntos medios de la clase" />
+        <SummaryMetric icon="people-outline" label="Participación" value={`${summary.participation}%`} detail={`${summary.activeStudents}/${summary.enrolledCount} alumnos con actividad`} />
+        <SummaryMetric icon="shield-checkmark-outline" label="Precisión global" value={`${summary.averageAccuracy}%`} detail={`${summary.correctAnswers}/${summary.totalAnswers} respuestas correctas`} />
+        <SummaryMetric icon="star-outline" label="XP media" value={`${summary.averageXp} XP`} detail="Media del alumnado matriculado" />
         <SummaryMetric icon="analytics-outline" label="Progreso" value={`${summary.progress}%`} detail={`${summary.answeredClassQuestions}/${summary.possibleClassQuestions} combinaciones respondidas`} />
       </View>
 
@@ -85,7 +85,7 @@ export default function SubjectSummaryTab({
 
         <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
           <SubjectPanel title="Distribución de notas">
-            <GradeDistributionBars distribution={gradeDistribution} total={Math.max(overview.summary.enrolledCount, 1)} />
+            <GradeDistributionBars distribution={gradeDistribution} total={overview.summary.activeStudents} />
           </SubjectPanel>
 
           <View className="rounded-xl border border-border-active bg-surface-selected p-5">
@@ -94,7 +94,7 @@ export default function SubjectSummaryTab({
               <Text className="font-black text-text-primary">Código del curso</Text>
             </View>
             <Text className="mt-3 text-[12px] leading-5 text-text-secondary">Comparte este código para que el alumnado se una.</Text>
-            <Pressable accessibilityRole="button" onPress={onShowCode} className="mt-4 min-h-11 flex-row items-center justify-between rounded-xl bg-surface-default px-4 py-3">
+            <Pressable accessibilityRole="button" onPress={onCopyCode} className="mt-4 min-h-11 flex-row items-center justify-between rounded-xl bg-surface-default px-4 py-3">
               <Text className="font-mono text-[16px] font-black text-brand-teacher">{subject.code}</Text>
               <Ionicons name="copy-outline" size={18} color="#A78BFA" />
             </Pressable>

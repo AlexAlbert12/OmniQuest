@@ -45,7 +45,7 @@ export default function TeacherClassesScreen() {
                 isDesktop={isDesktop}
                 title="Cursos y clases"
                 mobileTitle="Cursos y clases"
-                subtitle="Resultados paginados y métricas agregadas en servidor."
+                subtitle="Gestiona tus cursos, clases, alumnos y contenidos."
                 notificationOnPress={() => router.push('/(teacher)/notifications' as never)}
                 actions={isDesktop ? <AppButton label="Crear curso" accessibilityLabel="Crear curso" icon="add" role="teacher" onPress={() => router.push('/(teacher)/create-subject' as never)} /> : undefined}
               />
@@ -70,7 +70,7 @@ export default function TeacherClassesScreen() {
                 </View>
                 {catalog.catalogTab === 'courses' ? (
                   <View className="gap-3">
-                    <AppTabs<TeacherCourseFilter> accessibilityLabel="Filtrar cursos" compact role="teacher" items={teacherCourseFilters} value={catalog.filter} onChange={catalog.setFilter} />
+                    <AppTabs<TeacherCourseFilter> accessibilityLabel="Filtrar cursos" compact mobileRail={!isDesktop} role="teacher" items={teacherCourseFilters} value={catalog.filter} onChange={catalog.setFilter} />
                     {isDesktop ? <AppTabs<TeacherCourseSort> accessibilityLabel="Ordenar cursos" compact role="teacher" items={teacherCourseSorts.map((item) => ({ ...item, icon: 'swap-vertical-outline' as const }))} value={catalog.sort} onChange={catalog.setSort} /> : null}
                   </View>
                 ) : null}
@@ -78,9 +78,9 @@ export default function TeacherClassesScreen() {
               <View className="mb-3 flex-row items-center justify-between gap-3">
                 <Text className="min-w-0 flex-1 text-[13px] text-text-secondary">{catalog.catalogTab === 'courses' ? `${catalog.total} cursos · ${catalog.courseSummary.students} matrículas · ${catalog.courseSummary.questions} preguntas · ${catalog.participation}% participación` : `${catalog.total} clases activas`}</Text>
                 {!isDesktop && catalog.catalogTab === 'courses' ? (
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Orden actual: ${catalog.sort}`} onPress={() => { const index = teacherCourseSorts.findIndex((item) => item.key === catalog.sort); catalog.setSort(teacherCourseSorts[(index + 1) % teacherCourseSorts.length].key) }} className="flex-row items-center gap-2 rounded-lg bg-surface-interactive px-3 py-2">
-                    <Ionicons name="swap-vertical-outline" size={15} color="#B9A7FF" />
-                    <Text className="text-[12px] font-black text-brand-teacher">{teacherCourseSorts.find((item) => item.key === catalog.sort)?.label}</Text>
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Orden: ${teacherCourseSorts.find((item) => item.key === catalog.sort)?.label || 'Reciente'}`} onPress={() => { const index = teacherCourseSorts.findIndex((item) => item.key === catalog.sort); catalog.setSort(teacherCourseSorts[(index + 1) % teacherCourseSorts.length].key) }} className="flex-row items-center gap-2 rounded-lg border border-border-default bg-surface-interactive px-3 py-2">
+                    <Ionicons name="swap-vertical-outline" size={15} color="#09ACF4" />
+                    <Text className="text-[12px] font-black text-brand-teacher">Orden: {teacherCourseSorts.find((item) => item.key === catalog.sort)?.label || 'Reciente'}</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -88,12 +88,7 @@ export default function TeacherClassesScreen() {
             </>
           )}
           ListEmptyComponent={<View className="items-center rounded-2xl border border-dashed border-border-default bg-surface-default px-5 py-10"><Text className="font-black text-white">No hay resultados</Text><Text className="mt-2 text-center text-[13px] text-text-muted">Prueba con otros filtros o crea un curso nuevo.</Text></View>}
-          ListFooterComponent={(
-            <>
-              <PaginationControls compact={!isDesktop} onNext={() => catalog.setPage((current) => Math.min(catalog.maxPage, current + 1))} onPrevious={() => catalog.setPage((current) => Math.max(0, current - 1))} page={catalog.safePage} pageSize={pageSize} total={catalog.total} />
-              {isDesktop ? <CreateCourseCTA onPress={() => router.push('/(teacher)/create-subject' as never)} /> : null}
-            </>
-          )}
+          ListFooterComponent={<PaginationControls compact={!isDesktop} onNext={() => catalog.setPage((current) => Math.min(catalog.maxPage, current + 1))} onPrevious={() => catalog.setPage((current) => Math.max(0, current - 1))} page={catalog.safePage} pageSize={pageSize} total={catalog.total} />}
           refreshControl={<RefreshControl refreshing={catalog.activePayload.refreshing} onRefresh={catalog.activePayload.refresh} tintColor="#8B5CF6" />}
           contentContainerStyle={{ paddingHorizontal: isDesktop ? 28 : 18, paddingTop: isDesktop ? 28 : 18, paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER + 84 }}
           showsVerticalScrollIndicator={false}
@@ -111,7 +106,7 @@ export default function TeacherClassesScreen() {
 function CatalogTableHeader({ tab }: { tab: TeacherCatalogTab }) {
   return tab === 'courses' ? (
     <View className="flex-row items-center gap-4 rounded-t-2xl border border-border-default bg-surface-raised px-4 py-3">
-      <Text className="w-10 text-[11px] font-black uppercase text-text-muted">Curso</Text><Text className="flex-[1.5] text-[11px] font-black uppercase text-text-muted">Nombre</Text><Text className="w-20 text-center text-[11px] font-black uppercase text-text-muted">Alumnos</Text><Text className="w-20 text-center text-[11px] font-black uppercase text-text-muted">Preguntas</Text><Text className="w-28 text-center text-[11px] font-black uppercase text-text-muted">Estado</Text><View className="w-[18px]" />
+      <Text className="w-10 text-[11px] font-black uppercase text-text-muted">Curso</Text><Text className="flex-[1.5] text-[11px] font-black uppercase text-text-muted">Nombre</Text><Text className="w-20 text-center text-[11px] font-black uppercase text-text-muted">Alumnos</Text><Text className="w-20 text-center text-[11px] font-black uppercase text-text-muted">Preguntas</Text><Text className="w-28 text-center text-[11px] font-black uppercase text-text-muted">Participación</Text><View className="w-[18px]" />
     </View>
   ) : (
     <View className="flex-row items-center gap-4 rounded-t-2xl border border-border-default bg-surface-raised px-4 py-3">

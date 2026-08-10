@@ -257,6 +257,7 @@ export type TeacherSubjectStudentsPayload = PagedPayload<TeacherSubjectStudent> 
     correctAnswers: number
     averageXp: number
     questionsCount: number
+    activeThisWeek: number
   }
   gradeDistribution: Array<{ label: string; count: number }>
 }

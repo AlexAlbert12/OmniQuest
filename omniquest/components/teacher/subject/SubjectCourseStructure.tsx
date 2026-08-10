@@ -5,11 +5,47 @@ import { Link } from 'expo-router'
 import { difficultyOptions, type DifficultyLevel } from '../../../lib/difficulty'
 import type { Classroom, TopicRow } from '../../../hooks/teacher/useTeacherSubjectDetail'
 import AppButton from '../../ui/AppButton'
+import AppDropdown from '../../ui/AppDropdown'
 import AppTabs from '../../ui/AppTabs'
 import DateTimeCalendarField from '../../ui/DateTimeCalendarField'
 import { createShadowStyle } from '../../../lib/platformShadow'
 import { SubjectPanel as Panel, type IconName } from './SubjectShared'
 import { normalizeAcademicIcon } from '../../../lib/academicIcons'
+
+export function SubjectClassroomContextSelector({ classrooms, selectedClassroomId, onSelect }: {
+  classrooms: Classroom[]
+  selectedClassroomId: number | null
+  onSelect: (classroomId: number) => void
+}) {
+  if (classrooms.length === 0) return null
+
+  return (
+    <View className="mb-4 rounded-2xl border border-border-default bg-surface-default p-4">
+      <View className="flex-row flex-wrap items-center gap-3">
+        <View className="h-11 w-11 items-center justify-center rounded-xl bg-surface-selected">
+          <Ionicons name="people-outline" size={20} color="#38BDF8" />
+        </View>
+        <View className="min-w-[180px] flex-1">
+          <Text className="text-[11px] font-black uppercase tracking-wide text-text-muted">Clase activa</Text>
+          <Text className="mt-1 text-[12px] text-text-secondary">Este contexto se mantiene al cambiar entre Resumen, Temas, Preguntas, Alumnos y Analítica.</Text>
+        </View>
+        <View className="min-w-[260px] flex-[0.8]">
+          <AppDropdown
+            accessibilityLabel="Seleccionar clase activa"
+            value={selectedClassroomId ?? classrooms[0].id}
+            options={classrooms.map((classroom) => ({
+              value: classroom.id,
+              label: classroom.name,
+              description: classroom.code ? `Código ${classroom.code}${classroom.academic_year ? ` · ${classroom.academic_year}` : ''}` : classroom.academic_year || undefined,
+              icon: 'people-outline',
+            }))}
+            onChange={onSelect}
+          />
+        </View>
+      </View>
+    </View>
+  )
+}
 
 export function SubjectClassroomsSection({
   classrooms,
@@ -17,37 +53,20 @@ export function SubjectClassroomsSection({
   newClassroomName,
   onCreate,
   onNameChange,
-  onSelect,
-  selectedClassroomId,
 }: {
   classrooms: Classroom[]
   creating: boolean
   newClassroomName: string
   onCreate: () => void
   onNameChange: (value: string) => void
-  onSelect: (classroomId: number) => void
-  selectedClassroomId: number | null
 }) {
   return (
     <Panel title="Clases del curso">
-      {classrooms.length > 0 ? (
-        <AppTabs
-          accessibilityLabel="Clases del curso"
-          items={classrooms.map((classroom) => ({
-            key: classroom.id,
-            label: classroom.code ? `${classroom.name} · ${classroom.code}` : classroom.name,
-            icon: 'people-outline' as IconName,
-          }))}
-          onChange={onSelect}
-          role="teacher"
-          value={selectedClassroomId ?? classrooms[0].id}
-        />
-      ) : (
-        <View className="rounded-xl border border-dashed border-border-default bg-surface-default p-4">
-          <Text className="text-[12px] text-text-muted">Todavía no hay clases en este curso.</Text>
-        </View>
-      )}
-
+      <View className="rounded-xl border border-border-subtle bg-surface-raised p-3">
+        <Text className="text-[12px] text-text-secondary">
+          {classrooms.length === 1 ? '1 clase disponible.' : `${classrooms.length} clases disponibles.`} La clase activa se selecciona encima de las pestañas.
+        </Text>
+      </View>
       <View className="mt-4 flex-row flex-wrap items-end gap-3 border-t border-border-subtle pt-4">
         <View className="min-w-[240px] flex-1">
           <Text className="mb-2 text-[12px] font-semibold text-text-secondary">Nueva clase dentro del curso</Text>
@@ -60,15 +79,7 @@ export function SubjectClassroomsSection({
             onChangeText={onNameChange}
           />
         </View>
-        <AppButton
-          label="Crear clase"
-          accessibilityLabel={creating ? 'Creando clase' : 'Crear clase'}
-          icon="add"
-          loading={creating}
-          disabled={creating}
-          role="teacher"
-          onPress={onCreate}
-        />
+        <AppButton label="Crear clase" accessibilityLabel={creating ? 'Creando clase' : 'Crear clase'} icon="add" loading={creating} disabled={creating} role="teacher" onPress={onCreate} />
       </View>
     </Panel>
   )
