@@ -20,7 +20,7 @@ export default function TeacherBottomNav({ active }: { active: TeacherSection })
   return <MobileBottomNavigation activeKey={getVisibleActiveKey(active)} accentColor={tokens.brand.teacher} items={navItems} />
 }
 
-function getVisibleActiveKey(active: TeacherSection): VisibleTeacherBottomNavKey {
-  if (active === 'notifications' || active === 'settings' || active === 'audit') return 'profile'
+function getVisibleActiveKey(active: TeacherSection): VisibleTeacherBottomNavKey | null {
+  if (active === 'notifications' || active === 'settings' || active === 'audit') return null
   return active
 }

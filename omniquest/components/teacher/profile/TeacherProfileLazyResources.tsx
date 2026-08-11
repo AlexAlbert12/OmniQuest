@@ -26,10 +26,11 @@ export default function TeacherProfileLazyResources(props: Props) {
     <View style={{ marginTop: 18, gap: 14 }}>
       <LazyPanel
         title="Cursos recientes"
-        description="Se cargan solo cuando abres esta sección."
+        description="Consulta los cursos que has creado recientemente."
         icon="book-outline"
         state={props.subjects}
         onLoad={props.onLoadSubjects}
+        loadLabel="Mostrar cursos recientes"
         onViewAll={props.onViewCourses}
         renderItem={(subject) => (
           <ResourceRow
@@ -43,10 +44,11 @@ export default function TeacherProfileLazyResources(props: Props) {
       />
       <LazyPanel
         title="Preguntas recientes"
-        description="La consulta se ejecuta de forma independiente al perfil y a los cursos."
+        description="Consulta las últimas preguntas que has creado."
         icon="help-circle-outline"
         state={props.questions}
         onLoad={props.onLoadQuestions}
+        loadLabel="Mostrar preguntas recientes"
         renderItem={(question) => (
           <ResourceRow
             key={question.id}
@@ -67,6 +69,7 @@ function LazyPanel<T extends { id: number }>({
   icon,
   state,
   onLoad,
+  loadLabel,
   onViewAll,
   renderItem,
 }: {
@@ -75,6 +78,7 @@ function LazyPanel<T extends { id: number }>({
   icon: keyof typeof Ionicons.glyphMap
   state: ResourceState<T>
   onLoad: () => void
+  loadLabel: string
   onViewAll?: () => void
   renderItem: (item: T) => React.ReactNode
 }) {
@@ -91,7 +95,7 @@ function LazyPanel<T extends { id: number }>({
       </View>
 
       {!state.loaded ? (
-        <AppButton label={`Cargar ${title.toLowerCase()}`} icon="download-outline" variant="secondary" fullWidth style={{ marginTop: 14 }} onPress={onLoad} />
+        <AppButton label={loadLabel} icon="download-outline" variant="secondary" fullWidth style={{ marginTop: 14 }} onPress={onLoad} />
       ) : state.loading ? (
         <View style={{ minHeight: 86, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={tokens.brand.teacher} /></View>
       ) : state.error ? (

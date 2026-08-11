@@ -42,7 +42,6 @@ export default function TeacherProfileScreen() {
   const { tokens } = useAppTheme()
   const profile = useTeacherProfile()
   const { summary } = profile
-  const activeStudents = summary.metrics.participatingStudents
 
   const handleSignOut = useCallback(async () => {
     await signOutCurrentDeviceSession()
@@ -79,18 +78,6 @@ export default function TeacherProfileScreen() {
         mobileTitle="Mi perfil"
         subtitle="Tu identidad profesional y el impacto generado en el periodo seleccionado"
         notificationOnPress={() => router.push(ROUTES.notifications)}
-        actions={(
-          <AppButton
-            label={responsive.isDesktop ? 'Ajustes' : undefined}
-            accessibilityLabel="Abrir ajustes personales"
-            icon="settings-outline"
-            iconOnly={!responsive.isDesktop}
-            role="teacher"
-            size="sm"
-            variant="secondary"
-            onPress={() => router.push(ROUTES.settings)}
-          />
-        )}
       />
 
       {profile.error ? (
@@ -127,7 +114,7 @@ export default function TeacherProfileScreen() {
 
       <View style={{ marginTop: 18 }}>
         <Text style={{ color: tokens.text.primary, fontSize: 17, fontWeight: '900' }}>Accesos docentes</Text>
-        <Text style={{ color: tokens.text.secondary, marginTop: 3, fontSize: 11 }}>{activeStudents} alumnos participaron en el periodo seleccionado.</Text>
+        <Text style={{ color: tokens.text.secondary, marginTop: 3, fontSize: 11 }}>Accede rápidamente a las tareas habituales.</Text>
         <View style={{ marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           <AppButton
             label="Crear pregunta"
@@ -140,7 +127,6 @@ export default function TeacherProfileScreen() {
           <AppButton label="Revisar respuestas" icon="create-outline" role="teacher" variant="secondary" onPress={() => router.push(ROUTES.reviews)} />
           <AppButton label="Revisar alumnos" icon="people-outline" role="teacher" variant="secondary" onPress={() => router.push(ROUTES.students)} />
           <AppButton label="Auditoría" icon="shield-checkmark-outline" role="teacher" variant="secondary" onPress={() => router.push(ROUTES.audit)} />
-          <AppButton label="Configurar perfil" icon="settings-outline" role="teacher" variant="secondary" onPress={() => router.push(ROUTES.settings)} />
         </View>
       </View>
 

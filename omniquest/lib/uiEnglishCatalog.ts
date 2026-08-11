@@ -4,6 +4,12 @@
  * should be translated automatically.
  */
 export const uiEnglishCatalog: Record<string, string> = {
+  "Accede rápidamente a las tareas habituales.": "Quickly access your usual tasks.",
+  "Alumnos matriculados con al menos un intento durante el periodo seleccionado.": "Enrolled students with at least one attempt during the selected period.",
+  "Consulta los cursos que has creado recientemente.": "View the courses you created recently.",
+  "Consulta las últimas preguntas que has creado.": "View the latest questions you created.",
+  "Mostrar cursos recientes": "Show recent courses",
+  "Mostrar preguntas recientes": "Show recent questions",
   "Abre el curso para iniciar una nueva práctica, sin mostrar las soluciones anteriores": "Open the course to start a new practice session without showing previous solutions",
   "Abre el curso y muestra sus temas": "Open the course and view its topics",
   "Abre una confirmación antes de abandonar la partida": "Open a confirmation before leaving the game",

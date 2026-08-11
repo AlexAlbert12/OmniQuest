@@ -35,7 +35,7 @@ export default function TeacherProfileHero(props: Props) {
             La fotografía profesional se muestra en espacios docentes y está separada de marcos, insignias y cosméticos del alumnado.
           </Text>
           <View style={{ marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            <AppButton label="Editar datos" icon="create-outline" role="teacher" size="sm" onPress={props.onEditProfile} />
+            <AppButton label="Editar perfil" icon="create-outline" role="teacher" size="sm" onPress={props.onEditProfile} />
             <AppButton label="Seguridad" icon="lock-closed-outline" variant="secondary" size="sm" onPress={props.onSecurity} />
           </View>
         </View>

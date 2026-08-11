@@ -1,6 +1,6 @@
 # Auditoría de recorridos autenticados
 
-Estado acumulado hasta: 20260811130000_teacher_audit_teacher_facing_simplification.sql
+Estado acumulado hasta: 20260811143000_teacher_notifications_experience_refinement.sql
 
 ## Resumen
 
@@ -115,9 +115,9 @@ Estado acumulado hasta: 20260811130000_teacher_audit_teacher_facing_simplificati
 | rpc | `get_teacher_courses_page` | `features/teacher-catalog/api.ts` | 13 |
 | rpc | `get_teacher_dashboard_summary` | `features/teacher-dashboard/api.ts` | 13 |
 | rpc | `get_teacher_manual_review_queue` | `hooks/teacher/useManualReview.ts` | 27 |
-| rpc | `get_teacher_notification_center_summary` | `hooks/teacher/useTeacherNotifications.ts` | 64 |
+| rpc | `get_teacher_notification_center_summary` | `hooks/teacher/useTeacherNotifications.ts` | 56 |
 | rpc | `get_teacher_notification_settings` | `hooks/teacher/useTeacherCommunicationSettings.ts` | 60 |
-| rpc | `get_teacher_notifications_page` | `hooks/teacher/useTeacherNotifications.ts` | 88 |
+| rpc | `get_teacher_notifications_page` | `hooks/teacher/useTeacherNotifications.ts` | 82 |
 | rpc | `get_teacher_profile_recent_questions_page` | `hooks/teacher/useTeacherProfile.ts` | 177 |
 | rpc | `get_teacher_profile_recent_subjects_page` | `hooks/teacher/useTeacherProfile.ts` | 150 |
 | rpc | `get_teacher_profile_summary` | `hooks/teacher/useTeacherProfile.ts` | 122 |
@@ -157,7 +157,7 @@ Estado acumulado hasta: 20260811130000_teacher_audit_teacher_facing_simplificati
 | rpc | `set_teacher_course_notification_preference` | `hooks/teacher/useTeacherCommunicationSettings.ts` | 132 |
 | rpc | `set_teacher_digest_preference` | `hooks/teacher/useTeacherCommunicationSettings.ts` | 92 |
 | rpc | `set_teacher_notifications_mute` | `hooks/teacher/useTeacherCommunicationSettings.ts` | 112 |
-| rpc | `set_teacher_notifications_mute` | `hooks/teacher/useTeacherNotifications.ts` | 204 |
+| rpc | `set_teacher_notifications_mute` | `hooks/teacher/useTeacherNotifications.ts` | 214 |
 | rpc | `set_teacher_support_preference` | `hooks/teacher/useTeacherCommunicationSettings.ts` | 153 |
 | rpc | `start_game_attempt` | `hooks/useGame.ts` | 193 |
 | rpc | `submit_answer_resumable` | `hooks/useGame.ts` | 419 |

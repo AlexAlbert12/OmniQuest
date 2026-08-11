@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import type { RealtimePostgresInsertPayload } from '@supabase/supabase-js'
 import type { AppNotification, NotificationCursor, NotificationType } from '../../lib/notifications/types'
-import { deletePersistentNotifications, markPersistentNotificationsRead } from '../../lib/notifications/persistent'
+import { deletePersistentNotifications, markAllPersistentNotificationsRead, markPersistentNotificationsRead } from '../../lib/notifications/persistent'
 import { supabase } from '../../lib/supabase'
 import { getErrorMessage, isRecord } from '../../lib/typeGuards'
 
@@ -13,6 +13,8 @@ export type TeacherNotificationSummary = {
   pendingReviews: number
   inactiveStudents: number
   sensitiveActions: number
+  unreadNotifications: number
+  activeSubjects: number
   mutedUntil: string | null
 }
 
@@ -26,23 +28,10 @@ type NotificationPage = {
   informativeCount: number
 }
 
-const EMPTY_SUMMARY: TeacherNotificationSummary = {
-  pendingReviews: 0,
-  inactiveStudents: 0,
-  sensitiveActions: 0,
-  mutedUntil: null,
-}
+type ResetLoadOptions = { initial?: boolean }
 
-const EMPTY_PAGE: NotificationPage = {
-  rows: [],
-  cursor: null,
-  hasMore: false,
-  total: 0,
-  unreadCount: 0,
-  criticalCount: 0,
-  informativeCount: 0,
-}
-
+const EMPTY_SUMMARY: TeacherNotificationSummary = { pendingReviews: 0, inactiveStudents: 0, sensitiveActions: 0, unreadNotifications: 0, activeSubjects: 0, mutedUntil: null }
+const EMPTY_PAGE: NotificationPage = { rows: [], cursor: null, hasMore: false, total: 0, unreadCount: 0, criticalCount: 0, informativeCount: 0 }
 const PAGE_SIZE = 20
 
 export function useTeacherNotifications() {
@@ -55,10 +44,13 @@ export function useTeacherNotifications() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [backgroundRefreshing, setBackgroundRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const requestId = useRef(0)
   const pageRef = useRef<NotificationPage>(EMPTY_PAGE)
   const loadingMoreRef = useRef(false)
+  const initialPageLoadedRef = useRef(false)
+  const backgroundRefreshingRef = useRef(false)
 
   const loadSummary = useCallback(async () => {
     const { data, error: rpcError } = await supabase.rpc('get_teacher_notification_center_summary')
@@ -68,17 +60,19 @@ export function useTeacherNotifications() {
       pendingReviews: Number(payload.pending_reviews || 0),
       inactiveStudents: Number(payload.inactive_students || 0),
       sensitiveActions: Number(payload.sensitive_actions || 0),
+      unreadNotifications: Number(payload.unread_notifications || 0),
+      activeSubjects: Number(payload.active_subjects || 0),
       mutedUntil: typeof payload.muted_until === 'string' ? payload.muted_until : null,
     })
   }, [])
 
-  const loadPage = useCallback(async (mode: 'reset' | 'more' = 'reset') => {
+  const loadPage = useCallback(async (mode: 'reset' | 'more' = 'reset', options: ResetLoadOptions = {}) => {
     const currentPage = pageRef.current
     if (mode === 'more' && (!currentPage.hasMore || currentPage.cursor === null || loadingMoreRef.current)) return
     const currentRequest = ++requestId.current
-    if (mode === 'reset') {
-      setLoading(true)
-    } else {
+    const showInitialLoading = mode === 'reset' && options.initial === true
+    if (showInitialLoading) setLoading(true)
+    if (mode === 'more') {
       loadingMoreRef.current = true
       setLoadingMore(true)
     }
@@ -97,21 +91,17 @@ export function useTeacherNotifications() {
       if (rpcError) throw rpcError
       if (requestId.current !== currentRequest) return
       const next = mapPage(data)
-      const resolved = mode === 'more'
-        ? { ...next, rows: mergeById(currentPage.rows, next.rows) }
-        : next
+      const resolved = mode === 'more' ? { ...next, rows: mergeById(currentPage.rows, next.rows) } : next
       pageRef.current = resolved
       setPage(resolved)
+      if (mode === 'reset') initialPageLoadedRef.current = true
     } catch (loadError) {
-      if (requestId.current === currentRequest) {
-        setError(getErrorMessage(loadError, 'No se pudieron cargar las notificaciones docentes.'))
-      }
+      if (requestId.current === currentRequest) setError(getErrorMessage(loadError, 'No se pudieron cargar las notificaciones docentes.'))
     } finally {
       if (requestId.current === currentRequest) {
         loadingMoreRef.current = false
-        setLoading(false)
+        if (showInitialLoading) setLoading(false)
         setLoadingMore(false)
-        setRefreshing(false)
       }
     }
   }, [bucket, category, subjectId, unreadOnly])
@@ -122,22 +112,38 @@ export function useTeacherNotifications() {
       await Promise.all([loadPage('reset'), loadSummary()])
     } catch (refreshError) {
       setError(getErrorMessage(refreshError, 'No se pudo actualizar el centro de notificaciones.'))
+    } finally {
       setRefreshing(false)
     }
   }, [loadPage, loadSummary])
 
-  useEffect(() => {
-    void Promise.all([loadPage('reset'), loadSummary()]).catch((loadError) => {
-      setError(getErrorMessage(loadError, 'No se pudo abrir el centro de notificaciones.'))
-      setLoading(false)
-    })
+  const backgroundRefresh = useCallback(async () => {
+    if (backgroundRefreshingRef.current) return
+    backgroundRefreshingRef.current = true
+    setBackgroundRefreshing(true)
+    try {
+      await Promise.all([loadPage('reset'), loadSummary()])
+    } catch {
+      // Realtime is best-effort: keep the current page visible and retry on the next event or pull-to-refresh.
+    } finally {
+      backgroundRefreshingRef.current = false
+      setBackgroundRefreshing(false)
+    }
   }, [loadPage, loadSummary])
 
-  const refreshRef = useRef(refresh)
+  useEffect(() => {
+    void loadPage('reset', { initial: !initialPageLoadedRef.current })
+  }, [loadPage])
 
   useEffect(() => {
-    refreshRef.current = refresh
-  }, [refresh])
+    void loadSummary().catch((loadError) => setError(getErrorMessage(loadError, 'No se pudo cargar el resumen de notificaciones.')))
+  }, [loadSummary])
+
+  const backgroundRefreshRef = useRef(backgroundRefresh)
+
+  useEffect(() => {
+    backgroundRefreshRef.current = backgroundRefresh
+  }, [backgroundRefresh])
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null
@@ -147,13 +153,9 @@ export function useTeacherNotifications() {
       if (disposed || !data.user) return
       const nextChannel = supabase
         .channel(`teacher-notification-center:${data.user.id}:${subscriptionId}`)
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${data.user.id}` },
-          (payload: RealtimePostgresInsertPayload<{ audience?: string }>) => {
-            if (payload.new.audience === 'teacher') void refreshRef.current()
-          },
-        )
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${data.user.id}` }, (payload: RealtimePostgresInsertPayload<{ audience?: string }>) => {
+          if (payload.new.audience === 'teacher') void backgroundRefreshRef.current()
+        })
       if (disposed) {
         void supabase.removeChannel(nextChannel)
         return
@@ -170,30 +172,26 @@ export function useTeacherNotifications() {
     if (notification.isRead) return
     await markPersistentNotificationsRead([notification.id])
     setPage((current) => {
-      const next = {
-        ...current,
-        unreadCount: Math.max(0, current.unreadCount - 1),
-        rows: current.rows.map((item) => item.id === notification.id ? { ...item, isRead: true } : item),
-      }
+      const rows = unreadOnly ? current.rows.filter((item) => item.id !== notification.id) : current.rows.map((item) => item.id === notification.id ? { ...item, isRead: true } : item)
+      const next = { ...current, total: unreadOnly ? Math.max(0, current.total - 1) : current.total, unreadCount: Math.max(0, current.unreadCount - 1), rows }
       pageRef.current = next
       return next
     })
-  }, [])
+    setSummary((current) => ({ ...current, unreadNotifications: Math.max(0, current.unreadNotifications - 1) }))
+    if (unreadOnly) void loadPage('reset')
+  }, [loadPage, unreadOnly])
 
   const markAllAsRead = useCallback(async () => {
-    const ids = page.rows.filter((item) => !item.isRead).map((item) => item.id)
-    if (ids.length === 0) return
-    await markPersistentNotificationsRead(ids)
+    await markAllPersistentNotificationsRead('teacher')
     setPage((current) => {
-      const next = {
-        ...current,
-        unreadCount: Math.max(0, current.unreadCount - ids.length),
-        rows: current.rows.map((item) => ({ ...item, isRead: true })),
-      }
+      const next: NotificationPage = unreadOnly
+        ? { ...current, rows: [], cursor: null, hasMore: false, total: 0, unreadCount: 0 }
+        : { ...current, unreadCount: 0, rows: current.rows.map((item) => ({ ...item, isRead: true })) }
       pageRef.current = next
       return next
     })
-  }, [page.rows])
+    setSummary((current) => ({ ...current, unreadNotifications: 0 }))
+  }, [unreadOnly])
 
   const deleteNotification = useCallback(async (notification: AppNotification) => {
     await deletePersistentNotifications([notification.id])
@@ -209,6 +207,7 @@ export function useTeacherNotifications() {
       pageRef.current = next
       return next
     })
+    if (!notification.isRead) setSummary((current) => ({ ...current, unreadNotifications: Math.max(0, current.unreadNotifications - 1) }))
   }, [])
 
   const muteUntil = useCallback(async (until: string | null) => {
@@ -223,6 +222,8 @@ export function useTeacherNotifications() {
     if (bucket === 'informative') return 'Actualizaciones informativas'
     return 'Todas las notificaciones docentes'
   }, [bucket, unreadOnly])
+
+  const clearError = useCallback(() => setError(null), [])
 
   return {
     bucket,
@@ -243,8 +244,9 @@ export function useTeacherNotifications() {
     loading,
     loadingMore,
     refreshing,
+    backgroundRefreshing,
     error,
-    clearError: () => setError(null),
+    clearError,
     activeFilterDescription,
     refresh,
     loadMore: () => loadPage('more'),
@@ -260,9 +262,7 @@ function mapPage(value: unknown): NotificationPage {
   const rows = Array.isArray(payload.rows) ? payload.rows.map(mapNotification).filter(Boolean) as AppNotification[] : []
   return {
     rows,
-    cursor: typeof payload.next_cursor_created_at === 'string' && typeof payload.next_cursor_id === 'string'
-      ? { createdAt: payload.next_cursor_created_at, id: payload.next_cursor_id }
-      : null,
+    cursor: typeof payload.next_cursor_created_at === 'string' && typeof payload.next_cursor_id === 'string' ? { createdAt: payload.next_cursor_created_at, id: payload.next_cursor_id } : null,
     hasMore: payload.has_more === true,
     total: Number(payload.total || 0),
     unreadCount: Number(payload.unread_count || 0),
@@ -296,18 +296,14 @@ function mapNotification(value: unknown): AppNotification | null {
 }
 
 function safeIcon(value: unknown): keyof typeof Ionicons.glyphMap {
-  return typeof value === 'string' && value in Ionicons.glyphMap
-    ? value as keyof typeof Ionicons.glyphMap
-    : 'notifications-outline'
+  return typeof value === 'string' && value in Ionicons.glyphMap ? value as keyof typeof Ionicons.glyphMap : 'notifications-outline'
 }
 
 function isNotificationType(value: unknown): value is NotificationType {
   return value === 'enrollment' || value === 'student_activity' || value === 'achievement' || value === 'new_class' || value === 'announcement'
 }
 
-
 function mergeById(current: AppNotification[], next: AppNotification[]) {
   const seen = new Set(current.map((item) => item.id))
   return [...current, ...next.filter((item) => !seen.has(item.id))]
 }
-

@@ -32,14 +32,21 @@ test('teacher audit exposes the requested categories and a useful empty state', 
   assert.match(audit, /No hay eventos con los filtros seleccionados/)
 })
 
-test('teacher profile prioritizes impact and provides four quick accesses', () => {
+test('teacher profile keeps one profile editor and focused teacher shortcuts', () => {
   const profile = read('app/(teacher)/profile.tsx')
+  const hero = read('components/teacher/profile/TeacherProfileHero.tsx')
   assert.match(profile, /Accesos docentes/)
+  assert.match(profile, /Accede rápidamente a las tareas habituales\./)
   assert.match(profile, /Crear pregunta/)
   assert.match(profile, /Importar alumnos/)
+  assert.match(profile, /Revisar respuestas/)
   assert.match(profile, /Revisar alumnos/)
-  assert.match(profile, /Configurar perfil/)
-  assert.match(profile, /activeStudents/)
+  assert.match(profile, /Auditoría/)
+  assert.doesNotMatch(profile, /label=\{responsive\.isDesktop \? 'Ajustes'/)
+  assert.doesNotMatch(profile, /Configurar perfil/)
+  assert.doesNotMatch(profile, /activeStudents/)
+  assert.match(hero, /label="Editar perfil"/)
+  assert.match(hero, /label="Seguridad"/)
 })
 
 test('teacher notifications use teacher categories and priority summaries', () => {
@@ -48,5 +55,5 @@ test('teacher notifications use teacher categories and priority summaries', () =
   assert.match(notifications, /label: 'Auditoría'/)
   assert.match(notifications, /Pendientes de revisar/)
   assert.match(notifications, /Sin actividad/)
-  assert.match(notifications, /Acciones sensibles/)
+  assert.match(notifications, /Alertas de auditoría/)
 })

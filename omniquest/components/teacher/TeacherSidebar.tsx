@@ -175,7 +175,8 @@ function TeacherNavButton({
   isDark: boolean
 }) {
   const { t } = useI18n()
-  const label = t(item.labelKey)
+  const translatedLabel = t(item.labelKey)
+  const label = translatedLabel === item.labelKey ? item.label : translatedLabel
   const [isHovered, setIsHovered] = React.useState(false)
   const [isPressed, setIsPressed] = React.useState(false)
   const hoverProgress = React.useRef(new Animated.Value(isActive ? 1 : 0)).current

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "20260811130000_teacher_audit_teacher_facing_simplification.sql",
+  "generatedAt": "20260811143000_teacher_notifications_experience_refinement.sql",
   "sourceFiles": 433,
   "calls": [
     {
@@ -558,7 +558,7 @@
       "kind": "rpc",
       "resource": "get_teacher_notification_center_summary",
       "path": "hooks/teacher/useTeacherNotifications.ts",
-      "line": 64
+      "line": 56
     },
     {
       "kind": "rpc",
@@ -570,7 +570,7 @@
       "kind": "rpc",
       "resource": "get_teacher_notifications_page",
       "path": "hooks/teacher/useTeacherNotifications.ts",
-      "line": 88
+      "line": 82
     },
     {
       "kind": "rpc",
@@ -810,7 +810,7 @@
       "kind": "rpc",
       "resource": "set_teacher_notifications_mute",
       "path": "hooks/teacher/useTeacherNotifications.ts",
-      "line": 204
+      "line": 214
     },
     {
       "kind": "rpc",

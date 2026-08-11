@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo } from 'react'
-import { View } from 'react-native'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import TeacherScreenLayout from '../../components/layouts/TeacherScreenLayout'
 import NotificationFeed from '../../components/notifications/NotificationFeed'
@@ -7,15 +7,12 @@ import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import AppButton from '../../components/ui/AppButton'
+import AppBottomSheet from '../../components/ui/AppBottomSheet'
 import AppStatusBanner from '../../components/ui/AppStatusBanner'
 import AppTabs from '../../components/ui/AppTabs'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
-import { useAppModal } from '../../components/AppModalProvider'
-import {
-  useTeacherNotifications,
-  type TeacherNotificationBucket,
-  type TeacherNotificationCategory,
-} from '../../hooks/teacher/useTeacherNotifications'
+import { useAppModal, type AppModalButton } from '../../components/AppModalProvider'
+import { useTeacherNotifications, type TeacherNotificationBucket, type TeacherNotificationCategory } from '../../hooks/teacher/useTeacherNotifications'
 import type { AppNotification } from '../../lib/notifications/types'
 import { useAppTheme } from '../../lib/appTheme'
 import { useResponsiveLayout } from '../../lib/responsive'
@@ -42,12 +39,14 @@ export default function TeacherNotificationsScreen() {
   const { tokens } = useAppTheme()
   const { showModal } = useAppModal()
   const notifications = useTeacherNotifications()
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const shellHorizontalPadding = responsive.isDesktop ? 28 : responsive.isTablet ? 24 : 18
 
   useEffect(() => {
     if (!notifications.error) return
     showModal({ title: 'Error de notificaciones', message: notifications.error, variant: 'error' })
     notifications.clearError()
-  }, [notifications, showModal])
+  }, [notifications.error, notifications.clearError, showModal])
 
   const handleSignOut = useCallback(async () => {
     await signOutCurrentDeviceSession()
@@ -56,12 +55,41 @@ export default function TeacherNotificationsScreen() {
 
   const tabs = useMemo(() => bucketTabs.map((tab) => ({
     ...tab,
-    badge: tab.key === 'all'
-      ? notifications.total
-      : tab.key === 'critical'
-        ? notifications.criticalCount
-        : notifications.informativeCount,
+    badge: tab.key === 'all' ? notifications.total : tab.key === 'critical' ? notifications.criticalCount : notifications.informativeCount,
   })), [notifications.criticalCount, notifications.informativeCount, notifications.total])
+
+  const openMuteMenu = useCallback(() => {
+    showModal({
+      title: 'Silenciar avisos informativos',
+      message: 'Las notificaciones seguirán disponibles en este centro y las alertas críticas permanecerán activas. Elige durante cuánto tiempo quieres pausar únicamente los avisos informativos.',
+      variant: 'info',
+      buttons: [
+        { label: 'Durante 1 hora', role: 'primary', onPress: () => notifications.muteUntil(new Date(Date.now() + 60 * 60 * 1000).toISOString()) },
+        { label: 'Durante 8 horas', role: 'primary', onPress: () => notifications.muteUntil(new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()) },
+        { label: 'Hasta mañana', role: 'primary', onPress: () => notifications.muteUntil(nextMorningIso()) },
+        { label: 'Cancelar', role: 'cancel' },
+      ],
+    })
+  }, [notifications.muteUntil, showModal])
+
+  const openMobileActions = useCallback(() => {
+    const buttons: AppModalButton[] = [
+      { label: 'Preferencias', role: 'primary' as const, onPress: () => router.push('/(teacher)/settings?section=teaching' as never) },
+      { label: 'Silenciar avisos informativos', role: 'primary' as const, onPress: openMuteMenu },
+    ]
+    if (notifications.summary.unreadNotifications > 0) buttons.unshift({ label: 'Marcar todas como leídas', role: 'primary' as const, onPress: notifications.markAllAsRead })
+    showModal({ title: 'Acciones de notificaciones', message: 'Gestiona las notificaciones sin ocultar el contenido del centro.', variant: 'info', buttons: [...buttons, { label: 'Cancelar', role: 'cancel' as const }] })
+  }, [notifications.markAllAsRead, notifications.summary.unreadNotifications, openMuteMenu, router, showModal])
+
+  const headerActions = responsive.isDesktop ? (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }}>
+      <AppButton accessibilityLabel="Abrir preferencias de notificaciones" icon="options-outline" label="Preferencias" role="teacher" size="sm" variant="secondary" onPress={() => router.push('/(teacher)/settings?section=teaching' as never)} />
+      {notifications.summary.unreadNotifications > 0 ? <AppButton accessibilityLabel="Marcar todas las notificaciones como leídas" icon="checkmark-done-outline" label="Marcar todas como leídas" role="teacher" size="sm" onPress={() => void notifications.markAllAsRead()} /> : null}
+      <AppButton accessibilityLabel="Silenciar avisos informativos temporalmente" icon="volume-mute-outline" label="Silenciar avisos informativos" size="sm" variant="secondary" onPress={openMuteMenu} />
+    </View>
+  ) : (
+    <AppButton accessibilityLabel="Más acciones de notificaciones" icon="ellipsis-horizontal" iconOnly role="teacher" size="sm" variant="secondary" onPress={openMobileActions} />
+  )
 
   const header = (
     <View>
@@ -72,133 +100,105 @@ export default function TeacherNotificationsScreen() {
         mobileTitle="Notificaciones"
         subtitle={notifications.activeFilterDescription}
         showNotifications={false}
-        actions={(
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <AppButton
-              accessibilityLabel="Abrir preferencias de notificaciones"
-              icon="options-outline"
-              iconOnly={!responsive.isDesktop}
-              label={responsive.isDesktop ? 'Preferencias' : undefined}
-              role="teacher"
-              size="sm"
-              variant="secondary"
-              onPress={() => router.push('/(teacher)/settings?section=teaching' as never)}
-            />
-            {notifications.unreadCount > 0 ? (
-              <AppButton
-                accessibilityLabel="Marcar notificaciones cargadas como leídas"
-                icon="checkmark-done-outline"
-                iconOnly={!responsive.isDesktop}
-                label={responsive.isDesktop ? 'Marcar leídas' : undefined}
-                role="teacher"
-                size="sm"
-                onPress={() => void notifications.markAllAsRead()}
-              />
-            ) : null}
-          </View>
-        )}
+        actionsPosition="top"
+        actions={headerActions}
       />
 
       {notifications.summary.mutedUntil && new Date(notifications.summary.mutedUntil).getTime() > Date.now() ? (
         <AppStatusBanner
           style={{ marginBottom: 14 }}
           variant="info"
-          title="Notificaciones informativas silenciadas"
-          message={`El silencio temporal termina el ${new Date(notifications.summary.mutedUntil).toLocaleString('es-ES')}. Las alertas críticas continúan activas.`}
+          title="Avisos informativos silenciados"
+          message={`La pausa termina el ${new Date(notifications.summary.mutedUntil).toLocaleString('es-ES')}. Las notificaciones siguen disponibles aquí y las alertas críticas continúan activas.`}
           actionLabel="Reactivar ahora"
           onAction={() => void notifications.muteUntil(null)}
         />
+      ) : null}
+
+      <View style={{ marginBottom: 14, flexDirection: 'row', flexWrap: responsive.isDesktop ? 'wrap' : 'nowrap', gap: 10 }}>
+        <MobileMetricCard compact className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} semantic="attention" label={responsive.isDesktop ? 'Pendientes de revisar' : 'Pendientes'} value={notifications.summary.pendingReviews} detail="Respuestas abiertas" onPress={() => router.push('/(teacher)/reviews' as never)} />
+        <MobileMetricCard compact className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} icon="time" color={tokens.semantic.info} label="Sin actividad" value={notifications.summary.inactiveStudents} detail="Últimos 7 días" onPress={() => router.push('/(teacher)/students?status=no_activity' as never)} />
+        <MobileMetricCard compact className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} semantic="audit" label={responsive.isDesktop ? 'Alertas de auditoría' : 'Alertas'} value={notifications.summary.sensitiveActions} detail="Últimos 7 días" onPress={() => router.push('/(teacher)/audit' as never)} />
+      </View>
+
+      <AppTabs<TeacherNotificationBucket> accessibilityLabel="Separar alertas críticas e informativas" compact fill role="teacher" items={tabs} value={notifications.bucket} onChange={notifications.setBucket} />
+
+      {responsive.isDesktop ? (
+        <>
+          <View style={{ marginTop: 10 }}>
+            <AppTabs<TeacherNotificationCategory> accessibilityLabel="Filtrar notificaciones docentes por categoría" compact role="teacher" items={categoryTabs} value={notifications.category} onChange={notifications.setCategory} />
+          </View>
+          <View style={{ marginTop: 10, marginBottom: 6 }}>
+            <AppButton label={notifications.unreadOnly ? 'Mostrando sin leer' : 'Solo sin leer'} icon={notifications.unreadOnly ? 'mail-unread' : 'mail-unread-outline'} role="teacher" size="sm" variant={notifications.unreadOnly ? 'primary' : 'secondary'} onPress={() => notifications.setUnreadOnly(!notifications.unreadOnly)} />
+          </View>
+        </>
       ) : (
-        <View style={{ marginBottom: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          <AppButton label="Silenciar 1 hora" icon="volume-mute-outline" size="sm" variant="secondary" onPress={() => void notifications.muteUntil(new Date(Date.now() + 60 * 60 * 1000).toISOString())} />
-          <AppButton label="Silenciar hasta mañana" icon="moon-outline" size="sm" variant="secondary" onPress={() => void notifications.muteUntil(nextMorningIso())} />
+        <View style={{ marginTop: 10, marginBottom: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <AppButton label={notifications.category === 'all' ? 'Filtros' : `Filtros · ${categoryLabelForKey(notifications.category)}`} icon="options-outline" role="teacher" size="sm" variant="secondary" onPress={() => setFiltersOpen(true)} />
+          <AppButton label={notifications.unreadOnly ? 'Sin leer' : 'Solo sin leer'} icon={notifications.unreadOnly ? 'mail-unread' : 'mail-unread-outline'} role="teacher" size="sm" variant={notifications.unreadOnly ? 'primary' : 'secondary'} onPress={() => notifications.setUnreadOnly(!notifications.unreadOnly)} />
         </View>
       )}
-
-      <View style={{ marginBottom: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-        <MobileMetricCard compact className="min-w-[165px] flex-1" semantic="attention" label="Pendientes de revisar" value={notifications.summary.pendingReviews} detail="Respuestas abiertas" onPress={() => router.push('/(teacher)/reviews' as never)} />
-        <MobileMetricCard compact className="min-w-[165px] flex-1" icon="time" color={tokens.semantic.info} label="Sin actividad" value={notifications.summary.inactiveStudents} detail="Últimos 7 días" onPress={() => router.push('/(teacher)/students?status=no_activity' as never)} />
-        <MobileMetricCard compact className="min-w-[165px] flex-1" semantic="audit" label="Acciones sensibles" value={notifications.summary.sensitiveActions} detail="Últimos 7 días" onPress={() => router.push('/(teacher)/audit' as never)} />
-      </View>
-
-      <AppTabs<TeacherNotificationBucket>
-        accessibilityLabel="Separar alertas críticas e informativas"
-        compact
-        fill
-        role="teacher"
-        items={tabs}
-        value={notifications.bucket}
-        onChange={notifications.setBucket}
-      />
-
-      <View style={{ marginTop: 10 }}>
-        <AppTabs<TeacherNotificationCategory>
-          accessibilityLabel="Filtrar notificaciones docentes por categoría"
-          compact
-          role="teacher"
-          items={categoryTabs}
-          value={notifications.category}
-          onChange={notifications.setCategory}
-        />
-      </View>
-
-      <View style={{ marginTop: 10, marginBottom: 6, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <AppButton
-          label={notifications.unreadOnly ? 'Mostrando sin leer' : 'Solo sin leer'}
-          icon={notifications.unreadOnly ? 'mail-unread' : 'mail-unread-outline'}
-          role="teacher"
-          size="sm"
-          variant={notifications.unreadOnly ? 'primary' : 'secondary'}
-          onPress={() => notifications.setUnreadOnly(!notifications.unreadOnly)}
-        />
-        <AppButton label="Actualizar" icon="refresh-outline" loading={notifications.refreshing} size="sm" variant="secondary" onPress={() => void notifications.refresh()} />
-      </View>
     </View>
   )
 
   return (
-    <TeacherScreenLayout
-      isDesktop={responsive.isDesktop}
-      loading={notifications.loading}
-      loadingLabel="Cargando notificaciones docentes…"
-      scroll={false}
-      maxContentWidth={1240}
-      contentContainerStyle={{ flex: 1 }}
-      desktopSidebar={<TeacherSidebar activeSection="notifications" subjectsCount={0} onSignOut={() => void handleSignOut()} />}
-      mobileBottomNavigation={<TeacherBottomNav active="notifications" />}
-    >
-      <NotificationFeed
-        audience="teacher"
-        notifications={notifications.notifications}
-        unreadOnly={notifications.unreadOnly}
-        hasMore={notifications.hasMore}
-        loadingMore={notifications.loadingMore}
-        refreshing={notifications.refreshing}
-        header={header}
-        categoryLabel={teacherCategoryLabel}
-        onPress={async (notification) => {
-          await notifications.markAsRead(notification)
-          if (notification.actionUrl) router.push(notification.actionUrl as never)
-        }}
-        onMarkAsRead={notifications.markAsRead}
-        onDelete={notifications.deleteNotification}
-        onRefresh={notifications.refresh}
-        onLoadMore={notifications.loadMore}
-        contentContainerStyle={{ paddingBottom: responsive.isDesktop ? 36 : 100 }}
-      />
-    </TeacherScreenLayout>
+    <>
+      <TeacherScreenLayout
+        isDesktop={responsive.isDesktop}
+        loading={notifications.loading}
+        loadingLabel="Cargando notificaciones docentes…"
+        scroll={false}
+        maxContentWidth={1220}
+        fluidContent={false}
+        horizontalPadding={shellHorizontalPadding}
+        contentContainerStyle={{ flex: 1, width: '100%' }}
+        desktopSidebar={<TeacherSidebar activeSection="notifications" subjectsCount={notifications.summary.activeSubjects} onSignOut={() => void handleSignOut()} />}
+        mobileBottomNavigation={<TeacherBottomNav active="notifications" />}
+      >
+        <NotificationFeed
+          audience="teacher"
+          compact={!responsive.isDesktop}
+          notifications={notifications.notifications}
+          unreadOnly={notifications.unreadOnly}
+          hasMore={notifications.hasMore}
+          loadingMore={notifications.loadingMore}
+          refreshing={notifications.refreshing}
+          header={header}
+          categoryLabel={teacherCategoryLabel}
+          onPress={async (notification) => {
+            await notifications.markAsRead(notification)
+            if (notification.actionUrl) router.push(notification.actionUrl as never)
+          }}
+          onMarkAsRead={notifications.markAsRead}
+          onDelete={notifications.deleteNotification}
+          onRefresh={notifications.refresh}
+          onLoadMore={notifications.loadMore}
+          contentContainerStyle={{ paddingBottom: responsive.isDesktop ? 36 : 100 }}
+        />
+      </TeacherScreenLayout>
+
+      <AppBottomSheet visible={!responsive.isDesktop && filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtros" description="Elige qué tipo de notificaciones quieres consultar.">
+        <Text maxFontSizeMultiplier={2} style={{ color: tokens.text.secondary, fontSize: 12, fontWeight: '800' }}>Tipo de notificación</Text>
+        <View style={{ marginTop: 10, gap: 8 }}>
+          {categoryTabs.map((item) => (
+            <AppButton key={item.key} fullWidth label={item.label} icon={notifications.category === item.key ? 'radio-button-on' : 'radio-button-off'} role="teacher" size="sm" variant={notifications.category === item.key ? 'primary' : 'secondary'} onPress={() => { notifications.setCategory(item.key); setFiltersOpen(false) }} />
+          ))}
+        </View>
+        <View style={{ marginTop: 16 }}>
+          <AppButton fullWidth label={notifications.unreadOnly ? 'Mostrar también las leídas' : 'Mostrar solo sin leer'} icon={notifications.unreadOnly ? 'mail-open-outline' : 'mail-unread-outline'} role="teacher" size="sm" variant={notifications.unreadOnly ? 'primary' : 'secondary'} onPress={() => { notifications.setUnreadOnly(!notifications.unreadOnly); setFiltersOpen(false) }} />
+        </View>
+      </AppBottomSheet>
+    </>
   )
 }
 
 function teacherCategoryLabel(notification: AppNotification) {
-  const labels: Record<string, string> = {
-    students: 'Alumnos',
-    review: 'Revisión',
-    courses: 'Cursos',
-    system: 'Sistema',
-    audit: 'Auditoría',
-  }
-  return labels[notification.category || 'system'] || 'Sistema'
+  return categoryLabelForKey((notification.category || 'system') as TeacherNotificationCategory)
+}
+
+function categoryLabelForKey(category: TeacherNotificationCategory) {
+  const labels: Record<TeacherNotificationCategory, string> = { all: 'Todas', students: 'Alumnos', review: 'Revisión', courses: 'Cursos', system: 'Sistema', audit: 'Auditoría' }
+  return labels[category] || 'Sistema'
 }
 
 function nextMorningIso() {
