@@ -6,19 +6,19 @@ set local search_path = public, extensions;
 select plan(7);
 
 select ok(
-  position($needle$manual_review_status not in ('pending', 'in_review')$needle$ in pg_get_functiondef('public.get_teacher_student_history_summary(uuid,bigint,bigint,integer)'::regprocedure)) > 0
+  position($needle$manual_review_status <> 'pending'$needle$ in pg_get_functiondef('public.get_teacher_student_history_summary(uuid,bigint,bigint,integer)'::regprocedure)) > 0
   and position($needle$'evaluatedAttempts'$needle$ in pg_get_functiondef('public.get_teacher_student_history_summary(uuid,bigint,bigint,integer)'::regprocedure)) > 0,
   'history summary calculates accuracy only from evaluated answers'
 );
 
 select ok(
-  position($needle$manual_review_status in ('pending', 'in_review')$needle$ in pg_get_functiondef('public.get_teacher_student_history_summary(uuid,bigint,bigint,integer)'::regprocedure)) > 0
+  position($needle$manual_review_status = 'pending'$needle$ in pg_get_functiondef('public.get_teacher_student_history_summary(uuid,bigint,bigint,integer)'::regprocedure)) > 0
   and position($needle$'pendingEvaluation'$needle$ in pg_get_functiondef('public.get_teacher_student_history_summary(uuid,bigint,bigint,integer)'::regprocedure)) > 0,
   'history summary exposes pending evaluation separately'
 );
 
 select ok(
-  position($needle$manual_review_status, 'not_required') not in ('pending', 'in_review')$needle$ in pg_get_functiondef('public.get_teacher_student_history_weaknesses(uuid,bigint,bigint,integer)'::regprocedure)) > 0,
+  position($needle$manual_review_status, 'not_required') <> 'pending'$needle$ in pg_get_functiondef('public.get_teacher_student_history_weaknesses(uuid,bigint,bigint,integer)'::regprocedure)) > 0,
   'reinforcement diagnostics exclude answers awaiting teacher review'
 );
 

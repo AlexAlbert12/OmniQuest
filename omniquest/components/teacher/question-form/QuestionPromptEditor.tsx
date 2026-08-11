@@ -19,7 +19,7 @@ export default function QuestionPromptEditor({ selectedType, questionText, media
         accessibilityLabel="Enunciado de la pregunta"
         className="min-h-[145px] rounded-xl border px-4 py-3 text-[16px]"
         style={{ borderColor: questionTextError ? tokens.semantic.danger : tokens.border.default, backgroundColor: tokens.surface.interactive, color: tokens.text.primary }}
-        placeholder={isFill ? 'La capital de Francia es ____.' : '¿Cuál es la capital de Francia?'}
+        placeholder={isFill ? 'Escribe el enunciado e incluye ____ en cada hueco.' : 'Escribe aquí el enunciado de la pregunta.'}
         placeholderTextColor={tokens.text.muted}
         multiline
         maxLength={QUESTION_TEXT_MAX}

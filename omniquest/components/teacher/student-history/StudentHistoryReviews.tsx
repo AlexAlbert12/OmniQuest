@@ -18,7 +18,7 @@ export default function StudentHistoryReviews({ items, total, page, pageSize, on
       <View className="gap-3">
         {items.map((item) => {
           const actionable = Boolean(onOpenReview)
-          const actionLabel = item.status === 'pending' || item.status === 'in_review' || item.status === 'needs_changes' ? 'Revisar' : 'Ver revisión'
+          const actionLabel = item.status === 'pending' || item.status === 'needs_changes' ? 'Revisar' : 'Ver revisión'
           return (
             <Pressable key={item.id} accessibilityRole={actionable ? 'button' : undefined} accessibilityLabel={actionable ? `${actionLabel}: ${item.question_text}` : undefined} disabled={!actionable} onPress={() => onOpenReview?.(item)} className="rounded-2xl border p-4" style={({ pressed }) => ({ borderColor: tokens.border.default, backgroundColor: pressed && actionable ? tokens.surface.interactive : tokens.surface.default, opacity: pressed && actionable ? 0.86 : 1 })}>
               <View className="flex-row flex-wrap items-center justify-between gap-2">
@@ -41,7 +41,6 @@ export default function StudentHistoryReviews({ items, total, page, pageSize, on
 
 function formatStatus(value: string) {
   if (value === 'pending') return 'Pendiente'
-  if (value === 'in_review') return 'En revisión'
   if (value === 'approved') return 'Aprobada'
   if (value === 'rejected') return 'Rechazada'
   if (value === 'needs_changes') return 'Necesita cambios'

@@ -1,4 +1,5 @@
-export type ManualReviewStatus = 'pending' | 'in_review' | 'needs_changes' | 'approved' | 'rejected'
+export type ManualReviewStatus = 'pending' | 'needs_changes' | 'approved' | 'rejected'
+export type ManualReviewDecision = Exclude<ManualReviewStatus, 'pending'>
 
 export type ManualReviewQueueRow = {
   id: number
@@ -23,12 +24,7 @@ export type ManualReviewQueueRow = {
   topic_id: number | null
   topic_name: string | null
   due_at: string | null
-  assigned_to: string | null
-  assigned_to_name: string | null
-  rubric_id: string | null
-  rubric_name: string | null
-  rubric_result: Record<string, number> | null
-  pending_seconds: number
+  pending_seconds: number | null
   is_overdue: boolean
   comments_count: number
   latest_comment: string | null
@@ -39,27 +35,10 @@ export type ManualReviewQueueResponse = {
   total: number
   summary: {
     pending: number
-    in_review: number
     needs_changes: number
+    due_soon: number
     overdue: number
   }
-}
-
-export type ManualReviewRubricCriterion = {
-  id: string
-  label: string
-  maxScore: number
-}
-
-export type ManualReviewRubric = {
-  id: string
-  teacher_id: string
-  subject_id: number | null
-  name: string
-  criteria: ManualReviewRubricCriterion[]
-  active: boolean
-  created_at: string
-  updated_at: string
 }
 
 export type ManualReviewTemplate = {
@@ -73,25 +52,12 @@ export type ManualReviewTemplate = {
   updated_at: string
 }
 
-export type ManualReviewSavedFilter = {
-  id: string
-  teacher_id: string
-  name: string
-  filters: ManualReviewFilters
-  created_at: string
-  updated_at: string
-}
-
-export type ManualReviewAssignee = { id: string; name: string }
 export type ManualReviewSubject = { id: number; name: string }
 export type ManualReviewClassroom = { id: number; subject_id: number; name: string }
 
 export type ManualReviewConfiguration = {
   slaHours: number
-  rubrics: ManualReviewRubric[]
   templates: ManualReviewTemplate[]
-  savedFilters: ManualReviewSavedFilter[]
-  assignees: ManualReviewAssignee[]
   subjects: ManualReviewSubject[]
   classrooms: ManualReviewClassroom[]
 }

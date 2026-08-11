@@ -1,32 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useFocusEffect } from 'expo-router'
 import { callPlatformRpc } from '../../lib/platformRpc'
-import type {
-  ManualReviewComment,
-  ManualReviewConfiguration,
-  ManualReviewFilters,
-  ManualReviewHistoryItem,
-  ManualReviewQueueResponse,
-  ManualReviewQueueRow,
-  ManualReviewRubricCriterion,
-  ManualReviewStatus,
-} from '../../lib/teacherManualReview'
+import type { ManualReviewComment, ManualReviewConfiguration, ManualReviewFilters, ManualReviewHistoryItem, ManualReviewDecision, ManualReviewQueueResponse, ManualReviewQueueRow, ManualReviewStatus } from '../../lib/teacherManualReview'
 
-const EMPTY_CONFIG: ManualReviewConfiguration = {
-  slaHours: 48,
-  rubrics: [],
-  templates: [],
-  savedFilters: [],
-  assignees: [],
-  subjects: [],
-  classrooms: [],
-}
-
-const EMPTY_QUEUE: ManualReviewQueueResponse = {
-  items: [],
-  total: 0,
-  summary: { pending: 0, in_review: 0, needs_changes: 0, overdue: 0 },
-}
+const EMPTY_CONFIG: ManualReviewConfiguration = { slaHours: 48, templates: [], subjects: [], classrooms: [] }
+const EMPTY_QUEUE: ManualReviewQueueResponse = { items: [], total: 0, summary: { pending: 0, needs_changes: 0, due_soon: 0, overdue: 0 } }
 
 export function useManualReview(pageSize: number, context?: { studentId?: string | null; attemptId?: number | null; subjectId?: number | null; classroomId?: number | null }) {
   const [queue, setQueue] = useState<ManualReviewQueueResponse>(EMPTY_QUEUE)
@@ -57,8 +35,9 @@ export function useManualReview(pageSize: number, context?: { studentId?: string
       p_offset: page * pageSize,
     })
     if (result.error) throw result.error
-    setQueue(result.data || EMPTY_QUEUE)
-    setSelectedIds((current) => current.filter((id) => (result.data?.items || []).some((row) => row.id === id)))
+    const nextQueue = result.data || EMPTY_QUEUE
+    setQueue(nextQueue)
+    setSelectedIds((current) => current.filter((id) => nextQueue.items.some((row) => row.id === id && isBatchEligible(row.status))))
   }, [context?.attemptId, context?.studentId, filters.classroomId, filters.search, filters.status, filters.subjectId, page, pageSize])
 
   const refresh = useCallback(async (showRefresh = false) => {
@@ -79,9 +58,7 @@ export function useManualReview(pageSize: number, context?: { studentId?: string
     return () => clearTimeout(timer)
   }, [filters.search, refresh]))
 
-  useEffect(() => {
-    setPage(0)
-  }, [filters.classroomId, filters.status, filters.subjectId])
+  useEffect(() => { setPage(0) }, [filters.classroomId, filters.status, filters.subjectId])
 
   useEffect(() => {
     if (!context) return
@@ -89,18 +66,17 @@ export function useManualReview(pageSize: number, context?: { studentId?: string
     setPage(0)
   }, [context?.classroomId, context?.studentId, context?.subjectId])
 
-  const updateFilters = useCallback((patch: Partial<ManualReviewFilters>) => {
-    setFilters((current) => ({ ...current, ...patch }))
-    setPage(0)
-  }, [])
+  const updateFilters = useCallback((patch: Partial<ManualReviewFilters>) => { setFilters((current) => ({ ...current, ...patch })); setPage(0) }, [])
 
   const toggleSelected = useCallback((id: number) => {
+    const row = queue.items.find((item) => item.id === id)
+    if (!row || !isBatchEligible(row.status)) return
     setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
-  }, [])
+  }, [queue.items])
 
   const selectPage = useCallback(() => {
-    const pageIds = queue.items.map((row) => row.id)
-    setSelectedIds((current) => pageIds.length > 0 && pageIds.every((id) => current.includes(id)) ? [] : pageIds)
+    const pageIds = queue.items.filter((row) => isBatchEligible(row.status)).map((row) => row.id)
+    setSelectedIds((current) => pageIds.length > 0 && pageIds.every((id) => current.includes(id)) ? current.filter((id) => !pageIds.includes(id)) : Array.from(new Set([...current, ...pageIds])))
   }, [queue.items])
 
   const clearSelection = useCallback(() => setSelectedIds([]), [])
@@ -119,50 +95,13 @@ export function useManualReview(pageSize: number, context?: { studentId?: string
     }
   }, [refresh])
 
-  const assign = useCallback((ids: number[], assigneeId: string | null) => run(async () => {
-    const result = await callPlatformRpc<{ updated: number }>('assign_manual_review_attempts', {
-      p_attempt_ids: ids,
-      p_assignee_id: assigneeId ?? undefined,
-    })
-    if (result.error) throw result.error
-    setSelectedIds([])
-  }), [run])
-
-  const reviewOne = useCallback((input: {
-    id: number
-    status: ManualReviewStatus
-    notes?: string
-    audience?: 'student' | 'internal'
-    rubricId?: string | null
-    rubricResult?: Record<string, number> | null
-  }) => run(async () => {
-    const result = await callPlatformRpc<Record<string, unknown>>('review_manual_review_attempt', {
-      p_attempt_history_id: input.id,
-      p_status: input.status,
-      p_notes: input.notes?.trim() || undefined,
-      p_comment_audience: input.audience || 'student',
-      p_rubric_id: input.rubricId ?? undefined,
-      p_rubric_result: input.rubricResult ?? undefined,
-    })
+  const reviewOne = useCallback((input: { id: number; status: ManualReviewDecision; notes?: string; audience?: 'student' | 'internal' }) => run(async () => {
+    const result = await callPlatformRpc<Record<string, unknown>>('review_manual_review_attempt', { p_attempt_history_id: input.id, p_status: input.status, p_notes: input.notes?.trim() || undefined, p_comment_audience: input.audience || 'student' })
     if (result.error) throw result.error
   }), [run])
 
-  const reviewBatch = useCallback((input: {
-    ids: number[]
-    status: ManualReviewStatus
-    notes?: string
-    audience?: 'student' | 'internal'
-    rubricId?: string | null
-    rubricResult?: Record<string, number> | null
-  }) => run(async () => {
-    const result = await callPlatformRpc<{ succeeded: number; failed: number }>('batch_review_manual_attempts', {
-      p_attempt_ids: input.ids,
-      p_status: input.status,
-      p_notes: input.notes?.trim() || undefined,
-      p_comment_audience: input.audience || 'student',
-      p_rubric_id: input.rubricId ?? undefined,
-      p_rubric_result: input.rubricResult ?? undefined,
-    })
+  const reviewBatch = useCallback((input: { ids: number[]; status: ManualReviewDecision; notes?: string; audience?: 'student' | 'internal' }) => run(async () => {
+    const result = await callPlatformRpc<{ succeeded: number; failed: number }>('batch_review_manual_attempts', { p_attempt_ids: input.ids, p_status: input.status, p_notes: input.notes?.trim() || undefined, p_comment_audience: input.audience || 'student' })
     if (result.error) throw result.error
     setSelectedIds([])
   }), [run])
@@ -172,75 +111,22 @@ export function useManualReview(pageSize: number, context?: { studentId?: string
     if (result.error) throw result.error
   }), [run])
 
-  const saveRubric = useCallback((input: { id?: string | null; name: string; subjectId?: number | null; criteria: ManualReviewRubricCriterion[] }) => run(async () => {
-    const result = await callPlatformRpc('save_manual_review_rubric', {
-      p_id: input.id ?? undefined,
-      p_name: input.name,
-      p_subject_id: input.subjectId ?? undefined,
-      p_criteria: input.criteria,
-    })
-    if (result.error) throw result.error
-  }), [run])
-
   const saveTemplate = useCallback((input: { id?: string | null; title: string; body: string; audience: 'student' | 'internal' }) => run(async () => {
-    const result = await callPlatformRpc('save_manual_review_template', {
-      p_id: input.id ?? undefined,
-      p_title: input.title,
-      p_body: input.body,
-      p_audience: input.audience,
-    })
+    const result = await callPlatformRpc('save_manual_review_template', { p_id: input.id ?? undefined, p_title: input.title, p_body: input.body, p_audience: input.audience })
     if (result.error) throw result.error
   }), [run])
-
-  const saveFilter = useCallback((name: string) => run(async () => {
-    const result = await callPlatformRpc('save_manual_review_filter', {
-      p_id: undefined,
-      p_name: name,
-      p_filters: filters,
-    })
-    if (result.error) throw result.error
-  }), [filters, run])
 
   const loadDetail = useCallback(async (row: ManualReviewQueueRow) => {
-    const [thread, history] = await Promise.all([
-      callPlatformRpc<ManualReviewComment[]>('get_manual_review_thread', { p_attempt_history_id: row.id }),
-      callPlatformRpc<ManualReviewHistoryItem[]>('get_manual_review_history', { p_attempt_history_id: row.id }),
-    ])
+    const [thread, history] = await Promise.all([callPlatformRpc<ManualReviewComment[]>('get_manual_review_thread', { p_attempt_history_id: row.id }), callPlatformRpc<ManualReviewHistoryItem[]>('get_manual_review_history', { p_attempt_history_id: row.id })])
     if (thread.error) throw thread.error
     if (history.error) throw history.error
     return { comments: thread.data || [], history: history.data || [] }
   }, [])
 
-  const visibleClassrooms = useMemo(
-    () => filters.subjectId ? configuration.classrooms.filter((item) => item.subject_id === filters.subjectId) : configuration.classrooms,
-    [configuration.classrooms, filters.subjectId],
-  )
+  const visibleClassrooms = useMemo(() => filters.subjectId ? configuration.classrooms.filter((item) => item.subject_id === filters.subjectId) : configuration.classrooms, [configuration.classrooms, filters.subjectId])
+  const selectedRows = useMemo(() => queue.items.filter((row) => selectedIds.includes(row.id)), [queue.items, selectedIds])
 
-  return {
-    queue,
-    configuration,
-    filters,
-    visibleClassrooms,
-    page,
-    loading,
-    refreshing,
-    busy,
-    error,
-    selectedIds,
-    setPage,
-    setError,
-    updateFilters,
-    toggleSelected,
-    selectPage,
-    clearSelection,
-    refresh: () => refresh(true),
-    assign,
-    reviewOne,
-    reviewBatch,
-    saveSla,
-    saveRubric,
-    saveTemplate,
-    saveFilter,
-    loadDetail,
-  }
+  return { queue, configuration, filters, visibleClassrooms, selectedRows, page, loading, refreshing, busy, error, selectedIds, setPage, setError, updateFilters, toggleSelected, selectPage, clearSelection, refresh: () => refresh(true), reviewOne, reviewBatch, saveSla, saveTemplate, loadDetail }
 }
+
+function isBatchEligible(status: ManualReviewStatus) { return status === 'pending' || status === 'needs_changes' }

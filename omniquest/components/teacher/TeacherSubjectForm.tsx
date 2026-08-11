@@ -9,7 +9,6 @@ import { formatCount } from '../../lib/formatCount'
 import { generateUniqueClassCode, isClassCodeAvailable, isValidInviteCode, normalizeInviteCode } from '../../lib/classCode'
 import { useAppModal } from '../AppModalProvider'
 import AppButton from '../ui/AppButton'
-import AppDropdown, { type AppDropdownOption } from '../ui/AppDropdown'
 import OmniLoadingScreen from '../ui/OmniLoadingScreen'
 import TeacherPageHeader from './TeacherPageHeader'
 
@@ -26,15 +25,11 @@ type FormSnapshot = {
   icon: AcademicIconName
   educationLevel: string
   schoolYear: string
-  subjectLabel: string
   inviteMode: InviteMode
   customCode: string
 }
 
 const iconChoices = COURSE_ICON_CHOICES
-const educationLevels = ['1º ESO', '2º ESO', '3º ESO', '4º ESO', '1º Bachillerato', '2º Bachillerato', 'FP Básica', 'FP Grado Medio', 'FP Grado Superior'] as const
-const subjectsCatalog = ['Matemáticas', 'Lengua', 'Inglés', 'Ciencias', 'Historia', 'Tecnología'] as const
-const DEFAULT_EDUCATION_LEVEL = '2º Bachillerato'
 const CURRENT_ACADEMIC_YEAR = getCurrentAcademicYear()
 
 export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFormProps) {
@@ -49,9 +44,8 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [icon, setIcon] = useState<AcademicIconName>('book-outline')
-  const [educationLevel, setEducationLevel] = useState(DEFAULT_EDUCATION_LEVEL)
+  const [educationLevel, setEducationLevel] = useState('')
   const [schoolYear, setSchoolYear] = useState(CURRENT_ACADEMIC_YEAR)
-  const [subjectLabel, setSubjectLabel] = useState('')
   const [inviteMode, setInviteMode] = useState<InviteMode>('auto')
   const [customCode, setCustomCode] = useState('')
   const [generatedCode, setGeneratedCode] = useState('')
@@ -62,34 +56,21 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
   const [saving, setSaving] = useState(false)
 
   const initialSnapshotRef = useRef<FormSnapshot>({
-    name: '', description: '', icon: 'book-outline', educationLevel: DEFAULT_EDUCATION_LEVEL,
-    schoolYear: CURRENT_ACADEMIC_YEAR, subjectLabel: '', inviteMode: 'auto', customCode: '',
+    name: '', description: '', icon: 'book-outline', educationLevel: '',
+    schoolYear: CURRENT_ACADEMIC_YEAR, inviteMode: 'auto', customCode: '',
   })
   const leaveApprovedRef = useRef(false)
 
   const currentSnapshot = useMemo<FormSnapshot>(() => ({
-    name, description, icon, educationLevel, schoolYear, subjectLabel, inviteMode, customCode,
-  }), [customCode, description, educationLevel, icon, inviteMode, name, schoolYear, subjectLabel])
+    name, description, icon, educationLevel, schoolYear, inviteMode, customCode,
+  }), [customCode, description, educationLevel, icon, inviteMode, name, schoolYear])
   const isDirty = useMemo(() => serializeSnapshot(currentSnapshot) !== serializeSnapshot(initialSnapshotRef.current), [currentSnapshot])
-
-  const educationLevelOptions = useMemo<AppDropdownOption<string>[]>(() => withCurrentOption(
-    educationLevels.map((value) => ({ value, label: value })),
-    educationLevel,
-  ), [educationLevel])
-  const academicYearOptions = useMemo<AppDropdownOption<string>[]>(() => withCurrentOption([
-    { value: '', label: 'Sin especificar' },
-    ...getAcademicYearOptions().map((value) => ({ value, label: value })),
-  ], schoolYear), [schoolYear])
-  const subjectOptions = useMemo<AppDropdownOption<string>[]>(() => withCurrentOption([
-    { value: '', label: 'Sin especificar' },
-    ...subjectsCatalog.map((value) => ({ value, label: value })),
-  ], subjectLabel), [subjectLabel])
 
   const nameCounter = `${name.trim().length}/50`
   const descriptionCounter = `${description.trim().length}/120`
   const canSave = !saving && !codeLoading && name.trim().length > 0 && (isEdit || (inviteMode === 'auto' && isValidInviteCode(generatedCode)) || (inviteMode === 'custom' && isValidInviteCode(customCode)))
   const previewTitle = useMemo(() => name.trim() || 'Nombre del curso', [name])
-  const previewMeta = useMemo(() => [educationLevel, schoolYear || 'Año sin especificar', subjectLabel].filter(Boolean).join('  •  '), [educationLevel, schoolYear, subjectLabel])
+  const previewMeta = useMemo(() => [educationLevel.trim(), schoolYear.trim()].filter(Boolean).join('  •  ') || 'Nivel y año sin especificar', [educationLevel, schoolYear])
   const studentsHint = isEdit ? (studentCount === null ? null : formatCount(studentCount, 'alumno', 'alumnos')) : '0 alumnos'
 
   const showError = useCallback((title: string, message: string) => showModal({ title, message, variant: 'error' }), [showModal])
@@ -119,7 +100,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
 
         const { data, error } = await supabase
           .from('subjects')
-          .select('name, description, icon, code, education_level, academic_year, subject_label')
+          .select('name, description, icon, code, education_level, academic_year')
           .eq('id', Number(subjectId))
           .eq('teacher_id', teacherId)
           .single()
@@ -131,9 +112,8 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
           name: data.name || '',
           description: legacyMetadata.description,
           icon: subjectIcon,
-          educationLevel: data.education_level || legacyMetadata.educationLevel || DEFAULT_EDUCATION_LEVEL,
+          educationLevel: data.education_level || legacyMetadata.educationLevel || '',
           schoolYear: data.academic_year || legacyMetadata.academicYear || '',
-          subjectLabel: data.subject_label || legacyMetadata.subjectLabel || '',
           inviteMode: 'auto',
           customCode: '',
         }
@@ -142,7 +122,6 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
         setIcon(nextSnapshot.icon)
         setEducationLevel(nextSnapshot.educationLevel)
         setSchoolYear(nextSnapshot.schoolYear)
-        setSubjectLabel(nextSnapshot.subjectLabel)
         setExistingCode(data.code || '')
         initialSnapshotRef.current = nextSnapshot
 
@@ -224,7 +203,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
         const { data, error } = await supabase.functions.invoke('teacher-update-subject', {
           body: {
             subjectId: Number(subjectId), name: cleanName, description: cleanDescription || null, icon,
-            educationLevel, academicYear: schoolYear || null, subjectLabel: subjectLabel || null,
+            educationLevel: educationLevel.trim() || null, academicYear: schoolYear.trim() || null,
           },
         })
         if (error) throw error
@@ -252,9 +231,8 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
         p_description: cleanDescription || undefined,
         p_icon: icon,
         p_code: code,
-        p_education_level: educationLevel,
-        p_academic_year: schoolYear || undefined,
-        p_subject_label: subjectLabel || undefined,
+        p_education_level: educationLevel.trim() || undefined,
+        p_academic_year: schoolYear.trim() || undefined,
         p_theme_color: undefined,
       })
       if (createSubjectError) throw createSubjectError
@@ -267,7 +245,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
     } finally {
       setSaving(false)
     }
-  }, [currentSnapshot, customCode, description, educationLevel, generatedCode, icon, inviteMode, isEdit, name, router, schoolYear, showError, showModal, subjectId, subjectLabel])
+  }, [currentSnapshot, customCode, description, educationLevel, generatedCode, icon, inviteMode, isEdit, name, router, schoolYear, showError, showModal, subjectId])
 
   if (loadingInitial) return <OmniLoadingScreen />
 
@@ -330,9 +308,8 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
 
                 <SectionCard step={2} title="Configuración del curso" description="Ajusta las opciones principales de tu curso." className="mt-4">
                   <View className={`gap-3 ${width >= 760 ? 'flex-row' : ''}`}>
-                    <SelectFieldCard icon="people-outline" tint="#8B5CF6" label="Nivel educativo" value={educationLevel} options={educationLevelOptions} onChange={setEducationLevel} />
-                    <SelectFieldCard icon="calendar-outline" tint="#8B5CF6" label="Año académico (opcional)" value={schoolYear} options={academicYearOptions} onChange={setSchoolYear} />
-                    <SelectFieldCard icon="pricetag-outline" tint="#34D399" label="Materia (opcional)" value={subjectLabel} options={subjectOptions} onChange={setSubjectLabel} />
+                    <TextFieldCard icon="people-outline" tint="#8B5CF6" label="Nivel educativo" value={educationLevel} placeholder="Ej. 1.º ESO" onChange={setEducationLevel} />
+                    <TextFieldCard icon="calendar-outline" tint="#8B5CF6" label="Año académico (opcional)" value={schoolYear} placeholder="Ej. 2026 - 2027" onChange={setSchoolYear} />
                   </View>
                 </SectionCard>
 
@@ -416,14 +393,22 @@ function Label({ text, className = '' }: { text: string; className?: string }) {
   return <Text className={`text-[15px] font-semibold text-white ${className}`}>{text}</Text>
 }
 
-function SelectFieldCard({ icon, tint, label, value, options, onChange }: { icon: keyof typeof Ionicons.glyphMap; tint: string; label: string; value: string; options: AppDropdownOption<string>[]; onChange: (value: string) => void }) {
+function TextFieldCard({ icon, tint, label, value, placeholder, onChange }: { icon: keyof typeof Ionicons.glyphMap; tint: string; label: string; value: string; placeholder: string; onChange: (value: string) => void }) {
   return (
     <View className="min-w-[220px] flex-1 rounded-xl border border-border-default bg-surface-raised p-3">
       <View className="mb-3 flex-row items-center gap-2">
         <View className="h-11 w-11 items-center justify-center rounded-lg" style={{ backgroundColor: `${tint}2A` }}><Ionicons name={icon} size={19} color={tint} /></View>
         <Text className="min-w-0 flex-1 text-[13px] font-semibold text-text-secondary">{label}</Text>
       </View>
-      <AppDropdown accessibilityLabel={label} value={value} options={options} onChange={onChange} placeholder="Sin especificar" />
+      <TextInput
+        accessibilityLabel={label}
+        className="min-h-12 rounded-xl border border-border-active bg-surface-default px-4 py-3 text-[15px] font-semibold text-white"
+        value={value}
+        placeholder={placeholder}
+        placeholderTextColor="#7F95B7"
+        maxLength={80}
+        onChangeText={onChange}
+      />
     </View>
   )
 }
@@ -461,17 +446,6 @@ function getCurrentAcademicYear(now = new Date()) {
   return `${startYear} - ${startYear + 1}`
 }
 
-function getAcademicYearOptions(now = new Date()) {
-  const current = getCurrentAcademicYear(now)
-  const start = Number(current.slice(0, 4))
-  return [start - 1, start, start + 1].map((year) => `${year} - ${year + 1}`)
-}
-
-function withCurrentOption(options: AppDropdownOption<string>[], current: string) {
-  if (!current || options.some((option) => option.value === current)) return options
-  return [{ value: current, label: current }, ...options]
-}
-
 function serializeSnapshot(snapshot: FormSnapshot) {
   return JSON.stringify(snapshot)
 }
@@ -480,13 +454,12 @@ function parseLegacySubjectMetadata(value: string) {
   const parts = value.split(' · ').map((part) => part.trim()).filter(Boolean)
   let educationLevel = ''
   let academicYear = ''
-  let subjectLabel = ''
   const descriptionParts: string[] = []
   parts.forEach((part) => {
-    if (part.startsWith('Materia: ')) return void (subjectLabel = part.replace('Materia: ', '').trim())
+    if (part.startsWith('Materia: ')) return
     if (part.startsWith('Nivel: ')) return void (educationLevel = part.replace('Nivel: ', '').trim())
     if (part.startsWith('Curso: ')) return void (academicYear = part.replace('Curso: ', '').trim())
     descriptionParts.push(part)
   })
-  return { description: descriptionParts.join(' · '), educationLevel, academicYear, subjectLabel }
+  return { description: descriptionParts.join(' · '), educationLevel, academicYear }
 }

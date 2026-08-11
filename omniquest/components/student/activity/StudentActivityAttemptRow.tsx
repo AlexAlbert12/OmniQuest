@@ -190,7 +190,6 @@ function getStudentReviewStatus(
 ) {
   const normalized = status || 'not_required'
   if (normalized === 'pending') return { label: 'Pendiente de revisión', color: tokens.semantic.warning, icon: 'time' as const, waiting: true, description: 'Tu profesor todavía tiene que revisar esta respuesta abierta.' }
-  if (normalized === 'in_review') return { label: 'En revisión', color: tokens.semantic.info, icon: 'eye' as const, waiting: true, description: 'Tu profesor está revisando la respuesta. El feedback aparecerá cuando termine.' }
   if (normalized === 'needs_changes') return { label: 'Necesita cambios', color: tokens.brand.student, icon: 'refresh-circle' as const, waiting: true, description: 'Consulta los comentarios del profesor y vuelve a practicar este tema.' }
   if (normalized === 'approved') return { label: 'Respuesta aprobada', color: tokens.semantic.success, icon: 'checkmark-circle' as const, waiting: false, description: '' }
   if (normalized === 'rejected') return { label: 'Respuesta revisada', color: tokens.semantic.danger, icon: 'close-circle' as const, waiting: false, description: '' }

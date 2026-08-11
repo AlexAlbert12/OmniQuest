@@ -9,22 +9,29 @@ const root = path.resolve(testDir, '../..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
 
 const migration = read('supabase/migrations/20260730190000_teacher_review_reports_audit.sql')
+const reviewSimplification = read('supabase/migrations/20260811104500_manual_review_owner_only_simplification.sql')
 
-test('manual review exposes SLA, rubrics, batch operations, assignment and immutable history', () => {
+test('manual review exposes owner-only access, SLA, reusable comments, batch decisions and immutable history', () => {
   for (const contract of [
     'manual_review_due_at',
-    'manual_review_rubrics',
     'manual_review_comment_templates',
-    'manual_review_saved_filters',
-    'assign_manual_review_attempts',
     'batch_review_manual_attempts',
     'manual_review_history',
     'prevent_manual_review_history_mutation',
-  ]) assert.match(migration, new RegExp(contract))
+  ]) assert.match(migration + reviewSimplification, new RegExp(contract))
 
-  assert.match(migration, /v_previous_status is distinct from p_status/)
-  assert.match(migration, /manual_review_assigned_to = v_teacher_id/)
+  assert.match(reviewSimplification, /manual_review_status = 'pending'/)
+  assert.match(reviewSimplification, /s\.teacher_id = v_user_id/)
+  assert.match(reviewSimplification, /A student-visible comment is required for this decision/)
+  assert.match(reviewSimplification, /drop function if exists public\.assign_manual_review_attempts/)
+  assert.match(reviewSimplification, /drop function if exists public\.save_manual_review_rubric/)
+  assert.match(reviewSimplification, /drop function if exists public\.save_manual_review_filter/)
+  assert.match(reviewSimplification, /drop table if exists public\.manual_review_rubrics/)
+  assert.match(reviewSimplification, /drop table if exists public\.manual_review_saved_filters/)
+  assert.match(reviewSimplification, /with scope as[\s\S]*filtered as/)
   assert.match(read('app/(teacher)/reviews.tsx'), /ManualReviewBatchBar/)
+  assert.doesNotMatch(read('app/(teacher)/reviews.tsx'), /Guardar filtro|assignee|rúbrica/i)
+  assert.doesNotMatch(read('hooks/teacher/useManualReview.ts'), /assign_manual_review|save_manual_review_filter|save_manual_review_rubric/)
   assert.match(read('hooks/teacher/useManualReview.ts'), /get_teacher_manual_review_queue/)
 })
 

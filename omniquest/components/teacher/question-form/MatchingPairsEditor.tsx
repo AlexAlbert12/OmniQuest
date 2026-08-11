@@ -61,7 +61,7 @@ export default function MatchingPairsEditor({
                   accessibilityHint={`Escribe el valor izquierdo de la relación ${index + 1}`}
                   className="min-h-12 rounded-xl border px-4 py-3 text-[15px] font-semibold"
                   style={{ borderColor: tokens.border.default, backgroundColor: tokens.background.primary, color: tokens.text.primary }}
-                  placeholder={isMatch ? 'España' : '8 - 3'}
+                  placeholder={isMatch ? 'Escribe el concepto' : 'Escribe el elemento'}
                   placeholderTextColor={tokens.text.muted}
                   value={row.left}
                   onChangeText={(text) => updateRow(index, 'left', text)}
@@ -79,7 +79,7 @@ export default function MatchingPairsEditor({
                   accessibilityHint={`Escribe el valor derecho de la relación ${index + 1}`}
                   className="min-h-12 rounded-xl border px-4 py-3 text-[15px] font-semibold"
                   style={{ borderColor: tokens.border.default, backgroundColor: tokens.background.primary, color: tokens.text.primary }}
-                  placeholder={isMatch ? 'Madrid' : '5'}
+                  placeholder={isMatch ? 'Escribe la pareja' : 'Escribe el destino'}
                   placeholderTextColor={tokens.text.muted}
                   value={row.right}
                   onChangeText={(text) => updateRow(index, 'right', text)}

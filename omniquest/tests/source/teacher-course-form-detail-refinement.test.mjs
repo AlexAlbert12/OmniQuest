@@ -6,14 +6,14 @@ import test from 'node:test'
 const root = process.cwd()
 const read = (path) => readFileSync(join(root, path), 'utf8')
 
-test('course create/edit uses real selectors, current academic years and the exact displayed invite code', () => {
+test('course create/edit uses free-text academic fields and the exact displayed invite code', () => {
   const form = read('components/teacher/TeacherSubjectForm.tsx')
-  assert.match(form, /import AppDropdown/)
-  assert.match(form, /<AppDropdown accessibilityLabel=\{label\}/)
-  assert.match(form, /FP Básica/)
-  assert.match(form, /FP Grado Medio/)
-  assert.match(form, /FP Grado Superior/)
-  assert.match(form, /\{ value: '', label: 'Sin especificar' \}/)
+  assert.doesNotMatch(form, /import AppDropdown/)
+  assert.match(form, /<TextFieldCard icon="people-outline"[\s\S]*label="Nivel educativo"/)
+  assert.match(form, /<TextFieldCard icon="calendar-outline"[\s\S]*label="Año académico \(opcional\)"/)
+  assert.match(form, /<TextInput[\s\S]*accessibilityLabel=\{label\}[\s\S]*onChangeText=\{onChange\}/)
+  assert.doesNotMatch(form, /label="Materia \(opcional\)"/)
+  assert.doesNotMatch(form, /subjectLabel|p_subject_label/)
   assert.match(form, /const startYear = now\.getMonth\(\) >= 8 \? calendarYear : calendarYear - 1/)
   assert.match(form, /p_code: code/)
   assert.match(form, /El código mostrado será exactamente el que se guardará al crear el curso\./)

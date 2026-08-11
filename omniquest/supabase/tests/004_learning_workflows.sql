@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(28);
+select plan(37);
 
 -- Standalone tasks were intentionally removed. Topic deadlines remain available.
 select ok(to_regclass('public.learning_tasks') is null, 'standalone learning tasks table was removed');
@@ -19,12 +19,21 @@ select ok(to_regclass('public.manual_review_comments') is not null, 'manual revi
 select ok((select relrowsecurity from pg_class where oid = 'public.manual_review_comments'::regclass), 'manual review comments have RLS');
 select ok(to_regprocedure('public.get_teacher_manual_review_queue(bigint,bigint,text,text,uuid,bigint,integer,integer)') is not null, 'manual review queue RPC exists');
 select ok(to_regprocedure('public.get_manual_review_thread(bigint)') is not null, 'manual review thread RPC exists');
-select ok(to_regprocedure('public.claim_open_answer_attempt(bigint)') is not null, 'manual review claim RPC exists');
+select ok(to_regprocedure('public.claim_open_answer_attempt(bigint)') is null, 'manual review claim RPC was removed');
 select ok(to_regprocedure('public.add_manual_review_comment(bigint,text,text)') is not null, 'manual review comment RPC exists');
-select ok(to_regprocedure('public.review_open_answer_attempt_v2(bigint,text,text,text)') is not null, 'advanced review decision RPC exists');
+select ok(to_regprocedure('public.review_manual_review_attempt(bigint,text,text,text)') is not null, 'owner-only manual review decision RPC exists');
 select ok(to_regprocedure('public.get_activity_attempt_detail(bigint)') is not null, 'student activity detail exposes safe review feedback');
 select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'manual_review_comments' and policyname = 'manual_review_comments_select_visible'), 'manual review comments visibility policy exists');
 select ok(exists(select 1 from information_schema.check_constraints where constraint_name = 'attempt_history_manual_review_status_check' and check_clause like '%needs_changes%'), 'manual review statuses include needs_changes');
+select ok(to_regclass('public.manual_review_rubrics') is null, 'manual review rubrics were removed');
+select ok(to_regclass('public.manual_review_saved_filters') is null, 'manual review saved filters were removed');
+select ok(to_regprocedure('public.assign_manual_review_attempts(bigint[],uuid)') is null, 'manual review assignment RPC was removed');
+select ok(to_regprocedure('public.save_manual_review_rubric(uuid,text,bigint,jsonb)') is null, 'manual review rubric RPC was removed');
+select ok(to_regprocedure('public.save_manual_review_filter(uuid,text,jsonb)') is null, 'manual review saved-filter RPC was removed');
+select ok(to_regprocedure('public.review_open_answer_attempt(bigint,boolean,text)') is null, 'legacy direct manual review RPC was removed');
+select ok(to_regprocedure('public.batch_review_manual_attempts(bigint[],text,text,text)') is not null, 'owner-only batch review RPC exists');
+select ok(not exists(select 1 from information_schema.check_constraints where constraint_name = 'attempt_history_manual_review_status_check' and check_clause like '%in_review%'), 'manual review status no longer includes in_review');
+select ok(not exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'attempt_history' and column_name in ('manual_review_assigned_to', 'manual_review_started_at', 'manual_review_rubric_id', 'manual_review_rubric_result')), 'obsolete assignment and rubric columns were removed');
 
 -- Rich media.
 select ok(exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'questions' and column_name = 'media_type'), 'question media type column exists');

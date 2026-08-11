@@ -2,6 +2,7 @@ import OmniLoadingScreen from '../../../../components/ui/OmniLoadingScreen'
 import React from 'react'
 import {
   ActivityIndicator,
+  Image,
   RefreshControl,
   ScrollView,
   Text,
@@ -116,8 +117,14 @@ export default function TeacherStudentHistoryScreen() {
       />
 
       <View className="mb-5 flex-row flex-wrap items-center gap-4 rounded-2xl border p-5" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
-        <View className="h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: tokens.surface.selected }}>
-          <Text className="text-[20px] font-black" style={{ color: tokens.brand.teacher }}>{getInitials(summary.profile.alias || 'Alumno')}</Text>
+        <View className="h-16 w-16 overflow-hidden rounded-full border-2" style={{ borderColor: tokens.border.active, backgroundColor: tokens.surface.selected }}>
+          {summary.profile.avatar?.startsWith('http') ? (
+            <Image accessibilityLabel={`Foto de ${summary.profile.alias || 'alumno'}`} source={{ uri: summary.profile.avatar }} className="h-full w-full" resizeMode="cover" />
+          ) : (
+            <View className="h-full w-full items-center justify-center">
+              <Text className="text-[20px] font-black" style={{ color: tokens.brand.teacher }}>{getInitials(summary.profile.alias || 'Alumno')}</Text>
+            </View>
+          )}
         </View>
         <View className="min-w-[230px] flex-1">
           <Text className="text-[21px] font-black" style={{ color: tokens.text.primary }}>{summary.profile.alias || 'Alumno'}</Text>

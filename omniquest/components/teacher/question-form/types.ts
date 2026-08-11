@@ -82,7 +82,6 @@ export const questionTypes: QuestionTypeCard[] = [
   { id: 'multiple', title: 'Opción múltiple', detail: 'Una pregunta con varias opciones y una respuesta correcta.', icon: 'list', accent: '#8B5CF6', supported: true },
   { id: 'boolean', title: 'Verdadero / Falso', detail: 'El alumnado decide si la afirmación es verdadera o falsa.', icon: 'checkmark-done', accent: '#43D991', supported: true },
   { id: 'dragdrop', title: 'Asignar destinos', detail: 'Relaciona elementos con destinos mediante una interacción guiada.', icon: 'move', accent: '#A78BFA', supported: true },
-  { id: 'match', title: 'Unir parejas', detail: 'Conecta cada concepto con su pareja correspondiente.', icon: 'git-compare', accent: '#F6A64A', supported: true },
   { id: 'fill', title: 'Rellenar huecos', detail: 'Completa uno o varios huecos dentro del enunciado.', icon: 'grid', accent: '#60A5FA', supported: true },
   { id: 'order', title: 'Ordenar elementos', detail: 'Coloca los elementos en el orden correcto.', icon: 'reorder-three', accent: '#EC4899', supported: true },
   { id: 'open', title: 'Respuesta abierta', detail: 'El alumno escribe una respuesta que puede requerir revisión.', icon: 'chatbox-ellipses', accent: '#38BDF8', supported: true },

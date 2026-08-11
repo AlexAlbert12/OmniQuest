@@ -297,8 +297,9 @@ export function useTeacherQuestionForm({
   }, [])
 
   const applyDraftState = useCallback((state: Omit<TeacherQuestionFormState, 'topics'>) => {
+    const restoredType = state.selectedType === 'match' ? 'dragdrop' : state.selectedType
     setActiveStep(clampStep(state.activeStep))
-    setSelectedType(state.selectedType)
+    setSelectedType(restoredType)
     setQuestionText(state.questionText || '')
     setTimeLimit(state.timeLimit || '30')
     setPoints(state.points || '10')
@@ -311,8 +312,8 @@ export function useTeacherQuestionForm({
     setOpenExpectedAnswer(state.openExpectedAnswer || '')
     setFillAnswersText(state.fillAnswersText || '')
     setOrderItemsText(state.orderItemsText || '')
-    setMatchPairsText(state.matchPairsText || '')
-    setDragdropPairsText(state.dragdropPairsText || '')
+    setMatchPairsText('')
+    setDragdropPairsText(restoredType === 'dragdrop' ? state.dragdropPairsText || state.matchPairsText || '' : state.dragdropPairsText || '')
     setMedia({ ...EMPTY_MEDIA, ...(state.media || {}), pendingAsset: state.media?.pendingAsset || null })
   }, [])
 

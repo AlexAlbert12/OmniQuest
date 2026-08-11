@@ -74,3 +74,28 @@ test('question authoring uses autosave, cancellable media and the real game rend
   assert.match(ordering, /Mover elemento/)
   assert.match(matching, /accessibilityHint/)
 })
+
+test('question authoring uses neutral prompts and one canonical destination-assignment type', () => {
+  const prompt = read('components/teacher/question-form/QuestionPromptEditor.tsx')
+  const matching = read('components/teacher/question-form/MatchingPairsEditor.tsx')
+  const types = read('components/teacher/question-form/types.ts')
+  const utilities = read('components/teacher/question-form/utils.ts')
+  const hook = read('components/teacher/question-form/useTeacherQuestionForm.ts')
+
+  assert.match(prompt, /Escribe aquí el enunciado de la pregunta\./)
+  assert.doesNotMatch(prompt, /capital de Francia/)
+  assert.match(matching, /placeholder=\{isMatch \? 'Escribe el concepto' : 'Escribe el elemento'\}/)
+  assert.match(matching, /placeholder=\{isMatch \? 'Escribe la pareja' : 'Escribe el destino'\}/)
+  assert.doesNotMatch(matching, /placeholder=\{isMatch \? 'España' : '8 - 3'\}/)
+  assert.doesNotMatch(types, /\{ id: 'match', title: 'Unir parejas'/)
+  assert.match(utilities, /normalized === 'match_pairs'\) return 'dragdrop'/)
+  assert.match(hook, /state\.selectedType === 'match' \? 'dragdrop'/)
+})
+
+test('teacher student history renders the stored profile photo before initials', () => {
+  const history = read('app/(teacher)/student/[id]/history.tsx')
+
+  assert.match(history, /summary\.profile\.avatar\?\.startsWith\('http'\)/)
+  assert.match(history, /source=\{\{ uri: summary\.profile\.avatar \}\}/)
+  assert.match(history, /accessibilityLabel=.*Foto de/)
+})

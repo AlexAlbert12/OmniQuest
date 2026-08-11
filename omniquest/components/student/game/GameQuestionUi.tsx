@@ -7,7 +7,6 @@ import CelebrationParticles from '../../gamification/CelebrationParticles'
 import XpGainBurst from '../../gamification/XpGainBurst'
 import { USE_NATIVE_ANIMATION_DRIVER } from '../../../lib/animation'
 import { useAppTheme } from '../../../lib/appTheme'
-import { withAlpha } from '../../../lib/color'
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
@@ -81,7 +80,7 @@ export function QuestionFeedbackCard({
   const isDesktop = width >= 1024
   const isPending = feedback.status === 'pending'
   const color = isPending ? tokens.semantic.warning : isCorrect ? tokens.semantic.success : tokens.gamification.performanceLow
-  const title = isPending ? 'En revisión' : isCorrect ? '¡Correcto!' : 'Incorrecto'
+  const title = isPending ? 'Pendiente de revisión' : isCorrect ? '¡Correcto!' : 'Incorrecto'
   const subtitle = isPending
     ? 'Tu profesor corregirá esta respuesta.'
     : isCorrect
@@ -220,16 +219,15 @@ export function AnswerOption({
   isSubmitting: boolean
   onPress: () => void
 }) {
-  const { tokens } = useAppTheme()
   const isSelected = selectedAnswerId === answer.id
   const isCorrectAnswer = correctAnswerId === answer.id
   const isHinted = hintedAnswerId === answer.id
 
-  let borderColor = withAlpha(tokens.brand.student, '80')
-  let backgroundColor = tokens.surface.raised
-  let textColor = tokens.text.primary
-  let badgeColor = tokens.surface.selected
-  let badgeBorderColor = tokens.border.active
+  let borderColor = '#2B4B7B'
+  let backgroundColor = '#0D1F3D'
+  let textColor = '#F8FAFC'
+  let badgeColor = '#1A3260'
+  let badgeBorderColor = '#3A5E8F'
 
   if (isHinted) {
     borderColor = '#FBBF24'
@@ -259,11 +257,11 @@ export function AnswerOption({
       badgeColor = '#F43F5E'
       badgeBorderColor = '#FDA4AF'
     } else {
-      borderColor = tokens.border.default
-      backgroundColor = tokens.surface.default
-      textColor = tokens.text.muted
-      badgeColor = tokens.surface.interactive
-      badgeBorderColor = tokens.border.default
+      borderColor = '#1B3155'
+      backgroundColor = '#0A1830'
+      textColor = '#697B99'
+      badgeColor = '#111E3C'
+      badgeBorderColor = '#273A5E'
     }
   }
 
@@ -283,7 +281,7 @@ export function AnswerOption({
       style={({ pressed }) => ({
         borderColor,
         backgroundColor,
-        borderWidth: 2,
+        borderWidth: isSelected || isHinted || (hasAnswered && (isCorrectAnswer || isSelected)) ? 2 : 1,
         opacity: pressed ? 0.84 : 1,
       })}
     >

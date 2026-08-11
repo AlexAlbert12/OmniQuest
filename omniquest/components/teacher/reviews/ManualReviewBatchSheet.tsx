@@ -1,46 +1,38 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Text, TextInput, View } from 'react-native'
 import AppBottomSheet from '../../ui/AppBottomSheet'
 import AppButton from '../../ui/AppButton'
 import AppDropdown from '../../ui/AppDropdown'
 import AppTabs from '../../ui/AppTabs'
+import AppStatusBanner from '../../ui/AppStatusBanner'
 import { useAppTheme } from '../../../lib/appTheme'
-import type { ManualReviewConfiguration, ManualReviewStatus } from '../../../lib/teacherManualReview'
+import type { ManualReviewConfiguration, ManualReviewDecision } from '../../../lib/teacherManualReview'
 
-export default function ManualReviewBatchSheet({
-  visible,
-  selectedCount,
-  configuration,
-  busy,
-  onClose,
-  onSubmit,
-}: {
-  visible: boolean
-  selectedCount: number
-  configuration: ManualReviewConfiguration
-  busy: boolean
-  onClose: () => void
-  onSubmit: (input: {
-    status: ManualReviewStatus
-    notes?: string
-    audience?: 'student' | 'internal'
-    rubricId?: string | null
-    rubricResult?: Record<string, number> | null
-  }) => Promise<void>
-}) {
+export default function ManualReviewBatchSheet({ visible, selectedCount, questionCount, configuration, busy, onClose, onSubmit }: { visible: boolean; selectedCount: number; questionCount: number; configuration: ManualReviewConfiguration; busy: boolean; onClose: () => void; onSubmit: (input: { status: ManualReviewDecision; notes?: string; audience?: 'student' | 'internal' }) => Promise<void> }) {
   const { tokens } = useAppTheme()
-  const [status, setStatus] = useState<ManualReviewStatus>('approved')
+  const [status, setStatus] = useState<ManualReviewDecision>('approved')
   const [notes, setNotes] = useState('')
   const [audience, setAudience] = useState<'student' | 'internal'>('student')
-  const [rubricId, setRubricId] = useState<string | null>(null)
-  const [scores, setScores] = useState<Record<string, number>>({})
-  const rubric = useMemo(() => configuration.rubrics.find((item) => item.id === rubricId) || null, [configuration.rubrics, rubricId])
+  const [confirmMixedQuestions, setConfirmMixedQuestions] = useState(false)
+  const requiresComment = status === 'needs_changes' || status === 'rejected'
+  const commentMissing = requiresComment && !notes.trim()
+  const audienceInvalid = requiresComment && audience !== 'student'
+  const decisionInvalid = commentMissing || audienceInvalid
+
+  useEffect(() => { if (visible) setConfirmMixedQuestions(false) }, [visible])
+  useEffect(() => { setConfirmMixedQuestions(false) }, [status, notes, audience])
 
   const applyTemplate = (id: string) => {
     const template = configuration.templates.find((item) => item.id === id)
     if (!template) return
     setNotes(template.body)
     setAudience(template.audience)
+  }
+
+  const submit = async () => {
+    if (decisionInvalid) return
+    if (questionCount > 1 && !confirmMixedQuestions) { setConfirmMixedQuestions(true); return }
+    await onSubmit({ status, notes, audience })
   }
 
   return (
@@ -54,93 +46,31 @@ export default function ManualReviewBatchSheet({
       footer={(
         <View className="flex-row justify-end gap-2">
           <AppButton label="Cancelar" variant="secondary" disabled={busy} onPress={onClose} />
-          <AppButton
-            label="Aplicar al lote"
-            icon="checkmark-done-outline"
-            role="teacher"
-            loading={busy}
-            onPress={() => void onSubmit({ status, notes, audience, rubricId, rubricResult: scores })}
-          />
+          <AppButton label={confirmMixedQuestions ? `Confirmar y aplicar a ${selectedCount} respuestas` : `Aplicar a ${selectedCount} respuestas`} icon="checkmark-done-outline" role="teacher" loading={busy} disabled={decisionInvalid || selectedCount === 0} onPress={() => void submit()} />
         </View>
       )}
     >
       <View className="gap-4">
+        {questionCount > 1 ? <AppStatusBanner variant={confirmMixedQuestions ? 'warning' : 'info'} title={confirmMixedQuestions ? 'Confirma el lote' : 'Varias preguntas seleccionadas'} message={confirmMixedQuestions ? `Vas a aplicar la misma decisión a ${selectedCount} respuestas de ${questionCount} preguntas diferentes. Pulsa de nuevo para confirmar.` : `Las respuestas seleccionadas pertenecen a ${questionCount} preguntas diferentes.`} /> : null}
+
+        {audienceInvalid ? <AppStatusBanner variant="warning" title="Comentario visible obligatorio" message="Necesita cambios y Rechazar requieren un comentario visible para el alumno." /> : null}
+
         <View>
           <Text className="mb-2 text-[11px] font-black uppercase" style={{ color: tokens.text.muted }}>Decisión</Text>
-          <AppTabs<ManualReviewStatus>
-            accessibilityLabel="Decisión para el lote"
-            compact
-            role="teacher"
-            items={[
-              { key: 'approved', label: 'Aprobar', icon: 'checkmark-circle-outline' },
-              { key: 'needs_changes', label: 'Necesita cambios', icon: 'refresh-outline' },
-              { key: 'rejected', label: 'Rechazar', icon: 'close-circle-outline' },
-            ]}
-            value={status}
-            onChange={setStatus}
-          />
+          <AppTabs<ManualReviewDecision> accessibilityLabel="Decisión para el lote" compact role="teacher" items={[{ key: 'approved', label: 'Aprobar', icon: 'checkmark-circle-outline' }, { key: 'needs_changes', label: 'Necesita cambios', icon: 'refresh-outline' }, { key: 'rejected', label: 'Rechazar', icon: 'close-circle-outline' }]} value={status} onChange={setStatus} />
         </View>
 
-        {configuration.templates.length ? (
-          <AppDropdown<string>
-            label="Comentario predefinido"
-            value={null}
-            options={configuration.templates.map((item) => ({ value: item.id, label: item.title }))}
-            onChange={applyTemplate}
-            placeholder="Selecciona una plantilla"
-          />
-        ) : null}
+        {configuration.templates.length ? <AppDropdown<string> label="Comentario predefinido" value={null} options={configuration.templates.map((item) => ({ value: item.id, label: item.title, description: item.audience === 'internal' ? 'Nota interna' : 'Visible para alumno' }))} onChange={applyTemplate} placeholder="Selecciona una plantilla" /> : null}
 
         <View>
           <Text className="mb-2 text-[11px] font-black uppercase" style={{ color: tokens.text.muted }}>Visibilidad</Text>
-          <AppTabs<'student' | 'internal'>
-            accessibilityLabel="Visibilidad del comentario del lote"
-            compact
-            role="teacher"
-            items={[
-              { key: 'student', label: 'Alumno', icon: 'eye-outline' },
-              { key: 'internal', label: 'Interna', icon: 'lock-closed-outline' },
-            ]}
-            value={audience}
-            onChange={setAudience}
-          />
+          <AppTabs<'student' | 'internal'> accessibilityLabel="Visibilidad del comentario del lote" compact role="teacher" items={[{ key: 'student', label: 'Visible para alumno', icon: 'eye-outline' }, { key: 'internal', label: 'Nota interna', icon: 'lock-closed-outline' }]} value={audience} onChange={setAudience} />
         </View>
 
-        <TextInput
-          accessibilityLabel="Comentario del lote"
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          textAlignVertical="top"
-          placeholder="Comentario común para las respuestas seleccionadas"
-          placeholderTextColor={tokens.text.muted}
-          className="min-h-[100px] rounded-xl border p-3"
-          style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised, color: tokens.text.primary }}
-        />
-
-        {configuration.rubrics.length ? (
-          <AppDropdown<string>
-            label="Rúbrica"
-            value={rubricId}
-            options={configuration.rubrics.map((item) => ({ value: item.id, label: item.name }))}
-            onChange={(value) => { setRubricId(value); setScores({}) }}
-            placeholder="Sin rúbrica"
-          />
-        ) : null}
-
-        {rubric ? rubric.criteria.map((criterion) => (
-          <View key={criterion.id} className="rounded-xl border p-3" style={{ borderColor: tokens.border.default }}>
-            <Text className="font-black" style={{ color: tokens.text.primary }}>{criterion.label} · máximo {criterion.maxScore}</Text>
-            <TextInput
-              accessibilityLabel={`Puntuación del lote para ${criterion.label}`}
-              keyboardType="number-pad"
-              value={String(scores[criterion.id] ?? '')}
-              onChangeText={(value) => setScores((current) => ({ ...current, [criterion.id]: Math.max(0, Math.min(criterion.maxScore, Number(value) || 0)) }))}
-              className="mt-2 min-h-11 rounded-xl border px-3"
-              style={{ borderColor: tokens.border.default, color: tokens.text.primary, backgroundColor: tokens.background.primary }}
-            />
-          </View>
-        )) : null}
+        <View>
+          <Text className="mb-2 text-[11px] font-black uppercase" style={{ color: commentMissing ? tokens.semantic.warning : tokens.text.muted }}>{requiresComment ? 'Comentario obligatorio' : 'Comentario opcional'}</Text>
+          <TextInput accessibilityLabel="Comentario del lote" value={notes} onChangeText={setNotes} multiline textAlignVertical="top" placeholder={requiresComment ? 'Explica la decisión para las respuestas seleccionadas' : 'Comentario común opcional'} placeholderTextColor={tokens.text.muted} className="min-h-[100px] rounded-xl border p-3" style={{ borderColor: commentMissing ? tokens.semantic.warning : tokens.border.default, backgroundColor: tokens.surface.raised, color: tokens.text.primary }} />
+        </View>
       </View>
     </AppBottomSheet>
   )

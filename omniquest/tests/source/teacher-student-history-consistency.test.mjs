@@ -8,6 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
 
 const migration = read('supabase/migrations/20260811095500_teacher_student_history_semantics.sql')
+const reviewSimplification = read('supabase/migrations/20260811104500_manual_review_owner_only_simplification.sql')
 const historyHook = read('hooks/teacher/useTeacherStudentHistory.ts')
 const historyScreen = read('app/(teacher)/student/[id]/history.tsx')
 const timeline = read('components/teacher/student-history/StudentHistoryTimeline.tsx')
@@ -15,16 +16,17 @@ const reviews = read('components/teacher/student-history/StudentHistoryReviews.t
 const manualReviewHook = read('hooks/teacher/useManualReview.ts')
 
 test('pending manual reviews do not reduce history accuracy or reinforcement diagnostics', () => {
-  assert.match(migration, /manual_review_status not in \('pending', 'in_review'\)/)
+  assert.match(reviewSimplification, /manual_review_status <> 'pending'/)
   assert.match(migration, /'evaluatedAttempts'/)
   assert.match(migration, /'pendingEvaluation'/)
   assert.match(migration, /least\(100, round\(100\.0 \* m\.answered_questions \/ m\.available_questions\)/)
-  assert.match(migration, /get_teacher_student_history_weaknesses[\s\S]*manual_review_status, 'not_required'\) not in \('pending', 'in_review'\)/)
+  assert.match(reviewSimplification, /get_teacher_student_history_weaknesses[\s\S]*manual_review_status, 'not_required'\) <> 'pending'/)
 })
 
 test('history timeline distinguishes correct, incorrect, pending, needs-changes and skipped attempts', () => {
   assert.match(timeline, /item\.was_skipped/)
-  assert.match(timeline, /status === 'pending' \|\| status === 'in_review'/)
+  assert.match(timeline, /status === 'pending'/)
+  assert.doesNotMatch(timeline, /in_review/)
   assert.match(timeline, /status === 'needs_changes'/)
   assert.match(timeline, /label: 'Correcta'/)
   assert.match(timeline, /label: 'Incorrecta'/)

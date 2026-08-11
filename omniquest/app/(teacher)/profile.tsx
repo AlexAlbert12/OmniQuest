@@ -24,6 +24,7 @@ const ROUTES = {
   settings: '/(teacher)/settings?section=personal',
   students: '/(teacher)/students',
   reviews: '/(teacher)/reviews',
+  audit: '/(teacher)/audit',
   login: '/(auth)/login',
 } satisfies Record<string, Href>
 
@@ -136,7 +137,9 @@ export default function TeacherProfileScreen() {
             onPress={() => summary.primarySubjectId && router.push(`/(teacher)/subject/add-question?subjectId=${summary.primarySubjectId}` as Href)}
           />
           <AppButton label="Importar alumnos" icon="cloud-upload-outline" role="teacher" variant="secondary" onPress={() => router.push('/(teacher)/students?import=1' as Href)} />
+          <AppButton label="Revisar respuestas" icon="create-outline" role="teacher" variant="secondary" onPress={() => router.push(ROUTES.reviews)} />
           <AppButton label="Revisar alumnos" icon="people-outline" role="teacher" variant="secondary" onPress={() => router.push(ROUTES.students)} />
+          <AppButton label="Auditoría" icon="shield-checkmark-outline" role="teacher" variant="secondary" onPress={() => router.push(ROUTES.audit)} />
           <AppButton label="Configurar perfil" icon="settings-outline" role="teacher" variant="secondary" onPress={() => router.push(ROUTES.settings)} />
         </View>
       </View>

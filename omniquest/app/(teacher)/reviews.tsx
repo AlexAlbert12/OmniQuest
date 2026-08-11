@@ -1,5 +1,5 @@
 import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { RefreshControl, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
@@ -9,7 +9,6 @@ import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import AppButton from '../../components/ui/AppButton'
 import AppDropdown from '../../components/ui/AppDropdown'
 import AppStatusBanner from '../../components/ui/AppStatusBanner'
-import AppBottomSheet from '../../components/ui/AppBottomSheet'
 import AppTabs from '../../components/ui/AppTabs'
 import ManualReviewQueue from '../../components/teacher/reviews/ManualReviewQueue'
 import ManualReviewBatchBar from '../../components/teacher/reviews/ManualReviewBatchBar'
@@ -19,13 +18,12 @@ import ManualReviewConfigurationSheet from '../../components/teacher/reviews/Man
 import { useManualReview } from '../../hooks/teacher/useManualReview'
 import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
-import type { ManualReviewFilters, ManualReviewQueueRow, ManualReviewStatus } from '../../lib/teacherManualReview'
+import type { ManualReviewQueueRow, ManualReviewStatus } from '../../lib/teacherManualReview'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 const STATUS_OPTIONS: { key: 'all' | ManualReviewStatus; label: string; icon: any }[] = [
   { key: 'all', label: 'Todas', icon: 'list-outline' },
   { key: 'pending', label: 'Pendientes', icon: 'time-outline' },
-  { key: 'in_review', label: 'En revisión', icon: 'eye-outline' },
   { key: 'needs_changes', label: 'Necesita cambios', icon: 'refresh-outline' },
   { key: 'approved', label: 'Aprobadas', icon: 'checkmark-circle-outline' },
   { key: 'rejected', label: 'Rechazadas', icon: 'close-circle-outline' },
@@ -45,12 +43,9 @@ export default function TeacherReviewsScreen() {
   const [requestedAttemptId, setRequestedAttemptId] = useState<number | null>(attemptId)
   const review = useManualReview(pageSize, { studentId, attemptId: requestedAttemptId, subjectId, classroomId })
   const [selectedRow, setSelectedRow] = useState<ManualReviewQueueRow | null>(null)
-  const [assigneeId, setAssigneeId] = useState<string | null>(null)
   const [batchOpen, setBatchOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [saveFilterOpen, setSaveFilterOpen] = useState(false)
-  const [filterName, setFilterName] = useState('Mi filtro')
-
+  const selectedQuestionCount = new Set(review.selectedRows.map((row) => row.question_id)).size
 
   useEffect(() => { setRequestedAttemptId(attemptId) }, [attemptId])
 
@@ -61,18 +56,6 @@ export default function TeacherReviewsScreen() {
     setSelectedRow(row)
     setRequestedAttemptId(null)
   }, [requestedAttemptId, review.queue.items])
-
-  const savedFilterOptions = useMemo(() => review.configuration.savedFilters.map((item) => ({
-    value: item.id,
-    label: item.name,
-    description: summarizeFilter(item.filters),
-  })), [review.configuration.savedFilters])
-
-  const applySavedFilter = (id: string) => {
-    const saved = review.configuration.savedFilters.find((item) => item.id === id)
-    if (!saved) return
-    review.updateFilters(saved.filters)
-  }
 
   const handleSignOut = async () => {
     await signOutCurrentDeviceSession()
@@ -94,14 +77,9 @@ export default function TeacherReviewsScreen() {
             icon="create"
             isDesktop={isDesktop}
             title="Revisión manual"
-            subtitle="Gestiona SLA, rúbricas, asignaciones y decisiones por lotes con historial inmutable."
+            subtitle="Revisa respuestas abiertas, prioriza las pendientes y deja feedback al alumnado."
             notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
-            actions={(
-              <View className="flex-row flex-wrap gap-2">
-                <AppButton label="Guardar filtro" icon="bookmark-outline" variant="secondary" onPress={() => setSaveFilterOpen(true)} />
-                <AppButton label="Configurar" icon="settings-outline" role="teacher" onPress={() => setSettingsOpen(true)} />
-              </View>
-            )}
+            actions={<AppButton label="Configurar" icon="settings-outline" role="teacher" onPress={() => setSettingsOpen(true)} />}
           />
 
           {review.error ? <AppStatusBanner variant="danger" title="No se pudo completar la operación" message={review.error} style={{ marginBottom: 16 }} /> : null}
@@ -109,9 +87,9 @@ export default function TeacherReviewsScreen() {
 
           <View className="mb-5 flex-row flex-wrap gap-3">
             <MobileMetricCard semantic="attention" label="Pendientes" value={String(review.queue.summary.pending || 0)} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
-            <MobileMetricCard icon="eye-outline" label="En revisión" value={String(review.queue.summary.in_review || 0)} color={tokens.semantic.info} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
             <MobileMetricCard semantic="audit" label="Necesita cambios" value={String(review.queue.summary.needs_changes || 0)} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
-            <MobileMetricCard semantic="critical" label="SLA vencido" value={String(review.queue.summary.overdue || 0)} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
+            <MobileMetricCard icon="alarm-outline" label="Vencen pronto" value={String(review.queue.summary.due_soon || 0)} color={tokens.semantic.info} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
+            <MobileMetricCard semantic="critical" label="Plazo vencido" value={String(review.queue.summary.overdue || 0)} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
           </View>
 
           <View className="mb-4 rounded-2xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
@@ -132,7 +110,7 @@ export default function TeacherReviewsScreen() {
                 label="Curso"
                 value={review.filters.subjectId}
                 options={review.configuration.subjects.map((item) => ({ value: item.id, label: item.name }))}
-                onChange={(subjectId) => review.updateFilters({ subjectId, classroomId: null })}
+                onChange={(nextSubjectId) => review.updateFilters({ subjectId: nextSubjectId, classroomId: null })}
                 placeholder="Todos los cursos"
                 style={{ minWidth: 210, flex: 1 }}
               />
@@ -140,130 +118,39 @@ export default function TeacherReviewsScreen() {
                 label="Clase"
                 value={review.filters.classroomId}
                 options={review.visibleClassrooms.map((item) => ({ value: item.id, label: item.name }))}
-                onChange={(classroomId) => review.updateFilters({ classroomId })}
+                onChange={(nextClassroomId) => review.updateFilters({ classroomId: nextClassroomId })}
                 placeholder="Todas las clases"
                 style={{ minWidth: 210, flex: 1 }}
               />
-              {savedFilterOptions.length ? (
-                <AppDropdown<string>
-                  label="Filtros guardados"
-                  value={null}
-                  options={savedFilterOptions}
-                  onChange={applySavedFilter}
-                  placeholder="Aplicar filtro"
-                  style={{ minWidth: 210, flex: 1 }}
-                />
-              ) : null}
             </View>
             <View className="mt-4">
-              <AppTabs<'all' | ManualReviewStatus>
-                accessibilityLabel="Estado de la revisión"
-                compact
-                role="teacher"
-                items={STATUS_OPTIONS}
-                value={review.filters.status}
-                onChange={(status) => review.updateFilters({ status })}
-              />
+              <AppTabs<'all' | ManualReviewStatus> accessibilityLabel="Estado de la revisión" compact role="teacher" items={STATUS_OPTIONS} value={review.filters.status} onChange={(status) => review.updateFilters({ status })} />
             </View>
           </View>
 
-          <ManualReviewBatchBar
-            selectedCount={review.selectedIds.length}
-            assignees={review.configuration.assignees}
-            assigneeId={assigneeId}
-            busy={review.busy}
-            onAssignee={setAssigneeId}
-            onAssign={() => void review.assign(review.selectedIds, assigneeId)}
-            onReview={() => setBatchOpen(true)}
-            onClear={review.clearSelection}
-          />
+          <ManualReviewBatchBar selectedCount={review.selectedIds.length} busy={review.busy} onReview={() => setBatchOpen(true)} onClear={review.clearSelection} />
 
-          <ManualReviewQueue
-            rows={review.queue.items}
-            total={review.queue.total}
-            page={review.page}
-            pageSize={pageSize}
-            selectedIds={review.selectedIds}
-            onToggle={review.toggleSelected}
-            onTogglePage={review.selectPage}
-            onOpen={setSelectedRow}
-            onPage={review.setPage}
-          />
+          <ManualReviewQueue rows={review.queue.items} total={review.queue.total} page={review.page} pageSize={pageSize} selectedIds={review.selectedIds} onToggle={review.toggleSelected} onTogglePage={review.selectPage} onOpen={setSelectedRow} onPage={review.setPage} />
         </ScrollView>
       </View>
       {!isDesktop ? <TeacherBottomNav active="reviews" /> : null}
 
-      <ManualReviewDetailSheet
-        row={selectedRow}
-        configuration={review.configuration}
-        visible={Boolean(selectedRow)}
-        busy={review.busy}
-        onClose={() => setSelectedRow(null)}
-        onLoadDetail={review.loadDetail}
-        onReview={review.reviewOne}
-      />
+      <ManualReviewDetailSheet row={selectedRow} configuration={review.configuration} visible={Boolean(selectedRow)} busy={review.busy} onClose={() => setSelectedRow(null)} onLoadDetail={review.loadDetail} onReview={review.reviewOne} />
 
       <ManualReviewBatchSheet
         visible={batchOpen}
         selectedCount={review.selectedIds.length}
+        questionCount={selectedQuestionCount}
         configuration={review.configuration}
         busy={review.busy}
         onClose={() => setBatchOpen(false)}
-        onSubmit={async (input) => {
-          await review.reviewBatch({ ids: review.selectedIds, ...input })
-          setBatchOpen(false)
-        }}
+        onSubmit={async (input) => { await review.reviewBatch({ ids: review.selectedIds, ...input }); setBatchOpen(false) }}
       />
 
-      <ManualReviewConfigurationSheet
-        visible={settingsOpen}
-        configuration={review.configuration}
-        busy={review.busy}
-        onClose={() => setSettingsOpen(false)}
-        onSaveSla={review.saveSla}
-        onSaveRubric={review.saveRubric}
-        onSaveTemplate={review.saveTemplate}
-      />
-
-      <AppBottomSheet
-        visible={saveFilterOpen}
-        onClose={() => setSaveFilterOpen(false)}
-        title="Guardar filtros"
-        description="Guarda la combinación actual para reutilizarla."
-        footer={(
-          <View className="flex-row justify-end gap-2">
-            <AppButton label="Cancelar" variant="secondary" onPress={() => setSaveFilterOpen(false)} />
-            <AppButton label="Guardar" icon="bookmark-outline" role="teacher" loading={review.busy} onPress={() => void review.saveFilter(filterName).then(() => setSaveFilterOpen(false))} />
-          </View>
-        )}
-      >
-        <TextInput
-          accessibilityLabel="Nombre del filtro"
-          value={filterName}
-          onChangeText={setFilterName}
-          className="min-h-12 rounded-xl border px-4"
-          style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised, color: tokens.text.primary }}
-        />
-      </AppBottomSheet>
+      <ManualReviewConfigurationSheet visible={settingsOpen} configuration={review.configuration} busy={review.busy} onClose={() => setSettingsOpen(false)} onSaveSla={review.saveSla} onSaveTemplate={review.saveTemplate} />
     </View>
   )
 }
 
-function summarizeFilter(filters: ManualReviewFilters) {
-  const parts = [filters.status === 'all' ? 'todos los estados' : filters.status]
-  if (filters.subjectId) parts.push(`curso ${filters.subjectId}`)
-  if (filters.classroomId) parts.push(`clase ${filters.classroomId}`)
-  if (filters.search) parts.push(`“${filters.search}”`)
-  return parts.join(' · ')
-}
-
-function normalizeStringParam(value?: string | string[]) {
-  return Array.isArray(value) ? value[0] || null : value || null
-}
-
-function parseNumberParam(value?: string | string[]) {
-  const raw = Array.isArray(value) ? value[0] : value
-  const parsed = Number(raw)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
-}
-
+function normalizeStringParam(value?: string | string[]) { return Array.isArray(value) ? value[0] || null : value || null }
+function parseNumberParam(value?: string | string[]) { const raw = Array.isArray(value) ? value[0] : value; const parsed = Number(raw); return Number.isFinite(parsed) && parsed > 0 ? parsed : null }

@@ -2605,11 +2605,7 @@ export type Database = {
           hint_used: boolean
           id: number
           is_correct: boolean
-          manual_review_assigned_to: string | null
           manual_review_due_at: string | null
-          manual_review_rubric_id: string | null
-          manual_review_rubric_result: Json | null
-          manual_review_started_at: string | null
           manual_review_status: string
           question_id: number
           review_notes: string | null
@@ -2630,11 +2626,7 @@ export type Database = {
           hint_used?: boolean
           id?: number
           is_correct: boolean
-          manual_review_assigned_to?: string | null
           manual_review_due_at?: string | null
-          manual_review_rubric_id?: string | null
-          manual_review_rubric_result?: Json | null
-          manual_review_started_at?: string | null
           manual_review_status?: string
           question_id: number
           review_notes?: string | null
@@ -2655,11 +2647,7 @@ export type Database = {
           hint_used?: boolean
           id?: number
           is_correct?: boolean
-          manual_review_assigned_to?: string | null
           manual_review_due_at?: string | null
-          manual_review_rubric_id?: string | null
-          manual_review_rubric_result?: Json | null
-          manual_review_started_at?: string | null
           manual_review_status?: string
           question_id?: number
           review_notes?: string | null
@@ -2684,20 +2672,6 @@ export type Database = {
             columns: ["attempt_id"]
             isOneToOne: false
             referencedRelation: "game_attempts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "attempt_history_manual_review_assigned_to_fkey"
-            columns: ["manual_review_assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "attempt_history_manual_review_rubric_id_fkey"
-            columns: ["manual_review_rubric_id"]
-            isOneToOne: false
-            referencedRelation: "manual_review_rubrics"
             referencedColumns: ["id"]
           },
           {
@@ -3301,89 +3275,6 @@ export type Database = {
             columns: ["attempt_history_id"]
             isOneToOne: false
             referencedRelation: "attempt_history"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      manual_review_rubrics: {
-        Row: {
-          active: boolean
-          created_at: string
-          criteria: Json
-          id: string
-          name: string
-          subject_id: number | null
-          teacher_id: string
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          created_at?: string
-          criteria?: Json
-          id?: string
-          name: string
-          subject_id?: number | null
-          teacher_id: string
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          created_at?: string
-          criteria?: Json
-          id?: string
-          name?: string
-          subject_id?: number | null
-          teacher_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "manual_review_rubrics_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "manual_review_rubrics_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      manual_review_saved_filters: {
-        Row: {
-          created_at: string
-          filters: Json
-          id: string
-          name: string
-          teacher_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          filters?: Json
-          id?: string
-          name: string
-          teacher_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          filters?: Json
-          id?: string
-          name?: string
-          teacher_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "manual_review_saved_filters_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -5559,10 +5450,6 @@ export type Database = {
         Args: { p_reason: string; p_role_id: string; p_user_id: string }
         Returns: Json
       }
-      assign_manual_review_attempts: {
-        Args: { p_assignee_id: string; p_attempt_ids: number[] }
-        Returns: Json
-      }
       badge_metric_value: {
         Args: { p_metric_key: string; p_metrics: Json }
         Returns: number
@@ -5572,8 +5459,6 @@ export type Database = {
           p_attempt_ids: number[]
           p_comment_audience?: string
           p_notes?: string
-          p_rubric_id?: string
-          p_rubric_result?: Json
           p_status: string
         }
         Returns: Json
@@ -5621,10 +5506,6 @@ export type Database = {
           queue_id: number
           user_id: string
         }[]
-      }
-      claim_open_answer_attempt: {
-        Args: { p_attempt_history_id: number }
-        Returns: Json
       }
       claim_support_email_delivery_batch: {
         Args: { p_limit?: number; p_worker_id: string }
@@ -6267,17 +6148,6 @@ export type Database = {
           weekly_points: number
         }[]
       }
-      get_game_attempt_review_index: {
-        Args: {
-          p_attempt_id?: string
-          p_classroom_id?: number
-          p_difficulty?: number
-          p_general_topic?: boolean
-          p_subject_id?: number
-          p_topic_id?: number
-        }
-        Returns: Json
-      }
       get_game_questions: {
         Args: {
           p_classroom_id?: number
@@ -6830,25 +6700,6 @@ export type Database = {
           p_attempt_history_id: number
           p_comment_audience?: string
           p_notes?: string
-          p_rubric_id?: string
-          p_rubric_result?: Json
-          p_status: string
-        }
-        Returns: Json
-      }
-      review_open_answer_attempt: {
-        Args: {
-          p_attempt_history_id: number
-          p_is_correct: boolean
-          p_notes?: string
-        }
-        Returns: Json
-      }
-      review_open_answer_attempt_assigned: {
-        Args: {
-          p_attempt_history_id: number
-          p_comment_audience?: string
-          p_notes?: string
           p_status: string
         }
         Returns: Json
@@ -6875,19 +6726,6 @@ export type Database = {
         Returns: Json
       }
       sanitize_teacher_audit_payload: { Args: { p_value: Json }; Returns: Json }
-      save_manual_review_filter: {
-        Args: { p_filters: Json; p_id: string; p_name: string }
-        Returns: string
-      }
-      save_manual_review_rubric: {
-        Args: {
-          p_criteria: Json
-          p_id: string
-          p_name: string
-          p_subject_id: number
-        }
-        Returns: string
-      }
       save_manual_review_settings: {
         Args: { p_sla_hours: number }
         Returns: Json
@@ -7214,3 +7052,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

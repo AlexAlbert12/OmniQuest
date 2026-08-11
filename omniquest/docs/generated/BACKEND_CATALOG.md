@@ -4,9 +4,9 @@
 
 ## Resumen
 
-- Migraciones: **91**
-- Tablas públicas detectadas: **68**
-- Funciones/RPC públicas detectadas: **238**
+- Migraciones: **92**
+- Tablas públicas detectadas: **66**
+- Funciones/RPC públicas detectadas: **232**
 - Edge Functions: **32**
 
 ## Edge Functions
@@ -78,8 +78,6 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `manual_review_comment_templates`
 - `manual_review_comments`
 - `manual_review_history`
-- `manual_review_rubrics`
-- `manual_review_saved_filters`
 - `manual_review_settings`
 - `notification_delivery_queue`
 - `notification_push_deliveries`
@@ -140,7 +138,6 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `archive_teacher_topic`
 - `assert_topic_playable`
 - `assign_admin_role`
-- `assign_manual_review_attempts`
 - `badge_metric_value`
 - `batch_review_manual_attempts`
 - `can_access_question_media`
@@ -152,7 +149,6 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `check_game_attempt_topic_deadline`
 - `claim_admin_export_jobs`
 - `claim_notification_delivery_batch`
-- `claim_open_answer_attempt`
 - `claim_support_email_delivery_batch`
 - `claim_teacher_audit_export_requests`
 - `claim_teacher_digest_batch`
@@ -322,15 +318,11 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `request_teacher_audit_export`
 - `reserve_teacher_student_recovery_request`
 - `review_manual_review_attempt`
-- `review_open_answer_attempt`
-- `review_open_answer_attempt_assigned`
 - `review_open_answer_attempt_v2`
 - `revoke_other_user_sessions`
 - `revoke_user_session`
 - `sanitize_analytics_properties`
 - `sanitize_teacher_audit_payload`
-- `save_manual_review_filter`
-- `save_manual_review_rubric`
 - `save_manual_review_settings`
 - `save_manual_review_template`
 - `save_teacher_audit_filter`

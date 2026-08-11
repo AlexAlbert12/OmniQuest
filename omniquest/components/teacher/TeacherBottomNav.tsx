@@ -1,12 +1,10 @@
 import { useMemo } from 'react'
 import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
-import MobileBottomNavigation, {
-  MobileBottomNavigationItem,
-} from '../ui/mobile/MobileBottomNavigation'
+import MobileBottomNavigation, { MobileBottomNavigationItem } from '../ui/mobile/MobileBottomNavigation'
 import type { TeacherSection } from './TeacherSidebar'
 
-type VisibleTeacherBottomNavKey = 'home' | 'classes' | 'students' | 'audit' | 'profile'
+type VisibleTeacherBottomNavKey = 'home' | 'classes' | 'students' | 'reviews' | 'profile'
 
 export default function TeacherBottomNav({ active }: { active: TeacherSection }) {
   const { tokens } = useAppTheme()
@@ -15,21 +13,14 @@ export default function TeacherBottomNav({ active }: { active: TeacherSection })
     { key: 'home', label: t('nav.teacher.home'), href: '/(teacher)/homeTeacher', icon: 'home-outline', activeIcon: 'home', testID: 'teacher-nav-home' },
     { key: 'classes', label: t('nav.teacher.courses'), href: '/(teacher)/classes', icon: 'book-outline', activeIcon: 'book', testID: 'teacher-nav-classes' },
     { key: 'students', label: t('nav.teacher.students'), href: '/(teacher)/students', icon: 'people-outline', activeIcon: 'people', testID: 'teacher-nav-students' },
-    { key: 'audit', label: t('nav.teacher.audit'), href: '/(teacher)/audit', icon: 'shield-checkmark-outline', activeIcon: 'shield-checkmark', testID: 'teacher-nav-audit' },
+    { key: 'reviews', label: t('nav.teacher.reviews'), href: '/(teacher)/reviews', icon: 'create-outline', activeIcon: 'create', testID: 'teacher-nav-reviews' },
     { key: 'profile', label: t('nav.teacher.profile'), href: '/(teacher)/profile', icon: 'person-outline', activeIcon: 'person', testID: 'teacher-nav-profile' },
   ], [t])
 
-  return (
-    <MobileBottomNavigation
-      activeKey={getVisibleActiveKey(active)}
-      accentColor={tokens.brand.teacher}
-      items={navItems}
-    />
-  )
+  return <MobileBottomNavigation activeKey={getVisibleActiveKey(active)} accentColor={tokens.brand.teacher} items={navItems} />
 }
 
 function getVisibleActiveKey(active: TeacherSection): VisibleTeacherBottomNavKey {
-  if (active === 'notifications' || active === 'settings') return 'profile'
-  if (active === 'reviews') return 'students'
+  if (active === 'notifications' || active === 'settings' || active === 'audit') return 'profile'
   return active
 }

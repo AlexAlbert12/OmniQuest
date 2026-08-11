@@ -50,7 +50,7 @@ export default function StudentHistoryTimeline({ items, total, page, pageSize, o
 function getAttemptState(item: TeacherStudentHistoryTimelineItem, tokens: ReturnType<typeof useAppTheme>['tokens']) {
   const status = (item.manual_review_status || 'not_required').toLowerCase()
   if (item.was_skipped) return { label: 'Sin responder', icon: 'remove-circle-outline' as const, color: tokens.text.muted, background: tokens.surface.raised }
-  if (status === 'pending' || status === 'in_review') return { label: status === 'in_review' ? 'En revisión' : 'Pendiente de revisión', icon: 'time-outline' as const, color: tokens.semantic.warning, background: tokens.semanticSurface.warning }
+  if (status === 'pending') return { label: 'Pendiente de revisión', icon: 'time-outline' as const, color: tokens.semantic.warning, background: tokens.semanticSurface.warning }
   if (status === 'needs_changes') return { label: 'Necesita cambios', icon: 'refresh-outline' as const, color: tokens.semantic.warning, background: tokens.semanticSurface.warning }
   if (item.is_correct) return { label: 'Correcta', icon: 'checkmark' as const, color: tokens.semantic.success, background: tokens.semanticSurface.success }
   return { label: 'Incorrecta', icon: 'close' as const, color: tokens.semantic.danger, background: tokens.semanticSurface.danger }
