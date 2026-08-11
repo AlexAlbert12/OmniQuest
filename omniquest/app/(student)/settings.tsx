@@ -60,7 +60,6 @@ const teacherSettingsSectionDefinitions: { key: SettingsMenuSectionKey; labelKey
   { key: 'teaching', labelKey: 'settings.section.teaching', icon: 'school-outline', anchor: 'teaching' },
   { key: 'privacy', labelKey: 'settings.section.privacy', icon: 'shield-checkmark-outline', anchor: 'privacy' },
   { key: 'data', labelKey: 'settings.section.data', icon: 'server-outline', anchor: 'data' },
-  { key: 'security', labelKey: 'settings.section.security', icon: 'lock-closed-outline', anchor: 'security' },
   { key: 'about', labelKey: 'settings.section.about', icon: 'help-circle-outline', anchor: 'about' },
 ]
 

@@ -205,6 +205,7 @@ export function SettingsPreferencesPanel({
   onSelectPreference,
   onToggleHaptics,
   formatPreferenceLabel,
+  hideTimezone = false,
 }: {
   accentColor: string
   preferences: UserPreferencesState
@@ -216,6 +217,7 @@ export function SettingsPreferencesPanel({
   onSelectPreference: (key: PreferenceKey, value: string) => void
   onToggleHaptics: (enabled: boolean) => void
   formatPreferenceLabel: FormatPreferenceLabel
+  hideTimezone?: boolean
 }) {
   const { t } = useI18n()
 
@@ -244,7 +246,7 @@ export function SettingsPreferencesPanel({
         loading={savingPreference === 'language'}
       />
 
-      {(['timezone', 'dateFormat', 'timeFormat', 'weekStart'] as PreferenceKey[]).map((key) => (
+      {(['timezone', 'dateFormat', 'timeFormat', 'weekStart'] as PreferenceKey[]).filter((key) => !(hideTimezone && key === 'timezone')).map((key) => (
         <PreferenceRow
           key={key}
           label={{
@@ -412,48 +414,6 @@ export function SettingsPrivacyPanel({
         />
       ) : null}
 
-      {isTeacher ? (
-        <View className="mb-4 rounded-lg border p-4" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
-          <View className="flex-row flex-wrap items-center justify-between gap-3">
-            <View className="min-w-0 flex-1">
-              <Text className="font-bold" style={{ color: colors.text }}>{t('settings.privacy.visibility')}</Text>
-              <Text className="mt-1 text-[12px]" style={{ color: colors.textSecondary }}>
-                {isTeacher
-                  ? t('settings.privacy.visibility.teacher')
-                  : t('settings.privacy.visibility.student')}
-              </Text>
-            </View>
-
-            <View className="flex-row gap-2">
-              <VisibilityButton
-                label={t('settings.privacy.public')}
-                value="public"
-                selected={profileVisibility === 'public'}
-                available={profileVisibilityAvailable}
-                accentColor={accentColor}
-                colors={colors}
-                onPress={onProfileVisibilityChange}
-              />
-              <VisibilityButton
-                label={t('settings.privacy.private')}
-                value="private"
-                selected={profileVisibility === 'private'}
-                available={profileVisibilityAvailable}
-                accentColor={accentColor}
-                colors={colors}
-                onPress={onProfileVisibilityChange}
-              />
-            </View>
-          </View>
-
-          {!profileVisibilityAvailable ? (
-            <Text className="mt-3 text-[12px] leading-5 text-gamification-xp">
-              {t('settings.privacy.unavailable')}
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-
       <View className="mb-4 overflow-hidden rounded-xl border" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
         <NotificationRow
           icon="analytics-outline"
@@ -488,38 +448,6 @@ export function SettingsPrivacyPanel({
   )
 }
 
-function VisibilityButton({
-  label,
-  value,
-  selected,
-  available,
-  accentColor,
-  colors,
-  onPress,
-}: {
-  label: string
-  value: ProfileVisibility
-  selected: boolean
-  available: boolean
-  accentColor: string
-  colors: ReturnType<typeof useAppTheme>['colors']
-  onPress: (visibility: ProfileVisibility) => void
-}) {
-  return (
-    <Pressable
-      onPress={() => onPress(value)}
-      disabled={!available}
-      className="rounded-lg border px-3 py-2"
-      style={{
-        borderColor: selected ? accentColor : colors.border,
-        backgroundColor: selected ? withAlpha(accentColor, '24') : colors.surface,
-      }}
-    >
-      <Text className="text-[12px] font-semibold" style={{ color: colors.text }}>{label}</Text>
-    </Pressable>
-  )
-}
-
 export function SettingsDataPanel({
   isTeacher,
   deletingData,
@@ -531,7 +459,7 @@ export function SettingsDataPanel({
   deletingData: boolean
   deletingAccount: boolean
   onRequestDeletion: () => void
-  onDeletePartialData: (dataType: 'scores' | 'enrollments' | 'all') => void
+  onDeletePartialData: (dataType: 'scores' | 'enrollments' | 'all' | 'teacher_data') => void
 }) {
   const { colors } = useAppTheme()
   const { t } = useI18n()
@@ -551,34 +479,42 @@ export function SettingsDataPanel({
         </Text>
 
         <View className="gap-2">
-          <DangerDataRow
-            icon="trash-outline"
-            title={t(isTeacher ? 'danger.scores.teacher.title' : 'danger.scores.student.title')}
-            description={t(isTeacher ? 'settings.data.scores.teacher' : 'settings.data.scores.student')}
-            deletingData={deletingData}
-            tone="partial"
-            onPress={() => onDeletePartialData('scores')}
-          />
-          <DangerDataRow
-            icon={isTeacher ? 'folder-open-outline' : 'exit-outline'}
-            title={t(isTeacher ? 'danger.enrollments.teacher.title' : 'danger.enrollments.student.title')}
-            description={isTeacher ? t('settings.data.enrollments.teacher') : undefined}
-            deletingData={deletingData}
-            tone="partial"
-            onPress={() => onDeletePartialData('enrollments')}
-          />
-          <DangerDataRow
-            icon="warning-outline"
-            title={t(isTeacher ? 'danger.all.teacher.title' : 'danger.all.student.title')}
-            description={
-              isTeacher
-                ? t('settings.data.all.teacher')
-                : t('settings.data.all.student')
-            }
-            deletingData={deletingData}
-            tone="major"
-            onPress={() => onDeletePartialData('all')}
-          />
+          {isTeacher ? (
+            <DangerDataRow
+              icon="person-remove-outline"
+              title={t('settings.data.teacherOwn.title')}
+              description={t('settings.data.teacherOwn.description')}
+              deletingData={deletingData}
+              tone="major"
+              onPress={() => onDeletePartialData('teacher_data')}
+            />
+          ) : (
+            <>
+              <DangerDataRow
+                icon="trash-outline"
+                title={t('danger.scores.student.title')}
+                description={t('settings.data.scores.student')}
+                deletingData={deletingData}
+                tone="partial"
+                onPress={() => onDeletePartialData('scores')}
+              />
+              <DangerDataRow
+                icon="exit-outline"
+                title={t('danger.enrollments.student.title')}
+                deletingData={deletingData}
+                tone="partial"
+                onPress={() => onDeletePartialData('enrollments')}
+              />
+              <DangerDataRow
+                icon="warning-outline"
+                title={t('danger.all.student.title')}
+                description={t('settings.data.all.student')}
+                deletingData={deletingData}
+                tone="major"
+                onPress={() => onDeletePartialData('all')}
+              />
+            </>
+          )}
         </View>
       </View>
     </Panel>
@@ -610,7 +546,7 @@ function DangerDataRow({
       className="flex-row items-center justify-between rounded-lg border p-3"
       style={({ pressed }) => ({ borderColor: dangerBorder, backgroundColor: dangerSurface, opacity: pressed ? 0.78 : 1 })}
     >
-      <View className="flex-row items-center gap-3">
+      <View className="min-w-0 flex-1 flex-row items-center gap-3">
         <Ionicons name={icon} size={16} color={colors.danger} />
         <View className="min-w-0 flex-1">
           <Text className="text-[13px] font-semibold" style={{ color: colors.text }}>{title}</Text>

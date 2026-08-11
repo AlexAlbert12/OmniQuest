@@ -6798,6 +6798,15 @@ export type Database = {
         }
         Returns: Json
       }
+      set_teacher_notification_preferences: {
+        Args: {
+          p_inactive_student_alerts: boolean
+          p_open_review_alerts: boolean
+          p_push_enabled: boolean
+          p_sensitive_action_alerts: boolean
+        }
+        Returns: Json
+      }
       set_teacher_notifications_mute: {
         Args: { p_until?: string }
         Returns: Json

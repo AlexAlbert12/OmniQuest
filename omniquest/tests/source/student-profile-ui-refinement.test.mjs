@@ -4,12 +4,17 @@ import test from 'node:test'
 
 const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')
 
-test('student profile hero keeps identity text on a stable accent zone and removes the duplicate avatar level badge', () => {
+test('student profile hero uses a dark high-contrast card with restrained cyan accents', () => {
   const hero = read('components/student/profile/StudentProfileHero.tsx')
-  assert.match(hero, /gradientLocations = isMobile \? \[0, 0\.9, 0\.98, 1\]/)
-  assert.match(hero, /heroText = theme === 'dark' \? tokens\.text\.inverse : tokens\.text\.primary/)
+  assert.match(hero, /gradientColors = \[tokens\.surface\.raised, tokens\.surface\.default, tokens\.background\.secondary\]/)
+  assert.match(hero, /heroText = tokens\.text\.primary/)
+  assert.match(hero, /borderColor: tokens\.border\.default/)
+  assert.match(hero, /backgroundColor: withAlpha\(tokens\.brand\.student, '14'\)/)
+  assert.match(hero, /XP global/)
+  assert.doesNotMatch(hero, /tokens\.text\.inverse/)
+  assert.doesNotMatch(hero, /\[tokens\.brand\.student, tokens\.brand\.student/)
   assert.match(hero, /showLevel=\{false\}/)
-  assert.match(hero, /minHeight: 198/)
+  assert.match(hero, /minHeight: isMobile \? 218 : 210/)
   assert.doesNotMatch(hero, /min-h-\[230px\]/)
 })
 

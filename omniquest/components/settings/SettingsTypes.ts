@@ -58,19 +58,3 @@ export type NotificationSettingsRow = {
   news_enabled: boolean | null
   frequency: string | null
 }
-
-export type TeacherNotificationSettingsState = {
-  reminderEmail: string
-  inactiveStudentAlerts: boolean
-  openReviewAlerts: boolean
-  sensitiveActionAlerts: boolean
-  digestFrequency: TeacherDigestFrequency
-}
-
-export type TeacherNotificationSettingsRow = {
-  teacher_reminder_email: string | null
-  teacher_inactive_student_alerts: boolean | null
-  teacher_open_review_alerts: boolean | null
-  teacher_sensitive_action_alerts: boolean | null
-  teacher_digest_frequency: string | null
-}

@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../lib/appTheme';
 import { useI18n } from '../../lib/i18n';
 
-export type DestructiveActionType = 'scores' | 'enrollments' | 'all' | 'account'
+export type DestructiveActionType = 'scores' | 'enrollments' | 'all' | 'teacher_data' | 'account'
 
 export const REQUIRED_DESTRUCTIVE_CONFIRMATION = 'ELIMINAR'
 
@@ -99,6 +99,12 @@ export function DestructiveConfirmModal({
 
 function getDestructiveActionDetails(action: DestructiveActionType | null, isTeacher: boolean, t: ReturnType<typeof useI18n>['t']) {
   switch (action) {
+    case 'teacher_data':
+      return {
+        title: t('settings.data.teacherOwn.title'),
+        description: t('settings.data.teacherOwn.confirmDescription'),
+        confirmLabel: t('settings.data.teacherOwn.confirm'),
+      }
     case 'scores':
       return isTeacher
         ? {

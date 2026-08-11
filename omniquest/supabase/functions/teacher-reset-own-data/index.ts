@@ -1,6 +1,6 @@
 import { corsHeaders, errorResponse, getTeacherContext, isMissingSchemaError, isResponse, json, methodNotAllowedResponse, readJsonBody, writeTeacherAudit } from '../_shared/teacher.ts'
 
-type ResetType = 'scores' | 'teaching_data' | 'all'
+type ResetType = 'scores' | 'teaching_data' | 'all' | 'personal_data'
 
 type RequestBody = {
   resetType?: ResetType | 'enrollments'
@@ -17,6 +17,21 @@ Deno.serve(async (req) => {
     const body = await readJsonBody<RequestBody>(req)
     const resetType = normalizeResetType(body.resetType)
     const deleted: Record<string, number | null> = {}
+
+    if (resetType === 'personal_data') {
+      const avatar = await getTeacherAvatar(context.adminClient, context.teacherUserId)
+      await deleteTeacherPreferencesAndAvatar(context.adminClient, context.teacherUserId, avatar, deleted)
+
+      await writeTeacherAudit(context.adminClient, {
+        teacherUserId: context.teacherUserId,
+        action: 'teacher.profile.reset_preferences',
+        targetTable: 'profiles',
+        targetId: context.teacherUserId,
+        metadata: { deleted, avatar_cleared: Boolean(avatar) },
+      })
+
+      return json({ ok: true, resetType, deleted, affectedStudentIds: 0, avatar: null })
+    }
 
     const teacherSnapshot = await getTeacherSnapshot(context.adminClient, context.teacherUserId)
     const subjectIds = teacherSnapshot.subjectIds
@@ -82,8 +97,15 @@ Deno.serve(async (req) => {
 
 function normalizeResetType(value: RequestBody['resetType']): ResetType {
   if (value === 'all') return 'all'
+  if (value === 'personal_data') return 'personal_data'
   if (value === 'teaching_data' || value === 'enrollments') return 'teaching_data'
   return 'scores'
+}
+
+async function getTeacherAvatar(adminClient: any, teacherUserId: string) {
+  const { data: profile, error } = await adminClient.from('profiles').select('avatar').eq('id', teacherUserId).single()
+  if (error || !profile) throw new Error('Perfil docente no encontrado.')
+  return profile.avatar as string | null
 }
 
 async function getTeacherSnapshot(adminClient: any, teacherUserId: string) {
@@ -206,6 +228,10 @@ async function deleteTeacherTeachingData(adminClient: any, subjectIds: number[],
 
 async function deleteTeacherPreferencesAndAvatar(adminClient: any, teacherUserId: string, avatar: string | null, deleted: Record<string, number | null>) {
   deleted.notification_state = await deleteRowsEq(adminClient, 'notification_state', 'user_id', teacherUserId)
+  deleted.notifications = await deleteRowsEq(adminClient, 'notifications', 'user_id', teacherUserId)
+  deleted.push_tokens = await deleteRowsEq(adminClient, 'push_tokens', 'user_id', teacherUserId)
+  deleted.teacher_digest_deliveries = await deleteRowsEq(adminClient, 'teacher_digest_deliveries', 'teacher_id', teacherUserId)
+  deleted.teacher_notification_course_preferences = await deleteRowsEq(adminClient, 'teacher_notification_course_preferences', 'teacher_id', teacherUserId)
   deleted.user_preferences = await deleteRowsEq(adminClient, 'user_preferences', 'user_id', teacherUserId)
   deleted.user_notification_preferences = await deleteRowsEq(adminClient, 'user_notification_preferences', 'user_id', teacherUserId)
 

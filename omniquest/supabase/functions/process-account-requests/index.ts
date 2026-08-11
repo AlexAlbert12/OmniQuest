@@ -177,7 +177,7 @@ async function buildAccountExport(admin: SupabaseClient, userId: string) {
 
   const common = {
     generatedAt: new Date().toISOString(),
-    schemaVersion: 1,
+    schemaVersion: 2,
     role,
     profile: profileResult.data,
     preferences: await selectRows(admin, 'user_preferences', 'user_id', userId),
@@ -195,14 +195,14 @@ async function buildAccountExport(admin: SupabaseClient, userId: string) {
     const questionIds = questions.map((row) => row.id).filter((id) => typeof id === 'number') as number[]
     return {
       ...common,
+      exportScope: 'teacher-owned-data-only',
       subjects,
       classrooms: await selectRowsIn(admin, 'classrooms', 'subject_id', subjectIds),
       topics: await selectRowsIn(admin, 'subject_topics', 'subject_id', subjectIds),
       questions,
       answers: await selectRowsIn(admin, 'answers', 'question_id', questionIds),
-      enrollments: await selectRowsIn(admin, 'enrollments', 'subject_id', subjectIds),
-      subjectScores: await selectRowsIn(admin, 'subject_scores', 'subject_id', subjectIds),
-      attempts: await selectRowsIn(admin, 'attempt_history', 'question_id', questionIds),
+      courseNotificationPreferences: await selectRows(admin, 'teacher_notification_course_preferences', 'teacher_id', userId),
+      auditLogs: await selectRows(admin, 'teacher_audit_logs', 'teacher_id', userId),
     }
   }
 

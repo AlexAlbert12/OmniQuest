@@ -19,6 +19,7 @@ const ACTION_LABELS_ES: Record<string, string> = {
   'teacher.profile.avatar.update': 'Imagen de perfil actualizada',
   'teacher.profile.avatar.clear': 'Imagen de perfil eliminada',
   'teacher.profile.reset_scores': 'Puntuaciones reiniciadas',
+  'teacher.profile.reset_preferences': 'Preferencias docentes reiniciadas',
   'teacher.profile.delete_teaching_data': 'Datos docentes eliminados',
   'teacher.profile.reset_all': 'Datos docentes reiniciados',
 }
@@ -40,6 +41,7 @@ const ACTION_LABELS_EN: Record<string, string> = {
   'teacher.profile.avatar.update': 'Profile image updated',
   'teacher.profile.avatar.clear': 'Profile image removed',
   'teacher.profile.reset_scores': 'Scores reset',
+  'teacher.profile.reset_preferences': 'Teacher preferences reset',
   'teacher.profile.delete_teaching_data': 'Teaching data deleted',
   'teacher.profile.reset_all': 'Teaching data reset',
 }

@@ -93,6 +93,9 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   const [category, setCategory] = useState<SupportTicketCategory>('plataforma')
   const [priority, setPriority] = useState<SupportTicketPriority>('medium')
   const [preferredChannel, setPreferredChannel] = useState<SupportContactPreference>('in_app')
+  const [defaultSupportChannel, setDefaultSupportChannel] = useState<SupportContactPreference>('in_app')
+  const [supportPreferenceEmail, setSupportPreferenceEmail] = useState('')
+  const [savingSupportPreference, setSavingSupportPreference] = useState(false)
   const [attachment, setAttachment] = useState<PickedSupportAttachment | null>(null)
   const [replyBody, setReplyBody] = useState('')
   const [replyAttachment, setReplyAttachment] = useState<PickedSupportAttachment | null>(null)
@@ -137,7 +140,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
       // Keep the compatibility wrapper exported for older callers while this screen uses
       // the paginated server contract directly.
       void fetchOwnSupportTickets
-      const [ticketPage, channels, deliveryHistory, profileResult, subjectsResult] = await Promise.all([
+      const [ticketPage, channels, deliveryHistory, profileResult, subjectsResult, teacherPreferenceResult] = await Promise.all([
         fetchOwnSupportTicketsPage({ limit: 10, offset: 0 }),
         fetchSupportContactChannels(),
         fetchOwnSupportEmailHistory(10, 0),
@@ -145,6 +148,9 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
         role === 'teacher'
           ? supabase.from('subjects').select('id').eq('teacher_id', data.session.user.id).eq('is_archived', false)
           : Promise.resolve({ data: [] as { id: number }[], error: null }),
+        role === 'teacher'
+          ? supabase.rpc('get_teacher_notification_settings')
+          : Promise.resolve({ data: null, error: null }),
       ])
       if (!profileResult.error && profileResult.data) {
         setShellAlias(profileResult.data.alias?.trim() || (role === 'teacher' ? 'Profesor' : 'Alumno'))
@@ -152,6 +158,12 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
         setShellPoints(Number(profileResult.data.points || 0))
       }
       if (!subjectsResult.error) setSubjectsCount((subjectsResult.data || []).length)
+      if (role === 'teacher' && !teacherPreferenceResult.error) {
+        const supportPreference = readTeacherSupportPreference(teacherPreferenceResult.data, data.session.user.email || '')
+        setDefaultSupportChannel(supportPreference.channel)
+        setPreferredChannel(supportPreference.channel)
+        setSupportPreferenceEmail(supportPreference.email)
+      }
       const nextTickets = ticketPage.tickets
       setTickets(nextTickets)
       setTicketsTotal(ticketPage.total)
@@ -274,6 +286,27 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
     }
   }
 
+  const saveTeacherSupportPreference = async () => {
+    if (role !== 'teacher') return
+    setSavingSupportPreference(true)
+    try {
+      const { data, error: rpcError } = await supabase.rpc('set_teacher_support_preference', {
+        p_channel: defaultSupportChannel,
+        p_contact_email: defaultSupportChannel === 'in_app' ? undefined : supportPreferenceEmail.trim() || undefined,
+      })
+      if (rpcError) throw rpcError
+      const saved = readTeacherSupportPreference(data, email)
+      setDefaultSupportChannel(saved.channel)
+      setPreferredChannel(saved.channel)
+      setSupportPreferenceEmail(saved.email)
+      showModal({ title: t('support.preference.saved'), message: t('support.preference.savedDetail'), variant: 'success' })
+    } catch (error) {
+      showAlert(t('support.error.title'), getErrorMessage(error, t('support.error.retry')))
+    } finally {
+      setSavingSupportPreference(false)
+    }
+  }
+
   const submitTicket = async () => {
     if (!userId) return
     if (subject.trim().length < 5 || body.trim().length < 15) {
@@ -285,7 +318,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
       const result = await createSupportTicket({
         userId,
         role,
-        contactEmail: email || null,
+        contactEmail: role === 'teacher' && preferredChannel !== 'in_app' ? (supportPreferenceEmail.trim() || email || null) : email || null,
         subject,
         body,
         category,
@@ -297,7 +330,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
       setBody('')
       setCategory('plataforma')
       setPriority('medium')
-      setPreferredChannel('in_app')
+      setPreferredChannel(defaultSupportChannel)
       setAttachment(null)
       void trackUsageEvent('support_ticket_created', { properties: { role, category, priority } })
       await load()
@@ -361,6 +394,26 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
     </SupportPanel>
   )
 
+  const supportPreferencePanel = role === 'teacher' ? (
+    <SupportPanel title={t('support.preference.title')} icon="chatbubbles-outline">
+      <Text className="mb-4 text-[12px] leading-5" style={{ color: colors.textSecondary }}>{t('support.preference.description')}</Text>
+      <ChoiceGroup
+        label={t('support.form.contactPreference')}
+        values={contactPreferenceKeys}
+        value={defaultSupportChannel}
+        onChange={setDefaultSupportChannel}
+        labelFor={(value) => value === 'in_app' ? t('support.channel.inApp') : value === 'email' ? t('support.channel.email') : t('support.channel.both')}
+        accentColor={accentColor}
+        colors={colors}
+        isDesktop={isDesktop}
+      />
+      {defaultSupportChannel !== 'in_app' ? (
+        <SupportInput label={t('support.preference.email')} value={supportPreferenceEmail} onChangeText={setSupportPreferenceEmail} colors={colors} placeholder={email || 'profesor@centro.es'} />
+      ) : null}
+      <AppButton label={t('support.preference.save')} icon="save-outline" role="teacher" loading={savingSupportPreference} onPress={() => void saveTeacherSupportPreference()} />
+    </SupportPanel>
+  ) : null
+
   const createTicketPanel = (
     <SupportPanel title={t('support.form.title')} icon="create-outline">
       <SupportInput label={t('support.form.subject')} value={subject} onChangeText={setSubject} colors={colors} placeholder={t('support.form.subjectPlaceholder')} />
@@ -388,7 +441,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
         isDesktop={isDesktop}
       />
       <ChoiceGroup
-        label={t('support.form.contactPreference')}
+        label={role === 'teacher' ? t('support.preference.ticketChannel') : t('support.form.contactPreference')}
         values={contactPreferenceKeys}
         value={preferredChannel}
         onChange={setPreferredChannel}
@@ -578,6 +631,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
           {isDesktop ? (
             <View className="flex-row gap-5">
               <View className="min-w-0 flex-[1.25] gap-5">
+                {supportPreferencePanel}
                 {createTicketPanel}
                 {ticketsPanel}
               </View>
@@ -591,6 +645,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
           ) : (
             <View className="gap-5">
               {faqPanel}
+              {supportPreferencePanel}
               {createTicketPanel}
               {ticketsPanel}
               {conversationPanel}
@@ -702,6 +757,15 @@ function formatBytes(value: number) {
   if (value < 1024) return `${value} B`
   if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`
   return `${(value / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function readTeacherSupportPreference(value: unknown, fallbackEmail: string) {
+  const payload = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+  const globalValue = payload.global && typeof payload.global === 'object' && !Array.isArray(payload.global) ? payload.global as Record<string, unknown> : {}
+  const rawChannel = globalValue.support_preferred_channel
+  const channel: SupportContactPreference = rawChannel === 'email' || rawChannel === 'both' ? rawChannel : 'in_app'
+  const emailValue = typeof globalValue.support_contact_email === 'string' ? globalValue.support_contact_email : fallbackEmail
+  return { channel, email: emailValue }
 }
 
 function getErrorMessage(error: unknown, fallback: string) {

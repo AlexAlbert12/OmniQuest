@@ -1,5 +1,6 @@
 import React from 'react'
-import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, Switch, Text, useWindowDimensions, View } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
@@ -37,6 +38,8 @@ export function SettingsMenu({
   const itemLayoutsRef = React.useRef<Record<string, { x: number; width: number }>>({})
   const scrollXRef = React.useRef(0)
   const [viewportWidth, setViewportWidth] = React.useState(0)
+  const [contentWidth, setContentWidth] = React.useState(0)
+  const [scrollX, setScrollX] = React.useState(0)
   const [layoutVersion, setLayoutVersion] = React.useState(0)
 
   React.useEffect(() => {
@@ -123,22 +126,29 @@ export function SettingsMenu({
     )
   }
 
+  const showStartFade = scrollX > 2
+  const showEndFade = contentWidth > viewportWidth + 2 && scrollX < contentWidth - viewportWidth - 2
+
   return (
-    <View className="rounded-xl p-2" style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }}>
+    <View className="relative overflow-hidden rounded-xl p-2" style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }}>
       <ScrollView
         ref={horizontalScrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         onLayout={(event) => setViewportWidth(event.nativeEvent.layout.width)}
-        onScroll={(event) => { scrollXRef.current = event.nativeEvent.contentOffset.x }}
-        scrollEventThrottle={16}
-        contentContainerStyle={{
-          gap: 8,
-          paddingHorizontal: 16,
+        onContentSizeChange={(width) => setContentWidth(width)}
+        onScroll={(event) => {
+          const nextX = event.nativeEvent.contentOffset.x
+          scrollXRef.current = nextX
+          setScrollX(nextX)
         }}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
       >
         {sections.map(renderMenuItem)}
       </ScrollView>
+      {showStartFade ? <LinearGradient colors={[colors.surface, withAlpha(colors.surface, '00')]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: 'absolute', left: 8, top: 8, bottom: 8, width: 28, pointerEvents: 'none' }} /> : null}
+      {showEndFade ? <LinearGradient colors={[withAlpha(colors.surface, '00'), colors.surface]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: 'absolute', right: 8, top: 8, bottom: 8, width: 28, pointerEvents: 'none' }} /> : null}
     </View>
   )
 }
@@ -266,9 +276,11 @@ export function PreferenceRow({
   loading?: boolean
 }) {
   const { colors } = useAppTheme()
+  const { width } = useWindowDimensions()
+  const stacked = width < 520
   return (
-    <View className="mb-4 flex-row items-start gap-4">
-      <Text className="w-[125px] text-[12px] font-semibold" style={{ color: colors.textSecondary }}>{label}</Text>
+    <View className={`mb-4 ${stacked ? 'gap-2' : 'flex-row items-start gap-4'}`}>
+      <Text className={`${stacked ? '' : 'w-[125px]'} text-[12px] font-semibold`} style={{ color: colors.textSecondary }}>{label}</Text>
       <View className="min-w-0 flex-1">
         <SelectPill
           value={value}

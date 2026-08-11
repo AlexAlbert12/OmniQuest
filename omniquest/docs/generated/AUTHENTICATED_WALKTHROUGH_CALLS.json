@@ -1,5 +1,5 @@
 {
-  "generatedAt": "20260811143000_teacher_notifications_experience_refinement.sql",
+  "generatedAt": "20260811170000_teacher_settings_privacy_refinement.sql",
   "sourceFiles": 433,
   "calls": [
     {
@@ -72,7 +72,7 @@
       "kind": "edge",
       "resource": "student-reset-own-progress",
       "path": "hooks/useSettingsData.ts",
-      "line": 295
+      "line": 240
     },
     {
       "kind": "edge",
@@ -108,7 +108,7 @@
       "kind": "edge",
       "resource": "teacher-reset-own-data",
       "path": "hooks/useSettingsData.ts",
-      "line": 312
+      "line": 259
     },
     {
       "kind": "edge",
@@ -563,8 +563,14 @@
     {
       "kind": "rpc",
       "resource": "get_teacher_notification_settings",
+      "path": "components/support/RoleHelpCenter.tsx",
+      "line": 152
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_notification_settings",
       "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
-      "line": 60
+      "line": 68
     },
     {
       "kind": "rpc",
@@ -738,7 +744,7 @@
       "kind": "rpc",
       "resource": "request_account_deletion",
       "path": "hooks/useSettingsData.ts",
-      "line": 799
+      "line": 575
     },
     {
       "kind": "rpc",
@@ -792,19 +798,25 @@
       "kind": "rpc",
       "resource": "set_teacher_course_notification_preference",
       "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
-      "line": 132
+      "line": 158
     },
     {
       "kind": "rpc",
       "resource": "set_teacher_digest_preference",
       "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
-      "line": 92
+      "line": 120
+    },
+    {
+      "kind": "rpc",
+      "resource": "set_teacher_notification_preferences",
+      "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
+      "line": 94
     },
     {
       "kind": "rpc",
       "resource": "set_teacher_notifications_mute",
       "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
-      "line": 112
+      "line": 140
     },
     {
       "kind": "rpc",
@@ -815,8 +827,8 @@
     {
       "kind": "rpc",
       "resource": "set_teacher_support_preference",
-      "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
-      "line": 153
+      "path": "components/support/RoleHelpCenter.tsx",
+      "line": 293
     },
     {
       "kind": "rpc",
@@ -1044,7 +1056,7 @@
       "kind": "table",
       "resource": "profiles",
       "path": "components/support/RoleHelpCenter.tsx",
-      "line": 144
+      "line": 147
     },
     {
       "kind": "table",
@@ -1092,31 +1104,25 @@
       "kind": "table",
       "resource": "profiles",
       "path": "hooks/useSettingsData.ts",
-      "line": 201
+      "line": 149
     },
     {
       "kind": "table",
       "resource": "profiles",
       "path": "hooks/useSettingsData.ts",
-      "line": 211
+      "line": 159
     },
     {
       "kind": "table",
       "resource": "profiles",
       "path": "hooks/useSettingsData.ts",
-      "line": 361
+      "line": 281
     },
     {
       "kind": "table",
       "resource": "profiles",
       "path": "hooks/useSettingsData.ts",
-      "line": 398
-    },
-    {
-      "kind": "table",
-      "resource": "profiles",
-      "path": "hooks/useSettingsData.ts",
-      "line": 734
+      "line": 510
     },
     {
       "kind": "table",
@@ -1206,7 +1212,7 @@
       "kind": "table",
       "resource": "subjects",
       "path": "components/support/RoleHelpCenter.tsx",
-      "line": 146
+      "line": 149
     },
     {
       "kind": "table",
@@ -1236,13 +1242,7 @@
       "kind": "table",
       "resource": "subjects",
       "path": "hooks/useSettingsData.ts",
-      "line": 413
-    },
-    {
-      "kind": "table",
-      "resource": "subjects",
-      "path": "hooks/useSettingsData.ts",
-      "line": 647
+      "line": 443
     },
     {
       "kind": "table",
@@ -1278,19 +1278,13 @@
       "kind": "table",
       "resource": "user_notification_preferences",
       "path": "hooks/useSettingsData.ts",
-      "line": 604
+      "line": 406
     },
     {
       "kind": "table",
       "resource": "user_notification_preferences",
       "path": "hooks/useSettingsData.ts",
-      "line": 650
-    },
-    {
-      "kind": "table",
-      "resource": "user_notification_preferences",
-      "path": "hooks/useSettingsData.ts",
-      "line": 657
+      "line": 460
     },
     {
       "kind": "table",
@@ -1308,13 +1302,13 @@
       "kind": "table",
       "resource": "user_preferences",
       "path": "hooks/useSettingsData.ts",
-      "line": 582
+      "line": 388
     },
     {
       "kind": "table",
       "resource": "user_preferences",
       "path": "hooks/useSettingsData.ts",
-      "line": 642
+      "line": 438
     },
     {
       "kind": "table",
@@ -1461,6 +1455,7 @@
     "set_analytics_consent",
     "set_teacher_course_notification_preference",
     "set_teacher_digest_preference",
+    "set_teacher_notification_preferences",
     "set_teacher_notifications_mute",
     "set_teacher_support_preference",
     "start_game_attempt",
