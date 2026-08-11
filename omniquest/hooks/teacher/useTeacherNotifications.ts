@@ -133,27 +133,38 @@ export function useTeacherNotifications() {
     })
   }, [loadPage, loadSummary])
 
+  const refreshRef = useRef(refresh)
+
+  useEffect(() => {
+    refreshRef.current = refresh
+  }, [refresh])
+
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null
     let disposed = false
+    const subscriptionId = `${Date.now()}:${Math.random().toString(36).slice(2)}`
     void supabase.auth.getUser().then(({ data }) => {
       if (disposed || !data.user) return
-      channel = supabase
-        .channel(`teacher-notification-center:${data.user.id}`)
+      const nextChannel = supabase
+        .channel(`teacher-notification-center:${data.user.id}:${subscriptionId}`)
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${data.user.id}` },
           (payload: RealtimePostgresInsertPayload<{ audience?: string }>) => {
-            if (payload.new.audience === 'teacher') void refresh()
+            if (payload.new.audience === 'teacher') void refreshRef.current()
           },
         )
-        .subscribe()
+      if (disposed) {
+        void supabase.removeChannel(nextChannel)
+        return
+      }
+      channel = nextChannel.subscribe()
     })
     return () => {
       disposed = true
       if (channel) void supabase.removeChannel(channel)
     }
-  }, [refresh])
+  }, [])
 
   const markAsRead = useCallback(async (notification: AppNotification) => {
     if (notification.isRead) return

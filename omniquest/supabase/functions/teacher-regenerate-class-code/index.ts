@@ -30,20 +30,20 @@ Deno.serve(async (req) => {
       'id, name, code, teacher_id',
     )
 
-    let previousCode = subject.code
     let targetTable = 'subjects'
     let targetId = subjectId
+    let classroomName: string | null = null
 
     if (classroomId !== null) {
       const { data: classroom, error: classroomError } = await context.adminClient
         .from('classrooms')
-        .select('id, name, code, subject_id')
+        .select('id, name, subject_id')
         .eq('id', classroomId)
         .eq('subject_id', subjectId)
         .single()
 
       if (classroomError || !classroom) return json({ error: 'Clase no encontrada en este curso.' }, 404)
-      previousCode = classroom.code
+      classroomName = classroom.name
       targetTable = 'classrooms'
       targetId = classroomId
     }
@@ -62,11 +62,7 @@ Deno.serve(async (req) => {
       teacherUserId: context.teacherUserId,
       targetTable,
       targetId,
-      metadata: {
-        subject_id: subjectId,
-        previous_code: previousCode,
-        next_code: nextCode,
-      },
+      metadata: { subject_id: subjectId, subject_name: subject.name, classroom_name: classroomName, code_regenerated: true },
     })
 
     return json({ ok: true, subjectId, classroomId, code: nextCode })

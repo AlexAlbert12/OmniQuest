@@ -20,7 +20,7 @@ import {
 import { SubjectPanel, GradeDistributionBars } from './SubjectShared'
 import { formatCount } from '../../../lib/formatCount'
 
-const statusOptions: Array<{ value: StudentStatusFilter; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+const statusOptions: { value: StudentStatusFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { value: 'all', label: 'Todos', icon: 'people-outline' },
   { value: 'active', label: 'Activos', icon: 'checkmark-circle-outline' },
   { value: 'inactive', label: 'Inactivos', icon: 'time-outline' },
@@ -28,7 +28,7 @@ const statusOptions: Array<{ value: StudentStatusFilter; label: string; icon: ke
   { value: 'needs_help', label: 'Necesitan apoyo', icon: 'alert-circle-outline' },
 ]
 
-const sortOptions: Array<{ value: StudentSortKey; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+const sortOptions: { value: StudentSortKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { value: 'xp', label: 'XP', icon: 'star-outline' },
   { value: 'progress', label: 'Progreso', icon: 'trending-up-outline' },
   { value: 'grade', label: 'Nota', icon: 'school-outline' },

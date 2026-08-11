@@ -64,13 +64,8 @@ Deno.serve(async (req) => {
       teacherUserId: context.teacherUserId,
       targetTable: 'subject_topics',
       targetId: data.id,
-      metadata: {
-        subject_id: subjectId,
-        subject_name: subject.name,
-        classroom_id: resolvedClassroomId,
-        title,
-        sort_order: nextSortOrder,
-      },
+      afterState: { title: data.title, icon: data.icon, sort_order: data.sort_order, available_until: data.available_until },
+      metadata: { subject_id: subjectId, subject_name: subject.name, classroom_id: resolvedClassroomId },
     })
 
     return json({ ok: true, topic: data })

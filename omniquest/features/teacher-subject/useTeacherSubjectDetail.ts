@@ -329,7 +329,7 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
       await copyCourseCode(subject.code)
       feedback.success('Código copiado', `Código ${subject.code} copiado al portapapeles.`)
     } catch (error) {
-      feedback.error('No se pudo copiar el código', error)
+      feedback.error('No se pudo copiar el código', error instanceof Error ? error : 'Inténtalo de nuevo más tarde.')
     }
   }, [feedback, subject])
 
@@ -339,7 +339,7 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
       const result = await shareCourseCode({ code: subject.code, subjectName: subject.name, locale })
       if (result === 'copied') feedback.success('Código copiado', `Código ${subject.code} copiado al portapapeles.`)
     } catch (error) {
-      feedback.error('No se pudo compartir el código', error)
+      feedback.error('No se pudo compartir el código', error instanceof Error ? error : 'Inténtalo de nuevo más tarde.')
     }
   }, [feedback, locale, subject])
 

@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     for (const request of requests) {
       try {
         const rows = await fetchAuditRows(admin, request)
-        const csv = buildCsv(rows)
+        const csv = buildCsv(rows, exportLocale(request.filters))
         const path = `${request.teacher_id}/${request.id}.csv`
         const { error: uploadError } = await admin.storage.from(BUCKET).upload(
           path,
@@ -128,14 +128,13 @@ async function fetchAuditRows(admin: ReturnType<typeof createClient>, request: E
     if (severity) query = query.eq('severity', severity)
     if (from) query = query.gte('created_at', from)
     if (to) query = query.lt('created_at', to)
-    if (search) query = query.or(`action.ilike.%${escapePostgrest(search)}%,target_table.ilike.%${escapePostgrest(search)}%,target_id.ilike.%${escapePostgrest(search)}%`)
     const categoryExpression = buildCategoryExpression(category)
     if (categoryExpression) query = query.or(categoryExpression)
 
     const { data, error } = await query
     if (error) throw error
     const page = (data || []) as AuditRow[]
-    rows.push(...page)
+    rows.push(...(search ? page.filter((row) => auditRowMatchesSearch(row, search)) : page))
     if (page.length < PAGE_SIZE) break
   }
 
@@ -143,12 +142,25 @@ async function fetchAuditRows(admin: ReturnType<typeof createClient>, request: E
 }
 
 function buildCategoryExpression(category: string | null) {
-  if (category === 'student') return 'target_table.in.(profiles,enrollments,subject_scores,topic_scores),action.ilike.%student%'
+  if (category === 'student') return 'target_table.in.(enrollments,subject_scores,topic_scores),action.ilike.teacher.student.%'
   if (category === 'question') return 'target_table.in.(questions,answers),action.ilike.%question%'
   if (category === 'subject') return 'target_table.in.(subjects,subject_topics),action.ilike.%subject%,action.ilike.%course%,action.ilike.%topic%'
   if (category === 'code') return 'target_table.eq.classrooms,action.ilike.%code%'
-  if (category === 'profile') return 'target_table.eq.profiles,action.ilike.%profile%'
+  if (category === 'profile') return 'action.ilike.teacher.profile.%'
   return null
+}
+
+
+function auditRowMatchesSearch(row: AuditRow, search: string) {
+  const haystack = [
+    row.action,
+    row.target_table || '',
+    row.target_id || '',
+    JSON.stringify(sanitizeAuditObject(row.metadata || {})),
+    JSON.stringify(effectiveState(row.before_state, row.metadata, ['before', 'old', 'previous'])),
+    JSON.stringify(effectiveState(row.after_state, row.metadata, ['after', 'new', 'next'])),
+  ].join(' ').toLocaleLowerCase('es-ES')
+  return haystack.includes(search.toLocaleLowerCase('es-ES'))
 }
 
 async function expireOldExports(admin: ReturnType<typeof createClient>) {
@@ -179,32 +191,139 @@ async function expireOldExports(admin: ReturnType<typeof createClient>) {
   }
 }
 
-function buildCsv(rows: AuditRow[]) {
-  const headers = ['id', 'created_at', 'severity', 'action', 'target_table', 'target_id', 'request_id', 'before_state', 'after_state', 'metadata']
-  return [
-    headers.join(','),
+function buildCsv(rows: AuditRow[], locale: 'es-ES' | 'en-US') {
+  const headers = locale === 'en-US'
+    ? ['Date', 'Severity', 'Action', 'Item', 'Identifier', 'Before', 'After', 'Action code', 'Entity code', 'Audit record ID', 'Request ID']
+    : ['Fecha', 'Severidad', 'Acción', 'Elemento', 'Identificador', 'Antes', 'Después', 'Código de acción', 'Código de entidad', 'ID de registro', 'ID de petición']
+  const content = [
+    headers.map(csvCell).join(','),
     ...rows.map((row) => [
-      row.id,
-      row.created_at,
-      row.severity,
+      new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(row.created_at)),
+      severityLabel(row.severity, locale),
+      actionLabel(row.action, locale),
+      entityLabel(row.target_table, locale),
+      row.target_id || '',
+      formatAuditState(effectiveState(row.before_state, row.metadata, ['before', 'old', 'previous']), locale),
+      formatAuditState(effectiveState(row.after_state, row.metadata, ['after', 'new', 'next']), locale),
       row.action,
       row.target_table || '',
-      row.target_id || '',
+      row.id,
       row.request_id || '',
-      JSON.stringify(row.before_state || {}),
-      JSON.stringify(row.after_state || {}),
-      JSON.stringify(row.metadata || {}),
     ].map(csvCell).join(',')),
   ].join('\n')
+  return `\uFEFF${content}`
+}
+
+const ACTION_LABELS_ES: Record<string, string> = {
+  'teacher.topic.create': 'Tema creado',
+  'teacher.topic.update': 'Tema actualizado',
+  'teacher.topic.archive': 'Tema archivado',
+  'teacher.subject.update': 'Curso actualizado',
+  'teacher.subject.archive': 'Curso archivado',
+  'teacher.subject.restore': 'Curso restaurado',
+  'teacher.subject.regenerate_code': 'Código del curso regenerado',
+  'teacher.classroom.regenerate_code': 'Código de clase regenerado',
+  'teacher.question.archive': 'Pregunta archivada',
+  'teacher.student.note.add': 'Nota docente añadida',
+  'teacher.student.reset_progress': 'Progreso del alumno reiniciado',
+  'teacher.student.remove_from_class': 'Alumno eliminado de la clase',
+  'teacher.student.password_recovery_requested': 'Recuperación de acceso solicitada',
+  'teacher.profile.avatar.update': 'Imagen de perfil actualizada',
+  'teacher.profile.avatar.clear': 'Imagen de perfil eliminada',
+  'teacher.profile.reset_scores': 'Puntuaciones reiniciadas',
+  'teacher.profile.delete_teaching_data': 'Datos docentes eliminados',
+  'teacher.profile.reset_all': 'Datos docentes reiniciados',
+}
+const ACTION_LABELS_EN: Record<string, string> = {
+  'teacher.topic.create': 'Topic created',
+  'teacher.topic.update': 'Topic updated',
+  'teacher.topic.archive': 'Topic archived',
+  'teacher.subject.update': 'Course updated',
+  'teacher.subject.archive': 'Course archived',
+  'teacher.subject.restore': 'Course restored',
+  'teacher.subject.regenerate_code': 'Course code regenerated',
+  'teacher.classroom.regenerate_code': 'Class code regenerated',
+  'teacher.question.archive': 'Question archived',
+  'teacher.student.note.add': 'Teacher note added',
+  'teacher.student.reset_progress': 'Student progress reset',
+  'teacher.student.remove_from_class': 'Student removed from class',
+  'teacher.student.password_recovery_requested': 'Access recovery requested',
+  'teacher.profile.avatar.update': 'Profile image updated',
+  'teacher.profile.avatar.clear': 'Profile image removed',
+  'teacher.profile.reset_scores': 'Scores reset',
+  'teacher.profile.delete_teaching_data': 'Teaching data deleted',
+  'teacher.profile.reset_all': 'Teaching data reset',
+}
+const ENTITY_LABELS_ES: Record<string, string> = { subjects: 'Curso', subject_topics: 'Tema', questions: 'Pregunta', answers: 'Respuesta', classrooms: 'Clase', enrollments: 'Matrícula', profiles: 'Usuario', subject_scores: 'Progreso del curso', topic_scores: 'Progreso del tema' }
+const ENTITY_LABELS_EN: Record<string, string> = { subjects: 'Course', subject_topics: 'Topic', questions: 'Question', answers: 'Answer', classrooms: 'Class', enrollments: 'Enrolment', profiles: 'User', subject_scores: 'Course progress', topic_scores: 'Topic progress' }
+const FIELD_LABELS_ES: Record<string, string> = { id: 'Identificador', name: 'Nombre', title: 'Título', icon: 'Icono', sort_order: 'Orden', available_until: 'Disponible hasta', education_level: 'Nivel educativo', academic_year: 'Año académico', subject_label: 'Materia', theme_color: 'Color del curso', active: 'Estado', is_archived: 'Archivado', subject_id: 'Curso', classroom_id: 'Clase', student_id: 'Alumno' }
+const FIELD_LABELS_EN: Record<string, string> = { id: 'Identifier', name: 'Name', title: 'Title', icon: 'Icon', sort_order: 'Order', available_until: 'Available until', education_level: 'Education level', academic_year: 'Academic year', subject_label: 'Subject', theme_color: 'Course colour', active: 'Status', is_archived: 'Archived', subject_id: 'Course', classroom_id: 'Class', student_id: 'Student' }
+const SENSITIVE_AUDIT_KEYS = new Set(['password','password_hash','current_password','new_password','token','access_token','refresh_token','secret','service_role','authorization','email','phone','submitted_answer_text','submitted_answer_payload','answer','body','message','content','ip_address','user_agent','description','note','notes','comment','comments','feedback','free_text','question_text','question_prompt','prompt','response_text','code','previous_code','next_code','invite_code','access_code'])
+
+function exportLocale(filters: Record<string, unknown> | null): 'es-ES' | 'en-US' {
+  return filters?.locale === 'en-US' ? 'en-US' : 'es-ES'
+}
+
+function actionLabel(action: string, locale: 'es-ES' | 'en-US') {
+  return (locale === 'en-US' ? ACTION_LABELS_EN : ACTION_LABELS_ES)[action] || (locale === 'en-US' ? 'Recorded activity' : 'Actividad registrada')
+}
+
+function entityLabel(targetTable: string | null, locale: 'es-ES' | 'en-US') {
+  if (!targetTable) return locale === 'en-US' ? 'System' : 'Sistema'
+  return (locale === 'en-US' ? ENTITY_LABELS_EN : ENTITY_LABELS_ES)[targetTable] || (locale === 'en-US' ? 'Item' : 'Elemento')
+}
+
+function severityLabel(severity: string, locale: 'es-ES' | 'en-US') {
+  if (locale === 'en-US') return severity === 'critical' ? 'Critical' : severity === 'warning' ? 'Warning' : 'Informational'
+  return severity === 'critical' ? 'Crítica' : severity === 'warning' ? 'Advertencia' : 'Informativa'
+}
+
+function effectiveState(primary: Record<string, unknown> | null, metadata: Record<string, unknown> | null, fallbacks: string[]) {
+  if (primary && Object.keys(primary).length) return sanitizeAuditObject(primary)
+  for (const key of fallbacks) {
+    const candidate = metadata?.[key]
+    if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) return sanitizeAuditObject(candidate as Record<string, unknown>)
+  }
+  return {}
+}
+
+function sanitizeAuditObject(value: Record<string, unknown>) {
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !SENSITIVE_AUDIT_KEYS.has(key.toLowerCase())).map(([key, item]) => [key, sanitizeAuditValue(item)]))
+}
+
+function sanitizeAuditValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sanitizeAuditValue)
+  if (value && typeof value === 'object') return sanitizeAuditObject(value as Record<string, unknown>)
+  return value
+}
+
+function formatAuditState(state: Record<string, unknown>, locale: 'es-ES' | 'en-US') {
+  const fields = locale === 'en-US' ? FIELD_LABELS_EN : FIELD_LABELS_ES
+  return Object.entries(state).map(([key, value]) => `${fields[key] || humanField(key)}: ${formatAuditValue(key, value, locale)}`).join(' | ')
+}
+
+function formatAuditValue(key: string, value: unknown, locale: 'es-ES' | 'en-US') {
+  if (value === null || value === undefined || value === '') return '—'
+  if (typeof value === 'boolean') {
+    if (key === 'active') return locale === 'en-US' ? (value ? 'Active' : 'Inactive') : (value ? 'Activo' : 'Inactivo')
+    return locale === 'en-US' ? (value ? 'Yes' : 'No') : (value ? 'Sí' : 'No')
+  }
+  if (typeof value === 'string' && (key.endsWith('_at') || key.endsWith('_until') || key.includes('date'))) {
+    const date = new Date(value)
+    if (!Number.isNaN(date.getTime())) return new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(date)
+  }
+  if (Array.isArray(value)) return value.map((item) => typeof item === 'object' ? JSON.stringify(item) : String(item ?? '—')).join(', ')
+  return typeof value === 'object' ? JSON.stringify(value) : String(value)
+}
+
+function humanField(value: string) {
+  const text = value.replaceAll('_', ' ')
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text
 }
 
 
 function stringFilter(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
-function escapePostgrest(value: string) {
-  return value.replace(/[,%()]/g, ' ')
 }
 
 function sanitizeError(error: unknown) {

@@ -10,6 +10,7 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 
 const migration = read('supabase/migrations/20260730190000_teacher_review_reports_audit.sql')
 const reviewSimplification = read('supabase/migrations/20260811104500_manual_review_owner_only_simplification.sql')
+const auditSimplification = read('supabase/migrations/20260811130000_teacher_audit_teacher_facing_simplification.sql')
 
 test('manual review exposes owner-only access, SLA, reusable comments, batch decisions and immutable history', () => {
   for (const contract of [
@@ -56,7 +57,7 @@ test('question report is split and includes diagnostic server aggregates', () =>
   ]) assert.match(migration, new RegExp(metric, 'i'))
 })
 
-test('teacher audit is immutable, sanitized, retained, filtered and exported asynchronously', () => {
+test('teacher audit exposes owner-only activity history, minimized payloads and understandable asynchronous exports', () => {
   for (const contract of [
     'before_state',
     'after_state',
@@ -64,16 +65,30 @@ test('teacher audit is immutable, sanitized, retained, filtered and exported asy
     'sanitize_teacher_audit_payload',
     'apply_teacher_audit_retention',
     'detect_teacher_audit_anomalies',
-    'teacher_audit_saved_filters',
     'teacher_audit_export_requests',
     'request_teacher_audit_export',
-  ]) assert.match(migration, new RegExp(contract))
+  ]) assert.match(migration + auditSimplification, new RegExp(contract))
 
-  assert.match(migration, /submitted_answer_text/)
-  assert.match(migration, /password_hash/)
-  assert.match(read('supabase/functions/process-teacher-audit-exports/index.ts'), /TEACHER_AUDIT_EXPORT_SECRET/)
-  assert.match(read('app/(teacher)/audit.tsx'), /TeacherAuditTimeline/)
-  assert.match(read('app/(teacher)/audit.tsx'), /TeacherAuditExports/)
+  assert.match(auditSimplification, /drop function if exists public\.save_teacher_audit_filter/)
+  assert.match(auditSimplification, /drop table if exists public\.teacher_audit_saved_filters/)
+  assert.match(auditSimplification, /role_id = 'teacher'.*coalesce\(p\.active, true\)/)
+  assert.match(auditSimplification, /new\.metadata -> 'previous'/)
+  assert.match(auditSimplification, /'description'.*'note'.*'comments'/s)
+  assert.match(read('supabase/functions/_shared/teacher.ts'), /beforeState\?: Record<string, unknown>/)
+  assert.match(read('supabase/functions/teacher-update-topic/index.ts'), /beforeState: safeTopicAuditState\(previous\)/)
+  assert.match(read('supabase/functions/teacher-update-subject/index.ts'), /afterState: safeSubjectAuditState\(data\)/)
+
+  const auditUi = read('app/(teacher)/audit.tsx') + read('components/teacher/audit/TeacherAuditFilters.tsx') + read('components/teacher/audit/TeacherAuditTimeline.tsx') + read('hooks/teacher/useTeacherAudit.ts')
+  assert.doesNotMatch(auditUi, /Guardar filtro|save_teacher_audit_filter|label="Entidad"|label="Actualizar"/)
+  assert.match(auditUi, /Todas las acciones/)
+  assert.match(auditUi, /Historial de actividad/)
+  assert.match(auditUi, /EXPORT_POLL_MS = 45_000/)
+  assert.match(read('lib/teacherAuditPresentation.ts'), /'teacher\.topic\.update': 'Tema actualizado'/)
+
+  const exportWorker = read('supabase/functions/process-teacher-audit-exports/index.ts')
+  assert.match(exportWorker, /TEACHER_AUDIT_EXPORT_SECRET/)
+  assert.match(exportWorker, /'Fecha'.*'Severidad'.*'Acción'.*'Elemento'.*'Identificador'.*'Antes'.*'Después'/s)
+  assert.match(exportWorker, /'Código de acción'.*'Código de entidad'/s)
 })
 
 test('the TypeScript regressions reported after the previous teacher refactor stay fixed', () => {

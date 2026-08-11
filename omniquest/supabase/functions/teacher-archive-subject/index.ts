@@ -39,11 +39,9 @@ Deno.serve(async (req) => {
       teacherUserId: context.teacherUserId,
       targetTable: 'subjects',
       targetId: subjectId,
-      metadata: {
-        name: subject.name,
-        previous_is_archived: subject.is_archived,
-        next_is_archived: archive,
-      },
+      beforeState: { name: subject.name, is_archived: subject.is_archived },
+      afterState: { name: subject.name, is_archived: archive },
+      metadata: { subject_id: subjectId },
     })
 
     return json({ ok: true, subjectId, isArchived: archive })

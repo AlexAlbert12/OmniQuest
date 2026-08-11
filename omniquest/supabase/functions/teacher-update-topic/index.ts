@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 
     if (topicError || !previous) return json({ error: 'Tema no encontrado.' }, 404)
 
-    await ensureTeacherSubject(context.adminClient, context.teacherUserId, Number(previous.subject_id), 'id, name, teacher_id')
+    const subject = await ensureTeacherSubject(context.adminClient, context.teacherUserId, Number(previous.subject_id), 'id, name, teacher_id')
 
     const { data, error } = await context.adminClient
       .from('subject_topics')
@@ -62,12 +62,9 @@ Deno.serve(async (req) => {
       teacherUserId: context.teacherUserId,
       targetTable: 'subject_topics',
       targetId: topicId,
-      metadata: {
-        subject_id: previous.subject_id,
-        classroom_id: previous.classroom_id,
-        previous: safeTopicMetadata(previous),
-        next: safeTopicMetadata(data),
-      },
+      beforeState: safeTopicAuditState(previous),
+      afterState: safeTopicAuditState(data),
+      metadata: { subject_id: previous.subject_id, subject_name: subject.name, classroom_id: previous.classroom_id },
     })
 
     return json({ ok: true, topic: data })
@@ -89,13 +86,6 @@ function normalizeIsoDate(value: unknown) {
   return date.toISOString()
 }
 
-function safeTopicMetadata(topic: any) {
-  return {
-    id: topic?.id,
-    title: topic?.title,
-    description: topic?.description,
-    icon: topic?.icon,
-    sort_order: topic?.sort_order,
-    available_until: topic?.available_until,
-  }
+function safeTopicAuditState(topic: any) {
+  return { title: topic?.title, icon: topic?.icon, sort_order: topic?.sort_order, available_until: topic?.available_until }
 }

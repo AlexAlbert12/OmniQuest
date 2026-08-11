@@ -5,7 +5,6 @@ export type TeacherAuditFilters = {
   category: TeacherAuditCategory
   search: string
   action: string | null
-  targetTable: string | null
   severity: TeacherAuditSeverity
   from: string | null
   to: string | null
@@ -30,16 +29,6 @@ export type TeacherAuditPage = {
   total: number
   stats: { last7Days: number; critical: number; warning: number }
   actions: string[]
-  targetTables: string[]
-}
-
-export type TeacherAuditSavedFilter = {
-  id: string
-  teacher_id: string
-  name: string
-  filters: TeacherAuditFilters
-  created_at: string
-  updated_at: string
 }
 
 export type TeacherAuditAlert = {
@@ -60,7 +49,7 @@ export type TeacherAuditExport = {
   id: string
   teacher_id: string
   status: 'queued' | 'processing' | 'ready' | 'failed' | 'expired'
-  filters: TeacherAuditFilters
+  filters: TeacherAuditFilters & { locale?: 'es-ES' | 'en-US' }
   object_path: string | null
   row_count: number | null
   requested_at: string
@@ -73,7 +62,7 @@ export type TeacherAuditExport = {
 
 export type TeacherAuditConfiguration = {
   retentionDays: number
-  savedFilters: TeacherAuditSavedFilter[]
+  subjectsCount: number
   alerts: TeacherAuditAlert[]
   exports: TeacherAuditExport[]
 }

@@ -4725,41 +4725,6 @@ export type Database = {
         }
         Relationships: []
       }
-      teacher_audit_saved_filters: {
-        Row: {
-          created_at: string
-          filters: Json
-          id: string
-          name: string
-          teacher_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          filters?: Json
-          id?: string
-          name: string
-          teacher_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          filters?: Json
-          id?: string
-          name?: string
-          teacher_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "teacher_audit_saved_filters_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       teacher_digest_deliveries: {
         Row: {
           attempts: number
@@ -6148,6 +6113,17 @@ export type Database = {
           weekly_points: number
         }[]
       }
+      get_game_attempt_review_index: {
+        Args: {
+          p_attempt_id?: string
+          p_classroom_id?: number
+          p_difficulty?: number
+          p_general_topic?: boolean
+          p_subject_id?: number
+          p_topic_id?: number
+        }
+        Returns: Json
+      }
       get_game_questions: {
         Args: {
           p_classroom_id?: number
@@ -6737,10 +6713,6 @@ export type Database = {
           p_id: string
           p_title: string
         }
-        Returns: string
-      }
-      save_teacher_audit_filter: {
-        Args: { p_filters: Json; p_id: string; p_name: string }
         Returns: string
       }
       save_teacher_question: {

@@ -64,10 +64,9 @@ Deno.serve(async (req) => {
       teacherUserId: context.teacherUserId,
       targetTable: 'subjects',
       targetId: subjectId,
-      metadata: {
-        previous: safeSubjectMetadata(previous),
-        next: safeSubjectMetadata(data),
-      },
+      beforeState: safeSubjectAuditState(previous),
+      afterState: safeSubjectAuditState(data),
+      metadata: { subject_id: subjectId },
     })
 
     return json({ ok: true, subject: data })
@@ -81,15 +80,6 @@ function normalizeOptionalText(value: unknown) {
   return text.length > 0 ? text : null
 }
 
-function safeSubjectMetadata(subject: any) {
-  return {
-    id: subject?.id,
-    name: subject?.name,
-    description: subject?.description,
-    icon: subject?.icon,
-    education_level: subject?.education_level,
-    academic_year: subject?.academic_year,
-    subject_label: subject?.subject_label,
-    theme_color: subject?.theme_color,
-  }
+function safeSubjectAuditState(subject: any) {
+  return { name: subject?.name, icon: subject?.icon, education_level: subject?.education_level, academic_year: subject?.academic_year, subject_label: subject?.subject_label, theme_color: subject?.theme_color }
 }

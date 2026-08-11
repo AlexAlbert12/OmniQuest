@@ -93,6 +93,8 @@ export async function writeTeacherAudit(
   adminClient: any,
   params: {
     action: string
+    afterState?: Record<string, unknown>
+    beforeState?: Record<string, unknown>
     metadata?: Record<string, unknown>
     targetId?: string | number | null
     targetTable?: string | null
@@ -106,6 +108,8 @@ export async function writeTeacherAudit(
       action: params.action,
       target_table: params.targetTable ?? null,
       target_id: params.targetId === undefined || params.targetId === null ? null : String(params.targetId),
+      before_state: params.beforeState || {},
+      after_state: params.afterState || {},
       metadata: params.metadata || {},
     })
 

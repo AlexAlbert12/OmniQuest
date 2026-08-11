@@ -7,6 +7,7 @@ import CelebrationParticles from '../../gamification/CelebrationParticles'
 import XpGainBurst from '../../gamification/XpGainBurst'
 import { USE_NATIVE_ANIMATION_DRIVER } from '../../../lib/animation'
 import { useAppTheme } from '../../../lib/appTheme'
+import { withAlpha } from '../../../lib/color'
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
@@ -222,8 +223,9 @@ export function AnswerOption({
   const isSelected = selectedAnswerId === answer.id
   const isCorrectAnswer = correctAnswerId === answer.id
   const isHinted = hintedAnswerId === answer.id
+  const { tokens } = useAppTheme()
 
-  let borderColor = '#2B4B7B'
+  let borderColor = withAlpha(tokens.brand.student, '80')
   let backgroundColor = '#0D1F3D'
   let textColor = '#F8FAFC'
   let badgeColor = '#1A3260'

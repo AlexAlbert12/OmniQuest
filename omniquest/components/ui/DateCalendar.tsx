@@ -16,8 +16,6 @@ type DateCalendarProps = {
   minimumDate?: Date | null
 }
 
-const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
-
 export default function DateCalendar({
   month,
   selectedDate,
@@ -29,6 +27,7 @@ export default function DateCalendar({
 }: DateCalendarProps) {
   const { accentColor, tokens } = useAppTheme()
   const days = useMemo(() => getMonthGrid(month), [month])
+  const weekdays = useMemo(() => Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(locale, { weekday: 'narrow' }).format(new Date(2024, 0, index + 1))), [locale])
   const today = new Date()
   const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(month)
   const minimumDay = minimumDate ? startOfDay(minimumDate) : null
@@ -37,7 +36,7 @@ export default function DateCalendar({
     <View style={[styles.card, { borderColor: tokens.border.default, backgroundColor: tokens.surface.default }]}>
       <View style={styles.header}>
         <AppPressable
-          accessibilityLabel="Mes anterior"
+          accessibilityLabel={locale === 'en-US' ? 'Previous month' : 'Mes anterior'}
           onPress={() => onMonthChange(addMonths(month, -1))}
           style={({ pressed }) => [styles.iconButton, { borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive, opacity: pressed ? 0.72 : 1 }]}
         >
@@ -48,7 +47,7 @@ export default function DateCalendar({
           <Text style={[styles.subtitle, { color: tokens.text.muted }]}>{subtitle}</Text>
         </View>
         <AppPressable
-          accessibilityLabel="Mes siguiente"
+          accessibilityLabel={locale === 'en-US' ? 'Next month' : 'Mes siguiente'}
           onPress={() => onMonthChange(addMonths(month, 1))}
           style={({ pressed }) => [styles.iconButton, { borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive, opacity: pressed ? 0.72 : 1 }]}
         >
@@ -57,8 +56,8 @@ export default function DateCalendar({
       </View>
 
       <View style={styles.weekRow}>
-        {WEEKDAYS.map((day) => (
-          <Text key={day} style={[styles.weekday, { color: tokens.text.muted }]}>{day}</Text>
+        {weekdays.map((day, index) => (
+          <Text key={`${day}-${index}`} style={[styles.weekday, { color: tokens.text.muted }]}>{day}</Text>
         ))}
       </View>
 

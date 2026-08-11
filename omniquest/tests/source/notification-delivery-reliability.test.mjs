@@ -41,3 +41,13 @@ test('notification hook exposes stable audience-bound callbacks so focus refresh
   assert.match(hook, /const loadMore = useCallback\([\s\S]*?contextLoadMore\(audience\)[\s\S]*?\[audience, contextLoadMore\]\)/)
   assert.doesNotMatch(hook, /refresh:\s*\(\)\s*=>\s*context\.refresh\(audience\)/)
 })
+
+test('teacher notification realtime subscription uses an isolated topic and a stable effect', () => {
+  const hook = read('hooks/teacher/useTeacherNotifications.ts')
+
+  assert.match(hook, /const refreshRef = useRef\(refresh\)/)
+  assert.match(hook, /const subscriptionId = `\$\{Date\.now\(\)\}:\$\{Math\.random\(\)\.toString\(36\)\.slice\(2\)\}`/)
+  assert.match(hook, /teacher-notification-center:\$\{data\.user\.id\}:\$\{subscriptionId\}/)
+  assert.match(hook, /payload\.new\.audience === 'teacher'\) void refreshRef\.current\(\)/)
+  assert.doesNotMatch(hook, /teacher-notification-center:\$\{data\.user\.id\}`/)
+})
