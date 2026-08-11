@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +20,7 @@ import { formatRelativeDate, getInitials, getStatusMeta } from './studentUtils';
 import { MobileEmptyState, MobileMetricCard, MobileScreen, MobileSectionHeader } from '../../ui/mobile';
 import VirtualizedStack from '../../ui/VirtualizedStack'
 import TeacherBottomNav from '../TeacherBottomNav';
+import AppDropdown from '../../ui/AppDropdown';
 
 const MOBILE_STUDENTS_PAGE_SIZE = 5;
 
@@ -32,9 +33,8 @@ export default function MobileTeacherStudents({
   selectedSort,
   search,
   stats,
-  students,
   visibleStudents,
-  pendingStudents,
+  attentionStudents,
   refreshing,
   sendingBulkReminders,
   reminderStudentIds,
@@ -45,6 +45,7 @@ export default function MobileTeacherStudents({
   onSelectSort,
   onSearch,
   onExportStudents,
+  onExportNoActivity,
   onSendReminder,
   onViewDetails,
   onAssignActivity,
@@ -67,9 +68,8 @@ export default function MobileTeacherStudents({
   selectedSort: StudentSortKey
   search: string
   stats: MobileStudentsStats
-  students: StudentRow[]
   visibleStudents: StudentRow[]
-  pendingStudents: StudentRow[]
+  attentionStudents: StudentRow[]
   refreshing: boolean
   sendingBulkReminders: boolean
   reminderStudentIds: Record<string, boolean>
@@ -80,6 +80,7 @@ export default function MobileTeacherStudents({
   onSelectSort: (value: StudentSortKey) => void
   onSearch: (value: string) => void
   onExportStudents: () => void
+  onExportNoActivity: () => void
   onSendReminder: () => void
   onViewDetails: (student: StudentRow) => void
   onAssignActivity: (student: StudentRow) => void
@@ -95,19 +96,13 @@ export default function MobileTeacherStudents({
   onNextPage: () => void
 }) {
   const selectedStatusLabel = statusFilterOptions.find((option) => option.value === selectedStatus)?.label || 'Todos';
-  const selectedSortLabel = sortOptions.find((option) => option.value === selectedSort)?.label || 'Actividad reciente';
-  const attentionStudents = useMemo(
-    () => visibleStudents.filter((student) => student.status === 'needs_help' || student.status === 'inactive'),
-    [visibleStudents]
-  );
-  const mobileStatusOptions = statusFilterOptions.filter((option) => (
-    option.value === 'all'
-    || option.value === 'active'
-    || option.value === 'no_activity'
-    || option.value === 'needs_help'
-  ));
+  const selectedSortLabel = sortOptions.find((option) => option.value === selectedSort)?.label || 'Necesitan atención';
   const safePage = Math.min(page, Math.max(0, pageCount - 1));
   const paginatedStudents = visibleStudents;
+  const subjectOptions = [{ value: 'all' as const, label: 'Todos' }, ...subjects.map((subject) => ({ value: subject.id, label: subject.name }))];
+  const classOptions = [{ value: 'all' as const, label: 'Todas' }, ...classroomOptions.map((classroom) => ({ value: classroom.id, label: classroom.name }))];
+  const statusOptions = statusFilterOptions.map((option) => ({ value: option.value, label: `${option.label} (${getStatusCount(option.value, stats)})` }));
+  const orderOptions = sortOptions.map((option) => ({ value: option.value, label: option.label }));
 
   return (
     <MobileScreen
@@ -125,31 +120,23 @@ export default function MobileTeacherStudents({
         className="mb-5"
       />
 
-      <View className="mb-5 flex-row gap-3">
-        <MobileSelectBox
-          label="Curso"
-          value={selectedSubjectId}
-          allLabel="Todos"
-          options={subjects.map((subject) => ({ id: subject.id, label: subject.name }))}
-          onChange={onSelectSubject}
-        />
-        <MobileSelectBox
-          label="Clase"
-          value={selectedClassroomId}
-          allLabel="Todas"
-          options={classroomOptions.map((classroom) => ({ id: classroom.id, label: classroom.name }))}
-          onChange={onSelectClassroom}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Filtro actual: ${selectedStatusLabel}`}
-          accessibilityHint="Cambia al siguiente estado de alumno"
-          onPress={() => onSelectStatus(getNextStringOption(statusFilterOptions, selectedStatus))}
-          className="h-[74px] w-[68px] items-center justify-center rounded-2xl border border-border-default bg-surface-default"
-          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-        >
-          <Ionicons name="options-outline" size={25} color="#DDE7F4" />
-        </Pressable>
+      <View className="mb-5 gap-3">
+        <View className="flex-row gap-3">
+          <View className="min-w-0 flex-1">
+            <AppDropdown<number | 'all'> label="Curso" accessibilityLabel="Seleccionar curso" value={selectedSubjectId} options={subjectOptions} onChange={onSelectSubject} />
+          </View>
+          <View className="min-w-0 flex-1">
+            <AppDropdown<number | 'all'> label="Clase" accessibilityLabel="Seleccionar clase" value={selectedClassroomId} options={classOptions} onChange={onSelectClassroom} />
+          </View>
+        </View>
+        <View className="flex-row gap-3">
+          <View className="min-w-0 flex-1">
+            <AppDropdown<StudentStatusFilter> label="Estado" accessibilityLabel="Filtrar alumnos por estado" value={selectedStatus} options={statusOptions} onChange={onSelectStatus} />
+          </View>
+          <View className="min-w-0 flex-1">
+            <AppDropdown<StudentSortKey> label="Ordenar" accessibilityLabel="Ordenar alumnos" value={selectedSort} options={orderOptions} onChange={onSelectSort} />
+          </View>
+        </View>
       </View>
 
       <View className="mb-5 flex-row gap-3">
@@ -158,7 +145,7 @@ export default function MobileTeacherStudents({
           className="flex-1"
           icon="alert-circle"
           label="Atención"
-          value={attentionStudents.length}
+          value={stats.attention}
           color="#F59E0B"
           detail="prioridad"
         />
@@ -184,8 +171,8 @@ export default function MobileTeacherStudents({
 
       <MobileSectionHeader
         title="Necesitan atención"
-        actionLabel={attentionStudents.length > 0 ? 'Ver filtro' : undefined}
-        onAction={attentionStudents.length > 0 ? () => onSelectStatus('needs_help') : undefined}
+        actionLabel={stats.attention > 0 ? 'Ver todos' : undefined}
+        onAction={stats.attention > 0 ? () => onSelectStatus('attention') : undefined}
         icon="medkit-outline"
         iconColor="#F59E0B"
         className="mb-3"
@@ -204,81 +191,45 @@ export default function MobileTeacherStudents({
           <View className="rounded-2xl border border-border-default bg-surface-default p-4">
             <Text className="text-[16px] font-black text-white">Todo bajo control</Text>
             <Text className="mt-1 text-[13px] leading-5 text-text-secondary">
-              No hay alumnos marcados como prioritarios con los filtros actuales.
+              No hay alumnos marcados como prioritarios con la selección actual.
             </Text>
           </View>
         ) : null}
+        {attentionStudents.length > 0 && attentionStudents.length < stats.attention ? (
+          <Text className="text-[12px] text-text-muted">Mostrando {Math.min(3, attentionStudents.length)} de {stats.attention} alumnos que necesitan atención.</Text>
+        ) : null}
       </View>
 
-      {pendingStudents.length > 0 ? (
+      {stats.noActivity > 0 ? (
         <MobilePendingAccessBanner
-          count={pendingStudents.length}
+          count={stats.noActivity}
           sendingReminder={sendingBulkReminders}
           onSendReminder={onSendReminder}
-          onExport={onExportStudents}
+          onExport={onExportNoActivity}
         />
       ) : null}
 
-      <View className="mt-6 flex-row gap-3">
-        <View className="min-h-14 min-w-0 flex-1 flex-row items-center rounded-2xl border border-border-default bg-surface-default px-4">
-          <Ionicons name="search-outline" size={24} color="#C4D2E8" />
-          <TextInput
-            accessibilityLabel="Buscar alumno"
-            accessibilityHint="Filtra el listado por nombre, usuario o correo"
-            className="min-w-0 flex-1 px-3 text-[16px] text-white"
-            placeholder="Buscar alumno..."
-            placeholderTextColor="#7F92B2"
-            value={search}
-            onChangeText={onSearch}
-          />
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Abrir filtros. Filtro actual: ${selectedStatusLabel}`}
-          accessibilityHint="Cambia al siguiente filtro de estado"
-          onPress={() => onSelectStatus(getNextStringOption(statusFilterOptions, selectedStatus))}
-          className="min-h-14 flex-row items-center gap-2 rounded-2xl border border-border-default bg-surface-default px-4"
-          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-        >
-          <Ionicons name="filter-outline" size={22} color="#DDE7F4" />
-          <Text className="font-black text-text-secondary">Filtros</Text>
-        </Pressable>
+      <View className="mt-6 min-h-14 flex-row items-center rounded-2xl border border-border-default bg-surface-default px-4">
+        <Ionicons name="search-outline" size={24} color="#C4D2E8" />
+        <TextInput
+          accessibilityLabel="Buscar alumno"
+          accessibilityHint="Filtra el listado por nombre, usuario o correo"
+          className="min-w-0 flex-1 px-3 text-[16px] text-white"
+          placeholder="Buscar alumno..."
+          placeholderTextColor="#7F92B2"
+          value={search}
+          onChangeText={onSearch}
+        />
       </View>
 
-      <View className="mt-4 flex-row flex-wrap gap-2">
-        {mobileStatusOptions.map((option) => (
-          <MobileStudentFilterChip
-            key={option.value}
-            label={option.value === 'all' ? `Todos (${stats.total})` : `${option.label} (${getStatusCount(option.value, visibleStudents, stats)})`}
-            icon={getFilterIcon(option.value)}
-            active={selectedStatus === option.value}
-            color={getFilterColor(option.value)}
-            onPress={() => onSelectStatus(option.value)}
-          />
-        ))}
-      </View>
-
-      <View className="mb-3 mt-4 flex-row items-center justify-between gap-3">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Orden actual: ${selectedSortLabel}`}
-          accessibilityHint="Cambia al siguiente criterio de ordenación"
-          onPress={() => onSelectSort(getNextStringOption(sortOptions, selectedSort))}
-          className="min-w-0 flex-1 flex-row items-center rounded-2xl border border-border-default bg-surface-default px-4 py-3"
-          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-        >
-          <Text className="text-[15px] text-text-secondary">Ordenar: </Text>
-          <Text className="min-w-0 flex-1 text-[15px] font-black text-white" numberOfLines={2} maxFontSizeMultiplier={2}>{selectedSortLabel}</Text>
-          <Ionicons name="chevron-down" size={17} color="#AFC2DB" />
-        </Pressable>
-        <View className="rounded-2xl border border-border-default bg-surface-default px-4 py-3">
-          <Text className="text-[13px] font-black text-brand-teacher">{visibleStudents.length} en esta página · {total} en total</Text>
-        </View>
+      <View className="mb-3 mt-4 rounded-2xl border border-border-default bg-surface-default px-4 py-3">
+        <Text className="text-[13px] font-black text-brand-teacher">{visibleStudents.length} en esta página · {total} con el filtro actual</Text>
+        <Text className="mt-1 text-[12px] text-text-muted">Estado: {selectedStatusLabel} · Orden: {selectedSortLabel}</Text>
       </View>
 
       <MobileSectionHeader
         title="Listado"
-        actionLabel="Exportar"
+        actionLabel="Exportar selección"
         onAction={onExportStudents}
         className="mb-3 mt-1"
       />
@@ -316,43 +267,6 @@ export default function MobileTeacherStudents({
   );
 }
 
-function MobileSelectBox({
-  label,
-  value,
-  allLabel,
-  options,
-  onChange,
-}: {
-  label: string
-  value: number | 'all'
-  allLabel: string
-  options: { id: number; label: string }[]
-  onChange: (value: number | 'all') => void
-}) {
-  const selectedIndex = value === 'all' ? -1 : options.findIndex((option) => option.id === value);
-  const nextValue = selectedIndex >= options.length - 1 ? 'all' : options[selectedIndex + 1]?.id ?? 'all';
-  const selectedLabel = value === 'all' ? allLabel : options.find((option) => option.id === value)?.label || allLabel;
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}: ${selectedLabel}`}
-      accessibilityHint="Cambia a la siguiente opción disponible"
-      onPress={() => onChange(nextValue)}
-      className="min-h-[74px] min-w-0 flex-1 justify-center rounded-2xl border border-border-default bg-surface-default px-4"
-      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-    >
-      <View className="flex-row items-center justify-between gap-2">
-        <View className="min-w-0 flex-1">
-          <Text className="text-[12px] font-semibold text-text-muted">{label}</Text>
-          <Text className="mt-1 text-[16px] font-bold text-white" numberOfLines={2} maxFontSizeMultiplier={2}>{selectedLabel}</Text>
-        </View>
-        <Ionicons name="chevron-down" size={18} color="#C4D2E8" />
-      </View>
-    </Pressable>
-  );
-}
-
 function MobilePendingAccessBanner({
   count,
   sendingReminder,
@@ -378,21 +292,21 @@ function MobilePendingAccessBanner({
         <View className="min-w-0 flex-1">
           <Text className="text-[17px] font-black text-white">Sin actividad</Text>
           <Text className="mt-1 text-[13px] leading-5 text-text-secondary">
-            {count} alumno{count === 1 ? '' : 's'} importado{count === 1 ? '' : 's'} todavía no han iniciado actividad.
+            {count} alumno{count === 1 ? '' : 's'} todavía no han iniciado actividad en la selección actual.
           </Text>
         </View>
       </View>
       <View className="mt-4 flex-row gap-3">
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Exportar alumnos sin actividad"
+          accessibilityLabel="Exportar todos los alumnos sin actividad"
           accessibilityHint="Descarga el listado de alumnos pendientes de acceso"
           onPress={onExport}
           className="min-h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-default"
           style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
         >
           <Ionicons name="download-outline" size={18} color="#DDE7F4" />
-          <Text className="font-black text-text-secondary">Exportar</Text>
+          <Text className="font-black text-text-secondary">Exportar sin actividad</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -405,43 +319,10 @@ function MobilePendingAccessBanner({
           style={({ pressed }) => ({ opacity: sendingReminder ? 0.62 : pressed ? 0.82 : 1 })}
         >
           {sendingReminder ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="send-outline" size={18} color="#FFFFFF" />}
-          <Text className="font-black text-white">{sendingReminder ? 'Enviando...' : 'Recordatorio'}</Text>
+          <Text className="font-black text-white">{sendingReminder ? 'Enviando...' : `Recordar a ${count}`}</Text>
         </Pressable>
       </View>
     </LinearGradient>
-  );
-}
-
-function MobileStudentFilterChip({
-  label,
-  icon,
-  active,
-  color,
-  onPress,
-}: {
-  label: string
-  icon: IconName
-  active: boolean
-  color: string
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Filtrar por ${label}`}
-      accessibilityHint="Actualiza el listado de alumnos"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      className="min-h-11 flex-row items-center gap-2 rounded-2xl border px-3"
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.82 : 1,
-        borderColor: active ? '#7C5CFF' : '#1D3760',
-        backgroundColor: active ? '#6D47F6' : '#07162C',
-      })}
-    >
-      <Ionicons name={icon} size={17} color={active ? '#FFFFFF' : color} />
-      <Text className={`text-[13px] font-black ${active ? 'text-white' : 'text-text-secondary'}`} numberOfLines={2} maxFontSizeMultiplier={2}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -694,33 +575,13 @@ function MobileStudentsEmptyState() {
   );
 }
 
-function getNextStringOption<T extends string>(options: { value: T; label: string }[], current: T) {
-  const selectedIndex = options.findIndex((option) => option.value === current);
-  return (options[selectedIndex >= options.length - 1 ? 0 : selectedIndex + 1] || options[0]).value;
-}
-
-function getStatusCount(status: StudentStatusFilter, students: StudentRow[], stats: MobileStudentsStats) {
+function getStatusCount(status: StudentStatusFilter, stats: MobileStudentsStats) {
   if (status === 'all') return stats.total;
+  if (status === 'attention') return stats.attention;
   if (status === 'active') return stats.active;
+  if (status === 'excellent') return stats.excellent;
+  if (status === 'inactive') return stats.inactive;
   if (status === 'no_activity') return stats.noActivity;
   if (status === 'needs_help') return stats.needsHelp;
-  return students.filter((student) => student.status === status).length;
-}
-
-function getFilterIcon(status: StudentStatusFilter): IconName {
-  if (status === 'active') return 'checkmark-circle';
-  if (status === 'no_activity') return 'time-outline';
-  if (status === 'needs_help') return 'medkit-outline';
-  if (status === 'excellent') return 'sparkles-outline';
-  if (status === 'inactive') return 'pause-circle-outline';
-  return 'grid-outline';
-}
-
-function getFilterColor(status: StudentStatusFilter) {
-  if (status === 'active') return '#22D3A6';
-  if (status === 'no_activity') return '#9FD6FF';
-  if (status === 'needs_help') return '#F59E0B';
-  if (status === 'excellent') return '#38BDF8';
-  if (status === 'inactive') return '#94A3B8';
-  return '#B9A7FF';
+  return 0;
 }

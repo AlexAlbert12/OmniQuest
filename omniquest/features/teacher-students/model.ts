@@ -12,10 +12,11 @@ export function parseStudentStatusParam(value?: string | string[]): StudentStatu
   return statusFilterOptions.some((option) => option.value === raw) ? raw as StudentStatusFilter : 'all'
 }
 
-export function buildTeacherStudentPageView(students: StudentRow[], summary: MobileStudentsStats) {
+export function buildTeacherStudentPageView(students: StudentRow[], summary: MobileStudentsStats, attention: StudentRow[], pending: StudentRow[]) {
   return {
-    needsAttention: students.filter((student) => student.status === 'needs_help' || student.status === 'inactive'),
-    pendingStudents: students.filter((student) => student.status === 'no_activity'),
+    needsAttention: attention,
+    pendingStudents: pending,
+    pagePendingStudents: students.filter((student) => student.status === 'no_activity'),
     stats: { ...summary },
   }
 }
@@ -55,7 +56,7 @@ export function buildTeacherStudentsCsv(students: StudentRow[]) {
     student.subjectNames.join(' | '),
     student.classroomNames.join(' | '),
   ])
-  return [['ID', 'Alias', 'XP curso', 'XP global', 'Precisión', 'Participación', 'Preguntas', 'Estado', 'Última actividad', 'Cursos', 'Clases'], ...rows]
+  return [['ID', 'Alias', 'XP en selección', 'XP global', 'Precisión', 'Participación', 'Preguntas respondidas', 'Estado', 'Última actividad', 'Cursos', 'Clases'], ...rows]
     .map((row) => row.map(escapeCsv).join(','))
     .join('\n')
 }

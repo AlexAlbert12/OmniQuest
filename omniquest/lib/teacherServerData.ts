@@ -361,6 +361,9 @@ export type TeacherStudentsPageSummary = {
   active: number
   noActivity: number
   needsHelp: number
+  inactive: number
+  excellent: number
+  attention: number
   withActivity: number
   averageXp: number
   averageGrade: number
@@ -372,8 +375,8 @@ export type TeacherStudentsPagePayload<TStudent> = PagedPayload<TStudent> & {
   summary: TeacherStudentsPageSummary
   subjects: Array<{ id: number; name: string }>
   classrooms: Array<{ id: number; subject_id: number; name: string; academic_year: string | null }>
-  attention: Array<{ id: string; alias: string; status: string; priority: number }>
-  pending: Array<{ id: string; alias: string; status: string }>
+  attention: TStudent[]
+  pending: TStudent[]
 }
 
 export type TeacherStudentHistoryNote = {
@@ -408,6 +411,8 @@ export type TeacherStudentHistorySummaryPayload = {
   summary: {
     periodDays: number
     attempts: number
+    evaluatedAttempts: number
+    pendingEvaluation: number
     correct: number
     accuracyPercent: number | null
     earnedXp: number
@@ -418,8 +423,8 @@ export type TeacherStudentHistorySummaryPayload = {
     coveragePercent: number | null
   }
   comparison: {
-    current: { attempts: number; accuracyPercent: number | null; earnedXp: number }
-    previous: { attempts: number; accuracyPercent: number | null; earnedXp: number }
+    current: { attempts: number; evaluatedAttempts: number; accuracyPercent: number | null; earnedXp: number }
+    previous: { attempts: number; evaluatedAttempts: number; accuracyPercent: number | null; earnedXp: number }
     delta: { attempts: number; accuracyPoints: number; earnedXp: number }
   }
   recommendation: {
@@ -427,9 +432,12 @@ export type TeacherStudentHistorySummaryPayload = {
     title: string
     reason: string
     actionLabel: string
+    subjectId: number | null
+    classroomId: number | null
     topicId: number | null
   }
   notes: TeacherStudentHistoryNote[]
+  notesTotal: number
 }
 
 export type TeacherStudentHistoryTimelineItem = {
@@ -472,6 +480,8 @@ export type TeacherStudentHistoryReview = {
   id: number
   question_id: number
   question_text: string
+  subject_id: number
+  classroom_id: number | null
   subject_name: string
   topic_title: string
   answer_text: string | null
@@ -487,8 +497,10 @@ export type TeacherStudentHistoryMetricsPayload = {
   evolution: Array<{
     date: string
     attempts: number
+    evaluated: number
+    pending: number
     correct: number
-    accuracyPercent: number
+    accuracyPercent: number | null
     earnedXp: number
   }>
   topics: Array<{
@@ -497,8 +509,10 @@ export type TeacherStudentHistoryMetricsPayload = {
     topic_id: number | null
     topic_title: string
     attempts: number
+    evaluated: number
+    pending: number
     correct: number
-    accuracy_percent: number
+    accuracy_percent: number | null
     earned_xp: number
     last_activity_at: string | null
   }>

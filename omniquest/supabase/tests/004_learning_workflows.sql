@@ -17,7 +17,7 @@ select ok(not exists(select 1 from public.notifications where type = 'task' or r
 -- Advanced manual review.
 select ok(to_regclass('public.manual_review_comments') is not null, 'manual review comments table exists');
 select ok((select relrowsecurity from pg_class where oid = 'public.manual_review_comments'::regclass), 'manual review comments have RLS');
-select ok(to_regprocedure('public.get_teacher_manual_review_queue(bigint,bigint,text,text,integer,integer)') is not null, 'manual review queue RPC exists');
+select ok(to_regprocedure('public.get_teacher_manual_review_queue(bigint,bigint,text,text,uuid,bigint,integer,integer)') is not null, 'manual review queue RPC exists');
 select ok(to_regprocedure('public.get_manual_review_thread(bigint)') is not null, 'manual review thread RPC exists');
 select ok(to_regprocedure('public.claim_open_answer_attempt(bigint)') is not null, 'manual review claim RPC exists');
 select ok(to_regprocedure('public.add_manual_review_comment(bigint,text,text)') is not null, 'manual review comment RPC exists');

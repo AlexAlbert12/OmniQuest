@@ -93,7 +93,7 @@ export type StudentRecentAttempt = {
 }
 
 export type StudentStatus = 'active' | 'inactive' | 'needs_help' | 'no_activity' | 'excellent'
-export type StudentStatusFilter = 'all' | StudentStatus
+export type StudentStatusFilter = 'all' | 'attention' | StudentStatus
 export type StudentSortKey = 'attention' | 'accuracy' | 'xp' | 'last_activity' | 'name'
 
 export type StudentRow = {
@@ -134,6 +134,9 @@ export type MobileStudentsStats = {
   active: number
   noActivity: number
   needsHelp: number
+  inactive: number
+  excellent: number
+  attention: number
   withActivity: number
   averageXp: number | null
   averageGrade: number | null
@@ -143,11 +146,12 @@ export type MobileStudentsStats = {
 
 export const statusFilterOptions: { value: StudentStatusFilter; label: string }[] = [
   { value: 'all', label: 'Todos' },
-  { value: 'no_activity', label: 'Sin actividad' },
+  { value: 'attention', label: 'Necesitan atención' },
   { value: 'needs_help', label: 'Necesita apoyo' },
+  { value: 'inactive', label: 'Inactivos' },
+  { value: 'no_activity', label: 'Sin actividad' },
   { value: 'active', label: 'Activos' },
   { value: 'excellent', label: 'Excelente' },
-  { value: 'inactive', label: 'Inactivos' },
 ];
 
 export const sortOptions: { value: StudentSortKey; label: string }[] = [

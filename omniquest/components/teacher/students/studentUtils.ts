@@ -35,7 +35,7 @@ export function getStatusMeta(status: StudentStatus) {
     return {
       label: 'Necesita apoyo',
       color: '#F59E0B',
-      description: 'Tiene actividad, pero su precisión o nota media indican que conviene reforzar.',
+      description: 'Tras varios intentos, su precisión está por debajo del umbral de seguimiento.',
     };
   }
   if (status === 'no_activity') {
@@ -48,7 +48,7 @@ export function getStatusMeta(status: StudentStatus) {
   return {
     label: 'Inactivo',
     color: '#94A3B8',
-    description: 'Tiene algo de actividad, pero su participación es baja.',
+    description: 'No registra actividad reciente desde hace más de 14 días.',
   };
 }
 

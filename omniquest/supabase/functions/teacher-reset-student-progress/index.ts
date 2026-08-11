@@ -25,6 +25,10 @@ Deno.serve(async (req) => {
     if (classroomId !== null && !Number.isFinite(classroomId)) return json({ error: 'classroomId no válido.' }, 400)
 
     const subjects = await ensureSubjects(context.adminClient, context.teacherUserId, subjectIds)
+    if (classroomId !== null) {
+      const classroomIsInScope = await ensureClassroomInScope(context.adminClient, classroomId, subjectIds)
+      if (!classroomIsInScope) return json({ error: 'La clase seleccionada no pertenece a los cursos indicados.' }, 403)
+    }
     const deleted = await deleteProgress(context.adminClient, studentId, subjectIds, classroomId)
     await syncStudentPoints(context.adminClient, studentId)
 
@@ -60,6 +64,17 @@ async function ensureSubjects(adminClient: any, teacherUserId: string, subjectId
     subjects.push(await ensureTeacherSubject(adminClient, teacherUserId, subjectId, 'id, name, teacher_id'))
   }
   return subjects
+}
+
+async function ensureClassroomInScope(adminClient: any, classroomId: number, subjectIds: number[]) {
+  const { data, error } = await adminClient
+    .from('classrooms')
+    .select('id')
+    .eq('id', classroomId)
+    .in('subject_id', subjectIds)
+    .maybeSingle()
+  if (error) throw error
+  return Boolean(data)
 }
 
 async function deleteProgress(adminClient: any, studentId: string, subjectIds: number[], classroomId: number | null) {

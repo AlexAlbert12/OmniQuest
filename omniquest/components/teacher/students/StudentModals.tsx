@@ -119,6 +119,7 @@ export function StudentDetailModal({
   onRemoveFromClass,
   onSendReminder,
   onRequestPasswordRecovery,
+  xpLabel,
 }: {
   student: StudentRow | null
   visible: boolean
@@ -129,6 +130,7 @@ export function StudentDetailModal({
   onRemoveFromClass: (student: StudentRow) => void
   onSendReminder: (student: StudentRow) => void
   onRequestPasswordRecovery: (student: StudentRow) => void
+  xpLabel: string
 }) {
   const responsive = useResponsiveLayout();
   const isPhone = responsive.isMobile;
@@ -157,9 +159,10 @@ export function StudentDetailModal({
             <View className="gap-4">
               <View className="flex-row flex-wrap gap-3">
                 <DetailMetric label="Precisión" value={student.hasActivity ? `${student.accuracyPercent}%` : 'Sin datos'} color="#38BDF8" />
-                <DetailMetric label="Preguntas" value={student.challenges.toLocaleString()} color="#8B5CF6" />
-                <DetailMetric label="XP" value={student.subjectScore.toLocaleString()} color="#FBBF24" />
-                <DetailMetric label="Nota media" value={student.hasActivity ? `${student.averageScore.toFixed(1)} /10` : 'Sin datos'} color="#F6A64A" />
+                <DetailMetric label="Intentos" value={student.challenges.toLocaleString()} color="#8B5CF6" />
+                <DetailMetric label="Preguntas respondidas" value={student.questions.toLocaleString()} color="#A78BFA" />
+                <DetailMetric label={xpLabel} value={student.subjectScore.toLocaleString()} color="#FBBF24" />
+                <DetailMetric label="Equivalencia /10" value={student.hasActivity ? `${student.averageScore.toFixed(1)} /10` : 'Sin datos'} color="#F6A64A" />
               </View>
 
               <View className="rounded-xl border border-border-default bg-surface-default p-4">

@@ -11,12 +11,16 @@ import { formatRelativeDate, getInitials, getStatusMeta } from './studentUtils'
 
 export function TeacherStudentPrioritySections({
   attentionStudents,
+  attentionTotal,
   noActivityStudents,
+  noActivityTotal,
   onViewDetails,
   onSendReminder,
 }: {
   attentionStudents: StudentRow[]
+  attentionTotal: number
   noActivityStudents: StudentRow[]
+  noActivityTotal: number
   onViewDetails: (student: StudentRow) => void
   onSendReminder: (student: StudentRow) => void
 }) {
@@ -24,10 +28,11 @@ export function TeacherStudentPrioritySections({
     <View className="mt-5 gap-5">
       <PrioritySection
         title="Necesitan atención"
-        description="Baja precisión, poca participación o evolución descendente."
+        description="Baja precisión o ausencia prolongada de actividad."
         icon="warning-outline"
         color="#F59E0B"
         students={attentionStudents.slice(0, 4)}
+        totalCount={attentionTotal}
         emptyMessage="No hay alumnos prioritarios con los filtros actuales."
         onViewDetails={onViewDetails}
       />
@@ -37,7 +42,8 @@ export function TeacherStudentPrioritySections({
         icon="time-outline"
         color="#38BDF8"
         students={noActivityStudents.slice(0, 4)}
-        emptyMessage="Todos los alumnos visibles han iniciado actividad."
+        totalCount={noActivityTotal}
+        emptyMessage="Todos los alumnos de la selección han iniciado actividad."
         actionLabel="Recordar"
         onAction={onSendReminder}
         onViewDetails={onViewDetails}
@@ -52,6 +58,7 @@ function PrioritySection({
   icon,
   color,
   students,
+  totalCount,
   emptyMessage,
   actionLabel,
   onAction,
@@ -62,6 +69,7 @@ function PrioritySection({
   icon: keyof typeof Ionicons.glyphMap
   color: string
   students: StudentRow[]
+  totalCount: number
   emptyMessage: string
   actionLabel?: string
   onAction?: (student: StudentRow) => void
@@ -79,11 +87,12 @@ function PrioritySection({
           <Text className="mt-1 text-[12px] leading-5" style={{ color: tokens.text.secondary }}>{description}</Text>
         </View>
         <View className="rounded-full px-3 py-1" style={{ backgroundColor: withAlpha(color, '20') }}>
-          <Text className="text-[12px] font-black" style={{ color }}>{students.length}</Text>
+          <Text className="text-[12px] font-black" style={{ color }}>{totalCount}</Text>
         </View>
       </View>
 
       {students.length > 0 ? (
+        <>
         <View className="mt-4 flex-row flex-wrap gap-3">
           {students.map((student) => {
             const status = getStatusMeta(student.status)
@@ -118,6 +127,8 @@ function PrioritySection({
             )
           })}
         </View>
+        {students.length < totalCount ? <Text className="mt-3 text-[12px]" style={{ color: tokens.text.muted }}>Mostrando {students.length} de {totalCount} en esta sección.</Text> : null}
+        </>
       ) : (
         <Text className="mt-4 text-[13px]" style={{ color: tokens.text.muted }}>{emptyMessage}</Text>
       )}
@@ -202,9 +213,10 @@ export default function TeacherStudentsDesktopTable({
             {expanded ? (
               <View className="border-t px-4 py-4" style={{ borderTopColor: tokens.border.default, backgroundColor: tokens.background.secondary }}>
                 <View className="flex-row flex-wrap items-center gap-3">
-                  <DetailPill label="XP" value={student.globalPoints.toLocaleString()} />
-                  <DetailPill label="Preguntas" value={String(student.challenges)} />
-                  <DetailPill label="Nota" value={`${student.averageScore.toFixed(1)}/10`} />
+                  <DetailPill label="XP global" value={student.globalPoints.toLocaleString()} />
+                  <DetailPill label="Intentos" value={String(student.challenges)} />
+                  <DetailPill label="Preguntas respondidas" value={String(student.questions)} />
+                  <DetailPill label="Equivalencia /10" value={`${student.averageScore.toFixed(1)}/10`} />
                   <DetailPill label="Área prioritaria" value={student.weakAreas[0]?.title || 'Sin alertas'} />
                   <View className="ml-auto flex-row gap-2">
                     <AppButton label="Ver historial" icon="time-outline" size="sm" variant="secondary" onPress={() => onViewHistory(student)} />

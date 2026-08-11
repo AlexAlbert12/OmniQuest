@@ -53,23 +53,18 @@ export default function TeacherStudentHistoryScreen() {
     const recommendation = history.summary?.recommendation
     if (!recommendation || !studentId) return
     if (recommendation.code === 'review') {
-      router.push('/(teacher)/reviews' as Href)
+      router.push({ pathname: '/(teacher)/reviews', params: { studentId, ...(subjectId ? { subjectId: String(subjectId) } : {}), ...(classroomId ? { classroomId: String(classroomId) } : {}) } } as Href)
       return
     }
     if (recommendation.code === 'practice' || recommendation.code === 'challenge') {
-      const context = history.summary?.courseContexts[0]
-      if (!context) {
+      const fallbackContext = history.summary?.courseContexts[0]
+      const targetSubjectId = recommendation.subjectId || subjectId || fallbackContext?.subjectId || null
+      const targetClassroomId = recommendation.classroomId || classroomId || (targetSubjectId === fallbackContext?.subjectId ? fallbackContext?.classroomId : null)
+      if (!targetSubjectId) {
         feedback.warning('Sin curso', 'No hay un curso disponible para preparar la práctica.')
         return
       }
-      router.push({
-        pathname: '/(teacher)/subject/add-question',
-        params: {
-          subjectId: String(subjectId || context.subjectId),
-          ...(classroomId || context.classroomId ? { classroomId: String(classroomId || context.classroomId) } : {}),
-          ...(recommendation.topicId ? { topicId: String(recommendation.topicId) } : {}),
-        },
-      } as Href)
+      router.push({ pathname: '/(teacher)/subject/add-question', params: { subjectId: String(targetSubjectId), ...(targetClassroomId ? { classroomId: String(targetClassroomId) } : {}), ...(recommendation.topicId ? { topicId: String(recommendation.topicId) } : {}) } } as Href)
       return
     }
 
@@ -77,7 +72,7 @@ export default function TeacherStudentHistoryScreen() {
       const contexts = history.summary?.courseContexts || []
       const subjectIds = [...new Set(contexts.map((context) => context.subjectId))]
       const { error } = await supabase.functions.invoke('teacher-student-reminder', {
-        body: { studentIds: [studentId], subjectIds, mode: 'reminder' },
+        body: { studentIds: [studentId], subjectIds, mode: 'reminder', ...(classroomId ? { classroomId } : {}) },
       })
       if (error) throw error
       feedback.success('Recordatorio enviado', 'El alumno recibirá una notificación para retomar su aprendizaje.')
@@ -115,7 +110,7 @@ export default function TeacherStudentHistoryScreen() {
         icon="person-circle-outline"
         isDesktop={isDesktop}
         title={summary.profile.alias || 'Alumno'}
-        subtitle="Resumen en servidor, actividad paginada y métricas cargadas solo cuando se necesitan."
+        subtitle="Analiza su actividad, progreso y necesidades de aprendizaje."
         backAction={{ label: 'Alumnos', onPress: () => router.back() }}
         notificationOnPress={() => router.push('/(teacher)/notifications' as Href)}
       />
@@ -138,12 +133,12 @@ export default function TeacherStudentHistoryScreen() {
 
       {history.error ? (
         <View className="mb-4">
-          <AppStatusBanner variant="danger" title="No se pudo cargar una sección" message={history.error} actionLabel="Reintentar" onAction={history.retryTab} />
+          <AppStatusBanner variant="danger" title="No se pudo completar la operación" message={history.error} actionLabel="Reintentar" onAction={history.retryTab} />
         </View>
       ) : null}
 
       <View className="mb-5 rounded-2xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
-        <Text className="mb-2 text-[10px] font-black uppercase tracking-[0.7px]" style={{ color: tokens.text.muted }}>Periodo comparado</Text>
+        <Text className="mb-2 text-[10px] font-black uppercase tracking-[0.7px]" style={{ color: tokens.text.muted }}>Periodo de análisis</Text>
         <AppTabs<number>
           compact
           role="teacher"
@@ -156,13 +151,17 @@ export default function TeacherStudentHistoryScreen() {
           value={history.periodDays}
           onChange={history.setPeriodDays}
         />
+        <Text className="mt-2 text-[11px] leading-4" style={{ color: tokens.text.muted }}>Afecta al resumen, comparación, refuerzo y métricas. Actividad y Revisiones muestran el historial completo.</Text>
       </View>
 
       <StudentHistorySummary
         data={summary}
         savingNote={history.savingNote}
         onRecommendation={() => { void handleRecommendation() }}
-        onAddNote={history.addNote}
+        onAddNote={async (body) => {
+          try { await history.addNote(body); feedback.success('Comentario guardado', 'La nota privada se ha añadido al historial.') }
+          catch (noteError) { feedback.error('No se pudo guardar el comentario', noteError instanceof Error ? noteError : 'Inténtalo de nuevo.'); throw noteError }
+        }}
       />
 
       <View className="mb-4 mt-6">
@@ -178,7 +177,7 @@ export default function TeacherStudentHistoryScreen() {
       {history.loadingTab ? (
         <View className="items-center py-12">
           <ActivityIndicator color={tokens.brand.teacher} />
-          <Text className="mt-3" style={{ color: tokens.text.muted }}>Cargando solo esta sección...</Text>
+          <Text className="mt-3" style={{ color: tokens.text.muted }}>Cargando esta sección...</Text>
         </View>
       ) : null}
       {!history.loadingTab && history.activeTab === 'activity' ? (
@@ -191,7 +190,16 @@ export default function TeacherStudentHistoryScreen() {
         />
       ) : null}
       {!history.loadingTab && history.activeTab === 'weaknesses' ? <StudentHistoryWeaknesses items={history.weaknesses} /> : null}
-      {!history.loadingTab && history.activeTab === 'reviews' ? <StudentHistoryReviews items={history.reviews} total={history.reviewsTotal} /> : null}
+      {!history.loadingTab && history.activeTab === 'reviews' ? (
+        <StudentHistoryReviews
+          items={history.reviews}
+          total={history.reviewsTotal}
+          page={history.reviewsPage}
+          pageSize={history.reviewsPageSize}
+          onPage={history.setReviewsPage}
+          onOpenReview={(item) => router.push({ pathname: '/(teacher)/reviews', params: { studentId, attemptId: String(item.id), subjectId: String(item.subject_id), ...(item.classroom_id ? { classroomId: String(item.classroom_id) } : {}) } } as Href)}
+        />
+      ) : null}
       {!history.loadingTab && history.activeTab === 'metrics' ? <StudentHistoryMetrics data={history.metrics} /> : null}
     </ScrollView>
   )

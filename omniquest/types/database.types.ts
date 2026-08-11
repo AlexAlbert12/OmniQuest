@@ -6522,11 +6522,13 @@ export type Database = {
       get_teacher_dashboard_summary: { Args: never; Returns: Json }
       get_teacher_manual_review_queue: {
         Args: {
+          p_attempt_id?: number
           p_classroom_id?: number
           p_limit?: number
           p_offset?: number
           p_search?: string
           p_status?: string
+          p_student_id?: string
           p_subject_id?: number
         }
         Returns: Json

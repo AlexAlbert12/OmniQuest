@@ -25,7 +25,7 @@ export default function TeacherStudentsScreen() {
     directory, needsAttention, pendingStudents, stats, actionStudent, detailStudent, confirmDialog,
     reminderStudentIds, sendingBulkReminders, setActionStudent, setDetailStudent, setConfirmDialog,
     viewStudentDetails, viewHistory, assignActivity, requestRemoveFromClass, requestResetProgress,
-    sendBulkReminder, sendStudentMessage, exportCurrentPage, openNotifications, signOut,
+    sendBulkReminder, sendStudentMessage, exportCurrentSelection, exportNoActivity, xpScopeLabel, openNotifications, signOut,
   } = useTeacherStudentsController(pageSize)
 
   if (directory.loading) return <OmniLoadingScreen />
@@ -55,6 +55,7 @@ export default function TeacherStudentsScreen() {
         onRemoveFromClass={requestRemoveFromClass}
         onSendReminder={(student) => { void sendStudentMessage(student, 'reminder') }}
         onRequestPasswordRecovery={(student) => { void sendStudentMessage(student, 'recovery') }}
+        xpLabel={xpScopeLabel}
       />
       <ConfirmModal dialog={confirmDialog} visible={Boolean(confirmDialog)} onClose={() => setConfirmDialog(null)} />
     </>
@@ -72,9 +73,8 @@ export default function TeacherStudentsScreen() {
           selectedSort={directory.selectedSort}
           search={directory.search}
           stats={stats}
-          students={directory.students}
           visibleStudents={directory.students}
-          pendingStudents={pendingStudents}
+          attentionStudents={needsAttention}
           refreshing={directory.refreshing}
           sendingBulkReminders={sendingBulkReminders}
           reminderStudentIds={reminderStudentIds}
@@ -84,7 +84,8 @@ export default function TeacherStudentsScreen() {
           onSelectStatus={directory.setSelectedStatus}
           onSelectSort={directory.setSelectedSort}
           onSearch={directory.setSearch}
-          onExportStudents={exportCurrentPage}
+          onExportStudents={exportCurrentSelection}
+          onExportNoActivity={exportNoActivity}
           onSendReminder={() => { void sendBulkReminder() }}
           onViewDetails={viewStudentDetails}
           onAssignActivity={assignActivity}
@@ -117,7 +118,7 @@ export default function TeacherStudentsScreen() {
             icon="people"
             isDesktop
             title="Alumnos"
-            subtitle="Paginación y métricas calculadas en servidor para no descargar todo el historial."
+            subtitle="Consulta y realiza el seguimiento de tus alumnos."
             notificationOnPress={() => openNotifications()}
           />
 
@@ -132,7 +133,7 @@ export default function TeacherStudentsScreen() {
                   <TextInput accessibilityLabel="Buscar alumno, curso o clase" className="min-w-0 flex-1" style={{ color: tokens.text.primary }} placeholder="Buscar alumno, curso o clase..." placeholderTextColor={tokens.text.muted} value={directory.search} onChangeText={directory.setSearch} />
                   <Ionicons name="search-outline" size={20} color={tokens.text.muted} />
                 </View>
-                <AppButton label="Exportar página" icon="download-outline" variant="secondary" disabled={!directory.students.length} onPress={exportCurrentPage} />
+                <AppButton label="Exportar selección" icon="download-outline" variant="secondary" disabled={!stats.total} onPress={exportCurrentSelection} />
               </View>
               <View style={{ flexDirection: isWide ? 'row' : 'column', gap: 12 }}>
                 <View className="min-w-0 flex-1">
@@ -148,19 +149,19 @@ export default function TeacherStudentsScreen() {
           </View>
 
           <View className={isWide ? 'flex-row flex-wrap gap-4' : 'gap-4'}>
-            <MetricCard semantic="student" title="Total alumnos" value={String(stats.total)} detail="Calculado por la RPC" />
-            <MetricCard semantic="attention" title="Necesitan atención" value={String(stats.needsHelp)} detail="Apoyo o inactividad" />
+            <MetricCard semantic="student" title="Total alumnos" value={String(stats.total)} detail="Alumnos en la selección actual" />
+            <MetricCard semantic="attention" title="Necesitan atención" value={String(stats.attention)} detail="Baja precisión o inactividad prolongada" />
             <MetricCard icon="time-outline" title="Sin actividad" value={String(stats.noActivity)} detail="Pendientes de empezar" color={tokens.semantic.info} />
-            <MetricCard semantic="success" title="Con actividad" value={String(stats.withActivity)} detail={`${stats.active} activos o excelentes`} />
+            <MetricCard semantic="success" title="Con actividad" value={String(stats.withActivity)} detail={`${stats.active} activos · ${stats.excellent} excelentes · ${stats.attention} en seguimiento`} />
           </View>
 
-          <TeacherStudentPrioritySections attentionStudents={needsAttention} noActivityStudents={pendingStudents} onViewDetails={viewStudentDetails} onSendReminder={(student) => { void sendStudentMessage(student, 'reminder') }} />
+          <TeacherStudentPrioritySections attentionStudents={needsAttention} attentionTotal={stats.attention} noActivityStudents={pendingStudents} noActivityTotal={stats.noActivity} onViewDetails={viewStudentDetails} onSendReminder={(student) => { void sendStudentMessage(student, 'reminder') }} />
 
           <View className="mt-5">
             <View className="mb-4 flex-row items-end justify-between gap-3">
               <View>
-                <Text className="text-[20px] font-black" style={{ color: tokens.text.primary }}>Listado paginado</Text>
-                <Text className="mt-1 text-[12px]" style={{ color: tokens.text.muted }}>La base de datos devuelve únicamente esta página y sus agregados.</Text>
+                <Text className="text-[20px] font-black" style={{ color: tokens.text.primary }}>Listado de alumnos</Text>
+                <Text className="mt-1 text-[12px]" style={{ color: tokens.text.muted }}>Consulta y gestiona los alumnos según los filtros seleccionados.</Text>
               </View>
               <Text className="text-[12px] font-black" style={{ color: tokens.brand.teacher }}>{directory.students.length} de {directory.total}</Text>
             </View>

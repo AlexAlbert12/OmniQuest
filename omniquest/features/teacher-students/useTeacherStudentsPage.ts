@@ -5,7 +5,7 @@ import type { Classroom, StudentRow, StudentSortKey, StudentStatusFilter, Subjec
 import { fetchTeacherStudentsPage } from './api'
 
 const DEFAULT_SUMMARY: TeacherStudentsPageSummary = {
-  total: 0, active: 0, noActivity: 0, needsHelp: 0, withActivity: 0,
+  total: 0, active: 0, noActivity: 0, needsHelp: 0, inactive: 0, excellent: 0, attention: 0, withActivity: 0,
   averageXp: 0, averageGrade: 0, averageAccuracy: 0, completedChallenges: 0,
 }
 
@@ -19,8 +19,8 @@ export function useTeacherStudentsPage({ initialSubjectId = 'all', initialClassr
   const [classrooms, setClassrooms] = useState<Classroom[]>([])
   const [students, setStudents] = useState<StudentRow[]>([])
   const [summary, setSummary] = useState<TeacherStudentsPageSummary>(DEFAULT_SUMMARY)
-  const [attention, setAttention] = useState<Array<{ id: string; alias: string; status: string; priority: number }>>([])
-  const [pending, setPending] = useState<Array<{ id: string; alias: string; status: string }>>([])
+  const [attention, setAttention] = useState<StudentRow[]>([])
+  const [pending, setPending] = useState<StudentRow[]>([])
   const [selectedSubjectId, setSelectedSubjectIdState] = useState<number | 'all'>(initialSubjectId)
   const [selectedClassroomId, setSelectedClassroomIdState] = useState<number | 'all'>(initialClassroomId)
   const [selectedStatus, setSelectedStatusState] = useState<StudentStatusFilter>(initialStatus)

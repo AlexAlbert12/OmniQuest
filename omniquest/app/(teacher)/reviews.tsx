@@ -1,7 +1,7 @@
 import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { RefreshControl, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
@@ -32,18 +32,35 @@ const STATUS_OPTIONS: { key: 'all' | ManualReviewStatus; label: string; icon: an
 ]
 
 export default function TeacherReviewsScreen() {
+  const params = useLocalSearchParams<{ studentId?: string; attemptId?: string; subjectId?: string; classroomId?: string }>()
   const router = useRouter()
   const { width } = useWindowDimensions()
   const { tokens } = useAppTheme()
   const isDesktop = width >= 1080
   const pageSize = isDesktop ? 15 : 6
-  const review = useManualReview(pageSize)
+  const studentId = normalizeStringParam(params.studentId)
+  const attemptId = parseNumberParam(params.attemptId)
+  const subjectId = parseNumberParam(params.subjectId)
+  const classroomId = parseNumberParam(params.classroomId)
+  const [requestedAttemptId, setRequestedAttemptId] = useState<number | null>(attemptId)
+  const review = useManualReview(pageSize, { studentId, attemptId: requestedAttemptId, subjectId, classroomId })
   const [selectedRow, setSelectedRow] = useState<ManualReviewQueueRow | null>(null)
   const [assigneeId, setAssigneeId] = useState<string | null>(null)
   const [batchOpen, setBatchOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [saveFilterOpen, setSaveFilterOpen] = useState(false)
   const [filterName, setFilterName] = useState('Mi filtro')
+
+
+  useEffect(() => { setRequestedAttemptId(attemptId) }, [attemptId])
+
+  useEffect(() => {
+    if (!requestedAttemptId) return
+    const row = review.queue.items.find((item) => item.id === requestedAttemptId)
+    if (!row) return
+    setSelectedRow(row)
+    setRequestedAttemptId(null)
+  }, [requestedAttemptId, review.queue.items])
 
   const savedFilterOptions = useMemo(() => review.configuration.savedFilters.map((item) => ({
     value: item.id,
@@ -88,6 +105,7 @@ export default function TeacherReviewsScreen() {
           />
 
           {review.error ? <AppStatusBanner variant="danger" title="No se pudo completar la operación" message={review.error} style={{ marginBottom: 16 }} /> : null}
+          {studentId ? <AppStatusBanner variant="info" title="Revisiones del alumno" message={attemptId ? 'Se ha abierto la revisión seleccionada desde su historial.' : 'La cola está filtrada por el alumno seleccionado desde su historial.'} style={{ marginBottom: 16 }} /> : null}
 
           <View className="mb-5 flex-row flex-wrap gap-3">
             <MobileMetricCard semantic="attention" label="Pendientes" value={String(review.queue.summary.pending || 0)} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
@@ -238,3 +256,14 @@ function summarizeFilter(filters: ManualReviewFilters) {
   if (filters.search) parts.push(`“${filters.search}”`)
   return parts.join(' · ')
 }
+
+function normalizeStringParam(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] || null : value || null
+}
+
+function parseNumberParam(value?: string | string[]) {
+  const raw = Array.isArray(value) ? value[0] : value
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+

@@ -39,12 +39,12 @@ export function removeStudentFromClasses(student: StudentRow) {
   })
 }
 
-export function resetStudentProgress(student: StudentRow) {
-  return invokeTeacherStudentAction('teacher-reset-student-progress', { studentId: student.id, subjectIds: student.subjectIds })
+export function resetStudentProgress(student: StudentRow, classroomId: number | null = null) {
+  return invokeTeacherStudentAction('teacher-reset-student-progress', { studentId: student.id, subjectIds: student.subjectIds, ...(classroomId !== null ? { classroomId } : {}) })
 }
 
-export async function sendTeacherStudentMessage(studentIds: string[], subjectIds: number[], mode: 'reminder' | 'recovery') {
-  const { data, error } = await supabase.functions.invoke('teacher-student-reminder', { body: { studentIds, subjectIds, mode } })
+export async function sendTeacherStudentMessage(studentIds: string[], subjectIds: number[], mode: 'reminder' | 'recovery', classroomId: number | null = null) {
+  const { data, error } = await supabase.functions.invoke('teacher-student-reminder', { body: { studentIds, subjectIds, mode, ...(classroomId !== null ? { classroomId } : {}) } })
   if (error) throw new Error(error.message || 'No se pudo enviar el mensaje.')
   const result = (data || {}) as { sent?: number; failed?: number; results?: { error?: string }[] }
   if (Number(result.failed || 0) > 0 && studentIds.length === 1) throw new Error(result.results?.[0]?.error || 'No se pudo enviar el mensaje.')

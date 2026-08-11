@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Platform } from 'react-native'
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
-import { removeStudentFromClasses, resetStudentProgress, sendTeacherStudentMessage, signOutTeacherStudents } from './api'
+import { fetchTeacherStudentsPage, removeStudentFromClasses, resetStudentProgress, sendTeacherStudentMessage, signOutTeacherStudents } from './api'
 import { buildStudentActivityRoute, buildStudentHistoryRoute, buildTeacherStudentPageView, buildTeacherStudentsCsv, parsePositiveNumberParam, parseStudentStatusParam } from './model'
 import { useTeacherStudentsPage } from './useTeacherStudentsPage'
-import type { ConfirmDialog, StudentRow } from './types'
+import type { ConfirmDialog, StudentRow, StudentStatusFilter } from './types'
 import { useAppFeedback } from '../../hooks/useAppFeedback'
 
 export function useTeacherStudentsController(pageSize: number) {
@@ -21,8 +21,39 @@ export function useTeacherStudentsController(pageSize: number) {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [reminderStudentIds, setReminderStudentIds] = useState<Record<string, boolean>>({})
   const [sendingBulkReminders, setSendingBulkReminders] = useState(false)
-  const pageView = useMemo(() => buildTeacherStudentPageView(directory.students, directory.summary), [directory.students, directory.summary])
+  const pageView = useMemo(() => buildTeacherStudentPageView(directory.students, directory.summary, directory.attention, directory.pending), [directory.attention, directory.pending, directory.students, directory.summary])
   const feedback = useAppFeedback()
+  const selectedClassroomId = directory.selectedClassroomId === 'all' ? null : directory.selectedClassroomId
+  const selectedSubject = directory.selectedSubjectId === 'all' ? null : directory.subjects.find((subject) => subject.id === directory.selectedSubjectId) || null
+  const selectedClassroom = selectedClassroomId === null ? null : directory.classrooms.find((classroom) => classroom.id === selectedClassroomId) || null
+  const selectedClassroomSubject = selectedClassroom ? directory.subjects.find((subject) => subject.id === selectedClassroom.subject_id) || null : null
+  const scopeSubjectName = selectedSubject?.name || selectedClassroomSubject?.name || null
+  const scopeLabel = selectedClassroom ? `${scopeSubjectName || 'Curso'} · ${selectedClassroom.name}` : scopeSubjectName || 'todos los cursos mostrados'
+  const xpScopeLabel = selectedClassroom ? `XP en ${scopeLabel}` : scopeSubjectName ? `XP en ${scopeSubjectName}` : 'XP en cursos seleccionados'
+
+  const loadAllStudents = useCallback(async (statusOverride?: StudentStatusFilter) => {
+    const collected: StudentRow[] = []
+    const batchSize = 100
+    let page = 0
+    let expectedTotal = Number.POSITIVE_INFINITY
+    while (collected.length < expectedTotal) {
+      const payload = await fetchTeacherStudentsPage({
+        subjectId: directory.selectedSubjectId,
+        classroomId: directory.selectedClassroomId,
+        status: statusOverride || directory.selectedStatus,
+        search: directory.search.trim(),
+        order: directory.selectedSort,
+        page,
+        pageSize: batchSize,
+      })
+      const items = payload.items || []
+      expectedTotal = Number(payload.total || 0)
+      collected.push(...items)
+      if (items.length === 0 || items.length < batchSize) break
+      page += 1
+    }
+    return collected
+  }, [directory.search, directory.selectedClassroomId, directory.selectedSort, directory.selectedStatus, directory.selectedSubjectId])
 
   const viewStudentDetails = useCallback((student: StudentRow) => {
     setActionStudent(null)
@@ -68,51 +99,54 @@ export function useTeacherStudentsController(pageSize: number) {
 
   const resetProgress = useCallback(async (student: StudentRow) => {
     try {
-      await resetStudentProgress(student)
+      await resetStudentProgress(student, selectedClassroomId)
       await directory.reload()
-      feedback.success('Progreso reiniciado', `El progreso de ${student.alias} se ha reiniciado.`)
+      feedback.success('Progreso reiniciado', `El progreso de ${student.alias} se ha reiniciado en ${scopeLabel}.`)
     } catch (error) {
       feedback.error('No se pudo reiniciar el progreso', error instanceof Error ? error : 'Inténtalo de nuevo más tarde.')
     }
-  }, [directory, feedback])
+  }, [directory, feedback, scopeLabel, selectedClassroomId])
 
   const requestResetProgress = useCallback((student: StudentRow) => {
     setActionStudent(null)
     setConfirmDialog({
       title: 'Reiniciar progreso',
-      message: `Se eliminarán las puntuaciones y los intentos de ${student.alias} en sus cursos actuales.`,
+      message: `Se eliminarán las puntuaciones y los intentos de ${student.alias} en ${scopeLabel}.`,
       confirmLabel: 'Reiniciar',
       destructive: true,
       onConfirm: () => { void resetProgress(student) },
     })
-  }, [resetProgress])
+  }, [resetProgress, scopeLabel])
 
   const sendBulkReminder = useCallback(async () => {
-    if (!pageView.pendingStudents.length || sendingBulkReminders) {
-      feedback.warning('Sin pendientes en esta página', 'No hay alumnos sin actividad en la página actual.')
-      return
-    }
+    if (sendingBulkReminders) return
     try {
       setSendingBulkReminders(true)
+      const pendingStudents = await loadAllStudents('no_activity')
+      if (!pendingStudents.length) {
+        feedback.warning('Sin alumnos pendientes', 'No hay alumnos sin actividad en la selección actual.')
+        return
+      }
       const data = await sendTeacherStudentMessage(
-        pageView.pendingStudents.map((student) => student.id),
-        Array.from(new Set(pageView.pendingStudents.flatMap((student) => student.subjectIds))),
+        pendingStudents.map((student) => student.id),
+        Array.from(new Set(pendingStudents.flatMap((student) => student.subjectIds))),
         'reminder',
+        selectedClassroomId,
       )
-      feedback.success('Recordatorios enviados', `${Number(data?.sent || 0)} envío(s) completado(s) desde la página actual.`)
+      feedback.success('Recordatorios enviados', `${Number(data?.sent || 0)} de ${pendingStudents.length} alumnos sin actividad recibieron el recordatorio.`)
     } catch (error) {
       feedback.error('No se pudieron enviar los recordatorios', error instanceof Error ? error : 'Inténtalo de nuevo más tarde.')
     } finally {
       setSendingBulkReminders(false)
     }
-  }, [pageView.pendingStudents, sendingBulkReminders, feedback])
+  }, [feedback, loadAllStudents, selectedClassroomId, sendingBulkReminders])
 
   const sendStudentMessage = useCallback(async (student: StudentRow, mode: 'reminder' | 'recovery') => {
     if (reminderStudentIds[student.id]) return
     try {
       setActionStudent(null)
       setReminderStudentIds((current) => ({ ...current, [student.id]: true }))
-      await sendTeacherStudentMessage([student.id], student.subjectIds, mode)
+      await sendTeacherStudentMessage([student.id], student.subjectIds, mode, selectedClassroomId)
       feedback.success(
         mode === 'recovery' ? 'Enlace seguro enviado' : 'Recordatorio enviado',
         mode === 'recovery'
@@ -124,27 +158,36 @@ export function useTeacherStudentsController(pageSize: number) {
     } finally {
       setReminderStudentIds((current) => ({ ...current, [student.id]: false }))
     }
-  }, [reminderStudentIds, feedback])
+  }, [feedback, reminderStudentIds, selectedClassroomId])
 
-  const exportCurrentPage = useCallback(() => {
-    if (!directory.students.length) {
-      feedback.warning('Sin datos', 'No hay alumnos en la página actual para exportar.')
-      return
-    }
+  const exportStudents = useCallback(async (statusOverride?: StudentStatusFilter) => {
     if (Platform.OS !== 'web') {
       feedback.warning('Exportación disponible en web', 'La descarga CSV está disponible desde la versión web.')
       return
     }
-    const blob = new Blob([`\uFEFF${buildTeacherStudentsCsv(directory.students)}`], { type: 'text/csv;charset=utf-8;' })
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `omniquest_estudiantes_pagina_${directory.page + 1}_${new Date().toISOString().slice(0, 10)}.csv`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
-  }, [directory.page, directory.students, feedback])
+    try {
+      const students = await loadAllStudents(statusOverride)
+      if (!students.length) {
+        feedback.warning('Sin datos', 'No hay alumnos en la selección actual para exportar.')
+        return
+      }
+      const blob = new Blob([`\uFEFF${buildTeacherStudentsCsv(students)}`], { type: 'text/csv;charset=utf-8;' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      const suffix = statusOverride === 'no_activity' ? 'sin_actividad' : 'seleccion'
+      link.download = `omniquest_alumnos_${suffix}_${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      feedback.error('No se pudo exportar', error instanceof Error ? error : 'Inténtalo de nuevo más tarde.')
+    }
+  }, [feedback, loadAllStudents])
+
+  const exportCurrentSelection = useCallback(() => { void exportStudents() }, [exportStudents])
+  const exportNoActivity = useCallback(() => { void exportStudents('no_activity') }, [exportStudents])
 
   const openNotifications = useCallback(() => router.push('/(teacher)/notifications' as Href), [router])
   const signOut = useCallback(() => { void signOutTeacherStudents() }, [])
@@ -167,7 +210,9 @@ export function useTeacherStudentsController(pageSize: number) {
     requestResetProgress,
     sendBulkReminder,
     sendStudentMessage,
-    exportCurrentPage,
+    exportCurrentSelection,
+    exportNoActivity,
+    xpScopeLabel,
     openNotifications,
     signOut,
   }

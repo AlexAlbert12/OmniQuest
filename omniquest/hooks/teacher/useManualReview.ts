@@ -28,10 +28,10 @@ const EMPTY_QUEUE: ManualReviewQueueResponse = {
   summary: { pending: 0, in_review: 0, needs_changes: 0, overdue: 0 },
 }
 
-export function useManualReview(pageSize: number) {
+export function useManualReview(pageSize: number, context?: { studentId?: string | null; attemptId?: number | null; subjectId?: number | null; classroomId?: number | null }) {
   const [queue, setQueue] = useState<ManualReviewQueueResponse>(EMPTY_QUEUE)
   const [configuration, setConfiguration] = useState<ManualReviewConfiguration>(EMPTY_CONFIG)
-  const [filters, setFilters] = useState<ManualReviewFilters>({ subjectId: null, classroomId: null, status: 'pending', search: '' })
+  const [filters, setFilters] = useState<ManualReviewFilters>({ subjectId: context?.subjectId ?? null, classroomId: context?.classroomId ?? null, status: context?.studentId ? 'all' : 'pending', search: '' })
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -49,15 +49,17 @@ export function useManualReview(pageSize: number) {
     const result = await callPlatformRpc<ManualReviewQueueResponse>('get_teacher_manual_review_queue', {
       p_subject_id: filters.subjectId ?? undefined,
       p_classroom_id: filters.classroomId ?? undefined,
-      p_status: filters.status === 'all' ? undefined : filters.status,
-      p_search: filters.search.trim() || undefined,
+      p_status: context?.attemptId ? undefined : filters.status === 'all' ? undefined : filters.status,
+      p_search: context?.attemptId ? undefined : filters.search.trim() || undefined,
+      p_student_id: context?.studentId || undefined,
+      p_attempt_id: context?.attemptId || undefined,
       p_limit: pageSize,
       p_offset: page * pageSize,
     })
     if (result.error) throw result.error
     setQueue(result.data || EMPTY_QUEUE)
     setSelectedIds((current) => current.filter((id) => (result.data?.items || []).some((row) => row.id === id)))
-  }, [filters.classroomId, filters.search, filters.status, filters.subjectId, page, pageSize])
+  }, [context?.attemptId, context?.studentId, filters.classroomId, filters.search, filters.status, filters.subjectId, page, pageSize])
 
   const refresh = useCallback(async (showRefresh = false) => {
     try {
@@ -80,6 +82,12 @@ export function useManualReview(pageSize: number) {
   useEffect(() => {
     setPage(0)
   }, [filters.classroomId, filters.status, filters.subjectId])
+
+  useEffect(() => {
+    if (!context) return
+    setFilters((current) => ({ ...current, subjectId: context.subjectId ?? current.subjectId, classroomId: context.classroomId ?? current.classroomId, status: context.studentId ? 'all' : current.status }))
+    setPage(0)
+  }, [context?.classroomId, context?.studentId, context?.subjectId])
 
   const updateFilters = useCallback((patch: Partial<ManualReviewFilters>) => {
     setFilters((current) => ({ ...current, ...patch }))

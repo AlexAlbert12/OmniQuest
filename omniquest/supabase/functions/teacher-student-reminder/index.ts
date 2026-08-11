@@ -19,6 +19,7 @@ type ReminderRequest = {
   studentId?: string
   studentIds?: string[]
   subjectIds?: Array<number | string>
+  classroomId?: number | string | null
   mode?: ReminderMode
 }
 
@@ -66,7 +67,12 @@ Deno.serve(async (req) => {
     const body = await req.json() as ReminderRequest
     const studentIds = normalizeIds([body.studentId, ...(Array.isArray(body.studentIds) ? body.studentIds : [])])
     const requestedSubjectIds = normalizeNumberIds(body.subjectIds || [])
+    const requestedClassroomId = body.classroomId === undefined || body.classroomId === null ? null : Number(body.classroomId)
     const reminderMode: ReminderMode = body.mode === 'recovery' ? 'recovery' : 'reminder'
+
+    if (requestedClassroomId !== null && !Number.isFinite(requestedClassroomId)) {
+      return publicErrorResponse('La clase seleccionada no es válida.', 400, 'bad_request')
+    }
 
     if (studentIds.length === 0) {
       return publicErrorResponse('Selecciona al menos un alumno.', 400, 'bad_request')
@@ -120,6 +126,17 @@ Deno.serve(async (req) => {
       return publicErrorResponse('No tienes cursos activos para esta acción.', 403, 'forbidden')
     }
 
+    if (requestedClassroomId !== null) {
+      const { data: selectedClassroom, error: selectedClassroomError } = await adminClient
+        .from('classrooms')
+        .select('id, subject_id')
+        .eq('id', requestedClassroomId)
+        .in('subject_id', subjectIds)
+        .maybeSingle()
+      if (selectedClassroomError) throw selectedClassroomError
+      if (!selectedClassroom) return publicErrorResponse('La clase seleccionada no pertenece a tus cursos.', 403, 'forbidden')
+    }
+
     const subjectMap = new Map(
       (teacherSubjects || []).map((subject: { id: number; name: string }) => [subject.id, subject.name]),
     )
@@ -129,11 +146,13 @@ Deno.serve(async (req) => {
       let recoveryRequestId: string | null = null
 
       try {
-        const { data: enrollment, error: enrollmentError } = await adminClient
+        let enrollmentQuery = adminClient
           .from('enrollments')
           .select('subject_id, classroom_id')
           .eq('student_id', studentId)
           .in('subject_id', subjectIds)
+        if (requestedClassroomId !== null) enrollmentQuery = enrollmentQuery.eq('classroom_id', requestedClassroomId)
+        const { data: enrollment, error: enrollmentError } = await enrollmentQuery
           .order('joined_at', { ascending: false })
           .limit(1)
           .maybeSingle()
@@ -256,7 +275,7 @@ Deno.serve(async (req) => {
           },
           p_fingerprint: reminderMode === 'recovery'
             ? `teacher-recovery:${recoveryRequestId}`
-            : `teacher-reminder:${teacherId}:${studentId}:${enrollment.subject_id}:reminder`,
+            : `teacher-reminder:${teacherId}:${studentId}:${enrollment.subject_id}:${enrollment.classroom_id ?? 'general'}:reminder`,
         })
         if (notificationError) {
           if (reminderMode === 'recovery') {
