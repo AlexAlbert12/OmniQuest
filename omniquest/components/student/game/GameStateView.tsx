@@ -17,7 +17,6 @@ type Summary = {
 export default function GameStateView({
   status,
   isOffline,
-  reviewMode,
   loadError,
   score,
   summary,
@@ -28,7 +27,6 @@ export default function GameStateView({
 }: {
   status: 'loading' | 'error' | 'empty' | 'gameOver' | 'finished'
   isOffline: boolean
-  reviewMode?: string
   loadError?: string | null
   score: number
   summary: Summary
@@ -65,11 +63,9 @@ export default function GameStateView({
         <ResultState
           icon="construct-outline"
           iconColor={tokens.text.muted}
-          omniState={reviewMode === 'failed' ? 'happy' : 'thinking'}
-          title={reviewMode === 'failed' ? 'Sin fallos pendientes' : 'Todavía no hay preguntas'}
-          detail={reviewMode === 'failed'
-            ? 'No tienes preguntas falladas para repasar en este tema.'
-            : 'El profesor aún no ha añadido preguntas a este tema.'}
+          omniState="thinking"
+          title="Todavía no hay preguntas"
+          detail="El profesor aún no ha añadido preguntas a este tema."
           action="Volver al curso"
           onPress={onBack}
         />

@@ -58,7 +58,7 @@ export default function AppConfirmModal({
       visible={visible}
       onClose={onCancel}
       title={title}
-      description={message}
+      scrollable
       closeOnBackdropPress={!busy}
       contentStyle={styles.content}
       footer={(
@@ -94,6 +94,9 @@ export default function AppConfirmModal({
           <Text style={[styles.eyebrow, { color }]}>ACCIÓN QUE REQUIERE CONFIRMACIÓN</Text>
           <Text style={[styles.hint, { color: tokens.text.secondary }]}>Revisa la información antes de continuar.</Text>
         </View>
+      </View>
+      <View style={[styles.messageCard, { backgroundColor: tokens.surface.raised, borderColor: tokens.border.default }]}>
+        <Text selectable style={[styles.message, { color: tokens.text.primary }]}>{message}</Text>
       </View>
     </AppBottomSheet>
   )
@@ -142,5 +145,16 @@ const styles = StyleSheet.create({
   },
   action: {
     minWidth: 128,
+  },
+  messageCard: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  message: {
+    fontSize: 14,
+    lineHeight: 22,
   },
 })

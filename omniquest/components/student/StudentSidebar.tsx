@@ -10,6 +10,7 @@ import OmniGuide from '../../components/OmniGuide'
 import GamifiedAvatar from '../gamification/GamifiedAvatar'
 import { useProfileCosmetics } from '../../hooks/useProfileCosmetics'
 import { releaseWebFocus } from '../../lib/webFocus'
+import { useI18n } from '../../lib/i18n'
 
 export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings'
 
@@ -28,20 +29,21 @@ type IoniconName = keyof typeof Ionicons.glyphMap
 type NavItem = {
   section?: StudentSection
   label: string
+  labelKey: string
   icon: IoniconName
   href?: string
   testID?: string
 }
 
 const navItems: NavItem[] = [
-  { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(student)/homeStudent', testID: 'student-nav-home' },
-  { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(student)/classes', testID: 'student-nav-classes' },
-  { section: 'progress', label: 'Progreso', icon: 'stats-chart-outline', href: '/(student)/progress', testID: 'student-nav-progress' },
-  { section: 'ranking', label: 'Ranking', icon: 'trophy-outline', href: '/(student)/ranking', testID: 'student-nav-ranking' },
-  { section: 'badges', label: 'Logros', icon: 'ribbon-outline', href: '/(student)/badges', testID: 'student-nav-badges' },
-  { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(student)/notifications', testID: 'student-nav-notifications' },
-  { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(student)/profile', testID: 'student-nav-profile' },
-  { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(student)/settings', testID: 'student-nav-settings' },
+  { section: 'home', label: 'Inicio', labelKey: 'nav.student.home', icon: 'home-outline', href: '/(student)/homeStudent', testID: 'student-nav-home' },
+  { section: 'classes', label: 'Cursos', labelKey: 'nav.student.courses', icon: 'book-outline', href: '/(student)/classes', testID: 'student-nav-classes' },
+  { section: 'progress', label: 'Progreso', labelKey: 'nav.student.progress', icon: 'stats-chart-outline', href: '/(student)/progress', testID: 'student-nav-progress' },
+  { section: 'ranking', label: 'Ranking', labelKey: 'nav.student.ranking', icon: 'trophy-outline', href: '/(student)/ranking', testID: 'student-nav-ranking' },
+  { section: 'badges', label: 'Logros', labelKey: 'nav.student.badges', icon: 'ribbon-outline', href: '/(student)/badges', testID: 'student-nav-badges' },
+  { section: 'notifications', label: 'Notificaciones', labelKey: 'nav.student.notifications', icon: 'notifications-outline', href: '/(student)/notifications', testID: 'student-nav-notifications' },
+  { section: 'profile', label: 'Perfil', labelKey: 'nav.student.profile', icon: 'person-outline', href: '/(student)/profile', testID: 'student-nav-profile' },
+  { section: 'settings', label: 'Configuración', labelKey: 'nav.student.settings', icon: 'settings-outline', href: '/(student)/settings', testID: 'student-nav-settings' },
 ]
 
 export default function StudentSidebar({
@@ -95,7 +97,7 @@ export default function StudentSidebar({
           const isActive = item.section === activeSection
           return (
             <StudentNavButton
-              key={item.label}
+              key={item.labelKey}
               item={item}
               isActive={isActive}
               accentColor={accentColor}
@@ -168,6 +170,8 @@ function StudentNavButton({
   isDark: boolean
   compact: boolean
 }) {
+  const { t } = useI18n()
+  const label = t(item.labelKey)
   const [isHovered, setIsHovered] = React.useState(false)
   const [isPressed, setIsPressed] = React.useState(false)
   const hoverProgress = React.useRef(new Animated.Value(isActive ? 1 : 0)).current
@@ -194,7 +198,7 @@ function StudentNavButton({
       testID={item.testID}
       onPress={releaseWebFocus}
       accessibilityRole="button"
-      accessibilityLabel={item.label}
+      accessibilityLabel={label}
       onHoverIn={() => setIsHovered(true)}
       onHoverOut={() => setIsHovered(false)}
       onPressIn={() => setIsPressed(true)}
@@ -338,7 +342,7 @@ function StudentNavButton({
                   fontWeight: '700',
                 }}
               >
-                {item.label}
+                {label}
               </Animated.Text>
             </Animated.View>
           ) : null}

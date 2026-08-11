@@ -77,14 +77,13 @@ const emptySummary: GameSummary = {
   reviewQuestions: [],
 };
 
-export function useGame(subjectId: string, topicId?: string, reviewMode?: string, classroomId?: string | null, difficulty?: string | null) {
+export function useGame(subjectId: string, topicId?: string, classroomId?: string | null, difficulty?: string | null) {
   const numericSubjectId = Number(subjectId);
   const numericClassroomId = classroomId && classroomId !== 'null' && classroomId !== 'undefined' ? Number(classroomId) : null;
   const numericTopicId = topicId && topicId !== 'general' ? Number(topicId) : null;
   const numericDifficulty = normalizeDifficulty(difficulty);
   const isGeneralTopic = topicId === 'general';
-  const isFailedReview = reviewMode === 'failed';
-  const gameSnapshotKey = buildGameSnapshotKey([numericSubjectId, numericClassroomId, numericTopicId, isGeneralTopic, numericDifficulty, isFailedReview]);
+  const gameSnapshotKey = buildGameSnapshotKey([numericSubjectId, numericClassroomId, numericTopicId, isGeneralTopic, numericDifficulty]);
   const haptics = useAppHaptics();
 
   const [questions, setQuestions] = useState<any[]>([]);
@@ -175,7 +174,6 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
           p_topic_id: numericTopicId ?? undefined,
           p_general_topic: isGeneralTopic,
           p_difficulty: numericDifficulty ?? undefined,
-          p_review_failed: isFailedReview,
         }),
         { subjectId: numericSubjectId, classroomId: numericClassroomId, topicId: numericTopicId },
       );
@@ -244,7 +242,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
       setLoadError(message);
       setStatus('error');
     }
-  }, [gameSnapshotKey, isFailedReview, isGeneralTopic, numericClassroomId, numericDifficulty, numericSubjectId, numericTopicId]);
+  }, [gameSnapshotKey, isGeneralTopic, numericClassroomId, numericDifficulty, numericSubjectId, numericTopicId]);
 
   useEffect(() => {
     loadGame();
@@ -724,6 +722,7 @@ export function useGame(subjectId: string, topicId?: string, reviewMode?: string
   };
 
   return {
+    attemptId: attemptIdRef.current,
     questions,
     currentIndex,
     currentQuestion: questions[currentIndex],

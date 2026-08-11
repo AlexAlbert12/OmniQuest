@@ -173,6 +173,7 @@ function StyledAppModal({
       visible={Boolean(modal)}
       onClose={onClose}
       title={modal?.title}
+      scrollable
       closeOnBackdropPress={busyButtonIndex === null}
       footer={modal ? (
         <View style={styles.actions}>
@@ -223,7 +224,7 @@ const styles = StyleSheet.create({
   },
   omniRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
   },
   actions: {

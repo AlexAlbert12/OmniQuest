@@ -8,6 +8,7 @@ import { useAppTheme } from '../../lib/appTheme'
 import { supabase } from '../../lib/supabase'
 
 import { releaseWebFocus } from '../../lib/webFocus'
+import { useI18n } from '../../lib/i18n'
 export type TeacherSection = 'home' | 'classes' | 'students' | 'reviews' | 'notifications' | 'audit' | 'profile' | 'settings'
 
 type TeacherSidebarProps = {
@@ -20,18 +21,19 @@ type TeacherSidebarProps = {
 const navItems: {
   section: TeacherSection
   label: string
+  labelKey: string
   icon: keyof typeof Ionicons.glyphMap
   href?: string
   testID?: string
 }[] = [
-    { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(teacher)/homeTeacher', testID: 'teacher-nav-home' },
-    { section: 'classes', label: 'Cursos', icon: 'book-outline', href: '/(teacher)/classes', testID: 'teacher-nav-classes' },
-    { section: 'students', label: 'Alumnos', icon: 'people-outline', href: '/(teacher)/students', testID: 'teacher-nav-students' },
-    { section: 'reviews', label: 'Revisión', icon: 'create-outline', href: '/(teacher)/reviews', testID: 'teacher-nav-reviews' },
-    { section: 'audit', label: 'Auditoría', icon: 'shield-checkmark-outline', href: '/(teacher)/audit', testID: 'teacher-nav-audit' },
-    { section: 'notifications', label: 'Notificaciones', icon: 'notifications-outline', href: '/(teacher)/notifications', testID: 'teacher-nav-notifications' },
-    { section: 'profile', label: 'Perfil', icon: 'person-outline', href: '/(teacher)/profile', testID: 'teacher-nav-profile' },
-    { section: 'settings', label: 'Configuración', icon: 'settings-outline', href: '/(teacher)/settings', testID: 'teacher-nav-settings' },
+    { section: 'home', label: 'Inicio', labelKey: 'nav.teacher.home', icon: 'home-outline', href: '/(teacher)/homeTeacher', testID: 'teacher-nav-home' },
+    { section: 'classes', label: 'Cursos', labelKey: 'nav.teacher.courses', icon: 'book-outline', href: '/(teacher)/classes', testID: 'teacher-nav-classes' },
+    { section: 'students', label: 'Alumnos', labelKey: 'nav.teacher.students', icon: 'people-outline', href: '/(teacher)/students', testID: 'teacher-nav-students' },
+    { section: 'reviews', label: 'Revisión', labelKey: 'nav.teacher.reviews', icon: 'create-outline', href: '/(teacher)/reviews', testID: 'teacher-nav-reviews' },
+    { section: 'audit', label: 'Auditoría', labelKey: 'nav.teacher.audit', icon: 'shield-checkmark-outline', href: '/(teacher)/audit', testID: 'teacher-nav-audit' },
+    { section: 'notifications', label: 'Notificaciones', labelKey: 'nav.teacher.notifications', icon: 'notifications-outline', href: '/(teacher)/notifications', testID: 'teacher-nav-notifications' },
+    { section: 'profile', label: 'Perfil', labelKey: 'nav.teacher.profile', icon: 'person-outline', href: '/(teacher)/profile', testID: 'teacher-nav-profile' },
+    { section: 'settings', label: 'Configuración', labelKey: 'nav.teacher.settings', icon: 'settings-outline', href: '/(teacher)/settings', testID: 'teacher-nav-settings' },
   ]
 
 export default function TeacherSidebar({
@@ -114,7 +116,7 @@ export default function TeacherSidebar({
           const isActive = item.section === activeSection
           return (
             <TeacherNavButton
-              key={item.label}
+              key={item.labelKey}
               item={item}
               isActive={isActive}
               accentColor={accentColor}
@@ -167,11 +169,13 @@ function TeacherNavButton({
   accentColor,
   isDark,
 }: {
-  item: { section: TeacherSection; label: string; icon: keyof typeof Ionicons.glyphMap; href?: string; testID?: string }
+  item: { section: TeacherSection; label: string; labelKey: string; icon: keyof typeof Ionicons.glyphMap; href?: string; testID?: string }
   isActive: boolean
   accentColor: string
   isDark: boolean
 }) {
+  const { t } = useI18n()
+  const label = t(item.labelKey)
   const [isHovered, setIsHovered] = React.useState(false)
   const [isPressed, setIsPressed] = React.useState(false)
   const hoverProgress = React.useRef(new Animated.Value(isActive ? 1 : 0)).current
@@ -198,7 +202,7 @@ function TeacherNavButton({
       testID={item.testID}
       onPress={releaseWebFocus}
       accessibilityRole="button"
-      accessibilityLabel={item.label}
+      accessibilityLabel={label}
       onHoverIn={() => setIsHovered(true)}
       onHoverOut={() => setIsHovered(false)}
       onPressIn={() => setIsPressed(true)}
@@ -337,7 +341,7 @@ function TeacherNavButton({
                 fontWeight: '700',
               }}
             >
-              {item.label}
+              {label}
             </Animated.Text>
           </Animated.View>
         </View>

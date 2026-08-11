@@ -339,25 +339,22 @@ export default function StudentClassDetailScreen() {
     }, [fetchClass])
   )
 
-  const openTopic = (topic: Topic, reviewFailed = false) => {
+  const openTopic = (topic: Topic) => {
     if (topic.questionsCount === 0 || isTopicLocked(topic)) return
-    if (topic.difficulties.length <= 1) {
-      const difficulty = topic.difficulties[0]?.difficulty || 1
-      router.push(buildPlayHref(subject?.id || Number(subjectId), classroom?.id ?? null, topic, difficulty, reviewFailed) as any)
-      return
-    }
-
     setDifficultyChooserTopic(topic)
   }
 
   const chooseDifficulty = (topic: Topic, difficulty: DifficultyLevel, reviewFailed = false) => {
     setDifficultyChooserTopic(null)
-    router.push(buildPlayHref(subject?.id || Number(subjectId), classroom?.id ?? null, topic, difficulty, reviewFailed) as any)
+    const href = reviewFailed
+      ? buildReviewHref(subject?.id || Number(subjectId), classroom?.id ?? null, topic, difficulty)
+      : buildPlayHref(subject?.id || Number(subjectId), classroom?.id ?? null, topic, difficulty)
+    router.push(href as any)
   }
 
   const openFailedQuestion = (question: FailedQuestion) => {
     const topic = topics.find((item) => item.title === question.topicTitle) || recommendedTopic
-    if (topic) openTopic(topic, true)
+    if (topic) openTopic(topic)
   }
 
   const executeLeaveClass = useCallback(async () => {
@@ -427,13 +424,13 @@ export default function StudentClassDetailScreen() {
       testID: `student-topic-${topic.id}`,
       progress,
       state,
-      actionLabel: topic.failedQuestions > 0 ? 'Repasar' : getTopicActionLabel(topic),
+      actionLabel: topic.answeredQuestions > 0 ? 'Ver opciones' : getTopicActionLabel(topic),
       color,
       icon: topic.icon,
       failedQuestions: topic.failedQuestions,
       questionsCount: topic.questionsCount,
       bestScore: topic.bestScore,
-      onPress: () => openTopic(topic, topic.failedQuestions > 0),
+      onPress: () => openTopic(topic),
     }
   })
   const recommendedTopicPosition = recommendedTopic
@@ -471,7 +468,7 @@ export default function StudentClassDetailScreen() {
               topic={recommendedTopic}
               position={recommendedTopicPosition}
               courseDescription={subject.description}
-              onContinue={recommendedTopic ? () => openTopic(recommendedTopic, recommendedTopic.failedQuestions > 0) : undefined}
+              onContinue={recommendedTopic ? () => openTopic(recommendedTopic) : undefined}
             />
           </View>
 
@@ -513,7 +510,7 @@ export default function StudentClassDetailScreen() {
             topic={recommendedTopic}
             position={recommendedTopicPosition}
             courseDescription={subject.description}
-            onContinue={() => openTopic(recommendedTopic, recommendedTopic.failedQuestions > 0)}
+            onContinue={() => openTopic(recommendedTopic)}
           />
         </View>
       ) : null}
@@ -552,7 +549,6 @@ function buildPlayHref(
   classroomId: number | null,
   topic: Topic,
   difficulty: DifficultyLevel,
-  reviewFailed = false,
 ) {
   return {
     pathname: '/(student)/play/[id]',
@@ -562,7 +558,25 @@ function buildPlayHref(
       topicId: String(topic.id),
       topicName: topic.title,
       difficulty: String(difficulty),
-      ...(reviewFailed ? { review: 'failed' } : {}),
+    },
+  }
+}
+
+function buildReviewHref(
+  subjectId: number,
+  classroomId: number | null,
+  topic: Topic,
+  difficulty: DifficultyLevel,
+) {
+  return {
+    pathname: '/(student)/review/[attemptId]',
+    params: {
+      attemptId: 'latest',
+      subjectId: String(subjectId),
+      ...(classroomId ? { classroomId: String(classroomId) } : {}),
+      topicId: String(topic.id),
+      topicName: topic.title,
+      difficulty: String(difficulty),
     },
   }
 }

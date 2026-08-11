@@ -78,6 +78,42 @@ export type AttemptFeedback = {
   review_comments?: SafeManualReviewComment[]
 }
 
+export type GameAttemptReviewIndex = {
+  attempt_id: string
+  subject_id: number
+  subject_name: string | null
+  classroom_id: number | null
+  topic_id: number | null
+  topic_title: string | null
+  difficulty: number | null
+  started_at: string
+  finished_at: string | null
+  status: string
+  total_score: number
+  questions_total: number
+  correct_total: number
+  failed_attempt_history_ids: number[]
+}
+
+export type GameAttemptReviewMistake = {
+  attempt: SafeStudentAttempt
+  feedback: AttemptFeedback
+  submittedAnswerDisplay: string | null
+}
+
+export type GameAttemptReview = GameAttemptReviewIndex & {
+  mistakes: GameAttemptReviewMistake[]
+}
+
+export type GameAttemptReviewFilters = {
+  attemptId?: string | null
+  subjectId?: number | null
+  classroomId?: number | null
+  topicId?: number | null
+  generalTopic?: boolean
+  difficulty?: number | null
+}
+
 
 export type StudentAttemptHistoryPageFilters = {
   page?: number
@@ -225,6 +261,72 @@ export async function fetchAttemptFeedback(attemptHistoryId: number): Promise<At
 
   if (error) throw error
   return data && typeof data === 'object' ? (data as AttemptFeedback) : {}
+}
+
+export async function fetchGameAttemptReview({
+  attemptId = null,
+  subjectId = null,
+  classroomId = null,
+  topicId = null,
+  generalTopic = false,
+  difficulty = null,
+}: GameAttemptReviewFilters): Promise<GameAttemptReview | null> {
+  const { data, error } = await supabase.rpc('get_game_attempt_review_index', {
+    p_attempt_id: attemptId ?? undefined,
+    p_subject_id: subjectId ?? undefined,
+    p_classroom_id: classroomId ?? undefined,
+    p_topic_id: topicId ?? undefined,
+    p_general_topic: generalTopic,
+    p_difficulty: difficulty ?? undefined,
+  })
+
+  if (error) throw error
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null
+
+  const payload = data as unknown as Record<string, unknown>
+  const failedAttemptIds = Array.isArray(payload.failed_attempt_history_ids)
+    ? payload.failed_attempt_history_ids
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value) && value > 0)
+    : []
+  const submittedAnswers = new Map(
+    (Array.isArray(payload.failed_attempts) ? payload.failed_attempts : [])
+      .filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value))
+      .map((value) => [
+        Number(value.history_id),
+        typeof value.submitted_answer_display === 'string' ? value.submitted_answer_display : null,
+      ] as const)
+  )
+
+  const mistakes = await Promise.all(failedAttemptIds.map(async (historyId) => {
+    const [attempt, feedback] = await Promise.all([
+      fetchActivityAttemptDetail(historyId),
+      fetchAttemptFeedback(historyId),
+    ])
+    return {
+      attempt,
+      feedback,
+      submittedAnswerDisplay: submittedAnswers.get(historyId) ?? null,
+    }
+  }))
+
+  return {
+    attempt_id: String(payload.attempt_id || ''),
+    subject_id: Number(payload.subject_id || 0),
+    subject_name: typeof payload.subject_name === 'string' ? payload.subject_name : null,
+    classroom_id: payload.classroom_id === null || payload.classroom_id === undefined ? null : Number(payload.classroom_id),
+    topic_id: payload.topic_id === null || payload.topic_id === undefined ? null : Number(payload.topic_id),
+    topic_title: typeof payload.topic_title === 'string' ? payload.topic_title : null,
+    difficulty: payload.difficulty === null || payload.difficulty === undefined ? null : Number(payload.difficulty),
+    started_at: String(payload.started_at || ''),
+    finished_at: typeof payload.finished_at === 'string' ? payload.finished_at : null,
+    status: String(payload.status || 'finished'),
+    total_score: Math.max(0, Number(payload.total_score || 0)),
+    questions_total: Math.max(0, Number(payload.questions_total || 0)),
+    correct_total: Math.max(0, Number(payload.correct_total || 0)),
+    failed_attempt_history_ids: failedAttemptIds,
+    mistakes,
+  }
 }
 
 export async function fetchActivityAttemptDetail(attemptHistoryId: number): Promise<SafeStudentAttempt> {

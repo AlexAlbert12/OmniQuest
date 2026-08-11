@@ -145,7 +145,8 @@ export default function AvatarCustomizationModal({
                     className="min-w-[150px] flex-1 rounded-2xl border p-4"
                     style={({ pressed }) => ({
                       opacity: frame.unlocked ? (pressed ? 0.82 : 1) : 0.52,
-                      borderColor: selected ? frame.primaryColor : '#203B67',
+                      borderColor: selected ? frame.primaryColor : '#315D93',
+                      borderWidth: selected ? 2 : 1,
                       backgroundColor: selected ? withAlpha(frame.primaryColor, '22') : '#0A1A36',
                     })}
                   >
@@ -244,7 +245,8 @@ function BadgeOption({
       className="w-[30.8%] min-w-[94px] items-center rounded-2xl border p-3"
       style={({ pressed }) => ({
         opacity: pressed ? 0.82 : 1,
-        borderColor: selected ? color : '#203B67',
+        borderColor: selected ? color : '#315D93',
+        borderWidth: selected ? 2 : 1,
         backgroundColor: selected ? withAlpha(color, '22') : '#0A1A36',
       })}
     >

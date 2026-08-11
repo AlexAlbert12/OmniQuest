@@ -6267,6 +6267,17 @@ export type Database = {
           weekly_points: number
         }[]
       }
+      get_game_attempt_review_index: {
+        Args: {
+          p_attempt_id?: string
+          p_classroom_id?: number
+          p_difficulty?: number
+          p_general_topic?: boolean
+          p_subject_id?: number
+          p_topic_id?: number
+        }
+        Returns: Json
+      }
       get_game_questions: {
         Args: {
           p_classroom_id?: number
@@ -7203,4 +7214,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

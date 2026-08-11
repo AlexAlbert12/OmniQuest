@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BackHandler, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -33,11 +33,10 @@ export default function PlayScreen() {
 }
 
 function PlayScreenContent() {
-  const { id, topicId, topicName, review, classroomId, difficulty } = useLocalSearchParams<{
+  const { id, topicId, topicName, classroomId, difficulty } = useLocalSearchParams<{
     id: string
     topicId?: string
     topicName?: string
-    review?: string
     classroomId?: string
     difficulty?: string
   }>()
@@ -47,7 +46,6 @@ function PlayScreenContent() {
   const [pendingAction, setPendingAction] = useState<GamePendingAction>(null)
   const [feedbackDialog, setFeedbackDialog] = useState<{ title: string; message: string } | null>(null)
 
-  const reviewMode = firstParam(review)
   const selectedClassroomId = firstParam(classroomId)
   const selectedDifficulty = firstParam(difficulty)
   const selectedTopicId = firstParam(topicId)
@@ -55,15 +53,7 @@ function PlayScreenContent() {
   const normalizedDifficulty = normalizeDifficulty(selectedDifficulty)
   const difficultyMeta = normalizedDifficulty ? getDifficultyMeta(normalizedDifficulty) : null
   const isDesktop = width >= 1024
-  const game = useGame(String(id), selectedTopicId, reviewMode, selectedClassroomId, selectedDifficulty)
-
-  const playRouteParams = useMemo(() => ({
-    id: String(id),
-    ...(selectedTopicId ? { topicId: selectedTopicId } : {}),
-    ...(selectedTopicName ? { topicName: selectedTopicName } : {}),
-    ...(selectedClassroomId ? { classroomId: selectedClassroomId } : {}),
-    ...(selectedDifficulty ? { difficulty: selectedDifficulty } : {}),
-  }), [id, selectedClassroomId, selectedDifficulty, selectedTopicId, selectedTopicName])
+  const game = useGame(String(id), selectedTopicId, selectedClassroomId, selectedDifficulty)
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -75,7 +65,17 @@ function PlayScreenContent() {
   }, [game.status])
 
   const handleReviewMistakes = () => {
-    router.replace({ pathname: '/(student)/play/[id]', params: { ...playRouteParams, review: 'failed' } } as any)
+    router.replace({
+      pathname: '/(student)/review/[attemptId]',
+      params: {
+        attemptId: game.attemptId || 'latest',
+        subjectId: String(id),
+        ...(selectedTopicId ? { topicId: selectedTopicId } : {}),
+        ...(selectedTopicName ? { topicName: selectedTopicName } : {}),
+        ...(selectedClassroomId ? { classroomId: selectedClassroomId } : {}),
+        ...(selectedDifficulty ? { difficulty: selectedDifficulty } : {}),
+      },
+    } as any)
   }
 
   const handleBack = () => router.back()
@@ -91,7 +91,6 @@ function PlayScreenContent() {
         <GameStateView
           status={game.status}
           isOffline={game.isOffline}
-          reviewMode={reviewMode}
           loadError={game.loadError}
           score={game.score}
           summary={game.summary}

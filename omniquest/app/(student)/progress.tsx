@@ -27,12 +27,12 @@ export default function ProgressScreen() {
   const handlePractice = useCallback((opportunity: PracticeOpportunity) => {
     if (opportunity.subjectId) {
       router.push({
-        pathname: '/(student)/play/[id]',
+        pathname: '/(student)/review/[attemptId]',
         params: {
-          id: String(opportunity.subjectId),
+          attemptId: 'latest',
+          subjectId: String(opportunity.subjectId),
           topicId: opportunity.topicId === null || opportunity.topicId === undefined ? 'general' : String(opportunity.topicId),
           topicName: opportunity.topicName || opportunity.title,
-          review: 'failed',
         },
       } as any)
       return

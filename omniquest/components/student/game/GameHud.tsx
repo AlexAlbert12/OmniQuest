@@ -133,9 +133,10 @@ function HudAction({
   return (
     <Pressable
       onPress={onPress}
-      className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl border px-3 py-3 ${emphasized ? '' : 'border-border-subtle bg-surface-raised'}`}
+      className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl border bg-surface-raised px-3 py-3"
       style={({ pressed }) => ({
-        borderColor: emphasized ? withAlpha(color, '70') : undefined,
+        borderColor: emphasized ? color : '#315D93',
+        borderWidth: emphasized ? 2 : 1,
         backgroundColor: emphasized ? withAlpha(color, '14') : undefined,
         opacity: pressed ? 0.78 : 1,
       })}

@@ -7,6 +7,7 @@ import CelebrationParticles from '../../gamification/CelebrationParticles'
 import XpGainBurst from '../../gamification/XpGainBurst'
 import { USE_NATIVE_ANIMATION_DRIVER } from '../../../lib/animation'
 import { useAppTheme } from '../../../lib/appTheme'
+import { withAlpha } from '../../../lib/color'
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
@@ -219,15 +220,16 @@ export function AnswerOption({
   isSubmitting: boolean
   onPress: () => void
 }) {
+  const { tokens } = useAppTheme()
   const isSelected = selectedAnswerId === answer.id
   const isCorrectAnswer = correctAnswerId === answer.id
   const isHinted = hintedAnswerId === answer.id
 
-  let borderColor = '#2B4B7B'
-  let backgroundColor = '#0D1F3D'
-  let textColor = '#F8FAFC'
-  let badgeColor = '#1A3260'
-  let badgeBorderColor = '#3A5E8F'
+  let borderColor = withAlpha(tokens.brand.student, '80')
+  let backgroundColor = tokens.surface.raised
+  let textColor = tokens.text.primary
+  let badgeColor = tokens.surface.selected
+  let badgeBorderColor = tokens.border.active
 
   if (isHinted) {
     borderColor = '#FBBF24'
@@ -257,11 +259,11 @@ export function AnswerOption({
       badgeColor = '#F43F5E'
       badgeBorderColor = '#FDA4AF'
     } else {
-      borderColor = '#1B3155'
-      backgroundColor = '#0A1830'
-      textColor = '#697B99'
-      badgeColor = '#111E3C'
-      badgeBorderColor = '#273A5E'
+      borderColor = tokens.border.default
+      backgroundColor = tokens.surface.default
+      textColor = tokens.text.muted
+      badgeColor = tokens.surface.interactive
+      badgeBorderColor = tokens.border.default
     }
   }
 
@@ -281,7 +283,7 @@ export function AnswerOption({
       style={({ pressed }) => ({
         borderColor,
         backgroundColor,
-        borderWidth: isSelected || isHinted || (hasAnswered && (isCorrectAnswer || isSelected)) ? 2 : 1,
+        borderWidth: 2,
         opacity: pressed ? 0.84 : 1,
       })}
     >
