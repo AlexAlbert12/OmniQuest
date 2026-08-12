@@ -72,6 +72,8 @@ export function getSupportPriorityLabel(priority: AdminSupportTicketRow['priorit
   return 'Media'
 }
 
+export function formatAdminCount(count: number, singular: string, plural = `${singular}s`) { return `${count} ${count === 1 ? singular : plural}` }
+
 export function getSearchParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] || '' : value || ''
 }

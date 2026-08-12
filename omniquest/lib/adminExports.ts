@@ -126,6 +126,7 @@ export async function exportAdminProfiles({
 
 export async function exportAdminSubjects({
   search,
+  subjectId = null,
   teacherId = null,
   archived = null,
   active = null,
@@ -133,6 +134,7 @@ export async function exportAdminSubjects({
   createdTo = null,
 }: {
   search: string
+  subjectId?: number | null
   teacherId?: string | null
   archived?: boolean | null
   active?: boolean | null
@@ -141,6 +143,7 @@ export async function exportAdminSubjects({
 }) {
   const rows = await fetchAllRpcRows('get_admin_subjects_page', {
     p_search: search.trim(),
+    p_subject_id: subjectId ?? undefined,
     p_teacher_id: teacherId ?? undefined,
     p_archived: archived ?? undefined,
     p_active: active ?? undefined,
@@ -150,7 +153,7 @@ export async function exportAdminSubjects({
 
   return exportCsvFile(
     datedFilename('omniquest-cursos'),
-    ['ID', 'Curso', 'Profesor', 'Correo profesor', 'Estado', 'Archivado', 'Clases', 'Alumnos', 'Última actividad', 'Incidencias', 'Revisiones pendientes', 'Clases inactivas', 'Clases sin código', 'Creado'],
+    ['ID', 'Curso', 'Profesor', 'Correo profesor', 'Estado', 'Archivado', 'Clases', 'Alumnos', 'Última actividad', 'Alertas', 'Revisiones pendientes', 'Clases inactivas', 'Clases sin código', 'Creado'],
     rows.map((row) => [
       row.id,
       row.name,
@@ -199,7 +202,7 @@ export async function exportAdminClassrooms({
 
   return exportCsvFile(
     datedFilename('omniquest-clases'),
-    ['ID', 'Clase', 'Curso', 'Profesor', 'Correo profesor', 'Código', 'Estado', 'Alumnos', 'Última actividad', 'Incidencias', 'Revisiones pendientes', 'Creada'],
+    ['ID', 'Clase', 'Curso', 'Profesor', 'Correo profesor', 'Código', 'Estado', 'Alumnos', 'Última actividad', 'Alertas', 'Revisiones pendientes', 'Creada'],
     rows.map((row) => [
       row.id,
       row.name,

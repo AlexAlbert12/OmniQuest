@@ -25,6 +25,7 @@ export default function GlobalSearchButton({ role, compact = false }: GlobalSear
   const router = useRouter()
   const { colors, tokens } = useAppTheme()
   const roleAccent = tokens.brand[role]
+  const triggerIconColor = role === 'admin' ? tokens.brand.admin : roleAccent
   const inputRef = useRef<TextInput>(null)
   const [visible, setVisible] = useState(false)
   const [query, setQuery] = useState('')
@@ -91,7 +92,7 @@ export default function GlobalSearchButton({ role, compact = false }: GlobalSear
 
   return <>
     <Pressable accessibilityLabel="Abrir búsqueda global" accessibilityRole="button" accessibilityHint={Platform.OS === 'web' ? 'También puedes usar Control o Comando más K' : undefined} hitSlop={8} onPress={() => setVisible(true)} style={({ pressed }) => [styles.trigger, compact ? styles.triggerCompact : styles.triggerWide, { borderColor: colors.border, backgroundColor: colors.surface, opacity: pressed ? 0.76 : 1 }]}>
-      <Ionicons name="search-outline" size={compact ? 21 : 18} color={roleAccent} />{!compact ? <><Text style={[styles.triggerLabel, { color: colors.text }]}>Buscar</Text>{Platform.OS === 'web' ? <Text style={[styles.shortcut, { color: colors.textMuted, borderColor: colors.border }]}>{shortcutLabel}</Text> : null}</> : null}
+      <Ionicons name="search-outline" size={compact ? 21 : 18} color={triggerIconColor} />{!compact ? <><Text style={[styles.triggerLabel, { color: colors.text }]}>Buscar</Text>{Platform.OS === 'web' ? <Text style={[styles.shortcut, { color: colors.textMuted, borderColor: colors.border }]}>{shortcutLabel}</Text> : null}</> : null}
     </Pressable>
 
     <Modal animationType="fade" onRequestClose={close} presentationStyle="overFullScreen" statusBarTranslucent transparent visible={visible}>

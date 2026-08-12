@@ -6021,6 +6021,7 @@ export type Database = {
           p_limit?: number
           p_offset?: number
           p_search?: string
+          p_subject_id?: number
           p_teacher_id?: string
         }
         Returns: {

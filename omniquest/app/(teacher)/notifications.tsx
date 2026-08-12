@@ -39,14 +39,19 @@ export default function TeacherNotificationsScreen() {
   const { tokens } = useAppTheme()
   const { showModal } = useAppModal()
   const notifications = useTeacherNotifications()
+  const notificationError = notifications.error
+  const clearNotificationError = notifications.clearError
+  const muteNotificationsUntil = notifications.muteUntil
+  const markAllNotificationsAsRead = notifications.markAllAsRead
+  const unreadNotifications = notifications.summary.unreadNotifications
   const [filtersOpen, setFiltersOpen] = useState(false)
   const shellHorizontalPadding = responsive.isDesktop ? 28 : responsive.isTablet ? 24 : 18
 
   useEffect(() => {
-    if (!notifications.error) return
-    showModal({ title: 'Error de notificaciones', message: notifications.error, variant: 'error' })
-    notifications.clearError()
-  }, [notifications.error, notifications.clearError, showModal])
+    if (!notificationError) return
+    showModal({ title: 'Error de notificaciones', message: notificationError, variant: 'error' })
+    clearNotificationError()
+  }, [clearNotificationError, notificationError, showModal])
 
   const handleSignOut = useCallback(async () => {
     await signOutCurrentDeviceSession()
@@ -64,22 +69,22 @@ export default function TeacherNotificationsScreen() {
       message: 'Las notificaciones seguirán disponibles en este centro y las alertas críticas permanecerán activas. Elige durante cuánto tiempo quieres pausar únicamente los avisos informativos.',
       variant: 'info',
       buttons: [
-        { label: 'Durante 1 hora', role: 'primary', onPress: () => notifications.muteUntil(new Date(Date.now() + 60 * 60 * 1000).toISOString()) },
-        { label: 'Durante 8 horas', role: 'primary', onPress: () => notifications.muteUntil(new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()) },
-        { label: 'Hasta mañana', role: 'primary', onPress: () => notifications.muteUntil(nextMorningIso()) },
+        { label: 'Durante 1 hora', role: 'primary', onPress: () => muteNotificationsUntil(new Date(Date.now() + 60 * 60 * 1000).toISOString()) },
+        { label: 'Durante 8 horas', role: 'primary', onPress: () => muteNotificationsUntil(new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()) },
+        { label: 'Hasta mañana', role: 'primary', onPress: () => muteNotificationsUntil(nextMorningIso()) },
         { label: 'Cancelar', role: 'cancel' },
       ],
     })
-  }, [notifications.muteUntil, showModal])
+  }, [muteNotificationsUntil, showModal])
 
   const openMobileActions = useCallback(() => {
     const buttons: AppModalButton[] = [
       { label: 'Preferencias', role: 'primary' as const, onPress: () => router.push('/(teacher)/settings?section=teaching' as never) },
       { label: 'Silenciar avisos informativos', role: 'primary' as const, onPress: openMuteMenu },
     ]
-    if (notifications.summary.unreadNotifications > 0) buttons.unshift({ label: 'Marcar todas como leídas', role: 'primary' as const, onPress: notifications.markAllAsRead })
+    if (unreadNotifications > 0) buttons.unshift({ label: 'Marcar todas como leídas', role: 'primary' as const, onPress: markAllNotificationsAsRead })
     showModal({ title: 'Acciones de notificaciones', message: 'Gestiona las notificaciones sin ocultar el contenido del centro.', variant: 'info', buttons: [...buttons, { label: 'Cancelar', role: 'cancel' as const }] })
-  }, [notifications.markAllAsRead, notifications.summary.unreadNotifications, openMuteMenu, router, showModal])
+  }, [markAllNotificationsAsRead, openMuteMenu, router, showModal, unreadNotifications])
 
   const headerActions = responsive.isDesktop ? (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }}>

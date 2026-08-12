@@ -14,7 +14,7 @@ select ok(
   'profile pagination RPC exposes advanced server filters'
 );
 select ok(
-  to_regprocedure('public.get_admin_subjects_page(text,uuid,boolean,boolean,timestamptz,timestamptz,integer,integer)') is not null,
+  to_regprocedure('public.get_admin_subjects_page(text,bigint,uuid,boolean,boolean,timestamptz,timestamptz,integer,integer)') is not null,
   'course supervision pagination RPC exists'
 );
 select ok(
@@ -48,7 +48,7 @@ select ok(
   'authenticated sessions may invoke profile pagination'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.get_admin_subjects_page(text,uuid,boolean,boolean,timestamptz,timestamptz,integer,integer)', 'EXECUTE'),
+  has_function_privilege('authenticated', 'public.get_admin_subjects_page(text,bigint,uuid,boolean,boolean,timestamptz,timestamptz,integer,integer)', 'EXECUTE'),
   'authenticated sessions may invoke course supervision pagination'
 );
 select ok(
@@ -73,7 +73,7 @@ select ok(
   'anonymous sessions cannot invoke admin profile pagination'
 );
 select ok(
-  not has_function_privilege('anon', 'public.get_admin_subjects_page(text,uuid,boolean,boolean,timestamptz,timestamptz,integer,integer)', 'EXECUTE'),
+  not has_function_privilege('anon', 'public.get_admin_subjects_page(text,bigint,uuid,boolean,boolean,timestamptz,timestamptz,integer,integer)', 'EXECUTE'),
   'anonymous sessions cannot invoke admin course pagination'
 );
 select ok(

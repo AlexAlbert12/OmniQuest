@@ -1,6 +1,6 @@
 {
-  "generatedAt": "20260812150000_admin_profile_activity_refinement.sql",
-  "sourceFiles": 441,
+  "generatedAt": "20260812190000_admin_support_experience_refinement.sql",
+  "sourceFiles": 443,
   "calls": [
     {
       "kind": "edge",
@@ -186,7 +186,7 @@
       "kind": "rpc",
       "resource": "admin_update_support_ticket_secured",
       "path": "components/admin/support/AdminSupportSection.tsx",
-      "line": 123
+      "line": 149
     },
     {
       "kind": "rpc",
@@ -282,7 +282,7 @@
       "kind": "rpc",
       "resource": "get_admin_audit_logs_page_secured",
       "path": "lib/adminExports.ts",
-      "line": 230
+      "line": 233
     },
     {
       "kind": "rpc",
@@ -294,7 +294,7 @@
       "kind": "rpc",
       "resource": "get_admin_classrooms_page",
       "path": "components/admin/classrooms/AdminClassroomsSection.tsx",
-      "line": 54
+      "line": 58
     },
     {
       "kind": "rpc",
@@ -306,7 +306,7 @@
       "kind": "rpc",
       "resource": "get_admin_directory_filters",
       "path": "components/admin/shared/AdminAdvancedFilters.tsx",
-      "line": 47
+      "line": 49
     },
     {
       "kind": "rpc",
@@ -330,7 +330,7 @@
       "kind": "rpc",
       "resource": "get_admin_profile_activity_page",
       "path": "components/admin/users/AdminProfileActivityScreen.tsx",
-      "line": 75
+      "line": 76
     },
     {
       "kind": "rpc",
@@ -342,7 +342,7 @@
       "kind": "rpc",
       "resource": "get_admin_profiles_page",
       "path": "components/admin/users/AdminProfileActivityScreen.tsx",
-      "line": 57
+      "line": 58
     },
     {
       "kind": "rpc",
@@ -390,7 +390,7 @@
       "kind": "rpc",
       "resource": "get_admin_subjects_page",
       "path": "components/admin/courses/AdminCoursesSection.tsx",
-      "line": 54
+      "line": 53
     },
     {
       "kind": "rpc",
@@ -402,13 +402,13 @@
       "kind": "rpc",
       "resource": "get_admin_support_tickets_page_secured",
       "path": "components/admin/support/AdminSupportSection.tsx",
-      "line": 56
+      "line": 74
     },
     {
       "kind": "rpc",
       "resource": "get_admin_support_tickets_page_secured",
       "path": "lib/adminExports.ts",
-      "line": 264
+      "line": 267
     },
     {
       "kind": "rpc",

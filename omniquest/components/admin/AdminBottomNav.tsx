@@ -16,8 +16,8 @@ function resolveActiveGroup(active: AdminSection): AdminMobileGroup {
 export default function AdminBottomNav({ active, permissions }: { active: AdminSection; permissions?: AdminPermission[] }) {
   const { tokens } = useAppTheme()
   const activeGroup = resolveActiveGroup(active)
-  const availablePermissions = permissions || []
   const navItems = useMemo<MobileBottomNavigationItem<AdminMobileGroup>[]>(() => {
+    const availablePermissions = permissions || []
     const allItems: (MobileBottomNavigationItem<AdminMobileGroup> & { permission: AdminPermission })[] = [
       { key: 'home', label: 'Inicio', href: '/(admin)/homeAdmin', icon: 'home-outline', activeIcon: 'home', testID: 'admin-nav-home', permission: 'dashboard.read' },
       { key: 'users', label: 'Usuarios', href: '/(admin)/users', icon: 'people-outline', activeIcon: 'people', testID: 'admin-nav-users', permission: 'users.read' },
@@ -26,6 +26,6 @@ export default function AdminBottomNav({ active, permissions }: { active: AdminS
       { key: 'more', label: 'Más', href: '/(admin)/more', icon: 'ellipsis-horizontal-circle-outline', activeIcon: 'ellipsis-horizontal-circle', testID: 'admin-nav-more', permission: 'dashboard.read' },
     ]
     return allItems.filter((item) => availablePermissions.includes(item.permission)).map(({ permission: _permission, ...item }) => item)
-  }, [availablePermissions])
+  }, [permissions])
   return <MobileBottomNavigation activeKey={activeGroup} accentColor={tokens.brand.admin} items={navItems} />
 }

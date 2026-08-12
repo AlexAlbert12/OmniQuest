@@ -71,6 +71,8 @@ async function readPage(client: any, job: ExportJob, offset: number, limit: numb
     query = client.from('subjects').select('id,name,teacher_id,active,is_archived,created_at,archive_reason,archived_at,retention_until').order('created_at', { ascending: false })
     query = applyBoolean(query, 'active', filters.p_active ?? filters.active)
     query = applyBoolean(query, 'is_archived', filters.p_archived ?? filters.archived)
+    const subject = numberFilter(filters.p_subject_id ?? filters.subjectId)
+    if (subject !== null) query = query.eq('id', subject)
     const teacher = stringFilter(filters.p_teacher_id ?? filters.teacherId)
     if (teacher) query = query.eq('teacher_id', teacher)
     query = applyDateRange(query, 'created_at', filters.p_created_from ?? filters.createdFrom, filters.p_created_to ?? filters.createdTo)

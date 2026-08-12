@@ -19,6 +19,8 @@ test('admin visual identity is enforced by shared primitives instead of the glob
   assert.match(primitives, /withAlpha\(tokens\.brand\.admin, '18'\)/)
   assert.match(button, /<AppButton \{\.\.\.props\} role="admin" \/>/)
   assert.match(search, /const roleAccent = tokens\.brand\[role\]/)
+  assert.match(search, /const triggerIconColor = role === 'admin' \? tokens\.brand\.admin : roleAccent/)
+  assert.match(search, /name="search-outline" size=\{compact \? 21 : 18\} color=\{triggerIconColor\}/)
   assert.doesNotMatch(search, /color=\{accentColor\}/)
 })
 

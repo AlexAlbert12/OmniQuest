@@ -1,5 +1,6 @@
 import React from 'react'
 import {
+  ActivityIndicator,
   ScrollView,
   Text,
   View,
@@ -49,7 +50,7 @@ export default function RoleScreenLayout({
   mobileBottomNavigation,
   scroll = true,
   loading = false,
-  loadingLabel = 'Cargando...',
+  loadingLabel,
   contentLabel,
   refreshControl,
   contentContainerStyle,
@@ -72,10 +73,11 @@ export default function RoleScreenLayout({
   const resolvedBottomPadding = bottomPadding ?? (isDesktop ? 36 : mobileBottomNavigation ? MOBILE_BOTTOM_NAV_SPACER : 32)
   const resolvedMaxWidth = maxContentWidth ?? responsive.contentMaxWidth
 
+  const resolvedLoadingLabel = loadingLabel || t('loading.omni')
   const content = loading ? (
-    <View style={styles.loading} accessibilityRole="progressbar" accessibilityLabel={loadingLabel}>
-      <OmniGuide state="blink" size={116} />
-      <Text maxFontSizeMultiplier={2} style={[styles.loadingLabel, { color: tokens.text.muted }]}>{t('loading.omni')}</Text>
+    <View style={styles.loading} accessibilityRole="progressbar" accessibilityLabel={resolvedLoadingLabel}>
+      {role === 'admin' ? <ActivityIndicator size="large" color={tokens.brand.admin} /> : <OmniGuide state="blink" size={116} />}
+      <Text maxFontSizeMultiplier={2} style={[styles.loadingLabel, { color: role === 'admin' ? tokens.brand.admin : tokens.text.muted }]}>{resolvedLoadingLabel}</Text>
     </View>
   ) : (
     children
@@ -90,6 +92,7 @@ export default function RoleScreenLayout({
       paddingBottom: resolvedBottomPadding,
     },
     contentContainerStyle,
+    loading ? styles.loadingViewport : null,
   ]
 
   return (
@@ -127,6 +130,7 @@ const styles = {
   main: { flex: 1, minWidth: 0 } satisfies ViewStyle,
   scroll: { flex: 1 } satisfies ViewStyle,
   content: { width: '100%', alignSelf: 'center' } satisfies ViewStyle,
-  loading: { flex: 1, minHeight: 260, alignItems: 'center', justifyContent: 'center' } satisfies ViewStyle,
-  loadingLabel: { marginTop: 16, fontSize: 14, lineHeight: 20 } as const,
+  loadingViewport: { flexGrow: 1 } satisfies ViewStyle,
+  loading: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' } satisfies ViewStyle,
+  loadingLabel: { marginTop: 16, fontSize: 14, lineHeight: 20, textAlign: 'center' } as const,
 }

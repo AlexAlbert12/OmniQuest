@@ -32,6 +32,7 @@ export function AdminTeachersSection() {
   const confirmation = useAdminTypedConfirmation()
   const actions = useAdminActions(data, confirmation.request)
   const selection = useAdminSelection<string>()
+  const clearSelection = selection.clear
   const exportJobs = useAdminExportJobs()
   const { directory } = useAdminDirectoryFilters()
   const params = useLocalSearchParams<{ teacherId?: string; search?: string; subjectId?: string; classroomId?: string }>()
@@ -61,7 +62,7 @@ export function AdminTeachersSection() {
     p_created_from: toAdminFilterTimestamp(createdFrom), p_created_to: toAdminFilterTimestamp(createdTo, true),
   }), [accountStatus, activityState, classroomId, courseId, createdFrom, createdTo, params.teacherId, search])
   const page = useAdminRpcPage<ProfileRow>('get_admin_profiles_page', rpcFilters, data.version, pageSize)
-  useEffect(() => selection.clear(), [accountStatus, activityState, classroomId, courseId, createdFrom, createdTo, page.page, params.teacherId, search, selection.clear])
+  useEffect(() => clearSelection(), [accountStatus, activityState, classroomId, clearSelection, courseId, createdFrom, createdTo, page.page, params.teacherId, search])
 
   const handleCreateTeacher = async () => {
     const email = teacherEmail.trim().toLowerCase()

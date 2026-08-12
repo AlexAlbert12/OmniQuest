@@ -12,7 +12,9 @@ test('admin selections are cleared when paging or filters change across governed
   const courses = read('components/admin/courses/AdminCoursesSection.tsx')
   const classrooms = read('components/admin/classrooms/AdminClassroomsSection.tsx')
   for (const source of [students, teachers, courses, classrooms]) {
-    assert.match(source, /useEffect\(\(\) => selection\.clear\(\), \[/)
+    assert.match(source, /const clearSelection = selection\.clear/)
+    assert.match(source, /useEffect\(\(\) => clearSelection\(\), \[/)
+    assert.match(source, /clearSelection/)
     assert.match(source, /page\.page/)
     assert.match(source, /search/)
   }

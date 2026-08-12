@@ -51,7 +51,7 @@ test('course governance covers ownership, archive retention and classroom consis
   const edge = read('supabase/functions/admin-bulk-operations/index.ts')
   const migration = read('supabase/migrations/20260731130000_admin_governance_bulk_jobs.sql')
   assert.match(courses, /Transferir propietario/)
-  assert.match(courses, /Eliminar tras retención/)
+  assert.match(courses, /Eliminar definitivamente/)
   assert.match(classrooms, /code_status/)
   assert.match(edge, /deactivateClassrooms/)
   assert.match(edge, /sigue dentro del periodo de conservación/)

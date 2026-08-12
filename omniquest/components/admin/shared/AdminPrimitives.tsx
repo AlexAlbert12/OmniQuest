@@ -17,6 +17,7 @@ import type {
   SubjectRow,
 } from '../types/admin'
 import {
+  formatAdminCount,
   formatAdminDate,
   formatAuditDate,
   getSupportPriorityLabel,
@@ -196,6 +197,8 @@ export function CourseRowCard({ actions, classesCount, enrollmentsCount, subject
   onToggleSelected?: () => void
 }) {
   const incidentCount = subject.incidents_count ?? 0
+  const duplicateCodeCount = subject.duplicate_code_count ?? 0
+  const expiredCodeCount = subject.expired_code_count ?? 0
   const statusLabel = subject.is_archived ? 'Archivado' : subject.active === false ? 'Inactivo' : 'Activo'
   return (
     <SelectableCardShell selected={selected} onToggleSelected={onToggleSelected} selectionLabel={`Seleccionar curso ${subject.name}`}>
@@ -208,13 +211,13 @@ export function CourseRowCard({ actions, classesCount, enrollmentsCount, subject
         <StatusPill active={subject.active !== false && !subject.is_archived} label={statusLabel} />
       </View>
       <View className="mt-3 flex-row flex-wrap gap-2">
-        <MiniPill icon="albums-outline" label={`${classesCount} clase(s)`} />
-        <MiniPill icon="people-outline" label={`${enrollmentsCount} alumno(s)`} />
+        <MiniPill icon="albums-outline" label={formatAdminCount(classesCount, 'clase', 'clases')} />
+        <MiniPill icon="people-outline" label={formatAdminCount(enrollmentsCount, 'alumno', 'alumnos')} />
         <MiniPill icon="time-outline" label={subject.last_activity_at ? `Última actividad ${formatAuditDate(subject.last_activity_at)}` : 'Sin actividad'} />
-        <MiniPill icon={incidentCount > 0 ? 'warning-outline' : 'checkmark-circle-outline'} label={`${incidentCount} incidencia(s)`} />
+        <MiniPill icon={incidentCount > 0 ? 'warning-outline' : 'checkmark-circle-outline'} label={formatAdminCount(incidentCount, 'alerta', 'alertas')} />
         {subject.orphaned ? <MiniPill icon="person-remove-outline" label="Curso sin profesor" /> : null}
-        {(subject.duplicate_code_count || 0) > 0 ? <MiniPill icon="copy-outline" label={`${subject.duplicate_code_count} código(s) duplicado(s)`} /> : null}
-        {(subject.expired_code_count || 0) > 0 ? <MiniPill icon="hourglass-outline" label={`${subject.expired_code_count} código(s) caducado(s)`} /> : null}
+        {duplicateCodeCount > 0 ? <MiniPill icon="copy-outline" label={formatAdminCount(duplicateCodeCount, 'código duplicado', 'códigos duplicados')} /> : null}
+        {expiredCodeCount > 0 ? <MiniPill icon="hourglass-outline" label={formatAdminCount(expiredCodeCount, 'código caducado', 'códigos caducados')} /> : null}
       </View>
       {subject.is_archived ? (
         <View className="mt-3 rounded-xl border border-border-default bg-surface-interactive p-3">
@@ -252,9 +255,9 @@ export function ClassroomRowCard({ actions, classroom, enrollmentsCount, subject
         <StatusPill active={classroom.active !== false} />
       </View>
       <View className="mt-3 flex-row flex-wrap gap-2">
-        <MiniPill icon="people-outline" label={`${enrollmentsCount} alumno(s)`} />
+        <MiniPill icon="people-outline" label={formatAdminCount(enrollmentsCount, 'alumno', 'alumnos')} />
         <MiniPill icon="time-outline" label={classroom.last_activity_at ? `Última actividad ${formatAuditDate(classroom.last_activity_at)}` : 'Sin actividad'} />
-        <MiniPill icon={incidentCount > 0 ? 'warning-outline' : 'checkmark-circle-outline'} label={`${incidentCount} incidencia(s)`} />
+        <MiniPill icon={incidentCount > 0 ? 'warning-outline' : 'checkmark-circle-outline'} label={formatAdminCount(incidentCount, 'alerta', 'alertas')} />
         <MiniPill icon={classroom.code_status === 'valid' ? 'key-outline' : 'alert-circle-outline'} label={codeLabel} />
       </View>
       {classroom.active === false && classroom.deactivation_reason ? <Text className="mt-3 text-[11px] text-text-muted">Motivo de desactivación: {classroom.deactivation_reason}</Text> : null}
@@ -269,7 +272,7 @@ export function SupportTicketCard({ ticket, onManage }: { ticket: AdminSupportTi
     <View className="rounded-xl border border-border-default bg-surface-default p-4">
       <View className="flex-row flex-wrap items-start justify-between gap-3">
         <View className="min-w-[220px] flex-1">
-          <View className="flex-row flex-wrap items-center gap-2"><SupportStatusPill status={ticket.status} /><SupportPriorityPill priority={ticket.priority} /></View>
+          <View className="flex-row flex-wrap items-center gap-2"><SupportStatusPill status={ticket.status} /><SupportPriorityPill priority={ticket.priority} /><SupportSlaPill state={ticket.sla_state} /></View>
           <Text className="mt-3 text-[16px] font-black text-text-primary">{ticket.subject}</Text>
           <Text className="mt-1 text-[12px] font-semibold text-text-muted">{ticket.user_alias || 'Usuario'} · {ticket.role === 'teacher' ? 'Profesor' : 'Alumno'} · {formatAuditDate(ticket.created_at)}</Text>
         </View>
@@ -279,8 +282,10 @@ export function SupportTicketCard({ ticket, onManage }: { ticket: AdminSupportTi
       </View>
       <Text className="mt-3 text-[13px] leading-5 text-text-secondary" numberOfLines={3}>{ticket.message}</Text>
       <View className="mt-3 flex-row flex-wrap gap-2">
-        <MiniPill icon="chatbubbles-outline" label={`${ticket.message_count || 0} mensajes`} />
-        {ticket.attachment_count > 0 ? <MiniPill icon="attach-outline" label={`${ticket.attachment_count} adjuntos`} /> : null}
+        <MiniPill icon="chatbubbles-outline" label={formatAdminCount(ticket.message_count || 0, 'mensaje', 'mensajes')} />
+        <MiniPill icon="person-outline" label={ticket.assigned_admin_alias || 'Sin asignar'} />
+        {ticket.attachment_count > 0 ? <MiniPill icon="attach-outline" label={formatAdminCount(ticket.attachment_count, 'adjunto', 'adjuntos')} /> : null}
+        {(ticket.tags || []).map((tag) => <MiniPill key={tag.slug} icon="pricetag-outline" label={tag.label} />)}
         {!ticket.first_responded_at && ticket.first_response_due_at ? <MiniPill icon="timer-outline" label={`Respuesta antes de ${formatAuditDate(ticket.first_response_due_at)}`} /> : null}
       </View>
       {ticket.admin_response ? <View className="mt-3 rounded-xl border border-border-active bg-semantic-surface-info p-3"><Text className="text-[11px] font-black uppercase tracking-[0.6px] text-semantic-info">Última respuesta</Text><Text className="mt-1 text-[12px] leading-5 text-text-secondary" numberOfLines={2}>{ticket.admin_response}</Text></View> : null}
@@ -290,7 +295,7 @@ export function SupportTicketCard({ ticket, onManage }: { ticket: AdminSupportTi
 
 export function SupportStatusPill({ status }: { status: AdminSupportTicketRow['status'] }) {
   const { tokens } = useAppTheme()
-  const meta = { open: { bg: tokens.semanticSurface.danger, color: tokens.semantic.danger }, in_progress: { bg: tokens.semanticSurface.warning, color: tokens.semantic.warning }, resolved: { bg: tokens.semanticSurface.success, color: tokens.semantic.success }, closed: { bg: tokens.surface.interactive, color: tokens.text.secondary } }[status]
+  const meta = { open: { bg: withAlpha(tokens.brand.admin, '18'), color: tokens.brand.admin }, in_progress: { bg: tokens.semanticSurface.info, color: tokens.semantic.info }, resolved: { bg: tokens.semanticSurface.success, color: tokens.semantic.success }, closed: { bg: tokens.surface.interactive, color: tokens.text.secondary } }[status]
   return <View className="rounded-full px-3 py-1" style={{ backgroundColor: meta.bg }}><Text className="text-[11px] font-black" style={{ color: meta.color }}>{getSupportStatusLabel(status)}</Text></View>
 }
 
@@ -298,6 +303,19 @@ export function SupportPriorityPill({ priority }: { priority: AdminSupportTicket
   const { tokens } = useAppTheme()
   const meta = { high: { bg: tokens.semanticSurface.danger, color: tokens.semantic.danger }, medium: { bg: tokens.semanticSurface.warning, color: tokens.semantic.warning }, low: { bg: tokens.semanticSurface.info, color: tokens.semantic.info } }[priority]
   return <View className="rounded-full px-3 py-1" style={{ backgroundColor: meta.bg }}><Text className="text-[11px] font-black" style={{ color: meta.color }}>Prioridad {getSupportPriorityLabel(priority).toLowerCase()}</Text></View>
+}
+
+export function SupportSlaPill({ state }: { state?: string | null }) {
+  const { tokens } = useAppTheme()
+  if (!state) return null
+  const meta: Record<string, { bg: string; color: string; icon: IconName; label: string }> = {
+    breached: { bg: tokens.semanticSurface.danger, color: tokens.semantic.danger, icon: 'alert-circle-outline', label: 'SLA vencido' },
+    at_risk: { bg: tokens.semanticSurface.warning, color: tokens.semantic.warning, icon: 'time-outline', label: 'SLA en riesgo' },
+    on_track: { bg: tokens.semanticSurface.success, color: tokens.semantic.success, icon: 'checkmark-circle-outline', label: 'SLA en plazo' },
+    completed: { bg: tokens.surface.interactive, color: tokens.text.secondary, icon: 'shield-checkmark-outline', label: 'SLA completado' },
+  }
+  const item = meta[state] || { bg: tokens.surface.interactive, color: tokens.text.secondary, icon: 'time-outline' as IconName, label: state }
+  return <View className="flex-row items-center gap-1.5 rounded-full px-3 py-1" style={{ backgroundColor: item.bg }}><Ionicons name={item.icon} size={13} color={item.color} /><Text className="text-[11px] font-black" style={{ color: item.color }}>{item.label}</Text></View>
 }
 
 export function RowActions({ actions }: { actions: RowAction[] }) {

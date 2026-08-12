@@ -20,7 +20,7 @@ export function AdminUsersHubScreen() {
 
 export function AdminContentHubScreen() {
   const data = useAdminData()
-  return <AdminScaffold activeSection="content" title="Contenido" subtitle="Accede a cursos o clases sin duplicar buscadores y filtros en esta vista inicial." data={data}><HubGrid items={[{ title: 'Cursos', description: 'Propiedad, archivo, conservación y estructura.', icon: 'book-outline', href: '/(admin)/courses', permission: 'courses.read' }, { title: 'Clases', description: 'Estado, códigos de acceso, curso y alumnado.', icon: 'albums-outline', href: '/(admin)/classrooms', permission: 'courses.read' }]} permissions={data.portalContext?.permissions} /></AdminScaffold>
+  return <AdminScaffold activeSection="content" title="Contenido" subtitle="Supervisa cursos y clases desde un único punto." data={data}><HubGrid items={[{ title: 'Cursos', description: 'Propiedad, archivo, conservación y estructura.', icon: 'book-outline', href: '/(admin)/courses', permission: 'courses.read' }, { title: 'Clases', description: 'Estado, códigos de acceso, curso y alumnado.', icon: 'albums-outline', href: '/(admin)/classrooms', permission: 'courses.read' }]} permissions={data.portalContext?.permissions} /></AdminScaffold>
 }
 
 export function AdminMoreScreen() {
