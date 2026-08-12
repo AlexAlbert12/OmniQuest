@@ -34,7 +34,7 @@ export function AdminDashboard() {
       </View>
       {responsive.isDesktop ? <View className="mt-5"><AdminAlerts dashboard={dashboard} /></View> : null}
       <View className="mt-5"><AdminUsageAnalyticsPanel refreshVersion={data.version} /></View>
-      <View className="mt-5"><AdminPushDeliveryPanel refreshVersion={data.version} /></View>
+      {can('notifications.read') ? <View className="mt-5"><AdminPushDeliveryPanel refreshVersion={data.version} /></View> : null}
       {can('audit.read') ? <View className="mt-5"><RecentAuditPanel data={data} /></View> : null}
     </AdminScaffold>
   )

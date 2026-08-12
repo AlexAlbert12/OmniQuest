@@ -1,31 +1,32 @@
 # Auditoría de recorridos autenticados
 
-Estado acumulado hasta: 20260811193000_admin_home_least_privilege_refinement.sql
+Estado acumulado hasta: 20260812103000_admin_push_center.sql
 
 ## Resumen
 
-- Archivos cliente inspeccionados: 435
-- Llamadas inventariadas: 221
+- Archivos cliente inspeccionados: 440
+- Llamadas inventariadas: 227
 - Tablas detectadas: 18
-- RPC detectadas: 113
-- Edge Functions detectadas: 17
+- RPC detectadas: 117
+- Edge Functions detectadas: 19
 - Buckets detectados: 4
 - Incidencias estructurales: 0
 
 ## Recursos
 
 - Tablas: account_deletion_requests, attempt_history, classrooms, data_export_requests, enrollments, notification_state, profiles, questions, student_badges, subject_scores, subject_topics, subjects, support_ticket_attachments, teacher_audit_export_requests, topic_scores, user_notification_preferences, user_preferences, user_support_tickets
-- RPC: acknowledge_teacher_audit_alert, add_support_ticket_message, add_teacher_student_note, admin_update_support_ticket_secured, archive_teacher_topic, assign_admin_role, batch_review_manual_attempts, cancel_account_deletion, create_subject_with_default_topic, create_teacher_classroom, create_teacher_notification, deactivate_push_token, delete_notifications, duplicate_teacher_subject, ensure_default_classroom, equip_profile_cosmetics, finish_game_attempt, get_activity_attempt_detail, get_admin_audit_logs_page_secured, get_admin_audit_policy, get_admin_classrooms_page, get_admin_dashboard_metrics, get_admin_directory_filters, get_admin_export_download_path, get_admin_export_jobs_page, get_admin_portal_context, get_admin_profile_activity_page, get_admin_profiles_page, get_admin_push_delivery_metrics, get_admin_role_assignments_page, get_admin_roles, get_admin_subjects_page, get_admin_support_directory, get_admin_support_tickets_page_secured, get_admin_usage_analytics, get_admin_user_change_history_page, get_attempt_feedback, get_avatar_customization_options, get_class_ranking_profiles, get_game_attempt_review_index, get_manual_review_configuration, get_manual_review_history, get_manual_review_thread, get_notifications_page, get_own_support_email_history, get_own_support_tickets_page, get_profile_cosmetics, get_question_media_manifest, get_ranking_profiles_page, get_safe_game_questions_v2, get_student_attempt_history, get_student_attempt_history_page, get_student_badge_catalog, get_student_home_dashboard, get_student_progress_summary, get_student_question_catalog, get_support_contact_channels, get_support_thread_page, get_teacher_attention_students_page, get_teacher_audit_configuration, get_teacher_audit_logs_page_v2, get_teacher_classrooms_page, get_teacher_courses_page, get_teacher_dashboard_summary, get_teacher_manual_review_queue, get_teacher_notification_center_summary, get_teacher_notification_settings, get_teacher_notifications_page, get_teacher_profile_recent_questions_page, get_teacher_profile_recent_subjects_page, get_teacher_profile_summary, get_teacher_question_affected_students_page, get_teacher_question_report, get_teacher_recent_activity_page, get_teacher_student_history_metrics, get_teacher_student_history_reviews_page, get_teacher_student_history_summary, get_teacher_student_history_timeline_page, get_teacher_student_history_weaknesses, get_teacher_students_page, get_teacher_subject_analytics, get_teacher_subject_overview, get_teacher_subject_questions_page, get_teacher_subject_students_page, get_teacher_subject_topics_page, get_teacher_topic_questions_page, get_teacher_topic_summary, initialize_guest_profile, join_subject_by_code, mark_all_notifications_read, mark_notifications_read, register_push_token, register_user_session, request_account_data_export, request_account_deletion, request_admin_export_job, request_teacher_audit_export, review_manual_review_attempt, save_manual_review_settings, save_manual_review_template, save_teacher_question_v2, search_app_entities, set_analytics_consent, set_teacher_course_notification_preference, set_teacher_digest_preference, set_teacher_notification_preferences, set_teacher_notifications_mute, set_teacher_support_preference, start_game_attempt, submit_answer_resumable, sync_student_badges, track_usage_event, verify_admin_audit_chain
-- Edge Functions: admin-bulk-operations, admin-create-teacher, admin-delete-student-progress, admin-reset-password, auth-attempt-guard, import-students, manage-account-security, process-question-media, profile-update-avatar, student-reset-own-progress, teacher-archive-subject, teacher-create-topic, teacher-delete-question, teacher-reset-own-data, teacher-student-reminder, teacher-update-subject, teacher-update-topic
+- RPC: acknowledge_teacher_audit_alert, add_support_ticket_message, add_teacher_student_note, admin_cancel_push_delivery, admin_retry_push_delivery, admin_update_support_ticket_secured, archive_teacher_topic, assign_admin_role, batch_review_manual_attempts, cancel_account_deletion, create_subject_with_default_topic, create_teacher_classroom, create_teacher_notification, deactivate_push_token, delete_notifications, duplicate_teacher_subject, ensure_default_classroom, equip_profile_cosmetics, finish_game_attempt, get_activity_attempt_detail, get_admin_audit_logs_page_secured, get_admin_audit_policy, get_admin_classrooms_page, get_admin_dashboard_metrics, get_admin_directory_filters, get_admin_export_download_path, get_admin_export_jobs_page, get_admin_portal_context, get_admin_profile_activity_page, get_admin_profiles_page, get_admin_push_delivery_detail, get_admin_push_delivery_metrics, get_admin_push_delivery_page, get_admin_role_assignments_page, get_admin_roles, get_admin_subjects_page, get_admin_support_directory, get_admin_support_tickets_page_secured, get_admin_usage_analytics, get_admin_user_change_history_page, get_attempt_feedback, get_avatar_customization_options, get_class_ranking_profiles, get_game_attempt_review_index, get_manual_review_configuration, get_manual_review_history, get_manual_review_thread, get_notifications_page, get_own_support_email_history, get_own_support_tickets_page, get_profile_cosmetics, get_question_media_manifest, get_ranking_profiles_page, get_safe_game_questions_v2, get_student_attempt_history, get_student_attempt_history_page, get_student_badge_catalog, get_student_home_dashboard, get_student_progress_summary, get_student_question_catalog, get_support_contact_channels, get_support_thread_page, get_teacher_attention_students_page, get_teacher_audit_configuration, get_teacher_audit_logs_page_v2, get_teacher_classrooms_page, get_teacher_courses_page, get_teacher_dashboard_summary, get_teacher_manual_review_queue, get_teacher_notification_center_summary, get_teacher_notification_settings, get_teacher_notifications_page, get_teacher_profile_recent_questions_page, get_teacher_profile_recent_subjects_page, get_teacher_profile_summary, get_teacher_question_affected_students_page, get_teacher_question_report, get_teacher_recent_activity_page, get_teacher_student_history_metrics, get_teacher_student_history_reviews_page, get_teacher_student_history_summary, get_teacher_student_history_timeline_page, get_teacher_student_history_weaknesses, get_teacher_students_page, get_teacher_subject_analytics, get_teacher_subject_overview, get_teacher_subject_questions_page, get_teacher_subject_students_page, get_teacher_subject_topics_page, get_teacher_topic_questions_page, get_teacher_topic_summary, initialize_guest_profile, join_subject_by_code, mark_all_notifications_read, mark_notifications_read, register_push_token, register_user_session, request_account_data_export, request_account_deletion, request_admin_export_job, request_teacher_audit_export, review_manual_review_attempt, save_manual_review_settings, save_manual_review_template, save_teacher_question_v2, search_app_entities, set_analytics_consent, set_teacher_course_notification_preference, set_teacher_digest_preference, set_teacher_notification_preferences, set_teacher_notifications_mute, set_teacher_support_preference, start_game_attempt, submit_answer_resumable, sync_student_badges, track_usage_event, verify_admin_audit_chain
+- Edge Functions: admin-bulk-operations, admin-create-teacher, admin-delete-student-progress, admin-process-push-delivery, admin-reset-password, auth-attempt-guard, import-students, manage-account-security, process-question-media, profile-update-avatar, send-push-notification, student-reset-own-progress, teacher-archive-subject, teacher-create-topic, teacher-delete-question, teacher-reset-own-data, teacher-student-reminder, teacher-update-subject, teacher-update-topic
 - Buckets: account-exports, admin-exports, avatars, teacher-audit-exports
 
 ## Inventario de llamadas
 
 | Tipo | Recurso | Archivo | Línea |
 |---|---|---|---:|
-| edge | `admin-bulk-operations` | `components/admin/api/adminApi.ts` | 69 |
+| edge | `admin-bulk-operations` | `components/admin/api/adminApi.ts` | 72 |
 | edge | `admin-create-teacher` | `components/admin/users/AdminTeachersSection.tsx` | 70 |
 | edge | `admin-delete-student-progress` | `components/admin/hooks/useAdminActions.ts` | 89 |
+| edge | `admin-process-push-delivery` | `components/admin/api/adminApi.ts` | 162 |
 | edge | `admin-reset-password` | `components/admin/hooks/useAdminActions.ts` | 74 |
 | edge | `auth-attempt-guard` | `lib/authSecurity.ts` | 109 |
 | edge | `import-students` | `components/teacher/TeacherStudentImportModal.tsx` | 86 |
@@ -34,6 +35,7 @@ Estado acumulado hasta: 20260811193000_admin_home_least_privilege_refinement.sql
 | edge | `profile-update-avatar` | `components/student/profile/StudentAvatarCustomizationModal.tsx` | 118 |
 | edge | `profile-update-avatar` | `hooks/teacher/useTeacherProfile.ts` | 231 |
 | edge | `profile-update-avatar` | `lib/offlineMutations.ts` | 286 |
+| edge | `send-push-notification` | `components/admin/api/adminApi.ts` | 166 |
 | edge | `student-reset-own-progress` | `hooks/useSettingsData.ts` | 240 |
 | edge | `teacher-archive-subject` | `features/teacher-subject/api.ts` | 42 |
 | edge | `teacher-create-topic` | `features/teacher-subject/api.ts` | 24 |
@@ -49,9 +51,11 @@ Estado acumulado hasta: 20260811193000_admin_home_least_privilege_refinement.sql
 | rpc | `acknowledge_teacher_audit_alert` | `hooks/teacher/useTeacherAudit.ts` | 117 |
 | rpc | `add_support_ticket_message` | `lib/support.ts` | 306 |
 | rpc | `add_teacher_student_note` | `hooks/teacher/useTeacherStudentHistory.ts` | 145 |
+| rpc | `admin_cancel_push_delivery` | `components/admin/api/adminApi.ts` | 156 |
+| rpc | `admin_retry_push_delivery` | `components/admin/api/adminApi.ts` | 150 |
 | rpc | `admin_update_support_ticket_secured` | `components/admin/support/AdminSupportSection.tsx` | 123 |
 | rpc | `archive_teacher_topic` | `hooks/teacher/useTeacherTopicDetail.ts` | 108 |
-| rpc | `assign_admin_role` | `components/admin/api/adminApi.ts` | 123 |
+| rpc | `assign_admin_role` | `components/admin/api/adminApi.ts` | 126 |
 | rpc | `batch_review_manual_attempts` | `hooks/teacher/useManualReview.ts` | 104 |
 | rpc | `cancel_account_deletion` | `components/settings/AccountDataRequestsCard.tsx` | 110 |
 | rpc | `create_subject_with_default_topic` | `components/teacher/TeacherSubjectForm.tsx` | 229 |
@@ -70,22 +74,24 @@ Estado acumulado hasta: 20260811193000_admin_home_least_privilege_refinement.sql
 | rpc | `get_admin_classrooms_page` | `components/admin/classrooms/AdminClassroomsSection.tsx` | 54 |
 | rpc | `get_admin_dashboard_metrics` | `components/admin/hooks/useAdminData.ts` | 38 |
 | rpc | `get_admin_directory_filters` | `components/admin/shared/AdminAdvancedFilters.tsx` | 42 |
-| rpc | `get_admin_export_download_path` | `components/admin/api/adminApi.ts` | 90 |
-| rpc | `get_admin_export_jobs_page` | `components/admin/api/adminApi.ts` | 84 |
-| rpc | `get_admin_portal_context` | `components/admin/api/adminApi.ts` | 49 |
+| rpc | `get_admin_export_download_path` | `components/admin/api/adminApi.ts` | 93 |
+| rpc | `get_admin_export_jobs_page` | `components/admin/api/adminApi.ts` | 87 |
+| rpc | `get_admin_portal_context` | `components/admin/api/adminApi.ts` | 52 |
 | rpc | `get_admin_profile_activity_page` | `components/admin/users/AdminProfileActivityScreen.tsx` | 47 |
 | rpc | `get_admin_profiles_page` | `components/admin/hooks/useAdminData.ts` | 39 |
 | rpc | `get_admin_profiles_page` | `components/admin/users/AdminStudentsSection.tsx` | 53 |
 | rpc | `get_admin_profiles_page` | `components/admin/users/AdminTeachersSection.tsx` | 62 |
-| rpc | `get_admin_push_delivery_metrics` | `components/admin/dashboard/AdminPushDeliveryPanel.tsx` | 52 |
-| rpc | `get_admin_role_assignments_page` | `components/admin/api/adminApi.ts` | 117 |
-| rpc | `get_admin_roles` | `components/admin/api/adminApi.ts` | 111 |
+| rpc | `get_admin_push_delivery_detail` | `components/admin/api/adminApi.ts` | 144 |
+| rpc | `get_admin_push_delivery_metrics` | `components/admin/api/adminApi.ts` | 132 |
+| rpc | `get_admin_push_delivery_page` | `components/admin/api/adminApi.ts` | 138 |
+| rpc | `get_admin_role_assignments_page` | `components/admin/api/adminApi.ts` | 120 |
+| rpc | `get_admin_roles` | `components/admin/api/adminApi.ts` | 114 |
 | rpc | `get_admin_subjects_page` | `components/admin/courses/AdminCoursesSection.tsx` | 54 |
 | rpc | `get_admin_support_directory` | `lib/support.ts` | 193 |
 | rpc | `get_admin_support_tickets_page_secured` | `components/admin/support/AdminSupportSection.tsx` | 56 |
 | rpc | `get_admin_support_tickets_page_secured` | `lib/adminExports.ts` | 264 |
 | rpc | `get_admin_usage_analytics` | `components/admin/dashboard/AdminUsageAnalyticsPanel.tsx` | 23 |
-| rpc | `get_admin_user_change_history_page` | `components/admin/api/adminApi.ts` | 101 |
+| rpc | `get_admin_user_change_history_page` | `components/admin/api/adminApi.ts` | 104 |
 | rpc | `get_attempt_feedback` | `lib/studentSecureData.ts` | 258 |
 | rpc | `get_avatar_customization_options` | `lib/avatarCosmetics.ts` | 83 |
 | rpc | `get_class_ranking_profiles` | `app/(student)/class/[id].tsx` | 205 |
@@ -147,7 +153,7 @@ Estado acumulado hasta: 20260811193000_admin_home_least_privilege_refinement.sql
 | rpc | `register_user_session` | `lib/sessionSecurity.ts` | 21 |
 | rpc | `request_account_data_export` | `components/settings/AccountDataRequestsCard.tsx` | 83 |
 | rpc | `request_account_deletion` | `hooks/useSettingsData.ts` | 575 |
-| rpc | `request_admin_export_job` | `components/admin/api/adminApi.ts` | 75 |
+| rpc | `request_admin_export_job` | `components/admin/api/adminApi.ts` | 78 |
 | rpc | `request_teacher_audit_export` | `hooks/teacher/useTeacherAudit.ts` | 103 |
 | rpc | `review_manual_review_attempt` | `hooks/teacher/useManualReview.ts` | 99 |
 | rpc | `save_manual_review_settings` | `hooks/teacher/useManualReview.ts` | 110 |
@@ -168,7 +174,7 @@ Estado acumulado hasta: 20260811193000_admin_home_least_privilege_refinement.sql
 | rpc | `track_usage_event` | `lib/analytics.ts` | 91 |
 | rpc | `verify_admin_audit_chain` | `components/admin/audit/AdminAuditSection.tsx` | 61 |
 | storage | `account-exports` | `components/settings/AccountDataRequestsCard.tsx` | 97 |
-| storage | `admin-exports` | `components/admin/api/adminApi.ts` | 95 |
+| storage | `admin-exports` | `components/admin/api/adminApi.ts` | 98 |
 | storage | `avatars` | `components/student/profile/StudentAvatarCustomizationModal.tsx` | 115 |
 | storage | `avatars` | `hooks/teacher/useTeacherProfile.ts` | 225 |
 | storage | `avatars` | `lib/offlineMutations.ts` | 284 |

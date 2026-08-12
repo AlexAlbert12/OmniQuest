@@ -566,11 +566,11 @@ function BadgeDetailModal({
       <Pressable className="omni-no-hover-lift flex-1 items-center justify-center bg-black/70 px-5 py-10" onPress={onClose}>
         <Pressable
           accessibilityViewIsModal
-          className="omni-no-hover-lift w-full max-w-[560px] overflow-hidden rounded-3xl border border-border-default bg-surface-default"
+          className="omni-no-hover-lift w-full max-w-[560px] max-h-[90%] overflow-hidden rounded-3xl border border-border-default bg-surface-default"
           onPress={(event) => event.stopPropagation()}
         >
-          <LinearGradient colors={[`${badge.color}35`, '#101D36', '#0A1427']}>
-            <ScrollView contentContainerStyle={{ padding: 24 }} showsVerticalScrollIndicator={false}>
+          <LinearGradient colors={[`${badge.color}35`, '#101D36', '#0A1427']} style={{ maxHeight: '100%', flexShrink: 1 }}>
+            <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ padding: 24 }} showsVerticalScrollIndicator={false}>
               <View className="flex-row items-start justify-between gap-4">
                 <View className="h-20 w-20 items-center justify-center rounded-3xl border-2" style={{ borderColor: badge.color, backgroundColor: `${badge.color}22` }}>
                   <Ionicons name={badge.unlocked ? badge.icon : 'lock-closed'} size={38} color={badge.color} />

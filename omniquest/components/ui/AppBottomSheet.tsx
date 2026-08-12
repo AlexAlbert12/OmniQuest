@@ -33,7 +33,7 @@ export default function AppBottomSheet({
   description,
   children,
   footer,
-  scrollable = false,
+  scrollable = true,
   closeOnBackdropPress = true,
   contentStyle,
   testID,
@@ -43,7 +43,10 @@ export default function AppBottomSheet({
   const isCompact = responsive.isMobile || responsive.isTablet
   const content = scrollable ? (
     <ScrollView
-      style={{ maxHeight: Math.max(240, responsive.height * 0.62) }}
+      style={[
+        styles.scrollContent,
+        { maxHeight: Math.max(160, responsive.height * (isCompact ? 0.68 : 0.62)) },
+      ]}
       contentContainerStyle={[styles.content, contentStyle]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -118,6 +121,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   sheet: {
+    minHeight: 0,
     overflow: 'hidden',
     borderWidth: 1,
   },
@@ -143,6 +147,7 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   header: {
+    flexShrink: 0,
     minHeight: 70,
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -156,19 +161,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
+    flexShrink: 1,
     fontSize: 20,
     lineHeight: 26,
     fontWeight: '900',
   },
   description: {
+    flexShrink: 1,
     marginTop: 4,
     fontSize: 13,
     lineHeight: 19,
   },
   content: {
+    width: '100%',
     padding: 20,
   },
+  scrollContent: {
+    minHeight: 0,
+    flexShrink: 1,
+  },
   footer: {
+    flexShrink: 0,
     borderTopWidth: 1,
     paddingHorizontal: 20,
     paddingVertical: 16,

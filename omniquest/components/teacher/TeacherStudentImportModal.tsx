@@ -204,7 +204,7 @@ export default function TeacherStudentImportModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={resetAndClose}>
       <View className={`flex-1 bg-black/70 ${isPhone ? 'justify-end' : 'items-center justify-center px-4 py-8'}`}>
-        <View className={`${isPhone ? 'h-[94%] w-full rounded-t-3xl' : 'max-h-full w-full max-w-[800px] rounded-3xl'} overflow-hidden border border-border-default bg-surface-default`}>
+        <View className={`${isPhone ? 'h-[94%] w-full rounded-t-3xl' : 'max-h-[92%] w-full max-w-[800px] rounded-3xl'} overflow-hidden border border-border-default bg-surface-default`}>
           <View className="flex-row items-start justify-between gap-4 border-b border-border-default px-5 py-4">
             <View className="min-w-0 flex-1">
               <Text className="text-[22px] font-black text-white">Importar alumnos</Text>

@@ -1,79 +1,64 @@
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Text, useWindowDimensions, View } from 'react-native'
-import { supabase } from '../../../lib/supabase'
+import { Ionicons } from '@expo/vector-icons'
+import { type Href, useRouter } from 'expo-router'
+import { useAppTheme } from '../../../lib/appTheme'
+import { formatAdminPushRelative } from '../../../lib/adminPushPresentation'
+import { fetchAdminPushDeliveryMetrics } from '../api/adminApi'
+import type { AdminPushDeliveryMetrics } from '../types/admin'
 import { AdminMetric, EmptyState, Panel } from '../shared/AdminPrimitives'
-
-type PushDeliveryMetrics = {
-  days: number
-  queued: number
-  processing: number
-  completed: number
-  failed: number
-  skipped: number
-  tickets: number
-  delivered: number
-  device_failures: number
-  retrying: number
-  delivery_rate: number | null
-}
-
-const EMPTY_METRICS: PushDeliveryMetrics = { days: 30, queued: 0, processing: 0, completed: 0, failed: 0, skipped: 0, tickets: 0, delivered: 0, device_failures: 0, retrying: 0, delivery_rate: null }
-
-function toNumber(value: unknown) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : 0 }
-
-function normalizeMetrics(value: unknown): PushDeliveryMetrics | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-  const row = value as Record<string, unknown>
-  return {
-    days: Math.max(1, toNumber(row.days) || 30),
-    queued: toNumber(row.queued),
-    processing: toNumber(row.processing),
-    completed: toNumber(row.completed),
-    failed: toNumber(row.failed),
-    skipped: toNumber(row.skipped),
-    tickets: toNumber(row.tickets),
-    delivered: toNumber(row.delivered),
-    device_failures: toNumber(row.device_failures),
-    retrying: toNumber(row.retrying),
-    delivery_rate: row.delivery_rate === null || row.delivery_rate === undefined ? null : toNumber(row.delivery_rate),
-  }
-}
+import { AppPressable } from '../../ui'
 
 export default function AdminPushDeliveryPanel({ refreshVersion }: { refreshVersion: number }) {
   const { width } = useWindowDimensions()
+  const { tokens } = useAppTheme()
+  const router = useRouter()
   const isDesktop = width >= 1040
-  const [metrics, setMetrics] = useState<PushDeliveryMetrics | null>(null)
+  const [metrics, setMetrics] = useState<AdminPushDeliveryMetrics | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
       setLoading(true)
-      const { data, error } = await supabase.rpc('get_admin_push_delivery_metrics', { p_days: 30 })
-      if (cancelled) return
-      if (error) { console.warn('[admin] No se pudieron cargar las métricas push:', error.message); setMetrics(null) } else setMetrics(normalizeMetrics(data) || EMPTY_METRICS)
-      setLoading(false)
+      try {
+        const next = await fetchAdminPushDeliveryMetrics(30)
+        if (!cancelled) setMetrics(next)
+      } catch (error: unknown) {
+        if (!cancelled) { console.warn('[admin] No se pudieron cargar las métricas push:', error instanceof Error ? error.message : String(error)); setMetrics(null) }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
     void load()
     return () => { cancelled = true }
   }, [refreshVersion])
 
+  const attention = metrics?.service_health === 'attention'
+  const oldestPending = metrics?.oldest_pending_at ? formatAdminPushRelative(metrics.oldest_pending_at).toLowerCase() : null
+
   return (
     <Panel title="Entrega de notificaciones push · 30 días" icon="paper-plane-outline">
-      {loading ? <View className="items-center py-7"><ActivityIndicator /><Text className="mt-3 text-[13px] text-text-muted">Revisando cola, reintentos y recibos...</Text></View> : metrics ? (
+      {loading ? <View className="items-center py-7"><ActivityIndicator /><Text className="mt-3 text-[13px] text-text-muted">Revisando cola, reintentos y confirmaciones...</Text></View> : metrics ? (
         <>
-          <View className="flex-row flex-wrap gap-3">
-            <AdminMetric color="#38BDF8" icon="notifications" label="En cola" value={String(metrics.queued)} />
-            <AdminMetric color="#FBBF24" icon="sync" label="En proceso" value={String(metrics.processing)} />
-            <AdminMetric color="#34D399" icon="checkmark-circle" label="Entregadas" value={String(metrics.delivered)} />
-            <AdminMetric color="#FB7185" icon="warning" label="Fallos de dispositivo" value={String(metrics.device_failures)} />
+          <View className="mb-4 flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-default px-4 py-3">
+            <View className="h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: attention ? tokens.semanticSurface.warning : tokens.semanticSurface.success }}><Ionicons name={attention ? 'warning-outline' : 'checkmark-circle-outline'} size={19} color={attention ? tokens.semantic.warning : tokens.semantic.success} /></View>
+            <View className="min-w-0 flex-1"><Text className="text-[12px] font-bold text-text-muted">Servicio push</Text><Text className="mt-0.5 text-[14px] font-black text-text-primary">{attention ? 'Requiere atención' : 'Operativo'}</Text><Text className="mt-0.5 text-[11px] text-text-muted">{metrics.queued > 0 ? `${metrics.queued} pendientes${oldestPending ? ` · el más antiguo: ${oldestPending}` : ''}` : 'No hay envíos pendientes.'}</Text></View>
           </View>
-          <View className={isDesktop ? 'mt-4 flex-row gap-4' : 'mt-4 gap-3'}>
+          <View className="flex-row flex-wrap gap-3">
+            {[
+              { color: tokens.semantic.info, icon: 'time-outline' as const, label: 'Pendientes', value: metrics.queued },
+              { color: tokens.semantic.warning, icon: 'sync-outline' as const, label: 'Procesando', value: metrics.processing },
+              { color: tokens.semantic.success, icon: 'checkmark-circle' as const, label: 'Entregadas', value: metrics.delivered },
+              { color: tokens.semantic.danger, icon: 'alert-circle' as const, label: 'Fallidas', value: metrics.failed },
+            ].map((metric) => <View key={metric.label} style={isDesktop ? { flexGrow: 1, minWidth: 160 } : { flexBasis: '47%', flexGrow: 1, minWidth: 0 }}><AdminMetric compact={!isDesktop} color={metric.color} icon={metric.icon} label={metric.label} value={String(metric.value)} /></View>)}
+          </View>
+          <View className="mt-4 flex-row flex-wrap gap-3">
             <MetricSummary label="Tasa de entrega" value={metrics.delivery_rate === null ? '—' : `${metrics.delivery_rate.toFixed(1)}%`} detail={metrics.delivery_rate === null ? 'Sin entregas resueltas todavía.' : undefined} />
             <MetricSummary label="Reintentando" value={String(metrics.retrying)} />
-            <MetricSummary label="Omitidas antes del envío" value={String(metrics.skipped)} detail="Incluye preferencias desactivadas o ausencia de un dispositivo válido." />
+            <MetricSummary label="Omitidas" value={String(metrics.skipped)} detail="Respeta preferencias y dispositivos disponibles." />
           </View>
-          <Text className="mt-4 text-[12px] leading-5 text-text-muted">Las notificaciones persistentes entran en una cola central. El sistema respeta las preferencias push, reintenta errores temporales y desactiva tokens que Expo marca como no registrados.</Text>
+          <AppPressable accessibilityRole="button" accessibilityLabel="Abrir centro de notificaciones push" onPress={() => router.push('/(admin)/push' as Href)} className={isDesktop ? 'mt-4 self-start rounded-xl border border-border-default bg-surface-interactive px-4 py-3' : 'mt-4 items-center rounded-xl border border-border-default bg-surface-interactive px-4 py-3'}><View className="flex-row items-center gap-2"><Text className="text-[13px] font-black text-brand-admin">Ver centro push</Text><Ionicons name="arrow-forward" size={16} color={tokens.brand.admin} /></View></AppPressable>
         </>
       ) : <EmptyState label="No se pudieron consultar las métricas de entrega push." />}
     </Panel>
@@ -81,5 +66,5 @@ export default function AdminPushDeliveryPanel({ refreshVersion }: { refreshVers
 }
 
 function MetricSummary({ detail, label, value }: { detail?: string; label: string; value: string }) {
-  return <View className="flex-1 rounded-xl border border-border-default bg-surface-default p-4"><Text className="text-[12px] font-bold text-text-muted">{label}</Text><Text className="mt-1 text-[26px] font-black text-white">{value}</Text>{detail ? <Text className="mt-1 text-[11px] leading-4 text-text-muted">{detail}</Text> : null}</View>
+  return <View className="rounded-xl border border-border-default bg-surface-default p-4" style={{ flexBasis: '30%', flexGrow: 1, minWidth: 92 }}><Text className="text-[12px] font-bold text-text-muted">{label}</Text><Text className="mt-1 text-[26px] font-black text-white">{value}</Text>{detail ? <Text className="mt-1 text-[11px] leading-4 text-text-muted">{detail}</Text> : null}</View>
 }

@@ -34,6 +34,7 @@ test('profile settings use the current avatar, keep language in preferences and 
 test('settings navigation and switches follow the shared mobile interaction rules', () => {
   const screen = read('app/(student)/settings.tsx')
   const ui = read('components/settings/SettingsUi.tsx')
+  const sections = read('components/settings/SettingsSections.tsx')
 
   assert.match(screen, /settings\.section\.preferences\.short/)
   assert.match(ui, /gap: 8/)
@@ -43,6 +44,10 @@ test('settings navigation and switches follow the shared mobile interaction rule
   assert.match(ui, /trackColor=\{\{ false: offTrackColor, true: accentColor \}\}/)
   assert.match(ui, /thumbColor="#FFFFFF"/)
   assert.match(ui, /hitSlop=\{8\}/)
+  assert.match(sections, /<View className="mt-6">\s*<PreferenceRow\s*label=\{t\('settings\.preference\.language'\)\}/)
+  assert.match(ui, /borderColor: withAlpha\(accentColor, open \? 'B8' : '73'\)/)
+  assert.match(ui, /borderWidth: open \? 2 : 1\.5/)
+  assert.doesNotMatch(ui, /rounded-lg border px-4 py-3/)
 })
 
 test('student security is session-aware, keeps account deletion under Data and avoids contradictory actions', () => {

@@ -5,7 +5,7 @@
 - Estado del código y de los contratos estáticos: **PASS**.
 - Estado de la ejecución real contra Supabase local: **BLOCKED EN ESTE ENTORNO** porque no están disponibles Docker, Supabase CLI ni PostgreSQL.
 - Puntos funcionales trazados: **84**.
-- Inventario cliente: **221 llamadas**, **17 tablas**, **113 RPC**, **17 Edge Functions** y los buckets privados utilizados por la aplicación.
+- Inventario cliente: **227 llamadas**, **18 tablas**, **117 RPC**, **19 Edge Functions** y los buckets privados utilizados por la aplicación.
 - Migraciones acumuladas: **80**.
 - Suites SQL: **11** con **277 aserciones previstas**.
 - Pruebas de código fuente: se deben consultar en el informe final de ejecución; no se considera validado ningún recorrido visual hasta ejecutarlo localmente.

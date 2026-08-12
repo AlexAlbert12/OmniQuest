@@ -101,7 +101,7 @@ export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
       >
         <View className={isDesktop ? 'px-6 pb-7 pt-5 lg:px-8' : 'px-4 pb-5 pt-4'}>
           <View
-            className={isDesktop ? 'mx-auto w-full max-w-[1440px] rounded-[22px] border px-6 py-5' : 'mx-auto w-full max-w-[1440px]'}
+            className={isDesktop ? 'w-full rounded-[22px] border px-6 py-5' : 'w-full'}
             style={isDesktop ? { borderColor: tokens.border.default, backgroundColor: tokens.background.secondary } : undefined}
           >
             <TeacherPageHeader

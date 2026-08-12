@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { errorResponse, methodNotAllowedResponse, publicError, publicErrorResponse, json } from '../_shared/errors.ts'
+import { writeAdminAudit } from '../_shared/admin.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -65,6 +66,11 @@ Deno.serve(async (req) => {
     // classroom, enrolment and permitted message type. This generic endpoint is
     // intentionally limited to administrators and self-notifications.
     const isAdmin = callerProfile.role_id === 'admin'
+    if (isAdmin) {
+      const { data: canManage, error: permissionError } = await userClient.rpc('admin_has_permission', { p_permission: 'notifications.manage' })
+      if (permissionError) throw permissionError
+      if (!canManage) throw publicError('Tu perfil administrativo no permite generar envíos push.', 403, 'forbidden')
+    }
     if (!isAdmin && targetUserId !== callerId) {
       throw publicError(
         'Los profesores deben usar el aviso docente seguro asociado a un curso.',
@@ -86,7 +92,7 @@ Deno.serve(async (req) => {
     const priority = request.priority === 'high' || request.priority === 'low'
       ? request.priority
       : 'normal'
-    const audience = targetProfile.role_id === 'teacher' ? 'teacher' : 'student'
+    const audience = targetProfile.role_id === 'admin' ? 'admin' : targetProfile.role_id === 'teacher' ? 'teacher' : 'student'
 
     const { data: notificationId, error: notificationError } = await adminClient.rpc('create_notification', {
       p_user_id: targetUserId,
@@ -108,6 +114,16 @@ Deno.serve(async (req) => {
       p_fingerprint: `explicit-push:${callerId}:${crypto.randomUUID()}`,
     })
     if (notificationError) throw notificationError
+
+    if (isAdmin && notificationId) {
+      await writeAdminAudit(adminClient, {
+        action: 'admin.notification.send',
+        adminUserId: callerId,
+        targetTable: 'notifications',
+        targetId: notificationId,
+        metadata: { target_user_id: targetUserId, self_test: targetUserId === callerId, priority, notification_type: 'announcement' },
+      })
+    }
 
     return json({
       queued: Boolean(notificationId),

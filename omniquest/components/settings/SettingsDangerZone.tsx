@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   useWindowDimensions,
@@ -45,7 +46,13 @@ export function DestructiveConfirmModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View className={`flex-1 bg-black/70 ${isPhone ? 'justify-end' : 'items-center justify-center px-5'}`}>
-        <View className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[430px] rounded-2xl p-5'} border border-semantic-danger bg-surface-default`}>
+        <View className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'max-h-[90%] w-full max-w-[430px] rounded-2xl p-5'} border border-semantic-danger bg-surface-default`}>
+          <ScrollView
+            style={{ flexShrink: 1 }}
+            contentContainerStyle={{ paddingBottom: 4 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
           <View className="flex-row items-center gap-3">
             <View className="h-10 w-10 items-center justify-center rounded-full bg-semantic-surface-danger">
               <Ionicons name="warning-outline" size={20} color="#FB7185" />
@@ -91,6 +98,7 @@ export function DestructiveConfirmModal({
               )}
             </Pressable>
           </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>

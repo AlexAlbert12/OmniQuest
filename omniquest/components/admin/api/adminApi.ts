@@ -6,6 +6,9 @@ import type {
   AdminBulkEntity,
   AdminExportJob,
   AdminPortalContext,
+  AdminPushDeliveryDetail,
+  AdminPushDeliveryMetrics,
+  AdminPushDeliveryRow,
   AdminUserChangeRow,
 } from '../types/admin'
 
@@ -123,4 +126,42 @@ export async function assignAdminRole(userId: string, roleId: string, reason: st
   const { data, error } = await supabase.rpc('assign_admin_role', { p_user_id: userId, p_role_id: roleId, p_reason: reason })
   if (error) throw error
   return data
+}
+
+export async function fetchAdminPushDeliveryMetrics(days = 30) {
+  const { data, error } = await supabase.rpc('get_admin_push_delivery_metrics', { p_days: days })
+  if (error) throw error
+  return data as unknown as AdminPushDeliveryMetrics
+}
+
+export async function fetchAdminPushDeliveryPage(filters: { search?: string; status?: string | null; role?: string | null; type?: string | null; from?: string | null; to?: string | null; limit?: number; offset?: number }) {
+  const { data, error } = await supabase.rpc('get_admin_push_delivery_page', { p_search: filters.search || null, p_status: filters.status || null, p_role: filters.role || null, p_type: filters.type || null, p_from: filters.from || null, p_to: filters.to || null, p_limit: filters.limit || 25, p_offset: filters.offset || 0 })
+  if (error) throw error
+  return (data || []) as unknown as AdminPushDeliveryRow[]
+}
+
+export async function fetchAdminPushDeliveryDetail(queueId: number) {
+  const { data, error } = await supabase.rpc('get_admin_push_delivery_detail', { p_queue_id: queueId })
+  if (error) throw error
+  return data as unknown as AdminPushDeliveryDetail
+}
+
+export async function retryAdminPushDelivery(queueId: number) {
+  const { data, error } = await supabase.rpc('admin_retry_push_delivery', { p_queue_id: queueId })
+  if (error) throw error
+  return data
+}
+
+export async function cancelAdminPushDelivery(queueId: number) {
+  const { data, error } = await supabase.rpc('admin_cancel_push_delivery', { p_queue_id: queueId })
+  if (error) throw error
+  return data
+}
+
+export async function processAdminPushDeliveryNow(queueId: number) {
+  return invokeAdminAction<AdminActionResult & { queueId?: number }>('admin-process-push-delivery', { queueId })
+}
+
+export async function sendAdminPushTest(userId: string) {
+  return invokeAdminAction<AdminActionResult & { queued?: boolean; notificationId?: string }>('send-push-notification', { userId, title: 'Prueba de notificaciones push', body: 'Si ves este aviso, la entrega push de OmniQuest funciona correctamente.', priority: 'high', data: { admin_push_test: true } })
 }

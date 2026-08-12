@@ -1,0 +1,69 @@
+import assert from 'node:assert/strict'
+import { existsSync, readFileSync } from 'node:fs'
+import test from 'node:test'
+
+const read = (path) => readFileSync(path, 'utf8')
+const migration = read('supabase/migrations/20260812103000_admin_push_center.sql')
+
+test('admin push center uses explicit least-privilege permissions and private server APIs', () => {
+  const sender = read('supabase/functions/send-push-notification/index.ts')
+  const adminProcessor = read('supabase/functions/admin-process-push-delivery/index.ts')
+  const worker = read('supabase/functions/process-notification-delivery/index.ts')
+
+  assert.match(migration, /notifications\.read/)
+  assert.match(migration, /notifications\.manage/)
+  assert.match(migration, /where id = 'super_admin'/)
+  assert.match(migration, /admin_has_permission\('notifications\.read'\)/)
+  assert.match(migration, /admin_has_permission\('notifications\.manage'\)/)
+  assert.match(migration, /revoke all on public\.notification_delivery_queue from authenticated/)
+  assert.match(migration, /revoke all on public\.notification_push_deliveries from authenticated/)
+  assert.match(migration, /revoke all on public\.push_tokens from authenticated/)
+  assert.match(sender, /admin_has_permission'[\s\S]*notifications\.manage/)
+  assert.match(sender, /admin\.notification\.send/)
+  assert.match(adminProcessor, /getAdminContext\(req, 'notifications\.manage'\)/)
+  assert.match(worker, /claim_notification_delivery_item/)
+  assert.match(migration, /grant execute on function public\.claim_notification_delivery_item\(bigint, uuid\) to service_role/)
+})
+
+test('admin push center is a dedicated observable UI without exposing push tokens', () => {
+  const screen = read('components/admin/push/AdminPushCenterScreen.tsx')
+  const detail = read('components/admin/push/AdminPushDeliveryDetailDrawer.tsx')
+  const home = read('components/admin/dashboard/AdminPushDeliveryPanel.tsx')
+  const more = read('components/admin/mobile/AdminMobileHubScreens.tsx')
+  const api = read('components/admin/api/adminApi.ts')
+  const presentation = read('lib/adminPushPresentation.ts')
+
+  assert.equal(existsSync('app/(admin)/push.tsx'), true)
+  assert.match(home, /Ver centro push/)
+  assert.match(more, /Notificaciones push/)
+  assert.match(screen, /Enviar prueba a mi dispositivo/)
+  assert.match(screen, /Buscar destinatario o notificación/)
+  assert.match(screen, /Ver detalle/)
+  assert.match(detail, /Dispositivos registrados/)
+  assert.match(detail, /Entregas del ciclo actual/)
+  assert.match(detail, /status === 'pending'/)
+  assert.match(detail, /status === 'failed'/)
+  assert.doesNotMatch(screen + detail + api, /expo_push_token|expo_ticket_id/)
+  assert.match(presentation, /DeviceNotRegistered: 'Dispositivo ya no registrado'/)
+  assert.match(presentation, /no_active_tokens: 'Sin dispositivo registrado'/)
+})
+
+test('admin push dashboard and analytics expose operationally accurate semantics', () => {
+  const panel = read('components/admin/dashboard/AdminPushDeliveryPanel.tsx')
+  const metrics = read('components/admin/dashboard/AdminMetrics.tsx')
+  const shortcuts = read('components/admin/shared/AdminPrimitives.tsx')
+  const audit = read('components/admin/audit/AdminAuditComponents.tsx')
+  const auditUtils = read('components/admin/utils/adminUtils.ts')
+
+  assert.match(migration, /'service_health'/)
+  assert.match(migration, /interval '5 minutes'/)
+  assert.match(migration, /interval '30 minutes'/)
+  assert.match(migration, /percentile_cont\(0\.5\)[\s\S]*::numeric, 1/)
+  assert.match(panel, /Servicio push/)
+  assert.match(panel, /Requiere atención/)
+  assert.match(metrics, /flexBasis: '47%'/)
+  assert.doesNotMatch(metrics, /responsive\.width - 52/)
+  assert.match(shortcuts, /flexBasis: responsive\.isDesktop \? '15%' : '47%'/)
+  assert.match(audit, /getAuditTargetTypeLabel\(log\.target_table\)/)
+  assert.match(auditUtils, /'admin\.notification\.retry': 'Notificación push reintentada'/)
+})

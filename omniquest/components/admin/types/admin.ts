@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 
-export type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'support' | 'audit' | 'users' | 'content' | 'more' | 'profile' | 'settings' | 'exports' | 'permissions'
+export type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'support' | 'audit' | 'users' | 'content' | 'more' | 'profile' | 'settings' | 'exports' | 'permissions' | 'push'
 export type IconName = keyof typeof Ionicons.glyphMap
 
 export type AdminPermission =
@@ -17,6 +17,8 @@ export type AdminPermission =
   | 'audit.export'
   | 'support.read'
   | 'support.manage'
+  | 'notifications.read'
+  | 'notifications.manage'
   | 'admin.roles.manage'
 
 export type AdminPortalContext = {
@@ -237,6 +239,67 @@ export type AdminUsageAnalytics = {
   retention?: { d1?: number; d7?: number; d30?: number }
   question_types?: Record<string, number>
   rpc_latency_ms?: { p50?: number; p95?: number }
+}
+
+export type AdminPushDeliveryStatus = 'pending' | 'processing' | 'waiting_receipt' | 'completed' | 'failed' | 'skipped' | 'cancelled'
+
+export type AdminPushDeliveryMetrics = {
+  days: number
+  queued: number
+  processing: number
+  waiting_receipt: number
+  completed: number
+  failed: number
+  skipped: number
+  cancelled: number
+  tickets: number
+  delivered: number
+  device_failures: number
+  retrying: number
+  delivery_rate: number | null
+  oldest_pending_at: string | null
+  stale_pending: number
+  stale_receipts: number
+  failed_24h: number
+  service_health: 'operational' | 'attention'
+}
+
+export type AdminPushDeliveryRow = {
+  queue_id: number
+  notification_id: string
+  recipient_id: string
+  recipient_alias: string
+  recipient_role: string
+  notification_title: string
+  notification_description: string
+  notification_type: string
+  audience: string
+  queue_status: AdminPushDeliveryStatus
+  priority: 'low' | 'normal' | 'high'
+  attempts: number
+  max_attempts: number
+  delivery_cycle: number
+  active_devices: number
+  delivery_devices: number
+  delivered_devices: number
+  failed_devices: number
+  last_error_code: string | null
+  skip_reason: string | null
+  next_attempt_at: string
+  created_at: string
+  updated_at: string
+  total_count: number
+}
+
+export type AdminPushDevice = { id: number; platform: string; device_name: string | null; app_version: string | null; active: boolean; last_seen_at: string }
+export type AdminPushDeviceDelivery = { id: number; status: string; attempt_number: number; error_code: string | null; error_message: string | null; sent_at: string | null; receipt_checked_at: string | null; delivered_at: string | null; device: AdminPushDevice | null }
+export type AdminPushDeliveryDetail = {
+  queue: { id: number; status: AdminPushDeliveryStatus; priority: string; attempts: number; max_attempts: number; delivery_cycle: number; next_attempt_at: string; skip_reason: string | null; last_error_code: string | null; last_error_message: string | null; enqueued_at: string; completed_at: string | null; created_at: string; updated_at: string }
+  notification: { id: string; title: string; description: string; type: string; audience: string; created_at: string }
+  recipient: { id: string; alias: string; role: string; active: boolean }
+  context: { related_table?: string; related_id?: string; subject_id?: number; subject_name?: string; classroom_id?: number; classroom_name?: string }
+  devices: AdminPushDevice[]
+  deliveries: AdminPushDeviceDelivery[]
 }
 
 export type EnrollmentRow = {

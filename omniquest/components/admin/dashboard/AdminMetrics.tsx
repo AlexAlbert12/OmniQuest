@@ -9,7 +9,6 @@ import { AdminMetric } from '../shared/AdminPrimitives'
 export function AdminMetrics({ data }: { data: AdminData }) {
   const { tokens } = useAppTheme()
   const responsive = useResponsiveLayout()
-  const metricWidth = Math.max(136, Math.floor((responsive.width - 52) / 2))
   const metrics = [
     { icon: 'school' as IconName, label: 'Profesores', value: String(data.metrics.teachersCount), color: tokens.brand.admin },
     { icon: 'people' as IconName, label: 'Alumnos', value: String(data.metrics.studentsCount), color: tokens.semantic.success },
@@ -23,7 +22,7 @@ export function AdminMetrics({ data }: { data: AdminData }) {
       <View style={{ gap: 14 }}>
         <View className="rounded-[26px] border border-border-default bg-surface-default p-4">
           <View className="flex-row items-center justify-between"><View className="min-w-0 flex-1"><Text className="text-[19px] font-black text-text-primary">Resumen</Text><Text className="mt-1 text-[12px] font-semibold text-text-muted">Estado general de la plataforma.</Text></View><View className="rounded-full bg-surface-selected px-3 py-1"><Text className="text-[11px] font-black uppercase tracking-[0.6px] text-brand-admin">Admin</Text></View></View>
-          <View className="mt-4 flex-row flex-wrap" style={{ gap: 12 }}>{metrics.slice(0, 4).map((metric) => <AdminMetric key={metric.label} {...metric} compact width={metricWidth} />)}</View>
+          <View className="mt-4 flex-row flex-wrap" style={{ gap: 12 }}>{metrics.slice(0, 4).map((metric) => <View key={metric.label} style={{ flexBasis: '47%', flexGrow: 1, minWidth: 0 }}><AdminMetric {...metric} compact /></View>)}</View>
         </View>
         <AdminMobileAttention data={data} />
       </View>

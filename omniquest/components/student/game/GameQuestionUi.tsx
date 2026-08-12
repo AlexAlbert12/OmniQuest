@@ -115,7 +115,10 @@ export function QuestionFeedbackCard({
 
   return (
     <AnswerFeedbackMotion status={feedback.status} style={{ marginTop: isDesktop ? 20 : 16 }}>
-      <View className="overflow-hidden rounded-[28px] border bg-surface-default" style={{ borderColor: `${color}88`, padding: isDesktop ? 20 : 16 }}>
+      <View
+        className="overflow-hidden rounded-[28px] bg-surface-default"
+        style={{ borderColor: `${color}88`, borderWidth: 1.5, padding: isDesktop ? 20 : 16 }}
+      >
         <View className="absolute -right-10 -top-12 h-36 w-36 rounded-full" style={{ backgroundColor: `${color}18` }} />
         {isCorrect ? <CelebrationParticles color={color} /> : null}
         {isCorrect && feedback.earnedPoints > 0 ? (
@@ -259,11 +262,11 @@ export function AnswerOption({
       badgeColor = '#F43F5E'
       badgeBorderColor = '#FDA4AF'
     } else {
-      borderColor = '#1B3155'
-      backgroundColor = '#0A1830'
-      textColor = '#697B99'
-      badgeColor = '#111E3C'
-      badgeBorderColor = '#273A5E'
+      borderColor = tokens.border.active
+      backgroundColor = tokens.surface.default
+      textColor = tokens.text.muted
+      badgeColor = tokens.surface.interactive
+      badgeBorderColor = tokens.border.active
     }
   }
 
@@ -279,17 +282,17 @@ export function AnswerOption({
       hitSlop={4}
       onPress={onPress}
       disabled={hasAnswered || isSubmitting}
-      className="min-h-[70px] flex-row items-center rounded-2xl border px-4 py-3"
+      className="min-h-[70px] flex-row items-center rounded-2xl px-4 py-3"
       style={({ pressed }) => ({
         borderColor,
         backgroundColor,
-        borderWidth: isSelected || isHinted || (hasAnswered && (isCorrectAnswer || isSelected)) ? 2 : 1,
+        borderWidth: isSelected || isHinted || (hasAnswered && (isCorrectAnswer || isSelected)) ? 2 : 1.5,
         opacity: pressed ? 0.84 : 1,
       })}
     >
       <View
-        className="h-10 w-10 items-center justify-center rounded-full border"
-        style={{ backgroundColor: badgeColor, borderColor: badgeBorderColor }}
+        className="h-10 w-10 items-center justify-center rounded-full"
+        style={{ backgroundColor: badgeColor, borderColor: badgeBorderColor, borderWidth: 1.5 }}
       >
         <Text className="text-[15px] font-black text-white">{answerLetters[index] || '?'}</Text>
       </View>
@@ -321,7 +324,10 @@ export function AnswerFeedback({
   const feedbackColor = isCorrect ? '#34D399' : '#FB7185'
 
   return (
-    <View className="rounded-2xl border px-4 py-3" style={{ borderColor: feedbackColor, backgroundColor: `${feedbackColor}1F` }}>
+    <View
+      className="rounded-2xl px-4 py-3"
+      style={{ borderColor: feedbackColor, borderWidth: 1.5, backgroundColor: `${feedbackColor}1F` }}
+    >
       <View className="flex-row items-center gap-2">
         <Ionicons name={isCorrect ? 'checkmark-circle' : 'close-circle'} size={19} color={feedbackColor} />
         <Text className="font-black" style={{ color: feedbackColor }}>

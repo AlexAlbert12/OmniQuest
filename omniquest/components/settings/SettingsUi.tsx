@@ -213,9 +213,10 @@ export function SelectPill({
         hitSlop={6}
         onPress={onToggle}
         disabled={disabled}
-        className="flex-row items-center justify-between rounded-lg border px-4 py-3"
+        className="flex-row items-center justify-between rounded-lg px-4 py-3"
         style={({ pressed }) => ({
-          borderColor: colors.border,
+          borderColor: withAlpha(accentColor, open ? 'B8' : '73'),
+          borderWidth: open ? 2 : 1.5,
           backgroundColor: colors.surfaceRaised,
           opacity: disabled ? 0.7 : pressed ? 0.86 : 1,
         })}
@@ -229,7 +230,14 @@ export function SelectPill({
       </Pressable>
 
       {open ? (
-        <View className="mt-2 overflow-hidden rounded-lg border" style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}>
+        <View
+          className="mt-2 overflow-hidden rounded-lg"
+          style={{
+            borderColor: withAlpha(accentColor, '8F'),
+            borderWidth: 1.5,
+            backgroundColor: colors.surfaceRaised,
+          }}
+        >
           {options.map((option, index) => (
             <Pressable
               key={option}
@@ -238,7 +246,11 @@ export function SelectPill({
               accessibilityLabel={optionLabel(option)}
               accessibilityState={{ selected: option === selectedValue }}
               className="flex-row items-center justify-between px-4 py-3"
-              style={{ borderBottomWidth: index < options.length - 1 ? 1 : 0, borderBottomColor: colors.border }}
+              style={{
+                borderBottomWidth: index < options.length - 1 ? 1 : 0,
+                borderBottomColor: withAlpha(accentColor, '52'),
+                backgroundColor: option === selectedValue ? withAlpha(accentColor, '14') : 'transparent',
+              }}
             >
               <Text className="min-w-0 flex-1 text-[13px]" style={{ color: colors.textSecondary }}>{optionLabel(option)}</Text>
               {option === selectedValue ? (

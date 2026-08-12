@@ -137,7 +137,10 @@ function GameSummaryPanel({
       <View className="rounded-[28px] border border-border-default bg-surface-raised p-5">
         <Text className="text-center text-[12px] font-black uppercase tracking-[0.08em] text-text-muted">Resultado principal</Text>
         <View className="mt-5 items-center">
-          <View className="h-32 w-32 items-center justify-center rounded-full border-[10px] bg-background-primary" style={{ borderColor: circleColor }}>
+          <View
+            className="h-32 w-32 items-center justify-center rounded-full bg-background-primary"
+            style={{ borderColor: circleColor, borderWidth: 10 }}
+          >
             <Text className="text-[38px] font-black text-white">{summary.correct}/{totalQuestions}</Text>
             <Text className="text-[14px] font-bold text-text-secondary">correctas</Text>
           </View>

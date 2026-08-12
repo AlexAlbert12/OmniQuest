@@ -5374,7 +5374,19 @@ export type Database = {
         Args: { p_action: string; p_metadata?: Json; p_target_table?: string }
         Returns: string
       }
+      admin_cancel_push_delivery: {
+        Args: { p_queue_id: number }
+        Returns: Json
+      }
       admin_has_permission: { Args: { p_permission: string }; Returns: boolean }
+      admin_request_push_delivery_processing: {
+        Args: { p_queue_id: number }
+        Returns: Json
+      }
+      admin_retry_push_delivery: {
+        Args: { p_queue_id: number }
+        Returns: Json
+      }
       admin_sha256_hex: { Args: { p_value: string }; Returns: string }
       admin_update_support_ticket: {
         Args: {
@@ -5462,6 +5474,18 @@ export type Database = {
       }
       claim_notification_delivery_batch: {
         Args: { p_limit?: number; p_worker_id: string }
+        Returns: {
+          attempts: number
+          delivery_cycle: number
+          max_attempts: number
+          notification_id: string
+          priority: string
+          queue_id: number
+          user_id: string
+        }[]
+      }
+      claim_notification_delivery_item: {
+        Args: { p_queue_id: number; p_worker_id: string }
         Returns: {
           attempts: number
           delivery_cycle: number
@@ -5917,9 +5941,51 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_admin_push_delivery_detail: {
+        Args: { p_queue_id: number }
+        Returns: Json
+      }
       get_admin_push_delivery_metrics: {
         Args: { p_days?: number }
         Returns: Json
+      }
+      get_admin_push_delivery_page: {
+        Args: {
+          p_from?: string | null
+          p_limit?: number
+          p_offset?: number
+          p_role?: string | null
+          p_search?: string | null
+          p_status?: string | null
+          p_to?: string | null
+          p_type?: string | null
+        }
+        Returns: {
+          active_devices: number
+          attempts: number
+          audience: string
+          created_at: string
+          delivered_devices: number
+          delivery_cycle: number
+          delivery_devices: number
+          failed_devices: number
+          last_error_code: string
+          max_attempts: number
+          next_attempt_at: string
+          notification_description: string
+          notification_id: string
+          notification_title: string
+          notification_type: string
+          priority: string
+          queue_id: number
+          queue_status: string
+          recipient_alias: string
+          recipient_id: string
+          recipient_role: string
+          skip_reason: string
+          total_count: number
+          updated_at: string
+        }[]
       }
       get_admin_role_assignments_page: {
         Args: { p_limit?: number; p_offset?: number }

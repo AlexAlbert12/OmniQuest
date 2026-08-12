@@ -46,12 +46,26 @@ test('sidebar and help center labels are backed by both locale dictionaries', ()
   assert.match(studentSidebar, /t\(item\.labelKey\)/)
   assert.match(teacherSidebar, /t\(item\.labelKey\)/)
   for (const key of [
+    'nav.student.home',
+    'nav.student.courses',
+    'nav.student.progress',
+    'nav.student.ranking',
+    'nav.student.badges',
+    'nav.student.notifications',
+    'nav.student.profile',
+    'nav.student.settings',
     'support.form.contactPreference',
     'support.channel.inApp',
     'support.channel.email',
     'support.channel.both',
     'support.emailHistory.title',
     'support.emailHistory.empty',
+    'teacher.profile.participation.title',
+    'teacher.profile.participation.period',
+    'teacher.profile.participation.participants',
+    'teacher.profile.participation.result',
+    'settings.data.teacherOwn.title',
+    'settings.data.teacherOwn.description',
   ]) {
     assert.equal(i18n.split(`'${key}'`).length - 1, 2, `${key} must exist in Spanish and English`)
   }
@@ -61,10 +75,18 @@ test('long app modals scroll and achievement reward keeps high contrast', () => 
   const provider = read('components/AppModalProvider.tsx')
   const confirm = read('components/AppConfirmModal.tsx')
   const achievement = read('components/gamification/BadgeUnlockModal.tsx')
+  const bottomSheet = read('components/ui/AppBottomSheet.tsx')
+  const typedConfirmation = read('components/admin/shared/AdminTypedConfirmation.tsx')
+  const dangerZone = read('components/settings/SettingsDangerZone.tsx')
 
   assert.match(provider, /title=\{modal\?\.title\}[\s\S]*scrollable/)
+  assert.match(provider, /style=\{styles\.banner\}/)
   assert.match(confirm, /title=\{title\}[\s\S]*scrollable/)
   assert.match(confirm, /selectable[\s\S]*\{message\}/)
+  assert.match(bottomSheet, /scrollable = true/)
+  assert.match(bottomSheet, /scrollContent:[\s\S]*flexShrink: 1/)
+  assert.match(typedConfirmation, /<ScrollView[\s\S]*maxHeight: '90%'/)
+  assert.match(dangerZone, /max-h-\[90%\][\s\S]*<ScrollView/)
   assert.match(achievement, /Recompensa conseguida/)
   assert.match(achievement, /<ScrollView/)
   assert.doesNotMatch(achievement, /bg-semantic-warning/)
@@ -76,7 +98,13 @@ test('game and avatar customization use explicit themed borders instead of black
   const avatar = read('components/gamification/AvatarCustomizationModal.tsx')
 
   assert.match(question, /borderColor = withAlpha\(tokens\.brand\.student, '80'\)/)
-  assert.match(hud, /borderColor: emphasized \? color : '#315D93'/)
+  assert.match(question, /borderColor = tokens\.border\.active/)
+  assert.doesNotMatch(question, /#1B3155/)
+  assert.match(question, /borderWidth: isSelected \|\| isHinted/)
+  assert.doesNotMatch(question, /rounded-2xl border px-4 py-3/)
+  assert.match(hud, /borderColor: withAlpha\(color, emphasized \? 'F0' : 'A6'\)/)
+  assert.match(hud, /borderWidth: emphasized \? 2 : 1\.5/)
+  assert.doesNotMatch(hud, /rounded-2xl border bg-surface-raised/)
   assert.match(avatar, /borderColor: selected \? frame\.primaryColor : '#315D93'/)
   assert.match(avatar, /borderColor: selected \? color : '#315D93'/)
 })

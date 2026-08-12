@@ -132,7 +132,7 @@ export default function StudentGameReviewScreen() {
         contentContainerStyle={{ paddingHorizontal: isDesktop ? 28 : 16, paddingTop: 24, paddingBottom: 44 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="mx-auto w-full max-w-[980px]">
+        <View className="w-full">
           <View className="flex-row flex-wrap items-center justify-between gap-3">
             <AppButton label="Volver" icon="arrow-back" variant="secondary" size="sm" onPress={() => router.back()} />
             <View

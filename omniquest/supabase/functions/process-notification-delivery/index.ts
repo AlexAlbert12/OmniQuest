@@ -73,18 +73,19 @@ Deno.serve(async (req) => {
       return publicErrorResponse('No autorizado.', 401, 'unauthorized')
     }
 
-    const requestBody = await req.json().catch(() => ({})) as { limit?: number }
+    const requestBody = await req.json().catch(() => ({})) as { limit?: number; queueId?: number }
     const limit = Math.max(1, Math.min(Number(requestBody.limit) || 50, 100))
+    const queueId = Number(requestBody.queueId)
+    const hasSpecificQueue = Number.isInteger(queueId) && queueId > 0
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
     const receiptSummary = await processReceipts(adminClient)
     const workerId = crypto.randomUUID()
-    const { data: claimed, error: claimError } = await adminClient.rpc('claim_notification_delivery_batch', {
-      p_worker_id: workerId,
-      p_limit: limit,
-    })
+    const { data: claimed, error: claimError } = hasSpecificQueue
+      ? await adminClient.rpc('claim_notification_delivery_item', { p_queue_id: queueId, p_worker_id: workerId })
+      : await adminClient.rpc('claim_notification_delivery_batch', { p_worker_id: workerId, p_limit: limit })
     if (claimError) throw claimError
 
     const queues = (claimed || []) as QueueRow[]

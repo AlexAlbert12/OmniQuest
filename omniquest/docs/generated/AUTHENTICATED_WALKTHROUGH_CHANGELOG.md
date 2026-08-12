@@ -9,7 +9,7 @@
 - Pruebas de código fuente ejecutadas: 166.
 - Pruebas de código fuente aprobadas: 166.
 - Llamadas cliente inventariadas: 221.
-- Recursos inventariados: 17 tablas directas, 113 RPC y 17 Edge Functions.
+- Recursos inventariados: 18 tablas directas, 117 RPC y 19 Edge Functions.
 
 ## Correcciones principales
 
@@ -63,7 +63,7 @@
 | `npm run test:migrations` | PASS: 80 migraciones y 11 archivos SQL validados |
 | `npm run test:source` | PASS: 166/166 |
 | `npm run docs:check` | PASS: 32 Edge Functions, 68 tablas y 234 funciones SQL |
-| `npm run audit:walkthrough` | PASS: 221 llamadas y 0 incidencias estructurales |
+| `npm run audit:walkthrough` | PASS: 227 llamadas y 0 incidencias estructurales |
 
 ## Validaciones no ejecutadas en este entorno
 

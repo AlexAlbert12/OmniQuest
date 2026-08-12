@@ -4,6 +4,7 @@ import test from 'node:test'
 
 const read = (path) => readFileSync(path, 'utf8')
 const migration = read('supabase/migrations/20260811193000_admin_home_least_privilege_refinement.sql')
+const pushMigration = read('supabase/migrations/20260812103000_admin_push_center.sql')
 
 test('admin permissions fail closed and role management is isolated from the dashboard', () => {
   const dashboard = read('components/admin/dashboard/AdminDashboard.tsx')
@@ -37,7 +38,7 @@ test('admin home uses actionable non-duplicated alerts and stable mobile shortcu
   assert.match(metrics, /Alumnos inactivos más de 7 días/)
   assert.match(dashboard, /responsive\.isDesktop \? <View className="mt-5"><AdminAlerts/)
   assert.doesNotMatch(alerts, /Actividad administrativa/)
-  assert.match(primitives, /flexBasis: responsive\.isDesktop \? 180 : '47%'/)
+  assert.match(primitives, /flexBasis: responsive\.isDesktop \? '15%' : '47%'/)
   assert.match(primitives, /numberOfLines=\{2\}/)
 })
 
@@ -48,11 +49,11 @@ test('admin push, analytics, audit and exports use product-facing operational se
   const exportsHook = read('components/admin/hooks/useAdminExportJobs.ts')
   const exportsPanel = read('components/admin/shared/AdminExportJobsPanel.tsx')
 
-  assert.match(migration, /queue\.status = 'pending'/)
-  assert.match(migration, /queue\.status in \('processing', 'waiting_receipt'\)/)
-  assert.match(push, /label="En proceso"/)
+  assert.match(pushMigration, /queue\.status = 'pending'/)
+  assert.match(pushMigration, /queue\.status = 'processing'/)
+  assert.match(push, /label: 'Procesando'/)
   assert.match(push, /Sin entregas resueltas todavía/)
-  assert.match(push, /Omitidas antes del envío/)
+  assert.match(push, /label="Omitidas"/)
   assert.match(analytics, /No se pudo cargar la analítica/)
   assert.match(analytics, /Aún no hay eventos de uso en los últimos 30 días/)
   assert.match(utils, /'admin\.support\.update': 'Ticket de soporte actualizado'/)

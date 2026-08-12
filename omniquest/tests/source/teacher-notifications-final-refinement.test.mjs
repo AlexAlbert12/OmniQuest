@@ -41,6 +41,7 @@ test('teacher notification realtime refresh is silent after the initial page loa
 
 test('teacher notification mobile UI prioritizes content and keeps desktop filters complete', () => {
   const screen = read('app/(teacher)/notifications.tsx')
+  const teacherLayout = read('components/layouts/TeacherScreenLayout.tsx')
 
   assert.doesNotMatch(screen, /label="Actualizar"/)
   assert.match(screen, /compact=\{!responsive\.isDesktop\}/)
@@ -51,8 +52,9 @@ test('teacher notification mobile UI prioritizes content and keeps desktop filte
   assert.match(screen, /Durante 8 horas/)
   assert.match(screen, /Las notificaciones seguirán disponibles/)
   assert.match(screen, /Alertas de auditoría/)
-  assert.match(screen, /maxContentWidth=\{1220\}/)
-  assert.match(screen, /fluidContent=\{false\}/)
+  assert.doesNotMatch(screen, /maxContentWidth=\{1220\}/)
+  assert.doesNotMatch(screen, /fluidContent=\{false\}/)
+  assert.match(teacherLayout, /fluidContent = true/)
   assert.match(screen, /horizontalPadding=\{shellHorizontalPadding\}/)
 })
 

@@ -206,6 +206,7 @@ function StyledAppModal({
             <OmniGuide state={config.omniState} size={62} autoBlink={config.omniState === 'normal'} />
             <AppStatusBanner
               compact
+              style={styles.banner}
               variant={config.bannerVariant}
               icon={config.icon}
               title={config.label}
@@ -223,9 +224,14 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   omniRow: {
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
+  },
+  banner: {
+    minWidth: 0,
+    flex: 1,
   },
   actions: {
     flexDirection: 'row',

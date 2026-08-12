@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Modal, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import AppButton from '../../ui/AppButton'
 import AppPressable from '../../ui/AppPressable'
@@ -96,6 +96,11 @@ function AdminTypedConfirmationModal({
             },
           ]}
         >
+          <ScrollView
+            style={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
           <View style={styles.header}>
             <View style={[styles.iconBox, { backgroundColor: `${dangerColor}22` }]}>
               <Ionicons name={state.icon || 'warning-outline'} size={27} color={dangerColor} />
@@ -144,6 +149,7 @@ function AdminTypedConfirmationModal({
               onPress={onConfirm}
             />
           </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -161,9 +167,14 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 540,
+    maxHeight: '90%',
     borderWidth: 1,
     borderRadius: 24,
     padding: 20,
+  },
+  scrollContent: {
+    minHeight: 0,
+    flexShrink: 1,
   },
   header: {
     flexDirection: 'row',

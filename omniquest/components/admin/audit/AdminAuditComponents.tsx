@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../../lib/appTheme'
 import type { AdminAuditLogRow, AdminData } from '../types/admin'
 import { EmptyState, MiniPill, Panel } from '../shared/AdminPrimitives'
-import { formatAuditDate, getAdminAuditSeverity, getAdminAuditSeverityMeta, getAuditActionLabel, getAuditTargetLabel } from '../utils/adminUtils'
+import { formatAuditDate, getAdminAuditSeverity, getAdminAuditSeverityMeta, getAuditActionLabel, getAuditTargetLabel, getAuditTargetTypeLabel } from '../utils/adminUtils'
 
 export const RecentAuditPanel = React.memo(function RecentAuditPanel({ data }: { data: AdminData }) {
   const latestLogs = useMemo(() => data.auditLogs.slice(0, 5), [data.auditLogs])
@@ -21,7 +21,7 @@ export const AuditLogCard = React.memo(function AuditLogCard({ compact, data, lo
     <View className="rounded-xl border border-border-default bg-surface-default p-4">
       <View className="flex-row flex-wrap items-start justify-between gap-3">
         <View className="min-w-[220px] flex-1"><Text className="font-black text-text-primary">{getAuditActionLabel(log.action)}</Text><Text className="mt-1 text-[12px] text-text-muted">{actorLabel} · {formatAuditDate(log.created_at)}</Text></View>
-        <View className="flex-row flex-wrap items-center gap-2"><View className="rounded-full px-3 py-1" style={{ backgroundColor: severityMeta.background }}><Text className="text-[10px] font-black uppercase" style={{ color: severityMeta.color }}>{severityMeta.label}</Text></View><MiniPill icon="shield-checkmark-outline" label={log.target_table || 'sistema'} /></View>
+        <View className="flex-row flex-wrap items-center gap-2"><View className="rounded-full px-3 py-1" style={{ backgroundColor: severityMeta.background }}><Text className="text-[10px] font-black uppercase" style={{ color: severityMeta.color }}>{severityMeta.label}</Text></View><MiniPill icon="shield-checkmark-outline" label={getAuditTargetTypeLabel(log.target_table)} /></View>
       </View>
       <Text className="mt-3 text-[13px] text-text-secondary">{getAuditTargetLabel(log)}</Text>
       {!compact ? <AuditChangePreview before={log.before_state} after={log.after_state} /> : null}

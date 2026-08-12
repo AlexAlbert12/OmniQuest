@@ -148,8 +148,6 @@ export default function TeacherNotificationsScreen() {
         loading={notifications.loading}
         loadingLabel="Cargando notificaciones docentes…"
         scroll={false}
-        maxContentWidth={1220}
-        fluidContent={false}
         horizontalPadding={shellHorizontalPadding}
         contentContainerStyle={{ flex: 1, width: '100%' }}
         desktopSidebar={<TeacherSidebar activeSection="notifications" subjectsCount={notifications.summary.activeSubjects} onSignOut={() => void handleSignOut()} />}

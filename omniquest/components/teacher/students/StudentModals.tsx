@@ -41,7 +41,7 @@ export function StudentActionsModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View className={`flex-1 ${isPhone ? 'justify-end' : 'justify-center p-4 md:items-center'}`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
         <Pressable accessibilityRole="button" accessibilityLabel="Cerrar acciones del estudiante" accessibilityHint="Cierra el diálogo" className="absolute inset-0" onPress={onClose} />
-        <View accessibilityViewIsModal accessibilityLabel={`Acciones de ${student.alias}`} className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'w-full max-w-[420px] rounded-2xl p-5'} border border-border-default bg-surface-default`}>
+        <View accessibilityViewIsModal accessibilityLabel={`Acciones de ${student.alias}`} className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-5' : 'max-h-[90%] w-full max-w-[420px] rounded-2xl p-5'} border border-border-default bg-surface-default`}>
           <View className="flex-row items-start justify-between gap-4">
             <View className="min-w-0 flex-1">
               <Text className="text-[13px] font-semibold text-semantic-info">Acciones del estudiante</Text>
@@ -53,7 +53,12 @@ export function StudentActionsModal({
             </Pressable>
           </View>
 
-          <View className="mt-5 gap-3">
+          <ScrollView
+            className="mt-5"
+            style={{ flexShrink: 1 }}
+            contentContainerStyle={{ gap: 12 }}
+            showsVerticalScrollIndicator={false}
+          >
             <ModalActionButton
               icon="document-text-outline"
               title="Ver detalle"
@@ -102,7 +107,7 @@ export function StudentActionsModal({
               destructive
               onPress={() => onRemoveFromClass(student)}
             />
-          </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -388,4 +393,3 @@ export function DetailActionButton({
     </Pressable>
   );
 }
-

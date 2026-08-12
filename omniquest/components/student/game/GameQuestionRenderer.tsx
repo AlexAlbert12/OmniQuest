@@ -260,13 +260,17 @@ function FillBlankQuestion({
           const borderColor = !hasAnswered
             ? filled
               ? tokens.semantic.info
-              : tokens.border.default
+              : tokens.border.active
             : answerStatus === 'correct'
               ? tokens.semantic.success
               : tokens.semantic.danger
 
           return (
-            <View key={index} className="rounded-2xl border bg-surface-raised px-4 py-3" style={{ borderColor }}>
+            <View
+              key={index}
+              className="rounded-2xl bg-surface-raised px-4 py-3"
+              style={{ borderColor, borderWidth: filled ? 2 : 1.5 }}
+            >
               <Text className="text-[11px] font-black uppercase tracking-[0.04em] text-text-muted">
                 Hueco {index + 1}
               </Text>
@@ -343,13 +347,13 @@ function OrderingQuestion({
     <View className="gap-3">
       <Text className="text-[13px] font-bold text-text-secondary">Ordena los elementos de arriba a abajo.</Text>
       {orderedAnswers.map((answer, index) => {
-        const rowColor = !hasAnswered ? tokens.border.default : answerStatus === 'correct' ? tokens.semantic.success : tokens.semantic.danger
+        const rowColor = !hasAnswered ? tokens.border.active : answerStatus === 'correct' ? tokens.semantic.success : tokens.semantic.danger
 
         return (
           <View
             key={answer.id}
-            className="flex-row items-center gap-3 rounded-2xl border bg-surface-default p-3"
-            style={{ borderColor: rowColor }}
+            className="flex-row items-center gap-3 rounded-2xl bg-surface-default p-3"
+            style={{ borderColor: rowColor, borderWidth: 1.5 }}
           >
             <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-interactive">
               <Text className="font-black text-text-primary">{index + 1}</Text>
@@ -481,15 +485,19 @@ function PairingQuestion({
                   ? tokens.brand.student
                   : selected
                     ? tokens.semantic.success
-                    : tokens.border.default
+                    : tokens.border.active
 
               return (
                 <Pressable
                   key={`${answer.id}-${index}`}
                   onPress={() => !hasAnswered && !isSubmitting && setActiveIndex(index)}
                   disabled={hasAnswered || isSubmitting}
-                  className="rounded-2xl border bg-surface-raised p-4"
-                  style={({ pressed }) => ({ borderColor, opacity: pressed ? 0.86 : 1 })}
+                  className="rounded-2xl bg-surface-raised p-4"
+                  style={({ pressed }) => ({
+                    borderColor,
+                    borderWidth: active ? 2 : 1.5,
+                    opacity: pressed ? 0.86 : 1,
+                  })}
                 >
                   <View className="flex-row items-start gap-3">
                     <View
@@ -544,9 +552,10 @@ function PairingQuestion({
                   key={option.key}
                   onPress={() => assignOption(option)}
                   disabled={hasAnswered || isSubmitting}
-                  className="rounded-2xl border px-4 py-3"
+                  className="rounded-2xl px-4 py-3"
                   style={({ pressed }) => ({
-                    borderColor: usedByCurrent ? tokens.brand.student : usedByOther ? tokens.semantic.success : tokens.border.default,
+                    borderColor: usedByCurrent ? tokens.brand.student : usedByOther ? tokens.semantic.success : tokens.border.active,
+                    borderWidth: usedByCurrent ? 2 : 1.5,
                     backgroundColor: usedByCurrent ? tokens.surface.selected : usedByOther ? tokens.semanticSurface.success : tokens.surface.raised,
                     opacity: pressed ? 0.86 : 1,
                   })}

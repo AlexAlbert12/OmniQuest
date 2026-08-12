@@ -233,18 +233,20 @@ export function SettingsPreferencesPanel({
         loading={savingHaptics}
       />
 
-      <PreferenceRow
-        label={t('settings.preference.language')}
-        value={formatPreferenceLabel('language', preferences.language)}
-        selectedValue={preferences.language}
-        open={openPreferenceKey === 'language'}
-        onToggle={() => onTogglePreferenceMenu('language')}
-        options={preferenceOptions.language}
-        onSelect={(value) => onSelectPreference('language', value)}
-        optionLabel={(value) => formatPreferenceLabel('language', value)}
-        disabled={Boolean(savingPreference)}
-        loading={savingPreference === 'language'}
-      />
+      <View className="mt-6">
+        <PreferenceRow
+          label={t('settings.preference.language')}
+          value={formatPreferenceLabel('language', preferences.language)}
+          selectedValue={preferences.language}
+          open={openPreferenceKey === 'language'}
+          onToggle={() => onTogglePreferenceMenu('language')}
+          options={preferenceOptions.language}
+          onSelect={(value) => onSelectPreference('language', value)}
+          optionLabel={(value) => formatPreferenceLabel('language', value)}
+          disabled={Boolean(savingPreference)}
+          loading={savingPreference === 'language'}
+        />
+      </View>
 
       {(['timezone', 'dateFormat', 'timeFormat', 'weekStart'] as PreferenceKey[]).filter((key) => !(hideTimezone && key === 'timezone')).map((key) => (
         <PreferenceRow

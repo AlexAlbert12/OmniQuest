@@ -86,10 +86,11 @@ function GameStatPill({
 }) {
   return (
     <View
-      className="flex-row items-center gap-2 rounded-xl border px-3 py-2"
+      className="flex-row items-center gap-2 rounded-xl px-3 py-2"
       style={{
         backgroundColor: highlighted ? `${color}18` : '#08172E',
         borderColor: highlighted ? `${color}66` : '#173055',
+        borderWidth: 1,
       }}
     >
       <Ionicons name={icon} size={17} color={color} />
@@ -133,11 +134,11 @@ function HudAction({
   return (
     <Pressable
       onPress={onPress}
-      className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl border bg-surface-raised px-3 py-3"
+      className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl px-3 py-3"
       style={({ pressed }) => ({
-        borderColor: emphasized ? color : '#315D93',
-        borderWidth: emphasized ? 2 : 1,
-        backgroundColor: emphasized ? withAlpha(color, '14') : undefined,
+        borderColor: withAlpha(color, emphasized ? 'F0' : 'A6'),
+        borderWidth: emphasized ? 2 : 1.5,
+        backgroundColor: withAlpha(color, emphasized ? '18' : '0D'),
         opacity: pressed ? 0.78 : 1,
       })}
     >

@@ -4,10 +4,10 @@
 
 ## Resumen
 
-- Migraciones: **97**
+- Migraciones: **98**
 - Tablas públicas detectadas: **65**
-- Funciones/RPC públicas detectadas: **233**
-- Edge Functions: **32**
+- Funciones/RPC públicas detectadas: **239**
+- Edge Functions: **33**
 
 ## Edge Functions
 
@@ -18,6 +18,7 @@
 | `admin-create-teacher` | JWT requerido |
 | `admin-deactivate-classroom` | JWT requerido |
 | `admin-delete-student-progress` | JWT requerido |
+| `admin-process-push-delivery` | JWT requerido |
 | `admin-reset-password` | JWT requerido |
 | `admin-toggle-user` | JWT requerido |
 | `auth-attempt-guard` | JWT desactivado; autenticación interna/secret obligatoria |
@@ -123,7 +124,10 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `add_support_ticket_message`
 - `add_teacher_student_note`
 - `admin_audit_severity`
+- `admin_cancel_push_delivery`
 - `admin_has_permission`
+- `admin_request_push_delivery_processing`
+- `admin_retry_push_delivery`
 - `admin_sha256_hex`
 - `admin_update_support_ticket`
 - `admin_update_support_ticket_secured`
@@ -148,6 +152,7 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `check_game_attempt_topic_deadline`
 - `claim_admin_export_jobs`
 - `claim_notification_delivery_batch`
+- `claim_notification_delivery_item`
 - `claim_support_email_delivery_batch`
 - `claim_teacher_audit_export_requests`
 - `claim_teacher_digest_batch`
@@ -196,7 +201,9 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `get_admin_portal_context`
 - `get_admin_profile_activity_page`
 - `get_admin_profiles_page`
+- `get_admin_push_delivery_detail`
 - `get_admin_push_delivery_metrics`
+- `get_admin_push_delivery_page`
 - `get_admin_role_assignments_page`
 - `get_admin_roles`
 - `get_admin_subjects_page`

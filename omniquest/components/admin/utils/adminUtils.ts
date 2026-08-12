@@ -109,16 +109,26 @@ export function getAuditActionLabel(action: string) {
     'admin.support.update': 'Ticket de soporte actualizado',
     'admin.role.assign': 'Rol administrativo actualizado',
     'admin.bulk.execute': 'Operación por lotes',
+    'admin.notification.send': 'Notificación push enviada',
+    'admin.notification.retry': 'Notificación push reintentada',
+    'admin.notification.cancel': 'Envío push cancelado',
+    'admin.notification.process_now': 'Procesamiento push solicitado',
   }
   return labels[action] || action.replace(/[._-]+/g, ' ')
 }
 
 export function getAuditTargetLabel(log: AdminAuditLogRow) {
   if (!log.target_table) return 'Sistema'
-  const tableLabels: Record<string, string> = { profiles: 'Usuario', subjects: 'Curso', classrooms: 'Clase', user_support_tickets: 'Ticket de soporte', admin_export_jobs: 'Exportación', admin_role_assignments: 'Rol administrativo' }
+  const tableLabels: Record<string, string> = { profiles: 'Usuario', subjects: 'Curso', classrooms: 'Clase', user_support_tickets: 'Ticket de soporte', admin_export_jobs: 'Exportación', admin_role_assignments: 'Rol administrativo', notifications: 'Notificación', notification_delivery_queue: 'Entrega push' }
   const label = tableLabels[log.target_table] || log.target_table.replaceAll('_', ' ')
   if (!log.target_id) return label
   return log.target_table === 'user_support_tickets' ? `${label} · #${log.target_id}` : `${label} · ${log.target_id}`
+}
+
+export function getAuditTargetTypeLabel(targetTable?: string | null) {
+  if (!targetTable) return 'Sistema'
+  const labels: Record<string, string> = { profiles: 'Usuario', subjects: 'Curso', classrooms: 'Clase', user_support_tickets: 'Soporte', admin_export_jobs: 'Exportación', admin_role_assignments: 'Permisos', notifications: 'Notificación', notification_delivery_queue: 'Entrega push' }
+  return labels[targetTable] || targetTable.replaceAll('_', ' ')
 }
 
 export function stringMetadata(metadata: Record<string, unknown>, key: string) {
@@ -170,7 +180,7 @@ export function getInitials(value: string) {
 
 export function getAdminSectionIcon(section: AdminSection): IconName {
   const icons: Record<AdminSection, IconName> = {
-    home: 'shield-checkmark', teachers: 'school', students: 'people', courses: 'book', classrooms: 'albums', support: 'headset', audit: 'receipt', users: 'people', content: 'book', more: 'ellipsis-horizontal-circle', profile: 'person-circle', settings: 'settings', exports: 'cloud-download', permissions: 'key',
+    home: 'shield-checkmark', teachers: 'school', students: 'people', courses: 'book', classrooms: 'albums', support: 'headset', audit: 'receipt', users: 'people', content: 'book', more: 'ellipsis-horizontal-circle', profile: 'person-circle', settings: 'settings', exports: 'cloud-download', permissions: 'key', push: 'notifications',
   }
   return icons[section]
 }

@@ -157,7 +157,6 @@ export const uiEnglishCatalog: Record<string, string> = {
   "Cierra este diálogo sin guardar cambios": "Close this dialog without saving changes",
   "Crea clases, temas y preguntas personalizadas para guiar el aprendizaje.": "Create classes, topics and custom questions to guide learning.",
   "Crea preguntas interactivas": "Create interactive questions",
-  "Decide qué cursos generan alertas críticas, informativas y contenido para el resumen.": "Choose which courses generate critical alerts, informational updates and summary content.",
   "Desbloquea logros e insignias": "Unlock achievements and badges",
   "Desbloquea tu primer logro para destacarlo aquí.": "Unlock your first achievement to feature it here.",
   "El administrador todavía no ha publicado canales externos.": "The administrator has not published any external channels yet.",

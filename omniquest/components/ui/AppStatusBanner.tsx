@@ -77,6 +77,9 @@ export default function AppStatusBanner({
 
 const styles = StyleSheet.create({
   banner: {
+    width: '100%',
+    minWidth: 0,
+    flexShrink: 1,
     minHeight: 66,
     borderWidth: 1,
     borderRadius: 16,
@@ -90,6 +93,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   iconBox: {
+    flexShrink: 0,
     width: 38,
     height: 38,
     borderRadius: 12,
@@ -106,6 +110,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   message: {
+    flexShrink: 1,
     marginTop: 2,
     fontSize: 12,
     lineHeight: 18,

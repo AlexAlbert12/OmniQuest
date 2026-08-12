@@ -53,7 +53,6 @@ export default function TeacherProfileScreen() {
       isDesktop={responsive.isDesktop}
       loading={profile.loading}
       loadingLabel="Cargando perfil docente…"
-      maxContentWidth={1220}
       refreshControl={(
         <RefreshControl
           refreshing={profile.refreshing}
