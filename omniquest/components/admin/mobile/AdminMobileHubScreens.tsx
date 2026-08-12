@@ -3,8 +3,11 @@ import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useAdminData } from '../hooks/useAdminData'
+import { useAdminExportJobs } from '../hooks/useAdminExportJobs'
 import { AdminScaffold } from '../shared/AdminScaffold'
+import AdminExportJobsPanel from '../shared/AdminExportJobsPanel'
 import { Panel } from '../shared/AdminPrimitives'
+import AdminRoleManagementPanel from '../users/AdminRoleManagementPanel'
 import type { AdminPermission, IconName } from '../types/admin'
 import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
 
@@ -22,13 +25,25 @@ export function AdminMoreScreen() {
   const data = useAdminData()
   const router = useRouter()
   const signOut = async () => { await signOutCurrentDeviceSession(); router.replace('/(auth)/login' as any) }
-  return <AdminScaffold activeSection="more" title="Más" subtitle="Soporte, cuenta y configuración administrativa." data={data}><HubGrid items={[{ title: 'Soporte', description: 'Cola de tickets, asignación, SLA y conversación.', icon: 'headset-outline', href: '/(admin)/support', permission: 'support.read' }, { title: 'Perfil', description: 'Identidad de la cuenta y rol administrativo.', icon: 'person-circle-outline', href: '/(admin)/profile', permission: 'dashboard.read' }, { title: 'Configuración', description: 'Seguridad, privacidad y preferencias del portal.', icon: 'settings-outline', href: '/(admin)/settings', permission: 'dashboard.read' }]} permissions={data.portalContext?.permissions} /><Pressable accessibilityRole="button" accessibilityLabel="Cerrar sesión" onPress={() => void signOut()} className="mt-4 flex-row items-center justify-center gap-3 rounded-2xl border border-semantic-danger bg-semantic-surface-danger px-5 py-4"><Ionicons name="log-out-outline" size={21} /><Text className="font-black text-semantic-danger">Cerrar sesión</Text></Pressable></AdminScaffold>
+  return <AdminScaffold activeSection="more" title="Más" subtitle="Soporte, exportaciones, cuenta y gobierno administrativo." data={data}><HubGrid items={[{ title: 'Soporte', description: 'Cola de tickets, asignación, SLA y conversación.', icon: 'headset-outline', href: '/(admin)/support', permission: 'support.read' }, { title: 'Exportaciones', description: 'Consulta el estado y descarga los archivos preparados en segundo plano.', icon: 'cloud-download-outline', href: '/(admin)/exports', permission: ['users.export', 'courses.read', 'audit.export', 'support.read'] }, { title: 'Administración y permisos', description: 'Asigna perfiles administrativos con el principio de mínimo privilegio.', icon: 'key-outline', href: '/(admin)/permissions', permission: 'admin.roles.manage' }, { title: 'Perfil', description: 'Identidad de la cuenta y rol administrativo.', icon: 'person-circle-outline', href: '/(admin)/profile', permission: 'dashboard.read' }, { title: 'Configuración', description: 'Seguridad, privacidad y preferencias del portal.', icon: 'settings-outline', href: '/(admin)/settings', permission: 'dashboard.read' }]} permissions={data.portalContext?.permissions} /><Pressable accessibilityRole="button" accessibilityLabel="Cerrar sesión" onPress={() => void signOut()} className="mt-4 flex-row items-center justify-center gap-3 rounded-2xl border border-semantic-danger bg-semantic-surface-danger px-5 py-4"><Ionicons name="log-out-outline" size={21} /><Text className="font-black text-semantic-danger">Cerrar sesión</Text></Pressable></AdminScaffold>
+}
+
+export function AdminExportsScreen() {
+  const data = useAdminData()
+  const exportJobs = useAdminExportJobs({ loadJobs: true, pollPending: true })
+  return <AdminScaffold activeSection="exports" title="Exportaciones" subtitle="Consulta los trabajos solicitados y descarga los archivos cuando estén preparados." data={data}><AdminExportJobsPanel jobs={exportJobs.jobs} loading={exportJobs.loading} onDownload={(id) => void exportJobs.download(id)} /></AdminScaffold>
+}
+
+export function AdminPermissionsScreen() {
+  const data = useAdminData()
+  const canManage = Boolean(data.portalContext?.permissions.includes('admin.roles.manage'))
+  return <AdminScaffold activeSection="permissions" title="Administración y permisos" subtitle="Gestiona el acceso administrativo con perfiles explícitos y mínimo privilegio." data={data}><AdminRoleManagementPanel canManage={canManage} /><View className="mt-5"><Panel title="Modelo de acceso" icon="lock-closed-outline" compact><Text className="text-[13px] leading-5 text-text-secondary">Cada administrador necesita un perfil de permisos explícito. Una cuenta sin asignación permanece sin acceso operativo hasta que un administrador global le conceda un rol.</Text><Text className="mt-2 text-[12px] leading-5 text-text-muted">Las acciones sensibles siguen protegidas en servidor, requieren permisos concretos y quedan registradas en auditoría.</Text></Panel></View></AdminScaffold>
 }
 
 export function AdminProfileScreen() {
   const data = useAdminData()
   const profile = data.profiles.find((item) => item.id === data.portalContext?.user_id)
-  return <AdminScaffold activeSection="profile" title="Perfil" subtitle="Identidad y alcance de tu cuenta administrativa." data={data}><Panel title="Cuenta administrativa" icon="person-circle-outline" className="mt-5"><View className="items-center py-4"><View className="h-24 w-24 items-center justify-center rounded-full bg-surface-selected"><Text className="text-[30px] font-black text-brand-admin">{getInitials(profile?.alias || 'Administrador')}</Text></View><Text className="mt-4 text-[22px] font-black text-text-primary">{profile?.alias || 'Administrador'}</Text><Text className="mt-1 text-[13px] text-text-muted">{profile?.email || 'Correo protegido'}</Text><View className="mt-5 w-full gap-3"><InfoRow icon="shield-checkmark-outline" label="Rol" value={data.portalContext?.role_name || 'Administrador'} /><InfoRow icon="key-outline" label="Permisos" value={`${data.portalContext?.permissions.length || 0} asignados`} /><InfoRow icon="checkmark-circle-outline" label="Estado" value={profile?.active === false ? 'Inactivo' : 'Activo'} /></View></View></Panel></AdminScaffold>
+  return <AdminScaffold activeSection="profile" title="Perfil" subtitle="Identidad y alcance de tu cuenta administrativa." data={data}><Panel title="Cuenta administrativa" icon="person-circle-outline" className="mt-5"><View className="items-center py-4"><View className="h-24 w-24 items-center justify-center rounded-full bg-surface-selected"><Text className="text-[30px] font-black text-brand-admin">{getInitials(profile?.alias || 'Administrador')}</Text></View><Text className="mt-4 text-[22px] font-black text-text-primary">{profile?.alias || 'Administrador'}</Text><Text className="mt-1 text-[13px] text-text-muted">{profile?.email || 'Correo protegido'}</Text><View className="mt-5 w-full gap-3"><InfoRow icon="shield-checkmark-outline" label="Rol" value={data.portalContext?.role_name || 'Sin verificar'} /><InfoRow icon="key-outline" label="Permisos" value={`${data.portalContext?.permissions.length || 0} asignados`} /><InfoRow icon="checkmark-circle-outline" label="Estado" value={profile?.active === false ? 'Inactivo' : 'Activo'} /></View></View></Panel></AdminScaffold>
 }
 
 export function AdminSettingsScreen() {
@@ -36,10 +51,11 @@ export function AdminSettingsScreen() {
   return <AdminScaffold activeSection="settings" title="Configuración" subtitle="Opciones de seguridad y gobierno del portal administrativo." data={data}><HubGrid items={[{ title: 'Seguridad de la cuenta', description: 'Sesiones, dispositivos y cierre seguro.', icon: 'shield-checkmark-outline', href: '/(admin)/security', permission: 'dashboard.read' }, { title: 'Auditoría y retención', description: 'Consulta la política efectiva y verifica la integridad.', icon: 'finger-print-outline', href: '/(admin)/audit', permission: 'audit.read' }, { title: 'Preferencias de soporte', description: 'Gestiona tickets, plantillas y comunicación.', icon: 'options-outline', href: '/(admin)/support', permission: 'support.read' }]} permissions={data.portalContext?.permissions} /></AdminScaffold>
 }
 
-type HubItem = { title: string; description: string; icon: IconName; href: string; permission: AdminPermission }
+type HubItem = { title: string; description: string; icon: IconName; href: string; permission: AdminPermission | AdminPermission[] }
 function HubGrid({ items, permissions }: { items: HubItem[]; permissions?: AdminPermission[] }) {
   const router = useRouter()
-  const visible = items.filter((item) => !permissions || permissions.includes(item.permission))
+  const availablePermissions = permissions || []
+  const visible = items.filter((item) => (Array.isArray(item.permission) ? item.permission.some((permission) => availablePermissions.includes(permission)) : availablePermissions.includes(item.permission)))
   return <View className="mt-5 flex-row flex-wrap gap-4">{visible.map((item) => <Pressable key={item.href} accessibilityRole="link" accessibilityLabel={`Abrir ${item.title}`} onPress={() => router.push(item.href as any)} className="min-w-[250px] flex-1 rounded-[24px] border border-border-default bg-surface-default p-5" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}><View className="h-12 w-12 items-center justify-center rounded-2xl bg-surface-selected"><Ionicons name={item.icon} size={25} /></View><Text className="mt-4 text-[18px] font-black text-text-primary">{item.title}</Text><Text className="mt-2 text-[13px] leading-5 text-text-secondary">{item.description}</Text><View className="mt-4 flex-row items-center gap-2"><Text className="font-black text-brand-admin">Entrar</Text><Ionicons name="arrow-forward" size={17} /></View></Pressable>)}</View>
 }
 function InfoRow({ icon, label, value }: { icon: IconName; label: string; value: string }) { return <View className="flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-raised px-4 py-3"><Ionicons name={icon} size={19} /><View className="min-w-0 flex-1"><Text className="text-[10px] font-black uppercase tracking-[0.7px] text-text-muted">{label}</Text><Text className="mt-1 text-[13px] font-black text-text-primary">{value}</Text></View></View> }

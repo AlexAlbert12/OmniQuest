@@ -32,14 +32,14 @@ export async function getAdminContext(req: Request, requiredPermission?: string)
   if (adminProfileError || adminProfile?.role_id !== 'admin' || adminProfile.active === false) return publicErrorResponse('No tienes permisos para realizar esta acción.', 403, 'forbidden')
 
   let permissions: string[] = []
-  let roleId = 'super_admin'
-  let roleName = 'Administrador global'
+  let roleId = 'unassigned'
+  let roleName = 'Acceso administrativo pendiente'
   const { data: portalContext, error: portalError } = await userClient.rpc('get_admin_portal_context')
   if (!portalError && portalContext && typeof portalContext === 'object' && !Array.isArray(portalContext)) {
     const payload = portalContext as Record<string, unknown>
     permissions = Array.isArray(payload.permissions) ? payload.permissions.map(String) : []
-    roleId = String(payload.role_id || roleId)
-    roleName = String(payload.role_name || roleName)
+    roleId = typeof payload.role_id === 'string' && payload.role_id ? payload.role_id : roleId
+    roleName = typeof payload.role_name === 'string' && payload.role_name ? payload.role_name : roleName
   } else {
     return publicErrorResponse('No se pudieron verificar los permisos administrativos.', 503, 'authorization_unavailable')
   }

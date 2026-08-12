@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 
-export type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'support' | 'audit' | 'users' | 'content' | 'more' | 'profile' | 'settings'
+export type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'support' | 'audit' | 'users' | 'content' | 'more' | 'profile' | 'settings' | 'exports' | 'permissions'
 export type IconName = keyof typeof Ionicons.glyphMap
 
 export type AdminPermission =
@@ -258,7 +258,7 @@ export type AdminDashboardMetrics = {
   activeClassrooms: number
   inactiveUsers: number
   coursesWithoutClassrooms: number
-  studentsWithoutActivity: number
+  inactiveStudents: number
   classroomsWithoutCode: number
 }
 
@@ -282,6 +282,7 @@ export type AdminData = {
   subjectById: Map<number, SubjectRow>
   classroomById: Map<number, ClassroomRow>
   portalContext: AdminPortalContext | null
+  portalContextError: string | null
   loading: boolean
   refreshing: boolean
   onRefresh: () => void
@@ -336,4 +337,5 @@ export const adminSections: { section: AdminSection; label: string; icon: IconNa
   { section: 'classrooms', label: 'Clases', icon: 'albums-outline', href: '/(admin)/classrooms', permission: 'courses.read' },
   { section: 'support', label: 'Soporte', icon: 'headset-outline', href: '/(admin)/support', permission: 'support.read' },
   { section: 'audit', label: 'Auditoría', icon: 'receipt-outline', href: '/(admin)/audit', permission: 'audit.read' },
+  { section: 'more', label: 'Más', icon: 'ellipsis-horizontal-circle-outline', href: '/(admin)/more', permission: 'dashboard.read' },
 ]

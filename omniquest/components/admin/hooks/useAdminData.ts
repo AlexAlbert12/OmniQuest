@@ -18,6 +18,7 @@ export function useAdminData(): AdminData {
   const feedback = useAppFeedback()
   const [profiles, setProfiles] = useState<ProfileRow[]>([])
   const [portalContext, setPortalContext] = useState<AdminPortalContext | null>(null)
+  const [portalContextError, setPortalContextError] = useState<string | null>(null)
   const [metrics, setMetrics] = useState<AdminDashboardMetrics>(() => getFallbackAdminMetrics({ classrooms: [], enrollments: [], profiles: [], subjects: [] }))
   const [auditLogs, setAuditLogs] = useState<AdminAuditLogRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,27 +26,35 @@ export function useAdminData(): AdminData {
   const [version, setVersion] = useState(0)
 
   const fetchData = useCallback(async () => {
+    const fallbackMetrics = getFallbackAdminMetrics({ classrooms: [], enrollments: [], profiles: [], subjects: [] })
+    setPortalContextError(null)
+
     try {
-      const [contextResult, metricsResult, adminsResult, auditLogData] = await Promise.all([
-        fetchAdminPortalContext().catch(() => null),
-        supabase.rpc('get_admin_dashboard_metrics'),
-        supabase.rpc('get_admin_profiles_page', {
-          p_role: 'admin', p_search: '', p_limit: 50, p_offset: 0,
-        }),
-        fetchOptionalRows<AdminAuditLogRow>('admin_audit_logs', 'id, chain_seq, admin_id, action, target_table, target_id, severity, metadata, before_state, after_state, previous_hash, chain_hash, retention_until, created_at', { orderBy: 'created_at', ascending: false, limit: 50 }),
+      const context = await fetchAdminPortalContext()
+      setPortalContext(context)
+      const can = (permission: AdminPortalContext['permissions'][number]) => context.permissions.includes(permission)
+
+      const [metricsResult, adminsResult, auditLogData] = await Promise.all([
+        can('dashboard.read') ? supabase.rpc('get_admin_dashboard_metrics') : Promise.resolve({ data: null, error: null }),
+        can('users.read') ? supabase.rpc('get_admin_profiles_page', { p_role: 'admin', p_search: '', p_limit: 50, p_offset: 0 }) : Promise.resolve({ data: [], error: null }),
+        can('audit.read') ? fetchOptionalRows<AdminAuditLogRow>('admin_audit_logs', 'id, chain_seq, admin_id, action, target_table, target_id, severity, metadata, before_state, after_state, previous_hash, chain_hash, retention_until, created_at', { orderBy: 'created_at', ascending: false, limit: 50 }) : Promise.resolve([]),
       ])
 
-      const fallbackMetrics = getFallbackAdminMetrics({ classrooms: [], enrollments: [], profiles: [], subjects: [] })
       if (metricsResult.error && !isMissingSchemaError(metricsResult.error.code)) console.warn('[admin] No se pudieron cargar métricas agregadas:', metricsResult.error.message)
       if (adminsResult.error && !isMissingSchemaError(adminsResult.error.code)) console.warn('[admin] No se pudieron cargar administradores:', adminsResult.error.message)
 
-      setPortalContext(contextResult)
       setProfiles(adminsResult.error ? [] : (adminsResult.data || []) as unknown as ProfileRow[])
       setMetrics(normalizeAdminMetrics(metricsResult.error ? null : metricsResult.data, fallbackMetrics))
       setAuditLogs(auditLogData)
       setVersion((value) => value + 1)
     } catch (error: unknown) {
-      feedback.error('No se pudo cargar el portal', getErrorMessage(error, 'Revisa los permisos de administrador y las políticas RLS.'))
+      const message = getErrorMessage(error, 'No se ha podido verificar el perfil de permisos.')
+      setPortalContext(null)
+      setPortalContextError(message)
+      feedback.error('No se pudo verificar el acceso administrativo', message)
+      setProfiles([])
+      setMetrics(fallbackMetrics)
+      setAuditLogs([])
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -64,7 +73,7 @@ export function useAdminData(): AdminData {
 
   return {
     profiles, teachers, students, subjects: [], classrooms: [], enrollments: [], metrics, auditLogs,
-    teacherById, studentById, subjectById, classroomById, portalContext,
+    teacherById, studentById, subjectById, classroomById, portalContext, portalContextError,
     loading, refreshing, onRefresh, refresh: fetchData, version,
   }
 }

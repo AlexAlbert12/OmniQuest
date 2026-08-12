@@ -1,10 +1,10 @@
 # Auditoría de recorridos autenticados
 
-Estado acumulado hasta: 20260811170000_teacher_settings_privacy_refinement.sql
+Estado acumulado hasta: 20260811193000_admin_home_least_privilege_refinement.sql
 
 ## Resumen
 
-- Archivos cliente inspeccionados: 433
+- Archivos cliente inspeccionados: 435
 - Llamadas inventariadas: 221
 - Tablas detectadas: 18
 - RPC detectadas: 113
@@ -68,23 +68,23 @@ Estado acumulado hasta: 20260811170000_teacher_settings_privacy_refinement.sql
 | rpc | `get_admin_audit_logs_page_secured` | `lib/adminExports.ts` | 230 |
 | rpc | `get_admin_audit_policy` | `components/admin/audit/AdminAuditSection.tsx` | 48 |
 | rpc | `get_admin_classrooms_page` | `components/admin/classrooms/AdminClassroomsSection.tsx` | 54 |
-| rpc | `get_admin_dashboard_metrics` | `components/admin/hooks/useAdminData.ts` | 31 |
+| rpc | `get_admin_dashboard_metrics` | `components/admin/hooks/useAdminData.ts` | 38 |
 | rpc | `get_admin_directory_filters` | `components/admin/shared/AdminAdvancedFilters.tsx` | 42 |
 | rpc | `get_admin_export_download_path` | `components/admin/api/adminApi.ts` | 90 |
 | rpc | `get_admin_export_jobs_page` | `components/admin/api/adminApi.ts` | 84 |
 | rpc | `get_admin_portal_context` | `components/admin/api/adminApi.ts` | 49 |
 | rpc | `get_admin_profile_activity_page` | `components/admin/users/AdminProfileActivityScreen.tsx` | 47 |
-| rpc | `get_admin_profiles_page` | `components/admin/hooks/useAdminData.ts` | 32 |
+| rpc | `get_admin_profiles_page` | `components/admin/hooks/useAdminData.ts` | 39 |
 | rpc | `get_admin_profiles_page` | `components/admin/users/AdminStudentsSection.tsx` | 53 |
 | rpc | `get_admin_profiles_page` | `components/admin/users/AdminTeachersSection.tsx` | 62 |
-| rpc | `get_admin_push_delivery_metrics` | `components/admin/dashboard/AdminPushDeliveryPanel.tsx` | 68 |
+| rpc | `get_admin_push_delivery_metrics` | `components/admin/dashboard/AdminPushDeliveryPanel.tsx` | 52 |
 | rpc | `get_admin_role_assignments_page` | `components/admin/api/adminApi.ts` | 117 |
 | rpc | `get_admin_roles` | `components/admin/api/adminApi.ts` | 111 |
 | rpc | `get_admin_subjects_page` | `components/admin/courses/AdminCoursesSection.tsx` | 54 |
 | rpc | `get_admin_support_directory` | `lib/support.ts` | 193 |
 | rpc | `get_admin_support_tickets_page_secured` | `components/admin/support/AdminSupportSection.tsx` | 56 |
 | rpc | `get_admin_support_tickets_page_secured` | `lib/adminExports.ts` | 264 |
-| rpc | `get_admin_usage_analytics` | `components/admin/dashboard/AdminUsageAnalyticsPanel.tsx` | 19 |
+| rpc | `get_admin_usage_analytics` | `components/admin/dashboard/AdminUsageAnalyticsPanel.tsx` | 23 |
 | rpc | `get_admin_user_change_history_page` | `components/admin/api/adminApi.ts` | 101 |
 | rpc | `get_attempt_feedback` | `lib/studentSecureData.ts` | 258 |
 | rpc | `get_avatar_customization_options` | `lib/avatarCosmetics.ts` | 83 |

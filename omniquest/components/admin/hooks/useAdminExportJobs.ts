@@ -5,36 +5,44 @@ import { getErrorMessage } from '../../../lib/typeGuards'
 import { fetchAdminExportJobs, getAdminExportDownloadUrl, requestAdminExportJob, type AdminExportFilters } from '../api/adminApi'
 import type { AdminExportJob } from '../types/admin'
 
-export function useAdminExportJobs() {
+type AdminExportJobOptions = { loadJobs?: boolean; pollPending?: boolean }
+
+export function useAdminExportJobs({ loadJobs = false, pollPending = false }: AdminExportJobOptions = {}) {
   const feedback = useAppFeedback()
   const [jobs, setJobs] = useState<AdminExportJob[]>([])
   const [loading, setLoading] = useState(false)
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
+  const refresh = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       setJobs(await fetchAdminExportJobs())
     } catch (error: unknown) {
       console.warn('[admin exports]', getErrorMessage(error, 'No se pudo actualizar la cola de exportaciones.'))
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
 
-  useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => { if (loadJobs) void refresh() }, [loadJobs, refresh])
+
+  useEffect(() => {
+    if (!loadJobs || !pollPending || !jobs.some((job) => job.status === 'queued' || job.status === 'processing')) return
+    const timer = setInterval(() => { void refresh(true) }, 15000)
+    return () => clearInterval(timer)
+  }, [jobs, loadJobs, pollPending, refresh])
 
   const request = useCallback(async (type: AdminExportJob['export_type'], filters: AdminExportFilters) => {
     setLoading(true)
     try {
       await requestAdminExportJob(type, filters)
-      feedback.success('Exportación en cola', 'El archivo se generará en segundo plano. Podrás descargarlo desde el panel de exportaciones.')
-      await refresh()
+      feedback.success('Exportación en cola', 'El archivo se generará en segundo plano. Podrás descargarlo desde Más → Exportaciones.')
+      if (loadJobs) await refresh(true)
     } catch (error: unknown) {
       feedback.error('No se pudo crear la exportación', getErrorMessage(error, 'Inténtalo de nuevo.'))
     } finally {
       setLoading(false)
     }
-  }, [feedback, refresh])
+  }, [feedback, loadJobs, refresh])
 
   const download = useCallback(async (jobId: string) => {
     try {

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "20260811170000_teacher_settings_privacy_refinement.sql",
-  "sourceFiles": 433,
+  "generatedAt": "20260811193000_admin_home_least_privilege_refinement.sql",
+  "sourceFiles": 435,
   "calls": [
     {
       "kind": "edge",
@@ -276,7 +276,7 @@
       "kind": "rpc",
       "resource": "get_admin_dashboard_metrics",
       "path": "components/admin/hooks/useAdminData.ts",
-      "line": 31
+      "line": 38
     },
     {
       "kind": "rpc",
@@ -312,7 +312,7 @@
       "kind": "rpc",
       "resource": "get_admin_profiles_page",
       "path": "components/admin/hooks/useAdminData.ts",
-      "line": 32
+      "line": 39
     },
     {
       "kind": "rpc",
@@ -330,7 +330,7 @@
       "kind": "rpc",
       "resource": "get_admin_push_delivery_metrics",
       "path": "components/admin/dashboard/AdminPushDeliveryPanel.tsx",
-      "line": 68
+      "line": 52
     },
     {
       "kind": "rpc",
@@ -372,7 +372,7 @@
       "kind": "rpc",
       "resource": "get_admin_usage_analytics",
       "path": "components/admin/dashboard/AdminUsageAnalyticsPanel.tsx",
-      "line": 19
+      "line": 23
     },
     {
       "kind": "rpc",

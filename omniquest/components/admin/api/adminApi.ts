@@ -51,8 +51,8 @@ export async function fetchAdminPortalContext(): Promise<AdminPortalContext> {
   const payload = data && typeof data === 'object' && !Array.isArray(data) ? data as Record<string, unknown> : {}
   return {
     user_id: String(payload.user_id || ''),
-    role_id: String(payload.role_id || 'admin'),
-    role_name: String(payload.role_name || 'Administrador'),
+    role_id: typeof payload.role_id === 'string' ? payload.role_id : '',
+    role_name: typeof payload.role_name === 'string' && payload.role_name.trim() ? payload.role_name : 'Acceso administrativo pendiente',
     permissions: Array.isArray(payload.permissions) ? payload.permissions.map(String) as AdminPortalContext['permissions'] : [],
   }
 }

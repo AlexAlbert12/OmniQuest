@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
 import { supabase } from '../../../lib/supabase'
 import { useAppTheme } from '../../../lib/appTheme'
 import { useResponsiveLayout } from '../../../lib/responsive'
 import type { AdminUsageAnalytics } from '../types/admin'
+import { AppButton } from '../../ui'
 import { AdminMetric, EmptyState, Panel } from '../shared/AdminPrimitives'
 
 export default function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVersion: number }) {
@@ -11,27 +12,35 @@ export default function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVe
   const responsive = useResponsiveLayout()
   const [analytics, setAnalytics] = useState<AdminUsageAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [retryVersion, setRetryVersion] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
       setLoading(true)
-      const { data, error } = await supabase.rpc('get_admin_usage_analytics', { p_days: 30 })
+      setError(null)
+      const { data, error: rpcError } = await supabase.rpc('get_admin_usage_analytics', { p_days: 30 })
       if (!cancelled) {
-        if (error) {
-          console.warn('[admin] No se pudo cargar la analítica de uso:', error.message)
+        if (rpcError) {
+          console.warn('[admin] No se pudo cargar la analítica de uso:', rpcError.message)
           setAnalytics(null)
+          setError('No se pudo consultar la analítica de uso. Revisa la conexión o inténtalo de nuevo.')
         } else setAnalytics((data || null) as AdminUsageAnalytics | null)
         setLoading(false)
       }
     }
     void load()
     return () => { cancelled = true }
-  }, [refreshVersion])
+  }, [refreshVersion, retryVersion])
+
+  const hasEvents = useMemo(() => Boolean(analytics && [analytics.screen_views, analytics.form_abandoned, analytics.course_joins, analytics.game_started, analytics.game_finished, analytics.game_abandoned, analytics.game_errors, analytics.edge_function_errors, analytics.badges_unlocked].some((value) => Number(value || 0) > 0)), [analytics])
 
   return (
     <Panel title="Analítica de uso · 30 días" icon="analytics-outline">
-      {loading ? <View className="items-center py-7"><ActivityIndicator color={tokens.brand.admin} /><Text className="mt-3 text-[13px] text-text-muted">Calculando eventos de producto...</Text></View> : analytics ? (
+      {loading ? <View className="items-center py-7"><ActivityIndicator color={tokens.brand.admin} /><Text className="mt-3 text-[13px] text-text-muted">Calculando eventos de producto...</Text></View> : error ? (
+        <View className="rounded-xl border border-semantic-warning bg-semantic-surface-warning p-4"><Text className="text-[14px] font-black text-text-primary">No se pudo cargar la analítica</Text><Text className="mt-2 text-[12px] leading-5 text-text-secondary">{error}</Text><View className="mt-4 items-start"><AppButton label="Reintentar" icon="refresh-outline" size="sm" variant="secondary" onPress={() => setRetryVersion((value) => value + 1)} /></View></View>
+      ) : analytics && hasEvents ? (
         <>
           <View className="flex-row flex-wrap gap-3">
             <AdminMetric color={tokens.brand.admin} icon="eye" label="Visitas de pantalla" value={String(analytics.screen_views || 0)} />
@@ -54,7 +63,7 @@ export default function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVe
             <View className="flex-1 rounded-xl border border-border-default bg-surface-default p-4"><Text className="text-[12px] font-bold text-text-muted">Logros desbloqueados</Text><Text className="mt-1 text-[26px] font-black text-text-primary">{analytics.badges_unlocked || 0}</Text></View>
           </View>
         </>
-      ) : <EmptyState label="La analítica aparecerá cuando se registren eventos de uso." />}
+      ) : <EmptyState label="Aún no hay eventos de uso en los últimos 30 días." />}
     </Panel>
   )
 }

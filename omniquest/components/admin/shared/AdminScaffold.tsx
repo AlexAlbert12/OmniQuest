@@ -9,28 +9,60 @@ import GlobalSearchButton from '../../search/GlobalSearchButton'
 import { AppButton } from '../../ui'
 import { useAppTheme } from '../../../lib/appTheme'
 import { useResponsiveLayout } from '../../../lib/responsive'
-import { adminSections, type AdminData, type AdminSection, type IconName } from '../types/admin'
+import { adminSections, type AdminData, type AdminPermission, type AdminSection, type IconName } from '../types/admin'
 import { filledIconFor, getAdminSectionIcon } from '../utils/adminUtils'
 import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
 import { translateUiText, useI18n } from '../../../lib/i18n'
 
-export function AdminScaffold({ activeSection, children, data, subtitle, title }: { activeSection: AdminSection; children: React.ReactNode; data: AdminData; subtitle: string; title: string }) {
+const SECTION_PERMISSIONS: Record<AdminSection, AdminPermission[]> = {
+  home: ['dashboard.read'],
+  teachers: ['users.read'],
+  students: ['users.read'],
+  users: ['users.read'],
+  courses: ['courses.read'],
+  classrooms: ['courses.read'],
+  content: ['courses.read'],
+  support: ['support.read'],
+  audit: ['audit.read'],
+  more: ['dashboard.read'],
+  profile: ['dashboard.read'],
+  settings: ['dashboard.read'],
+  exports: ['users.export', 'courses.read', 'audit.export', 'support.read'],
+  permissions: ['admin.roles.manage'],
+}
+
+export function AdminScaffold({ activeSection, children, data, requiredPermissions, subtitle, title }: { activeSection: AdminSection; children: React.ReactNode; data: AdminData; requiredPermissions?: AdminPermission[]; subtitle: string; title: string }) {
   const responsive = useResponsiveLayout()
   const router = useRouter()
   const { tokens } = useAppTheme()
   const isDesktop = responsive.isDesktop
   const activeIcon = activeSection === 'home' ? 'shield-checkmark' : getAdminSectionIcon(activeSection)
   const handleSignOut = async () => { await signOutCurrentDeviceSession(); router.replace('/(auth)/login' as any) }
-  return <AdminScreenLayout contentLabel={`Portal de administración: ${title}`} desktopSidebar={<AdminSidebar activeSection={activeSection} data={data} onSignOut={handleSignOut} />} mobileBottomNavigation={<AdminBottomNav active={activeSection} permissions={data.portalContext?.permissions} />} isDesktop={isDesktop} loading={data.loading} loadingLabel="Cargando portal de administrador..." refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={data.onRefresh} tintColor={tokens.brand.admin} />}>
-    {isDesktop ? <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4"><View className="min-w-[260px] flex-1"><View className="flex-row items-center gap-3"><Ionicons name={activeIcon} size={42} color={tokens.semantic.info} /><Text accessibilityRole="header" maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[36px] font-black text-text-primary">{title}</Text></View><Text maxFontSizeMultiplier={2} className="mt-2 text-[14px] leading-5 text-text-secondary">{subtitle}</Text>{data.portalContext ? <Text className="mt-2 text-[11px] font-bold text-text-muted">Rol administrativo: {data.portalContext.role_name}</Text> : null}</View><GlobalSearchButton role="admin" /></View> : <View className="mb-6 rounded-[28px] border border-border-default bg-surface-default p-5"><View className="flex-row items-start gap-4"><View className="h-14 w-14 items-center justify-center rounded-3xl bg-surface-selected"><Ionicons name={activeIcon} size={30} color={tokens.brand.admin} /></View><View className="min-w-0 flex-1"><Text accessibilityRole="header" maxFontSizeMultiplier={2} className="text-[30px] font-black leading-[38px] text-text-primary" numberOfLines={2}>{title}</Text><Text maxFontSizeMultiplier={2} className="mt-2 text-[14px] leading-5 text-text-secondary" numberOfLines={4}>{subtitle}</Text></View></View><View className="mt-5 flex-row items-center justify-between gap-3 rounded-2xl border border-border-default bg-surface-default px-4 py-3"><View className="min-w-0 flex-1 flex-row items-center gap-2"><Ionicons name="lock-closed-outline" size={15} color={tokens.brand.admin} /><Text className="min-w-0 flex-1 text-[12px] font-black uppercase tracking-[0.8px] text-brand-admin">{data.portalContext?.role_name || 'Portal privado'}</Text></View><AppButton accessibilityHint="Actualiza los datos del portal" icon="refresh-outline" label="Actualizar" size="sm" variant="ghost" onPress={data.onRefresh} /></View></View>}
-    {children}
+  const permissions = data.portalContext?.permissions || []
+  const expectedPermissions = requiredPermissions?.length ? requiredPermissions : SECTION_PERMISSIONS[activeSection]
+  const hasSectionAccess = Boolean(data.portalContext && expectedPermissions.some((permission) => permissions.includes(permission)))
+  const accessContent = data.portalContextError
+    ? <AdminAccessState title="No se ha podido verificar el perfil de permisos" message="Por seguridad, el portal permanece bloqueado hasta que podamos comprobar tu perfil administrativo." actionLabel="Reintentar" onAction={data.onRefresh} />
+    : !hasSectionAccess
+      ? <AdminAccessState title={data.portalContext?.role_id ? 'Acceso no disponible' : 'Acceso administrativo pendiente'} message={data.portalContext?.role_id ? 'Tu perfil administrativo no incluye permisos para esta sección.' : 'Tu cuenta es administradora, pero todavía no tiene un perfil de permisos asignado. Un administrador global debe concederte acceso explícitamente.'} />
+      : children
+
+  return <AdminScreenLayout contentLabel={`Portal de administración: ${title}`} desktopSidebar={<AdminSidebar activeSection={activeSection} data={data} onSignOut={handleSignOut} />} mobileBottomNavigation={data.portalContext && !data.portalContextError ? <AdminBottomNav active={activeSection} permissions={permissions} /> : null} isDesktop={isDesktop} loading={data.loading} loadingLabel="Cargando portal de administrador..." refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={data.onRefresh} tintColor={tokens.brand.admin} />}>
+    {isDesktop ? <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4"><View className="min-w-[260px] flex-1"><View className="flex-row items-center gap-3"><Ionicons name={activeIcon} size={42} color={tokens.semantic.info} /><Text accessibilityRole="header" maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[36px] font-black text-text-primary">{title}</Text></View><Text maxFontSizeMultiplier={2} className="mt-2 text-[14px] leading-5 text-text-secondary">{subtitle}</Text>{data.portalContext ? <Text className="mt-2 text-[11px] font-bold text-text-muted">Rol administrativo: {data.portalContext.role_name}</Text> : null}</View>{hasSectionAccess ? <GlobalSearchButton role="admin" /> : null}</View> : <View className="mb-6 rounded-[28px] border border-border-default bg-surface-default p-5"><View className="flex-row items-start gap-4"><View className="h-14 w-14 items-center justify-center rounded-3xl bg-surface-selected"><Ionicons name={activeIcon} size={30} color={tokens.brand.admin} /></View><View className="min-w-0 flex-1"><Text accessibilityRole="header" maxFontSizeMultiplier={2} className="text-[30px] font-black leading-[38px] text-text-primary" numberOfLines={2}>{title}</Text><Text maxFontSizeMultiplier={2} className="mt-2 text-[14px] leading-5 text-text-secondary" numberOfLines={4}>{subtitle}</Text></View></View><View className="mt-5 flex-row items-center gap-2 rounded-2xl border border-border-default bg-surface-default px-4 py-3"><Ionicons name="lock-closed-outline" size={15} color={tokens.brand.admin} /><Text className="min-w-0 flex-1 text-[12px] font-black uppercase tracking-[0.8px] text-brand-admin">{data.portalContext?.role_name || 'Permisos sin verificar'}</Text></View></View>}
+    {accessContent}
   </AdminScreenLayout>
+}
+
+function AdminAccessState({ actionLabel, message, onAction, title }: { actionLabel?: string; message: string; onAction?: () => void; title: string }) {
+  const { tokens } = useAppTheme()
+  return <View className="rounded-[24px] border border-border-default bg-surface-default p-6"><View className="h-12 w-12 items-center justify-center rounded-2xl bg-semantic-surface-warning"><Ionicons name="lock-closed-outline" size={24} color={tokens.semantic.warning} /></View><Text accessibilityRole="header" className="mt-4 text-[20px] font-black text-text-primary">{title}</Text><Text className="mt-2 max-w-[680px] text-[13px] leading-6 text-text-secondary">{message}</Text>{actionLabel && onAction ? <View className="mt-5 items-start"><AppButton label={actionLabel} icon="refresh-outline" onPress={onAction} /></View> : null}</View>
 }
 
 export function AdminSidebar({ activeSection, data, onSignOut }: { activeSection: AdminSection; data: AdminData; onSignOut: () => void }) {
   const { tokens } = useAppTheme()
-  const permittedSections = adminSections.filter((item) => !data.portalContext || data.portalContext.permissions.includes(item.permission))
-  return <View className="w-[244px] border-r border-border-default bg-background-secondary px-4 py-7"><View className="mb-5 flex-row items-center gap-2 px-2"><BrandLogo size={30} /><Ionicons name="shield-checkmark" size={19} color={tokens.semantic.info} /></View><View style={{ gap: 8 }}>{permittedSections.map((item) => <AdminNavButton key={item.section} item={item} active={item.section === activeSection} />)}</View><View className="mt-auto" style={{ gap: 10 }}><View className="rounded-2xl border border-border-subtle bg-surface-default p-4"><Text className="text-[14px] font-bold text-text-primary">{data.portalContext?.role_name || 'Administrador'}</Text><Text className="mt-1 text-[12px] text-text-muted">{data.portalContext?.permissions.length || 0} permisos asignados</Text><View className="mt-3 flex-row items-center gap-1"><Ionicons name="lock-closed-outline" size={13} color={tokens.text.muted} /><Text className="text-[12px] text-text-secondary">Gestión interna</Text></View></View><AppButton label="Cerrar sesión" icon="log-out-outline" variant="danger" fullWidth onPress={onSignOut} /></View></View>
+  const permissions = data.portalContext?.permissions || []
+  const permittedSections = adminSections.filter((item) => permissions.includes(item.permission))
+  return <View className="w-[244px] border-r border-border-default bg-background-secondary px-4 py-7"><View className="mb-5 flex-row items-center gap-2 px-2"><BrandLogo size={30} /><Ionicons name="shield-checkmark" size={19} color={tokens.semantic.info} /></View><View style={{ gap: 8 }}>{permittedSections.map((item) => <AdminNavButton key={item.section} item={item} active={item.section === activeSection || (item.section === 'more' && ['profile', 'settings', 'exports', 'permissions'].includes(activeSection))} />)}</View><View className="mt-auto" style={{ gap: 10 }}><View className="rounded-2xl border border-border-subtle bg-surface-default p-4"><Text className="text-[14px] font-bold text-text-primary">{data.portalContext?.role_name || 'Permisos sin verificar'}</Text><Text className="mt-1 text-[12px] text-text-muted">{permissions.length} permisos asignados</Text><View className="mt-3 flex-row items-center gap-1"><Ionicons name="lock-closed-outline" size={13} color={tokens.text.muted} /><Text className="text-[12px] text-text-secondary">Gestión interna</Text></View></View><AppButton label="Cerrar sesión" icon="log-out-outline" variant="danger" fullWidth onPress={onSignOut} /></View></View>
 }
 
 export function AdminNavButton({ active, item }: { active: boolean; item: { section: AdminSection; label: string; icon: IconName; href: string } }) { const { tokens } = useAppTheme(); const { locale } = useI18n(); const router = useRouter(); const label = translateUiText(locale, item.label); return <Pressable testID={`admin-nav-${item.section}`} accessibilityRole="link" accessibilityLabel={`Abrir ${label}`} accessibilityState={{ selected: active }} onPress={() => router.push(item.href as any)} className="flex-row items-center gap-3 rounded-xl px-4 py-3" style={({ pressed }) => ({ backgroundColor: active ? tokens.surface.selected : 'transparent', borderWidth: 1, borderColor: active ? tokens.border.active : 'transparent', opacity: pressed ? 0.82 : 1 })}><Ionicons name={active ? filledIconFor(item.icon) : item.icon} size={19} color={active ? tokens.text.primary : tokens.text.secondary} /><Text className={`font-black ${active ? 'text-text-primary' : 'text-text-secondary'}`}>{label}</Text></Pressable> }

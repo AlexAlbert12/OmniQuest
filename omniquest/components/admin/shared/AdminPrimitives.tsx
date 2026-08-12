@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import { AppButton, AppDropdown, AppMenu } from '../../ui'
 import { useAppTheme } from '../../../lib/appTheme'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import type {
   AdminSupportTicketRow,
   ClassroomRow,
@@ -34,7 +35,7 @@ export function Panel({ children, className = '', compact = false, icon, title }
         <View className="h-10 w-10 items-center justify-center rounded-xl bg-surface-interactive">
           <Ionicons name={icon} size={20} color={tokens.semantic.info} />
         </View>
-        <Text maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[18px] font-black text-text-primary">{title}</Text>
+        <Text accessibilityRole="header" maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[18px] font-black text-text-primary">{title}</Text>
       </View>
       {children}
     </View>
@@ -359,5 +360,6 @@ export function AdminPaginationControls({ hasNext, hasPrevious, onNext, onPrevio
 
 export function HomeShortcut({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
   const { tokens } = useAppTheme()
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="min-w-[180px] flex-1 flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-default p-4" style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}><View className="h-11 w-11 items-center justify-center rounded-xl bg-surface-selected"><Ionicons name={icon} size={21} color={tokens.brand.admin} /></View><Text className="min-w-0 flex-1 font-black text-text-primary">{label}</Text><Ionicons name="chevron-forward" size={18} color={tokens.text.muted} /></Pressable>
+  const responsive = useResponsiveLayout()
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-default p-4" style={({ pressed }) => ({ flexBasis: responsive.isDesktop ? 180 : '47%', flexGrow: 1, minWidth: responsive.isDesktop ? 180 : 0, opacity: pressed ? 0.8 : 1 })}><View className="h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-selected"><Ionicons name={icon} size={21} color={tokens.brand.admin} /></View><Text numberOfLines={2} className="min-w-0 flex-1 font-black text-text-primary" style={{ flexShrink: 1 }}>{label}</Text><Ionicons name="chevron-forward" size={18} color={tokens.text.muted} /></Pressable>
 }

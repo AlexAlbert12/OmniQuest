@@ -44,7 +44,7 @@ export function getFallbackAdminMetrics({ classrooms, enrollments, profiles, sub
     activeClassrooms: classrooms.filter((classroom) => classroom.active !== false).length,
     inactiveUsers: profiles.filter((profile) => profile.active === false).length,
     coursesWithoutClassrooms: subjects.filter((subject) => !subjectIdsWithClassrooms.has(subject.id)).length,
-    studentsWithoutActivity: 0,
+    inactiveStudents: 0,
     classroomsWithoutCode: classrooms.filter((classroom) => !classroom.code).length,
   }
 }
@@ -98,11 +98,16 @@ export function getAuditActionLabel(action: string) {
     'admin.user.deactivate': 'Usuario desactivado',
     'admin.user.reset_password': 'Contraseña restablecida',
     'admin.student.delete_progress': 'Progreso eliminado',
+    'admin.teacher.create': 'Profesor creado',
+    'admin.teacher.update_existing': 'Profesor existente actualizado',
     'admin.course.archive': 'Curso archivado',
     'admin.course.restore': 'Curso restaurado',
     'admin.course.transfer': 'Curso transferido',
+    'admin.course.delete': 'Curso eliminado',
     'admin.classroom.activate': 'Clase activada',
     'admin.classroom.deactivate': 'Clase desactivada',
+    'admin.support.update': 'Ticket de soporte actualizado',
+    'admin.role.assign': 'Rol administrativo actualizado',
     'admin.bulk.execute': 'Operación por lotes',
   }
   return labels[action] || action.replace(/[._-]+/g, ' ')
@@ -110,9 +115,10 @@ export function getAuditActionLabel(action: string) {
 
 export function getAuditTargetLabel(log: AdminAuditLogRow) {
   if (!log.target_table) return 'Sistema'
-  const tableLabels: Record<string, string> = { profiles: 'Usuario', subjects: 'Curso', classrooms: 'Clase', admin_export_jobs: 'Exportación' }
-  const label = tableLabels[log.target_table] || log.target_table
-  return log.target_id ? `${label} · ${log.target_id}` : label
+  const tableLabels: Record<string, string> = { profiles: 'Usuario', subjects: 'Curso', classrooms: 'Clase', user_support_tickets: 'Ticket de soporte', admin_export_jobs: 'Exportación', admin_role_assignments: 'Rol administrativo' }
+  const label = tableLabels[log.target_table] || log.target_table.replaceAll('_', ' ')
+  if (!log.target_id) return label
+  return log.target_table === 'user_support_tickets' ? `${label} · #${log.target_id}` : `${label} · ${log.target_id}`
 }
 
 export function stringMetadata(metadata: Record<string, unknown>, key: string) {
@@ -164,7 +170,7 @@ export function getInitials(value: string) {
 
 export function getAdminSectionIcon(section: AdminSection): IconName {
   const icons: Record<AdminSection, IconName> = {
-    home: 'shield-checkmark', teachers: 'school', students: 'people', courses: 'book', classrooms: 'albums', support: 'headset', audit: 'receipt', users: 'people', content: 'book', more: 'ellipsis-horizontal-circle', profile: 'person-circle', settings: 'settings',
+    home: 'shield-checkmark', teachers: 'school', students: 'people', courses: 'book', classrooms: 'albums', support: 'headset', audit: 'receipt', users: 'people', content: 'book', more: 'ellipsis-horizontal-circle', profile: 'person-circle', settings: 'settings', exports: 'cloud-download', permissions: 'key',
   }
   return icons[section]
 }
