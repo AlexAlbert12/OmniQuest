@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import AdminButton from './AdminButton'
 import { Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import AppButton from '../../ui/AppButton'
 import AppPressable from '../../ui/AppPressable'
 import { useAppTheme } from '../../../lib/appTheme'
 
@@ -109,7 +109,7 @@ function AdminTypedConfirmationModal({
               <Text style={[styles.eyebrow, { color: dangerColor }]}>CONFIRMACIÓN SENSIBLE</Text>
               <Text style={[styles.title, { color: tokens.text.primary }]}>{state.title}</Text>
             </View>
-            <AppButton accessibilityLabel="Cerrar" icon="close" iconOnly size="sm" variant="ghost" onPress={onCancel} />
+            <AdminButton accessibilityLabel="Cerrar" icon="close" iconOnly size="sm" variant="ghost" onPress={onCancel} />
           </View>
 
           <Text style={[styles.message, { color: tokens.text.secondary }]}>{state.message}</Text>
@@ -140,8 +140,8 @@ function AdminTypedConfirmationModal({
           />
 
           <View style={styles.actions}>
-            <AppButton label="Cancelar" variant="secondary" onPress={onCancel} />
-            <AppButton
+            <AdminButton label="Cancelar" variant="secondary" onPress={onCancel} />
+            <AdminButton
               label={state.confirmLabel}
               icon={state.destructive === false ? 'checkmark-circle-outline' : 'warning-outline'}
               variant={state.destructive === false ? 'secondary' : 'danger'}

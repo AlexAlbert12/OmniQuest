@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, Text, useWindowDimensions, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { Text, useWindowDimensions, View } from 'react-native'
+import * as Clipboard from 'expo-clipboard'
 import { useLocalSearchParams, type Href } from 'expo-router'
 import { supabase } from '../../../lib/supabase'
 import AdminSearchBar from '../shared/AdminSearchBar'
+import AdminButton from '../shared/AdminButton'
 import VirtualizedStack from '../../ui/VirtualizedStack'
 import AdminUsersSection from './AdminUsersSection'
 import AdminBulkSelectionBar from '../shared/AdminBulkSelectionBar'
@@ -44,7 +45,7 @@ export function AdminTeachersSection() {
   const [exporting, setExporting] = useState(false)
   const [teacherAlias, setTeacherAlias] = useState('')
   const [teacherEmail, setTeacherEmail] = useState('')
-  const [teacherPassword, setTeacherPassword] = useState('')
+  const [showTemporaryPassword, setShowTemporaryPassword] = useState(false)
   const [creatingTeacher, setCreatingTeacher] = useState(false)
   const [createdTeacher, setCreatedTeacher] = useState<CreateTeacherResult | null>(null)
   const [governanceMode, setGovernanceMode] = useState<AdminGovernanceMode | null>(null)
@@ -67,9 +68,9 @@ export function AdminTeachersSection() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return feedback.warning('Correo no válido', 'Introduce el correo del profesor.')
     setCreatingTeacher(true); setCreatedTeacher(null)
     try {
-      const { data: resultData, error } = await supabase.functions.invoke('admin-create-teacher', { body: { alias, email, password: teacherPassword.trim() || undefined } })
-      if (error) throw error
-      setCreatedTeacher(resultData as CreateTeacherResult); setTeacherAlias(''); setTeacherEmail(''); setTeacherPassword('')
+      const { data: resultData, error } = await supabase.functions.invoke('admin-create-teacher', { body: { alias, email } })
+      if (error) throw new Error(await getTeacherCreationError(error))
+      setCreatedTeacher(resultData as CreateTeacherResult); setTeacherAlias(''); setTeacherEmail(''); setShowTemporaryPassword(false)
       await data.refresh(); page.refresh()
     } catch (error: unknown) { feedback.error('No se pudo crear el profesor', getErrorMessage(error, 'Revisa permisos y Edge Function.')) }
     finally { setCreatingTeacher(false) }
@@ -86,16 +87,22 @@ export function AdminTeachersSection() {
     selection.clear(); setGovernanceMode(null); page.refresh()
   }
 
-  const canManage = !data.portalContext || data.portalContext.permissions.includes('users.manage')
-  const canSecurity = !data.portalContext || data.portalContext.permissions.includes('users.security')
-  const canExport = !data.portalContext || data.portalContext.permissions.includes('users.export')
+  const canManage = Boolean(data.portalContext?.permissions.includes('users.manage'))
+  const canSecurity = Boolean(data.portalContext?.permissions.includes('users.security'))
+  const canExport = Boolean(data.portalContext?.permissions.includes('users.export'))
+  const isMobile = width < 600
+  const copyTemporaryPassword = async () => {
+    if (!createdTeacher?.temporaryPassword) return
+    try { await Clipboard.setStringAsync(createdTeacher.temporaryPassword); feedback.success('Contraseña copiada', 'Guárdala de forma segura y compártela únicamente con el profesor.') }
+    catch (error: unknown) { feedback.error('No se pudo copiar la contraseña', getErrorMessage(error, 'Inténtalo de nuevo.')) }
+  }
   return (
     <AdminScaffold activeSection="teachers" title="Profesores" subtitle="Supervisa cuentas, seguridad, actividad y cursos docentes." data={data}>
       <AdminUsersSection
-        createArea={canManage ? <Panel title="Crear cuenta de profesor" icon="person-add-outline" className="mt-5"><View className="flex-row flex-wrap items-end gap-3"><AdminInput label="Alias" value={teacherAlias} onChangeText={setTeacherAlias} placeholder="Ej. Profesor Random" /><AdminInput label="Correo" value={teacherEmail} onChangeText={setTeacherEmail} placeholder="profesor@centro.es" autoCapitalize="none" /><AdminInput label="Contraseña temporal" value={teacherPassword} onChangeText={setTeacherPassword} placeholder="Autogenerar" /><Pressable accessibilityRole="button" accessibilityLabel="Crear profesor" onPress={handleCreateTeacher} disabled={creatingTeacher} className="h-12 flex-row items-center justify-center gap-2 rounded-xl bg-brand-admin px-5" style={({ pressed }) => ({ opacity: creatingTeacher ? 0.6 : pressed ? 0.82 : 1 })}>{creatingTeacher ? <ActivityIndicator /> : <Ionicons name="add" size={18} />}<Text className="font-black text-white">{creatingTeacher ? 'Creando...' : 'Crear profesor'}</Text></Pressable></View>{createdTeacher ? <View className="mt-4 rounded-xl border border-border-default bg-surface-interactive p-4"><Text className="font-black text-text-primary">{createdTeacher.status === 'created' ? 'Profesor creado' : 'Profesor actualizado'}</Text><Text className="mt-1 text-[13px] text-text-secondary">{createdTeacher.teacher.alias} · {createdTeacher.teacher.email}</Text>{createdTeacher.temporaryPassword ? <Text className="mt-2 text-[13px] text-text-secondary">Contraseña temporal: <Text className="font-mono font-black text-semantic-info">{createdTeacher.temporaryPassword}</Text></Text> : null}</View> : null}</Panel> : undefined}
+        createArea={canManage ? <Panel title="Crear cuenta de profesor" icon="person-add-outline" className="mt-5"><View className="flex-row flex-wrap items-end gap-3"><AdminInput label="Alias" value={teacherAlias} onChangeText={setTeacherAlias} placeholder="Ej. Profesor Random" /><AdminInput label="Correo" value={teacherEmail} onChangeText={setTeacherEmail} placeholder="profesor@centro.es" autoCapitalize="none" /><AdminButton label={creatingTeacher ? 'Creando...' : 'Crear profesor'} icon="person-add-outline" loading={creatingTeacher} disabled={creatingTeacher} onPress={handleCreateTeacher} /></View><Text className="mt-3 text-[11px] leading-4 text-text-muted">La contraseña temporal se genera de forma segura en el servidor.</Text>{createdTeacher ? <View className="mt-4 rounded-xl border border-border-default bg-surface-interactive p-4"><Text className="font-black text-text-primary">Profesor creado</Text><Text className="mt-1 text-[13px] text-text-secondary">{createdTeacher.teacher.alias} · {createdTeacher.teacher.email}</Text>{createdTeacher.temporaryPassword ? <View className="mt-3 gap-3"><View className="rounded-xl border border-border-default bg-surface-default px-4 py-3"><Text className="text-[10px] font-black uppercase tracking-[0.7px] text-text-muted">Contraseña temporal</Text><Text selectable={showTemporaryPassword} className="mt-2 font-mono text-[14px] font-black text-brand-admin">{showTemporaryPassword ? createdTeacher.temporaryPassword : '••••••••••••••••'}</Text></View><View className="flex-row flex-wrap gap-2"><AdminButton label={showTemporaryPassword ? 'Ocultar' : 'Mostrar'} icon={showTemporaryPassword ? 'eye-off-outline' : 'eye-outline'} size="sm" variant="secondary" onPress={() => setShowTemporaryPassword((value) => !value)} /><AdminButton label="Copiar" icon="copy-outline" size="sm" variant="secondary" onPress={() => void copyTemporaryPassword()} /></View></View> : null}</View> : null}</Panel> : undefined}
         listArea={<Panel title="Listado de profesores" icon="school-outline" className="mt-5">
-          <AdminSearchBar search={search} onChangeSearch={setSearch} placeholder="Buscar profesor por nombre o correo..." exporting={exporting || exportJobs.loading} onExport={canExport ? () => void handleExport() : undefined} />
-          <AdminProfileFilters currentRole="teacher" directory={directory} accountStatus={accountStatus} activityState={activityState} courseId={courseId} classroomId={classroomId} createdFrom={createdFrom} createdTo={createdTo} onChangeAccountStatus={setAccountStatus} onChangeActivityState={setActivityState} onChangeCourseId={setCourseId} onChangeClassroomId={setClassroomId} onChangeCreatedFrom={setCreatedFrom} onChangeCreatedTo={setCreatedTo} />
+          <AdminSearchBar search={search} onChangeSearch={setSearch} placeholder="Buscar profesor por nombre o correo..." exporting={exporting || exportJobs.loading} onExport={canExport && !isMobile ? () => void handleExport() : undefined} />
+          <AdminProfileFilters currentRole="teacher" directory={directory} accountStatus={accountStatus} activityState={activityState} courseId={courseId} classroomId={classroomId} createdFrom={createdFrom} createdTo={createdTo} onChangeAccountStatus={setAccountStatus} onChangeActivityState={setActivityState} onChangeCourseId={setCourseId} onChangeClassroomId={setClassroomId} onChangeCreatedFrom={setCreatedFrom} onChangeCreatedTo={setCreatedTo} mobileAction={canExport ? <AdminButton label={exporting || exportJobs.loading ? 'Preparando...' : 'Exportar'} icon="download-outline" variant="secondary" loading={exporting || exportJobs.loading} disabled={exporting || exportJobs.loading} onPress={() => void handleExport()} /> : undefined} />
           {canManage ? <AdminBulkSelectionBar count={selection.count} onClear={selection.clear} onSelectPage={() => selection.selectPage(page.rows.map((row) => row.id))} primaryLabel="Desactivar seleccionados" onPrimary={() => setGovernanceMode('deactivate-user')} secondaryLabel="Activar seleccionados" onSecondary={() => void actions.executeBulkAction({ action: 'activate_users', entity: 'profiles', ids: selection.selected }).then(() => { selection.clear(); page.refresh() })} /> : null}
           <View className="mt-4">{page.loading && !page.refreshing ? <ListLoadingState /> : null}<VirtualizedStack data={page.rows} keyExtractor={(profile) => profile.id} renderItem={(profile) => <ProfileRowCard profile={profile} meta={`${profile.subject_count ?? 0} curso(s)`} selected={selection.isSelected(profile.id)} onToggleSelected={canManage ? () => selection.toggle(profile.id) : undefined} actions={[
             { label: 'Ver actividad', icon: 'pulse-outline', onPress: () => actions.viewProfileActivity(profile) },
@@ -112,6 +119,15 @@ export function AdminTeachersSection() {
       <AdminUserChangeHistoryModal profile={historyProfile} visible={Boolean(historyProfile)} onClose={() => setHistoryProfile(null)} />
     </AdminScaffold>
   )
+}
+
+async function getTeacherCreationError(error: unknown) {
+  const fallback = getErrorMessage(error, 'Revisa permisos y Edge Function.')
+  const context = error && typeof error === 'object' && 'context' in error ? (error as { context?: unknown }).context : null
+  if (context && typeof context === 'object' && 'clone' in context && typeof (context as Response).clone === 'function') {
+    try { const payload = await (context as Response).clone().json() as { error?: unknown }; if (typeof payload.error === 'string' && payload.error.trim()) return payload.error.trim() } catch {}
+  }
+  return fallback
 }
 
 export const AdminTeachersScreen = AdminTeachersSection

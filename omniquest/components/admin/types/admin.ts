@@ -326,7 +326,7 @@ export type AdminDashboardMetrics = {
 }
 
 export type CreateTeacherResult = {
-  status: 'created' | 'existing'
+  status: 'created'
   teacher: { id: string; alias: string; email: string }
   temporaryPassword?: string
 }

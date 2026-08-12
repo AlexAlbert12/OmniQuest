@@ -1,7 +1,7 @@
 import React from 'react'
+import AdminButton from '../shared/AdminButton'
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { AppButton } from '../../ui'
 import { useAppTheme } from '../../../lib/appTheme'
 import { useResponsiveLayout } from '../../../lib/responsive'
 import { formatAdminPushDate, formatAdminPushRelative, getAdminPushErrorLabel, getAdminPushPlatformLabel, getAdminPushPriorityLabel, getAdminPushRoleLabel, getAdminPushStatusLabel, getAdminPushTypeLabel } from '../../../lib/adminPushPresentation'
@@ -20,7 +20,7 @@ export default function AdminPushDeliveryDetailDrawer({ acting, canManage, detai
         <View style={[styles.sheet, responsive.isDesktop ? styles.desktopSheet : styles.mobileSheet, { backgroundColor: tokens.surface.default, borderColor: tokens.border.default }]}>
           <View style={[styles.header, { borderBottomColor: tokens.border.subtle }]}>
             <View className="min-w-0 flex-1"><Text accessibilityRole="header" className="text-[21px] font-black text-text-primary">Detalle de entrega push</Text><Text className="mt-1 text-[12px] text-text-muted">Notificación persistente y entregas por dispositivo.</Text></View>
-            <AppButton accessibilityLabel="Cerrar detalle" icon="close" iconOnly size="sm" variant="ghost" onPress={onClose} />
+            <AdminButton accessibilityLabel="Cerrar detalle" icon="close" iconOnly size="sm" variant="ghost" onPress={onClose} />
           </View>
           {loading ? <View className="flex-1 items-center justify-center"><ActivityIndicator color={tokens.brand.admin} /><Text className="mt-3 text-[13px] text-text-muted">Cargando detalle...</Text></View> : detail ? (
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -33,7 +33,7 @@ export default function AdminPushDeliveryDetailDrawer({ acting, canManage, detai
               <DetailSection title={`Entregas del ciclo actual · ${detail.deliveries.length}`} icon="paper-plane-outline">{detail.deliveries.length ? detail.deliveries.map((delivery) => { const deliveryIssue = getAdminPushErrorLabel(delivery.error_code); return <View key={delivery.id} className="mb-2 rounded-xl border border-border-default bg-surface-raised p-3"><View className="flex-row items-start justify-between gap-3"><View className="min-w-0 flex-1"><Text className="font-black text-text-primary">{delivery.device?.device_name || (delivery.device ? getAdminPushPlatformLabel(delivery.device.platform) : 'Dispositivo no disponible')}</Text><Text className="mt-1 text-[12px] text-text-secondary">{getAdminPushStatusLabel(delivery.status === 'ticketed' ? 'waiting_receipt' : delivery.status === 'delivered' ? 'completed' : delivery.status)}</Text></View><Text className="text-[11px] font-black text-text-muted">Intento {delivery.attempt_number}</Text></View>{deliveryIssue ? <Text className="mt-2 text-[12px] font-bold text-semantic-warning">{deliveryIssue}</Text> : null}<Text className="mt-2 text-[11px] text-text-muted">Enviado: {formatAdminPushDate(delivery.sent_at)} · Confirmado: {formatAdminPushDate(delivery.delivered_at || delivery.receipt_checked_at)}</Text></View> }) : <Text className="text-[12px] text-text-muted">Todavía no se ha generado una entrega por dispositivo.</Text>}</DetailSection>
             </ScrollView>
           ) : <View className="flex-1 items-center justify-center px-6"><Text className="text-center text-[13px] text-text-muted">No se pudo cargar este envío.</Text></View>}
-          {detail && canManage ? <View style={[styles.footer, { borderTopColor: tokens.border.subtle }]}>{status === 'pending' ? <><AppButton label="Procesar ahora" icon="flash-outline" loading={acting} onPress={onProcessNow} /><AppButton label="Cancelar envío" icon="close-circle-outline" variant="danger" disabled={acting} onPress={onCancel} /></> : status === 'failed' ? <AppButton label="Reintentar" icon="refresh-outline" loading={acting} onPress={onRetry} /> : <Text className="text-[12px] text-text-muted">Este estado es solo de consulta.</Text>}</View> : null}
+          {detail && canManage ? <View style={[styles.footer, { borderTopColor: tokens.border.subtle }]}>{status === 'pending' ? <><AdminButton label="Procesar ahora" icon="flash-outline" loading={acting} onPress={onProcessNow} /><AdminButton label="Cancelar envío" icon="close-circle-outline" variant="danger" disabled={acting} onPress={onCancel} /></> : status === 'failed' ? <AdminButton label="Reintentar" icon="refresh-outline" loading={acting} onPress={onRetry} /> : <Text className="text-[12px] text-text-muted">Este estado es solo de consulta.</Text>}</View> : null}
         </View>
       </View>
     </Modal>

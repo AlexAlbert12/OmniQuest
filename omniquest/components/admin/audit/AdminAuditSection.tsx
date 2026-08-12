@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import AdminButton from '../shared/AdminButton'
 import { ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import AppButton from '../../ui/AppButton'
 import VirtualizedStack from '../../ui/VirtualizedStack'
 import AdminSearchBar from '../shared/AdminSearchBar'
 import AdminAuditTable from './AdminAuditTable'
@@ -78,7 +78,7 @@ export function AdminAuditSection() {
       <Panel title="Gobierno del registro" icon="finger-print-outline" className="mt-5">
         <View className="flex-row flex-wrap items-center justify-between gap-3">
           <View className="min-w-[240px] flex-1"><Text className="text-[13px] font-black text-text-primary">Auditoría fuerte y gestionada en servidor</Text><Text className="mt-1 text-[12px] leading-5 text-text-secondary">Los eventos son append-only, se particionan por mes y enlazan criptográficamente cada registro con el anterior.</Text></View>
-          <AppButton label={verifying ? 'Verificando...' : 'Verificar cadena'} icon="shield-checkmark-outline" size="sm" disabled={verifying} onPress={() => void verifyIntegrity()} />
+          <AdminButton label={verifying ? 'Verificando...' : 'Verificar cadena'} icon="shield-checkmark-outline" size="sm" disabled={verifying} onPress={() => void verifyIntegrity()} />
         </View>
         <View className="mt-4 flex-row flex-wrap gap-2"><MiniPill icon="lock-closed-outline" label="Append-only" /><MiniPill icon="calendar-outline" label={`Retención: ${policy?.retention_months || 24} meses`} /><MiniPill icon="layers-outline" label="Particionado mensual" />{policy?.retention_checkpoints ? <MiniPill icon="bookmark-outline" label="Anclajes de retención" /> : null}<MiniPill icon="globe-outline" label={policy?.capture_request_context ? 'Contexto legal habilitado' : 'IP / agente deshabilitados'} /></View>
         {integrity ? <View className={`mt-4 flex-row items-center gap-2 rounded-xl border px-4 py-3 ${integrity.valid ? 'border-semantic-success bg-semantic-surface-success' : 'border-semantic-danger bg-semantic-surface-danger'}`}><Ionicons name={integrity.valid ? 'checkmark-circle' : 'warning'} size={18} /><Text className="min-w-0 flex-1 text-[12px] font-black text-text-primary">{integrity.valid ? `Cadena válida · ${integrity.checked_rows || 0} registros verificados` : `Cadena inválida · registro #${integrity.first_invalid_id || '—'}`}</Text></View> : null}
@@ -93,8 +93,8 @@ export function AdminAuditSection() {
           <AdminFilterSelect label="Severidad" icon="warning-outline" value={severity} onChange={setSeverity} options={[{ value: '', label: 'Todas las severidades' }, { value: 'info', label: 'Información' }, { value: 'warning', label: 'Advertencia' }, { value: 'critical', label: 'Crítica' }]} />
           <AdminDateRangeFields from={createdFrom} to={createdTo} onChangeFrom={setCreatedFrom} onChangeTo={setCreatedTo} />
         </View>
-        {targetId ? <View className="mt-3 flex-row flex-wrap items-center justify-between gap-3 rounded-xl border border-border-active bg-surface-interactive px-4 py-3"><Text className="min-w-0 flex-1 text-[12px] font-bold text-text-secondary">Auditoría relacionada con {entity || 'entidad'} #{targetId}</Text><AppButton label="Quitar relación" size="sm" variant="ghost" icon="close" onPress={() => setTargetId('')} /></View> : null}
-        {activeFilterCount > 0 ? <View className="mt-3 flex-row items-center justify-between gap-3"><Text className="text-[11px] font-bold text-text-muted">{activeFilterCount} filtro(s) avanzado(s) activo(s)</Text><AppButton label="Limpiar filtros" size="sm" variant="ghost" icon="refresh-outline" onPress={clearFilters} /></View> : null}
+        {targetId ? <View className="mt-3 flex-row flex-wrap items-center justify-between gap-3 rounded-xl border border-border-active bg-surface-interactive px-4 py-3"><Text className="min-w-0 flex-1 text-[12px] font-bold text-text-secondary">Auditoría relacionada con {entity || 'entidad'} #{targetId}</Text><AdminButton label="Quitar relación" size="sm" variant="ghost" icon="close" onPress={() => setTargetId('')} /></View> : null}
+        {activeFilterCount > 0 ? <View className="mt-3 flex-row items-center justify-between gap-3"><Text className="text-[11px] font-bold text-text-muted">{activeFilterCount} filtro(s) avanzado(s) activo(s)</Text><AdminButton label="Limpiar filtros" size="sm" variant="ghost" icon="refresh-outline" onPress={clearFilters} /></View> : null}
         <View className="mt-4" style={{ gap: 12 }}>
           {auditPage.loading && !auditPage.refreshing ? <ListLoadingState /> : null}
           {!auditPage.loading && auditPage.rows.length > 0 ? isDesktop ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ minWidth: 1260 }}><AdminAuditTable rows={auditPage.rows} /></ScrollView> : <VirtualizedStack data={auditPage.rows} keyExtractor={auditLogKey} renderItem={renderAuditLog} accessibilityLabel="Registros de auditoría" /> : null}

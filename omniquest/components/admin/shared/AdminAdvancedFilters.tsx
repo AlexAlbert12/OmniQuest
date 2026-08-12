@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import AdminButton from './AdminButton'
 import { Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import AppButton from '../../ui/AppButton'
+import AppBottomSheet from '../../ui/AppBottomSheet'
 import AppPressable from '../../ui/AppPressable'
 import { useAppTheme } from '../../../lib/appTheme'
+import { withAlpha } from '../../../lib/color'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import { supabase } from '../../../lib/supabase'
 
 export type AdminFilterOption = {
@@ -21,6 +24,9 @@ export type AdminDirectoryFilters = {
   audit_actions: string[]
   audit_entities: string[]
 }
+
+const PROFILE_ACCOUNT_OPTIONS: AdminFilterOption[] = [{ value: 'all', label: 'Activos e inactivos' }, { value: 'active', label: 'Solo activos' }, { value: 'inactive', label: 'Solo inactivos' }]
+const PROFILE_ACTIVITY_OPTIONS: AdminFilterOption[] = [{ value: 'all', label: 'Cualquier actividad' }, { value: 'recent', label: 'Actividad reciente', subtitle: 'Últimos 30 días' }, { value: 'inactive', label: 'Sin actividad reciente', subtitle: 'Más de 30 días' }, { value: 'never', label: 'Nunca han iniciado actividad' }]
 
 const EMPTY_DIRECTORY: AdminDirectoryFilters = {
   courses: [],
@@ -82,7 +88,7 @@ export function AdminFilterSelect({
   const selected = options.find((option) => option.value === value) || options[0]
 
   return (
-    <View style={{ minWidth, flexGrow: 1 }}>
+    <View style={{ minWidth, flexGrow: 1, width: minWidth === 0 ? '100%' : undefined }}>
       <Text style={[styles.fieldLabel, { color: tokens.text.muted }]}>{label}</Text>
       <AppPressable
         accessibilityLabel={accessibilityLabel || `Filtrar por ${label}`}
@@ -114,7 +120,7 @@ export function AdminFilterSelect({
                 <Text style={[styles.modalTitle, { color: tokens.text.primary }]}>{label}</Text>
                 <Text style={[styles.modalSubtitle, { color: tokens.text.muted }]}>Selecciona una opción para aplicar el filtro.</Text>
               </View>
-              <AppButton accessibilityLabel="Cerrar" icon="close" iconOnly size="sm" variant="ghost" onPress={() => setVisible(false)} />
+              <AdminButton accessibilityLabel="Cerrar" icon="close" iconOnly size="sm" variant="ghost" onPress={() => setVisible(false)} />
             </View>
             <ScrollView style={styles.optionList} contentContainerStyle={{ gap: 8 }}>
               {options.map((option) => {
@@ -131,8 +137,8 @@ export function AdminFilterSelect({
                     style={({ pressed }) => [
                       styles.option,
                       {
-                        backgroundColor: active ? tokens.surface.raised : tokens.surface.interactive,
-                        borderColor: active ? tokens.border.active : tokens.border.default,
+                        backgroundColor: active ? withAlpha(tokens.brand.admin, '18') : tokens.surface.interactive,
+                        borderColor: active ? withAlpha(tokens.brand.admin, 'A0') : tokens.border.default,
                         opacity: pressed ? 0.8 : 1,
                       },
                     ]}
@@ -164,8 +170,9 @@ export function AdminDateRangeFields({
   onChangeTo: (value: string) => void
   to: string
 }) {
+  const responsive = useResponsiveLayout()
   return (
-    <View style={styles.dateGroup}>
+    <View style={[styles.dateGroup, responsive.isMobile ? styles.dateGroupMobile : null]}>
       <AdminDateField label="Desde" value={from} onChange={onChangeFrom} />
       <AdminDateField label="Hasta" value={to} onChange={onChangeTo} />
     </View>
@@ -214,6 +221,7 @@ export function AdminProfileFilters({
   onChangeCourseId,
   onChangeCreatedFrom,
   onChangeCreatedTo,
+  mobileAction,
 }: {
   accountStatus: string
   activityState: string
@@ -229,88 +237,51 @@ export function AdminProfileFilters({
   onChangeCourseId: (value: string) => void
   onChangeCreatedFrom: (value: string) => void
   onChangeCreatedTo: (value: string) => void
+  mobileAction?: React.ReactNode
 }) {
   const router = useRouter()
+  const responsive = useResponsiveLayout()
+  const { tokens } = useAppTheme()
+  const [mobileOpen, setMobileOpen] = useState(false)
   const classroomOptions = useMemo(() => {
-    const filtered = courseId
-      ? directory.classrooms.filter((item) => String(item.subject_id) === courseId)
-      : directory.classrooms
-    return [
-      { value: '', label: 'Todas las clases' },
-      ...filtered.map((item) => ({ value: String(item.id), label: item.name, subtitle: item.subject_name || undefined })),
-    ]
+    const filtered = courseId ? directory.classrooms.filter((item) => String(item.subject_id) === courseId) : directory.classrooms
+    return [{ value: '', label: 'Todas las clases' }, ...filtered.map((item) => ({ value: String(item.id), label: item.name, subtitle: item.subject_name || undefined }))]
   }, [courseId, directory.classrooms])
+  const courseOptions = useMemo(() => [{ value: '', label: 'Todos los cursos' }, ...directory.courses.map((item) => ({ value: String(item.id), label: item.name, subtitle: item.is_archived ? 'Archivado' : item.active ? 'Activo' : 'Inactivo' }))], [directory.courses])
 
   useEffect(() => {
-    if (classroomId && !classroomOptions.some((option) => option.value === classroomId)) {
-      onChangeClassroomId('')
-    }
+    if (classroomId && !classroomOptions.some((option) => option.value === classroomId)) onChangeClassroomId('')
   }, [classroomId, classroomOptions, onChangeClassroomId])
 
-  return (
-    <View style={styles.filterGrid}>
-      <AdminFilterSelect
-        label="Rol"
-        icon="people-outline"
-        value={currentRole}
-        onChange={(value) => router.push(value === 'teacher' ? '/(admin)/teachers' as any : '/(admin)/students' as any)}
-        options={[
-          { value: 'teacher', label: 'Profesores' },
-          { value: 'student', label: 'Alumnos' },
-        ]}
-      />
-      <AdminFilterSelect
-        label="Estado de cuenta"
-        icon="shield-checkmark-outline"
-        value={accountStatus}
-        onChange={onChangeAccountStatus}
-        options={[
-          { value: 'all', label: 'Activos e inactivos' },
-          { value: 'active', label: 'Solo activos' },
-          { value: 'inactive', label: 'Solo inactivos' },
-        ]}
-      />
-      <AdminFilterSelect
-        label="Actividad"
-        icon="pulse-outline"
-        value={activityState}
-        onChange={onChangeActivityState}
-        options={[
-          { value: 'all', label: 'Cualquier actividad' },
-          { value: 'recent', label: 'Actividad reciente', subtitle: 'Últimos 30 días' },
-          { value: 'inactive', label: 'Sin actividad reciente', subtitle: 'Más de 30 días' },
-          { value: 'never', label: 'Nunca han iniciado actividad' },
-        ]}
-      />
-      <AdminFilterSelect
-        label="Curso"
-        icon="book-outline"
-        value={courseId}
-        onChange={onChangeCourseId}
-        options={[
-          { value: '', label: 'Todos los cursos' },
-          ...directory.courses.map((item) => ({
-            value: String(item.id),
-            label: item.name,
-            subtitle: item.is_archived ? 'Archivado' : item.active ? 'Activo' : 'Inactivo',
-          })),
-        ]}
-      />
-      <AdminFilterSelect
-        label="Clase"
-        icon="albums-outline"
-        value={classroomId}
-        onChange={onChangeClassroomId}
-        options={classroomOptions}
-      />
-      <AdminDateRangeFields
-        from={createdFrom}
-        to={createdTo}
-        onChangeFrom={onChangeCreatedFrom}
-        onChangeTo={onChangeCreatedTo}
-      />
-    </View>
-  )
+  const activeFilters = useMemo(() => {
+    const values: { key: string; label: string; clear: () => void }[] = []
+    if (accountStatus !== 'all') values.push({ key: 'status', label: `Estado: ${PROFILE_ACCOUNT_OPTIONS.find((item) => item.value === accountStatus)?.label || accountStatus}`, clear: () => onChangeAccountStatus('all') })
+    if (activityState !== 'all') values.push({ key: 'activity', label: `Actividad: ${PROFILE_ACTIVITY_OPTIONS.find((item) => item.value === activityState)?.label || activityState}`, clear: () => onChangeActivityState('all') })
+    if (courseId) values.push({ key: 'course', label: `Curso: ${courseOptions.find((item) => item.value === courseId)?.label || courseId}`, clear: () => onChangeCourseId('') })
+    if (classroomId) values.push({ key: 'classroom', label: `Clase: ${classroomOptions.find((item) => item.value === classroomId)?.label || classroomId}`, clear: () => onChangeClassroomId('') })
+    if (createdFrom) values.push({ key: 'from', label: `Desde: ${createdFrom}`, clear: () => onChangeCreatedFrom('') })
+    if (createdTo) values.push({ key: 'to', label: `Hasta: ${createdTo}`, clear: () => onChangeCreatedTo('') })
+    return values
+  }, [accountStatus, activityState, classroomId, classroomOptions, courseId, courseOptions, createdFrom, createdTo, onChangeAccountStatus, onChangeActivityState, onChangeClassroomId, onChangeCourseId, onChangeCreatedFrom, onChangeCreatedTo])
+
+  const sharedFields = (mobile: boolean) => <>
+    {!mobile ? <AdminFilterSelect label="Rol" icon="people-outline" value={currentRole} onChange={(value) => router.push(value === 'teacher' ? '/(admin)/teachers' as any : '/(admin)/students' as any)} options={[{ value: 'teacher', label: 'Profesores' }, { value: 'student', label: 'Alumnos' }]} minWidth={mobile ? 0 : 180} /> : null}
+    <AdminFilterSelect label="Estado de cuenta" icon="shield-checkmark-outline" value={accountStatus} onChange={onChangeAccountStatus} options={PROFILE_ACCOUNT_OPTIONS} minWidth={mobile ? 0 : 180} />
+    <AdminFilterSelect label="Actividad" icon="pulse-outline" value={activityState} onChange={onChangeActivityState} options={PROFILE_ACTIVITY_OPTIONS} minWidth={mobile ? 0 : 180} />
+    <AdminFilterSelect label="Curso" icon="book-outline" value={courseId} onChange={onChangeCourseId} options={courseOptions} minWidth={mobile ? 0 : 180} />
+    <AdminFilterSelect label="Clase" icon="albums-outline" value={classroomId} onChange={onChangeClassroomId} options={classroomOptions} minWidth={mobile ? 0 : 180} />
+    <AdminDateRangeFields from={createdFrom} to={createdTo} onChangeFrom={onChangeCreatedFrom} onChangeTo={onChangeCreatedTo} />
+  </>
+
+  if (!responsive.isMobile) return <View style={styles.filterGrid}>{sharedFields(false)}</View>
+
+  return <View style={styles.mobileFilters}>
+    <View style={styles.mobileFilterActions}><View style={{ flex: 1 }}><AdminButton label={activeFilters.length > 0 ? `Filtros (${activeFilters.length})` : 'Filtros'} icon="options-outline" variant="secondary" fullWidth onPress={() => setMobileOpen(true)} /></View>{mobileAction}</View>
+    {activeFilters.length > 0 ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.activeFilterChips}>{activeFilters.map((filter) => <AppPressable key={filter.key} accessibilityLabel={`Quitar ${filter.label}`} onPress={filter.clear} style={({ pressed }) => ({ minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, backgroundColor: withAlpha(tokens.brand.admin, '18'), borderColor: withAlpha(tokens.brand.admin, '70'), opacity: pressed ? 0.76 : 1 })}><Text numberOfLines={1} style={{ maxWidth: 220, color: tokens.text.primary, fontSize: 11, fontWeight: '800' }}>{filter.label}</Text><Ionicons name="close" size={14} color={tokens.brand.admin} /></AppPressable>)}</ScrollView> : null}
+    <AppBottomSheet visible={mobileOpen} onClose={() => setMobileOpen(false)} title="Filtros" description={`Refina el listado de ${currentRole === 'teacher' ? 'profesores' : 'alumnos'} sin perder espacio en la vista principal.`} footer={<AdminButton label="Ver resultados" icon="checkmark" fullWidth onPress={() => setMobileOpen(false)} />}>
+      <View style={styles.mobileFilterStack}>{sharedFields(true)}</View>
+    </AppBottomSheet>
+  </View>
 }
 
 export function toAdminFilterTimestamp(value: string, endOfDay = false) {
@@ -433,6 +404,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
+  dateGroupMobile: {
+    width: '100%',
+    minWidth: 0,
+    flexDirection: 'column',
+  },
   dateField: {
     minWidth: 140,
     flex: 1,
@@ -451,6 +427,22 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontWeight: '800',
+  },
+  mobileFilters: {
+    marginTop: 14,
+    gap: 10,
+  },
+  mobileFilterActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  activeFilterChips: {
+    gap: 8,
+    paddingRight: 4,
+  },
+  mobileFilterStack: {
+    gap: 14,
   },
 })
 

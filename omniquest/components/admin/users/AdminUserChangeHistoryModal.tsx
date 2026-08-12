@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
+import AdminButton from '../shared/AdminButton'
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, View } from 'react-native'
-import AppButton from '../../ui/AppButton'
 import AppPressable from '../../ui/AppPressable'
 import { useAppTheme } from '../../../lib/appTheme'
 import { fetchAdminUserChangeHistory } from '../api/adminApi'
@@ -23,7 +23,7 @@ export default function AdminUserChangeHistoryModal({ profile, visible, onClose 
       <View style={styles.overlay}>
         <AppPressable accessibilityLabel="Cerrar historial" onPress={onClose} style={StyleSheet.absoluteFill} />
         <View style={[styles.card, { backgroundColor: tokens.background.primary, borderColor: tokens.border.default }]}>
-          <View style={styles.header}><View style={styles.headerCopy}><Text style={[styles.title, { color: tokens.text.primary }]}>Historial de {profile?.alias || 'usuario'}</Text><Text style={[styles.subtitle, { color: tokens.text.muted }]}>Registro inmutable de cambios administrativos.</Text></View><AppButton accessibilityLabel="Cerrar" icon="close" iconOnly size="sm" variant="ghost" onPress={onClose} /></View>
+          <View style={styles.header}><View style={styles.headerCopy}><Text style={[styles.title, { color: tokens.text.primary }]}>Historial de {profile?.alias || 'usuario'}</Text><Text style={[styles.subtitle, { color: tokens.text.muted }]}>Registro inmutable de cambios administrativos.</Text></View><AdminButton accessibilityLabel="Cerrar" icon="close" iconOnly size="sm" variant="ghost" onPress={onClose} /></View>
           <ScrollView style={styles.scrollContent} contentContainerStyle={{ gap: 10 }}>
             {loading ? <ActivityIndicator color={tokens.brand.admin} /> : rows.map((row) => <View key={row.id} style={[styles.row, { borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive }]}><Text style={[styles.rowTitle, { color: tokens.text.primary }]}>{row.action}</Text><Text style={[styles.rowMeta, { color: tokens.text.muted }]}>{formatAdminDate(row.created_at)} · {row.change_source === 'system' ? 'Sistema' : row.actor_alias || row.changed_by || 'Administrador'}</Text>{row.reason ? <Text style={[styles.reason, { color: tokens.text.secondary }]}>Motivo: {row.reason}</Text> : null}<Text style={[styles.code, { color: tokens.text.muted }]} numberOfLines={5}>Antes: {JSON.stringify(row.before_state || {})}{'\n'}Después: {JSON.stringify(row.after_state || {})}</Text></View>)}
             {!loading && rows.length === 0 ? <Text style={[styles.empty, { color: tokens.text.muted }]}>No hay cambios registrados.</Text> : null}

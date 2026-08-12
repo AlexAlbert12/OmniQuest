@@ -3,7 +3,6 @@ import { errorResponse, methodNotAllowedResponse, corsHeaders, getAdminContext, 
 type CreateTeacherRequest = {
   alias?: string
   email?: string
-  password?: string
 }
 
 Deno.serve(async (req) => {
@@ -17,69 +16,15 @@ Deno.serve(async (req) => {
     const body = await readJsonBody<CreateTeacherRequest>(req)
     const email = normalizeEmail(body.email)
     const alias = String(body.alias || '').trim() || aliasFromEmail(email)
-    const password = String(body.password || '').trim() || generateTemporaryPassword()
+    const password = generateTemporaryPassword()
 
     if (!isValidEmail(email)) {
       return json({ error: 'Correo electrónico no válido.' }, 400)
     }
 
-    if (password.length < 6) {
-      return json({ error: 'La contraseña debe tener al menos 6 caracteres.' }, 400)
-    }
 
     const existingUser = await findAuthUserByEmail(context.adminClient, email)
-    if (existingUser) {
-      const { error: updateError } = await context.adminClient.auth.admin.updateUserById(existingUser.id, {
-        user_metadata: {
-          ...(existingUser.user_metadata || {}),
-          alias,
-          role_id: 'teacher',
-        },
-      })
-
-      if (updateError) throw updateError
-
-      const { error: profileError } = await context.adminClient
-        .from('profiles')
-        .upsert({
-          id: existingUser.id,
-          email,
-          alias,
-          role_id: 'teacher',
-          active: true,
-          visibility: 'private',
-        })
-
-      if (profileError) throw profileError
-
-      await writeAdminUserHistory(context.adminClient, {
-        action: 'admin.teacher.update_existing', adminUserId: context.adminUserId, profileId: existingUser.id,
-        reason: 'Alta o actualización docente', before: { role_id: 'teacher' }, after: { role_id: 'teacher', active: true, alias },
-      })
-
-      await writeAdminAudit(context.adminClient, {
-        action: 'admin.teacher.update_existing',
-        adminUserId: context.adminUserId,
-        targetTable: 'profiles',
-        targetId: existingUser.id,
-        before: { role_id: existingUser.user_metadata?.role_id ?? null },
-        after: { role_id: 'teacher', active: true, alias },
-        metadata: {
-          alias,
-          role_id: 'teacher',
-          source: 'admin-create-teacher',
-        },
-      })
-
-      return json({
-        status: 'existing',
-        teacher: {
-          id: existingUser.id,
-          alias,
-          email,
-        },
-      })
-    }
+    if (existingUser) return json({ error: 'Ya existe una cuenta con este correo.', code: 'account_exists' }, 409)
 
     const { data: createdUser, error: createError } = await context.adminClient.auth.admin.createUser({
       email,

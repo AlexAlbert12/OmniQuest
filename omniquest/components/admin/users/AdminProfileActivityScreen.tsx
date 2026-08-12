@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
+import AdminButton from '../shared/AdminButton'
 import { Text, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import AppButton from '../../ui/AppButton'
 import AdminSearchBar from '../shared/AdminSearchBar'
 import { AdminPaginationControls, EmptyState, ListLoadingState, Panel } from '../shared/AdminPrimitives'
 import { AdminDateRangeFields, AdminFilterSelect, toAdminFilterTimestamp } from '../shared/AdminAdvancedFilters'
@@ -79,7 +79,7 @@ export default function AdminProfileActivityScreen() {
               {profile?.role_id === 'teacher' ? 'Profesor' : 'Alumno'} · {profile?.active === false ? 'Cuenta inactiva' : 'Cuenta activa'}
             </Text>
           </View>
-          <AppButton
+          <AdminButton
             label={profile?.role_id === 'teacher' ? 'Volver a profesores' : 'Volver a alumnos'}
             icon="arrow-back"
             variant="secondary"

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
+import AdminButton from './AdminButton'
 import { Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import AppButton from '../../ui/AppButton'
 import AppPressable from '../../ui/AppPressable'
 import { useAppTheme } from '../../../lib/appTheme'
 import type { AdminFilterOption } from './AdminAdvancedFilters'
@@ -90,7 +90,7 @@ export default function AdminGovernanceModal({
               </AppPressable>
             ) : null}
           </ScrollView>
-          <View style={styles.actions}><AppButton label="Cancelar" variant="ghost" onPress={onCancel} /><AppButton label={saving ? 'Aplicando...' : 'Confirmar'} variant="danger" loading={saving} disabled={!canSubmit || saving} onPress={() => void submit()} /></View>
+          <View style={styles.actions}><AdminButton label="Cancelar" variant="ghost" onPress={onCancel} /><AdminButton label={saving ? 'Aplicando...' : 'Confirmar'} variant="danger" loading={saving} disabled={!canSubmit || saving} onPress={() => void submit()} /></View>
         </View>
       </View>
     </Modal>

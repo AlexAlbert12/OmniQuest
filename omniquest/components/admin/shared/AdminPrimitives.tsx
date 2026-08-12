@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
+import AdminButton from './AdminButton'
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
-import { AppButton, AppDropdown, AppMenu } from '../../ui'
+import { AppDropdown, AppMenu } from '../../ui'
 import { useAppTheme } from '../../../lib/appTheme'
+import { withAlpha } from '../../../lib/color'
 import { useResponsiveLayout } from '../../../lib/responsive'
 import type {
   AdminSupportTicketRow,
@@ -32,8 +34,8 @@ export function Panel({ children, className = '', compact = false, icon, title }
   return (
     <View className={`rounded-2xl border border-border-default bg-surface-default ${compact ? 'p-4' : 'p-5'} ${className}`}>
       <View className="mb-4 flex-row items-center gap-3">
-        <View className="h-10 w-10 items-center justify-center rounded-xl bg-surface-interactive">
-          <Ionicons name={icon} size={20} color={tokens.semantic.info} />
+        <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(tokens.brand.admin, '18') }}>
+          <Ionicons name={icon} size={20} color={tokens.brand.admin} />
         </View>
         <Text accessibilityRole="header" maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[18px] font-black text-text-primary">{title}</Text>
       </View>
@@ -82,7 +84,7 @@ export function AdminSearch({ value, onChangeText, placeholder }: { value: strin
   return (
     <View className="h-12 flex-row items-center rounded-xl border border-border-default bg-surface-default px-4">
       <TextInput accessibilityLabel={placeholder} className="min-w-0 flex-1 text-text-primary" value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={tokens.text.muted} />
-      <Ionicons name="search-outline" size={19} color={tokens.text.muted} />
+      <Ionicons name="search-outline" size={19} color={tokens.brand.admin} />
     </View>
   )
 }
@@ -98,7 +100,7 @@ export function AdminListToolbar({ exporting, onChangeSearch, onExport, placehol
   return (
     <View className="flex-row flex-wrap items-center gap-3">
       <View className="min-w-[240px] flex-1"><AdminSearch value={search} onChangeText={onChangeSearch} placeholder={placeholder} /></View>
-      {onExport ? <AppButton label={exporting ? 'Preparando...' : exportLabel} accessibilityLabel={exportLabel} icon="download-outline" variant="secondary" loading={exporting} disabled={exporting} onPress={onExport} /> : null}
+      {onExport ? <AdminButton label={exporting ? 'Preparando...' : exportLabel} accessibilityLabel={exportLabel} icon="download-outline" variant="secondary" loading={exporting} disabled={exporting} onPress={onExport} /> : null}
     </View>
   )
 }
@@ -115,7 +117,7 @@ export function AdminFilterRow({ label, onChange, options, value }: {
 export function AdminChoiceChip({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
   const { tokens } = useAppTheme()
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint="Aplica este filtro" accessibilityState={{ selected: active }} onPress={onPress} className="min-h-10 items-center justify-center rounded-xl border px-3 py-2" style={({ pressed }) => ({ borderColor: active ? tokens.border.active : tokens.border.default, backgroundColor: active ? tokens.surface.selected : tokens.surface.default, opacity: pressed ? 0.78 : 1 })}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint="Aplica este filtro" accessibilityState={{ selected: active }} onPress={onPress} className="min-h-10 items-center justify-center rounded-xl border px-3 py-2" style={({ pressed }) => ({ borderColor: active ? withAlpha(tokens.brand.admin, 'A0') : tokens.border.default, backgroundColor: active ? withAlpha(tokens.brand.admin, '18') : tokens.surface.default, opacity: pressed ? 0.78 : 1 })}>
       <Text className="text-[12px] font-black" style={{ color: active ? tokens.text.primary : tokens.text.secondary }}>{label}</Text>
     </Pressable>
   )
@@ -129,7 +131,7 @@ export function SelectableCardShell({ children, selected = false, onToggleSelect
 }) {
   const { tokens } = useAppTheme()
   return (
-    <View className="rounded-xl border bg-surface-default p-4" style={{ borderColor: selected ? tokens.border.active : tokens.border.default }}>
+    <View className="rounded-xl border p-4" style={{ borderColor: selected ? withAlpha(tokens.brand.admin, 'A0') : tokens.border.default, backgroundColor: selected ? withAlpha(tokens.brand.admin, '0D') : tokens.surface.default }}>
       {onToggleSelected ? (
         <Pressable accessibilityRole="checkbox" accessibilityLabel={selectionLabel} accessibilityState={{ checked: selected }} onPress={onToggleSelected} className="mb-3 flex-row items-center gap-2 self-start rounded-lg px-2 py-1" style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}>
           <Ionicons name={selected ? 'checkbox' : 'square-outline'} size={20} color={selected ? tokens.brand.admin : tokens.text.muted} />
@@ -300,7 +302,7 @@ export function RowActions({ actions }: { actions: RowAction[] }) {
   const menuItems = actions.map((action, index) => ({ key: `${action.label}-${index}`, label: action.label, icon: action.icon, destructive: action.destructive, disabled: action.disabled, onPress: action.onPress }))
   return (
     <View className="mt-4 items-start">
-      <AppButton label="Acciones" icon="ellipsis-horizontal" variant="secondary" size="sm" onPress={() => setOpen(true)} />
+      <AdminButton label="Acciones" icon="ellipsis-horizontal" variant="secondary" size="sm" onPress={() => setOpen(true)} />
       <AppMenu visible={open} onClose={() => setOpen(false)} title="Acciones disponibles" items={menuItems} />
     </View>
   )
@@ -344,15 +346,14 @@ export function AdminPaginationControls({ hasNext, hasPrevious, onNext, onPrevio
   pageSize: number
   total: number
 }) {
-  const { tokens } = useAppTheme()
   const firstItem = total === 0 ? 0 : page * pageSize + 1
   const lastItem = Math.min(total, (page + 1) * pageSize)
   return (
     <View className="mt-4 flex-row flex-wrap items-center justify-between gap-3 rounded-xl border border-border-default bg-surface-default px-4 py-3">
       <Text className="text-[12px] font-semibold text-text-secondary">{total === 0 ? 'Sin resultados' : `${firstItem}-${lastItem} de ${total}`}</Text>
       <View className="flex-row items-center gap-2">
-        <Pressable accessibilityRole="button" accessibilityLabel="Página anterior" accessibilityState={{ disabled: !hasPrevious }} onPress={onPrevious} disabled={!hasPrevious} className="h-10 flex-row items-center gap-1 rounded-xl border border-border-default bg-surface-default px-3" style={({ pressed }) => ({ opacity: !hasPrevious ? 0.45 : pressed ? 0.78 : 1 })}><Ionicons name="chevron-back" size={15} color={tokens.text.primary} /><Text className="text-[12px] font-black text-text-secondary">Anterior</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Página siguiente" accessibilityState={{ disabled: !hasNext }} onPress={onNext} disabled={!hasNext} className="h-10 flex-row items-center gap-1 rounded-xl bg-brand-admin px-3" style={({ pressed }) => ({ opacity: !hasNext ? 0.45 : pressed ? 0.78 : 1 })}><Text className="text-[12px] font-black text-white">Siguiente</Text><Ionicons name="chevron-forward" size={15} color="#FFFFFF" /></Pressable>
+        <AdminButton label="Anterior" accessibilityLabel="Página anterior" icon="chevron-back" size="sm" variant="secondary" disabled={!hasPrevious} onPress={onPrevious} />
+        <AdminButton label="Siguiente" accessibilityLabel="Página siguiente" icon="chevron-forward" iconPosition="right" size="sm" disabled={!hasNext} onPress={onNext} />
       </View>
     </View>
   )

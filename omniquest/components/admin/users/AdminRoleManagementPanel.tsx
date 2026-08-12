@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import AdminButton from '../shared/AdminButton'
 import { ActivityIndicator, Text, TextInput, View } from 'react-native'
-import { AppButton, AppDropdown } from '../../ui'
+import { AppDropdown } from '../../ui'
 import { useAppTheme } from '../../../lib/appTheme'
 import { assignAdminRole, fetchAdminRoleAssignments, fetchAdminRoles } from '../api/adminApi'
 import { Panel } from '../shared/AdminPrimitives'
@@ -89,7 +90,7 @@ export default function AdminRoleManagementPanel({ canManage }: { canManage: boo
             </View>
             <AppDropdown label="Perfil de permisos" value={selectedRoles[assignment.user_id] || ''} placeholder="Selecciona un perfil" options={roleOptions} onChange={(value) => setSelectedRoles((current) => ({ ...current, [assignment.user_id]: value }))} disabled={savingUserId === assignment.user_id} />
             <TextInput accessibilityLabel={`Motivo del cambio para ${assignment.alias}`} value={reasons[assignment.user_id] || ''} onChangeText={(value) => setReasons((current) => ({ ...current, [assignment.user_id]: value }))} placeholder="Motivo obligatorio del cambio" placeholderTextColor={tokens.text.muted} className="mt-3 min-h-12 rounded-xl border px-4 py-3 text-[13px]" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default, color: tokens.text.primary }} />
-            <View className="mt-3 items-start"><AppButton label={savingUserId === assignment.user_id ? 'Guardando...' : 'Guardar permisos'} icon="save-outline" size="sm" loading={savingUserId === assignment.user_id} onPress={() => save(assignment)} /></View>
+            <View className="mt-3 items-start"><AdminButton label={savingUserId === assignment.user_id ? 'Guardando...' : 'Guardar permisos'} icon="save-outline" size="sm" loading={savingUserId === assignment.user_id} onPress={() => save(assignment)} /></View>
           </View>
         ))}
         {!loading && assignments.length === 0 ? <Text className="text-[13px] text-text-muted">No hay cuentas administradoras activas.</Text> : null}

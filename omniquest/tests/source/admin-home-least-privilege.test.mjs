@@ -21,6 +21,7 @@ test('admin permissions fail closed and role management is isolated from the das
   assert.match(more, /Administración y permisos/)
   assert.equal(existsSync('app/(admin)/permissions.tsx'), true)
   assert.match(scaffold, /No se ha podido verificar el perfil de permisos/)
+  assert.match(scaffold, /<BrandLogo size=\{30\} questColor=\{tokens\.brand\.admin\}/)
   assert.doesNotMatch(scaffold, /!data\.portalContext \|\|/)
   assert.match(edgeContext, /roleId = 'unassigned'/)
 })

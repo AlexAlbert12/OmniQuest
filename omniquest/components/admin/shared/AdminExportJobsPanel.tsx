@@ -1,6 +1,6 @@
 import React from 'react'
+import AdminButton from './AdminButton'
 import { ActivityIndicator, Text, View } from 'react-native'
-import { AppButton } from '../../ui'
 import { useAppTheme } from '../../../lib/appTheme'
 import type { AdminExportJob } from '../types/admin'
 import { formatAdminDate } from '../utils/adminUtils'
@@ -21,7 +21,7 @@ export default function AdminExportJobsPanel({ jobs, loading = false, onDownload
             <View className="flex-row flex-wrap items-center justify-between gap-3"><View><Text className="font-black text-text-primary">{TYPE_LABELS[job.export_type]}</Text><Text className="mt-1 text-[11px] text-text-muted">Solicitada {formatAdminDate(job.created_at)}</Text></View><StatusPill active={job.status === 'ready'} label={STATUS_LABELS[job.status]} /></View>
             <Text className="mt-2 text-[12px] text-text-secondary">{job.processed_rows}{job.row_count ? ` de ${job.row_count}` : ''} filas procesadas</Text>
             {job.error_message ? <Text className="mt-2 text-[11px] text-semantic-danger">{job.error_message}</Text> : null}
-            {job.status === 'ready' ? <View className="mt-3 items-start"><AppButton label="Descargar" icon="download-outline" size="sm" onPress={() => onDownload(job.id)} /></View> : null}
+            {job.status === 'ready' ? <View className="mt-3 items-start"><AdminButton label="Descargar" icon="download-outline" size="sm" onPress={() => onDownload(job.id)} /></View> : null}
           </View>
         ))}
         {!loading && jobs.length === 0 ? <EmptyState label="No hay exportaciones recientes." /> : null}

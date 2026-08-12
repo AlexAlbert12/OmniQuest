@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import AdminButton from '../shared/AdminButton'
 import { ActivityIndicator, Text, View } from 'react-native'
 import { supabase } from '../../../lib/supabase'
 import { useAppTheme } from '../../../lib/appTheme'
 import { useResponsiveLayout } from '../../../lib/responsive'
 import type { AdminUsageAnalytics } from '../types/admin'
-import { AppButton } from '../../ui'
 import { AdminMetric, EmptyState, Panel } from '../shared/AdminPrimitives'
 
 export default function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVersion: number }) {
@@ -39,7 +39,7 @@ export default function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVe
   return (
     <Panel title="Analítica de uso · 30 días" icon="analytics-outline">
       {loading ? <View className="items-center py-7"><ActivityIndicator color={tokens.brand.admin} /><Text className="mt-3 text-[13px] text-text-muted">Calculando eventos de producto...</Text></View> : error ? (
-        <View className="rounded-xl border border-semantic-warning bg-semantic-surface-warning p-4"><Text className="text-[14px] font-black text-text-primary">No se pudo cargar la analítica</Text><Text className="mt-2 text-[12px] leading-5 text-text-secondary">{error}</Text><View className="mt-4 items-start"><AppButton label="Reintentar" icon="refresh-outline" size="sm" variant="secondary" onPress={() => setRetryVersion((value) => value + 1)} /></View></View>
+        <View className="rounded-xl border border-semantic-warning bg-semantic-surface-warning p-4"><Text className="text-[14px] font-black text-text-primary">No se pudo cargar la analítica</Text><Text className="mt-2 text-[12px] leading-5 text-text-secondary">{error}</Text><View className="mt-4 items-start"><AdminButton label="Reintentar" icon="refresh-outline" size="sm" variant="secondary" onPress={() => setRetryVersion((value) => value + 1)} /></View></View>
       ) : analytics && hasEvents ? (
         <>
           <View className="flex-row flex-wrap gap-3">
