@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(21);
+select plan(23);
 
 select ok(
   to_regprocedure('public.get_admin_directory_filters()') is not null,
@@ -28,6 +28,15 @@ select ok(
 select ok(
   to_regprocedure('public.get_admin_profile_activity_page(uuid,text,text,timestamptz,timestamptz,integer,integer)') is not null,
   'safe profile activity pagination RPC exists'
+);
+
+select ok(
+  position('admin_has_permission(''users.read'')' in pg_get_functiondef(to_regprocedure('public.get_admin_profile_activity_page(uuid,text,text,timestamptz,timestamptz,integer,integer)'))) > 0,
+  'profile activity RPC enforces users.read'
+);
+select ok(
+  position('admin_has_permission(''users.read'')' in pg_get_functiondef(to_regprocedure('public.can_read_profile(uuid)'))) > 0,
+  'profile RLS helper requires users.read for administrative reads'
 );
 
 select ok(

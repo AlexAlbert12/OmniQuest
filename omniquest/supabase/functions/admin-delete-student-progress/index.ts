@@ -2,6 +2,7 @@ import { errorResponse, methodNotAllowedResponse, corsHeaders, getAdminContext, 
 
 type RequestBody = {
   studentId?: string
+  reason?: string
 }
 
 Deno.serve(async (req) => {
@@ -14,8 +15,11 @@ Deno.serve(async (req) => {
 
     const body = await readJsonBody<RequestBody>(req)
     const studentId = String(body.studentId || '').trim()
+    const reason = String(body.reason || '').trim()
 
     if (!studentId) return json({ error: 'Falta studentId.' }, 400)
+    if (reason.length < 5) return json({ error: 'El motivo administrativo debe tener al menos 5 caracteres.' }, 400)
+    if (reason.length > 500) return json({ error: 'El motivo administrativo es demasiado largo.' }, 400)
 
     const { data: profile, error: profileError } = await context.adminClient
       .from('profiles')
@@ -50,7 +54,7 @@ Deno.serve(async (req) => {
       action: 'admin.student.delete_progress',
       adminUserId: context.adminUserId,
       profileId: studentId,
-      reason: 'Eliminación administrativa de progreso',
+      reason,
       before: { points: profile.points },
       after: { points: syncedPoints, deleted },
     })
@@ -64,6 +68,7 @@ Deno.serve(async (req) => {
       after: { points: syncedPoints, deleted },
       metadata: {
         alias: profile.alias,
+        reason,
         deleted_records: deleted,
       },
     })

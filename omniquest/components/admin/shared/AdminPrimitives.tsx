@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import AdminButton from './AdminButton'
+import AdminProfileAvatar from './AdminProfileAvatar'
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
@@ -18,7 +19,6 @@ import type {
 import {
   formatAdminDate,
   formatAuditDate,
-  getInitials,
   getSupportPriorityLabel,
   getSupportStatusLabel,
 } from '../utils/adminUtils'
@@ -123,17 +123,18 @@ export function AdminChoiceChip({ active, label, onPress }: { active: boolean; l
   )
 }
 
-export function SelectableCardShell({ children, selected = false, onToggleSelected, selectionLabel }: {
+export function SelectableCardShell({ children, compact = false, selected = false, onToggleSelected, selectionLabel }: {
   children: React.ReactNode
+  compact?: boolean
   selected?: boolean
   onToggleSelected?: () => void
   selectionLabel: string
 }) {
   const { tokens } = useAppTheme()
   return (
-    <View className="rounded-xl border p-4" style={{ borderColor: selected ? withAlpha(tokens.brand.admin, 'A0') : tokens.border.default, backgroundColor: selected ? withAlpha(tokens.brand.admin, '0D') : tokens.surface.default }}>
+    <View className={`rounded-xl border ${compact ? 'p-3' : 'p-4'}`} style={{ borderColor: selected ? withAlpha(tokens.brand.admin, 'A0') : tokens.border.default, backgroundColor: selected ? withAlpha(tokens.brand.admin, '0D') : tokens.surface.default }}>
       {onToggleSelected ? (
-        <Pressable accessibilityRole="checkbox" accessibilityLabel={selectionLabel} accessibilityState={{ checked: selected }} onPress={onToggleSelected} className="mb-3 flex-row items-center gap-2 self-start rounded-lg px-2 py-1" style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}>
+        <Pressable accessibilityRole="checkbox" accessibilityLabel={selectionLabel} accessibilityState={{ checked: selected }} onPress={onToggleSelected} className={`${compact ? 'mb-2' : 'mb-3'} flex-row items-center gap-2 self-start rounded-lg px-2 py-1`} style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}>
           <Ionicons name={selected ? 'checkbox' : 'square-outline'} size={20} color={selected ? tokens.brand.admin : tokens.text.muted} />
           <Text className="text-[12px] font-bold text-text-secondary">{selected ? 'Seleccionado' : 'Seleccionar'}</Text>
         </Pressable>
@@ -150,24 +151,26 @@ export function ProfileRowCard({ actions, meta, profile, selected, onToggleSelec
   selected?: boolean
   onToggleSelected?: () => void
 }) {
-  const roleLabel = profile.role_id === 'teacher' ? 'Profesor' : profile.role_id === 'admin' ? 'Administrador' : 'Alumno'
-  const activityLabel = profile.last_activity_at ? `Actividad ${formatAuditDate(profile.last_activity_at)}` : 'Sin actividad registrada'
-  const securityLabel = profile.security_status === 'secure' ? 'Seguridad correcta' : profile.security_status === 'inactive' ? 'Cuenta inactiva' : profile.security_status === 'locked' ? 'Acceso bloqueado' : profile.security_status === 'unverified' ? 'Correo sin verificar' : profile.security_status === 'never_signed_in' ? 'Sin primer acceso' : 'Seguridad por revisar'
+  const responsive = useResponsiveLayout()
+  const roleLabel = profile.role_id === 'teacher' ? 'Profesor' : profile.role_id === 'admin' ? 'Administrador' : profile.role_id === 'guest' ? 'Invitado' : 'Alumno'
+  const activityLabel = profile.last_activity_at ? `Última actividad: ${formatAdminDate(profile.last_activity_at)}` : 'Sin actividad registrada'
+  const securityLabel = profile.security_status === 'secure' ? 'Cuenta sin alertas' : profile.security_status === 'inactive' ? 'Cuenta inactiva' : profile.security_status === 'locked' ? 'Acceso bloqueado' : profile.security_status === 'unverified' ? 'Correo sin verificar' : profile.security_status === 'never_signed_in' ? 'Sin primer acceso' : 'Seguridad por revisar'
+  const compact = responsive.isDesktop
   return (
-    <SelectableCardShell selected={selected} onToggleSelected={onToggleSelected} selectionLabel={`Seleccionar ${profile.alias}`}>
-      <View className="flex-row flex-wrap items-center gap-4">
-        <View className="h-12 w-12 items-center justify-center rounded-full bg-surface-interactive"><Text className="font-black text-semantic-info">{getInitials(profile.alias)}</Text></View>
+    <SelectableCardShell compact={compact} selected={selected} onToggleSelected={onToggleSelected} selectionLabel={`Seleccionar ${profile.alias}`}>
+      <View className={`flex-row flex-wrap items-center ${compact ? 'gap-3' : 'gap-4'}`}>
+        <AdminProfileAvatar alias={profile.alias} avatar={profile.avatar} size={compact ? 44 : 48} />
         <View className="min-w-[220px] flex-1">
           <Text className="font-black text-text-primary">{profile.alias}</Text>
           <Text className="mt-1 text-[12px] text-text-muted">{profile.email || 'Sin correo guardado'}</Text>
         </View>
         <StatusPill active={profile.active !== false} />
       </View>
-      <View className="mt-3 flex-row flex-wrap gap-2">
-        <MiniPill icon={profile.role_id === 'teacher' ? 'school-outline' : 'person-outline'} label={roleLabel} />
+      <View className={`${compact ? 'mt-2' : 'mt-3'} flex-row flex-wrap gap-2`}>
+        <MiniPill icon={profile.role_id === 'teacher' ? 'school-outline' : profile.role_id === 'guest' ? 'person-circle-outline' : 'person-outline'} label={roleLabel} />
         <MiniPill icon="layers-outline" label={meta} />
         <MiniPill icon="time-outline" label={activityLabel} />
-        <MiniPill icon="log-in-outline" label={`Último acceso: ${formatAdminDate(profile.last_sign_in_at)}`} />
+        {profile.last_sign_in_at ? <MiniPill icon="log-in-outline" label={`Último acceso: ${formatAdminDate(profile.last_sign_in_at)}`} /> : null}
         <MiniPill icon={profile.security_status === 'secure' ? 'shield-checkmark-outline' : profile.security_status === 'locked' ? 'lock-closed-outline' : 'shield-outline'} label={securityLabel} />
         {(profile.mfa_factor_count || 0) > 0 ? <MiniPill icon="key-outline" label={`${profile.mfa_factor_count} factor(es) MFA`} /> : null}
         {profile.role_id === 'admin' && profile.admin_role_name ? <MiniPill icon="key-outline" label={profile.admin_role_name} /> : null}

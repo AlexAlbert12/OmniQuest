@@ -26,6 +26,7 @@ export function useAdminRpcPage<T extends { total_count?: number | null }>(
   args: Record<string, unknown>,
   refreshVersion: number,
   pageSize = ADMIN_PAGE_SIZE,
+  enabled = true,
 ) {
   const feedback = useAppFeedback()
   const [rows, setRows] = useState<T[]>([])
@@ -42,6 +43,7 @@ export function useAdminRpcPage<T extends { total_count?: number | null }>(
   useEffect(() => setPage(0), [argsKey])
 
   const fetchPage = useCallback(async () => {
+    if (!enabled) { setRows([]); setTotal(0); setLoading(false); setRefreshing(false); return }
     setLoading(true)
     try {
       const dynamicClient = supabase as unknown as DynamicRpcClient
@@ -58,7 +60,7 @@ export function useAdminRpcPage<T extends { total_count?: number | null }>(
       setLoading(false)
       setRefreshing(false)
     }
-  }, [feedback, functionName, page, pageSize, stableArgs])
+  }, [enabled, feedback, functionName, page, pageSize, stableArgs])
 
   useEffect(() => { void fetchPage() }, [fetchPage, refreshVersion])
 

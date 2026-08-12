@@ -67,7 +67,7 @@ export function useAdminActions(data: AdminData, requestConfirmation?: AdminConf
     const approved = await requestSensitiveConfirmation({
       title: 'Restablecer contraseña',
       message: `Se enviará un enlace de recuperación a ${profile.email}. Esta acción quedará registrada en auditoría.`,
-      confirmationText: 'RESET', confirmLabel: 'Enviar enlace', destructive: true, icon: 'key-outline',
+      confirmationText: 'RESET', confirmLabel: 'Enviar enlace', destructive: false, icon: 'key-outline',
     })
     if (!approved) return
     try {
@@ -78,21 +78,21 @@ export function useAdminActions(data: AdminData, requestConfirmation?: AdminConf
     }
   }, [feedback, requestSensitiveConfirmation])
 
-  const deleteStudentProgress = useCallback(async (student: ProfileRow) => {
-    const approved = await requestSensitiveConfirmation({
-      title: 'Eliminar progreso académico',
-      message: `Se eliminarán puntuaciones, progreso por tema e intentos de ${student.alias}. Esta acción no se puede deshacer.`,
-      confirmationText: 'ELIMINAR', confirmLabel: 'Eliminar progreso', destructive: true, icon: 'trash-outline',
-    })
-    if (!approved) return
+  const deleteStudentProgress = useCallback(async (student: ProfileRow, reason: string) => {
+    const administrativeReason = reason.trim()
+    if (administrativeReason.length < 5) {
+      feedback.warning('Motivo obligatorio', 'Indica un motivo administrativo de al menos 5 caracteres.')
+      return
+    }
     try {
-      await invokeAdminAction('admin-delete-student-progress', { studentId: student.id })
+      await invokeAdminAction('admin-delete-student-progress', { studentId: student.id, reason: administrativeReason })
       await data.refresh()
-      feedback.success('Progreso eliminado', `El progreso de ${student.alias} se ha eliminado.`)
+      feedback.success('Progreso eliminado', `Se han eliminado puntuaciones, progreso por tema, intentos e insignias de ${student.alias}.`)
     } catch (error: unknown) {
       feedback.error('No se pudo eliminar progreso', getErrorMessage(error, 'Inténtalo de nuevo.'))
     }
-  }, [data, feedback, requestSensitiveConfirmation])
+  }, [data, feedback])
+
 
   const toggleCourseArchive = useCallback(async (subject: SubjectRow, governance?: { reason?: string; deactivateClassrooms?: boolean }) => {
     const archive = !subject.is_archived

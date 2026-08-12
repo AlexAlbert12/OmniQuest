@@ -31,6 +31,7 @@ export type AdminPortalContext = {
 export type ProfileRow = {
   id: string
   alias: string
+  avatar?: string | null
   email: string | null
   role_id: string | null
   active: boolean | null
@@ -390,7 +391,7 @@ export type AdminExportJob = {
   total_count?: number | null
 }
 
-export const ADMIN_PAGE_SIZE = 50
+export const ADMIN_PAGE_SIZE = 25
 
 export const adminSections: { section: AdminSection; label: string; icon: IconName; href: string; permission: AdminPermission }[] = [
   { section: 'home', label: 'Inicio', icon: 'home-outline', href: '/(admin)/homeAdmin', permission: 'dashboard.read' },

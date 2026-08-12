@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import AdminButton from './AdminButton'
-import { Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
 import AppBottomSheet from '../../ui/AppBottomSheet'
 import AppPressable from '../../ui/AppPressable'
+import DateCalendar from '../../ui/DateCalendar'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
+import { useI18n } from '../../../lib/i18n'
 import { useResponsiveLayout } from '../../../lib/responsive'
 import { supabase } from '../../../lib/supabase'
 
@@ -161,47 +162,66 @@ export function AdminFilterSelect({
 
 export function AdminDateRangeFields({
   from,
+  fromLabel = 'Desde',
   onChangeFrom,
   onChangeTo,
   to,
+  toLabel = 'Hasta',
 }: {
   from: string
+  fromLabel?: string
   onChangeFrom: (value: string) => void
   onChangeTo: (value: string) => void
   to: string
+  toLabel?: string
 }) {
   const responsive = useResponsiveLayout()
   return (
     <View style={[styles.dateGroup, responsive.isMobile ? styles.dateGroupMobile : null]}>
-      <AdminDateField label="Desde" value={from} onChange={onChangeFrom} />
-      <AdminDateField label="Hasta" value={to} onChange={onChangeTo} />
+      <AdminDateField label={fromLabel} value={from} onChange={onChangeFrom} />
+      <AdminDateField label={toLabel} value={to} onChange={onChangeTo} />
     </View>
   )
 }
 
-function AdminDateField({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
+export function AdminDateField({ label, minWidth, onChange, value }: { label: string; minWidth?: number; onChange: (value: string) => void; value: string }) {
   const { tokens } = useAppTheme()
+  const { locale } = useI18n()
+  const selectedDate = useMemo(() => parseAdminDate(value), [value])
+  const [visible, setVisible] = useState(false)
+  const [month, setMonth] = useState(selectedDate || new Date())
+  const formatted = selectedDate
+    ? new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }).format(selectedDate)
+    : 'Sin límite'
+
+  const selectDate = (date: Date) => {
+    onChange(formatAdminDateInput(date))
+    setVisible(false)
+  }
+
   return (
-    <View style={styles.dateField}>
+    <View style={[styles.dateField, minWidth !== undefined ? { minWidth } : null]}>
       <Text style={[styles.fieldLabel, { color: tokens.text.muted }]}>{label}</Text>
-      <View style={[styles.dateInputShell, { backgroundColor: tokens.surface.interactive, borderColor: tokens.border.default }]}>
-        <Ionicons name="calendar-outline" size={16} color={tokens.text.secondary} />
-        <TextInput
-          accessibilityLabel={`Fecha ${label.toLowerCase()}`}
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={value}
-          onChangeText={(next) => onChange(normalizeDateInput(next))}
-          placeholder="AAAA-MM-DD"
-          placeholderTextColor={tokens.text.muted}
-          style={[styles.dateInput, { color: tokens.text.primary }]}
-        />
-        {value ? (
-          <AppPressable accessibilityLabel={`Limpiar fecha ${label.toLowerCase()}`} hitSlop={8} onPress={() => onChange('')}>
-            <Ionicons name="close-circle" size={17} color={tokens.text.muted} />
-          </AppPressable>
-        ) : null}
-      </View>
+      <AppPressable
+        accessibilityLabel={`Fecha ${label.toLowerCase()}`}
+        accessibilityHint="Abre un calendario para elegir la fecha"
+        accessibilityState={{ expanded: visible }}
+        onPress={() => { setMonth(selectedDate || new Date()); setVisible(true) }}
+        style={({ pressed }) => [styles.dateInputShell, { backgroundColor: tokens.surface.interactive, borderColor: tokens.border.default, opacity: pressed ? 0.82 : 1 }]}
+      >
+        <Ionicons name="calendar-outline" size={18} color={tokens.brand.admin} />
+        <Text numberOfLines={1} style={[styles.dateValue, { color: selectedDate ? tokens.text.primary : tokens.text.muted }]}>{formatted}</Text>
+        <Ionicons name="chevron-down" size={17} color={tokens.text.muted} />
+      </AppPressable>
+      <AppBottomSheet
+        visible={visible}
+        onClose={() => setVisible(false)}
+        title={`Fecha ${label.toLowerCase()}`}
+        description="Selecciona un día en el calendario."
+        footer={<View className="flex-row flex-wrap justify-end gap-2"><AdminButton label="Limpiar" icon="close-circle-outline" variant="ghost" onPress={() => { onChange(''); setVisible(false) }} /><AdminButton label="Cancelar" variant="secondary" onPress={() => setVisible(false)} /></View>}
+      >
+        <DateCalendar month={month} selectedDate={selectedDate} onMonthChange={setMonth} onSelectDate={selectDate} subtitle="Selecciona un día" locale={locale} minimumDate={null} selectionColor={tokens.brand.admin} />
+      </AppBottomSheet>
     </View>
   )
 }
@@ -239,7 +259,6 @@ export function AdminProfileFilters({
   onChangeCreatedTo: (value: string) => void
   mobileAction?: React.ReactNode
 }) {
-  const router = useRouter()
   const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -259,18 +278,17 @@ export function AdminProfileFilters({
     if (activityState !== 'all') values.push({ key: 'activity', label: `Actividad: ${PROFILE_ACTIVITY_OPTIONS.find((item) => item.value === activityState)?.label || activityState}`, clear: () => onChangeActivityState('all') })
     if (courseId) values.push({ key: 'course', label: `Curso: ${courseOptions.find((item) => item.value === courseId)?.label || courseId}`, clear: () => onChangeCourseId('') })
     if (classroomId) values.push({ key: 'classroom', label: `Clase: ${classroomOptions.find((item) => item.value === classroomId)?.label || classroomId}`, clear: () => onChangeClassroomId('') })
-    if (createdFrom) values.push({ key: 'from', label: `Desde: ${createdFrom}`, clear: () => onChangeCreatedFrom('') })
-    if (createdTo) values.push({ key: 'to', label: `Hasta: ${createdTo}`, clear: () => onChangeCreatedTo('') })
+    if (createdFrom) values.push({ key: 'from', label: `Alta desde: ${createdFrom}`, clear: () => onChangeCreatedFrom('') })
+    if (createdTo) values.push({ key: 'to', label: `Alta hasta: ${createdTo}`, clear: () => onChangeCreatedTo('') })
     return values
   }, [accountStatus, activityState, classroomId, classroomOptions, courseId, courseOptions, createdFrom, createdTo, onChangeAccountStatus, onChangeActivityState, onChangeClassroomId, onChangeCourseId, onChangeCreatedFrom, onChangeCreatedTo])
 
   const sharedFields = (mobile: boolean) => <>
-    {!mobile ? <AdminFilterSelect label="Rol" icon="people-outline" value={currentRole} onChange={(value) => router.push(value === 'teacher' ? '/(admin)/teachers' as any : '/(admin)/students' as any)} options={[{ value: 'teacher', label: 'Profesores' }, { value: 'student', label: 'Alumnos' }]} minWidth={mobile ? 0 : 180} /> : null}
     <AdminFilterSelect label="Estado de cuenta" icon="shield-checkmark-outline" value={accountStatus} onChange={onChangeAccountStatus} options={PROFILE_ACCOUNT_OPTIONS} minWidth={mobile ? 0 : 180} />
     <AdminFilterSelect label="Actividad" icon="pulse-outline" value={activityState} onChange={onChangeActivityState} options={PROFILE_ACTIVITY_OPTIONS} minWidth={mobile ? 0 : 180} />
     <AdminFilterSelect label="Curso" icon="book-outline" value={courseId} onChange={onChangeCourseId} options={courseOptions} minWidth={mobile ? 0 : 180} />
     <AdminFilterSelect label="Clase" icon="albums-outline" value={classroomId} onChange={onChangeClassroomId} options={classroomOptions} minWidth={mobile ? 0 : 180} />
-    <AdminDateRangeFields from={createdFrom} to={createdTo} onChangeFrom={onChangeCreatedFrom} onChangeTo={onChangeCreatedTo} />
+    <AdminDateRangeFields from={createdFrom} to={createdTo} fromLabel="Alta desde" toLabel="Alta hasta" onChangeFrom={onChangeCreatedFrom} onChangeTo={onChangeCreatedTo} />
   </>
 
   if (!responsive.isMobile) return <View style={styles.filterGrid}>{sharedFields(false)}</View>
@@ -289,11 +307,19 @@ export function toAdminFilterTimestamp(value: string, endOfDay = false) {
   return `${value}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}Z`
 }
 
-function normalizeDateInput(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 8)
-  if (digits.length <= 4) return digits
-  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`
-  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`
+function parseAdminDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  if (date.getFullYear() !== Number(match[1]) || date.getMonth() !== Number(match[2]) - 1 || date.getDate() !== Number(match[3])) return null
+  return date
+}
+
+function formatAdminDateInput(value: Date) {
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const day = String(value.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 const styles = StyleSheet.create({
@@ -422,7 +448,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  dateInput: {
+  dateValue: {
     minWidth: 0,
     flex: 1,
     fontSize: 12,

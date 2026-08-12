@@ -10,10 +10,12 @@ import { Panel } from '../shared/AdminPrimitives'
 import AdminRoleManagementPanel from '../users/AdminRoleManagementPanel'
 import type { AdminPermission, IconName } from '../types/admin'
 import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
+import { useAppTheme } from '../../../lib/appTheme'
+import { withAlpha } from '../../../lib/color'
 
 export function AdminUsersHubScreen() {
   const data = useAdminData()
-  return <AdminScaffold activeSection="users" title="Usuarios" subtitle="Elige la entidad que quieres supervisar. Los filtros y la búsqueda aparecen al entrar." data={data}><HubGrid items={[{ title: 'Profesores', description: 'Cuentas docentes, cursos, seguridad y actividad.', icon: 'school-outline', href: '/(admin)/teachers', permission: 'users.read' }, { title: 'Alumnos', description: 'Cuentas, matrículas, progreso y actividad reciente.', icon: 'people-outline', href: '/(admin)/students', permission: 'users.read' }]} permissions={data.portalContext?.permissions} /></AdminScaffold>
+  return <AdminScaffold activeSection="users" title="Usuarios" subtitle="Gestiona profesores y alumnos desde un único punto." data={data}><HubGrid items={[{ title: 'Profesores', description: 'Cuentas docentes, cursos, seguridad y actividad.', icon: 'school-outline', href: '/(admin)/teachers', permission: 'users.read' }, { title: 'Alumnos', description: 'Cuentas, matrículas, progreso y actividad reciente.', icon: 'people-outline', href: '/(admin)/students', permission: 'users.read' }]} permissions={data.portalContext?.permissions} /></AdminScaffold>
 }
 
 export function AdminContentHubScreen() {
@@ -54,9 +56,10 @@ export function AdminSettingsScreen() {
 type HubItem = { title: string; description: string; icon: IconName; href: string; permission: AdminPermission | AdminPermission[] }
 function HubGrid({ items, permissions }: { items: HubItem[]; permissions?: AdminPermission[] }) {
   const router = useRouter()
+  const { tokens } = useAppTheme()
   const availablePermissions = permissions || []
   const visible = items.filter((item) => (Array.isArray(item.permission) ? item.permission.some((permission) => availablePermissions.includes(permission)) : availablePermissions.includes(item.permission)))
-  return <View className="mt-5 flex-row flex-wrap gap-4">{visible.map((item) => <Pressable key={item.href} accessibilityRole="link" accessibilityLabel={`Abrir ${item.title}`} onPress={() => router.push(item.href as any)} className="min-w-[250px] flex-1 rounded-[24px] border border-border-default bg-surface-default p-5" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}><View className="h-12 w-12 items-center justify-center rounded-2xl bg-surface-selected"><Ionicons name={item.icon} size={25} /></View><Text className="mt-4 text-[18px] font-black text-text-primary">{item.title}</Text><Text className="mt-2 text-[13px] leading-5 text-text-secondary">{item.description}</Text><View className="mt-4 flex-row items-center gap-2"><Text className="font-black text-brand-admin">Entrar</Text><Ionicons name="arrow-forward" size={17} /></View></Pressable>)}</View>
+  return <View className="mt-5 flex-row flex-wrap gap-4">{visible.map((item) => <Pressable key={item.href} accessibilityRole="link" accessibilityLabel={`Abrir ${item.title}`} onPress={() => router.push(item.href as any)} className="min-w-[250px] flex-1 rounded-[24px] border border-border-default bg-surface-default p-5" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}><View className="h-12 w-12 items-center justify-center rounded-2xl border" style={{ backgroundColor: withAlpha(tokens.brand.admin, '18'), borderColor: withAlpha(tokens.brand.admin, '50') }}><Ionicons name={item.icon} size={25} color={tokens.brand.admin} /></View><Text className="mt-4 text-[18px] font-black text-text-primary">{item.title}</Text><Text className="mt-2 text-[13px] leading-5 text-text-secondary">{item.description}</Text><View className="mt-4 flex-row items-center gap-2"><Text className="font-black text-brand-admin">Entrar</Text><Ionicons name="arrow-forward" size={17} color={tokens.brand.admin} /></View></Pressable>)}</View>
 }
 function InfoRow({ icon, label, value }: { icon: IconName; label: string; value: string }) { return <View className="flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-raised px-4 py-3"><Ionicons name={icon} size={19} /><View className="min-w-0 flex-1"><Text className="text-[10px] font-black uppercase tracking-[0.7px] text-text-muted">{label}</Text><Text className="mt-1 text-[13px] font-black text-text-primary">{value}</Text></View></View> }
 function getInitials(value: string) { return value.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'A' }

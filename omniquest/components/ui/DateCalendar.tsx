@@ -14,6 +14,7 @@ type DateCalendarProps = {
   subtitle?: string
   locale?: string
   minimumDate?: Date | null
+  selectionColor?: string
 }
 
 export default function DateCalendar({
@@ -24,8 +25,10 @@ export default function DateCalendar({
   subtitle = 'Selecciona una fecha',
   locale = 'es-ES',
   minimumDate = null,
+  selectionColor,
 }: DateCalendarProps) {
   const { accentColor, tokens } = useAppTheme()
+  const activeColor = selectionColor || accentColor
   const days = useMemo(() => getMonthGrid(month), [month])
   const weekdays = useMemo(() => Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(locale, { weekday: 'narrow' }).format(new Date(2024, 0, index + 1))), [locale])
   const today = new Date()
@@ -77,8 +80,8 @@ export default function DateCalendar({
               style={({ pressed }) => [
                 styles.day,
                 {
-                  borderColor: isSelected ? accentColor : isToday ? withAlpha(accentColor, '75') : 'transparent',
-                  backgroundColor: isSelected ? withAlpha(accentColor, '24') : pressed ? tokens.surface.interactive : 'transparent',
+                  borderColor: isSelected ? activeColor : isToday ? withAlpha(activeColor, '75') : 'transparent',
+                  backgroundColor: isSelected ? withAlpha(activeColor, '24') : pressed ? tokens.surface.interactive : 'transparent',
                   opacity: disabled ? 0.28 : 1,
                 },
               ]}
@@ -86,7 +89,7 @@ export default function DateCalendar({
               <Text
                 style={[
                   styles.dayNumber,
-                  { color: isSelected ? accentColor : isCurrentMonth ? tokens.text.primary : withAlpha(tokens.text.muted, '80') },
+                  { color: isSelected ? activeColor : isCurrentMonth ? tokens.text.primary : withAlpha(tokens.text.muted, '80') },
                 ]}
               >
                 {date.getDate()}

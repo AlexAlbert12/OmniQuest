@@ -52,6 +52,7 @@ export function AdminCoursesSection() {
     p_created_from: toAdminFilterTimestamp(createdFrom), p_created_to: toAdminFilterTimestamp(createdTo, true),
   }), [activeState, archivedState, createdFrom, createdTo, search, teacherId])
   const page = useAdminRpcPage<SubjectRow>('get_admin_subjects_page', rpcFilters, data.version, pageSize)
+  useEffect(() => selection.clear(), [activeState, archivedState, createdFrom, createdTo, page.page, search, selection.clear, teacherId])
 
   const handleExport = async () => {
     if (page.total >= 1000) return exportJobs.request('subjects', rpcFilters)
@@ -81,9 +82,9 @@ export function AdminCoursesSection() {
   }
 
   const teacherOptions = directory.teachers.filter((teacher) => teacher.active).map((teacher) => ({ value: teacher.id, label: teacher.alias, subtitle: teacher.email || undefined }))
-  const canManage = !data.portalContext || data.portalContext.permissions.includes('courses.manage')
-  const canTransfer = !data.portalContext || data.portalContext.permissions.includes('courses.transfer')
-  const canDelete = !data.portalContext || data.portalContext.permissions.includes('courses.delete')
+  const canManage = Boolean(data.portalContext?.permissions.includes('courses.manage'))
+  const canTransfer = Boolean(data.portalContext?.permissions.includes('courses.transfer'))
+  const canDelete = Boolean(data.portalContext?.permissions.includes('courses.delete'))
 
   return (
     <AdminScaffold activeSection="courses" title="Cursos" subtitle="Supervisa propietarios, archivo, conservación y relación con sus clases." data={data}>

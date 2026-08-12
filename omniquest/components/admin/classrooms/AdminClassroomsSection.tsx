@@ -52,6 +52,7 @@ export function AdminClassroomsSection() {
     p_created_from: toAdminFilterTimestamp(createdFrom), p_created_to: toAdminFilterTimestamp(createdTo, true),
   }), [activeState, courseId, createdFrom, createdTo, params.studentId, search, teacherId])
   const page = useAdminRpcPage<ClassroomRow>('get_admin_classrooms_page', rpcFilters, data.version, pageSize)
+  useEffect(() => selection.clear(), [activeState, courseId, createdFrom, createdTo, page.page, params.studentId, search, selection.clear, teacherId])
 
   const handleExport = async () => {
     if (page.total >= 1000) return exportJobs.request('classrooms', rpcFilters)
@@ -62,7 +63,7 @@ export function AdminClassroomsSection() {
     if (governanceMode === 'deactivate-classroom') await actions.executeBulkAction({ action: 'deactivate_classrooms', entity: 'classrooms', ids: selection.selected, reason: result.reason })
     selection.clear(); setGovernanceMode(null); page.refresh()
   }
-  const canManage = !data.portalContext || data.portalContext.permissions.includes('courses.manage')
+  const canManage = Boolean(data.portalContext?.permissions.includes('courses.manage'))
 
   return (
     <AdminScaffold activeSection="classrooms" title="Clases" subtitle="Supervisa estado operativo, códigos, propietarios y relación con el curso." data={data}>

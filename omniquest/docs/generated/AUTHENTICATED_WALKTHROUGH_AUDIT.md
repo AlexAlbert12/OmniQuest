@@ -1,10 +1,10 @@
 # Auditoría de recorridos autenticados
 
-Estado acumulado hasta: 20260812103000_admin_push_center.sql
+Estado acumulado hasta: 20260812150000_admin_profile_activity_refinement.sql
 
 ## Resumen
 
-- Archivos cliente inspeccionados: 440
+- Archivos cliente inspeccionados: 441
 - Llamadas inventariadas: 227
 - Tablas detectadas: 18
 - RPC detectadas: 117
@@ -24,8 +24,8 @@ Estado acumulado hasta: 20260812103000_admin_push_center.sql
 | Tipo | Recurso | Archivo | Línea |
 |---|---|---|---:|
 | edge | `admin-bulk-operations` | `components/admin/api/adminApi.ts` | 72 |
-| edge | `admin-create-teacher` | `components/admin/users/AdminTeachersSection.tsx` | 70 |
-| edge | `admin-delete-student-progress` | `components/admin/hooks/useAdminActions.ts` | 89 |
+| edge | `admin-create-teacher` | `components/admin/users/AdminTeachersSection.tsx` | 72 |
+| edge | `admin-delete-student-progress` | `components/admin/hooks/useAdminActions.ts` | 88 |
 | edge | `admin-process-push-delivery` | `components/admin/api/adminApi.ts` | 162 |
 | edge | `admin-reset-password` | `components/admin/hooks/useAdminActions.ts` | 74 |
 | edge | `auth-attempt-guard` | `lib/authSecurity.ts` | 109 |
@@ -73,14 +73,15 @@ Estado acumulado hasta: 20260812103000_admin_push_center.sql
 | rpc | `get_admin_audit_policy` | `components/admin/audit/AdminAuditSection.tsx` | 48 |
 | rpc | `get_admin_classrooms_page` | `components/admin/classrooms/AdminClassroomsSection.tsx` | 54 |
 | rpc | `get_admin_dashboard_metrics` | `components/admin/hooks/useAdminData.ts` | 38 |
-| rpc | `get_admin_directory_filters` | `components/admin/shared/AdminAdvancedFilters.tsx` | 42 |
+| rpc | `get_admin_directory_filters` | `components/admin/shared/AdminAdvancedFilters.tsx` | 47 |
 | rpc | `get_admin_export_download_path` | `components/admin/api/adminApi.ts` | 93 |
 | rpc | `get_admin_export_jobs_page` | `components/admin/api/adminApi.ts` | 87 |
 | rpc | `get_admin_portal_context` | `components/admin/api/adminApi.ts` | 52 |
-| rpc | `get_admin_profile_activity_page` | `components/admin/users/AdminProfileActivityScreen.tsx` | 47 |
+| rpc | `get_admin_profile_activity_page` | `components/admin/users/AdminProfileActivityScreen.tsx` | 75 |
 | rpc | `get_admin_profiles_page` | `components/admin/hooks/useAdminData.ts` | 39 |
-| rpc | `get_admin_profiles_page` | `components/admin/users/AdminStudentsSection.tsx` | 53 |
-| rpc | `get_admin_profiles_page` | `components/admin/users/AdminTeachersSection.tsx` | 62 |
+| rpc | `get_admin_profiles_page` | `components/admin/users/AdminProfileActivityScreen.tsx` | 57 |
+| rpc | `get_admin_profiles_page` | `components/admin/users/AdminStudentsSection.tsx` | 55 |
+| rpc | `get_admin_profiles_page` | `components/admin/users/AdminTeachersSection.tsx` | 63 |
 | rpc | `get_admin_push_delivery_detail` | `components/admin/api/adminApi.ts` | 144 |
 | rpc | `get_admin_push_delivery_metrics` | `components/admin/api/adminApi.ts` | 132 |
 | rpc | `get_admin_push_delivery_page` | `components/admin/api/adminApi.ts` | 138 |
@@ -159,7 +160,7 @@ Estado acumulado hasta: 20260812103000_admin_push_center.sql
 | rpc | `save_manual_review_settings` | `hooks/teacher/useManualReview.ts` | 110 |
 | rpc | `save_manual_review_template` | `hooks/teacher/useManualReview.ts` | 115 |
 | rpc | `save_teacher_question_v2` | `components/teacher/question-form/useTeacherQuestionForm.ts` | 658 |
-| rpc | `search_app_entities` | `components/search/GlobalSearchButton.tsx` | 66 |
+| rpc | `search_app_entities` | `components/search/GlobalSearchButton.tsx` | 67 |
 | rpc | `set_analytics_consent` | `lib/analytics.ts` | 60 |
 | rpc | `set_teacher_course_notification_preference` | `hooks/teacher/useTeacherCommunicationSettings.ts` | 158 |
 | rpc | `set_teacher_digest_preference` | `hooks/teacher/useTeacherCommunicationSettings.ts` | 120 |
@@ -203,7 +204,6 @@ Estado acumulado hasta: 20260812103000_admin_push_center.sql
 | table | `profiles` | `app/(student)/badges.tsx` | 131 |
 | table | `profiles` | `app/(student)/classes.tsx` | 163 |
 | table | `profiles` | `app/(student)/notifications.tsx` | 99 |
-| table | `profiles` | `components/admin/users/AdminProfileActivityScreen.tsx` | 35 |
 | table | `profiles` | `components/support/RoleHelpCenter.tsx` | 147 |
 | table | `profiles` | `components/teacher/TeacherSidebar.tsx` | 75 |
 | table | `profiles` | `components/ui/RoleHeaderAvatar.tsx` | 35 |

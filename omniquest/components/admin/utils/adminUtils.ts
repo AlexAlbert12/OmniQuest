@@ -1,6 +1,7 @@
 import type { DesignColorTokens } from '../../../lib/designTokens'
 import type { AppFeedback } from '../../../hooks/useAppFeedback'
 import { getErrorMessage } from '../../../lib/typeGuards'
+import { getTeacherAuditActionLabel } from '../../../lib/teacherAuditPresentation'
 import type {
   AdminAuditLogRow,
   AdminDashboardMetrics,
@@ -92,43 +93,47 @@ export function getAdminAuditSeverityMeta(severity: string, tokens: DesignColorT
   return { label: 'Informativa', icon: 'information-circle' as IconName, color: tokens.semantic.info, background: tokens.semanticSurface.info }
 }
 
-export function getAuditActionLabel(action: string) {
-  const labels: Record<string, string> = {
-    'admin.user.activate': 'Usuario activado',
-    'admin.user.deactivate': 'Usuario desactivado',
-    'admin.user.reset_password': 'Contraseña restablecida',
-    'admin.student.delete_progress': 'Progreso eliminado',
-    'admin.teacher.create': 'Profesor creado',
-    'admin.teacher.update_existing': 'Profesor existente actualizado',
-    'admin.course.archive': 'Curso archivado',
-    'admin.course.restore': 'Curso restaurado',
-    'admin.course.transfer': 'Curso transferido',
-    'admin.course.delete': 'Curso eliminado',
-    'admin.classroom.activate': 'Clase activada',
-    'admin.classroom.deactivate': 'Clase desactivada',
-    'admin.support.update': 'Ticket de soporte actualizado',
-    'admin.role.assign': 'Rol administrativo actualizado',
-    'admin.bulk.execute': 'Operación por lotes',
-    'admin.notification.send': 'Notificación push enviada',
-    'admin.notification.retry': 'Notificación push reintentada',
-    'admin.notification.cancel': 'Envío push cancelado',
-    'admin.notification.process_now': 'Procesamiento push solicitado',
-  }
-  return labels[action] || action.replace(/[._-]+/g, ' ')
+const ADMIN_AUDIT_ACTION_LABELS: Record<string, string> = {
+  'admin.user.activate': 'Usuario activado',
+  'admin.user.deactivate': 'Usuario desactivado',
+  'admin.user.reset_password': 'Contraseña restablecida',
+  'admin.student.delete_progress': 'Progreso eliminado',
+  'admin.teacher.create': 'Profesor creado',
+  'admin.teacher.update_existing': 'Profesor existente actualizado',
+  'admin.course.archive': 'Curso archivado',
+  'admin.course.restore': 'Curso restaurado',
+  'admin.course.transfer': 'Curso transferido',
+  'admin.course.delete': 'Curso eliminado',
+  'admin.classroom.activate': 'Clase activada',
+  'admin.classroom.deactivate': 'Clase desactivada',
+  'admin.support.update': 'Ticket de soporte actualizado',
+  'admin.role.assign': 'Rol administrativo actualizado',
+  'admin.bulk.execute': 'Operación por lotes',
+  'admin.notification.send': 'Notificación push enviada',
+  'admin.notification.retry': 'Notificación push reintentada',
+  'admin.notification.cancel': 'Envío push cancelado',
+  'admin.notification.process_now': 'Procesamiento push solicitado',
 }
+
+
+const ADMIN_AUDIT_TARGET_LABELS: Record<string, string> = {
+  profiles: 'Usuario', subjects: 'Curso', subject_topics: 'Tema', questions: 'Pregunta', answers: 'Respuesta', classrooms: 'Clase', enrollments: 'Matrícula', subject_scores: 'Progreso del curso', topic_scores: 'Progreso del tema', attempt_history: 'Intento', game_attempts: 'Partida', student_badges: 'Logro', user_support_tickets: 'Ticket de soporte', admin_export_jobs: 'Exportación', admin_role_assignments: 'Rol administrativo', notifications: 'Notificación', notification_delivery_queue: 'Entrega push', teacher_audit_logs: 'Actividad docente', admin_audit_logs: 'Actividad administrativa',
+}
+
+export function getAuditActionLabel(action: string) { if (action.startsWith('teacher.')) return getTeacherAuditActionLabel(action); return ADMIN_AUDIT_ACTION_LABELS[action] || action.replace(/[._-]+/g, ' ') }
 
 export function getAuditTargetLabel(log: AdminAuditLogRow) {
   if (!log.target_table) return 'Sistema'
-  const tableLabels: Record<string, string> = { profiles: 'Usuario', subjects: 'Curso', classrooms: 'Clase', user_support_tickets: 'Ticket de soporte', admin_export_jobs: 'Exportación', admin_role_assignments: 'Rol administrativo', notifications: 'Notificación', notification_delivery_queue: 'Entrega push' }
-  const label = tableLabels[log.target_table] || log.target_table.replaceAll('_', ' ')
+  const label = ADMIN_AUDIT_TARGET_LABELS[log.target_table] || log.target_table.replaceAll('_', ' ')
   if (!log.target_id) return label
   return log.target_table === 'user_support_tickets' ? `${label} · #${log.target_id}` : `${label} · ${log.target_id}`
 }
 
 export function getAuditTargetTypeLabel(targetTable?: string | null) {
   if (!targetTable) return 'Sistema'
-  const labels: Record<string, string> = { profiles: 'Usuario', subjects: 'Curso', classrooms: 'Clase', user_support_tickets: 'Soporte', admin_export_jobs: 'Exportación', admin_role_assignments: 'Permisos', notifications: 'Notificación', notification_delivery_queue: 'Entrega push' }
-  return labels[targetTable] || targetTable.replaceAll('_', ' ')
+  if (targetTable === 'user_support_tickets') return 'Soporte'
+  if (targetTable === 'admin_role_assignments') return 'Permisos'
+  return ADMIN_AUDIT_TARGET_LABELS[targetTable] || targetTable.replaceAll('_', ' ')
 }
 
 export function stringMetadata(metadata: Record<string, unknown>, key: string) {
