@@ -5846,6 +5846,23 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_admin_account_export_requests_page: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          completed_at: string | null
+          error_message: string | null
+          expires_at: string | null
+          file_size_bytes: number | null
+          id: string
+          requested_at: string
+          started_at: string | null
+          status: string
+          total_count: number
+          user_alias: string
+          user_id: string
+          user_role: string
+        }[]
+      }
       get_admin_dashboard_metrics: { Args: never; Returns: Json }
       get_admin_directory_filters: { Args: never; Returns: Json }
       get_admin_enrollments_summary: { Args: never; Returns: Json }

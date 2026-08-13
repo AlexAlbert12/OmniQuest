@@ -21,7 +21,7 @@ test.describe('administrador autenticado', () => {
     await expect(auditNavigation).toBeVisible({ timeout: 60_000 })
     await auditNavigation.click()
     await expect(page).toHaveURL(/\/audit(?:\?|$)/)
-    await expect(page.getByRole('heading', { name: 'Auditoría' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Auditoría', exact: true })).toBeVisible()
     const policy = await supabaseRpc<AuditPolicy>(page, session, 'get_admin_audit_policy', {}, 'Política autenticada de auditoría')
 
     expect(policy.append_only).toBe(true)

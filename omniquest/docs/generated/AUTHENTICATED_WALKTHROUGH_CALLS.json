@@ -1,12 +1,12 @@
 {
-  "generatedAt": "20260812200000_admin_audit_experience_refinement.sql",
-  "sourceFiles": 443,
+  "generatedAt": "20260813112000_admin_account_export_supervision.sql",
+  "sourceFiles": 445,
   "calls": [
     {
       "kind": "edge",
       "resource": "admin-bulk-operations",
       "path": "components/admin/api/adminApi.ts",
-      "line": 72
+      "line": 76
     },
     {
       "kind": "edge",
@@ -24,7 +24,7 @@
       "kind": "edge",
       "resource": "admin-process-push-delivery",
       "path": "components/admin/api/adminApi.ts",
-      "line": 162
+      "line": 172
     },
     {
       "kind": "edge",
@@ -78,7 +78,7 @@
       "kind": "edge",
       "resource": "send-push-notification",
       "path": "components/admin/api/adminApi.ts",
-      "line": 166
+      "line": 176
     },
     {
       "kind": "edge",
@@ -174,13 +174,13 @@
       "kind": "rpc",
       "resource": "admin_cancel_push_delivery",
       "path": "components/admin/api/adminApi.ts",
-      "line": 156
+      "line": 166
     },
     {
       "kind": "rpc",
       "resource": "admin_retry_push_delivery",
       "path": "components/admin/api/adminApi.ts",
-      "line": 150
+      "line": 160
     },
     {
       "kind": "rpc",
@@ -198,7 +198,7 @@
       "kind": "rpc",
       "resource": "assign_admin_role",
       "path": "components/admin/api/adminApi.ts",
-      "line": 126
+      "line": 136
     },
     {
       "kind": "rpc",
@@ -274,6 +274,12 @@
     },
     {
       "kind": "rpc",
+      "resource": "get_admin_account_export_requests_page",
+      "path": "components/admin/api/adminApi.ts",
+      "line": 97
+    },
+    {
+      "kind": "rpc",
       "resource": "get_admin_audit_logs_page_secured",
       "path": "components/admin/audit/AdminAuditSection.tsx",
       "line": 70
@@ -312,19 +318,19 @@
       "kind": "rpc",
       "resource": "get_admin_export_download_path",
       "path": "components/admin/api/adminApi.ts",
-      "line": 93
+      "line": 103
     },
     {
       "kind": "rpc",
       "resource": "get_admin_export_jobs_page",
       "path": "components/admin/api/adminApi.ts",
-      "line": 87
+      "line": 91
     },
     {
       "kind": "rpc",
       "resource": "get_admin_portal_context",
       "path": "components/admin/api/adminApi.ts",
-      "line": 52
+      "line": 53
     },
     {
       "kind": "rpc",
@@ -360,31 +366,31 @@
       "kind": "rpc",
       "resource": "get_admin_push_delivery_detail",
       "path": "components/admin/api/adminApi.ts",
-      "line": 144
+      "line": 154
     },
     {
       "kind": "rpc",
       "resource": "get_admin_push_delivery_metrics",
       "path": "components/admin/api/adminApi.ts",
-      "line": 132
+      "line": 142
     },
     {
       "kind": "rpc",
       "resource": "get_admin_push_delivery_page",
       "path": "components/admin/api/adminApi.ts",
-      "line": 138
+      "line": 148
     },
     {
       "kind": "rpc",
       "resource": "get_admin_role_assignments_page",
       "path": "components/admin/api/adminApi.ts",
-      "line": 120
+      "line": 130
     },
     {
       "kind": "rpc",
       "resource": "get_admin_roles",
       "path": "components/admin/api/adminApi.ts",
-      "line": 114
+      "line": 124
     },
     {
       "kind": "rpc",
@@ -420,7 +426,7 @@
       "kind": "rpc",
       "resource": "get_admin_user_change_history_page",
       "path": "components/admin/api/adminApi.ts",
-      "line": 104
+      "line": 114
     },
     {
       "kind": "rpc",
@@ -792,7 +798,7 @@
       "kind": "rpc",
       "resource": "request_admin_export_job",
       "path": "components/admin/api/adminApi.ts",
-      "line": 78
+      "line": 82
     },
     {
       "kind": "rpc",
@@ -918,7 +924,7 @@
       "kind": "storage",
       "resource": "admin-exports",
       "path": "components/admin/api/adminApi.ts",
-      "line": 98
+      "line": 108
     },
     {
       "kind": "storage",
@@ -1406,6 +1412,7 @@
     "equip_profile_cosmetics",
     "finish_game_attempt",
     "get_activity_attempt_detail",
+    "get_admin_account_export_requests_page",
     "get_admin_audit_logs_page_secured",
     "get_admin_audit_policy",
     "get_admin_classrooms_page",

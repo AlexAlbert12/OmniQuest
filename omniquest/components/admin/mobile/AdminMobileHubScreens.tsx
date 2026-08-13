@@ -4,12 +4,16 @@ import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useAdminData } from '../hooks/useAdminData'
 import { useAdminExportJobs } from '../hooks/useAdminExportJobs'
+import { useAdminAccountExportRequests } from '../hooks/useAdminAccountExportRequests'
 import { AdminScaffold } from '../shared/AdminScaffold'
 import AdminExportJobsPanel from '../shared/AdminExportJobsPanel'
+import AdminAccountExportRequestsPanel from '../shared/AdminAccountExportRequestsPanel'
 import { Panel } from '../shared/AdminPrimitives'
 import AdminRoleManagementPanel from '../users/AdminRoleManagementPanel'
 import type { AdminPermission, IconName } from '../types/admin'
 import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
+import { useAppModal } from '../../AppModalProvider'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
 
@@ -26,14 +30,28 @@ export function AdminContentHubScreen() {
 export function AdminMoreScreen() {
   const data = useAdminData()
   const router = useRouter()
+  const responsive = useResponsiveLayout()
+  const { tokens } = useAppTheme()
+  const { showModal } = useAppModal()
   const signOut = async () => { await signOutCurrentDeviceSession(); router.replace('/(auth)/login' as any) }
-  return <AdminScaffold activeSection="more" title="Más" subtitle="Soporte, notificaciones, exportaciones, cuenta y gobierno administrativo." data={data}><HubGrid items={[{ title: 'Soporte', description: 'Cola de tickets, asignación, SLA y conversación.', icon: 'headset-outline', href: '/(admin)/support', permission: 'support.read' }, { title: 'Notificaciones push', description: 'Supervisa la cola, entregas, reintentos y dispositivos registrados.', icon: 'notifications-outline', href: '/(admin)/push', permission: 'notifications.read' }, { title: 'Exportaciones', description: 'Consulta el estado y descarga los archivos preparados en segundo plano.', icon: 'cloud-download-outline', href: '/(admin)/exports', permission: ['users.export', 'courses.read', 'audit.export', 'support.read'] }, { title: 'Administración y permisos', description: 'Asigna perfiles administrativos con el principio de mínimo privilegio.', icon: 'key-outline', href: '/(admin)/permissions', permission: 'admin.roles.manage' }, { title: 'Perfil', description: 'Identidad de la cuenta y rol administrativo.', icon: 'person-circle-outline', href: '/(admin)/profile', permission: 'dashboard.read' }, { title: 'Configuración', description: 'Seguridad, privacidad y preferencias del portal.', icon: 'settings-outline', href: '/(admin)/settings', permission: 'dashboard.read' }]} permissions={data.portalContext?.permissions} /><Pressable accessibilityRole="button" accessibilityLabel="Cerrar sesión" onPress={() => void signOut()} className="mt-4 flex-row items-center justify-center gap-3 rounded-2xl border border-semantic-danger bg-semantic-surface-danger px-5 py-4"><Ionicons name="log-out-outline" size={21} /><Text className="font-black text-semantic-danger">Cerrar sesión</Text></Pressable></AdminScaffold>
+  const requestSignOut = () => showModal({ title: 'Cerrar sesión', message: 'Se cerrará tu sesión administrativa en este dispositivo.', variant: 'warning', buttons: [{ label: 'Cancelar', role: 'cancel' }, { label: 'Cerrar sesión', role: 'danger', onPress: signOut }] })
+  const items: HubItem[] = [
+    ...(!responsive.isDesktop ? [{ title: 'Soporte', description: 'Gestiona tickets, asignaciones y conversaciones.', icon: 'headset-outline' as const, href: '/(admin)/support', permission: 'support.read' as const }] : []),
+    { title: 'Notificaciones push', description: 'Supervisa envíos, entregas, reintentos y dispositivos registrados.', icon: 'notifications-outline', href: '/(admin)/push', permission: 'notifications.read' },
+    { title: 'Exportaciones', description: 'Consulta el estado y descarga los archivos preparados.', icon: 'cloud-download-outline', href: '/(admin)/exports', permission: ['users.export', 'courses.read', 'audit.export', 'support.read'] },
+    { title: 'Administración y permisos', description: 'Gestiona el acceso y los permisos de otros administradores.', icon: 'key-outline', href: '/(admin)/permissions', permission: 'admin.roles.manage' },
+    { title: 'Perfil', description: 'Identidad de la cuenta y rol administrativo.', icon: 'person-circle-outline', href: '/(admin)/profile', permission: 'dashboard.read' },
+    { title: 'Configuración', description: 'Seguridad, privacidad y preferencias del portal.', icon: 'settings-outline', href: '/(admin)/settings', permission: 'dashboard.read' },
+  ]
+  return <AdminScaffold activeSection="more" title="Más" subtitle="Soporte, notificaciones, exportaciones, permisos y gestión de tu cuenta." data={data}><HubGrid items={items} permissions={data.portalContext?.permissions} compactOnMobile />{!responsive.isDesktop ? <Pressable accessibilityRole="button" accessibilityLabel="Cerrar sesión" accessibilityHint="Pide confirmación antes de cerrar la sesión administrativa" onPress={requestSignOut} className="mt-4 flex-row items-center justify-center gap-3 rounded-2xl border border-semantic-danger bg-semantic-surface-danger px-5 py-4" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}><Ionicons name="log-out-outline" size={21} color={tokens.semantic.danger} /><Text className="font-black text-semantic-danger">Cerrar sesión</Text></Pressable> : null}</AdminScaffold>
 }
 
 export function AdminExportsScreen() {
   const data = useAdminData()
+  const canViewAccountExports = Boolean(data.portalContext?.permissions.includes('users.export'))
   const exportJobs = useAdminExportJobs({ loadJobs: true, pollPending: true })
-  return <AdminScaffold activeSection="exports" title="Exportaciones" subtitle="Consulta los trabajos solicitados y descarga los archivos cuando estén preparados." data={data}><AdminExportJobsPanel jobs={exportJobs.jobs} loading={exportJobs.loading} onDownload={(id) => void exportJobs.download(id)} /></AdminScaffold>
+  const accountExports = useAdminAccountExportRequests({ enabled: canViewAccountExports, pollPending: true })
+  return <AdminScaffold activeSection="exports" title="Exportaciones" subtitle="Supervisa solicitudes personales y trabajos administrativos sin exponer archivos privados de otros usuarios." data={data}>{canViewAccountExports ? <AdminAccountExportRequestsPanel requests={accountExports.requests} loading={accountExports.loading} error={accountExports.error} /> : null}<AdminExportJobsPanel jobs={exportJobs.jobs} loading={exportJobs.loading} onDownload={(id) => void exportJobs.download(id)} /></AdminScaffold>
 }
 
 export function AdminPermissionsScreen() {
@@ -44,7 +62,7 @@ export function AdminPermissionsScreen() {
 
 export function AdminProfileScreen() {
   const data = useAdminData()
-  const profile = data.profiles.find((item) => item.id === data.portalContext?.user_id)
+  const profile = data.portalContext?.profile
   return <AdminScaffold activeSection="profile" title="Perfil" subtitle="Identidad y alcance de tu cuenta administrativa." data={data}><Panel title="Cuenta administrativa" icon="person-circle-outline" className="mt-5"><View className="items-center py-4"><View className="h-24 w-24 items-center justify-center rounded-full bg-surface-selected"><Text className="text-[30px] font-black text-brand-admin">{getInitials(profile?.alias || 'Administrador')}</Text></View><Text className="mt-4 text-[22px] font-black text-text-primary">{profile?.alias || 'Administrador'}</Text><Text className="mt-1 text-[13px] text-text-muted">{profile?.email || 'Correo protegido'}</Text><View className="mt-5 w-full gap-3"><InfoRow icon="shield-checkmark-outline" label="Rol" value={data.portalContext?.role_name || 'Sin verificar'} /><InfoRow icon="key-outline" label="Permisos" value={`${data.portalContext?.permissions.length || 0} asignados`} /><InfoRow icon="checkmark-circle-outline" label="Estado" value={profile?.active === false ? 'Inactivo' : 'Activo'} /></View></View></Panel></AdminScaffold>
 }
 
@@ -54,11 +72,13 @@ export function AdminSettingsScreen() {
 }
 
 type HubItem = { title: string; description: string; icon: IconName; href: string; permission: AdminPermission | AdminPermission[] }
-function HubGrid({ items, permissions }: { items: HubItem[]; permissions?: AdminPermission[] }) {
+function HubGrid({ compactOnMobile = false, items, permissions }: { compactOnMobile?: boolean; items: HubItem[]; permissions?: AdminPermission[] }) {
   const router = useRouter()
   const { tokens } = useAppTheme()
+  const responsive = useResponsiveLayout()
   const availablePermissions = permissions || []
   const visible = items.filter((item) => (Array.isArray(item.permission) ? item.permission.some((permission) => availablePermissions.includes(permission)) : availablePermissions.includes(item.permission)))
+  if (compactOnMobile && !responsive.isDesktop) return <View className="mt-5 gap-3">{visible.map((item) => <Pressable key={item.href} accessibilityRole="link" accessibilityLabel={`Abrir ${item.title}`} onPress={() => router.push(item.href as any)} className="min-h-[92px] flex-row items-center gap-4 rounded-2xl border border-border-default bg-surface-default px-4 py-3" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}><View className="h-11 w-11 shrink-0 items-center justify-center rounded-xl border" style={{ backgroundColor: withAlpha(tokens.brand.admin, '18'), borderColor: withAlpha(tokens.brand.admin, '50') }}><Ionicons name={item.icon} size={22} color={tokens.brand.admin} /></View><View className="min-w-0 flex-1"><Text numberOfLines={1} className="text-[15px] font-black text-text-primary">{item.title}</Text><Text numberOfLines={2} className="mt-1 text-[12px] leading-4 text-text-secondary">{item.description}</Text></View><Ionicons name="chevron-forward" size={19} color={tokens.brand.admin} /></Pressable>)}</View>
   return <View className="mt-5 flex-row flex-wrap gap-4">{visible.map((item) => <Pressable key={item.href} accessibilityRole="link" accessibilityLabel={`Abrir ${item.title}`} onPress={() => router.push(item.href as any)} className="min-w-[250px] flex-1 rounded-[24px] border border-border-default bg-surface-default p-5" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}><View className="h-12 w-12 items-center justify-center rounded-2xl border" style={{ backgroundColor: withAlpha(tokens.brand.admin, '18'), borderColor: withAlpha(tokens.brand.admin, '50') }}><Ionicons name={item.icon} size={25} color={tokens.brand.admin} /></View><Text className="mt-4 text-[18px] font-black text-text-primary">{item.title}</Text><Text className="mt-2 text-[13px] leading-5 text-text-secondary">{item.description}</Text><View className="mt-4 flex-row items-center gap-2"><Text className="font-black text-brand-admin">Entrar</Text><Ionicons name="arrow-forward" size={17} color={tokens.brand.admin} /></View></Pressable>)}</View>
 }
 function InfoRow({ icon, label, value }: { icon: IconName; label: string; value: string }) { return <View className="flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-raised px-4 py-3"><Ionicons name={icon} size={19} /><View className="min-w-0 flex-1"><Text className="text-[10px] font-black uppercase tracking-[0.7px] text-text-muted">{label}</Text><Text className="mt-1 text-[13px] font-black text-text-primary">{value}</Text></View></View> }

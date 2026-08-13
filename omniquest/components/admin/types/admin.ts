@@ -21,11 +21,14 @@ export type AdminPermission =
   | 'notifications.manage'
   | 'admin.roles.manage'
 
+export type AdminPortalProfile = { id: string; alias: string; email: string | null; active: boolean; avatar: string | null }
+
 export type AdminPortalContext = {
   user_id: string
   role_id: string
   role_name: string
   permissions: AdminPermission[]
+  profile: AdminPortalProfile
 }
 
 export type ProfileRow = {
@@ -374,6 +377,21 @@ export type AdminBulkAction =
   | 'delete_courses'
   | 'activate_classrooms'
   | 'deactivate_classrooms'
+
+export type AdminAccountExportRequest = {
+  id: string
+  user_id: string
+  user_alias: string
+  user_role: 'student' | 'guest' | 'teacher' | 'admin' | string
+  status: 'queued' | 'processing' | 'ready' | 'failed' | 'expired'
+  file_size_bytes: number | null
+  requested_at: string
+  started_at: string | null
+  completed_at: string | null
+  expires_at: string | null
+  error_message: string | null
+  total_count?: number | null
+}
 
 export type AdminExportJob = {
   id: string

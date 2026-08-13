@@ -36,9 +36,13 @@ test.describe('alumno autenticado', () => {
 
     const topicButton = page.getByTestId(`student-topic-${fixtureTopic!.id}`)
     await expect(topicButton).toBeVisible()
-    const questionsPromise = waitForSupabaseResponse(page, '/rest/v1/rpc/get_safe_game_questions')
-    const attemptPromise = waitForSupabaseResponse(page, '/rest/v1/rpc/start_game_attempt')
     await topicButton.click()
+
+    const playButton = page.getByRole('button', { name: /^(?:Empezar partida|Jugar de nuevo)$/ }).first()
+    await expect(playButton).toBeVisible()
+    const questionsPromise = waitForSupabaseResponse(page, '/rest/v1/rpc/get_safe_game_questions_v2')
+    const attemptPromise = waitForSupabaseResponse(page, '/rest/v1/rpc/start_game_attempt')
+    await playButton.click()
 
     const questions = await readSupabaseJson<SafeQuestion[]>(await questionsPromise, 'Carga segura de preguntas')
     const attemptId = await readSupabaseJson<string>(await attemptPromise, 'Inicio de partida')

@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabase'
 import type { Json } from '../../../types/database.types'
 import type {
+  AdminAccountExportRequest,
   AdminActionResult,
   AdminBulkAction,
   AdminBulkEntity,
@@ -52,11 +53,14 @@ export async function fetchAdminPortalContext(): Promise<AdminPortalContext> {
   const { data, error } = await supabase.rpc('get_admin_portal_context')
   if (error) throw error
   const payload = data && typeof data === 'object' && !Array.isArray(data) ? data as Record<string, unknown> : {}
+  const userId = String(payload.user_id || '')
+  const profilePayload = payload.profile && typeof payload.profile === 'object' && !Array.isArray(payload.profile) ? payload.profile as Record<string, unknown> : {}
   return {
-    user_id: String(payload.user_id || ''),
+    user_id: userId,
     role_id: typeof payload.role_id === 'string' ? payload.role_id : '',
     role_name: typeof payload.role_name === 'string' && payload.role_name.trim() ? payload.role_name : 'Acceso administrativo pendiente',
     permissions: Array.isArray(payload.permissions) ? payload.permissions.map(String) as AdminPortalContext['permissions'] : [],
+    profile: { id: String(profilePayload.id || userId), alias: typeof profilePayload.alias === 'string' && profilePayload.alias.trim() ? profilePayload.alias : 'Administrador', email: typeof profilePayload.email === 'string' ? profilePayload.email : null, active: profilePayload.active !== false, avatar: typeof profilePayload.avatar === 'string' && profilePayload.avatar.trim() ? profilePayload.avatar : null },
   }
 }
 
@@ -87,6 +91,12 @@ export async function fetchAdminExportJobs(limit = 10) {
   const { data, error } = await supabase.rpc('get_admin_export_jobs_page', { p_limit: limit, p_offset: 0 })
   if (error) throw error
   return (data || []) as unknown as AdminExportJob[]
+}
+
+export async function fetchAdminAccountExportRequests(limit = 25) {
+  const { data, error } = await supabase.rpc('get_admin_account_export_requests_page', { p_limit: limit, p_offset: 0 })
+  if (error) throw error
+  return (data || []) as unknown as AdminAccountExportRequest[]
 }
 
 export async function getAdminExportDownloadUrl(jobId: string) {

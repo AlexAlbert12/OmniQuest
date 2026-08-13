@@ -12,7 +12,7 @@ const STATUS_LABELS: Record<AdminExportJob['status'], string> = { queued: 'En co
 export default function AdminExportJobsPanel({ jobs, loading = false, onDownload }: { jobs: AdminExportJob[]; loading?: boolean; onDownload: (id: string) => void }) {
   const { tokens } = useAppTheme()
   return (
-    <Panel title="Trabajos de exportación" icon="cloud-download-outline" className="mt-5">
+    <Panel title="Exportaciones administrativas" icon="cloud-download-outline" className="mt-5">
       <Text className="mb-4 text-[13px] leading-5 text-text-secondary">Los trabajos en cola o procesándose se actualizan automáticamente. No necesitas refrescar la pantalla.</Text>
       {loading && jobs.length === 0 ? <View className="items-center py-6"><ActivityIndicator color={tokens.brand.admin} /></View> : null}
       <View style={{ gap: 10 }}>
@@ -24,7 +24,7 @@ export default function AdminExportJobsPanel({ jobs, loading = false, onDownload
             {job.status === 'ready' ? <View className="mt-3 items-start"><AdminButton label="Descargar" icon="download-outline" size="sm" onPress={() => onDownload(job.id)} /></View> : null}
           </View>
         ))}
-        {!loading && jobs.length === 0 ? <EmptyState label="No hay exportaciones recientes." /> : null}
+        {!loading && jobs.length === 0 ? <EmptyState label="No hay exportaciones administrativas recientes." /> : null}
       </View>
     </Panel>
   )

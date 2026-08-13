@@ -21,7 +21,7 @@ test.describe('profesor autenticado', () => {
     await expect(page).toHaveURL(/\/classes(?:\?|$)/)
     await expect(page.getByRole('heading', { name: 'Cursos y clases' })).toBeVisible()
 
-    const courseButton = page.getByRole('button', { name: new RegExp(`^Gestionar ${escapeRegExp(E2E_FIXTURE.courseName)}$`, 'i') }).first()
+    const courseButton = page.getByRole('button', { name: new RegExp(`^Abrir curso ${escapeRegExp(E2E_FIXTURE.courseName)}$`, 'i') }).first()
     await expect(courseButton).toBeVisible()
     const overviewPromise = waitForSupabaseResponse(page, '/rest/v1/rpc/get_teacher_subject_overview')
     await courseButton.click()
