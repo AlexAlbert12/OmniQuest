@@ -42,6 +42,12 @@ export type DesignColorTokens = {
     disabled: string
   }
   brand: Record<AppRole, string>
+  action: {
+    admin: {
+      primary: string
+      pressed: string
+    }
+  }
   semantic: Record<SemanticColorKey, string>
   semanticSurface: Record<SemanticColorKey, string>
   gamification: Record<GamificationColorKey, string> & {
@@ -61,6 +67,13 @@ const BRAND_COLORS: Record<AppRole, string> = {
   teacher: '#09acf4',
   admin: '#A78BFA',
 }
+
+const ACTION_COLORS = {
+  admin: {
+    primary: '#7C3AED',
+    pressed: '#6D28D9',
+  },
+} as const
 
 const DARK_BASE = {
   background: {
@@ -187,6 +200,7 @@ export function createDesignColorTokens(
     },
     text: { ...base.text },
     brand: { ...BRAND_COLORS },
+    action: { admin: { ...ACTION_COLORS.admin } },
     semantic: { ...base.semantic },
     semanticSurface: { ...base.semanticSurface },
     gamification: { ...base.gamification },

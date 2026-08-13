@@ -173,21 +173,6 @@ export default function TopicDetailScreen() {
             )}
           />
 
-          <View className="mb-4 flex-row flex-wrap gap-3">
-            <StatusPill
-              icon={topic.active ? 'eye-outline' : 'archive-outline'}
-              label="Visibilidad"
-              value={topic.active ? 'Visible para el alumnado' : 'Archivado'}
-              color={topic.active ? tokens.semantic.success : tokens.text.muted}
-            />
-            <StatusPill
-              icon="calendar-outline"
-              label="Disponibilidad"
-              value={availabilityLabel}
-              color={topic.availability === 'closed' ? tokens.semantic.warning : tokens.semantic.info}
-            />
-          </View>
-
           <TeacherTopicOverview
             availability={availabilityLabel}
             difficulty={difficultyLabel}
@@ -315,26 +300,6 @@ export default function TopicDetailScreen() {
 }
 
 function LoadingState() { return <OmniLoadingScreen /> }
-
-function StatusPill({ icon, label, value, color }: {
-  icon: keyof typeof Ionicons.glyphMap
-  label: string
-  value: string
-  color: string
-}) {
-  const { tokens } = useAppTheme()
-  return (
-    <View className="min-w-[220px] flex-1 flex-row items-center gap-3 rounded-xl border p-3" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
-      <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: tokens.surface.raised }}>
-        <Ionicons name={icon} size={20} color={color} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="text-[10px] font-black uppercase tracking-[0.6px]" style={{ color: tokens.text.muted }}>{label}</Text>
-        <Text className="mt-1 text-[13px] font-black" style={{ color: tokens.text.primary }}>{value}</Text>
-      </View>
-    </View>
-  )
-}
 
 function QuestionRow({ question, number, onEdit, onDelete }: {
   question: TeacherTopicQuestion

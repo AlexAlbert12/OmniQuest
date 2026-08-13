@@ -12,7 +12,7 @@ export function fetchTeacherStudentsPage({ subjectId, classroomId, status, searc
   page: number
   pageSize: number
 }) {
-  return callTeacherRpc<TeacherStudentsPagePayload<StudentRow>>('get_teacher_students_page', {
+  return callTeacherRpc<TeacherStudentsPagePayload<StudentRow>>('get_teacher_students_page_with_avatars', {
     p_subject_id: subjectId === 'all' ? undefined : subjectId,
     p_classroom_id: classroomId === 'all' ? undefined : classroomId,
     p_status: status === 'all' ? undefined : status,

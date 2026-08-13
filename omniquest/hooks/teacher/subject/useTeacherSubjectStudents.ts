@@ -32,7 +32,7 @@ export function useTeacherSubjectStudents({ subjectId, classroomId, enabled }: {
   const setStatus = useCallback((value: StudentStatusFilter) => { setPage(0); setStatusState(value) }, [])
   const setSort = useCallback((value: StudentSortKey) => { setPage(0); setSortState(value) }, [])
 
-  const loader = useCallback(() => callTeacherRpc<TeacherSubjectStudentsPayload>('get_teacher_subject_students_page', {
+  const loader = useCallback(() => callTeacherRpc<TeacherSubjectStudentsPayload>('get_teacher_subject_students_page_with_avatars', {
     p_subject_id: subjectId,
     p_classroom_id: classroomId,
     p_search: search.trim() || undefined,

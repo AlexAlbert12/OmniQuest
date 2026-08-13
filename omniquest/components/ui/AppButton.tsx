@@ -51,12 +51,13 @@ export default function AppButton({
 }: AppButtonProps) {
   const { accentColor, tokens } = useAppTheme()
   const dimensions = SIZE_STYLES[size]
-  const primaryColor = role ? tokens.brand[role] : accentColor
+  const primaryColor = role === 'admin' ? tokens.action.admin.primary : role ? tokens.brand[role] : accentColor
   const palette = getVariantPalette(variant, primaryColor, tokens)
   const disabledPalette = getDisabledPalette(tokens)
   const unavailable = disabled || loading
   const renderedPalette = disabled ? disabledPalette : palette
   const resolvedAccessibilityLabel = accessibilityLabel || label
+  const hasAdminPressedSurface = role === 'admin' && variant === 'primary' && !disabled
 
   if (!resolvedAccessibilityLabel) {
     throw new Error('AppButton requires label or accessibilityLabel')
@@ -77,9 +78,9 @@ export default function AppButton({
           paddingHorizontal: iconOnly ? 0 : dimensions.paddingHorizontal,
           paddingVertical: iconOnly ? 0 : dimensions.paddingVertical,
           borderRadius: dimensions.radius,
-          backgroundColor: renderedPalette.background,
-          borderColor: renderedPalette.border,
-          opacity: loading ? 0.76 : pressed ? 0.8 : 1,
+          backgroundColor: pressed && hasAdminPressedSurface && !loading ? tokens.action.admin.pressed : renderedPalette.background,
+          borderColor: pressed && hasAdminPressedSurface && !loading ? tokens.action.admin.pressed : renderedPalette.border,
+          opacity: loading ? 0.76 : pressed && !hasAdminPressedSurface ? 0.8 : 1,
           transform: [{ scale: pressed && !unavailable ? 0.985 : 1 }],
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
         },

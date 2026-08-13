@@ -39,8 +39,42 @@ export function parseLines(value: string) {
     .filter(Boolean)
 }
 
+export const FILL_BLANK_MARKER = '____'
+
 export function countFillBlankMarkers(text: string) {
-  return (text.match(/_{2,}|\[\[blank\]\]|\{\{blank\}\}/gi) || []).length
+  return (text.match(/_{2,}|\[\[\s*blank\s*\]\]|\{\{\s*blank\s*\}\}/gi) || []).length
+}
+
+export function splitFillBlankPrompt(text: string) {
+  return text.split(/(_{2,}|\[\[\s*blank\s*\]\]|\{\{\s*blank\s*\}\})/gi)
+}
+
+export function isFillBlankMarker(value: string) {
+  return /^(?:_{2,}|\[\[\s*blank\s*\]\]|\{\{\s*blank\s*\}\})$/i.test(value)
+}
+
+export function getFillBlankAnswerSlots(value: string, markerCount: number) {
+  const rows = value.length > 0 ? value.split('\n') : []
+  return Array.from({ length: markerCount }, (_, index) => rows[index] || '')
+}
+
+export function reconcileFillBlankAnswers(previousText: string, nextText: string, answerText: string) {
+  const previousCount = countFillBlankMarkers(previousText)
+  const nextCount = countFillBlankMarkers(nextText)
+  if (previousCount === nextCount) return answerText
+
+  let firstDifference = 0
+  const sharedLength = Math.min(previousText.length, nextText.length)
+  while (firstDifference < sharedLength && previousText[firstDifference] === nextText[firstDifference]) firstDifference += 1
+
+  const changedMarkerIndex = countFillBlankMarkers(previousText.slice(0, firstDifference))
+  const answers = getFillBlankAnswerSlots(answerText, previousCount)
+  if (nextCount > previousCount) {
+    answers.splice(changedMarkerIndex, 0, ...Array.from({ length: nextCount - previousCount }, () => ''))
+  } else {
+    answers.splice(changedMarkerIndex, previousCount - nextCount)
+  }
+  return answers.slice(0, nextCount).join('\n')
 }
 
 export function parsePairLines(value: string) {
@@ -220,7 +254,7 @@ export function getQuestionValidationIssues({
 
   if (!questionText.trim()) issues.push({ step: 2, field: 'Enunciado', message: 'Escribe el enunciado de la pregunta.' })
   if (selectedType === 'fill' && countFillBlankMarkers(questionText) === 0) {
-    issues.push({ step: 2, field: 'Enunciado', message: 'Marca al menos un hueco con ____.' })
+    issues.push({ step: 2, field: 'Enunciado', message: 'Añade al menos un hueco con el botón «Crear hueco».' })
   }
   if (mediaType === 'image' && !mediaAltText.trim()) {
     issues.push({ step: 2, field: 'Contenido multimedia', message: 'Añade texto alternativo para la imagen.' })

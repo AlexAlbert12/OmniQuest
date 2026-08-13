@@ -36,6 +36,10 @@ module.exports = {
           teacher: 'var(--omni-brand-teacher)',
           admin: 'var(--omni-brand-admin)',
         },
+        action: {
+          admin: 'var(--omni-action-admin)',
+          'admin-pressed': 'var(--omni-action-admin-pressed)',
+        },
         semantic: {
           success: 'var(--omni-semantic-success)',
           warning: 'var(--omni-semantic-warning)',

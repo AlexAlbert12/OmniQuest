@@ -94,6 +94,8 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     '--omni-brand-student': tokens.brand.student,
     '--omni-brand-teacher': tokens.brand.teacher,
     '--omni-brand-admin': tokens.brand.admin,
+    '--omni-action-admin': tokens.action.admin.primary,
+    '--omni-action-admin-pressed': tokens.action.admin.pressed,
     '--omni-semantic-success': tokens.semantic.success,
     '--omni-semantic-warning': tokens.semantic.warning,
     '--omni-semantic-danger': tokens.semantic.danger,

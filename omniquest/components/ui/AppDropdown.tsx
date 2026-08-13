@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons'
 import AppBottomSheet from './AppBottomSheet'
 import AppPressable from './AppPressable'
 import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
+import type { AppRole } from '../../lib/designTokens'
 
 export type AppDropdownOption<T extends string | number> = {
   value: T
@@ -21,6 +23,7 @@ type AppDropdownProps<T extends string | number> = {
   placeholder?: string
   disabled?: boolean
   accessibilityLabel?: string
+  role?: AppRole
   style?: StyleProp<ViewStyle>
 }
 
@@ -32,12 +35,15 @@ export default function AppDropdown<T extends string | number>({
   placeholder = 'Selecciona una opción',
   disabled = false,
   accessibilityLabel,
+  role,
   style,
 }: AppDropdownProps<T>) {
   const [open, setOpen] = useState(false)
   const { tokens } = useAppTheme()
   const selected = useMemo(() => options.find((option) => option.value === value) || null, [options, value])
   const resolvedLabel = accessibilityLabel || label || placeholder
+  const activeColor = role ? tokens.brand[role] : tokens.border.active
+  const activeSurface = role ? withAlpha(activeColor, '18') : tokens.surface.selected
 
   const select = (nextValue: T) => {
     onChange(nextValue)
@@ -57,7 +63,7 @@ export default function AppDropdown<T extends string | number>({
           styles.trigger,
           {
             backgroundColor: disabled ? tokens.surface.disabled : tokens.surface.interactive,
-            borderColor: open ? tokens.border.active : tokens.border.default,
+            borderColor: open ? activeColor : tokens.border.default,
             opacity: disabled ? 0.56 : pressed ? 0.82 : 1,
           },
         ]}
@@ -89,13 +95,13 @@ export default function AppDropdown<T extends string | number>({
                 style={({ pressed }) => [
                   styles.option,
                   {
-                    backgroundColor: active ? tokens.surface.selected : tokens.surface.raised,
-                    borderColor: active ? tokens.border.active : tokens.border.default,
+                    backgroundColor: active ? activeSurface : tokens.surface.raised,
+                    borderColor: active ? activeColor : tokens.border.default,
                     opacity: option.disabled ? 0.45 : pressed ? 0.8 : 1,
                   },
                 ]}
               >
-                {option.icon ? <Ionicons name={option.icon} size={19} color={active ? tokens.border.active : tokens.text.secondary} /> : null}
+                {option.icon ? <Ionicons name={option.icon} size={19} color={active ? activeColor : tokens.text.secondary} /> : null}
                 <View style={styles.optionCopy}>
                   <Text maxFontSizeMultiplier={2} style={[styles.optionLabel, { color: tokens.text.primary }]}>{option.label}</Text>
                   {option.description ? (
@@ -105,7 +111,7 @@ export default function AppDropdown<T extends string | number>({
                 <Ionicons
                   name={active ? 'radio-button-on' : 'radio-button-off'}
                   size={20}
-                  color={active ? tokens.border.active : tokens.text.muted}
+                  color={active ? activeColor : tokens.text.muted}
                 />
               </AppPressable>
             )

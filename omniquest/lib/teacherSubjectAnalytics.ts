@@ -22,6 +22,7 @@ export type StudentProfile = {
 export type StudentReport = {
   id: string
   name: string
+  avatar?: string | null
   score: number
   grade: number
   accuracyPercent: number

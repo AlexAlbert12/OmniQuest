@@ -7,7 +7,8 @@ import type { SemanticIconKey } from '../../../lib/designTokens';
 import AppButton from '../../ui/AppButton';
 import AppPressable from '../../ui/AppPressable';
 import { useAppTheme } from '../../../lib/appTheme';
-import { formatRelativeDate, getInitials, getStatusMeta } from './studentUtils';
+import { formatRelativeDate, getStatusMeta } from './studentUtils';
+import StudentProfileAvatar from './StudentProfileAvatar';
 
 export function MetricCard({ icon, semantic, title, value, detail, color }: {
   icon?: keyof typeof Ionicons.glyphMap
@@ -143,9 +144,7 @@ export const StudentCard = React.memo(function StudentCard({
   return (
     <View className="rounded-2xl border border-border-default bg-surface-default p-5" style={{ width: isWide ? '48.5%' : '100%' }}>
       <View className="flex-row items-start gap-3">
-        <View className="h-12 w-12 items-center justify-center rounded-full bg-surface-selected">
-          <Text className="text-[15px] font-black text-white">{getInitials(student.alias)}</Text>
-        </View>
+        <StudentProfileAvatar alias={student.alias} avatar={student.avatar} size={48} accentColor={status.color} />
         <View className="min-w-0 flex-1">
           <View className="flex-row items-center gap-2">
             <Text className="min-w-0 flex-1 text-[17px] font-black text-white" numberOfLines={1}>{student.alias}</Text>
@@ -365,9 +364,7 @@ export function AttentionRow({ student, onPress }: { student: StudentRow; onPres
 
   return (
     <Pressable onPress={() => onPress(student)} className="flex-row items-center gap-3" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}>
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-selected">
-        <Text className="text-[12px] font-black text-white">{getInitials(student.alias)}</Text>
-      </View>
+      <StudentProfileAvatar alias={student.alias} avatar={student.avatar} size={36} accentColor={status.color} />
       <View className="min-w-0 flex-1">
         <Text className="text-[13px] font-bold text-white" numberOfLines={1}>{student.alias}</Text>
         <Text className="text-[11px] text-text-secondary">{reason}</Text>
@@ -378,4 +375,3 @@ export function AttentionRow({ student, onPress }: { student: StudentRow; onPres
     </Pressable>
   );
 }
-

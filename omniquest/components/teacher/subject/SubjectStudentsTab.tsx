@@ -7,7 +7,6 @@ import PaginationControls from '../../ui/PaginationControls'
 import VirtualizedStack from '../../ui/VirtualizedStack'
 import {
   getGradeColor,
-  getInitials,
   getStudentSortLabel,
   getStudentStatus,
   getStudentStatusFilterLabel,
@@ -19,6 +18,7 @@ import {
 } from '../../../lib/teacherSubjectAnalytics'
 import { SubjectPanel, GradeDistributionBars } from './SubjectShared'
 import { formatCount } from '../../../lib/formatCount'
+import StudentProfileAvatar from '../students/StudentProfileAvatar'
 
 const statusOptions: { value: StudentStatusFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { value: 'all', label: 'Todos', icon: 'people-outline' },
@@ -213,7 +213,12 @@ function StudentClassRow({ student, index, mobile = false }: { student: StudentR
     return (
       <View className="rounded-2xl border border-border-default bg-surface-default p-4">
         <View className="flex-row items-start gap-3">
-          <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? '#F59E0B' : '#1E3356' }}><Text className="text-[12px] font-black text-white">{index + 1}</Text></View>
+          <View>
+            <StudentProfileAvatar alias={student.name} avatar={student.avatar} size={46} accentColor={index < 3 ? '#F59E0B' : '#38BDF8'} />
+            <View className="absolute -bottom-1 -right-1 h-5 min-w-5 items-center justify-center rounded-full border border-background-primary bg-surface-selected px-1">
+              <Text className="text-[9px] font-black text-white">{index + 1}</Text>
+            </View>
+          </View>
           <View className="min-w-0 flex-1">
             <Text className="font-black text-white" numberOfLines={1}>{student.name}</Text>
             <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>@{slugifyStudentName(student.name)} · {formatRelative(student.lastActivity, index)}</Text>
@@ -224,7 +229,7 @@ function StudentClassRow({ student, index, mobile = false }: { student: StudentR
         <View className="mt-4 flex-row flex-wrap gap-2">
           <StudentMobileStat label="Progreso" value={`${student.participation}%`} color="white" />
           <StudentMobileStat label="XP" value={`${student.score.toLocaleString('es-ES')}`} color="#09acf4" />
-          <StudentMobileStat label="Partidas" value={String(student.playedSessions)} color="#white" />
+          <StudentMobileStat label="Partidas" value={String(student.playedSessions)} color="#FFFFFF" />
           <StudentMobileStat label="Nota" value={student.hasActivity ? student.grade.toFixed(1) : 'Sin evaluar'} color={student.hasActivity ? gradeColor : '#8FA7C7'} />
         </View>
       </View>
@@ -235,7 +240,7 @@ function StudentClassRow({ student, index, mobile = false }: { student: StudentR
     <View className="flex-row flex-wrap items-center gap-y-3 border-b border-border-subtle px-2 py-4">
       <View className="min-w-[45px] flex-[0.35]"><View className="h-7 w-7 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? '#F59E0B' : '#1E3356' }}><Text className="text-[11px] font-black text-white">{index + 1}</Text></View></View>
       <View className="min-w-[180px] flex-[1.4] flex-row items-center gap-3">
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-selected"><Text className="font-black text-semantic-info">{getInitials(student.name)}</Text></View>
+        <StudentProfileAvatar alias={student.name} avatar={student.avatar} size={40} />
         <View className="min-w-0 flex-1"><Text className="font-black text-white" numberOfLines={1}>{student.name}</Text><Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>@{slugifyStudentName(student.name)}</Text></View>
       </View>
       <View className="min-w-[130px] flex-[1] flex-row items-center gap-3"><View className="h-2 flex-1 overflow-hidden rounded-full bg-surface-interactive"><View className="h-full rounded-full bg-brand-teacher" style={{ width: `${student.participation}%` }} /></View><Text className="w-10 text-right text-[12px] font-bold text-white">{student.participation}%</Text></View>
@@ -261,7 +266,7 @@ function StudentAttentionItem({ student }: { student: StudentReport }) {
   const reason = getAttentionReason(student)
   return (
     <View className="flex-row items-center gap-3">
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-selected"><Text className="text-[12px] font-black text-semantic-info">{getInitials(student.name)}</Text></View>
+      <StudentProfileAvatar alias={student.name} avatar={student.avatar} size={36} accentColor={reason.color} />
       <View className="min-w-0 flex-1"><Text className="text-[13px] font-bold text-white" numberOfLines={1}>{student.name}</Text><Text className="text-[11px] text-text-secondary">{reason.label}</Text></View>
       <View className="rounded-md border px-2 py-1" style={{ borderColor: reason.color }}><Text className="text-[11px] font-black" style={{ color: reason.color }}>{reason.value}</Text></View>
     </View>

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "20260813123000_admin_export_center_refinement.sql",
+  "generatedAt": "20260813140000_admin_permissions_experience_refinement.sql",
   "sourceFiles": 446,
   "calls": [
     {
@@ -24,7 +24,7 @@
       "kind": "edge",
       "resource": "admin-process-push-delivery",
       "path": "components/admin/api/adminApi.ts",
-      "line": 174
+      "line": 180
     },
     {
       "kind": "edge",
@@ -78,7 +78,7 @@
       "kind": "edge",
       "resource": "send-push-notification",
       "path": "components/admin/api/adminApi.ts",
-      "line": 178
+      "line": 184
     },
     {
       "kind": "edge",
@@ -174,13 +174,13 @@
       "kind": "rpc",
       "resource": "admin_cancel_push_delivery",
       "path": "components/admin/api/adminApi.ts",
-      "line": 168
+      "line": 174
     },
     {
       "kind": "rpc",
       "resource": "admin_retry_push_delivery",
       "path": "components/admin/api/adminApi.ts",
-      "line": 162
+      "line": 168
     },
     {
       "kind": "rpc",
@@ -366,19 +366,19 @@
       "kind": "rpc",
       "resource": "get_admin_push_delivery_detail",
       "path": "components/admin/api/adminApi.ts",
-      "line": 156
+      "line": 162
     },
     {
       "kind": "rpc",
       "resource": "get_admin_push_delivery_metrics",
       "path": "components/admin/api/adminApi.ts",
-      "line": 144
+      "line": 150
     },
     {
       "kind": "rpc",
       "resource": "get_admin_push_delivery_page",
       "path": "components/admin/api/adminApi.ts",
-      "line": 150
+      "line": 156
     },
     {
       "kind": "rpc",
@@ -811,6 +811,12 @@
       "resource": "review_manual_review_attempt",
       "path": "hooks/teacher/useManualReview.ts",
       "line": 99
+    },
+    {
+      "kind": "rpc",
+      "resource": "revoke_admin_role",
+      "path": "components/admin/api/adminApi.ts",
+      "line": 144
     },
     {
       "kind": "rpc",
@@ -1495,6 +1501,7 @@
     "request_admin_export_job",
     "request_teacher_audit_export",
     "review_manual_review_attempt",
+    "revoke_admin_role",
     "save_manual_review_settings",
     "save_manual_review_template",
     "save_teacher_question_v2",

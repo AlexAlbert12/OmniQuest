@@ -153,6 +153,8 @@ test('question management has one contextual create CTA and a real topic selecto
 
 test('student KPIs are mobile 2x2, selectors are real dropdowns and metrics come from server-wide aggregates', () => {
   const students = read('components/teacher/subject/SubjectStudentsTab.tsx')
+  const avatar = read('components/teacher/students/StudentProfileAvatar.tsx')
+  const avatarMigration = read('supabase/migrations/20260813150000_teacher_student_directory_avatars.sql')
   const types = read('lib/teacherServerData.ts')
   const migration = read('supabase/migrations/20260810104500_teacher_course_detail_mobile_hardening.sql')
   const analytics = read('lib/teacherSubjectAnalytics.ts')
@@ -160,6 +162,13 @@ test('student KPIs are mobile 2x2, selectors are real dropdowns and metrics come
   assert.match(students, /min-w-\[150px\] flex-1/)
   assert.match(students, /<AppDropdown<StudentStatusFilter>/)
   assert.match(students, /<AppDropdown<StudentSortKey>/)
+  assert.match(students, /StudentProfileAvatar/)
+  assert.match(students, /avatar=\{student\.avatar\}/)
+  assert.match(avatar, /<Image source=\{\{ uri: avatarUri \}\}/)
+  assert.match(avatar, /onError=\{\(\) => setFailed\(true\)\}/)
+  assert.match(avatarMigration, /get_teacher_students_page_with_avatars/)
+  assert.match(avatarMigration, /get_teacher_subject_students_page_with_avatars/)
+  assert.match(avatarMigration, /revoke all[\s\S]*from public, anon/)
   assert.doesNotMatch(analytics, /getNextStudentStatusFilter/)
   assert.doesNotMatch(analytics, /getNextStudentSortKey/)
   assert.match(types, /generatedXp: number/)

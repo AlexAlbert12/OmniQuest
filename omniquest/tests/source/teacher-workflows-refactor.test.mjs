@@ -40,6 +40,8 @@ test('teacher students prioritize attention and inactivity before an expandable 
   assert.match(desktop, /Sin actividad/)
   assert.match(desktop, /accessibilityState=\{\{ expanded \}\}/)
   assert.match(desktop, /Ver detalle/)
+  assert.match(desktop, /StudentProfileAvatar/)
+  assert.match(desktop, /avatar=\{student\.avatar\}/)
 })
 
 test('student history leads with recommendation and moves analytics into lazy tabs', () => {

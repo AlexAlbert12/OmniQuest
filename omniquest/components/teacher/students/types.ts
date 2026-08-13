@@ -99,6 +99,7 @@ export type StudentSortKey = 'attention' | 'accuracy' | 'xp' | 'last_activity' |
 export type StudentRow = {
   id: string
   alias: string
+  avatar: string | null
   handle: string
   globalPoints: number
   subjectScore: number
@@ -161,4 +162,3 @@ export const sortOptions: { value: StudentSortKey; label: string }[] = [
   { value: 'last_activity', label: 'Última actividad' },
   { value: 'name', label: 'Nombre' },
 ];
-

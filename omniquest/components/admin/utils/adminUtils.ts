@@ -84,7 +84,7 @@ export function getNumericParam(value: string | string[] | undefined) {
 }
 
 export function getAdminAuditSeverity(action: string) {
-  if (/delete|remove|critical|student\.delete_progress/i.test(action)) return 'critical'
+  if (/delete|remove|revoke|critical|student\.delete_progress/i.test(action)) return 'critical'
   if (/deactivate|archive|reset_password|reset|transfer/i.test(action)) return 'warning'
   return 'info'
 }
@@ -110,6 +110,7 @@ const ADMIN_AUDIT_ACTION_LABELS: Record<string, string> = {
   'admin.classroom.deactivate': 'Clase desactivada',
   'admin.support.update': 'Ticket de soporte actualizado',
   'admin.role.assign': 'Rol administrativo actualizado',
+  'admin.role.revoke': 'Acceso administrativo retirado',
   'admin.bulk.execute': 'Operación por lotes',
   'admin.notification.send': 'Notificación push enviada',
   'admin.notification.retry': 'Notificación push reintentada',

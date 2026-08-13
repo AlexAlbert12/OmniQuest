@@ -7,7 +7,8 @@ import VirtualizedStack from '../../ui/VirtualizedStack'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
 import type { StudentRow } from './types'
-import { formatRelativeDate, getInitials, getStatusMeta } from './studentUtils'
+import { formatRelativeDate, getStatusMeta } from './studentUtils'
+import StudentProfileAvatar from './StudentProfileAvatar'
 
 export function TeacherStudentPrioritySections({
   attentionStudents,
@@ -104,9 +105,7 @@ function PrioritySection({
                 style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive }}
               >
                 <View className="flex-row items-center gap-3">
-                  <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '24') }}>
-                    <Text className="font-black" style={{ color: tokens.text.primary }}>{getInitials(student.alias)}</Text>
-                  </View>
+                  <StudentProfileAvatar alias={student.alias} avatar={student.avatar} size={40} accentColor={color} />
                   <View className="min-w-0 flex-1">
                     <Text numberOfLines={1} className="text-[14px] font-black" style={{ color: tokens.text.primary }}>{student.alias}</Text>
                     <Text numberOfLines={1} className="mt-0.5 text-[11px]" style={{ color: tokens.text.secondary }}>
@@ -181,9 +180,7 @@ export default function TeacherStudentsDesktopTable({
               style={({ pressed }) => ({ backgroundColor: pressed || expanded ? tokens.surface.interactive : tokens.surface.default })}
             >
               <View className="min-w-0 flex-[1.5] flex-row items-center gap-3">
-                <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(tokens.brand.teacher, '24') }}>
-                  <Text className="font-black" style={{ color: tokens.text.primary }}>{getInitials(student.alias)}</Text>
-                </View>
+                <StudentProfileAvatar alias={student.alias} avatar={student.avatar} size={40} />
                 <View className="min-w-0 flex-1">
                   <Text numberOfLines={1} className="text-[14px] font-black" style={{ color: tokens.text.primary }}>{student.alias}</Text>
                   <Text className="mt-0.5 text-[11px]" style={{ color: tokens.text.muted }}>{formatRelativeDate(student.lastActivityAt)}</Text>

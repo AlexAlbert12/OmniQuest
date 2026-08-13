@@ -140,6 +140,12 @@ export async function assignAdminRole(userId: string, roleId: string, reason: st
   return data
 }
 
+export async function revokeAdminRole(userId: string, reason: string) {
+  const { data, error } = await supabase.rpc('revoke_admin_role', { p_user_id: userId, p_reason: reason })
+  if (error) throw error
+  return data
+}
+
 export async function fetchAdminPushDeliveryMetrics(days = 30) {
   const { data, error } = await supabase.rpc('get_admin_push_delivery_metrics', { p_days: days })
   if (error) throw error

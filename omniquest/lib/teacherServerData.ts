@@ -236,6 +236,7 @@ export type TeacherSubjectQuestion = {
 export type TeacherSubjectStudent = {
   id: string
   name: string
+  avatar: string | null
   score: number
   grade: number
   accuracyPercent: number

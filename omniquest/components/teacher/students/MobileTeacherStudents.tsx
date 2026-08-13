@@ -16,7 +16,8 @@ import {
   type Subject,
 } from './types';
 import { NoActivityQuickActions } from './TeacherStudentList';
-import { formatRelativeDate, getInitials, getStatusMeta } from './studentUtils';
+import { formatRelativeDate, getStatusMeta } from './studentUtils';
+import StudentProfileAvatar from './StudentProfileAvatar';
 import { MobileEmptyState, MobileMetricCard, MobileScreen, MobileSectionHeader } from '../../ui/mobile';
 import VirtualizedStack from '../../ui/VirtualizedStack'
 import TeacherBottomNav from '../TeacherBottomNav';
@@ -344,9 +345,7 @@ function MobileAttentionStudentCard({
       className="rounded-2xl border border-border-default bg-surface-default p-4"
     >
       <View className="flex-row items-center gap-3">
-        <View className="min-h-12 min-w-12 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(status.color, '35') }}>
-          <Text className="text-[17px] font-black text-white">{getInitials(student.alias)}</Text>
-        </View>
+        <StudentProfileAvatar alias={student.alias} avatar={student.avatar} size={48} accentColor={status.color} />
         <View className="min-w-0 flex-1">
           <View className="flex-row items-center gap-2">
             <Text className="min-w-0 flex-1 text-[17px] font-black text-white" numberOfLines={2} maxFontSizeMultiplier={2}>{student.alias}</Text>
@@ -417,9 +416,7 @@ function MobileTeacherStudentCard({
       className="rounded-2xl border border-border-default p-4"
     >
       <View className="flex-row items-start gap-3">
-        <View className="h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(progressColor, '47') }}>
-          <Text className="text-[21px] font-black text-white">{getInitials(student.alias)}</Text>
-        </View>
+        <StudentProfileAvatar alias={student.alias} avatar={student.avatar} size={56} accentColor={progressColor} />
         <View className="min-w-0 flex-1">
           <View className="flex-row items-start gap-2">
             <View className="min-w-0 flex-1">

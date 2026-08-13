@@ -61,7 +61,7 @@ export const teacherQuestionSchema = {
     if (type === 'fill') {
       const markerCount = countFillMarkers(text)
       const fillLines = lines(value.fillAnswersText)
-      if (!markerCount) issue(issues, ['questionText'], 'Marca al menos un hueco con ____.', 2, 'Enunciado')
+      if (!markerCount) issue(issues, ['questionText'], 'Añade al menos un hueco con el botón «Crear hueco».', 2, 'Enunciado')
       if (fillLines.length === 0) issue(issues, ['fillAnswersText'], 'Añade al menos una solución válida.', 3, 'Soluciones')
       else if (markerCount && fillLines.length !== markerCount) issue(issues, ['fillAnswersText'], `Añade una solución por cada hueco (${markerCount}).`, 3, 'Soluciones')
       if (fillLines.some((item) => item.length > QUESTION_ANSWER_MAX)) issue(issues, ['fillAnswersText'], `Cada solución puede tener como máximo ${QUESTION_ANSWER_MAX} caracteres.`, 3, 'Soluciones')
@@ -98,7 +98,7 @@ function pairs(value) {
 }
 
 function countFillMarkers(value) {
-  return (String(value || '').match(/_{2,}|\[\[blank\]\]|\{\{blank\}\}/gi) || []).length
+  return (String(value || '').match(/_{2,}|\[\[\s*blank\s*\]\]|\{\{\s*blank\s*\}\}/gi) || []).length
 }
 
 function isValidWebVtt(value) {

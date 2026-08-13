@@ -324,4 +324,3 @@ function formatDate(value?: string | null) {
   const date = new Date(value)
   return Number.isFinite(date.getTime()) ? date.toLocaleDateString('es-ES') : 'sin fecha'
 }
-

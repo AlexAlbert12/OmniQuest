@@ -276,9 +276,7 @@ export function SupportTicketCard({ ticket, onManage }: { ticket: AdminSupportTi
           <Text className="mt-3 text-[16px] font-black text-text-primary">{ticket.subject}</Text>
           <Text className="mt-1 text-[12px] font-semibold text-text-muted">{ticket.user_alias || 'Usuario'} · {ticket.role === 'teacher' ? 'Profesor' : 'Alumno'} · {formatAuditDate(ticket.created_at)}</Text>
         </View>
-        <Pressable accessibilityLabel={`Gestionar ticket ${ticket.subject}`} accessibilityHint="Abre las opciones de respuesta y estado del ticket" accessibilityRole="button" onPress={onManage} className="h-10 flex-row items-center gap-2 rounded-xl bg-brand-admin px-4" style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
-          <Ionicons name="create-outline" size={16} color="#FFFFFF" /><Text className="text-[12px] font-black text-white">Gestionar</Text>
-        </Pressable>
+        <AdminButton label="Gestionar" accessibilityLabel={`Gestionar ticket ${ticket.subject}`} accessibilityHint="Abre las opciones de respuesta y estado del ticket" icon="create-outline" size="sm" onPress={onManage} />
       </View>
       <Text className="mt-3 text-[13px] leading-5 text-text-secondary" numberOfLines={3}>{ticket.message}</Text>
       <View className="mt-3 flex-row flex-wrap gap-2">

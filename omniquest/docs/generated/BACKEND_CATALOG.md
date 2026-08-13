@@ -4,9 +4,9 @@
 
 ## Resumen
 
-- Migraciones: **106**
+- Migraciones: **108**
 - Tablas públicas detectadas: **65**
-- Funciones/RPC públicas detectadas: **240**
+- Funciones/RPC públicas detectadas: **241**
 - Edge Functions: **33**
 
 ## Edge Functions
@@ -327,6 +327,7 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `reserve_teacher_student_recovery_request`
 - `review_manual_review_attempt`
 - `review_open_answer_attempt_v2`
+- `revoke_admin_role`
 - `revoke_other_user_sessions`
 - `revoke_user_session`
 - `sanitize_analytics_properties`

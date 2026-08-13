@@ -52,7 +52,7 @@ export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
       case 'open':
         return <OpenAnswerEditor value={form.openExpectedAnswer} error={answerError} onChange={form.setOpenExpectedAnswer} />
       case 'fill':
-        return <FillBlankEditor value={form.fillAnswersText} error={answerError} onChange={form.setFillAnswersText} />
+        return <FillBlankEditor questionText={form.questionText} value={form.fillAnswersText} error={answerError} onChange={form.setFillAnswersText} />
       case 'order':
         return <OrderingEditor value={form.orderItemsText} error={answerError} onChange={form.setOrderItemsText} />
       case 'match':
@@ -174,11 +174,13 @@ export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
                 <QuestionPromptEditor
                   selectedType={form.selectedType}
                   questionText={form.questionText}
+                  fillAnswersText={form.fillAnswersText}
                   media={form.media}
                   disabled={form.saving}
                   questionTextError={questionTextError}
                   mediaError={mediaError}
                   onChangeQuestionText={form.setQuestionText}
+                  onChangeFillAnswersText={form.setFillAnswersText}
                   onChangeMedia={form.setMedia}
                   onMediaError={(message) => showAlert('Contenido multimedia', message)}
                 />
