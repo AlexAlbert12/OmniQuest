@@ -38,7 +38,10 @@ test('ranking screen delegates data and leagues without owning privacy settings'
   assert.match(screen, /formatCount\(ranking\.total, 'participante', 'participantes'\)/)
   assert.match(read('components/student/ranking/RankingTabs.tsx'), /Semanal[\s\S]*Global[\s\S]*Clase/)
   assert.doesNotMatch(read('components/student/ranking/RankingTabs.tsx'), /Temporada|calendar/)
-  assert.match(read('components/student/ranking/CurrentPositionCard.tsx'), /Eres el único participante por ahora/)
+  const positionCard = read('components/student/ranking/CurrentPositionCard.tsx')
+  assert.match(positionCard, /Eres el único participante por ahora/)
+  assert.match(positionCard, /responsive\.isMobile/)
+  assert.match(positionCard, /Liga \$\{league\.name\} y \$\{points\.toLocaleString\('es-ES'\)\} XP/)
   assert.match(read('components/student/ranking/LeagueCarousel.tsx'), /borderColor: active \? league\.color : tokens\.border\.default/)
 
   const settings = read('components/settings/SettingsSections.tsx')

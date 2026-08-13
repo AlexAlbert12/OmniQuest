@@ -3,6 +3,7 @@ import { E2E_FIXTURE, escapeRegExp, hasAuthenticatedE2EEnvironment, loginAs, rea
 
 type TeacherCoursePage = { items: { id: number; name: string }[]; total: number }
 type TeacherSubjectOverview = { subject: { id: number; name: string }; classrooms: { id: number; name: string }[] }
+type TeacherQuestionPage = { items: unknown[]; total: number }
 
 test.describe('profesor autenticado', () => {
   test.skip(!hasAuthenticatedE2EEnvironment(), 'Define las seis variables E2E_* para ejecutar los recorridos autenticados.')
@@ -32,7 +33,15 @@ test.describe('profesor autenticado', () => {
     expect(overview.classrooms.length).toBeGreaterThan(0)
     await expect(page.getByRole('heading', { name: E2E_FIXTURE.courseName })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Añadir pregunta' }).click()
+    const questionsPromise = waitForSupabaseResponse(page, '/rest/v1/rpc/get_teacher_subject_questions_page')
+    await page.getByRole('tab', { name: 'Preguntas', exact: true }).click()
+    const questions = await readSupabaseJson<TeacherQuestionPage>(await questionsPromise, 'Preguntas del curso del profesor')
+
+    expect(Array.isArray(questions.items)).toBeTruthy()
+    expect(questions.total).toBeGreaterThanOrEqual(0)
+    const addQuestionButton = page.getByRole('button', { name: 'Añadir pregunta', exact: true })
+    await expect(addQuestionButton).toBeVisible()
+    await addQuestionButton.click()
     await expect(page).toHaveURL(/\/subject\/add-question(?:\?|$)/)
     await expect(page.getByRole('heading', { name: 'Nueva pregunta' })).toBeVisible()
     await expect(page.getByRole('button', { name: /Opción múltiple\./i })).toBeVisible()

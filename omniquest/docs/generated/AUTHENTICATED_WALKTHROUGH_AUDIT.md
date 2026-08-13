@@ -1,10 +1,10 @@
 # Auditoría de recorridos autenticados
 
-Estado acumulado hasta: 20260813112000_admin_account_export_supervision.sql
+Estado acumulado hasta: 20260813123000_admin_export_center_refinement.sql
 
 ## Resumen
 
-- Archivos cliente inspeccionados: 445
+- Archivos cliente inspeccionados: 446
 - Llamadas inventariadas: 228
 - Tablas detectadas: 18
 - RPC detectadas: 118
@@ -26,7 +26,7 @@ Estado acumulado hasta: 20260813112000_admin_account_export_supervision.sql
 | edge | `admin-bulk-operations` | `components/admin/api/adminApi.ts` | 76 |
 | edge | `admin-create-teacher` | `components/admin/users/AdminTeachersSection.tsx` | 73 |
 | edge | `admin-delete-student-progress` | `components/admin/hooks/useAdminActions.ts` | 88 |
-| edge | `admin-process-push-delivery` | `components/admin/api/adminApi.ts` | 172 |
+| edge | `admin-process-push-delivery` | `components/admin/api/adminApi.ts` | 174 |
 | edge | `admin-reset-password` | `components/admin/hooks/useAdminActions.ts` | 74 |
 | edge | `auth-attempt-guard` | `lib/authSecurity.ts` | 109 |
 | edge | `import-students` | `components/teacher/TeacherStudentImportModal.tsx` | 86 |
@@ -35,7 +35,7 @@ Estado acumulado hasta: 20260813112000_admin_account_export_supervision.sql
 | edge | `profile-update-avatar` | `components/student/profile/StudentAvatarCustomizationModal.tsx` | 118 |
 | edge | `profile-update-avatar` | `hooks/teacher/useTeacherProfile.ts` | 231 |
 | edge | `profile-update-avatar` | `lib/offlineMutations.ts` | 286 |
-| edge | `send-push-notification` | `components/admin/api/adminApi.ts` | 176 |
+| edge | `send-push-notification` | `components/admin/api/adminApi.ts` | 178 |
 | edge | `student-reset-own-progress` | `hooks/useSettingsData.ts` | 240 |
 | edge | `teacher-archive-subject` | `features/teacher-subject/api.ts` | 42 |
 | edge | `teacher-create-topic` | `features/teacher-subject/api.ts` | 24 |
@@ -51,11 +51,11 @@ Estado acumulado hasta: 20260813112000_admin_account_export_supervision.sql
 | rpc | `acknowledge_teacher_audit_alert` | `hooks/teacher/useTeacherAudit.ts` | 117 |
 | rpc | `add_support_ticket_message` | `lib/support.ts` | 306 |
 | rpc | `add_teacher_student_note` | `hooks/teacher/useTeacherStudentHistory.ts` | 145 |
-| rpc | `admin_cancel_push_delivery` | `components/admin/api/adminApi.ts` | 166 |
-| rpc | `admin_retry_push_delivery` | `components/admin/api/adminApi.ts` | 160 |
+| rpc | `admin_cancel_push_delivery` | `components/admin/api/adminApi.ts` | 168 |
+| rpc | `admin_retry_push_delivery` | `components/admin/api/adminApi.ts` | 162 |
 | rpc | `admin_update_support_ticket_secured` | `components/admin/support/AdminSupportSection.tsx` | 149 |
 | rpc | `archive_teacher_topic` | `hooks/teacher/useTeacherTopicDetail.ts` | 108 |
-| rpc | `assign_admin_role` | `components/admin/api/adminApi.ts` | 136 |
+| rpc | `assign_admin_role` | `components/admin/api/adminApi.ts` | 138 |
 | rpc | `batch_review_manual_attempts` | `hooks/teacher/useManualReview.ts` | 104 |
 | rpc | `cancel_account_deletion` | `components/settings/AccountDataRequestsCard.tsx` | 110 |
 | rpc | `create_subject_with_default_topic` | `components/teacher/TeacherSubjectForm.tsx` | 229 |
@@ -68,14 +68,14 @@ Estado acumulado hasta: 20260813112000_admin_account_export_supervision.sql
 | rpc | `equip_profile_cosmetics` | `lib/avatarCosmetics.ts` | 118 |
 | rpc | `finish_game_attempt` | `hooks/useGame.ts` | 260 |
 | rpc | `get_activity_attempt_detail` | `lib/studentSecureData.ts` | 333 |
-| rpc | `get_admin_account_export_requests_page` | `components/admin/api/adminApi.ts` | 97 |
+| rpc | `get_admin_account_export_requests_page` | `components/admin/api/adminApi.ts` | 98 |
 | rpc | `get_admin_audit_logs_page_secured` | `components/admin/audit/AdminAuditSection.tsx` | 70 |
 | rpc | `get_admin_audit_logs_page_secured` | `lib/adminExports.ts` | 233 |
 | rpc | `get_admin_audit_policy` | `components/admin/audit/AdminAuditSection.tsx` | 58 |
 | rpc | `get_admin_classrooms_page` | `components/admin/classrooms/AdminClassroomsSection.tsx` | 59 |
 | rpc | `get_admin_dashboard_metrics` | `components/admin/hooks/useAdminData.ts` | 38 |
 | rpc | `get_admin_directory_filters` | `components/admin/shared/AdminAdvancedFilters.tsx` | 49 |
-| rpc | `get_admin_export_download_path` | `components/admin/api/adminApi.ts` | 103 |
+| rpc | `get_admin_export_download_path` | `components/admin/api/adminApi.ts` | 105 |
 | rpc | `get_admin_export_jobs_page` | `components/admin/api/adminApi.ts` | 91 |
 | rpc | `get_admin_portal_context` | `components/admin/api/adminApi.ts` | 53 |
 | rpc | `get_admin_profile_activity_page` | `components/admin/users/AdminProfileActivityScreen.tsx` | 76 |
@@ -83,17 +83,17 @@ Estado acumulado hasta: 20260813112000_admin_account_export_supervision.sql
 | rpc | `get_admin_profiles_page` | `components/admin/users/AdminProfileActivityScreen.tsx` | 58 |
 | rpc | `get_admin_profiles_page` | `components/admin/users/AdminStudentsSection.tsx` | 56 |
 | rpc | `get_admin_profiles_page` | `components/admin/users/AdminTeachersSection.tsx` | 64 |
-| rpc | `get_admin_push_delivery_detail` | `components/admin/api/adminApi.ts` | 154 |
-| rpc | `get_admin_push_delivery_metrics` | `components/admin/api/adminApi.ts` | 142 |
-| rpc | `get_admin_push_delivery_page` | `components/admin/api/adminApi.ts` | 148 |
-| rpc | `get_admin_role_assignments_page` | `components/admin/api/adminApi.ts` | 130 |
-| rpc | `get_admin_roles` | `components/admin/api/adminApi.ts` | 124 |
+| rpc | `get_admin_push_delivery_detail` | `components/admin/api/adminApi.ts` | 156 |
+| rpc | `get_admin_push_delivery_metrics` | `components/admin/api/adminApi.ts` | 144 |
+| rpc | `get_admin_push_delivery_page` | `components/admin/api/adminApi.ts` | 150 |
+| rpc | `get_admin_role_assignments_page` | `components/admin/api/adminApi.ts` | 132 |
+| rpc | `get_admin_roles` | `components/admin/api/adminApi.ts` | 126 |
 | rpc | `get_admin_subjects_page` | `components/admin/courses/AdminCoursesSection.tsx` | 54 |
 | rpc | `get_admin_support_directory` | `lib/support.ts` | 193 |
 | rpc | `get_admin_support_tickets_page_secured` | `components/admin/support/AdminSupportSection.tsx` | 74 |
 | rpc | `get_admin_support_tickets_page_secured` | `lib/adminExports.ts` | 267 |
 | rpc | `get_admin_usage_analytics` | `components/admin/dashboard/AdminUsageAnalyticsPanel.tsx` | 23 |
-| rpc | `get_admin_user_change_history_page` | `components/admin/api/adminApi.ts` | 114 |
+| rpc | `get_admin_user_change_history_page` | `components/admin/api/adminApi.ts` | 116 |
 | rpc | `get_attempt_feedback` | `lib/studentSecureData.ts` | 258 |
 | rpc | `get_avatar_customization_options` | `lib/avatarCosmetics.ts` | 83 |
 | rpc | `get_class_ranking_profiles` | `app/(student)/class/[id].tsx` | 205 |
@@ -176,7 +176,7 @@ Estado acumulado hasta: 20260813112000_admin_account_export_supervision.sql
 | rpc | `track_usage_event` | `lib/analytics.ts` | 91 |
 | rpc | `verify_admin_audit_chain` | `components/admin/audit/AdminAuditSection.tsx` | 93 |
 | storage | `account-exports` | `components/settings/AccountDataRequestsCard.tsx` | 97 |
-| storage | `admin-exports` | `components/admin/api/adminApi.ts` | 108 |
+| storage | `admin-exports` | `components/admin/api/adminApi.ts` | 110 |
 | storage | `avatars` | `components/student/profile/StudentAvatarCustomizationModal.tsx` | 115 |
 | storage | `avatars` | `hooks/teacher/useTeacherProfile.ts` | 225 |
 | storage | `avatars` | `lib/offlineMutations.ts` | 284 |

@@ -5,25 +5,45 @@ import { getErrorMessage } from '../../../lib/typeGuards'
 import { fetchAdminExportJobs, getAdminExportDownloadUrl, requestAdminExportJob, type AdminExportFilters } from '../api/adminApi'
 import type { AdminExportJob } from '../types/admin'
 
-type AdminExportJobOptions = { loadJobs?: boolean; pollPending?: boolean }
+type AdminExportJobOptions = { loadJobs?: boolean; pageSize?: number; pollPending?: boolean }
 
-export function useAdminExportJobs({ loadJobs = false, pollPending = false }: AdminExportJobOptions = {}) {
+export function useAdminExportJobs({ loadJobs = false, pageSize = 10, pollPending = false }: AdminExportJobOptions = {}) {
   const feedback = useAppFeedback()
   const [jobs, setJobs] = useState<AdminExportJob[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(0)
+  const [total, setTotal] = useState(0)
 
   const refresh = useCallback(async (silent = false) => {
+    if (!loadJobs) return
     if (!silent) setLoading(true)
     try {
-      setJobs(await fetchAdminExportJobs())
-    } catch (error: unknown) {
-      console.warn('[admin exports]', getErrorMessage(error, 'No se pudo actualizar la cola de exportaciones.'))
+      const result = await fetchAdminExportJobs(pageSize, page * pageSize)
+      setJobs(result.rows)
+      setTotal(result.total)
+      setError(null)
+    } catch (caught: unknown) {
+      const message = getErrorMessage(caught, 'No se pudieron cargar las exportaciones administrativas.')
+      setError(message)
+      console.warn('[admin exports]', message)
     } finally {
       if (!silent) setLoading(false)
     }
-  }, [])
+  }, [loadJobs, page, pageSize])
 
-  useEffect(() => { if (loadJobs) void refresh() }, [loadJobs, refresh])
+  useEffect(() => {
+    if (!loadJobs) {
+      setJobs([])
+      setTotal(0)
+      setError(null)
+      setPage(0)
+      return
+    }
+    void refresh()
+  }, [loadJobs, refresh])
+
+  useEffect(() => { setPage(0) }, [pageSize])
 
   useEffect(() => {
     if (!loadJobs || !pollPending || !jobs.some((job) => job.status === 'queued' || job.status === 'processing')) return
@@ -52,5 +72,19 @@ export function useAdminExportJobs({ loadJobs = false, pollPending = false }: Ad
     }
   }, [feedback])
 
-  return { jobs, loading, refresh, request, download }
+  return {
+    jobs,
+    loading,
+    error,
+    page,
+    pageSize,
+    total,
+    hasPrevious: page > 0,
+    hasNext: (page + 1) * pageSize < total,
+    previousPage: () => setPage((current) => Math.max(0, current - 1)),
+    nextPage: () => setPage((current) => current + 1),
+    refresh,
+    request,
+    download,
+  }
 }

@@ -48,10 +48,18 @@ export function AdminMoreScreen() {
 
 export function AdminExportsScreen() {
   const data = useAdminData()
+  const responsive = useResponsiveLayout()
   const canViewAccountExports = Boolean(data.portalContext?.permissions.includes('users.export'))
-  const exportJobs = useAdminExportJobs({ loadJobs: true, pollPending: true })
-  const accountExports = useAdminAccountExportRequests({ enabled: canViewAccountExports, pollPending: true })
-  return <AdminScaffold activeSection="exports" title="Exportaciones" subtitle="Supervisa solicitudes personales y trabajos administrativos sin exponer archivos privados de otros usuarios." data={data}>{canViewAccountExports ? <AdminAccountExportRequestsPanel requests={accountExports.requests} loading={accountExports.loading} error={accountExports.error} /> : null}<AdminExportJobsPanel jobs={exportJobs.jobs} loading={exportJobs.loading} onDownload={(id) => void exportJobs.download(id)} /></AdminScaffold>
+  const accountPageSize = responsive.isDesktop ? 25 : 8
+  const jobPageSize = responsive.isDesktop ? 10 : 8
+  const exportJobs = useAdminExportJobs({ loadJobs: true, pageSize: jobPageSize, pollPending: true })
+  const accountExports = useAdminAccountExportRequests({ enabled: canViewAccountExports, pageSize: accountPageSize, pollPending: true })
+  return (
+    <AdminScaffold activeSection="exports" title="Exportaciones" subtitle="Supervisa solicitudes personales y trabajos administrativos sin exponer archivos privados de otros usuarios." data={data}>
+      {canViewAccountExports ? <AdminAccountExportRequestsPanel {...accountExports} onPrevious={accountExports.previousPage} onNext={accountExports.nextPage} onRetry={() => void accountExports.refresh()} /> : null}
+      <AdminExportJobsPanel {...exportJobs} onPrevious={exportJobs.previousPage} onNext={exportJobs.nextPage} onRetry={() => void exportJobs.refresh()} onDownload={(id) => void exportJobs.download(id)} />
+    </AdminScaffold>
+  )
 }
 
 export function AdminPermissionsScreen() {

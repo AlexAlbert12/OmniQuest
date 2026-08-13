@@ -87,16 +87,18 @@ export async function requestAdminExportJob(exportType: AdminExportJob['export_t
   return data as unknown as AdminExportJob
 }
 
-export async function fetchAdminExportJobs(limit = 10) {
-  const { data, error } = await supabase.rpc('get_admin_export_jobs_page', { p_limit: limit, p_offset: 0 })
+export async function fetchAdminExportJobs(limit = 10, offset = 0) {
+  const { data, error } = await supabase.rpc('get_admin_export_jobs_page', { p_limit: limit, p_offset: offset })
   if (error) throw error
-  return (data || []) as unknown as AdminExportJob[]
+  const rows = (data || []) as unknown as AdminExportJob[]
+  return { rows, total: Number(rows[0]?.total_count || 0) }
 }
 
-export async function fetchAdminAccountExportRequests(limit = 25) {
-  const { data, error } = await supabase.rpc('get_admin_account_export_requests_page', { p_limit: limit, p_offset: 0 })
+export async function fetchAdminAccountExportRequests(limit = 25, offset = 0) {
+  const { data, error } = await supabase.rpc('get_admin_account_export_requests_page', { p_limit: limit, p_offset: offset })
   if (error) throw error
-  return (data || []) as unknown as AdminAccountExportRequest[]
+  const rows = (data || []) as unknown as AdminAccountExportRequest[]
+  return { rows, total: Number(rows[0]?.total_count || 0) }
 }
 
 export async function getAdminExportDownloadUrl(jobId: string) {

@@ -5886,15 +5886,10 @@ export type Database = {
           started_at: string | null
           status: string
           storage_path: string | null
+          total_count: number
           updated_at: string
           worker_id: string | null
         }[]
-        SetofOptions: {
-          from: "*"
-          to: "admin_export_jobs"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       get_admin_portal_context: { Args: never; Returns: Json }
       get_admin_profile_activity_page: {
