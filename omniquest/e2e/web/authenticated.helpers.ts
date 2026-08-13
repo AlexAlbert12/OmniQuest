@@ -41,6 +41,7 @@ export function getRoleConfiguration(role: AuthenticatedRole): RoleConfiguration
 
 export async function loginAs(page: Page, role: AuthenticatedRole): Promise<AuthenticatedSession> {
   const credentials = getRoleConfiguration(role)
+  await page.addInitScript(() => window.localStorage.setItem('omniquest:locale', 'es-ES'))
   await page.goto('/login')
   await page.getByTestId('login-email').fill(credentials.email)
   await page.getByTestId('login-password').fill(credentials.password)

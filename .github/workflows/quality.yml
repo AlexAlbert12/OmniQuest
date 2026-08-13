@@ -24,8 +24,8 @@ jobs:
       EXPO_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       EXPO_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiJ9.local-signature
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -40,12 +40,12 @@ jobs:
       - run: npm run test:migrations
       - run: npm run docs:check
       - run: npm run build:web
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: web-dist
           path: omniquest/dist
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: unit-coverage
           path: omniquest/coverage
@@ -58,26 +58,23 @@ jobs:
       run:
         working-directory: omniquest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: omniquest/package-lock.json
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
       - run: npm ci
       - run: npm run test:migrations
-      - run: supabase start
-      - run: supabase db reset
+      - run: npx supabase start
+      - run: npx supabase db reset
       - run: npm run test:db
       - run: npm run test:functions
       - if: always()
-        run: supabase stop --no-backup
+        run: npx supabase stop --no-backup
 
   web-e2e:
     name: Playwright authenticated desktop and mobile
@@ -88,24 +85,21 @@ jobs:
     env:
       PLAYWRIGHT_PORT: 8082
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: omniquest/package-lock.json
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
       - run: npm ci
       - run: npm run quality:install
       - run: npm run demo:prepare-functions-env
-      - run: supabase start
-      - run: supabase db reset
+      - run: npx supabase start
+      - run: npx supabase db reset
       - name: Export local Supabase environment
         shell: bash
         run: |
-          eval "$(supabase status -o env)"
+          eval "$(npx supabase status -o env)"
           echo "EXPO_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
           echo "PLAYWRIGHT_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
@@ -143,7 +137,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |
@@ -155,4 +149,4 @@ jobs:
         shell: bash
         run: |
           if [ -f test-results/edge-functions.pid ]; then kill "$(cat test-results/edge-functions.pid)" 2>/dev/null || true; fi
-          supabase stop --no-backup
+          npx supabase stop --no-backup

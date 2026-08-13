@@ -28,11 +28,11 @@ test.describe('administrador autenticado', () => {
     expect(policy.partitioned).toBe(true)
 
     const integrityPromise = waitForSupabaseResponse(page, '/rest/v1/rpc/verify_admin_audit_chain')
-    await page.getByRole('button', { name: 'Verificar cadena' }).click()
+    await page.getByRole('button', { name: 'Verificar integridad' }).click()
     const integrity = await readSupabaseJson<IntegrityResult>(await integrityPromise, 'Verificación de la cadena de auditoría')
 
     expect(integrity.valid).toBe(true)
     expect(Number(integrity.checked_rows || 0)).toBeGreaterThanOrEqual(0)
-    await expect(page.getByText(/Cadena válida/i)).toBeVisible()
+    await expect(page.getByText(/Integridad correcta/i)).toBeVisible()
   })
 })

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { E2E_FIXTURE, clickRoleNavigation, escapeRegExp, hasAuthenticatedE2EEnvironment, loginAs, readSupabaseJson, supabaseRpc, waitForSupabaseResponse } from './authenticated.helpers'
+import { E2E_FIXTURE, escapeRegExp, hasAuthenticatedE2EEnvironment, loginAs, readSupabaseJson, supabaseRpc, waitForSupabaseResponse } from './authenticated.helpers'
 
 type TeacherCoursePage = { items: { id: number; name: string }[]; total: number }
 type TeacherSubjectOverview = { subject: { id: number; name: string }; classrooms: { id: number; name: string }[] }
@@ -15,7 +15,9 @@ test.describe('profesor autenticado', () => {
     expect(coursesPage.total).toBeGreaterThan(0)
     expect(fixtureCourse, `No se encontró el curso ${E2E_FIXTURE.courseName}.`).toBeTruthy()
 
-    await clickRoleNavigation(page, 'Cursos')
+    const coursesNavigation = page.getByTestId('teacher-nav-classes')
+    await expect(coursesNavigation).toBeVisible({ timeout: 60_000 })
+    await coursesNavigation.click()
     await expect(page).toHaveURL(/\/classes(?:\?|$)/)
     await expect(page.getByRole('heading', { name: 'Cursos y clases' })).toBeVisible()
 

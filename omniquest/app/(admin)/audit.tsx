@@ -1,6 +1,6 @@
 import React from 'react'
-import { AdminAuditScreen } from '../../components/admin/AdminPortal'
+import { AdminAuditSection } from '../../components/admin/audit/AdminAuditSection'
 
 export default function AdminAuditPage() {
-  return <AdminAuditScreen />
+  return <AdminAuditSection />
 }

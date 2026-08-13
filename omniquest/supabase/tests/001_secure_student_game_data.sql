@@ -40,6 +40,17 @@ set alias = excluded.alias,
     role_id = excluded.role_id,
     active = excluded.active;
 
+insert into public.admin_role_assignments (user_id, role_id, assigned_by)
+values (
+  '10000000-0000-0000-0000-000000000005',
+  'super_admin',
+  '10000000-0000-0000-0000-000000000005'
+)
+on conflict (user_id) do update
+set role_id = excluded.role_id,
+    assigned_by = excluded.assigned_by,
+    updated_at = now();
+
 insert into public.subjects (id, teacher_id, name, code, active)
 values (910001, '10000000-0000-0000-0000-000000000001', 'Security Course', 'SEC-910001', true);
 
@@ -253,12 +264,12 @@ select is(
   'other teacher cannot select foreign answers'
 );
 
--- Admin policy remains available.
+-- Assigned administrators retain the explicit support and audit policy.
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000005', true);
 select is(
   (select count(*) from public.answers where question_id = 910001),
   2::bigint,
-  'administrator can inspect answers for support and audit purposes'
+  'assigned administrator can inspect answers for support and audit purposes'
 );
 
 select * from finish();

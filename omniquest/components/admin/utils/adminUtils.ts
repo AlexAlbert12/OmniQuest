@@ -122,20 +122,36 @@ const ADMIN_AUDIT_TARGET_LABELS: Record<string, string> = {
   profiles: 'Usuario', subjects: 'Curso', subject_topics: 'Tema', questions: 'Pregunta', answers: 'Respuesta', classrooms: 'Clase', enrollments: 'Matrícula', subject_scores: 'Progreso del curso', topic_scores: 'Progreso del tema', attempt_history: 'Intento', game_attempts: 'Partida', student_badges: 'Logro', user_support_tickets: 'Ticket de soporte', admin_export_jobs: 'Exportación', admin_role_assignments: 'Rol administrativo', notifications: 'Notificación', notification_delivery_queue: 'Entrega push', teacher_audit_logs: 'Actividad docente', admin_audit_logs: 'Actividad administrativa',
 }
 
-export function getAuditActionLabel(action: string) { if (action.startsWith('teacher.')) return getTeacherAuditActionLabel(action); return ADMIN_AUDIT_ACTION_LABELS[action] || action.replace(/[._-]+/g, ' ') }
-
-export function getAuditTargetLabel(log: AdminAuditLogRow) {
-  if (!log.target_table) return 'Sistema'
-  const label = ADMIN_AUDIT_TARGET_LABELS[log.target_table] || log.target_table.replaceAll('_', ' ')
-  if (!log.target_id) return label
-  return log.target_table === 'user_support_tickets' ? `${label} · #${log.target_id}` : `${label} · ${log.target_id}`
+export function getAuditActionLabel(action: string) {
+  if (action.startsWith('teacher.')) return getTeacherAuditActionLabel(action)
+  const known = ADMIN_AUDIT_ACTION_LABELS[action]
+  if (known) return known
+  const value = action.replace(/^admin\./, '').replace(/[._-]+/g, ' ').trim()
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Actividad administrativa'
 }
 
 export function getAuditTargetTypeLabel(targetTable?: string | null) {
   if (!targetTable) return 'Sistema'
   if (targetTable === 'user_support_tickets') return 'Soporte'
   if (targetTable === 'admin_role_assignments') return 'Permisos'
-  return ADMIN_AUDIT_TARGET_LABELS[targetTable] || targetTable.replaceAll('_', ' ')
+  return ADMIN_AUDIT_TARGET_LABELS[targetTable] || targetTable.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase())
+}
+
+export function getAuditTargetReferenceLabel(log: AdminAuditLogRow) {
+  const type = getAuditTargetTypeLabel(log.target_table)
+  if (!log.target_id) return type
+  const reference = formatAuditReference(log.target_id)
+  if (log.target_table === 'notification_delivery_queue') return `Envío ${reference}`
+  if (log.target_table === 'user_support_tickets') return `Ticket ${reference}`
+  return `${type} · ${reference}`
+}
+
+export function getAuditTargetLabel(log: AdminAuditLogRow) { return getAuditTargetReferenceLabel(log) }
+
+function formatAuditReference(value: string) {
+  if (/^\d+$/.test(value)) return `#${value}`
+  if (value.length > 18) return `…${value.slice(-12)}`
+  return value
 }
 
 export function stringMetadata(metadata: Record<string, unknown>, key: string) {

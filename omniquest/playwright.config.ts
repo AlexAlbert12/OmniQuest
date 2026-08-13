@@ -16,6 +16,7 @@ export default defineConfig({
   outputDir: 'test-results/playwright',
   use: {
     baseURL,
+    locale: 'es-ES',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

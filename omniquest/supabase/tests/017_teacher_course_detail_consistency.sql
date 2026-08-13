@@ -18,8 +18,8 @@ select ok(
 );
 
 select ok(
-  position("'activeThisWeek'" in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0
-  and position("interval '7 days'" in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0,
+  position($needle$'activeThisWeek'$needle$ in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0
+  and position($needle$interval '7 days'$needle$ in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0,
   'student summary exposes a real seven-day active count'
 );
 

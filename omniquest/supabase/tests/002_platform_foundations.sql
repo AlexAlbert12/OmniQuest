@@ -8,7 +8,7 @@ select plan(17);
 select ok(to_regclass('public.push_tokens') is not null, 'push token registry exists');
 select ok((select relrowsecurity from pg_class where oid = 'public.push_tokens'::regclass), 'push token registry has RLS enabled');
 select ok(not has_table_privilege('authenticated', 'public.push_tokens', 'INSERT'), 'authenticated users cannot bypass the token registration RPC');
-select ok(has_table_privilege('authenticated', 'public.push_tokens', 'SELECT'), 'users can inspect their own registered devices through RLS');
+select ok(not has_table_privilege('authenticated', 'public.push_tokens', 'SELECT'), 'authenticated users cannot read complete push tokens directly');
 select ok(to_regprocedure('public.register_push_token(text,text,text,text)') is not null, 'push registration RPC exists');
 select ok(to_regprocedure('public.deactivate_push_token(text)') is not null, 'push deactivation RPC exists');
 select ok(has_function_privilege('authenticated', 'public.register_push_token(text,text,text,text)', 'EXECUTE'), 'authenticated users may register their device');

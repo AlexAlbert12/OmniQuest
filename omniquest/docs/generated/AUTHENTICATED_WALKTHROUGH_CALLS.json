@@ -1,5 +1,5 @@
 {
-  "generatedAt": "20260812190000_admin_support_experience_refinement.sql",
+  "generatedAt": "20260812200000_admin_audit_experience_refinement.sql",
   "sourceFiles": 443,
   "calls": [
     {
@@ -12,7 +12,7 @@
       "kind": "edge",
       "resource": "admin-create-teacher",
       "path": "components/admin/users/AdminTeachersSection.tsx",
-      "line": 72
+      "line": 73
     },
     {
       "kind": "edge",
@@ -276,7 +276,7 @@
       "kind": "rpc",
       "resource": "get_admin_audit_logs_page_secured",
       "path": "components/admin/audit/AdminAuditSection.tsx",
-      "line": 51
+      "line": 70
     },
     {
       "kind": "rpc",
@@ -288,13 +288,13 @@
       "kind": "rpc",
       "resource": "get_admin_audit_policy",
       "path": "components/admin/audit/AdminAuditSection.tsx",
-      "line": 48
+      "line": 58
     },
     {
       "kind": "rpc",
       "resource": "get_admin_classrooms_page",
       "path": "components/admin/classrooms/AdminClassroomsSection.tsx",
-      "line": 58
+      "line": 59
     },
     {
       "kind": "rpc",
@@ -348,13 +348,13 @@
       "kind": "rpc",
       "resource": "get_admin_profiles_page",
       "path": "components/admin/users/AdminStudentsSection.tsx",
-      "line": 55
+      "line": 56
     },
     {
       "kind": "rpc",
       "resource": "get_admin_profiles_page",
       "path": "components/admin/users/AdminTeachersSection.tsx",
-      "line": 63
+      "line": 64
     },
     {
       "kind": "rpc",
@@ -390,7 +390,7 @@
       "kind": "rpc",
       "resource": "get_admin_subjects_page",
       "path": "components/admin/courses/AdminCoursesSection.tsx",
-      "line": 53
+      "line": 54
     },
     {
       "kind": "rpc",
@@ -828,7 +828,7 @@
       "kind": "rpc",
       "resource": "search_app_entities",
       "path": "components/search/GlobalSearchButton.tsx",
-      "line": 67
+      "line": 68
     },
     {
       "kind": "rpc",
@@ -906,7 +906,7 @@
       "kind": "rpc",
       "resource": "verify_admin_audit_chain",
       "path": "components/admin/audit/AdminAuditSection.tsx",
-      "line": 61
+      "line": 93
     },
     {
       "kind": "storage",

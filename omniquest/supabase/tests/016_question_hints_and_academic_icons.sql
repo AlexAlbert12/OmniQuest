@@ -5,7 +5,7 @@ set local search_path = public, extensions;
 
 select plan(7);
 
-select ok(has_column('public', 'questions', 'hint'), 'questions exposes the optional hint column');
+select has_column('public', 'questions', 'hint', 'questions exposes the optional hint column');
 select ok(has_function_privilege('authenticated', 'public.get_safe_game_questions_v2(bigint,bigint,bigint,boolean,integer,boolean)', 'EXECUTE'), 'students can execute the safe game RPC with hints');
 select ok(has_function_privilege('authenticated', 'public.save_teacher_question_v2(bigint,bigint,bigint,bigint,text,text,integer,integer,integer,text,text,jsonb,text,text,text,text,text,numeric,text,text)', 'EXECUTE'), 'authenticated teachers can execute the question save RPC with hints');
 
