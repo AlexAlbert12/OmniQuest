@@ -1,7 +1,3 @@
--- Restrict the low-level notification writer and expose a narrow teacher RPC.
--- create_notification remains available to database-owned trigger functions and
--- service-role Edge Functions, but it is no longer callable by normal clients.
-
 revoke all on function public.create_notification(
   uuid, text, text, text, text, text, text, text, text, text, jsonb, text
 ) from public, anon, authenticated;

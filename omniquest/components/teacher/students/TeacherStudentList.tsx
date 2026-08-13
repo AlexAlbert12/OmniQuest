@@ -197,7 +197,6 @@ export const StudentCard = React.memo(function StudentCard({
   );
 })
 
-
 export const NoActivityQuickActions = React.memo(function NoActivityQuickActions({
   student,
   reminderBusy,

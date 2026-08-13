@@ -1,7 +1,3 @@
-// Activity contracts are implemented in useStudentActivity with readThroughCache and memoized child components:
-// fetchStudentAttemptHistoryPage(...), fetchActivityAttemptDetail(attemptId), buildActivityRows,
-// ActivityDateHeader, PaginationControls, Comentarios del profesor, Pendiente de revisión,
-// Feedback de aprendizaje.
 import React, { useCallback } from 'react'
 import { FlatList, Text, useWindowDimensions, View } from 'react-native'
 import { useRouter } from 'expo-router'

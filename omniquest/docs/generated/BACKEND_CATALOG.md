@@ -4,9 +4,9 @@
 
 ## Resumen
 
-- Migraciones: **108**
+- Migraciones: **109**
 - Tablas públicas detectadas: **65**
-- Funciones/RPC públicas detectadas: **241**
+- Funciones/RPC públicas detectadas: **244**
 - Edge Functions: **33**
 
 ## Edge Functions
@@ -264,10 +264,12 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `get_teacher_student_history_timeline_page`
 - `get_teacher_student_history_weaknesses`
 - `get_teacher_students_page`
+- `get_teacher_students_page_with_avatars`
 - `get_teacher_subject_analytics`
 - `get_teacher_subject_overview`
 - `get_teacher_subject_questions_page`
 - `get_teacher_subject_students_page`
+- `get_teacher_subject_students_page_with_avatars`
 - `get_teacher_subject_topics_page`
 - `get_teacher_topic_questions_page`
 - `get_teacher_topic_summary`
@@ -353,6 +355,7 @@ La desactivación de `verify_jwt` no convierte una función en pública: los pro
 - `sync_student_badges`
 - `sync_student_points`
 - `sync_student_points_from_xp_source`
+- `teacher_attach_student_avatars`
 - `teacher_notification_category`
 - `teacher_notification_severity`
 - `teacher_notification_subject_id`

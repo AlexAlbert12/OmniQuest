@@ -1,5 +1,3 @@
--- Final teacher course-detail consistency: canonical metrics and evaluated-only grade distributions.
-
 create or replace function public.get_teacher_subject_overview(
   p_subject_id bigint,
   p_classroom_id bigint default null

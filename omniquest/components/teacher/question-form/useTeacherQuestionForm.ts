@@ -17,7 +17,7 @@ import {
   removeTeacherQuestionDraft,
   saveTeacherQuestionDraft,
 } from '../../../lib/questionDraftStorage'
-import { teacherQuestionSchema } from '../../../lib/questionFormSchema.js'
+import { teacherQuestionSchema } from '../../../lib/questionFormSchema.mjs'
 import { supabase } from '../../../lib/supabase'
 import type { TeacherQuestionMediaValue } from '../TeacherQuestionMediaEditor'
 import { useFormAnalytics } from '../../../hooks/useFormAnalytics'
@@ -201,7 +201,7 @@ export function useTeacherQuestionForm({
       matchPairsText,
       dragdropPairsText,
     })
-    if (result.success) return []
+    if (result.success || !result.error) return []
     return result.error.issues.map((issue) => ({ step: issue.step, field: issue.field, message: issue.message }))
   }, [dragdropPairsText, explanation, fillAnswersText, hint, matchPairsText, media.altText, media.caption, media.subtitlesVtt, media.transcript, media.type, openExpectedAnswer, orderItemsText, points, questionText, selectedType, timeLimit, visibleAnswers])
 
@@ -449,8 +449,6 @@ export function useTeacherQuestionForm({
     return () => clearTimeout(timer)
   }, [draftFingerprint, draftKey, draftReady, draftState, saving])
 
-
-
   const saveCurrentDraftNow = useCallback(async () => {
     if (!draftKey) return
     setDraftStatus('saving')
@@ -693,7 +691,7 @@ export function useTeacherQuestionForm({
       router.back()
     } catch (error: unknown) {
       if (uploadedPath) {
-        try { await removeQuestionMedia(uploadedPath) } catch { /* best effort */ }
+        try { await removeQuestionMedia(uploadedPath) } catch {  }
       }
       if (isQuestionMediaUploadCancelled(error)) showAlert('Subida cancelada', 'El archivo no se ha publicado. El resto del borrador sigue guardado.')
       else showAlert('Error', error instanceof Error ? error.message : 'No se pudo guardar la pregunta.')

@@ -58,7 +58,7 @@ test('game answers are resumable, idempotent and retried after connectivity retu
 })
 
 test('high-volume lists use server pagination RPCs', () => {
-  const activity = read('app/(student)/activity-log.tsx')
+  const activity = read('app/(student)/activity-log.tsx') + read('hooks/student/useStudentActivity.ts')
   const studentData = read('lib/studentSecureData.ts')
   const ranking = read('app/(student)/ranking.tsx') + read('hooks/student/useStudentRanking.ts')
   const teacherHistory = read('app/(teacher)/student/[id]/history.tsx') + read('hooks/teacher/useTeacherStudentHistory.ts') + read('components/teacher/student-history/StudentHistoryTimeline.tsx')

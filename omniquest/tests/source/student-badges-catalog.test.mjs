@@ -49,10 +49,9 @@ test('achievement screen uses data-driven categories, detail and load-more pagin
   assert.match(screen, /Cargar más logros/)
   assert.match(screen, /const PAGE_SIZE = 50/)
   assert.match(screen, /fetchBadges\(page \+ 1, true\)/)
-  assert.match(profile, /cosmetics=\{cosmetics\}/)
+  assert.match(profile, /cosmetics=\{profile\.cosmetics\}/)
   assert.match(avatar, /Insignia destacada:/)
 })
-
 
 test('achievement screen uses user-facing copy, consistent pending state and stable modal hover', () => {
   const screen = read('app/(student)/badges.tsx')

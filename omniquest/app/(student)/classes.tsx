@@ -248,7 +248,6 @@ export default function ClassesScreen() {
     }
   }
 
-
   if (loading) return <OmniLoadingScreen />
 
   return (
@@ -500,7 +499,6 @@ export default function ClassesScreen() {
     </View>
   )
 }
-
 
 function CompactSelect({
   label,

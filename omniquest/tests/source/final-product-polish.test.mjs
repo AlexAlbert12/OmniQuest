@@ -122,5 +122,5 @@ test('English localization covers dynamic student, teacher and admin product cop
   assert.match(i18n, /Se activará la cuenta/)
   assert.match(i18n, /Portal de administración/)
   assert.match(i18n, /Abrir canal/)
-  assert.match(i18n, /Captured product\/user names are preserved/)
+  assert.match(i18n, /for \(const \[pattern, formatter\][\s\S]*if \(match\) return[\s\S]*return input/)
 })

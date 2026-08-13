@@ -79,4 +79,3 @@ function readTree(relativeDirectory) {
 
   return chunks.join('\n')
 }
-

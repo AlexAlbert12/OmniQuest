@@ -5,7 +5,6 @@ set local search_path = public, extensions;
 
 select plan(37);
 
--- Standalone tasks were intentionally removed. Topic deadlines remain available.
 select ok(to_regclass('public.learning_tasks') is null, 'standalone learning tasks table was removed');
 select ok(to_regclass('public.learning_task_completions') is null, 'task completions table was removed');
 select ok(to_regprocedure('public.save_learning_task(bigint,bigint,bigint,bigint,text,text,timestamp with time zone,timestamp with time zone,text,text)') is null, 'task save RPC was removed');
@@ -14,7 +13,6 @@ select ok(exists(select 1 from information_schema.columns where table_schema = '
 select ok(to_regprocedure('public.assert_topic_playable(bigint)') is not null, 'topic deadline is enforced by the server');
 select ok(not exists(select 1 from public.notifications where type = 'task' or related_table = 'learning_tasks'), 'obsolete task notifications were removed');
 
--- Advanced manual review.
 select ok(to_regclass('public.manual_review_comments') is not null, 'manual review comments table exists');
 select ok((select relrowsecurity from pg_class where oid = 'public.manual_review_comments'::regclass), 'manual review comments have RLS');
 select ok(to_regprocedure('public.get_teacher_manual_review_queue(bigint,bigint,text,text,uuid,bigint,integer,integer)') is not null, 'manual review queue RPC exists');
@@ -35,7 +33,6 @@ select ok(to_regprocedure('public.batch_review_manual_attempts(bigint[],text,tex
 select ok(not exists(select 1 from information_schema.check_constraints where constraint_name = 'attempt_history_manual_review_status_check' and check_clause like '%in_review%'), 'manual review status no longer includes in_review');
 select ok(not exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'attempt_history' and column_name in ('manual_review_assigned_to', 'manual_review_started_at', 'manual_review_rubric_id', 'manual_review_rubric_result')), 'obsolete assignment and rubric columns were removed');
 
--- Rich media.
 select ok(exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'questions' and column_name = 'media_type'), 'question media type column exists');
 select ok(exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'questions' and column_name = 'media_url'), 'question media URL column exists');
 select ok(exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'questions' and column_name = 'media_path'), 'question media path column exists');

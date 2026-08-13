@@ -1,12 +1,6 @@
--- Public authentication hardening: safe role assignment, anonymous profile
--- initialization and a server-side rate-limit guard for public auth forms.
-
 create extension if not exists pgcrypto with schema extensions;
 create extension if not exists pg_cron with schema pg_catalog;
 
--- Public sign-up metadata must never be able to grant staff privileges.
--- Anonymous users become guests; every non-anonymous public sign-up starts as
--- a student. Teacher/admin creation remains an explicit service-role action.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -57,8 +51,6 @@ $$;
 comment on function public.handle_new_user() is
   'Creates only student or guest profiles from public Auth sign-ups. Staff roles require a service-role workflow.';
 
--- Finalize an anonymous profile through an RPC instead of a client-side
--- upsert. The JWT claim and the profile role must both identify a guest.
 create or replace function public.initialize_guest_profile(p_alias text)
 returns jsonb
 language plpgsql

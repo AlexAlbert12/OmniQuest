@@ -173,7 +173,6 @@ function TextAnswerQuestion({
         }`}
       />
 
-
       {!hasAnswered ? (
         <SubmitAnswerButton disabled={isSubmitting || !value.trim()} onPress={handleSubmit} />
       ) : null}
@@ -286,7 +285,6 @@ function FillBlankQuestion({
           )
         })}
       </View>
-
 
       {!hasAnswered ? (
         <SubmitAnswerButton disabled={isSubmitting || !isReady} onPress={handleSubmit} />
@@ -610,14 +608,12 @@ function PairingQuestion({
         <Text className="text-center text-[12px] font-semibold text-text-muted">Completa todas las relaciones para activar Comprobar.</Text>
       ) : null}
 
-
       {!hasAnswered ? (
         <SubmitAnswerButton disabled={isSubmitting || !isReady} onPress={handleSubmit} />
       ) : null}
     </View>
   )
 }
-
 
 function normalizePairOptions(options: string[]): PairOptionToken[] {
   return options

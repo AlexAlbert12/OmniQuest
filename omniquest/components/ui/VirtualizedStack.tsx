@@ -14,10 +14,6 @@ type VirtualizedStackProps<T> = {
   accessibilityLabel?: string
 }
 
-/**
- * Shared list primitive for bounded, server-paginated collections.
- * It keeps list rendering on FlatList while allowing composition inside existing page containers.
- */
 export default function VirtualizedStack<T>({
   accessibilityLabel,
   contentContainerStyle,

@@ -21,7 +21,7 @@ export default function StudentHistorySummary({ data, savingNote, onRecommendati
       await onAddNote(body)
       setNote('')
     } catch {
-      // The parent exposes the user-facing error and the draft comment stays available for retry.
+
     }
   }
 

@@ -1,5 +1,3 @@
--- Align teacher student-history analytics with manual-review semantics and preserve exact review context.
-
 create or replace function public.get_teacher_student_history_summary(
   p_student_id uuid,
   p_subject_id bigint default null,
@@ -382,7 +380,6 @@ begin
 end;
 $$;
 
--- The review queue can now be opened from one student's history without losing context.
 drop function if exists public.get_teacher_manual_review_queue(bigint, bigint, text, text, integer, integer);
 
 create function public.get_teacher_manual_review_queue(

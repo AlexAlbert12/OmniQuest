@@ -1,8 +1,3 @@
--- Notification delivery reliability hardening.
--- 1. Keep the current device token associated with the most recently authenticated user.
--- 2. Ensure persistent notifications are published through Supabase Realtime.
--- 3. Make badge notifications explicit, actionable and high priority.
-
 create or replace function public.register_push_token(
   p_expo_push_token text,
   p_platform text,

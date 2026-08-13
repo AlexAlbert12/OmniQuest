@@ -1,6 +1,3 @@
--- Administrative push center: explicit permissions, private observability APIs,
--- controlled retry/cancel actions and analytics hardening.
-
 update public.admin_roles
 set permissions = (
   select array_agg(distinct permission order by permission)
@@ -8,8 +5,6 @@ set permissions = (
 ), updated_at = now()
 where id = 'super_admin';
 
--- Client applications register devices through protected RPCs. The administrative
--- center never receives direct table access or complete Expo push tokens.
 revoke all on public.notification_delivery_queue from authenticated;
 revoke all on public.notification_push_deliveries from authenticated;
 revoke all on public.push_tokens from authenticated;
@@ -372,8 +367,6 @@ begin
 end;
 $$;
 
--- Service-only exact claiming is used by the administrative "Procesar ahora"
--- action so it never accidentally processes a different queue item first.
 create or replace function public.claim_notification_delivery_item(p_queue_id bigint, p_worker_id uuid)
 returns table (
   queue_id bigint,
@@ -415,9 +408,6 @@ $$;
 revoke all on function public.claim_notification_delivery_item(bigint, uuid) from public, anon, authenticated;
 grant execute on function public.claim_notification_delivery_item(bigint, uuid) to service_role;
 
--- The analytics endpoint must fail closed through the explicit admin permission
--- model. percentile_cont returns double precision on some PostgreSQL resolutions,
--- so cast to numeric before using round(value, scale).
 create or replace function public.get_admin_usage_analytics(p_days integer default 30)
 returns jsonb
 language plpgsql

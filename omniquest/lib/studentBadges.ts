@@ -192,7 +192,6 @@ const EMPTY_BADGE_METRICS: StudentBadgeMetrics = {
   questionTypesPlayed: 0,
 }
 
-/** Returns stable visual metadata for a badge id without exposing answer data. */
 export function getStudentBadgePresentation(badgeId: string): StudentBadge | null {
   return buildStudentBadges(EMPTY_BADGE_METRICS).find((badge) => badge.id === badgeId) || null
 }

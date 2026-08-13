@@ -314,9 +314,6 @@ begin
     end if;
   end if;
 
-  -- profiles.points is recalculated from attempt_history.earned_points
-  -- and student_badges.reward_xp by sync_student_points triggers.
-
   if not v_is_correct and v_question.type in ('multiple_choice', 'true_false') then
     select id
     into v_correct_answer_id
@@ -353,6 +350,5 @@ begin
   );
 end;
 $$;
-
 
 grant execute on function public.submit_answer(bigint, bigint, text, jsonb, integer, boolean, boolean, uuid) to authenticated;

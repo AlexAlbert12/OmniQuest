@@ -71,4 +71,3 @@ function getTopicStateLabel(state: GalaxyTopicItem['state']) {
   if (state === 'locked') return 'Bloqueado'
   return 'Sin preguntas'
 }
-

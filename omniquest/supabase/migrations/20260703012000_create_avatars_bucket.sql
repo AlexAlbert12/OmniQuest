@@ -1,7 +1,3 @@
--- Create and secure the public avatars bucket used by student/teacher profiles.
--- Avatar objects are public to support rankings and profile previews, but only
--- the authenticated owner can write or delete files under their own path.
-
 insert into storage.buckets (
   id,
   name,
@@ -32,7 +28,6 @@ as $$
   select auth.uid() is not null
     and p_object_name is not null
     and (
-      -- Current app format: <user-id>.jpg
       p_object_name in (
         auth.uid()::text || '.jpg',
         auth.uid()::text || '.jpeg',
@@ -40,7 +35,6 @@ as $$
         auth.uid()::text || '.webp',
         auth.uid()::text || '.gif'
       )
-      -- Safer future format: <user-id>/avatar.<ext> or any file under own folder.
       or p_object_name like auth.uid()::text || '/%'
     );
 $$;

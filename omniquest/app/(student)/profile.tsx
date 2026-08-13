@@ -1,6 +1,3 @@
-// Compatibility contract for source-level regression tests. The implementation is delegated to
-// useStudentProfile and StudentAvatarCustomizationModal: readThroughCache, stageAvatarForOffline,
-// kind: 'profile.cosmetics', StudentMetricCard, cosmetics={cosmetics}.
 import React, { useState } from 'react'
 import { Text, useWindowDimensions, View } from 'react-native'
 import { useRouter, type Href } from 'expo-router'

@@ -69,8 +69,7 @@ export function useStudentProfile(): StudentProfileViewModel {
         userId,
         resource: PROFILE_CACHE_RESOURCE,
         fetcher: async () => {
-          // Perfil y Logros consumen el mismo catálogo canónico. El RPC sincroniza premios antes
-          // de devolver el resumen; por eso el perfil se consulta después para recoger el XP final.
+
           const [nextBadgeCatalog, nextCustomizationOptions] = await Promise.all([
             fetchStudentBadgeCatalog({ page: 0, pageSize: 50, status: 'all' }),
             fetchAvatarCustomizationOptions().catch((error) => {

@@ -1,12 +1,6 @@
--- OmniQuest administration hardening: immutable audit, complete support workflow
--- and paged full-text global search.
-
 create extension if not exists pgcrypto;
 create extension if not exists pg_trgm;
 
--- Resolve pgcrypto independently from the schema where Supabase installed it.
--- Hosted projects normally use `extensions`, while existing/local databases may
--- have installed the extension in another schema.
 create or replace function public.admin_sha256_hex(p_value text)
 returns text
 language plpgsql
@@ -38,11 +32,6 @@ begin
   return v_hash;
 end;
 $$;
-
--- ---------------------------------------------------------------------------
--- 7.4 Admin audit: server severity, append-only storage, monthly partitions,
--- retention, before/after snapshots and a chained integrity hash.
--- ---------------------------------------------------------------------------
 
 create table if not exists public.admin_audit_settings (
   singleton boolean primary key default true check (singleton),
@@ -87,8 +76,6 @@ as $$
   end;
 $$;
 
--- Rebuild the audit relation as a partitioned table only once. Existing rows
--- are copied in chronological order and receive their integrity chain.
 do $$
 declare
   v_exists boolean;
@@ -183,7 +170,6 @@ begin
 end;
 $$;
 
--- Compatibility when the relation was already partitioned by a prior deploy.
 create sequence if not exists public.admin_audit_chain_seq;
 alter table public.admin_audit_logs add column if not exists chain_seq bigint default nextval('public.admin_audit_chain_seq'::regclass);
 alter table public.admin_audit_logs add column if not exists severity text not null default 'info';
@@ -314,7 +300,6 @@ create policy "admin_audit_checkpoints_read" on public.admin_audit_chain_checkpo
 drop trigger if exists reject_admin_audit_checkpoint_mutation_trigger on public.admin_audit_chain_checkpoints;
 create trigger reject_admin_audit_checkpoint_mutation_trigger before update or delete on public.admin_audit_chain_checkpoints for each row execute function public.reject_admin_audit_mutation();
 
--- Backfill hashes when the table was created before this migration's trigger.
 do $$
 declare
   v_row record;
@@ -520,7 +505,6 @@ begin
 end;
 $$;
 
--- Schedule maintenance only when pg_cron is installed.
 do $$
 begin
   if exists (select 1 from pg_extension where extname = 'pg_cron') then
@@ -650,11 +634,6 @@ grant execute on function public.verify_admin_audit_chain(timestamptz, timestamp
 grant execute on function public.maintain_admin_audit_partitions() to service_role;
 grant execute on function public.get_admin_audit_logs_page_secured(text, uuid, text, text, text, timestamptz, timestamptz, text, integer, integer) to authenticated;
 
--- ---------------------------------------------------------------------------
--- 7.5 Support: assignment, internal comments, tags, templates, auto-priority,
--- SLA state, attachments for admins and a protected change history.
--- ---------------------------------------------------------------------------
-
 alter table public.support_ticket_messages add column if not exists is_internal boolean not null default false;
 alter table public.user_support_tickets add column if not exists priority_source text not null default 'user';
 alter table public.user_support_tickets add column if not exists auto_priority_score integer not null default 0;
@@ -663,7 +642,6 @@ alter table public.user_support_tickets add column if not exists last_internal_n
 alter table public.user_support_tickets drop constraint if exists user_support_tickets_priority_source_check;
 alter table public.user_support_tickets add constraint user_support_tickets_priority_source_check check (priority_source in ('user', 'automatic', 'admin'));
 
--- Replace the broad legacy admin policy with the portal permission model.
 drop policy if exists "admin_select_user_support_tickets" on public.user_support_tickets;
 create policy "admin_select_user_support_tickets"
 on public.user_support_tickets for select to authenticated
@@ -816,7 +794,6 @@ update public.user_support_tickets
 set auto_priority_score = public.support_priority_score(subject, message, category)
 where auto_priority_score = 0;
 
--- Users must never see internal comments through table RLS.
 drop policy if exists "support_messages_select_participants" on public.support_ticket_messages;
 create policy "support_messages_select_participants"
 on public.support_ticket_messages for select to authenticated
@@ -828,8 +805,6 @@ using (
   )
 );
 
--- Internal notes are not user activity and must never reopen a ticket or update
--- the public last-response timestamp.
 create or replace function public.on_support_ticket_message()
 returns trigger
 language plpgsql
@@ -876,8 +851,6 @@ begin
 end;
 $$;
 
--- Admins can upload attachments to tickets assigned to the support queue.
--- Attachments linked to internal notes remain invisible to ticket owners.
 drop policy if exists "support_attachments_select_participants" on public.support_ticket_attachments;
 create policy "support_attachments_select_participants"
 on public.support_ticket_attachments for select to authenticated
@@ -1309,7 +1282,6 @@ begin
 end;
 $$;
 
--- Internal notes must not generate activity notifications or outgoing email.
 create or replace function public.enqueue_support_email_delivery()
 returns trigger
 language plpgsql
@@ -1348,10 +1320,6 @@ grant execute on function public.get_admin_support_directory() to authenticated;
 grant execute on function public.get_support_thread_page(bigint, integer, bigint) to authenticated;
 grant execute on function public.get_admin_support_tickets_page_secured(text, text, text, text, uuid, text, text, integer, integer) to authenticated;
 grant execute on function public.admin_update_support_ticket_secured(bigint, text, text, text, text, uuid, text[], bigint) to authenticated;
-
--- ---------------------------------------------------------------------------
--- 7.6 Global search: FTS indexes, stable relevance, pagination and total count.
--- ---------------------------------------------------------------------------
 
 create index if not exists profiles_global_search_fts_idx on public.profiles using gin(to_tsvector('simple'::regconfig, coalesce(alias, '') || ' ' || coalesce(email, '') || ' ' || coalesce(role_id, '')));
 create index if not exists profiles_global_search_trgm_idx on public.profiles using gin((coalesce(alias, '') || ' ' || coalesce(email, '')) gin_trgm_ops);

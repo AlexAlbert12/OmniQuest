@@ -24,7 +24,6 @@ declare
   v_affected_students integer := 0;
   v_window_start timestamptz := now() - interval '24 hours';
 begin
-  -- Correct answers are useful for analytics, but not as persistent notifications.
   if coalesce(new.is_correct, false) = true then
     return new;
   end if;
@@ -48,7 +47,6 @@ begin
     and coalesce(ah.is_correct, false) = false
     and coalesce(ah.attempted_at, ah.created_at, now()) >= v_window_start;
 
-  -- A single wrong answer is normal. Notify only when it becomes a teaching signal.
   if v_recent_failures < 5 and v_affected_students < 3 then
     return new;
   end if;

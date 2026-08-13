@@ -28,8 +28,6 @@ using (
   )
 );
 
--- The old RPC included question.explanation in the pre-answer payload. Keep the
--- function for database compatibility but make it unavailable to app users.
 revoke execute on function public.get_game_questions(bigint, bigint, bigint, boolean, integer) from public;
 revoke execute on function public.get_game_questions(bigint, bigint, bigint, boolean, integer) from anon;
 revoke execute on function public.get_game_questions(bigint, bigint, bigint, boolean, integer) from authenticated;
@@ -598,9 +596,6 @@ begin
     end if;
   end if;
 
-  -- profiles.points is recalculated from attempt_history.earned_points
-  -- and student_badges.reward_xp by sync_student_points triggers.
-
   return jsonb_build_object(
     'is_correct', v_is_correct,
     'requires_manual_review', v_requires_manual_review,
@@ -611,7 +606,6 @@ begin
   );
 end;
 $$;
-
 
 create or replace function public.get_attempt_feedback(p_attempt_history_id bigint)
 returns jsonb
@@ -632,8 +626,6 @@ begin
     raise exception 'No authenticated user';
   end if;
 
-  -- PostgreSQL does not allow a composite row variable to be mixed with
-  -- other targets in a multi-column INTO list. Load each row type separately.
   select ah.*
   into v_attempt
   from public.attempt_history ah

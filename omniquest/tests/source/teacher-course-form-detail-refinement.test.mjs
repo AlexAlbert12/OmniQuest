@@ -115,7 +115,6 @@ test('duplicate-course modal exposes async loading while the operation is runnin
   assert.match(hook, /\{ label: 'Duplicar', role: 'primary', onPress: handleDuplicate \}/)
 })
 
-
 test('course detail mobile header gives the course identity its own row and keeps the active classroom above every tab', () => {
   const screen = read('app/(teacher)/subject/[id].tsx')
   const header = read('components/ui/RolePageHeader.tsx')

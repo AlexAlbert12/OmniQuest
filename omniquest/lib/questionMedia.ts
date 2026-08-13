@@ -454,7 +454,7 @@ async function uploadQuestionMediaObject({
         const payload = JSON.parse(request.responseText || '{}') as { message?: string; error?: string }
         message = payload.message || payload.error || message
       } catch {
-        // Storage can return plain text for gateway errors.
+
       }
       finish(() => reject(new Error(message)))
     }
@@ -519,7 +519,6 @@ function inferMimeType(fileName: string, type: QuestionMediaType) {
 function delay(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
-
 
 function createUploadCancelledError() {
   const error = new Error('Subida multimedia cancelada.')

@@ -45,9 +45,6 @@ security definer
 set search_path = public
 as $$
 begin
-  -- Los usuarios pueden editar su alias, avatar y visibilidad, pero no deben
-  -- poder elevar su rol, activar/desactivar cuentas ni manipular XP desde el cliente.
-  -- Las operaciones admin/Edge Functions con service role no tienen auth.uid() y no se ven afectadas.
   if auth.uid() is not null
      and new.id = auth.uid()
      and not public.is_admin() then

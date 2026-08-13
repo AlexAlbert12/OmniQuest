@@ -1,5 +1,3 @@
--- Student experience follow-up: role-aware paged notifications and privacy-safe activity.
-
 create index if not exists notifications_user_audience_created_idx
   on public.notifications(user_id, audience, created_at desc, id desc)
   where deleted_at is null;
@@ -190,8 +188,6 @@ comment on function public.mark_notifications_read(uuid[])
 comment on function public.delete_notifications(uuid[])
   is 'Soft-deletes a batch of notifications owned by the current user.';
 
--- The activity list contains only summary data. Answers, comments and feedback are
--- returned exclusively by get_activity_attempt_detail when the row is expanded.
 create or replace function public.get_student_attempt_history_page(
   p_status text default 'all',
   p_search text default null,
@@ -356,8 +352,6 @@ $$;
 revoke all on function public.get_student_attempt_history_page(text, text, bigint, bigint, bigint, integer, integer, integer) from public, anon;
 grant execute on function public.get_student_attempt_history_page(text, text, bigint, bigint, bigint, integer, integer, integer) to authenticated;
 
--- Expanded activity returns only the learner's submitted value and authorized
--- feedback. It deliberately does not return the complete answer bank.
 create or replace function public.get_activity_attempt_detail(p_attempt_history_id bigint)
 returns jsonb
 language plpgsql

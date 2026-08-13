@@ -24,7 +24,7 @@ export function fromDatabaseQuestionType(typeValue: string | null | undefined): 
   if (normalized === 'multiple_choice') return 'multiple'
   if (normalized === 'true_false') return 'boolean'
   if (normalized === 'drag_drop') return 'dragdrop'
-  // Legacy pair questions are edited as the single canonical destination-assignment type.
+
   if (normalized === 'match_pairs') return 'dragdrop'
   if (normalized === 'fill_blank') return 'fill'
   if (normalized === 'ordering') return 'order'

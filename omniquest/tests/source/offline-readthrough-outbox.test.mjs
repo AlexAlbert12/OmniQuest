@@ -45,19 +45,16 @@ test('root provider exposes offline, cached, pending and failed sync states', ()
 })
 
 test('student courses, profile, badges, notifications, progress and history read through local cache', () => {
-  const files = [
-    'app/(student)/classes.tsx',
-    'app/(student)/profile.tsx',
-    'app/(student)/badges.tsx',
-    'app/(student)/notifications.tsx',
-    'app/(student)/progress.tsx',
-    'app/(student)/activity-log.tsx',
+  const implementations = [
+    read('app/(student)/classes.tsx'),
+    read('app/(student)/badges.tsx'),
+    read('app/(student)/notifications.tsx'),
+    read('app/(student)/progress.tsx') + read('hooks/student/useStudentProgress.ts'),
+    read('hooks/student/useStudentProfile.ts'),
+    read('hooks/student/useStudentActivity.ts'),
   ]
-  files.forEach((file) => {
-    const implementation = file === 'app/(student)/progress.tsx'
-      ? read(file) + read('hooks/student/useStudentProgress.ts')
-      : read(file)
-    assert.match(implementation, /readThroughCache/, `${file} must use read-through cache`)
+  implementations.forEach((implementation, index) => {
+    assert.match(implementation, /readThroughCache/, `implementation ${index + 1} must use read-through cache`)
   })
 
   const notifications = read('hooks/useNotifications.ts')
@@ -65,6 +62,7 @@ test('student courses, profile, badges, notifications, progress and history read
   assert.match(notifications, /enqueueOfflineMutation/)
   assert.match(read('app/(student)/classes.tsx'), /kind: 'class\.join'/)
   assert.match(read('app/(student)/class/[id].tsx'), /kind: 'class\.leave'/)
-  assert.match(read('app/(student)/profile.tsx'), /kind: 'profile\.cosmetics'/)
-  assert.match(read('app/(student)/profile.tsx'), /stageAvatarForOffline/)
+  const avatarCustomization = read('components/student/profile/StudentAvatarCustomizationModal.tsx')
+  assert.match(avatarCustomization, /kind: 'profile\.cosmetics'/)
+  assert.match(avatarCustomization, /stageAvatarForOffline/)
 })

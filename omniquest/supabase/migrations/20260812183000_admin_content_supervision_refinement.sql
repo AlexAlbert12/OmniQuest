@@ -1,7 +1,3 @@
--- Admin content supervision refinement:
--- - exact course navigation by subject id
--- - preserve server-side pagination and least-privilege authorization
-
 drop function if exists public.get_admin_subjects_page(text, uuid, boolean, boolean, timestamptz, timestamptz, integer, integer);
 
 create function public.get_admin_subjects_page(

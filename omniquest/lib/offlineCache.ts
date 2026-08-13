@@ -125,7 +125,7 @@ export async function readOfflineCache<T>(userId: string, resource: string, maxA
       && Date.now() - parsed.savedAt <= maxAgeMs
     if (isValid) return { data: parsed.data, savedAt: parsed.savedAt }
   } catch {
-    // Corrupt or obsolete entries are removed below.
+
   }
 
   await AsyncStorage.removeItem(cacheKey(userId, resource))

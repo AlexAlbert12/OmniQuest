@@ -125,9 +125,6 @@ begin
   into v_awarded_xp, v_new_awards
   from inserted;
 
-  -- profiles.points is recalculated from attempt_history.earned_points
-  -- and student_badges.reward_xp by sync_student_points triggers.
-
   return jsonb_build_object(
     'awarded_xp', v_awarded_xp,
     'new_awards', v_new_awards,

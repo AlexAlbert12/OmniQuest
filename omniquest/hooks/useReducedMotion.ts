@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AccessibilityInfo } from 'react-native'
 
-/** Mirrors the operating-system reduce-motion preference. */
 export function useReducedMotion() {
   const [reducedMotion, setReducedMotion] = useState(false)
 

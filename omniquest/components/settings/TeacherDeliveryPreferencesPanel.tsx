@@ -253,8 +253,6 @@ export default function TeacherDeliveryPreferencesPanel({ dateFormat, timeFormat
   )
 }
 
-
-
 function deliveryStatusLabel(status: string, locale: 'es-ES' | 'en-US') {
   if (status === 'sent') return locale === 'en-US' ? 'Sent' : 'Enviado'
   if (status === 'failed') return locale === 'en-US' ? 'Failed' : 'Fallido'

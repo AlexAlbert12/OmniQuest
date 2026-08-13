@@ -10,7 +10,7 @@ const content = renderCatalog(edgeFunctions, database)
 
 if (checkOnly) {
   let current = ''
-  try { current = await readFile(target, 'utf8') } catch { /* generated file is missing */ }
+  try { current = await readFile(target, 'utf8') } catch {  }
   if (current !== content) {
     console.error('docs/generated/BACKEND_CATALOG.md is out of date. Run npm run docs:generate.')
     process.exit(1)

@@ -1,5 +1,3 @@
--- Game version conflicts, ranking seasons and ranking privacy metadata.
-
 create extension if not exists pgcrypto;
 
 alter table public.questions
@@ -20,10 +18,6 @@ drop trigger if exists touch_question_updated_at on public.questions;
 create trigger touch_question_updated_at
 before update on public.questions
 for each row execute function public.touch_question_updated_at();
-
--- ---------------------------------------------------------------------------
--- Game: expose the version loaded by the client and reject stale submissions.
--- ---------------------------------------------------------------------------
 
 create or replace function public.get_safe_game_questions(
   p_subject_id bigint,
@@ -276,11 +270,6 @@ revoke all on function public.get_safe_game_questions(bigint, bigint, bigint, bo
 grant execute on function public.get_safe_game_questions(bigint, bigint, bigint, boolean, integer, boolean) to authenticated;
 revoke all on function public.submit_answer_resumable(uuid, bigint, bigint, text, jsonb, integer, boolean, boolean, uuid) from public, anon;
 grant execute on function public.submit_answer_resumable(uuid, bigint, bigint, text, jsonb, integer, boolean, boolean, uuid) to authenticated;
-
--- ---------------------------------------------------------------------------
--- Ranking: explicit seasons, reset date and deterministic tie breakers.
--- Opt-out continues to use profiles.visibility = 'private'.
--- ---------------------------------------------------------------------------
 
 create table if not exists public.ranking_seasons (
   id uuid primary key default gen_random_uuid(),

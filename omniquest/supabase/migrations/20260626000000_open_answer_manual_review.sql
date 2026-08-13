@@ -292,9 +292,6 @@ begin
     end if;
   end if;
 
-  -- profiles.points is recalculated from attempt_history.earned_points
-  -- and student_badges.reward_xp by sync_student_points triggers.
-
   if not v_is_correct and v_question.type in ('multiple_choice', 'true_false') then
     select id into v_correct_answer_id
     from public.answers
@@ -424,9 +421,6 @@ begin
     where student_id = v_attempt.student_id
       and topic_id = v_question.topic_id;
   end if;
-
-  -- profiles.points is recalculated from attempt_history.earned_points
-  -- and student_badges.reward_xp by sync_student_points triggers.
 
   return jsonb_build_object(
     'id', p_attempt_history_id,

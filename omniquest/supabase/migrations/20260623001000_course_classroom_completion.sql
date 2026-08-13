@@ -11,10 +11,6 @@ alter table public.subject_scores add column if not exists classroom_id bigint r
 alter table public.topic_scores add column if not exists classroom_id bigint references public.classrooms(id) on delete cascade;
 alter table public.game_attempts add column if not exists classroom_id bigint references public.classrooms(id) on delete set null;
 
-
--- Si classroom_id ya existía antes de esta migración, PostgreSQL no añade el foreign key
--- con ADD COLUMN IF NOT EXISTS. Estos bloques aseguran las relaciones necesarias
--- para que Supabase pueda resolver embeds como enrollments -> classrooms.
 do $$
 begin
   if not exists (
@@ -1021,9 +1017,6 @@ begin
         and topic_id = v_topic_id;
     end if;
   end if;
-
-  -- profiles.points is recalculated from attempt_history.earned_points
-  -- and student_badges.reward_xp by sync_student_points triggers.
 
   if not v_is_correct and v_question.type in ('multiple_choice', 'true_false') then
     select id into v_correct_answer_id

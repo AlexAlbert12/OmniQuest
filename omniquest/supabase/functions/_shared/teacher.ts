@@ -11,7 +11,6 @@ export type TeacherContext = {
   teacherUserId: string
 }
 
-
 export async function getTeacherContext(req: Request): Promise<TeacherContext | Response> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
@@ -117,4 +116,3 @@ export async function writeTeacherAudit(
     console.warn('[teacher audit] could not write audit log:', error.message)
   }
 }
-

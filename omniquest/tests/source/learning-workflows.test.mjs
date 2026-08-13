@@ -47,7 +47,7 @@ test('manual review has an owner-only queue, reusable comments, batch decisions 
   assert.match(reviews, /needs_changes/)
   assert.match(reviews, /Nota interna/)
   assert.doesNotMatch(reviews, /in_review|assign_manual_review|rubric/i)
-  const activity = read('app/(student)/activity-log.tsx')
+  const activity = read('components/student/activity/StudentActivityAttemptRow.tsx')
   assert.match(activity, /Comentarios del profesor/)
   assert.match(activity, /Pendiente de revisión/)
 })

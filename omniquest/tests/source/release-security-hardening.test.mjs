@@ -95,7 +95,6 @@ test('expired classroom invitation codes are rejected by the enrollment RPC', ()
   assert.match(migration, /grant execute on function public\.join_subject_by_code\(text\) to authenticated, service_role/)
 })
 
-
 test('service-role clients retain explicit data and sequence privileges', () => {
   const migration = read('supabase/migrations/20260805125500_service_role_data_access.sql')
 
@@ -103,7 +102,6 @@ test('service-role clients retain explicit data and sequence privileges', () => 
   assert.match(migration, /grant usage, select on all sequences in schema public to service_role/)
   assert.doesNotMatch(migration, /to anon|to authenticated/)
 })
-
 
 test('authenticated profile and notification-state access is explicit and RLS-scoped', () => {
   const migration = read('supabase/migrations/20260805134500_authenticated_profile_notification_access.sql')
@@ -116,7 +114,6 @@ test('authenticated profile and notification-state access is explicit and RLS-sc
   assert.doesNotMatch(migration, /grant all/)
 })
 
-
 test('notification preferences and protected notification RPCs retain explicit client access', () => {
   const migration = read('supabase/migrations/20260805143000_notification_client_access.sql')
 
@@ -127,7 +124,6 @@ test('notification preferences and protected notification RPCs retain explicit c
   assert.match(migration, /grant execute on function public\.delete_notifications\(uuid\[\]\) to authenticated, service_role/)
   assert.doesNotMatch(migration, /grant all/)
 })
-
 
 test('teacher classroom creation is finalized as a protected server operation', () => {
   const historicalMigration = read('supabase/migrations/20260805160000_teacher_classroom_access.sql')
@@ -141,7 +137,6 @@ test('teacher classroom creation is finalized as a protected server operation', 
   assert.doesNotMatch(finalMatrix, /grant (insert|update|delete) on table public\.classrooms to authenticated/)
 })
 
-
 test('teacher topic creation keeps writes server-side and reads RLS-scoped', () => {
   const migration = read('supabase/migrations/20260805163000_teacher_topic_access.sql')
   const edgeFunction = read('supabase/functions/teacher-create-topic/index.ts')
@@ -153,7 +148,6 @@ test('teacher topic creation keeps writes server-side and reads RLS-scoped', () 
   assert.doesNotMatch(migration, /grant (insert|update|delete).*to authenticated/)
   assert.match(edgeFunction, /context\.adminClient[\s\S]*\.from\('subject_topics'\)[\s\S]*\.insert\(/)
 })
-
 
 test('authenticated learning workflows use explicit RLS-scoped privileges', () => {
   const migration = read('supabase/migrations/20260805170000_authenticated_learning_workflow_access.sql')
@@ -171,7 +165,6 @@ test('authenticated learning workflows use explicit RLS-scoped privileges', () =
   assert.match(authorizationTests, /delete from public\.enrollments[\s\S]*teachers cannot bypass the server operation/)
   assert.match(authorizationTests, /delete from public\.enrollments[\s\S]*students can leave their own enrollment/)
 })
-
 
 test('private question media remains server-controlled during teacher question creation', () => {
   const migration = read('supabase/migrations/20260805183000_question_media_server_authorization.sql')

@@ -49,7 +49,7 @@ test('game uses the safe question and post-attempt feedback RPCs', () => {
 })
 
 test('student activity loads safe summaries and fetches details lazily', () => {
-  const source = read('app/(student)/activity-log.tsx')
+  const source = read('app/(student)/activity-log.tsx') + read('hooks/student/useStudentActivity.ts')
 
   assert.match(source, /fetchStudentAttemptHistoryPage\(/)
   assert.match(source, /fetchActivityAttemptDetail\(attemptId\)/)

@@ -137,8 +137,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
       }
       setUserId(data.session.user.id)
       setEmail(data.session.user.email || '')
-      // Keep the compatibility wrapper exported for older callers while this screen uses
-      // the paginated server contract directly.
+
       void fetchOwnSupportTickets
       const [ticketPage, channels, deliveryHistory, profileResult, subjectsResult, teacherPreferenceResult] = await Promise.all([
         fetchOwnSupportTicketsPage({ limit: 10, offset: 0 }),

@@ -212,7 +212,6 @@ export default function BadgesScreen() {
     }
   }, [currentCacheResource, equippedFrameKey, featuredBadgeId, feedback])
 
-
   const handleSignOut = async () => {
     await signOutCurrentDeviceSession()
     router.replace('/login' as Href)

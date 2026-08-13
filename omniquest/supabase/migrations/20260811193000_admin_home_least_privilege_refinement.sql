@@ -1,8 +1,3 @@
--- Admin home refinement: explicit least-privilege assignments, actionable metrics and push semantics.
-
--- Bootstrap exactly one existing administrator only when the deployment has never
--- created an explicit administrative role assignment. Future admin accounts remain
--- unassigned until a privileged administrator grants them a role.
 insert into public.admin_role_assignments (user_id, role_id, assigned_by, assigned_at, updated_at)
 select profile.id, 'super_admin', profile.id, now(), now()
 from public.profiles profile
@@ -13,9 +8,6 @@ order by profile.created_at asc nulls last, profile.id
 limit 1
 on conflict (user_id) do nothing;
 
--- An administrator is considered authorized only after an explicit role assignment.
--- get_admin_portal_context() still recognizes an unassigned admin account so the UI
--- can explain that access is pending instead of silently granting super-admin rights.
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -213,9 +205,6 @@ begin
 end;
 $$;
 
--- Dashboard alerts are actionable: inactive learners have previous activity but no
--- attempt in the last seven days; archived/inactive academic entities do not raise
--- configuration alerts.
 create or replace function public.get_admin_dashboard_metrics()
 returns jsonb
 language plpgsql
@@ -304,8 +293,6 @@ begin
 end;
 $$;
 
--- Push monitoring distinguishes work waiting in the queue from work already being
--- processed. A delivery rate is unknown until at least one receipt resolves.
 create or replace function public.get_admin_push_delivery_metrics(p_days integer default 30)
 returns jsonb
 language plpgsql

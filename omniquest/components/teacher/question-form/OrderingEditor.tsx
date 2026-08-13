@@ -13,10 +13,8 @@ export default function OrderingEditor({ value, error, onChange }: { value: stri
 
   useEffect(() => {
     const next = ensureRows(parsed)
-    if (next.join('\n') !== rows.join('\n')) setRows(next)
-    // rows is intentionally excluded: external draft recovery must replace the editor state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value])
+    setRows((current) => next.join('\n') === current.join('\n') ? current : next)
+  }, [parsed])
 
   const commit = (nextRows: string[]) => {
     const safeRows = ensureRows(nextRows)

@@ -1,8 +1,3 @@
--- Teacher settings refinement: one source of truth for teacher notifications,
--- truthful alert switches, account-export minimization and support-channel separation.
-
--- Legacy generic teacher notification toggles are no longer user-facing. Keep them
--- permissive so they cannot silently override the teacher-specific preferences below.
 update public.user_notification_preferences np
 set activity_enabled = true,
     news_enabled = true,

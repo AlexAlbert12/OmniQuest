@@ -13,11 +13,6 @@ type SemanticIconProps = {
   style?: StyleProp<ViewStyle>
 }
 
-/**
- * Canonical icon treatment for concepts that repeat across OmniQuest.
- * It prevents XP, warnings, courses or audit events from changing meaning
- * and colour between screens.
- */
 export default function SemanticIcon({
   semantic,
   active = true,

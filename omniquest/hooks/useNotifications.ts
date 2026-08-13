@@ -186,9 +186,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         )
       : []
 
-    // Persistent rows were already admitted by create_notification according to the user's
-    // preferences. Filtering them again on the client can make server totals disagree with
-    // the visible list after preferences change, so only derived notifications are filtered.
     const persistentNotifications = persistentPage.notifications
     const notifications = cursor === null
       ? mergeNotificationSources(persistentNotifications, derivedNotifications)

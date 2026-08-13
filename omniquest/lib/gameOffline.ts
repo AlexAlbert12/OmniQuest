@@ -82,7 +82,7 @@ export async function loadGameSnapshot(gameKey: string): Promise<StoredGameSnaps
       && Date.now() - parsed.savedAt <= MAX_SNAPSHOT_AGE_MS
     if (valid) return parsed
   } catch {
-    // Invalid or old snapshot; remove it below.
+
   }
 
   await clearGameSnapshot(gameKey)

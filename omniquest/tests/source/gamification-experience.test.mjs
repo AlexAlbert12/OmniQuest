@@ -41,7 +41,7 @@ test('game feedback includes reusable XP and achievement microinteractions', () 
 
 test('avatar cosmetics are validated on the server and reused across profile and ranking', () => {
   const migration = read(migrationPath)
-  const profile = read('app/(student)/profile.tsx')
+  const profile = read('app/(student)/profile.tsx') + read('components/student/profile/StudentAvatarCustomizationModal.tsx')
   const ranking = read('app/(student)/ranking.tsx') + read('hooks/student/useStudentRanking.ts') + read('components/student/ranking/CurrentPositionCard.tsx') + read('components/student/ranking/RankingTable.tsx')
   const offlineMutations = read('lib/offlineMutations.ts')
   const header = read('components/ui/RoleHeaderAvatar.tsx')

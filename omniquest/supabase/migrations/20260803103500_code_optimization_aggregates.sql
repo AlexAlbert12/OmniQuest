@@ -1,6 +1,3 @@
--- Code optimization: student aggregates used by feature-level data hooks.
--- Keeps attempt history and catalog aggregation inside PostgreSQL instead of transferring raw rows.
-
 create index if not exists attempt_history_student_attempted_at_desc_idx
   on public.attempt_history (student_id, attempted_at desc);
 

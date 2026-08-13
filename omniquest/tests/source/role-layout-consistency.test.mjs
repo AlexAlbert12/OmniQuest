@@ -21,7 +21,7 @@ test('admin security keeps the shared admin structure', () => {
   const security = read('app/(admin)/security.tsx')
 
   assert.match(security, /<AdminScaffold/)
-  assert.match(security, /activeSection="settings"/)
+  assert.match(security, /activeSection="security"/)
   assert.doesNotMatch(security, /mx-auto/)
   assert.doesNotMatch(security, /max-w-\[860px\]/)
 })

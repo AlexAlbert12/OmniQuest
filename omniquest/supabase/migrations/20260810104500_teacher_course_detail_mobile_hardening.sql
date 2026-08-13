@@ -1,5 +1,3 @@
--- Final course-detail hardening: evaluated-only grades, global student KPIs and mobile-safe analytics.
-
 create or replace function public.get_teacher_subject_overview(
   p_subject_id bigint,
   p_classroom_id bigint default null

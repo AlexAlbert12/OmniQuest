@@ -1,10 +1,4 @@
--- Teacher operations: manual review SLA/rubrics, question diagnosis and immutable audit.
-
 create extension if not exists pgcrypto;
-
--- ---------------------------------------------------------------------------
--- Manual review workflow
--- ---------------------------------------------------------------------------
 
 create table if not exists public.manual_review_settings (
   teacher_id uuid primary key references public.profiles(id) on delete cascade,
@@ -449,7 +443,6 @@ begin
 end;
 $$;
 
--- Assigned reviewers need the same thread and comment access as the course owner.
 create or replace function public.get_manual_review_thread(p_attempt_history_id bigint)
 returns jsonb
 language plpgsql
@@ -646,7 +639,6 @@ begin
     where id = v_attempt.attempt_id;
   end if;
 
-  -- Recompute progress summaries instead of accumulating XP in score tables.
   select greatest(
     coalesce((
       select max(coalesce(ga.total_score, 0))::integer
@@ -867,10 +859,6 @@ begin
 end;
 $$;
 
--- ---------------------------------------------------------------------------
--- Question report aggregates
--- ---------------------------------------------------------------------------
-
 create or replace function public.get_teacher_question_report(
   p_question_id bigint,
   p_classroom_id bigint default null,
@@ -974,10 +962,6 @@ begin
   return v_result;
 end;
 $$;
-
--- ---------------------------------------------------------------------------
--- Immutable teacher audit, anomaly detection and asynchronous exports
--- ---------------------------------------------------------------------------
 
 alter table public.teacher_audit_logs
   add column if not exists before_state jsonb not null default '{}'::jsonb,
@@ -1257,7 +1241,6 @@ begin
 end;
 $$;
 
--- Schedule SQL-only maintenance. HTTP export worker is configured through Vault by the setup guide.
 do $$ begin
   if exists(select 1 from pg_extension where extname='pg_cron') then
     if exists(select 1 from cron.job where jobname='omniquest-teacher-audit-retention') then perform cron.unschedule((select jobid from cron.job where jobname='omniquest-teacher-audit-retention' limit 1)); end if;
@@ -1267,7 +1250,6 @@ do $$ begin
   end if;
 end $$;
 
--- Grants
 revoke all on function public.get_manual_review_configuration() from public,anon;
 revoke all on function public.save_manual_review_settings(integer) from public,anon;
 revoke all on function public.save_manual_review_rubric(uuid,text,bigint,jsonb) from public,anon;

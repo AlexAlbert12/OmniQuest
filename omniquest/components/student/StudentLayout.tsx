@@ -20,7 +20,6 @@ type StudentLayoutProps = {
   refreshControl?: ReactElement<RefreshControlProps>
 }
 
-/** Backwards-compatible student shell backed by the shared responsive layout. */
 export default function StudentLayout({
   activeSection,
   alias,

@@ -1,7 +1,3 @@
--- Admin support experience refinement:
--- - keep support assignees fail-closed under the explicit admin RBAC model
--- - stop implicitly assigning an unassigned ticket to the current admin on any save
-
 create or replace function public.get_admin_support_directory()
 returns jsonb
 language plpgsql

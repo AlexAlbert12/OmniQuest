@@ -1,5 +1,3 @@
--- Server-side pagination for audit logs, rankings and activity histories.
-
 create or replace function public.get_admin_audit_logs_page(
   p_search text default null,
   p_limit integer default 25,

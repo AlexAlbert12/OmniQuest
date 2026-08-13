@@ -3,14 +3,17 @@ import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useAdminData } from '../hooks/useAdminData'
+import { useAdminPortalContext } from '../hooks/useAdminPortalContext'
 import { useAdminExportJobs } from '../hooks/useAdminExportJobs'
 import { useAdminAccountExportRequests } from '../hooks/useAdminAccountExportRequests'
 import { AdminScaffold } from '../shared/AdminScaffold'
 import AdminExportJobsPanel from '../shared/AdminExportJobsPanel'
 import AdminAccountExportRequestsPanel from '../shared/AdminAccountExportRequestsPanel'
 import { Panel } from '../shared/AdminPrimitives'
+import AdminProfileAvatar from '../shared/AdminProfileAvatar'
 import AdminRoleManagementPanel from '../users/AdminRoleManagementPanel'
 import type { AdminPermission, IconName } from '../types/admin'
+import { AppBottomSheet } from '../../ui'
 import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
 import { useAppModal } from '../../AppModalProvider'
 import { useResponsiveLayout } from '../../../lib/responsive'
@@ -28,7 +31,7 @@ export function AdminContentHubScreen() {
 }
 
 export function AdminMoreScreen() {
-  const data = useAdminData()
+  const data = useAdminPortalContext()
   const router = useRouter()
   const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
@@ -41,7 +44,7 @@ export function AdminMoreScreen() {
     { title: 'Exportaciones', description: 'Consulta el estado y descarga los archivos preparados.', icon: 'cloud-download-outline', href: '/(admin)/exports', permission: ['users.export', 'courses.read', 'audit.export', 'support.read'] },
     { title: 'Administración y permisos', description: 'Gestiona el acceso y los permisos de otros administradores.', icon: 'key-outline', href: '/(admin)/permissions', permission: 'admin.roles.manage' },
     { title: 'Perfil', description: 'Identidad de la cuenta y rol administrativo.', icon: 'person-circle-outline', href: '/(admin)/profile', permission: 'dashboard.read' },
-    { title: 'Configuración', description: 'Seguridad, privacidad y preferencias del portal.', icon: 'settings-outline', href: '/(admin)/settings', permission: 'dashboard.read' },
+    { title: 'Seguridad de la cuenta', description: 'Sesiones, dispositivos y códigos de recuperación.', icon: 'shield-checkmark-outline', href: '/(admin)/security', permission: 'dashboard.read' },
   ]
   return <AdminScaffold activeSection="more" title="Más" subtitle="Soporte, notificaciones, exportaciones, permisos y gestión de tu cuenta." data={data}><HubGrid items={items} permissions={data.portalContext?.permissions} compactOnMobile />{!responsive.isDesktop ? <Pressable accessibilityRole="button" accessibilityLabel="Cerrar sesión" accessibilityHint="Pide confirmación antes de cerrar la sesión administrativa" onPress={requestSignOut} className="mt-4 flex-row items-center justify-center gap-3 rounded-2xl border border-semantic-danger bg-semantic-surface-danger px-5 py-4" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}><Ionicons name="log-out-outline" size={21} color={tokens.semantic.danger} /><Text className="font-black text-semantic-danger">Cerrar sesión</Text></Pressable> : null}</AdminScaffold>
 }
@@ -69,14 +72,20 @@ export function AdminPermissionsScreen() {
 }
 
 export function AdminProfileScreen() {
-  const data = useAdminData()
+  const data = useAdminPortalContext()
+  const responsive = useResponsiveLayout()
   const profile = data.portalContext?.profile
-  return <AdminScaffold activeSection="profile" title="Perfil" subtitle="Identidad y alcance de tu cuenta administrativa." data={data}><Panel title="Cuenta administrativa" icon="person-circle-outline" className="mt-5"><View className="items-center py-4"><View className="h-24 w-24 items-center justify-center rounded-full bg-surface-selected"><Text className="text-[30px] font-black text-brand-admin">{getInitials(profile?.alias || 'Administrador')}</Text></View><Text className="mt-4 text-[22px] font-black text-text-primary">{profile?.alias || 'Administrador'}</Text><Text className="mt-1 text-[13px] text-text-muted">{profile?.email || 'Correo protegido'}</Text><View className="mt-5 w-full gap-3"><InfoRow icon="shield-checkmark-outline" label="Rol" value={data.portalContext?.role_name || 'Sin verificar'} /><InfoRow icon="key-outline" label="Permisos" value={`${data.portalContext?.permissions.length || 0} asignados`} /><InfoRow icon="checkmark-circle-outline" label="Estado" value={profile?.active === false ? 'Inactivo' : 'Activo'} /></View></View></Panel></AdminScaffold>
-}
-
-export function AdminSettingsScreen() {
-  const data = useAdminData()
-  return <AdminScaffold activeSection="settings" title="Configuración" subtitle="Opciones de seguridad y gobierno del portal administrativo." data={data}><HubGrid items={[{ title: 'Seguridad de la cuenta', description: 'Sesiones, dispositivos y cierre seguro.', icon: 'shield-checkmark-outline', href: '/(admin)/security', permission: 'dashboard.read' }, { title: 'Auditoría y retención', description: 'Consulta la política efectiva y verifica la integridad.', icon: 'finger-print-outline', href: '/(admin)/audit', permission: 'audit.read' }, { title: 'Preferencias de soporte', description: 'Gestiona tickets, plantillas y comunicación.', icon: 'options-outline', href: '/(admin)/support', permission: 'support.read' }]} permissions={data.portalContext?.permissions} /></AdminScaffold>
+  const permissions = data.portalContext?.permissions || []
+  const [permissionsVisible, setPermissionsVisible] = React.useState(false)
+  const alias = profile?.alias || 'Administrador'
+  const email = profile?.email || 'Correo protegido'
+  const roleName = data.portalContext?.role_name || 'Sin verificar'
+  return <AdminScaffold activeSection="profile" title="Perfil" subtitle="Identidad y alcance de tu cuenta administrativa." data={data}>
+    <Panel title="Cuenta administrativa" icon="person-circle-outline" className="mt-5">
+      {responsive.isDesktop ? <View className="py-1"><View className="flex-row items-center gap-5 rounded-2xl border border-border-subtle bg-surface-interactive p-5"><AdminProfileAvatar alias={alias} avatar={profile?.avatar} size={96} /><View className="min-w-0 flex-1"><Text className="text-[24px] font-black text-text-primary">{alias}</Text><Text className="mt-1 text-[13px] text-text-muted">{email}</Text><Text className="mt-3 text-[12px] leading-5 text-text-secondary">Cuenta administrativa de solo lectura. Los cambios de permisos se gestionan desde Administración y permisos.</Text></View></View><View className="mt-4 flex-row gap-3"><ProfileInfoCard className="min-w-[220px] flex-1" icon="shield-checkmark-outline" label="Perfil de acceso" value={roleName} /><ProfileInfoCard className="min-w-[220px] flex-1" icon="key-outline" label="Permisos" value={`${permissions.length} asignados`} detail="Ver permisos asignados" onPress={() => setPermissionsVisible(true)} /><ProfileInfoCard className="min-w-[220px] flex-1" icon="lock-closed-outline" label="Seguridad" value="Acceso verificado" detail="Identidad y permisos validados en servidor" /></View></View> : <View className="items-center py-4"><AdminProfileAvatar alias={alias} avatar={profile?.avatar} size={96} /><Text className="mt-4 text-[22px] font-black text-text-primary">{alias}</Text><Text className="mt-1 text-center text-[13px] text-text-muted">{email}</Text><View className="mt-5 w-full gap-3"><InfoRow icon="shield-checkmark-outline" label="Perfil de acceso" value={roleName} /><InfoRow icon="key-outline" label="Permisos" value={`${permissions.length} asignados`} detail="Ver permisos asignados" onPress={() => setPermissionsVisible(true)} /><InfoRow icon="lock-closed-outline" label="Seguridad" value="Acceso verificado" detail="Identidad y permisos validados en servidor" /></View></View>}
+    </Panel>
+    <AppBottomSheet visible={permissionsVisible} onClose={() => setPermissionsVisible(false)} title={`Permisos de ${roleName}`} description="Alcance funcional confirmado para tu perfil administrativo." testID="admin-profile-permissions-sheet"><View style={{ gap: 10 }}>{ADMIN_PERMISSION_GROUPS.map((group) => <PermissionScopeRow key={group.title} group={group} permissions={permissions} />)}</View></AppBottomSheet>
+  </AdminScaffold>
 }
 
 type HubItem = { title: string; description: string; icon: IconName; href: string; permission: AdminPermission | AdminPermission[] }
@@ -89,5 +98,35 @@ function HubGrid({ compactOnMobile = false, items, permissions }: { compactOnMob
   if (compactOnMobile && !responsive.isDesktop) return <View className="mt-5 gap-3">{visible.map((item) => <Pressable key={item.href} accessibilityRole="link" accessibilityLabel={`Abrir ${item.title}`} onPress={() => router.push(item.href as any)} className="min-h-[92px] flex-row items-center gap-4 rounded-2xl border border-border-default bg-surface-default px-4 py-3" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}><View className="h-11 w-11 shrink-0 items-center justify-center rounded-xl border" style={{ backgroundColor: withAlpha(tokens.brand.admin, '18'), borderColor: withAlpha(tokens.brand.admin, '50') }}><Ionicons name={item.icon} size={22} color={tokens.brand.admin} /></View><View className="min-w-0 flex-1"><Text numberOfLines={1} className="text-[15px] font-black text-text-primary">{item.title}</Text><Text numberOfLines={2} className="mt-1 text-[12px] leading-4 text-text-secondary">{item.description}</Text></View><Ionicons name="chevron-forward" size={19} color={tokens.brand.admin} /></Pressable>)}</View>
   return <View className="mt-5 flex-row flex-wrap gap-4">{visible.map((item) => <Pressable key={item.href} accessibilityRole="link" accessibilityLabel={`Abrir ${item.title}`} onPress={() => router.push(item.href as any)} className="min-w-[250px] flex-1 rounded-[24px] border border-border-default bg-surface-default p-5" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}><View className="h-12 w-12 items-center justify-center rounded-2xl border" style={{ backgroundColor: withAlpha(tokens.brand.admin, '18'), borderColor: withAlpha(tokens.brand.admin, '50') }}><Ionicons name={item.icon} size={25} color={tokens.brand.admin} /></View><Text className="mt-4 text-[18px] font-black text-text-primary">{item.title}</Text><Text className="mt-2 text-[13px] leading-5 text-text-secondary">{item.description}</Text><View className="mt-4 flex-row items-center gap-2"><Text className="font-black text-brand-admin">Entrar</Text><Ionicons name="arrow-forward" size={17} color={tokens.brand.admin} /></View></Pressable>)}</View>
 }
-function InfoRow({ icon, label, value }: { icon: IconName; label: string; value: string }) { return <View className="flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-raised px-4 py-3"><Ionicons name={icon} size={19} /><View className="min-w-0 flex-1"><Text className="text-[10px] font-black uppercase tracking-[0.7px] text-text-muted">{label}</Text><Text className="mt-1 text-[13px] font-black text-text-primary">{value}</Text></View></View> }
-function getInitials(value: string) { return value.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'A' }
+type PermissionGroup = { title: string; icon: IconName; items: { permission: AdminPermission; label: string }[] }
+const ADMIN_PERMISSION_GROUPS: PermissionGroup[] = [
+  { title: 'Portal administrativo', icon: 'grid-outline', items: [{ permission: 'dashboard.read', label: 'Acceder al portal' }] },
+  { title: 'Usuarios', icon: 'people-outline', items: [{ permission: 'users.read', label: 'Consultar usuarios' }, { permission: 'users.manage', label: 'Gestionar usuarios' }, { permission: 'users.security', label: 'Seguridad de cuentas' }, { permission: 'users.export', label: 'Exportar usuarios' }] },
+  { title: 'Cursos y clases', icon: 'book-outline', items: [{ permission: 'courses.read', label: 'Consultar cursos y clases' }, { permission: 'courses.manage', label: 'Gestionar contenido' }, { permission: 'courses.transfer', label: 'Transferir cursos' }, { permission: 'courses.delete', label: 'Eliminar cursos tras retención' }] },
+  { title: 'Auditoría', icon: 'finger-print-outline', items: [{ permission: 'audit.read', label: 'Consultar auditoría' }, { permission: 'audit.export', label: 'Exportar auditoría' }] },
+  { title: 'Soporte', icon: 'headset-outline', items: [{ permission: 'support.read', label: 'Consultar soporte' }, { permission: 'support.manage', label: 'Gestionar soporte' }] },
+  { title: 'Notificaciones', icon: 'notifications-outline', items: [{ permission: 'notifications.read', label: 'Supervisar notificaciones' }, { permission: 'notifications.manage', label: 'Gestionar notificaciones' }] },
+  { title: 'Administración', icon: 'key-outline', items: [{ permission: 'admin.roles.manage', label: 'Administrar roles y permisos' }] },
+]
+
+function InfoRow({ detail, icon, label, onPress, value }: { detail?: string; icon: IconName; label: string; onPress?: () => void; value: string }) {
+  const { tokens } = useAppTheme()
+  const content = <><Ionicons name={icon} size={19} color={tokens.brand.admin} /><View className="min-w-0 flex-1"><Text className="text-[10px] font-black uppercase tracking-[0.7px] text-text-muted">{label}</Text><Text className="mt-1 text-[13px] font-black text-text-primary">{value}</Text>{detail ? <Text className="mt-1 text-[11px] leading-4 text-text-muted">{detail}</Text> : null}</View>{onPress ? <Ionicons name="chevron-forward" size={18} color={tokens.brand.admin} /> : null}</>
+  if (onPress) return <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${value}. ${detail || ''}`} accessibilityHint="Muestra el alcance funcional del perfil administrativo" onPress={onPress} className="flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-raised px-4 py-3" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}>{content}</Pressable>
+  return <View className="flex-row items-center gap-3 rounded-2xl border border-border-default bg-surface-raised px-4 py-3">{content}</View>
+}
+
+function ProfileInfoCard({ className = '', detail, icon, label, onPress, value }: { className?: string; detail?: string; icon: IconName; label: string; onPress?: () => void; value: string }) {
+  const { tokens } = useAppTheme()
+  const content = <><View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(tokens.brand.admin, '18') }}><Ionicons name={icon} size={20} color={tokens.brand.admin} /></View><Text className="mt-3 text-[10px] font-black uppercase tracking-[0.7px] text-text-muted">{label}</Text><Text className="mt-1 text-[15px] font-black text-text-primary">{value}</Text>{detail ? <View className="mt-2 flex-row items-center gap-1"><Text className="text-[11px] font-bold" style={{ color: onPress ? tokens.brand.admin : tokens.text.muted }}>{detail}</Text>{onPress ? <Ionicons name="chevron-forward" size={14} color={tokens.brand.admin} /> : null}</View> : null}</>
+  if (onPress) return <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${value}. ${detail || ''}`} accessibilityHint="Muestra el alcance funcional del perfil administrativo" onPress={onPress} className={`rounded-2xl border border-border-default bg-surface-raised p-4 ${className}`} style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}>{content}</Pressable>
+  return <View className={`rounded-2xl border border-border-default bg-surface-raised p-4 ${className}`}>{content}</View>
+}
+
+function PermissionScopeRow({ group, permissions }: { group: PermissionGroup; permissions: AdminPermission[] }) {
+  const { tokens } = useAppTheme()
+  const included = group.items.filter((item) => permissions.includes(item.permission))
+  const summary = included.length === group.items.length ? 'Acceso completo' : included.length === 0 ? 'Sin acceso' : included.map((item) => item.label).join(' · ')
+  const active = included.length > 0
+  return <View className="flex-row items-start gap-3 rounded-2xl border border-border-default bg-surface-interactive p-4"><View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: active ? withAlpha(tokens.brand.admin, '18') : tokens.surface.disabled }}><Ionicons name={group.icon} size={20} color={active ? tokens.brand.admin : tokens.text.muted} /></View><View className="min-w-0 flex-1"><Text className="text-[13px] font-black text-text-primary">{group.title}</Text><Text className="mt-1 text-[12px] leading-5" style={{ color: active ? tokens.text.secondary : tokens.text.muted }}>{summary}</Text></View></View>
+}

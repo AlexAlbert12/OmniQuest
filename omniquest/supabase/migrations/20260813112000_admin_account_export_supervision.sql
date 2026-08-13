@@ -1,6 +1,3 @@
--- Allow administrators with user-export privileges to supervise personal data export requests
--- without exposing storage paths or granting download access to another user's archive.
-
 create or replace function public.get_admin_account_export_requests_page(
   p_limit integer default 25,
   p_offset integer default 0

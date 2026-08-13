@@ -93,7 +93,6 @@ export function useAdminActions(data: AdminData, requestConfirmation?: AdminConf
     }
   }, [data, feedback])
 
-
   const toggleCourseArchive = useCallback(async (subject: SubjectRow, governance?: { reason?: string; deactivateClassrooms?: boolean }) => {
     const archive = !subject.is_archived
     const approved = archive

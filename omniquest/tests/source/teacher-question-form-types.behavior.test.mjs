@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { teacherQuestionSchema } from '../../lib/questionFormSchema.js'
+import { teacherQuestionSchema } from '../../lib/questionFormSchema.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')

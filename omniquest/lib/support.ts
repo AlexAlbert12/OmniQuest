@@ -58,7 +58,6 @@ export type SupportEmailDelivery = {
   created_at: string
 }
 
-
 export type SupportMessage = {
   id: number
   ticket_id: number
@@ -187,7 +186,6 @@ export async function fetchSupportThreadPage({
     nextBeforeId: payload.next_before_id == null ? null : Number(payload.next_before_id),
   }
 }
-
 
 export async function fetchAdminSupportDirectory(): Promise<SupportDirectory> {
   const { data, error } = await supabase.rpc('get_admin_support_directory')
@@ -451,7 +449,6 @@ function mapSupportMessage(value: unknown): SupportMessage {
   }
 }
 
-
 function mapSupportHistory(value: unknown): SupportHistory {
   const row = isRecord(value) ? value : {}
   return {
@@ -510,7 +507,6 @@ function isSupportPriority(value: unknown): value is SupportTicketPriority {
 function isSupportRole(value: unknown): value is SupportRole {
   return value === 'student' || value === 'teacher' || value === 'admin' || value === 'system'
 }
-
 
 function sanitizeFileName(value: string) {
   return value

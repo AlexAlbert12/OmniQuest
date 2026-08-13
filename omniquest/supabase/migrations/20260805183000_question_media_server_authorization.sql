@@ -1,5 +1,3 @@
--- Keep private question-media metadata server-controlled while allowing protected teacher workflows.
-
 grant select, insert, update, delete on table public.question_media_assets to service_role;
 
 alter function public.save_teacher_question(

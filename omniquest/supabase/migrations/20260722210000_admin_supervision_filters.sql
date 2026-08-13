@@ -1,6 +1,3 @@
--- Advanced administration filters, supervision data and profile activity.
--- Replaces the previous paged RPCs with richer, server-filtered versions.
-
 create index if not exists profiles_role_active_created_idx
   on public.profiles(role_id, active, created_at desc);
 create index if not exists attempt_history_student_attempted_idx
@@ -10,9 +7,6 @@ create index if not exists attempt_history_question_attempted_idx
 create index if not exists admin_audit_logs_created_at_idx
   on public.admin_audit_logs(created_at desc);
 
--- ---------------------------------------------------------------------------
--- Directory options used by the advanced filters.
--- ---------------------------------------------------------------------------
 create or replace function public.get_admin_directory_filters()
 returns jsonb
 language plpgsql
@@ -84,10 +78,6 @@ $$;
 revoke all on function public.get_admin_directory_filters() from public, anon;
 grant execute on function public.get_admin_directory_filters() to authenticated;
 
--- ---------------------------------------------------------------------------
--- Profiles: real server pagination plus account, role, course/class and date
--- filters. Activity is computed without exposing answer content.
--- ---------------------------------------------------------------------------
 drop function if exists public.get_admin_profiles_page(text, text, bigint, bigint, uuid, integer, integer);
 
 create or replace function public.get_admin_profiles_page(
@@ -238,9 +228,6 @@ $$;
 revoke all on function public.get_admin_profiles_page(text, text, bigint, bigint, uuid, boolean, text, timestamptz, timestamptz, integer, integer) from public, anon;
 grant execute on function public.get_admin_profiles_page(text, text, bigint, bigint, uuid, boolean, text, timestamptz, timestamptz, integer, integer) to authenticated;
 
--- ---------------------------------------------------------------------------
--- Courses: supervision data, not pedagogical editing.
--- ---------------------------------------------------------------------------
 drop function if exists public.get_admin_subjects_page(text, uuid, boolean, integer, integer);
 
 create or replace function public.get_admin_subjects_page(
@@ -363,9 +350,6 @@ $$;
 revoke all on function public.get_admin_subjects_page(text, uuid, boolean, boolean, timestamptz, timestamptz, integer, integer) from public, anon;
 grant execute on function public.get_admin_subjects_page(text, uuid, boolean, boolean, timestamptz, timestamptz, integer, integer) to authenticated;
 
--- ---------------------------------------------------------------------------
--- Classrooms: owner, activity and operational incidents.
--- ---------------------------------------------------------------------------
 drop function if exists public.get_admin_classrooms_page(text, bigint, uuid, integer, integer);
 
 create or replace function public.get_admin_classrooms_page(
@@ -488,9 +472,6 @@ $$;
 revoke all on function public.get_admin_classrooms_page(text, bigint, uuid, uuid, boolean, timestamptz, timestamptz, integer, integer) from public, anon;
 grant execute on function public.get_admin_classrooms_page(text, bigint, uuid, uuid, boolean, timestamptz, timestamptz, integer, integer) to authenticated;
 
--- ---------------------------------------------------------------------------
--- Audit: complete server-side filtering and derived severity.
--- ---------------------------------------------------------------------------
 drop function if exists public.get_admin_audit_logs_page(text, integer, integer);
 
 create or replace function public.get_admin_audit_logs_page(
@@ -590,10 +571,6 @@ $$;
 revoke all on function public.get_admin_audit_logs_page(text, uuid, text, text, text, timestamptz, timestamptz, text, integer, integer) from public, anon;
 grant execute on function public.get_admin_audit_logs_page(text, uuid, text, text, text, timestamptz, timestamptz, text, integer, integer) to authenticated;
 
--- ---------------------------------------------------------------------------
--- Profile activity: a safe, unified timeline for administration. No answers or
--- correct solutions are exposed.
--- ---------------------------------------------------------------------------
 create or replace function public.get_admin_profile_activity_page(
   p_profile_id uuid,
   p_search text default null,

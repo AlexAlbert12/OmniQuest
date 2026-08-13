@@ -1,4 +1,3 @@
--- Group topic changes under the teacher-facing Courses audit filter.
 create or replace function public.get_teacher_audit_logs_page(
   p_category text default 'all',
   p_search text default null,

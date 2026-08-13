@@ -1,9 +1,3 @@
-/**
- * Pure authentication form rules shared by the UI and behavioural tests.
- * Keeping these rules free of React and Supabase makes it possible to test
- * complete submit scenarios with mocked network dependencies.
- */
-
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase()
 }
@@ -60,7 +54,6 @@ function validatePasswordUpdateForm(values, messages = {}) {
   else if (values.confirmPassword !== values.password) errors.confirmPassword = messages.passwordMismatch || 'Las contraseñas no coinciden.'
   return errors
 }
-
 
 function buildPublicStudentSignUpOptions(alias, emailRedirectTo) {
   return {

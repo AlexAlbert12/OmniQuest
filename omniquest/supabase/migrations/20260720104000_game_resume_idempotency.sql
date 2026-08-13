@@ -1,5 +1,3 @@
--- Idempotent answer submission used by offline/retry support.
-
 create table if not exists public.game_answer_submission_receipts (
   student_id uuid not null references public.profiles(id) on delete cascade,
   submission_id uuid not null,
@@ -43,7 +41,6 @@ begin
     raise exception 'Submission id is required';
   end if;
 
-  -- Serialize retries of the same answer without blocking unrelated students.
   perform pg_advisory_xact_lock(hashtextextended(v_user_id::text || ':' || p_submission_id::text, 0));
 
   select r.result

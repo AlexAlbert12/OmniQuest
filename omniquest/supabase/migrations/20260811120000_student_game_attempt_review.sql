@@ -1,7 +1,3 @@
--- Read-only review index for a learner's own game attempt.
--- The detailed submitted value and solution continue to be loaded through the
--- existing per-attempt authorization RPCs.
-
 create or replace function public.get_game_attempt_review_index(
   p_attempt_id uuid default null,
   p_subject_id bigint default null,

@@ -5,7 +5,6 @@ set local search_path = public, extensions;
 
 select plan(20);
 
--- Stable identities used only inside this rolled-back test transaction.
 insert into auth.users (
   id,
   instance_id,
@@ -103,7 +102,6 @@ create temporary table security_test_state (
 insert into security_test_state default values;
 grant select, update on security_test_state to authenticated;
 
--- Enrolled students cannot inspect the base answer-key tables.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000002', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
@@ -225,7 +223,6 @@ select ok(
   'first correct answer unlocks the first-step badge'
 );
 
--- An unenrolled student cannot load the game or another student's feedback.
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000003', true);
 
 select throws_ok(
@@ -243,7 +240,6 @@ select throws_ok(
   'student cannot read another student attempt feedback'
 );
 
--- The owning teacher can read the complete authoring data.
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000001', true);
 select is(
   (select count(*) from public.questions where id = 910001),
@@ -256,7 +252,6 @@ select is(
   'owning teacher can select own answers'
 );
 
--- A different teacher cannot inspect another teacher's answer key.
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000004', true);
 select is(
   (select count(*) from public.answers where question_id = 910001),
@@ -264,7 +259,6 @@ select is(
   'other teacher cannot select foreign answers'
 );
 
--- Assigned administrators retain the explicit support and audit policy.
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000005', true);
 select is(
   (select count(*) from public.answers where question_id = 910001),

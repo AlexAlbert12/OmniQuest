@@ -12,10 +12,6 @@ type AppPressableProps = Omit<PressableProps, 'accessibilityLabel' | 'style'> & 
   hitSlopSize?: number
 }
 
-/**
- * Accessible interactive primitive. Labels are mandatory, disabled state is
- * announced and the forwarded ref keeps it compatible with Expo Router Link.
- */
 const AppPressable = React.forwardRef<View, AppPressableProps>(function AppPressable({
   accessibilityHint,
   accessibilityLabel,

@@ -37,7 +37,8 @@ test('admin exports fetch every server page while preserving current filters', (
   assert.match(exports, /get_admin_support_tickets_page/)
   assert.match(admin, /AdminSearchBar/)
   assert.match(admin, /onExport/)
-  assert.match(csv, /Prevent spreadsheet formula injection/)
+  assert.match(csv, /rawText\.trimStart\(\)/)
+  assert.match(csv, /\? `'\$\{rawText\}` : rawText/)
 })
 
 test('admin support has a paginated queue, protected update RPC and user-visible replies', () => {

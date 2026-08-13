@@ -60,7 +60,6 @@ export function methodNotAllowedResponse() {
   return publicErrorResponse('Método no permitido.', 405, 'bad_request')
 }
 
-
 export function getPublicErrorMessage(error: unknown, fallbackMessage = 'No se pudo completar la acción.') {
   if (error instanceof PublicFunctionError) return error.message
   return fallbackMessage

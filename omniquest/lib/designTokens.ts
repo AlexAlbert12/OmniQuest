@@ -181,10 +181,6 @@ const LIGHT_BASE = {
   },
 } as const
 
-/**
- * Canonical semantic palette for OmniQuest. Components consume purpose-based
- * names so a physical colour can change without changing application code.
- */
 export function createDesignColorTokens(
   theme: 'dark' | 'light',
   accentColor?: string,

@@ -1,7 +1,3 @@
--- Simplify the teacher audit experience while preserving stable technical action codes.
--- Saved filters are removed, teacher-facing RPCs are role-hardened, audit payloads are
--- further minimized and before/after snapshots are normalized for current and legacy writers.
-
 drop function if exists public.save_teacher_audit_filter(uuid, text, jsonb);
 drop table if exists public.teacher_audit_saved_filters;
 
@@ -219,8 +215,6 @@ begin
 end;
 $$;
 
--- The legacy page RPC is no longer used by the teacher client. Keep the database
--- function for migration compatibility, but remove direct authenticated access.
 revoke execute on function public.get_teacher_audit_logs_page(text, text, integer, integer) from authenticated;
 
 revoke all on function public.get_teacher_audit_logs_page_v2(text,text,text,text,text,timestamptz,timestamptz,integer,integer) from public, anon;

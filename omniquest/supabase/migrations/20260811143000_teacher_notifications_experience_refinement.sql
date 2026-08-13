@@ -1,5 +1,3 @@
--- Teacher notification center refinement: truthful shell metrics and course-facing failure alerts.
-
 create or replace function public.get_teacher_notification_center_summary()
 returns jsonb
 language plpgsql

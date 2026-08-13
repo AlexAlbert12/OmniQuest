@@ -1,8 +1,3 @@
--- Admin audit experience refinement.
--- Integrity verification is deliberately global: date parameters remain in the
--- signature for backward compatibility, but the full retained chain is always
--- verified so the boundary links cannot be skipped by a filtered request.
-
 create or replace function public.verify_admin_audit_chain(
   p_from timestamptz default null,
   p_to timestamptz default null
@@ -27,8 +22,6 @@ declare
 begin
   if not public.admin_has_permission('audit.read') then raise exception 'Admin permission required'; end if;
 
-  -- p_from and p_to are intentionally ignored. Integrity is a property of the
-  -- complete retained chain, not of the currently filtered table viewport.
   select log.previous_hash, log.chain_seq, log.id
   into v_expected_previous, v_first_chain_seq, v_first_row_id
   from public.admin_audit_logs log

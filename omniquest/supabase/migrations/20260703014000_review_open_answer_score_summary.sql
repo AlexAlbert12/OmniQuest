@@ -81,9 +81,6 @@ begin
     where id = v_attempt.attempt_id;
   end if;
 
-  -- subject_scores.max_score is a progress summary, not accumulated XP.
-  -- XP remains in attempt_history.earned_points and profiles.points is materialized
-  -- from attempt_history + student_badges.
   select greatest(
     coalesce((
       select max(coalesce(ga.total_score, 0))::integer

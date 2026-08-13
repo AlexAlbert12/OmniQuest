@@ -1,10 +1,4 @@
--- Privacy-aware product analytics and private rich media delivery.
-
 create extension if not exists pgcrypto;
-
--- ---------------------------------------------------------------------------
--- Analytics consent, pseudonymous reporting and retention
--- ---------------------------------------------------------------------------
 
 alter table public.user_preferences
   add column if not exists analytics_enabled boolean not null default false,
@@ -50,8 +44,6 @@ create index if not exists analytics_events_reporting_occurred_at_idx
   on public.analytics_events(reporting_id, occurred_at desc)
   where reporting_id is not null;
 
--- Raw events remain service-only. Product reporting is exposed through the
--- aggregate RPC below, so administrators do not need direct identifiers.
 revoke select on table public.analytics_events from authenticated;
 drop policy if exists "admin_select_analytics_events" on public.analytics_events;
 
@@ -599,10 +591,6 @@ $$;
 revoke execute on function public.get_admin_usage_analytics(integer) from public, anon;
 grant execute on function public.get_admin_usage_analytics(integer) to authenticated;
 
--- ---------------------------------------------------------------------------
--- Private question media, manifests and orphan lifecycle
--- ---------------------------------------------------------------------------
-
 update storage.buckets
 set
   public = false,
@@ -614,9 +602,6 @@ set
   ]
 where id = 'question-media';
 
--- Backfill the private object path while the previous constraint still allows
--- media_url. Signed/public Storage URLs may contain query strings or fragments,
--- which must never become part of the persisted object path.
 update public.questions
 set media_path = split_part(
   split_part(
@@ -631,9 +616,6 @@ where media_type is not null
   and nullif(trim(coalesce(media_path, '')), '') is null
   and media_url like '%/question-media/%';
 
--- The old constraint requires media_url whenever media_type is present. Drop it
--- before clearing legacy URLs; otherwise the backfill update violates the old
--- invariant before the new private-media invariant can be installed.
 alter table public.questions
   drop constraint if exists questions_media_consistency_check;
 
@@ -641,8 +623,6 @@ update public.questions
 set media_path = nullif(trim(media_path), '')
 where media_path is not null;
 
--- Fail with an actionable message instead of a generic CHECK violation if a
--- legacy row points outside question-media and therefore has no private path.
 do $$
 declare
   v_unresolved_ids text;

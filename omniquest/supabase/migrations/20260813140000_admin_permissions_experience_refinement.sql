@@ -1,7 +1,3 @@
--- Admin permissions refinement: explicit access revocation is server-controlled,
--- requires a reason, cannot target the caller and is recorded in both governance
--- history and the global administrative audit log.
-
 create or replace function public.revoke_admin_role(p_user_id uuid, p_reason text)
 returns jsonb
 language plpgsql

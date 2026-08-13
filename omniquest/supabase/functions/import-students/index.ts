@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
             .insert({ id: studentId, alias, role_id: 'student', points: 0, active: true, visibility: 'public' })
           if (profileInsertError) throw profileInsertError
         } else if (profile.role_id === 'student') {
-          // Existing student accounts are safe to enrol without changing their role.
+
         } else if (profile.role_id === 'guest') {
           const { error: profileUpdateError } = await adminClient
             .from('profiles')
@@ -457,7 +457,7 @@ async function sendStudentEmail({
       try {
         detail = await response.text()
       } catch (_ignored) {
-        // Keep default detail.
+
       }
     }
 
@@ -475,7 +475,6 @@ async function sendStudentEmail({
     mode: delivery.mode,
   }
 }
-
 
 function getEmailDeliveryMode(): 'real' | 'redirect' {
   const mode = (Deno.env.get('EMAIL_DELIVERY_MODE') || 'redirect').trim().toLowerCase()

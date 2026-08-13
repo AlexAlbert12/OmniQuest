@@ -1,4 +1,3 @@
--- Include profile images in the paginated Admin user directory and activity header.
 drop function if exists public.get_admin_profiles_page(text, text, bigint, bigint, uuid, boolean, text, timestamptz, timestamptz, integer, integer);
 
 create function public.get_admin_profiles_page(

@@ -1,5 +1,3 @@
--- Configurable haptics, reusable avatar cosmetics and safe public cosmetics lookup.
-
 alter table public.user_preferences
   add column if not exists haptics_enabled boolean not null default true;
 

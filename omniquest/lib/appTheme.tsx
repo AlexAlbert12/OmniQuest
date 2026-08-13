@@ -60,11 +60,11 @@ function createLegacyThemeColors(tokens: DesignColorTokens): AppThemeColors {
 const AppThemeContext = createContext<AppThemeContextValue | undefined>(undefined)
 
 function keepOfficialTheme(_nextTheme: AppThemePreference) {
-  // OmniQuest ships with a single official dark visual theme.
+
 }
 
 function keepStructuralAccent(_nextAccent: string) {
-  // OmniQuest keeps the structural accent fixed to the product cyan.
+
 }
 
 export function AppThemeProvider({ children }: { children: React.ReactNode }) {

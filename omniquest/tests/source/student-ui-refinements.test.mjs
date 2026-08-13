@@ -39,8 +39,8 @@ test('ranking league cards stay inside the carousel during web hover', () => {
 })
 
 test('profile reuses shared metric cards and activity is grouped without an answer-key block', () => {
-  const profile = read('app/(student)/profile.tsx')
-  const activity = read('app/(student)/activity-log.tsx')
+  const profile = read('app/(student)/profile.tsx') + read('components/student/profile/StudentProfileMetrics.tsx')
+  const activity = read('app/(student)/activity-log.tsx') + read('hooks/student/useStudentActivity.ts')
 
   assert.match(profile, /StudentMetricCard/)
   assert.doesNotMatch(profile, /function SummaryTile/)

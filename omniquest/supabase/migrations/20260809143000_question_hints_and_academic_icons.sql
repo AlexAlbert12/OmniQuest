@@ -1,11 +1,8 @@
--- Final UI consistency: teacher-authored question hints and platform-neutral academic icons.
-
 alter table public.questions add column if not exists hint text;
 
 alter table public.questions drop constraint if exists questions_hint_length_check;
 alter table public.questions add constraint questions_hint_length_check check (hint is null or char_length(hint) <= 280);
 
--- Convert the legacy emoji presets to the Ionicons names used by every client.
 update public.subjects
 set icon = case icon
   when '📚' then 'book-outline'
@@ -34,8 +31,6 @@ set icon = case icon
 end
 where icon in ('📘','🧠','🧮','🔬','🌍','✍️','🎯','⚡');
 
-
--- Keep the default topic created with a new course on the same icon system.
 create or replace function public.create_subject_with_default_topic(
   p_name text,
   p_description text default null,

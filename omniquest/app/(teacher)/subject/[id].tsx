@@ -281,7 +281,6 @@ export default function SubjectDetailScreen() {
         ) : null}
       </TeacherScreenLayout>
 
-
       <TeacherStudentImportModal
         visible={detail.showStudentImportModal}
         subjectId={subject.id}

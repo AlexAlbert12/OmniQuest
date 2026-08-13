@@ -1,5 +1,3 @@
--- Admin profile activity refinement: least-privilege access and administrator-facing timeline semantics.
-
 create or replace function public.can_read_profile(p_profile_id uuid)
 returns boolean
 language sql
@@ -40,9 +38,6 @@ as $$
     );
 $$;
 
--- Keep direct profile updates aligned with the RBAC model as well. Normal users
--- still update their own safe fields through profiles_update_self and the
--- sensitive-column trigger; administrative updates require users.manage.
 drop policy if exists "profiles_update_admin" on public.profiles;
 create policy "profiles_update_admin"
 on public.profiles for update to authenticated

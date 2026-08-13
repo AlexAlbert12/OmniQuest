@@ -17,7 +17,6 @@ type RoleHeaderAvatarProps = {
   role: PageHeaderRole
 }
 
-/** Shared authenticated avatar used by student and teacher page headers. */
 export default function RoleHeaderAvatar({ role }: RoleHeaderAvatarProps) {
   const router = useRouter()
   const [profile, setProfile] = React.useState<HeaderProfile>({ alias: null, avatar: null, points: 0 })

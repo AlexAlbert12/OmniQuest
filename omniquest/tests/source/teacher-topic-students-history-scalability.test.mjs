@@ -9,6 +9,7 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 
 test('topic detail uses paginated RPCs and explicit lifecycle actions', () => {
   const screen = read('app/(teacher)/topic/[id].tsx')
+  const overview = read('components/teacher/topic/TeacherTopicOverview.tsx')
   const hook = read('hooks/teacher/useTeacherTopicDetail.ts')
   assert.match(hook, /get_teacher_topic_questions_page/)
   assert.match(hook, /get_teacher_topic_summary/)
@@ -17,7 +18,8 @@ test('topic detail uses paginated RPCs and explicit lifecycle actions', () => {
   assert.match(screen, /Añadir pregunta/)
   assert.match(screen, /Archivar tema/)
   assert.match(screen, /Visibilidad/)
-  assert.match(screen, /Disponibilidad/)
+  assert.match(screen, /availability=\{availabilityLabel\}/)
+  assert.match(overview, /label="Disponibilidad"/)
   assert.doesNotMatch(screen, /\.from\(/)
 })
 

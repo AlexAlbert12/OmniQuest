@@ -12,34 +12,34 @@ export type PageHeaderIcon = keyof typeof Ionicons.glyphMap
 export type PageHeaderActionsPosition = 'auto' | 'top' | 'below'
 
 export type RolePageHeaderProps = {
-  /** Controls the notification destination and avatar rendered by default. */
+
   role: PageHeaderRole
-  /** Extra controls rendered before notifications and avatar. */
+
   actions?: ReactNode
-  /** Utility controls that always stay in the top-right area (for example global search). */
+
   utilityActions?: ReactNode
-  /** `auto` keeps actions on top on desktop and below the title on mobile. */
+
   actionsPosition?: PageHeaderActionsPosition
-  /** Optional back navigation rendered above the title on detail/form screens. */
+
   backAction?: {
     label?: string
     onPress: () => void
   }
   className?: string
-  /** Ionicons icon displayed beside the title. Omit it when `leading` is provided. */
+
   icon?: PageHeaderIcon
   iconColor?: string
-  /** Pass the screen breakpoint so the shared component keeps deterministic typography. */
+
   isDesktop: boolean
-  /** Replaces the default icon with any custom leading visual. */
+
   leading?: ReactNode
-  /** Optional shorter title used on mobile. */
+
   mobileTitle?: string
-  /** Optional shorter supporting copy used only on mobile. */
+
   mobileSubtitle?: string
-  /** Gives detail screens a dedicated mobile utility row and a full-width identity row. */
+
   mobileStackedIdentity?: boolean
-  /** Slightly reduces only the mobile title scale for long screen names. */
+
   compactMobileTitle?: boolean
   notificationCount?: number
   notificationOnPress?: () => void
@@ -52,12 +52,6 @@ export type RolePageHeaderProps = {
   titleNumberOfLines?: number
 }
 
-/**
- * Shared page header for authenticated student and teacher screens.
- *
- * `mobileStackedIdentity` is used by dense detail screens: utilities stay in
- * the first row while the icon/title receive almost the full mobile width.
- */
 export default function RolePageHeader({
   role,
   actions,

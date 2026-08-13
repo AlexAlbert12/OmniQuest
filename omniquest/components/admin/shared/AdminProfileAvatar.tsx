@@ -10,7 +10,6 @@ type AdminProfileAvatarProps = {
   size?: number
 }
 
-/** Profile image shared by the Admin user directory and activity views. */
 export default function AdminProfileAvatar({ alias, avatar, size = 48 }: AdminProfileAvatarProps) {
   const { tokens } = useAppTheme()
   const [failed, setFailed] = useState(false)

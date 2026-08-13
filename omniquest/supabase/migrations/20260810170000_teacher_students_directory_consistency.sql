@@ -1,7 +1,3 @@
--- Teacher students directory consistency hardening.
--- Keeps filter counts semantically exact, decouples priority previews from the current page,
--- and introduces a real composite `attention` filter.
-
 create or replace function public.get_teacher_students_page(
   p_subject_id bigint default null,
   p_classroom_id bigint default null,

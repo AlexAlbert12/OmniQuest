@@ -40,4 +40,3 @@ select is(
   0::bigint,
   'the stale policy exposing all non-archived courses is removed'
 );
-

@@ -9,7 +9,7 @@ function resolveActiveGroup(active: AdminSection): AdminMobileGroup {
   if (active === 'teachers' || active === 'students' || active === 'users') return 'users'
   if (active === 'courses' || active === 'classrooms' || active === 'content') return 'content'
   if (active === 'audit') return 'audit'
-  if (active === 'support' || active === 'more' || active === 'profile' || active === 'settings' || active === 'exports' || active === 'permissions' || active === 'push') return 'more'
+  if (active === 'support' || active === 'more' || active === 'profile' || active === 'security' || active === 'exports' || active === 'permissions' || active === 'push') return 'more'
   return 'home'
 }
 

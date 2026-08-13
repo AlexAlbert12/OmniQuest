@@ -1,5 +1,3 @@
--- Notification UX hardening: mark every unread persistent notification for the current audience.
-
 create or replace function public.mark_all_notifications_read(p_audience text)
 returns integer
 language plpgsql

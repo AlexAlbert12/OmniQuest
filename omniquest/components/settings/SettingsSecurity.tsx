@@ -279,4 +279,3 @@ function SecurityStatusRow({
     </View>
   )
 }
-

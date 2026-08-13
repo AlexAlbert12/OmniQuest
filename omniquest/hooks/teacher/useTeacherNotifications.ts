@@ -124,7 +124,7 @@ export function useTeacherNotifications() {
     try {
       await Promise.all([loadPage('reset'), loadSummary()])
     } catch {
-      // Realtime is best-effort: keep the current page visible and retry on the next event or pull-to-refresh.
+
     } finally {
       backgroundRefreshingRef.current = false
       setBackgroundRefreshing(false)

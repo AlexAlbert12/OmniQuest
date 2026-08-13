@@ -1,6 +1,3 @@
--- Final hardening for the teacher question wizard: server-owned invariants,
--- accessibility requirements and bounded authoring fields.
-
 alter table public.questions drop constraint if exists questions_type_check;
 alter table public.questions add constraint questions_type_check
   check (type in ('multiple_choice', 'true_false', 'open_answer', 'fill_blank', 'ordering', 'match_pairs', 'drag_drop')) not valid;

@@ -32,7 +32,6 @@ test('student notification screen refreshes from the server whenever it receives
   assert.match(screen, /useFocusEffect\(useCallback\(\(\) => \{\s*void Promise\.all\(\[fetchProfile\(\), refresh\(\)\]\)/)
 })
 
-
 test('notification hook exposes stable audience-bound callbacks so focus refresh cannot loop on every render', () => {
   const hook = read('hooks/useNotifications.ts')
 

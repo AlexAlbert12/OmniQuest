@@ -49,7 +49,6 @@ function asSubmitAnswerResult(value: unknown): SubmitAnswerResult {
   return value && typeof value === 'object' ? (value as SubmitAnswerResult) : {};
 }
 
-
 type QuestionFeedback = {
   status: 'correct' | 'incorrect' | 'pending';
   earnedPoints: number;

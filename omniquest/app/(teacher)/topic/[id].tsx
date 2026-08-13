@@ -223,7 +223,7 @@ export default function TopicDetailScreen() {
                 />
               </View>
               <View>
-                <Text className="mb-2 text-[10px] font-black uppercase tracking-[0.7px]" style={{ color: tokens.text.muted }}>Estado</Text>
+                <Text className="mb-2 text-[10px] font-black uppercase tracking-[0.7px]" style={{ color: tokens.text.muted }}>Visibilidad</Text>
                 <AppTabs
                   compact
                   role="teacher"

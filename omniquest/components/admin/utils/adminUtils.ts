@@ -118,7 +118,6 @@ const ADMIN_AUDIT_ACTION_LABELS: Record<string, string> = {
   'admin.notification.process_now': 'Procesamiento push solicitado',
 }
 
-
 const ADMIN_AUDIT_TARGET_LABELS: Record<string, string> = {
   profiles: 'Usuario', subjects: 'Curso', subject_topics: 'Tema', questions: 'Pregunta', answers: 'Respuesta', classrooms: 'Clase', enrollments: 'Matrícula', subject_scores: 'Progreso del curso', topic_scores: 'Progreso del tema', attempt_history: 'Intento', game_attempts: 'Partida', student_badges: 'Logro', user_support_tickets: 'Ticket de soporte', admin_export_jobs: 'Exportación', admin_role_assignments: 'Rol administrativo', notifications: 'Notificación', notification_delivery_queue: 'Entrega push', teacher_audit_logs: 'Actividad docente', admin_audit_logs: 'Actividad administrativa',
 }
@@ -204,7 +203,7 @@ export function getInitials(value: string) {
 
 export function getAdminSectionIcon(section: AdminSection): IconName {
   const icons: Record<AdminSection, IconName> = {
-    home: 'shield-checkmark', teachers: 'school', students: 'people', courses: 'book', classrooms: 'albums', support: 'headset', audit: 'receipt', users: 'people', content: 'book', more: 'ellipsis-horizontal-circle', profile: 'person-circle', settings: 'settings', exports: 'cloud-download', permissions: 'key', push: 'notifications',
+    home: 'shield-checkmark', teachers: 'school', students: 'people', courses: 'book', classrooms: 'albums', support: 'headset', audit: 'receipt', users: 'people', content: 'book', more: 'ellipsis-horizontal-circle', profile: 'person-circle', security: 'shield-checkmark', exports: 'cloud-download', permissions: 'key', push: 'notifications',
   }
   return icons[section]
 }

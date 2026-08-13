@@ -50,7 +50,7 @@ export function AppHapticsProvider({ children }: { children: React.ReactNode }) 
     try {
       await callback()
     } catch {
-      // Haptics are progressive enhancement and must never block the main action.
+
     }
   }, [enabled])
 

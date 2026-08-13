@@ -1,6 +1,3 @@
--- Simplify manual review to owner-only decisions, first-review deadlines and reusable comments.
-
--- Normalize the legacy transient state before narrowing the status contract.
 update public.attempt_history set manual_review_status = 'pending' where manual_review_status = 'in_review';
 update public.attempt_history set manual_review_due_at = null where manual_review_status <> 'pending';
 
@@ -270,7 +267,6 @@ begin
 end;
 $$;
 
--- Legacy direct review entry points must not bypass the owner-only wrapper below.
 drop function if exists public.review_open_answer_attempt(bigint, boolean, text);
 revoke all on function public.review_open_answer_attempt_v2(bigint, text, text, text) from public, anon, authenticated;
 
@@ -359,17 +355,14 @@ begin
 end;
 $$;
 
--- Remove obsolete assignment, rubric, saved-filter and claim APIs.
 drop function if exists public.assign_manual_review_attempts(bigint[], uuid);
 drop function if exists public.save_manual_review_rubric(uuid, text, bigint, jsonb);
 drop function if exists public.save_manual_review_filter(uuid, text, jsonb);
 drop function if exists public.claim_open_answer_attempt(bigint);
 
--- Keep only the first-review deadline index.
 drop index if exists public.attempt_history_manual_review_sla_idx;
 create index if not exists attempt_history_manual_review_sla_idx on public.attempt_history(manual_review_status, manual_review_due_at) where manual_review_status = 'pending';
 
--- Columns and tables that no longer belong to the domain model.
 alter table public.attempt_history drop column if exists manual_review_assigned_to;
 alter table public.attempt_history drop column if exists manual_review_started_at;
 alter table public.attempt_history drop column if exists manual_review_rubric_id;
@@ -377,7 +370,6 @@ alter table public.attempt_history drop column if exists manual_review_rubric_re
 drop table if exists public.manual_review_saved_filters;
 drop table if exists public.manual_review_rubrics;
 
--- Pending means waiting for a teacher decision across history and notification aggregates.
 create or replace function public.get_teacher_student_history_summary(
   p_student_id uuid,
   p_subject_id bigint default null,
@@ -760,7 +752,6 @@ begin
 end;
 $$;
 
-
 create or replace function public.get_teacher_notification_center_summary()
 returns jsonb
 language plpgsql
@@ -824,8 +815,6 @@ begin
   );
 end;
 $$;
-
-
 
 create or replace function public.enqueue_due_teacher_digests(p_now timestamptz default now())
 returns integer
@@ -926,7 +915,6 @@ begin
   return v_count;
 end;
 $$;
-
 
 revoke all on function public.get_teacher_manual_review_queue(bigint, bigint, text, text, uuid, bigint, integer, integer) from public, anon;
 revoke all on function public.get_manual_review_configuration() from public, anon;

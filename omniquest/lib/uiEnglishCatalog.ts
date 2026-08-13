@@ -1,8 +1,3 @@
-/**
- * Exact English equivalents for legacy UI copy that is still authored inline.
- * User-generated content is intentionally not included here: only product copy
- * should be translated automatically.
- */
 export const uiEnglishCatalog: Record<string, string> = {
   'Acceso administrativo retirado': 'Administrative access revoked',
   'Acceso retirado': 'Access revoked',

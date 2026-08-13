@@ -62,7 +62,6 @@ $$;
 
 grant execute on function public.create_teacher_classroom(bigint, text, text) to authenticated;
 
--- Mantén también políticas correctas para lectura/edición directa.
 alter table public.classrooms enable row level security;
 
 drop policy if exists "classrooms_insert_own_teacher" on public.classrooms;

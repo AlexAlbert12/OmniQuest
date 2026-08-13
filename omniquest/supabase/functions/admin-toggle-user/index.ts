@@ -74,7 +74,6 @@ Deno.serve(async (req) => {
   }
 })
 
-
 function normalizeReactivationDate(value: unknown) {
   if (value === null || value === undefined || String(value).trim() === '') return null
   const timestamp = new Date(String(value))

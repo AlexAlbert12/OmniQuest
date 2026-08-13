@@ -114,7 +114,6 @@ export type GameAttemptReviewFilters = {
   difficulty?: number | null
 }
 
-
 export type StudentAttemptHistoryPageFilters = {
   page?: number
   pageSize?: number

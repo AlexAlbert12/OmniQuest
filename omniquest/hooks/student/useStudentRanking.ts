@@ -205,7 +205,6 @@ export function useStudentRanking(pageSize: number) {
     setSelectedClassroomIdState(id)
   }, [])
 
-
   const currentPoints = current?.points ?? (scope === 'global' ? profile?.points ?? 0 : 0)
   const currentLeague = getRankingLeague(currentPoints, leagues)
   const currentRank = current?.rank ?? null

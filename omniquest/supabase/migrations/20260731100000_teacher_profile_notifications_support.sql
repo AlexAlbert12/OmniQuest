@@ -1,10 +1,4 @@
--- Teacher profile decomposition, notification preferences and support delivery.
-
 create extension if not exists pgcrypto;
-
--- ---------------------------------------------------------------------------
--- Teacher profile: one aggregate request plus independent lazy resources.
--- ---------------------------------------------------------------------------
 
 create or replace function public.get_teacher_profile_summary(
   p_period_days integer default 30
@@ -244,10 +238,6 @@ revoke all on function public.get_teacher_profile_recent_questions_page(integer,
 grant execute on function public.get_teacher_profile_summary(integer) to authenticated;
 grant execute on function public.get_teacher_profile_recent_subjects_page(integer, integer) to authenticated;
 grant execute on function public.get_teacher_profile_recent_questions_page(integer, integer) to authenticated;
-
--- ---------------------------------------------------------------------------
--- Teacher notification center, digest delivery and course preferences.
--- ---------------------------------------------------------------------------
 
 alter table public.user_notification_preferences
   add column if not exists teacher_notifications_muted_until timestamptz,
@@ -871,8 +861,6 @@ begin
 end;
 $$;
 
--- Replace the digest enqueuer so daily/weekly preferences, hour, weekday and
--- course-level inclusion are applied by the backend.
 create or replace function public.set_teacher_support_preference(
   p_channel text,
   p_contact_email text default null
@@ -1031,10 +1019,6 @@ grant execute on function public.set_teacher_notifications_mute(timestamptz) to 
 grant execute on function public.set_teacher_course_notification_preference(bigint, boolean, boolean, boolean, timestamptz) to authenticated;
 grant execute on function public.set_teacher_digest_preference(text, text, smallint, smallint) to authenticated;
 grant execute on function public.set_teacher_support_preference(text, text) to authenticated;
-
--- ---------------------------------------------------------------------------
--- Support channels, paged conversations and outgoing email history.
--- ---------------------------------------------------------------------------
 
 create table if not exists public.support_contact_channels (
   channel_key text primary key,

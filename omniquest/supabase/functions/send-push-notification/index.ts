@@ -62,9 +62,6 @@ Deno.serve(async (req) => {
       throw publicError('La cuenta no está activa.', 403, 'forbidden')
     }
 
-    // Teachers must use create_teacher_notification, which validates the course,
-    // classroom, enrolment and permitted message type. This generic endpoint is
-    // intentionally limited to administrators and self-notifications.
     const isAdmin = callerProfile.role_id === 'admin'
     if (isAdmin) {
       const { data: canManage, error: permissionError } = await userClient.rpc('admin_has_permission', { p_permission: 'notifications.manage' })

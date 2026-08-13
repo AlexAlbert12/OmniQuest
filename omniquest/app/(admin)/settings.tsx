@@ -1,3 +1,5 @@
-import React from 'react'
-import { AdminSettingsScreen } from '../../components/admin/mobile/AdminMobileHubScreens'
-export default function AdminSettingsPage() { return <AdminSettingsScreen /> }
+import { Redirect } from 'expo-router'
+
+export default function AdminSettingsRedirect() {
+  return <Redirect href="/(admin)/security" />
+}

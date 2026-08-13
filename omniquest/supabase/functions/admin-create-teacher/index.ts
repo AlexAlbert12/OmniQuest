@@ -22,7 +22,6 @@ Deno.serve(async (req) => {
       return json({ error: 'Correo electrónico no válido.' }, 400)
     }
 
-
     const existingUser = await findAuthUserByEmail(context.adminClient, email)
     if (existingUser) return json({ error: 'Ya existe una cuenta con este correo.', code: 'account_exists' }, 409)
 

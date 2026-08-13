@@ -98,7 +98,6 @@ begin
 end;
 $$;
 
--- Remove older overloads to avoid Supabase RPC ambiguity and stale behavior.
 drop function if exists public.start_game_attempt(bigint, bigint, boolean);
 drop function if exists public.start_game_attempt(bigint, bigint, bigint, boolean);
 drop function if exists public.start_game_attempt(bigint, bigint, bigint, boolean, integer);
@@ -173,7 +172,6 @@ begin
 end;
 $$;
 
--- Remove older overloads to avoid Supabase RPC ambiguity and stale behavior.
 drop function if exists public.get_game_questions(bigint, bigint, boolean);
 drop function if exists public.get_game_questions(bigint, bigint, bigint, boolean);
 drop function if exists public.get_game_questions(bigint, bigint, bigint, boolean, integer);
@@ -595,9 +593,6 @@ begin
     end if;
   end if;
 
-  -- profiles.points is recalculated from attempt_history.earned_points
-  -- and student_badges.reward_xp by sync_student_points triggers.
-
   if not v_is_correct and v_question.type in ('multiple_choice', 'true_false') then
     select id
     into v_correct_answer_id
@@ -760,9 +755,6 @@ begin
          ) order by awarded_at desc), '[]'::jsonb)
   into v_awarded_xp, v_new_awards
   from inserted;
-
-  -- profiles.points is recalculated from attempt_history.earned_points
-  -- and student_badges.reward_xp by sync_student_points triggers.
 
   return jsonb_build_object(
     'awarded_xp', v_awarded_xp,

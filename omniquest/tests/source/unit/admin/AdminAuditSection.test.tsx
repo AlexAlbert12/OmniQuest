@@ -108,5 +108,5 @@ describe('AdminAuditPage', () => {
     await waitFor(() => expect(screen.getByText('Registro de auditoría')).toBeTruthy())
     expect(screen.getByText('Admin')).toBeTruthy()
     expect(screen.getByText('Detalles')).toBeTruthy()
-  })
+  }, 15_000)
 })

@@ -61,7 +61,6 @@ function normalizeIds(values: RequestBody['ids']) {
   return [...new Set((Array.isArray(values) ? values : []).filter((value) => String(value).trim().length > 0))]
 }
 
-
 function normalizeReactivationDate(value: unknown) {
   if (value === null || value === undefined || String(value).trim() === '') return null
   const timestamp = new Date(String(value))
@@ -142,7 +141,7 @@ async function updateSubjects(context: any, action: BulkAction, ids: number[], r
     const { error } = await context.adminClient.from('subjects').update({ active: true, is_archived: false, archive_reason: null, archived_at: null, retention_until: null }).in('id', ids)
     if (error) throw error
     for (const subject of subjects || []) await writeAdminAudit(context.adminClient, { action: 'admin.course.restore', adminUserId: context.adminUserId, targetTable: 'subjects', targetId: subject.id, metadata: { before: { active: subject.active, is_archived: subject.is_archived, archive_reason: subject.archive_reason, archived_at: subject.archived_at, retention_until: subject.retention_until }, after: { active: true, is_archived: false, archive_reason: null, archived_at: null, retention_until: null }, classrooms_reactivated: false } })
-    // Linked classrooms remain inactive intentionally and are reviewed independently.
+
     return subjects?.length || 0
   }
 

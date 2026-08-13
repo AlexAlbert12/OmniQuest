@@ -1,5 +1,3 @@
--- Admin More refinement: the portal context always exposes the caller's own basic
--- administrative identity without granting users.read over other profiles.
 create or replace function public.get_admin_portal_context()
 returns jsonb
 language plpgsql

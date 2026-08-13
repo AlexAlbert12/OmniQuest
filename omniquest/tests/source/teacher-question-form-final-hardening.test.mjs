@@ -53,7 +53,7 @@ test('question validation is visible inline and authoring limits are explained b
   const prompt = read('components/teacher/question-form/QuestionPromptEditor.tsx')
   const settings = read('components/teacher/question-form/QuestionSettingsPanel.tsx')
   const media = read('components/teacher/TeacherQuestionMediaEditor.tsx')
-  const schema = read('lib/questionFormSchema.js')
+  const schema = read('lib/questionFormSchema.mjs')
   assert.match(form, /visibleValidationIssues/)
   assert.match(prompt, /questionTextError/)
   assert.match(settings, /Explicación después de responder \(opcional\)/)

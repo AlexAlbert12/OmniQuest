@@ -2,7 +2,6 @@ import React from 'react'
 import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import GamifiedAvatar from '../../gamification/GamifiedAvatar'
-import { useAppTheme } from '../../../lib/appTheme'
 import { formatCount } from '../../../lib/formatCount'
 import { useResponsiveLayout } from '../../../lib/responsive'
 import { getLeagueProgress, type RankingLeague, type RankingProfile, type StudentRankingProfile } from '../../../hooks/student/useStudentRanking'
@@ -27,7 +26,6 @@ export default function CurrentPositionCard({
   isGuest: boolean
 }) {
   const responsive = useResponsiveLayout()
-  const { tokens } = useAppTheme()
   const progress = getLeagueProgress(points, league)
   const participantTotal = rank ? Math.max(total, rank) : total
   const percentile = rank && participantTotal > 1 ? Math.max(1, Math.ceil((rank / participantTotal) * 100)) : null

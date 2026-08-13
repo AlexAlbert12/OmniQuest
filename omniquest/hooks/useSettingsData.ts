@@ -87,7 +87,6 @@ const preferenceLabels = {
   },
 } as const
 
-
 function isMissingSchemaError(errorCode?: string) {
   return errorCode === '42P01' || errorCode === '42703' || errorCode === 'PGRST204'
 }

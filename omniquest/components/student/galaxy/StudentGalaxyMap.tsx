@@ -655,7 +655,7 @@ function AddCourseGalaxyNode({
         onPress={onToggle}
         style={({ pressed }) => ({ position: 'absolute', left: x, top: 0, width: size, alignItems: 'center', opacity: pressed ? 0.82 : 1 })}
       >
-        <View style={[styles.addPlanet, { width: size, height: size, borderRadius: size / 2 }]}> 
+        <View style={[styles.addPlanet, { width: size, height: size, borderRadius: size / 2 }]}>
           <Ionicons name={open ? 'close' : 'add'} size={isDesktop ? 70 : 58} color="#A96CFF" />
         </View>
         <Text style={styles.addTitle}>Añadir curso</Text>
@@ -663,7 +663,7 @@ function AddCourseGalaxyNode({
       </Pressable>
 
       {open ? (
-        <View style={[styles.joinPanel, { width: formWidth, left: formX, top: size + 92 }]}> 
+        <View style={[styles.joinPanel, { width: formWidth, left: formX, top: size + 92 }]}>
           <View style={styles.joinInputRow}>
             <Ionicons name="keypad-outline" size={20} color="#9FB0CA" />
             <TextInput
@@ -738,7 +738,7 @@ function GalaxyPlanet({
         ]}
       />
       <View style={[styles.orbitRing, { width: size * 1.55, height: size * 0.33, left: -size * 0.28, top: size * 0.39, borderRadius: size, transform: [{ rotate: '-14deg' }] }]} />
-      <View style={[styles.planetRim, { width: size, height: size, borderRadius: size / 2, borderColor: palette.rim }]}> 
+      <View style={[styles.planetRim, { width: size, height: size, borderRadius: size / 2, borderColor: palette.rim }]}>
         <LinearGradient
           colors={palette.colors}
           locations={[0, 0.52, 1]}
@@ -766,7 +766,7 @@ function GalaxyPlanet({
         </LinearGradient>
       </View>
 
-      <View style={[styles.planetBadge, { backgroundColor: badgeColor }]}> 
+      <View style={[styles.planetBadge, { backgroundColor: badgeColor }]}>
         <Ionicons name={badgeLabel === 'Repasar' ? 'flame' : badgeLabel === 'Completado' ? 'checkmark-circle' : 'play'} size={16} color="#FFFFFF" />
         <Text style={styles.planetBadgeText}>{badgeLabel}</Text>
       </View>
@@ -829,7 +829,7 @@ function TopicPlanetButton({
           }),
         ]}
       />
-      <View style={[styles.topicPlanetOuter, { width: size, height: size, borderRadius: size / 2, backgroundColor: withAlpha(palette.rim, item.state === 'active' ? '3D' : '24') }]}> 
+      <View style={[styles.topicPlanetOuter, { width: size, height: size, borderRadius: size / 2, backgroundColor: withAlpha(palette.rim, item.state === 'active' ? '3D' : '24') }]}>
         <LinearGradient
           colors={palette.colors}
           start={{ x: 0.05, y: 0 }}
@@ -901,7 +901,6 @@ function GalaxyDottedConnector({
     </View>
   )
 }
-
 
 function GalaxyPagination({
   currentPage,
@@ -1014,7 +1013,6 @@ function getTopicStateLabel(state: GalaxyTopicState) {
   if (state === 'empty') return 'Sin preguntas'
   return 'Disponible'
 }
-
 
 const styles = StyleSheet.create({
   viewModeToggle: {

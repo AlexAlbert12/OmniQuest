@@ -1,7 +1,3 @@
-# Supabase local development configuration for OmniQuest.
-# Generated from a reviewed baseline instead of storing supabase/.temp state.
-# Run `supabase start` from the project root to use this configuration.
-
 project_id = "omniquest"
 
 [api]
@@ -77,10 +73,7 @@ enable_manual_linking = false
 minimum_password_length = 8
 password_requirements = "lower_upper_letters_digits_symbols"
 
-
 [auth.rate_limit]
-# Local parity with the public authentication UX. Production values must be
-# mirrored in Authentication -> Rate Limits in the Supabase dashboard.
 email_sent = 3
 sms_sent = 30
 anonymous_users = 10

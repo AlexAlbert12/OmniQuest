@@ -192,9 +192,7 @@ function RootNavigator() {
       }
 
       if (!networkAvailable && !profile) {
-        // Never trust public user metadata for authorization. Without a cached
-        // server role, anonymous sessions are guests and email sessions use the
-        // least-privileged registered role until connectivity returns.
+
         profile = {
           role_id: verifiedUser.is_anonymous ? 'guest' : 'student',
           active: true,
@@ -222,7 +220,6 @@ function RootNavigator() {
         setIsInitialized(true)
         return
       }
-
 
       if (networkAvailable) {
         void writeOfflineCache(session.user.id, 'auth:profile', profile)

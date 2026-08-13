@@ -1,6 +1,3 @@
--- Teacher-facing server aggregates and lazy tab data.
--- Keeps large datasets in PostgreSQL and exposes only paged, role-scoped payloads.
-
 create index if not exists attempt_history_question_attempted_student_idx
   on public.attempt_history(question_id, attempted_at desc, student_id);
 

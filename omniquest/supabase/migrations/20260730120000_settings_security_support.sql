@@ -1,5 +1,3 @@
--- Settings, account requests and conversational support.
-
 create extension if not exists pg_cron with schema pg_catalog;
 create extension if not exists pg_net with schema extensions;
 
@@ -236,8 +234,6 @@ revoke all on function public.cancel_account_deletion(uuid) from public, anon;
 grant execute on function public.request_account_data_export() to authenticated;
 grant execute on function public.request_account_deletion() to authenticated;
 grant execute on function public.cancel_account_deletion(uuid) to authenticated;
-
--- Conversational support, attachments and SLA.
 
 alter table public.user_support_tickets
   add column if not exists first_response_due_at timestamptz,
@@ -698,9 +694,6 @@ grant execute on function public.admin_update_support_ticket(bigint, text, text,
 revoke all on function public.support_first_response_interval(text) from public, anon, authenticated;
 revoke all on function public.support_resolution_interval(text) from public, anon, authenticated;
 
--- Invoke the account-request worker through pg_net. The job is a no-op until
--- Vault contains project_url and account_requests_secret. The same secret must
--- be configured as ACCOUNT_REQUESTS_CRON_SECRET in the Edge Function.
 create or replace function public.invoke_account_requests_processor()
 returns bigint
 language plpgsql

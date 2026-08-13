@@ -128,8 +128,6 @@ a[href],
     filter: brightness(1.08);
   }
 
-  /* Tabs keep the product hover lift, but with a much smaller scale so their
-     border stays visually inside the surrounding tab rail. */
   [role='tab']:not([aria-disabled='true']):hover {
     transform: translateY(-0.5px) scale(1.005);
     filter: brightness(1.06);
@@ -171,7 +169,6 @@ select:focus-visible {
   }
 }
 
-/* Consistent keyboard focus, including high-contrast and browser zoom modes. */
 [aria-disabled='true'] {
   cursor: not-allowed;
 }

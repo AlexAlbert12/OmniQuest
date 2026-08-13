@@ -1,7 +1,3 @@
--- Teacher-specific communication preferences.
--- Kept in the existing per-user notification preference row so RLS and
--- update semantics remain consistent with the rest of Settings.
-
 alter table public.user_notification_preferences
   add column if not exists teacher_reminder_email text,
   add column if not exists teacher_inactive_student_alerts boolean not null default true,

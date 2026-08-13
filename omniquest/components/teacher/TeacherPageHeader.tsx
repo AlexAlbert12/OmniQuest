@@ -6,7 +6,6 @@ export type TeacherPageHeaderProps = Omit<RolePageHeaderProps, 'role'> & {
   showGlobalSearch?: boolean
 }
 
-/** Teacher-role wrapper around the shared authenticated page header. */
 export default function TeacherPageHeader({ utilityActions, showGlobalSearch = true, ...props }: TeacherPageHeaderProps) {
   const resolvedUtilityActions = showGlobalSearch || utilityActions ? (
     <View className="flex-row items-center gap-2">

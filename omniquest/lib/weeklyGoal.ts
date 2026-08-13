@@ -50,4 +50,3 @@ export function getTimeUntilSundayLabel() {
   if (days <= 0) return `${hours}h restantes`
   return `${days}d ${hours}h restantes`
 }
-

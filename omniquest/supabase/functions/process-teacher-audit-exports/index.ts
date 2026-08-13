@@ -150,7 +150,6 @@ function buildCategoryExpression(category: string | null) {
   return null
 }
 
-
 function auditRowMatchesSearch(row: AuditRow, search: string) {
   const haystack = [
     row.action,
@@ -320,7 +319,6 @@ function humanField(value: string) {
   const text = value.replaceAll('_', ' ')
   return text ? text.charAt(0).toUpperCase() + text.slice(1) : text
 }
-
 
 function stringFilter(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null

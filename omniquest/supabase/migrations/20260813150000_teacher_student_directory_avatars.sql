@@ -1,6 +1,3 @@
--- Add student profile photos to the paginated teacher directories without
--- weakening the authorization and filtering owned by the existing RPCs.
-
 create or replace function public.teacher_attach_student_avatars(p_items jsonb)
 returns jsonb
 language sql

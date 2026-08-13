@@ -39,10 +39,6 @@ type RoleScreenLayoutProps = {
   scrollViewProps?: Omit<ScrollViewProps, 'children' | 'contentContainerStyle' | 'refreshControl' | 'showsVerticalScrollIndicator'>
 }
 
-/**
- * Shared responsive shell for student, teacher and admin screens.
- * Sidebar, main content and bottom navigation are rendered in a stable focus order.
- */
 export default function RoleScreenLayout({
   role,
   children,

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 
-export type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'support' | 'audit' | 'users' | 'content' | 'more' | 'profile' | 'settings' | 'exports' | 'permissions' | 'push'
+export type AdminSection = 'home' | 'teachers' | 'students' | 'courses' | 'classrooms' | 'support' | 'audit' | 'users' | 'content' | 'more' | 'profile' | 'security' | 'exports' | 'permissions' | 'push'
 export type IconName = keyof typeof Ionicons.glyphMap
 
 export type AdminPermission =
@@ -152,7 +152,6 @@ export type AdminUserChangeRow = {
   total_count?: number | null
 }
 
-
 export type AdminRoleRow = {
   id: string
   name: string
@@ -173,7 +172,6 @@ export type AdminRoleAssignmentRow = {
   assigned_by: string | null
   total_count?: number | null
 }
-
 
 export type AdminSupportTag = {
   id: number

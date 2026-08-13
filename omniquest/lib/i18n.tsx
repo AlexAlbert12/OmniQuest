@@ -243,6 +243,8 @@ const es: TranslationDictionary = {
   'danger.default.description': 'Esta acción no se puede deshacer.',
   'sessions.title': 'Sesiones activas y recuperación',
   'sessions.description': 'Revisa dispositivos, cierra accesos remotos y conserva códigos de respaldo.',
+  'sessions.activeTitle': 'Sesiones activas',
+  'sessions.activeDescription': 'Revisa los dispositivos registrados y cierra accesos que ya no necesites.',
   'sessions.current': 'Este dispositivo',
   'sessions.lastActivity': 'Última actividad: {date}',
   'sessions.active': 'Sesión activa',
@@ -255,6 +257,15 @@ const es: TranslationDictionary = {
   'sessions.codes.title': 'Códigos de respaldo',
   'sessions.codes.detail': 'Guárdalos ahora; solo se muestran una vez:',
   'sessions.codes.generate': 'Generar códigos de respaldo ({count})',
+  'sessions.codes.adminDescription': 'Conserva códigos de recuperación para acceder a tu cuenta si pierdes el segundo factor.',
+  'sessions.codes.available': 'Códigos disponibles',
+  'sessions.codes.generateAction': 'Generar códigos de respaldo',
+  'sessions.codes.regenerateAction': 'Regenerar códigos de respaldo',
+  'sessions.codes.generateHint': 'Se generarán 10 códigos nuevos y solo se mostrarán una vez.',
+  'sessions.codes.regenerateHint': 'Al regenerarlos, los códigos actuales dejarán de ser válidos.',
+  'sessions.codes.regenerateConfirmTitle': 'Regenerar códigos de respaldo',
+  'sessions.codes.regenerateConfirmDetail': 'Se crearán 10 códigos nuevos y todos los códigos anteriores dejarán de ser válidos.',
+  'sessions.codes.regenerateConfirmAction': 'Regenerar códigos',
   'sessions.error.title': 'No se pudo completar la acción',
   'sessions.error.load': 'No se pudieron cargar las sesiones.',
   'sessions.error.revoke': 'No se pudo cerrar la sesión.',
@@ -771,6 +782,8 @@ const en: TranslationDictionary = {
   'danger.default.description': 'This action cannot be undone.',
   'sessions.title': 'Active sessions and recovery',
   'sessions.description': 'Review devices, close remote access and keep recovery codes.',
+  'sessions.activeTitle': 'Active sessions',
+  'sessions.activeDescription': 'Review registered devices and close access you no longer need.',
   'sessions.current': 'This device',
   'sessions.lastActivity': 'Last activity: {date}',
   'sessions.active': 'Active session',
@@ -783,6 +796,15 @@ const en: TranslationDictionary = {
   'sessions.codes.title': 'Recovery codes',
   'sessions.codes.detail': 'Save them now; they are only shown once:',
   'sessions.codes.generate': 'Generate recovery codes ({count})',
+  'sessions.codes.adminDescription': 'Keep recovery codes so you can access your account if you lose the second factor.',
+  'sessions.codes.available': 'Available codes',
+  'sessions.codes.generateAction': 'Generate recovery codes',
+  'sessions.codes.regenerateAction': 'Regenerate recovery codes',
+  'sessions.codes.generateHint': '10 new codes will be generated and shown only once.',
+  'sessions.codes.regenerateHint': 'Regenerating them will invalidate the current codes.',
+  'sessions.codes.regenerateConfirmTitle': 'Regenerate recovery codes',
+  'sessions.codes.regenerateConfirmDetail': '10 new codes will be created and all previous codes will become invalid.',
+  'sessions.codes.regenerateConfirmAction': 'Regenerate codes',
   'sessions.error.title': 'The action could not be completed',
   'sessions.error.load': 'Sessions could not be loaded.',
   'sessions.error.revoke': 'The session could not be closed.',
@@ -1553,7 +1575,7 @@ export function translateUiText(locale: AppLocale, input: string): string {
   const plural = (count: string, singular: string, pluralValue: string) => Number(count) === 1 ? singular : pluralValue
 
   const replacements: Array<[RegExp, (...groups: string[]) => string]> = [
-    // Shared product language and common dynamic counters.
+
     [/^¡Hola, (.+)!$/, (_m, name) => `Hi, ${name}!`],
     [/^¡Bienvenido de nuevo, (.+)!$/, (_m, name) => `Welcome back, ${name}!`],
     [/^(\d+) días?$/, (_m, count) => `${count} ${plural(count, 'day', 'days')}`],
@@ -1630,7 +1652,6 @@ export function translateUiText(locale: AppLocale, input: string): string {
     [/^(\d+)s de media$/, (_m, seconds) => `${seconds}s average`],
     [/^(\d+) puntos de experiencia ganados$/, (_m, xp) => `${xp} experience points earned`],
 
-    // Student experience.
     [/^(.+) aparecerá junto a tu avatar en el perfil\.$/, (_m, badge) => `${badge} will appear next to your avatar on your profile.`],
     [/^Te faltan (\d+) (.+) para desbloquearlo\.$/, (_m, amount, unit) => `You need ${amount} ${translateFragment(unit)} more to unlock it.`],
     [/^Has conseguido “(.+)” y ganado (\d+) XP\.$/, (_m, badge, xp) => `You earned “${badge}” and ${xp} XP.`],
@@ -1672,7 +1693,6 @@ export function translateUiText(locale: AppLocale, input: string): string {
     [/^Repasa (\d+) fallos? en (.+) antes de avanzar\.$/, (_m, count, course) => `Review ${count} ${plural(count, 'mistake', 'mistakes')} in ${course} before moving on.`],
     [/^Sigue con (.+)\. Tienes (\d+) preguntas por descubrir\.$/, (_m, course, count) => `Continue with ${course}. You have ${count} ${plural(count, 'question', 'questions')} left to discover.`],
 
-    // Offline and shared interaction copy.
     [/^(\d+) cambios? necesita(?:n)? revisión$/, (_m, count) => `${count} ${plural(count, 'change', 'changes')} ${Number(count) === 1 ? 'needs' : 'need'} review`],
     [/^Sin conexión · mostrando datos guardados(?: · (\d+) pendientes?)?$/, (_m, pending) => pending ? `Offline · showing saved data · ${pending} ${plural(pending, 'change', 'changes')} pending` : 'Offline · showing saved data'],
     [/^(\d+) cambios? pendientes? de sincronizar$/, (_m, count) => `${count} ${plural(count, 'change', 'changes')} waiting to sync`],
@@ -1705,7 +1725,6 @@ export function translateUiText(locale: AppLocale, input: string): string {
     [/^Los registros de auditoría se conservan durante (\d+) días\. No se almacenan contraseñas, tokens ni respuestas del alumnado; descripciones, notas y comentarios se excluyen del historial\.$/, (_m, days) => `Audit records are retained for ${days} days. Passwords, tokens and student answers are not stored; descriptions, notes and comments are excluded from the history.`],
     [/^Fecha (desde|hasta)$/, (_m, boundary) => boundary === 'desde' ? 'From date' : 'To date'],
 
-    // Teacher UI.
     [/^El silencio temporal termina el (.+)\. Las alertas críticas continúan activas\.$/, (_m, date) => `Temporary mute ends on ${date}. Critical alerts remain active.`],
     [/^curso (.+)$/, (_m, id) => `course ${id}`],
     [/^clase (.+)$/, (_m, id) => `class ${id}`],
@@ -1782,7 +1801,6 @@ export function translateUiText(locale: AppLocale, input: string): string {
     [/^(.+) recibirá un recordatorio para volver a practicar\.$/, (_m, student) => `${student} will receive a reminder to practise again.`],
     [/^(.+) respondió una pregunta$/, (_m, student) => `${student} answered a question`],
 
-    // Administration UI.
     [/^\[admin\] No se pudo cargar (.+):$/, (_m, table) => `[admin] Could not load ${table}:`],
     [/^Se han verificado (\d+) registros sin alteraciones\.$/, (_m, count) => `${count} records were verified without changes.`],
     [/^La primera inconsistencia aparece en el registro #(.+)\.$/, (_m, id) => `The first inconsistency appears in record #${id}.`],
@@ -1818,7 +1836,6 @@ export function translateUiText(locale: AppLocale, input: string): string {
     [/^Los permisos de (.+) se han actualizado\.$/, (_m, alias) => `${alias}'s permissions were updated.`],
     [/^Motivo del cambio para (.+)$/, (_m, alias) => `Reason for the change for ${alias}`],
 
-    // Safe generic structural wrappers. Captured product/user names are preserved.
     [/^Código (.+)$/, (_m, value) => `Code ${value}`],
     [/^Abrir canal (.+)$/, (_m, value) => `Open channel ${translateFragment(value)}`],
     [/^Abrir (.+)$/, (_m, value) => `Open ${value}`],

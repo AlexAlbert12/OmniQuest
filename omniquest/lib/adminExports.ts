@@ -51,7 +51,6 @@ async function fetchAllRpcRows<Name extends AdminPagedRpcName>(
   return rows.slice(0, MAX_EXPORT_ROWS)
 }
 
-
 async function fetchAllRpcRowsUntyped(functionName: string, filters: Record<string, unknown>): Promise<Array<Record<string, any> & PageRow>> {
   const rows: Array<Record<string, any> & PageRow> = []
   let offset = 0

@@ -1,6 +1,3 @@
--- Refine the Admin export center with server-side pagination totals and current-permission
--- revalidation for listing and downloading background exports.
-
 drop function if exists public.get_admin_export_jobs_page(integer, integer);
 
 create function public.get_admin_export_jobs_page(p_limit integer default 10, p_offset integer default 0)

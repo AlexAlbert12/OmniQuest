@@ -48,7 +48,7 @@ function resolveEnvironment(value) {
     environment.EXPO_PUBLIC_SUPABASE_URL = url
     environment.EXPO_PUBLIC_SUPABASE_ANON_KEY = anonKey
   } catch {
-    // Expo may still resolve a complete checked-in or local dotenv configuration.
+
   }
   return environment
 }

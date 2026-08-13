@@ -487,7 +487,6 @@ export default function StudentClassDetailScreen() {
             onOpenFailedQuestion={openFailedQuestion}
           />
 
-
           {classroom ? (
             <View className={`${isDesktop ? 'mt-6 items-end' : 'mt-5'} pb-2`}>
               <AppButton label="Abandonar clase" icon="log-out-outline" variant="danger" onPress={() => setLeaveConfirmationVisible(true)} style={isDesktop ? { minWidth: 190 } : { width: '100%' }} />

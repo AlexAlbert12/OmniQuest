@@ -1,6 +1,3 @@
--- Teacher topic, question authoring, student directory and student history scalability.
--- Moves expensive aggregations to PostgreSQL and exposes role-scoped paginated RPCs.
-
 create index if not exists questions_topic_active_difficulty_created_idx
   on public.questions(topic_id, active, difficulty, created_at desc, id desc);
 
