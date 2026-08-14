@@ -1,6 +1,6 @@
 {
   "generatedAt": "20260813150000_teacher_student_directory_avatars.sql",
-  "sourceFiles": 448,
+  "sourceFiles": 449,
   "calls": [
     {
       "kind": "edge",
@@ -270,7 +270,7 @@
       "kind": "rpc",
       "resource": "get_activity_attempt_detail",
       "path": "lib/studentSecureData.ts",
-      "line": 332
+      "line": 435
     },
     {
       "kind": "rpc",
@@ -432,7 +432,7 @@
       "kind": "rpc",
       "resource": "get_attempt_feedback",
       "path": "lib/studentSecureData.ts",
-      "line": 257
+      "line": 360
     },
     {
       "kind": "rpc",
@@ -450,7 +450,7 @@
       "kind": "rpc",
       "resource": "get_game_attempt_review_index",
       "path": "lib/studentSecureData.ts",
-      "line": 273
+      "line": 376
     },
     {
       "kind": "rpc",
@@ -1116,7 +1116,7 @@
       "kind": "table",
       "resource": "profiles",
       "path": "components/ui/RoleHeaderAvatar.tsx",
-      "line": 34
+      "line": 35
     },
     {
       "kind": "table",

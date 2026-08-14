@@ -4,7 +4,7 @@ Estado acumulado hasta: 20260813150000_teacher_student_directory_avatars.sql
 
 ## Resumen
 
-- Archivos cliente inspeccionados: 448
+- Archivos cliente inspeccionados: 449
 - Llamadas inventariadas: 229
 - Tablas detectadas: 18
 - RPC detectadas: 119
@@ -67,7 +67,7 @@ Estado acumulado hasta: 20260813150000_teacher_student_directory_avatars.sql
 | rpc | `ensure_default_classroom` | `components/teacher/question-form/useTeacherQuestionForm.ts` | 352 |
 | rpc | `equip_profile_cosmetics` | `lib/avatarCosmetics.ts` | 118 |
 | rpc | `finish_game_attempt` | `hooks/useGame.ts` | 259 |
-| rpc | `get_activity_attempt_detail` | `lib/studentSecureData.ts` | 332 |
+| rpc | `get_activity_attempt_detail` | `lib/studentSecureData.ts` | 435 |
 | rpc | `get_admin_account_export_requests_page` | `components/admin/api/adminApi.ts` | 98 |
 | rpc | `get_admin_audit_logs_page_secured` | `components/admin/audit/AdminAuditSection.tsx` | 70 |
 | rpc | `get_admin_audit_logs_page_secured` | `lib/adminExports.ts` | 232 |
@@ -94,10 +94,10 @@ Estado acumulado hasta: 20260813150000_teacher_student_directory_avatars.sql
 | rpc | `get_admin_support_tickets_page_secured` | `lib/adminExports.ts` | 266 |
 | rpc | `get_admin_usage_analytics` | `components/admin/dashboard/AdminUsageAnalyticsPanel.tsx` | 23 |
 | rpc | `get_admin_user_change_history_page` | `components/admin/api/adminApi.ts` | 116 |
-| rpc | `get_attempt_feedback` | `lib/studentSecureData.ts` | 257 |
+| rpc | `get_attempt_feedback` | `lib/studentSecureData.ts` | 360 |
 | rpc | `get_avatar_customization_options` | `lib/avatarCosmetics.ts` | 83 |
 | rpc | `get_class_ranking_profiles` | `app/(student)/class/[id].tsx` | 205 |
-| rpc | `get_game_attempt_review_index` | `lib/studentSecureData.ts` | 273 |
+| rpc | `get_game_attempt_review_index` | `lib/studentSecureData.ts` | 376 |
 | rpc | `get_manual_review_configuration` | `hooks/teacher/useManualReview.ts` | 21 |
 | rpc | `get_manual_review_history` | `hooks/teacher/useManualReview.ts` | 120 |
 | rpc | `get_manual_review_thread` | `hooks/teacher/useManualReview.ts` | 120 |
@@ -208,7 +208,7 @@ Estado acumulado hasta: 20260813150000_teacher_student_directory_avatars.sql
 | table | `profiles` | `app/(student)/notifications.tsx` | 99 |
 | table | `profiles` | `components/support/RoleHelpCenter.tsx` | 146 |
 | table | `profiles` | `components/teacher/TeacherSidebar.tsx` | 75 |
-| table | `profiles` | `components/ui/RoleHeaderAvatar.tsx` | 34 |
+| table | `profiles` | `components/ui/RoleHeaderAvatar.tsx` | 35 |
 | table | `profiles` | `hooks/student/useStudentActivity.ts` | 93 |
 | table | `profiles` | `hooks/student/useStudentProfile.ts` | 80 |
 | table | `profiles` | `hooks/student/useStudentProgress.ts` | 114 |
