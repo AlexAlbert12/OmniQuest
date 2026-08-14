@@ -1,6 +1,7 @@
 import React from 'react'
 import { Image, Text, View } from 'react-native'
 import { useAppTheme } from '../../../lib/appTheme'
+import { getRenderableAvatarUri } from '../../../lib/avatarUri'
 import { withAlpha } from '../../../lib/color'
 import { getInitials } from './studentUtils'
 
@@ -12,7 +13,7 @@ export default function StudentProfileAvatar({ alias, avatar, size = 44, accentC
 }) {
   const { tokens } = useAppTheme()
   const [failed, setFailed] = React.useState(false)
-  const avatarUri = avatar?.trim() || null
+  const avatarUri = getRenderableAvatarUri(avatar)
   const color = accentColor || tokens.brand.teacher
 
   React.useEffect(() => setFailed(false), [avatarUri])

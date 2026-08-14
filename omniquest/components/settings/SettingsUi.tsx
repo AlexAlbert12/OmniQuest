@@ -248,7 +248,7 @@ export function SelectPill({
               className="flex-row items-center justify-between px-4 py-3"
               style={{
                 borderBottomWidth: index < options.length - 1 ? 1 : 0,
-                borderBottomColor: withAlpha(accentColor, '52'),
+                borderBottomColor: colors.border,
                 backgroundColor: option === selectedValue ? withAlpha(accentColor, '14') : 'transparent',
               }}
             >
@@ -291,7 +291,7 @@ export function PreferenceRow({
   const { width } = useWindowDimensions()
   const stacked = width < 520
   return (
-    <View className={`mb-4 ${stacked ? 'gap-2' : 'flex-row items-start gap-4'}`}>
+    <View className={`mb-4 border-b border-border-default pb-4 ${stacked ? 'gap-2' : 'flex-row items-start gap-4'}`}>
       <Text className={`${stacked ? '' : 'w-[125px]'} text-[12px] font-semibold`} style={{ color: colors.textSecondary }}>{label}</Text>
       <View className="min-w-0 flex-1">
         <SelectPill

@@ -51,41 +51,21 @@ export default function ActivityLogScreen() {
   }, [detailedAttempts, expandedAttemptId, handlePractice, isDesktop, loadingAttemptId, toggleAttempt])
 
   const listHeader = (
-    <View>
-      <StudentPageHeader
-        backAction={{ label: 'Volver', onPress: () => router.back() }}
-        icon="time-outline"
-        isDesktop={isDesktop}
-        title="Historial de actividad"
-        subtitle="Consulta tus intentos anteriores y vuelve a practicar desde el tema correspondiente."
-      />
-      {activity.error ? (
-        <View className="mb-4">
-          <AppStatusBanner
-            variant="danger"
-            title="No se pudo actualizar la actividad"
-            message={activity.error}
-            actionLabel="Reintentar"
-            onAction={activity.refresh}
-          />
-        </View>
-      ) : null}
-      <StudentActivityFilters
-        searchQuery={activity.searchQuery}
-        onSearchChange={activity.setSearchQuery}
-        statusFilter={activity.statusFilter}
-        onStatusFilterChange={activity.setStatusFilter}
-        statusCounts={activity.statusCounts}
-        subjectOptions={activity.subjectFacets}
-        selectedSubjectId={activity.selectedSubjectId}
-        onSubjectChange={activity.setSelectedSubjectId}
-        topicOptions={activity.topicFacets}
-        selectedTopicId={activity.selectedTopicId}
-        onTopicChange={activity.setSelectedTopicId}
-        visibleCount={activity.attempts.length}
-        totalCount={activity.total}
-      />
-    </View>
+    <StudentActivityFilters
+      searchQuery={activity.searchQuery}
+      onSearchChange={activity.setSearchQuery}
+      statusFilter={activity.statusFilter}
+      onStatusFilterChange={activity.setStatusFilter}
+      statusCounts={activity.statusCounts}
+      subjectOptions={activity.subjectFacets}
+      selectedSubjectId={activity.selectedSubjectId}
+      onSubjectChange={activity.setSelectedSubjectId}
+      topicOptions={activity.topicFacets}
+      selectedTopicId={activity.selectedTopicId}
+      onTopicChange={activity.setSelectedTopicId}
+      visibleCount={activity.attempts.length}
+      totalCount={activity.total}
+    />
   )
 
   return (
@@ -110,41 +90,61 @@ export default function ActivityLogScreen() {
       fluidContent
       horizontalPadding={isDesktop ? 28 : 18}
       topPadding={isDesktop ? 24 : 18}
-      contentContainerStyle={{ flex: 1 }}
+      contentContainerStyle={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0 }}
     >
-      <FlatList
-        style={{ flex: 1 }}
-        data={activity.activityRows}
-        keyExtractor={(item: ActivityListItem) => item.key}
-        renderItem={renderItem}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}
-        refreshing={activity.refreshing}
-        onRefresh={activity.refresh}
-        keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={listHeader}
-        ListEmptyComponent={(
-          <View className="mt-8 flex-1 items-center justify-center rounded-2xl border border-dashed p-8" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
-            <OmniGuide state="normal" autoBlink size={88} />
-            <Text maxFontSizeMultiplier={2} className="mt-4 text-center text-[16px] font-bold" style={{ color: tokens.text.primary }}>
-              No hay actividad con estos filtros
-            </Text>
-            <Text maxFontSizeMultiplier={2} className="mt-1 text-center text-[13px] leading-5" style={{ color: tokens.text.muted }}>
-              Tus intentos aparecerán aquí. Cambia los filtros o inicia una práctica desde uno de tus cursos.
-            </Text>
-          </View>
-        )}
-        ListFooterComponent={(
-          <PaginationControls
-            compact={!isDesktop}
-            page={activity.page}
-            pageSize={STUDENT_ACTIVITY_PAGE_SIZE}
-            total={activity.total}
-            onPrevious={() => activity.setPage((value) => Math.max(0, value - 1))}
-            onNext={() => activity.setPage((value) => value + 1)}
-          />
-        )}
+      <StudentPageHeader
+        backAction={{ label: 'Volver', onPress: () => router.back() }}
+        icon="time-outline"
+        isDesktop={isDesktop}
+        title="Historial de actividad"
+        subtitle="Consulta tus intentos anteriores y vuelve a practicar desde el tema correspondiente."
       />
+      {activity.error ? (
+        <View className="mb-4">
+          <AppStatusBanner
+            variant="danger"
+            title="No se pudo actualizar la actividad"
+            message={activity.error}
+            actionLabel="Reintentar"
+            onAction={activity.refresh}
+          />
+        </View>
+      ) : null}
+      <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0 }}>
+        <FlatList
+          style={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0 }}
+          data={activity.activityRows}
+          keyExtractor={(item: ActivityListItem) => item.key}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}
+          refreshing={activity.refreshing}
+          onRefresh={activity.refresh}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={(
+            <View className="mt-8 flex-1 items-center justify-center rounded-2xl border border-dashed p-8" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
+              <OmniGuide state="normal" autoBlink size={88} />
+              <Text maxFontSizeMultiplier={2} className="mt-4 text-center text-[16px] font-bold" style={{ color: tokens.text.primary }}>
+                No hay actividad con estos filtros
+              </Text>
+              <Text maxFontSizeMultiplier={2} className="mt-1 text-center text-[13px] leading-5" style={{ color: tokens.text.muted }}>
+                Tus intentos aparecerán aquí. Cambia los filtros o inicia una práctica desde uno de tus cursos.
+              </Text>
+            </View>
+          )}
+          ListFooterComponent={(
+            <PaginationControls
+              compact={!isDesktop}
+              page={activity.page}
+              pageSize={STUDENT_ACTIVITY_PAGE_SIZE}
+              total={activity.total}
+              onPrevious={() => activity.setPage((value) => Math.max(0, value - 1))}
+              onNext={() => activity.setPage((value) => value + 1)}
+            />
+          )}
+        />
+      </View>
     </StudentScreenLayout>
   )
 }

@@ -172,12 +172,9 @@ export default function TeacherStudentsDesktopTable({
           const mainCourse = student.courseContexts[0]
           return (
           <View style={{ borderTopWidth: index === 0 ? 0 : 1, borderTopColor: tokens.border.default }}>
-            <AppPressable
-              accessibilityLabel={`${student.alias}. ${status.label}. Abrir resumen`}
-              accessibilityState={{ expanded }}
-              onPress={() => setExpandedStudentId(expanded ? null : student.id)}
+            <View
               className="min-h-[72px] flex-row items-center px-4 py-3"
-              style={({ pressed }) => ({ backgroundColor: pressed || expanded ? tokens.surface.interactive : tokens.surface.default })}
+              style={{ backgroundColor: expanded ? tokens.surface.interactive : tokens.surface.default }}
             >
               <View className="min-w-0 flex-[1.5] flex-row items-center gap-3">
                 <StudentProfileAvatar alias={student.alias} avatar={student.avatar} size={40} />
@@ -203,9 +200,20 @@ export default function TeacherStudentsDesktopTable({
               </View>
               <View className="w-[132px] flex-row items-center justify-end gap-2">
                 <AppButton label="Ver detalle" size="sm" role="teacher" onPress={() => onViewDetails(student)} />
-                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={tokens.text.muted} />
+                <AppPressable
+                  accessibilityLabel={expanded ? `Cerrar resumen de ${student.alias}` : `Abrir resumen de ${student.alias}`}
+                  accessibilityState={{ expanded }}
+                  onPress={() => setExpandedStudentId(expanded ? null : student.id)}
+                  className="h-[38px] w-[38px] items-center justify-center rounded-xl border"
+                  style={({ pressed }) => ({
+                    borderColor: tokens.border.default,
+                    backgroundColor: pressed ? tokens.surface.selected : tokens.surface.raised,
+                  })}
+                >
+                  <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={tokens.text.muted} />
+                </AppPressable>
               </View>
-            </AppPressable>
+            </View>
 
             {expanded ? (
               <View className="border-t px-4 py-4" style={{ borderTopColor: tokens.border.default, backgroundColor: tokens.background.secondary }}>

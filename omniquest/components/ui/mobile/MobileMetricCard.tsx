@@ -50,7 +50,7 @@ export default function MobileMetricCard({
   const resolvedColor = semanticDefinition ? getSemanticColor(tokens, semanticDefinition.colorKey) : color || accentColor
   const metricLabel = label ?? title ?? ''
   const valueText = `${String(value)}${suffix ?? ''}`
-  const baseClassName = `overflow-hidden rounded-2xl border ${compact ? 'p-3' : 'p-4'} ${className}`
+  const baseClassName = `overflow-hidden rounded-2xl border border-border-default ${compact ? 'p-3' : 'p-4'} ${className}`
   const fixedWidthStyle = width ? { width } : undefined
 
   const content = (
@@ -97,7 +97,7 @@ export default function MobileMetricCard({
         accessibilityRole="button"
         onPress={onPress}
         className={baseClassName}
-        style={({ pressed }) => [fixedWidthStyle, { borderColor: colors.border }, style, { opacity: pressed ? 0.84 : 1 }]}
+        style={({ pressed }) => [fixedWidthStyle, style, { opacity: pressed ? 0.84 : 1 }]}
       >
         {content}
       </AppPressable>
@@ -105,7 +105,7 @@ export default function MobileMetricCard({
   }
 
   return (
-    <View className={baseClassName} style={[fixedWidthStyle, { borderColor: colors.border }, style]}>
+    <View className={baseClassName} style={[fixedWidthStyle, style]}>
       {content}
     </View>
   )

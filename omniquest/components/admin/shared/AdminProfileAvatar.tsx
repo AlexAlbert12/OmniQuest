@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Image, Text, View } from 'react-native'
 import { useAppTheme } from '../../../lib/appTheme'
+import { getRenderableAvatarUri } from '../../../lib/avatarUri'
 import { withAlpha } from '../../../lib/color'
 import { getInitials } from '../utils/adminUtils'
 
@@ -13,7 +14,7 @@ type AdminProfileAvatarProps = {
 export default function AdminProfileAvatar({ alias, avatar, size = 48 }: AdminProfileAvatarProps) {
   const { tokens } = useAppTheme()
   const [failed, setFailed] = useState(false)
-  const avatarUri = avatar?.trim() || null
+  const avatarUri = getRenderableAvatarUri(avatar)
 
   useEffect(() => setFailed(false), [avatarUri])
 

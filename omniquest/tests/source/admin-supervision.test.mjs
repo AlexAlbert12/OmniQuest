@@ -14,6 +14,10 @@ test('admin user management uses typed confirmations, advanced filters and real 
   const migration = read('supabase/migrations/20260722210000_admin_supervision_filters.sql')
 
   assert.match(confirmation, /confirmationText/)
+  assert.match(confirmation, /confirmationText: 'CONFIRMAR'/)
+  assert.match(confirmation, /confirmLabel: 'Confirmar'/)
+  assert.match(confirmation, /const confirmLabel = state\.confirmLabel\.trim\(\) \|\| 'Confirmar'/)
+  assert.match(confirmation, /label=\{confirmLabel\}/)
   assert.match(teachers + students, /Resetear contraseña/)
   assert.match(teachers + students, /Ver actividad/)
   assert.match(filters, /Estado de cuenta/)

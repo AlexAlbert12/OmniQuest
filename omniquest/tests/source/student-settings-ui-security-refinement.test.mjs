@@ -29,6 +29,7 @@ test('profile settings use the current avatar, keep language in preferences and 
   assert.match(sections, /<Image source=\{\{ uri: avatar as string \}\}/)
   assert.doesNotMatch(sections.slice(sections.indexOf('export function SettingsProfilePanel'), sections.indexOf('export function SettingsPreferencesPanel')), /settings\.profile\.language/)
   assert.ok(aliasIndex >= 0 && emailIndex > aliasIndex && saveIndex > emailIndex, 'save action must follow the profile fields')
+  assert.match(sections, /<AppButton\s+label=\{saving \? t\('settings\.profile\.saving'\) : t\('settings\.profile\.save'\)\}\s+role=\{isTeacher \? 'teacher' : 'student'\}/)
 })
 
 test('settings navigation and switches follow the shared mobile interaction rules', () => {
@@ -47,6 +48,8 @@ test('settings navigation and switches follow the shared mobile interaction rule
   assert.match(sections, /<View className="mt-6">\s*<PreferenceRow\s*label=\{t\('settings\.preference\.language'\)\}/)
   assert.match(ui, /borderColor: withAlpha\(accentColor, open \? 'B8' : '73'\)/)
   assert.match(ui, /borderWidth: open \? 2 : 1\.5/)
+  assert.match(ui, /border-b border-border-default pb-4/)
+  assert.match(ui, /borderBottomColor: colors\.border/)
   assert.doesNotMatch(ui, /rounded-lg border px-4 py-3/)
 })
 

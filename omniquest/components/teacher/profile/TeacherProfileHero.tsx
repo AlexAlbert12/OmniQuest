@@ -15,6 +15,7 @@ type Props = {
   uploadingAvatar: boolean
   onAvatarPress: () => void
   onEditProfile: () => void
+  onSettings: () => void
   onSecurity: () => void
 }
 
@@ -75,6 +76,7 @@ export default function TeacherProfileHero(props: Props) {
 
       <View style={{ marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
         <AppButton label="Editar perfil" icon="create-outline" role="teacher" size="sm" onPress={props.onEditProfile} />
+        <AppButton label="Configuración" icon="settings-outline" role="teacher" variant="secondary" size="sm" onPress={props.onSettings} />
         <AppButton label="Seguridad" icon="lock-closed-outline" variant="secondary" size="sm" onPress={props.onSecurity} />
       </View>
     </View>

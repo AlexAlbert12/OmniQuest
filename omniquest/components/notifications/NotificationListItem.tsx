@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef } from 'react'
-import { Animated, PanResponder, Platform, Pressable, Text, View } from 'react-native'
+import { Animated, PanResponder, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { AppNotification } from '../../lib/notifications/types'
 import { getTimeAgo } from '../../lib/time'
@@ -98,16 +98,17 @@ function NotificationListItem({
 
       <Animated.View
         {...(swipeEnabled ? panResponder.panHandlers : {})}
-        style={{ width: '100%', transform: [{ translateX }] }}
+        style={{ position: 'relative', zIndex: 1, width: '100%', transform: [{ translateX }] }}
       >
         <View
-          className={`flex-row gap-3 border ${compact ? 'px-3 py-3' : 'px-4 py-4'}`}
+          className={`flex-row gap-3 overflow-hidden border ${compact ? 'px-3 py-3' : 'px-4 py-4'}`}
           style={{
-            backgroundColor: notification.isRead ? tokens.surface.default : withAlpha(roleColor, '13'),
+            backgroundColor: tokens.surface.default,
             borderColor: notification.isRead ? tokens.border.default : withAlpha(roleColor, '88'),
             borderRadius: 16,
           }}
         >
+          {!notification.isRead ? <View style={[StyleSheet.absoluteFillObject, { pointerEvents: 'none', backgroundColor: withAlpha(roleColor, '13') }]} /> : null}
           <View
             className={`${compact ? 'h-11 w-11' : 'h-12 w-12'} flex-shrink-0 items-center justify-center rounded-2xl`}
             style={{ backgroundColor: withAlpha(accent, '24') }}

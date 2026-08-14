@@ -4,12 +4,11 @@ import { readFileSync } from 'node:fs'
 
 const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')
 
-test('mobile ranking lets the page own the vertical gesture while keeping the shared list primitive', () => {
+test('mobile ranking lets the page own the vertical gesture without a nested virtualized list', () => {
   const ranking = read('components/student/ranking/RankingMobileList.tsx')
-  const stack = read('components/ui/VirtualizedStack.tsx')
-  assert.match(ranking, /VirtualizedStack/)
-  assert.match(stack, /touchAction: 'pan-y'/)
-  assert.match(stack, /Platform\.OS === 'web' && !scrollEnabled/)
+  assert.match(ranking, /rows\.map\(/)
+  assert.match(ranking, /touchAction: 'pan-y'/)
+  assert.doesNotMatch(ranking, /VirtualizedStack|FlatList/)
 })
 
 test('course topic bubble uses the actual action instead of the generic view-options label', () => {
@@ -32,16 +31,31 @@ test('versioned student avatar paths remain authorized by storage and the server
   assert.ok(edgeFunction.includes("path.startsWith(`${userId}/`)"))
 })
 
-test('student activity owns a full-height FlatList viewport on mobile web', () => {
+test('student activity keeps its header visible and gives the FlatList a bounded web viewport', () => {
   const source = read('app/(student)/activity-log.tsx')
-  assert.match(source, /<FlatList\s+style=\{\{ flex: 1 \}\}/)
+  assert.ok(source.indexOf('<StudentPageHeader') < source.indexOf('<FlatList'))
+  assert.match(source, /contentContainerStyle=\{\{ flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0 \}\}/)
+  assert.match(source, /<FlatList\s+style=\{\{ flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0 \}\}/)
+  assert.doesNotMatch(source, /contentContainerStyle=\{\{ flex:/)
 })
 
-test('mobile notification actions stay behind the card until a horizontal swipe', () => {
+test('mobile notification actions stay behind an opaque card until a horizontal swipe', () => {
   const source = read('components/notifications/NotificationListItem.tsx')
-  assert.match(source, /style=\{\{ width: '100%', transform: \[\{ translateX \}\] \}\}/)
+  assert.match(source, /zIndex: 1/)
+  assert.match(source, /backgroundColor: tokens\.surface\.default/)
+  assert.match(source, /StyleSheet\.absoluteFillObject/)
   assert.match(source, /display: swipeEnabled \? 'none' : 'flex'/)
   assert.match(source, /Desliza a la derecha/)
+})
+
+
+test('student activity falls back to the owner-only history RPC if the paginated RPC fails', () => {
+  const secureData = read('lib/studentSecureData.ts')
+  const hook = read('hooks/student/useStudentActivity.ts')
+  assert.match(secureData, /fetchStudentAttemptHistoryPageFallback/)
+  assert.match(secureData, /fetchStudentAttemptHistory\(\{ limit: 5000 \}\)/)
+  assert.match(hook, /maybeSingle\(\)/)
+  assert.match(hook, /fallbackProfile/)
 })
 
 test('mobile course dropdowns stay above the galaxy view selector', () => {

@@ -226,7 +226,7 @@ export default function TeacherStudentImportModal({
               <View className="flex-row flex-wrap items-center justify-between gap-3">
                 <View className="min-w-0 flex-1">
                   <Text className="font-black text-white">Correos de alumnos</Text>
-                  <Text className="mt-1 text-[12px] text-text-muted">Ejemplo: aalbertc@uah.es, mlopez@uah.es</Text>
+                  <Text className="mt-1 text-[12px] text-text-muted">Ejemplo: alumno1@example.com, alumno2@example.com</Text>
                 </View>
                 <Pressable
                   onPress={handlePickTextFile}

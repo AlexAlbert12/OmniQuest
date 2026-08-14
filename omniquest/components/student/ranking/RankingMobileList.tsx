@@ -1,6 +1,5 @@
-import React, { useCallback } from 'react'
-import { Text, View } from 'react-native'
-import VirtualizedStack from '../../ui/VirtualizedStack'
+import React from 'react'
+import { Platform, Text, View } from 'react-native'
 import GamifiedAvatar from '../../gamification/GamifiedAvatar'
 import { formatRelativeDate } from '../../../lib/dateFormat'
 import { formatCount } from '../../../lib/formatCount'
@@ -17,8 +16,6 @@ type RankingMobileRowProps = {
   own: boolean
 }
 
-const keyExtractor = (row: RankingProfile) => row.id
-
 const RankingMobileRow = React.memo(function RankingMobileRow({ row, own }: RankingMobileRowProps) {
   return (
     <View className={`flex-row items-center gap-3 rounded-2xl border p-4 ${own ? 'border-brand-student bg-surface-selected' : 'border-border-default bg-surface-default'}`}>
@@ -34,15 +31,18 @@ const RankingMobileRow = React.memo(function RankingMobileRow({ row, own }: Rank
 })
 
 function RankingMobileList({ rows, currentUserId, emptyMessage }: RankingMobileListProps) {
-  const renderItem = useCallback((row: RankingProfile) => (
-    <RankingMobileRow row={row} own={row.id === currentUserId} />
-  ), [currentUserId])
-
   if (rows.length === 0) {
     return <View className="rounded-2xl border border-border-default bg-surface-default p-6"><Text className="text-center leading-6 text-text-secondary">{emptyMessage}</Text></View>
   }
 
-  return <VirtualizedStack data={rows} keyExtractor={keyExtractor} renderItem={renderItem} accessibilityLabel="Clasificación de alumnos" />
+  // En móvil solo se renderizan 6 participantes por página. Una lista virtualizada anidada, incluso
+  // sin desplazamiento propio, puede quedarse con el gesto táctil en Safari/Chrome móvil.
+  // Una pila normal deja que el ScrollView principal sea el único dueño del gesto vertical.
+  return (
+    <View accessibilityLabel="Clasificación de alumnos" className="gap-3" style={Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as any) : undefined}>
+      {rows.map((row) => <RankingMobileRow key={row.id} row={row} own={row.id === currentUserId} />)}
+    </View>
+  )
 }
 
 export default React.memo(RankingMobileList)

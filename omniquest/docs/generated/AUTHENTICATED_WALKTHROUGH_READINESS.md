@@ -137,7 +137,7 @@ La ausencia de ejecución local no implica que el recorrido esté completado. La
 ## Comandos de ejecución local
 
 ```powershell
-cd C:\Users\Admin\Desktop\OmniQuest\omniquest
+cd omniquest
 npx supabase start
 npx supabase migration up --local
 npm run test:migrations
@@ -155,7 +155,7 @@ npx supabase functions serve --env-file .\supabase\functions\.env --debug
 En otra terminal:
 
 ```powershell
-cd C:\Users\Admin\Desktop\OmniQuest\omniquest
+cd omniquest
 npx expo start --web --port 8081 -c
 ```
 

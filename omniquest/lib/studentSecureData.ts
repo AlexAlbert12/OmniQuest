@@ -222,7 +222,13 @@ export async function fetchStudentAttemptHistoryPage({
     p_offset: safePage * safePageSize,
   })
 
-  if (error) throw error
+  if (error) {
+    // Compatibilidad defensiva para instalaciones que aún no tengan disponible la RPC
+    // paginada (o donde esa RPC falle temporalmente). La RPC histórica sigue siendo
+    // owner-only y security-definer, así que podemos reconstruir la misma vista sin
+    // dejar inutilizable el historial del alumno.
+    return fetchStudentAttemptHistoryPageFallback({ page: safePage, pageSize: safePageSize, status, search, subjectId, classroomId, topicId, difficulty })
+  }
   const payload = data && typeof data === 'object' && !Array.isArray(data)
     ? data as { rows?: unknown; total?: unknown; status_counts?: unknown; subjects?: unknown; topics?: unknown }
     : {}
@@ -251,6 +257,103 @@ export async function fetchStudentAttemptHistoryPage({
       count: Math.max(0, Number(item.count || 0)),
     })).filter((item) => Boolean(item.id)),
   }
+}
+
+
+async function fetchStudentAttemptHistoryPageFallback({
+  page = 0,
+  pageSize = 20,
+  status = 'all',
+  search = '',
+  subjectId = null,
+  classroomId = null,
+  topicId = null,
+  difficulty = null,
+}: StudentAttemptHistoryPageFilters): Promise<StudentAttemptHistoryPage> {
+  const allAttempts = await fetchStudentAttemptHistory({ limit: 5000 })
+  const normalizedSearch = search.trim().toLocaleLowerCase('es-ES')
+  const searchScoped = allAttempts.filter((attempt) => matchesStudentAttemptSearch(attempt, normalizedSearch))
+  const statusScope = searchScoped.filter((attempt) => matchesStudentAttemptDimensions(attempt, { subjectId, classroomId, topicId, difficulty }))
+  const subjectScope = searchScoped.filter((attempt) => matchesStudentAttemptStatus(attempt, status) && matchesStudentAttemptDimensions(attempt, { classroomId, topicId, difficulty }))
+  const topicScope = searchScoped.filter((attempt) => matchesStudentAttemptStatus(attempt, status) && matchesStudentAttemptDimensions(attempt, { subjectId, classroomId, difficulty }))
+  const filtered = statusScope.filter((attempt) => matchesStudentAttemptStatus(attempt, status))
+  const start = Math.max(0, page) * Math.max(1, pageSize)
+
+  return {
+    rows: filtered.slice(start, start + Math.max(1, pageSize)),
+    total: filtered.length,
+    statusCounts: {
+      all: statusScope.length,
+      correct: statusScope.filter((attempt) => attempt.is_correct).length,
+      incorrect: statusScope.filter((attempt) => !attempt.is_correct).length,
+    },
+    subjects: buildStudentActivitySubjectFacets(subjectScope),
+    topics: buildStudentActivityTopicFacets(topicScope),
+  }
+}
+
+function matchesStudentAttemptStatus(attempt: SafeStudentAttempt, status: StudentAttemptHistoryPageFilters['status']) {
+  if (!status || status === 'all') return true
+  return status === 'correct' ? attempt.is_correct : !attempt.is_correct
+}
+
+function matchesStudentAttemptSearch(attempt: SafeStudentAttempt, search: string) {
+  if (!search) return true
+  const question = getStudentAttemptQuestion(attempt)
+  const subject = getStudentAttemptSubject(question)
+  const topic = getStudentAttemptTopic(question)
+  return [question?.text, subject?.name, topic?.title].filter(Boolean).join(' ').toLocaleLowerCase('es-ES').includes(search)
+}
+
+function matchesStudentAttemptDimensions(attempt: SafeStudentAttempt, filters: Pick<StudentAttemptHistoryPageFilters, 'subjectId' | 'classroomId' | 'topicId' | 'difficulty'>) {
+  const question = getStudentAttemptQuestion(attempt)
+  if (!question) return false
+  if (filters.subjectId !== null && filters.subjectId !== undefined && Number(question.subject_id) !== Number(filters.subjectId)) return false
+  if (filters.classroomId !== null && filters.classroomId !== undefined && Number(question.classroom_id) !== Number(filters.classroomId)) return false
+  if (filters.topicId !== null && filters.topicId !== undefined && Number(question.topic_id) !== Number(filters.topicId)) return false
+  if (filters.difficulty !== null && filters.difficulty !== undefined && Number(question.difficulty ?? 1) !== Number(filters.difficulty)) return false
+  return true
+}
+
+function buildStudentActivitySubjectFacets(attempts: SafeStudentAttempt[]): StudentActivityFacet[] {
+  const counts = new Map<string, { label: string; count: number }>()
+  attempts.forEach((attempt) => {
+    const question = getStudentAttemptQuestion(attempt)
+    const subject = getStudentAttemptSubject(question)
+    if (!question?.subject_id) return
+    const id = String(question.subject_id)
+    const current = counts.get(id)
+    counts.set(id, { label: subject?.name || 'Clase sin nombre', count: (current?.count || 0) + 1 })
+  })
+  return Array.from(counts, ([id, value]) => ({ id, ...value })).sort((left, right) => left.label.localeCompare(right.label, 'es'))
+}
+
+function buildStudentActivityTopicFacets(attempts: SafeStudentAttempt[]): StudentActivityTopicFacet[] {
+  const counts = new Map<string, { subjectId: number | null; label: string; count: number }>()
+  attempts.forEach((attempt) => {
+    const question = getStudentAttemptQuestion(attempt)
+    if (!question) return
+    const topic = getStudentAttemptTopic(question)
+    const subjectId = question.subject_id === null || question.subject_id === undefined ? null : Number(question.subject_id)
+    const id = question.topic_id === null || question.topic_id === undefined ? `general:${subjectId ?? 'none'}` : String(question.topic_id)
+    const current = counts.get(id)
+    counts.set(id, { subjectId, label: topic?.title || 'Tema general', count: (current?.count || 0) + 1 })
+  })
+  return Array.from(counts, ([id, value]) => ({ id, ...value })).sort((left, right) => left.label.localeCompare(right.label, 'es'))
+}
+
+function getStudentAttemptQuestion(attempt: SafeStudentAttempt): SafeAttemptQuestion | null {
+  return Array.isArray(attempt.questions) ? attempt.questions[0] ?? null : attempt.questions ?? null
+}
+
+function getStudentAttemptSubject(question: SafeAttemptQuestion | null) {
+  const relation = question?.subjects
+  return Array.isArray(relation) ? relation[0] ?? null : relation ?? null
+}
+
+function getStudentAttemptTopic(question: SafeAttemptQuestion | null) {
+  const relation = question?.subject_topics
+  return Array.isArray(relation) ? relation[0] ?? null : relation ?? null
 }
 
 export async function fetchAttemptFeedback(attemptHistoryId: number): Promise<AttemptFeedback> {

@@ -26,7 +26,6 @@ test('high-frequency rows and cards use selective memoization', () => {
 
 test('virtualized handlers are stable in ranking, notifications and questions', () => {
   for (const file of [
-    'components/student/ranking/RankingMobileList.tsx',
     'components/student/ranking/RankingTable.tsx',
     'components/notifications/NotificationFeed.tsx',
     'components/teacher/subject/SubjectQuestionsTab.tsx',

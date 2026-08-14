@@ -27,6 +27,7 @@ test('web animations select the JS driver instead of requesting a missing native
 test('pointer event behavior is expressed through styles instead of deprecated props', () => {
   const files = [
     'components/OfflineSyncBanner.tsx',
+    'components/notifications/NotificationListItem.tsx',
     'components/ui/AppToast.tsx',
     'components/ui/mobile/MobileMetricCard.tsx',
     'app/(student)/class/[id].tsx',
@@ -43,6 +44,27 @@ test('pointer event behavior is expressed through styles instead of deprecated p
   ]
 
   files.forEach((path) => assert.doesNotMatch(read(path), /pointerEvents=/, path))
+})
+
+test('desktop student rows expose sibling actions instead of nesting HTML buttons', () => {
+  const source = read('components/teacher/students/TeacherStudentsDesktop.tsx')
+
+  assert.match(source, /<View\s+className="min-h-\[72px\] flex-row items-center px-4 py-3"/)
+  assert.match(source, /accessibilityLabel=\{expanded \? `Cerrar resumen de/)
+  assert.doesNotMatch(source, /<AppPressable[\s\S]{0,260}className="min-h-\[72px\]/)
+})
+
+test('legacy relative avatar names fall back to initials instead of causing web 404 responses', () => {
+  const helper = read('lib/avatarUri.ts')
+  const consumers = [
+    'components/teacher/students/StudentProfileAvatar.tsx',
+    'components/admin/shared/AdminProfileAvatar.tsx',
+    'components/ui/RoleHeaderAvatar.tsx',
+  ]
+
+  assert.match(helper, /RENDERABLE_AVATAR_URI/)
+  assert.match(helper, /https\?:/)
+  consumers.forEach((path) => assert.match(read(path), /getRenderableAvatarUri/, path))
 })
 
 test('web navigation and app modals release focus before hiding their current view', () => {

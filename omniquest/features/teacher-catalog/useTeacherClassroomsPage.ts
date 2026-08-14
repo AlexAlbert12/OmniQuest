@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
+import { useFocusEffect } from 'expo-router'
 import type { TeacherClassroomsPayload } from '../../lib/teacherServerData'
 import { fetchTeacherClassroomsPage } from './api'
 
@@ -35,6 +36,6 @@ export function useTeacherClassroomsPage({ page, pageSize, search, enabled = tru
     }
   }, [enabled, page, pageSize, search])
 
-  useEffect(() => { void load(false) }, [load])
+  useFocusEffect(useCallback(() => { void load(false) }, [load]))
   return { ...payload, error, loading, refreshing, refresh: () => { void load(true) } }
 }

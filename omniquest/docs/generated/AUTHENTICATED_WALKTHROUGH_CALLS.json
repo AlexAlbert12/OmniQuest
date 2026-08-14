@@ -1,6 +1,6 @@
 {
-  "generatedAt": "20260813140000_admin_permissions_experience_refinement.sql",
-  "sourceFiles": 446,
+  "generatedAt": "20260813150000_teacher_student_directory_avatars.sql",
+  "sourceFiles": 448,
   "calls": [
     {
       "kind": "edge",
@@ -48,7 +48,7 @@
       "kind": "edge",
       "resource": "manage-account-security",
       "path": "components/settings/ManagedSessionsCard.tsx",
-      "line": 34
+      "line": 46
     },
     {
       "kind": "edge",
@@ -84,7 +84,7 @@
       "kind": "edge",
       "resource": "student-reset-own-progress",
       "path": "hooks/useSettingsData.ts",
-      "line": 240
+      "line": 230
     },
     {
       "kind": "edge",
@@ -120,7 +120,7 @@
       "kind": "edge",
       "resource": "teacher-reset-own-data",
       "path": "hooks/useSettingsData.ts",
-      "line": 259
+      "line": 249
     },
     {
       "kind": "edge",
@@ -162,7 +162,7 @@
       "kind": "rpc",
       "resource": "add_support_ticket_message",
       "path": "lib/support.ts",
-      "line": 306
+      "line": 304
     },
     {
       "kind": "rpc",
@@ -264,13 +264,13 @@
       "kind": "rpc",
       "resource": "finish_game_attempt",
       "path": "hooks/useGame.ts",
-      "line": 260
+      "line": 259
     },
     {
       "kind": "rpc",
       "resource": "get_activity_attempt_detail",
       "path": "lib/studentSecureData.ts",
-      "line": 333
+      "line": 332
     },
     {
       "kind": "rpc",
@@ -288,7 +288,7 @@
       "kind": "rpc",
       "resource": "get_admin_audit_logs_page_secured",
       "path": "lib/adminExports.ts",
-      "line": 233
+      "line": 232
     },
     {
       "kind": "rpc",
@@ -402,7 +402,7 @@
       "kind": "rpc",
       "resource": "get_admin_support_directory",
       "path": "lib/support.ts",
-      "line": 193
+      "line": 191
     },
     {
       "kind": "rpc",
@@ -414,7 +414,7 @@
       "kind": "rpc",
       "resource": "get_admin_support_tickets_page_secured",
       "path": "lib/adminExports.ts",
-      "line": 267
+      "line": 266
     },
     {
       "kind": "rpc",
@@ -432,7 +432,7 @@
       "kind": "rpc",
       "resource": "get_attempt_feedback",
       "path": "lib/studentSecureData.ts",
-      "line": 258
+      "line": 257
     },
     {
       "kind": "rpc",
@@ -450,7 +450,7 @@
       "kind": "rpc",
       "resource": "get_game_attempt_review_index",
       "path": "lib/studentSecureData.ts",
-      "line": 274
+      "line": 273
     },
     {
       "kind": "rpc",
@@ -480,13 +480,13 @@
       "kind": "rpc",
       "resource": "get_own_support_email_history",
       "path": "lib/support.ts",
-      "line": 224
+      "line": 222
     },
     {
       "kind": "rpc",
       "resource": "get_own_support_tickets_page",
       "path": "lib/support.ts",
-      "line": 135
+      "line": 134
     },
     {
       "kind": "rpc",
@@ -504,25 +504,25 @@
       "kind": "rpc",
       "resource": "get_ranking_profiles_page",
       "path": "hooks/student/useStudentRanking.ts",
-      "line": 261
+      "line": 260
     },
     {
       "kind": "rpc",
       "resource": "get_safe_game_questions_v2",
       "path": "hooks/useGame.ts",
-      "line": 171
+      "line": 170
     },
     {
       "kind": "rpc",
       "resource": "get_student_attempt_history",
       "path": "lib/studentSecureData.ts",
-      "line": 190
+      "line": 189
     },
     {
       "kind": "rpc",
       "resource": "get_student_attempt_history_page",
       "path": "lib/studentSecureData.ts",
-      "line": 215
+      "line": 214
     },
     {
       "kind": "rpc",
@@ -546,19 +546,19 @@
       "kind": "rpc",
       "resource": "get_student_question_catalog",
       "path": "lib/studentSecureData.ts",
-      "line": 173
+      "line": 172
     },
     {
       "kind": "rpc",
       "resource": "get_support_contact_channels",
       "path": "lib/support.ts",
-      "line": 210
+      "line": 208
     },
     {
       "kind": "rpc",
       "resource": "get_support_thread_page",
       "path": "lib/support.ts",
-      "line": 169
+      "line": 168
     },
     {
       "kind": "rpc",
@@ -612,7 +612,7 @@
       "kind": "rpc",
       "resource": "get_teacher_notification_settings",
       "path": "components/support/RoleHelpCenter.tsx",
-      "line": 152
+      "line": 151
     },
     {
       "kind": "rpc",
@@ -694,7 +694,7 @@
     },
     {
       "kind": "rpc",
-      "resource": "get_teacher_students_page",
+      "resource": "get_teacher_students_page_with_avatars",
       "path": "features/teacher-students/api.ts",
       "line": 15
     },
@@ -718,7 +718,7 @@
     },
     {
       "kind": "rpc",
-      "resource": "get_teacher_subject_students_page",
+      "resource": "get_teacher_subject_students_page_with_avatars",
       "path": "hooks/teacher/subject/useTeacherSubjectStudents.ts",
       "line": 35
     },
@@ -792,7 +792,7 @@
       "kind": "rpc",
       "resource": "request_account_deletion",
       "path": "hooks/useSettingsData.ts",
-      "line": 575
+      "line": 564
     },
     {
       "kind": "rpc",
@@ -834,7 +834,7 @@
       "kind": "rpc",
       "resource": "save_teacher_question_v2",
       "path": "components/teacher/question-form/useTeacherQuestionForm.ts",
-      "line": 658
+      "line": 656
     },
     {
       "kind": "rpc",
@@ -882,19 +882,19 @@
       "kind": "rpc",
       "resource": "set_teacher_support_preference",
       "path": "components/support/RoleHelpCenter.tsx",
-      "line": 293
+      "line": 292
     },
     {
       "kind": "rpc",
       "resource": "start_game_attempt",
       "path": "hooks/useGame.ts",
-      "line": 193
+      "line": 192
     },
     {
       "kind": "rpc",
       "resource": "submit_answer_resumable",
       "path": "hooks/useGame.ts",
-      "line": 419
+      "line": 418
     },
     {
       "kind": "rpc",
@@ -906,7 +906,7 @@
       "kind": "rpc",
       "resource": "sync_student_badges",
       "path": "lib/studentBadges.ts",
-      "line": 503
+      "line": 502
     },
     {
       "kind": "rpc",
@@ -1020,7 +1020,7 @@
       "kind": "table",
       "resource": "enrollments",
       "path": "hooks/student/useStudentRanking.ts",
-      "line": 283
+      "line": 282
     },
     {
       "kind": "table",
@@ -1104,7 +1104,7 @@
       "kind": "table",
       "resource": "profiles",
       "path": "components/support/RoleHelpCenter.tsx",
-      "line": 147
+      "line": 146
     },
     {
       "kind": "table",
@@ -1116,7 +1116,7 @@
       "kind": "table",
       "resource": "profiles",
       "path": "components/ui/RoleHeaderAvatar.tsx",
-      "line": 35
+      "line": 34
     },
     {
       "kind": "table",
@@ -1128,7 +1128,7 @@
       "kind": "table",
       "resource": "profiles",
       "path": "hooks/student/useStudentProfile.ts",
-      "line": 81
+      "line": 80
     },
     {
       "kind": "table",
@@ -1152,25 +1152,25 @@
       "kind": "table",
       "resource": "profiles",
       "path": "hooks/useSettingsData.ts",
+      "line": 139
+    },
+    {
+      "kind": "table",
+      "resource": "profiles",
+      "path": "hooks/useSettingsData.ts",
       "line": 149
     },
     {
       "kind": "table",
       "resource": "profiles",
       "path": "hooks/useSettingsData.ts",
-      "line": 159
+      "line": 271
     },
     {
       "kind": "table",
       "resource": "profiles",
       "path": "hooks/useSettingsData.ts",
-      "line": 281
-    },
-    {
-      "kind": "table",
-      "resource": "profiles",
-      "path": "hooks/useSettingsData.ts",
-      "line": 510
+      "line": 499
     },
     {
       "kind": "table",
@@ -1242,7 +1242,7 @@
       "kind": "table",
       "resource": "subject_topics",
       "path": "components/teacher/question-form/useTeacherQuestionForm.ts",
-      "line": 795
+      "line": 793
     },
     {
       "kind": "table",
@@ -1260,7 +1260,7 @@
       "kind": "table",
       "resource": "subjects",
       "path": "components/support/RoleHelpCenter.tsx",
-      "line": 149
+      "line": 148
     },
     {
       "kind": "table",
@@ -1290,7 +1290,7 @@
       "kind": "table",
       "resource": "subjects",
       "path": "hooks/useSettingsData.ts",
-      "line": 443
+      "line": 432
     },
     {
       "kind": "table",
@@ -1308,7 +1308,7 @@
       "kind": "table",
       "resource": "support_ticket_attachments",
       "path": "lib/support.ts",
-      "line": 393
+      "line": 391
     },
     {
       "kind": "table",
@@ -1326,13 +1326,13 @@
       "kind": "table",
       "resource": "user_notification_preferences",
       "path": "hooks/useSettingsData.ts",
-      "line": 406
+      "line": 395
     },
     {
       "kind": "table",
       "resource": "user_notification_preferences",
       "path": "hooks/useSettingsData.ts",
-      "line": 460
+      "line": 449
     },
     {
       "kind": "table",
@@ -1350,13 +1350,13 @@
       "kind": "table",
       "resource": "user_preferences",
       "path": "hooks/useSettingsData.ts",
-      "line": 388
+      "line": 378
     },
     {
       "kind": "table",
       "resource": "user_preferences",
       "path": "hooks/useSettingsData.ts",
-      "line": 438
+      "line": 427
     },
     {
       "kind": "table",
@@ -1368,13 +1368,13 @@
       "kind": "table",
       "resource": "user_support_tickets",
       "path": "lib/support.ts",
-      "line": 147
+      "line": 146
     },
     {
       "kind": "table",
       "resource": "user_support_tickets",
       "path": "lib/support.ts",
-      "line": 266
+      "line": 264
     }
   ],
   "tables": [
@@ -1482,11 +1482,11 @@
     "get_teacher_student_history_summary",
     "get_teacher_student_history_timeline_page",
     "get_teacher_student_history_weaknesses",
-    "get_teacher_students_page",
+    "get_teacher_students_page_with_avatars",
     "get_teacher_subject_analytics",
     "get_teacher_subject_overview",
     "get_teacher_subject_questions_page",
-    "get_teacher_subject_students_page",
+    "get_teacher_subject_students_page_with_avatars",
     "get_teacher_subject_topics_page",
     "get_teacher_topic_questions_page",
     "get_teacher_topic_summary",

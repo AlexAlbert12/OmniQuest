@@ -55,8 +55,8 @@ export default function TeacherCourseCard({
       accessibilityLabel={`Abrir curso ${course.name}`}
       accessibilityRole="button"
       onPress={() => router.push(`/(teacher)/subject/${course.id}` as any)}
-      className="overflow-hidden rounded-2xl border bg-surface-default p-4"
-      style={({ pressed }) => ({ borderColor: needsAttention ? '#F59E0B88' : '#244A7C', opacity: pressed ? 0.82 : 1 })}
+      className="overflow-hidden rounded-2xl border border-border-default bg-surface-default p-4"
+      style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       <View className="flex-row items-start gap-4">
         <View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(color, '26') }}>

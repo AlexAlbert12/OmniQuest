@@ -45,7 +45,7 @@ Si se reutiliza un servidor existente, debe responder en la misma URL configurad
 Con Docker Desktop y Supabase local activos:
 
 ```powershell
-cd C:\Users\Admin\Desktop\OmniQuest\omniquest
+cd omniquest
 
 $env:E2E_STUDENT_EMAIL = 'e2e.student@omniquest.test'
 $env:E2E_STUDENT_PASSWORD = '<contraseña segura>'

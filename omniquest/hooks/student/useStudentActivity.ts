@@ -90,20 +90,25 @@ export function useStudentActivity() {
         resource,
         fetcher: async () => {
           const [profileResult, historyResult] = await Promise.all([
-            supabase.from('profiles').select('id, alias, avatar, points').eq('id', userId).single(),
+            supabase.from('profiles').select('id, alias, avatar, points').eq('id', userId).maybeSingle(),
             fetchStudentAttemptHistoryPage({
               page,
               pageSize: STUDENT_ACTIVITY_PAGE_SIZE,
               status: statusFilter,
               search: debouncedSearch,
               subjectId: selectedSubjectId === 'all' ? null : Number(selectedSubjectId),
-              topicId: selectedTopicId === 'all' ? null : Number(selectedTopicId),
+              topicId: selectedTopicId === 'all' || selectedTopicId.startsWith('general:') ? null : Number(selectedTopicId),
             }),
           ])
-          if (profileResult.error) throw profileResult.error
-          if (!profileResult.data) throw new Error('No se pudo cargar el perfil del alumno.')
+          const sessionUser = sessionData.session?.user
+          const fallbackProfile: ActivityProfile = {
+            id: userId,
+            alias: typeof sessionUser?.user_metadata?.alias === 'string' ? sessionUser.user_metadata.alias : sessionUser?.email?.split('@')[0] || 'Alumno',
+            avatar: typeof sessionUser?.user_metadata?.avatar === 'string' ? sessionUser.user_metadata.avatar : null,
+            points: 0,
+          }
           return {
-            profile: profileResult.data,
+            profile: profileResult.error || !profileResult.data ? fallbackProfile : profileResult.data,
             attempts: historyResult.rows,
             total: historyResult.total,
             statusCounts: historyResult.statusCounts,

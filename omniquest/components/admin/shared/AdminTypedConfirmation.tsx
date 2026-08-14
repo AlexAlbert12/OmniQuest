@@ -20,10 +20,10 @@ type ConfirmationState = AdminTypedConfirmationOptions & { visible: boolean }
 
 const EMPTY_STATE: ConfirmationState = {
   visible: false,
-  title: '',
-  message: '',
-  confirmationText: '',
-  confirmLabel: '',
+  title: 'Confirmación',
+  message: 'Revisa la información antes de continuar.',
+  confirmationText: 'CONFIRMAR',
+  confirmLabel: 'Confirmar',
   destructive: true,
   icon: 'warning-outline',
 }
@@ -78,7 +78,8 @@ function AdminTypedConfirmationModal({
   onConfirm: () => void
 }) {
   const { tokens } = useAppTheme()
-  const expected = state.confirmationText.trim().toUpperCase()
+  const expected = state.confirmationText.trim().toUpperCase() || 'CONFIRMAR'
+  const confirmLabel = state.confirmLabel.trim() || 'Confirmar'
   const matches = typedValue.trim().toUpperCase() === expected
   const dangerColor = state.destructive === false ? tokens.semantic.warning : tokens.semantic.danger
 
@@ -142,7 +143,7 @@ function AdminTypedConfirmationModal({
           <View style={styles.actions}>
             <AdminButton label="Cancelar" variant="secondary" onPress={onCancel} />
             <AdminButton
-              label={state.confirmLabel}
+              label={confirmLabel}
               icon={state.destructive === false ? 'checkmark-circle-outline' : 'warning-outline'}
               variant={state.destructive === false ? 'secondary' : 'danger'}
               disabled={!matches}

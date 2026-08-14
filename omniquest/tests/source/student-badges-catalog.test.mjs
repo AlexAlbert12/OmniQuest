@@ -69,3 +69,12 @@ test('achievement screen uses user-facing copy, consistent pending state and sta
   assert.match(screen, /withAlpha\(accentColor, '14'\)/)
   assert.match(tabs, /gap: 8/)
 })
+
+test('achievement status pills stay inside compact mobile cards', () => {
+  const screen = read('app/(student)/badges.tsx')
+
+  assert.match(screen, /isDesktop \? 'items-end gap-1\.5' : 'flex-row flex-wrap items-center gap-1\.5'/)
+  assert.match(screen, /style=\{\{ maxWidth: '100%', backgroundColor: withAlpha\(accentColor, '14'\)/)
+  assert.match(screen, /isDesktop \? 'px-3' : 'px-2\.5'/)
+  assert.match(screen, /isDesktop \? 'text-\[11px\]' : 'text-\[10px\]'/)
+})

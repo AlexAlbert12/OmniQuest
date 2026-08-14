@@ -126,7 +126,7 @@ const styles = {
   main: { flex: 1, minWidth: 0 } satisfies ViewStyle,
   scroll: { flex: 1 } satisfies ViewStyle,
   content: { width: '100%', alignSelf: 'center' } satisfies ViewStyle,
-  loadingViewport: { flexGrow: 1 } satisfies ViewStyle,
+  loadingViewport: { minHeight: '100%' } satisfies ViewStyle,
   loading: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' } satisfies ViewStyle,
   loadingLabel: { marginTop: 16, fontSize: 14, lineHeight: 20, textAlign: 'center' } as const,
 }

@@ -71,7 +71,6 @@ test('growing collections use FlatList directly or the shared virtualized stack'
     'components/admin/support/AdminSupportSection.tsx',
     'components/admin/users/AdminStudentsSection.tsx',
     'components/admin/users/AdminTeachersSection.tsx',
-    'components/student/ranking/RankingMobileList.tsx',
     'components/student/ranking/RankingTable.tsx',
     'components/teacher/classes/TeacherCoursesList.tsx',
     'components/teacher/classes/TeacherClassroomsList.tsx',
@@ -81,6 +80,10 @@ test('growing collections use FlatList directly or the shared virtualized stack'
     'components/teacher/subject/SubjectQuestionsTab.tsx',
     'components/teacher/subject/SubjectStudentsTab.tsx',
   ]) assert.match(read(file), /VirtualizedStack/, `${file} should use the shared virtualized primitive`)
+
+  const mobileRanking = read('components/student/ranking/RankingMobileList.tsx')
+  assert.match(mobileRanking, /rows\.map\(/)
+  assert.doesNotMatch(mobileRanking, /VirtualizedStack|FlatList/)
 
   assert.match(read('components/notifications/NotificationFeed.tsx'), /FlatList/)
   assert.match(read('features/teacher-catalog/screen.tsx'), /<FlatList/)

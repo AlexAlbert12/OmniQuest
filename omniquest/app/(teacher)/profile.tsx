@@ -22,6 +22,7 @@ const ROUTES = {
   notifications: '/(teacher)/notifications',
   security: '/(teacher)/security',
   settings: '/(teacher)/settings?section=personal',
+  settingsRoot: '/(teacher)/settings',
   students: '/(teacher)/students',
   reviews: '/(teacher)/reviews',
   audit: '/(teacher)/audit',
@@ -98,6 +99,7 @@ export default function TeacherProfileScreen() {
         uploadingAvatar={profile.uploadingAvatar}
         onAvatarPress={() => void profile.chooseProfessionalAvatar()}
         onEditProfile={() => router.push(ROUTES.settings)}
+        onSettings={() => router.push(ROUTES.settingsRoot)}
         onSecurity={() => router.push(ROUTES.security)}
       />
 

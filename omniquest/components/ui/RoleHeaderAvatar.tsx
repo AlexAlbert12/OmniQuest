@@ -2,6 +2,7 @@ import React from 'react'
 import { Image, Pressable, Text } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { supabase } from '../../lib/supabase'
+import { getRenderableAvatarUri } from '../../lib/avatarUri'
 import type { PageHeaderRole } from './RolePageHeader'
 import GamifiedAvatar from '../gamification/GamifiedAvatar'
 import { useProfileCosmetics } from '../../hooks/useProfileCosmetics'
@@ -51,13 +52,14 @@ export default function RoleHeaderAvatar({ role }: RoleHeaderAvatarProps) {
 
   const fallbackAlias = role === 'teacher' ? 'Profesor' : 'Alumno'
   const alias = profile.alias || fallbackAlias
+  const avatarUri = getRenderableAvatarUri(profile.avatar)
   const destination = role === 'teacher' ? '/(teacher)/profile' : '/(student)/profile'
 
   if (role === 'student') {
     return (
       <GamifiedAvatar
         alias={alias}
-        avatarUrl={profile.avatar}
+        avatarUrl={avatarUri}
         cosmetics={cosmetics}
         level={getStudentLevel(profile.points ?? 0)}
         onPress={() => router.push(destination as any)}
@@ -75,8 +77,8 @@ export default function RoleHeaderAvatar({ role }: RoleHeaderAvatarProps) {
       className="h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-brand-student"
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
-      {profile.avatar ? (
-        <Image source={{ uri: profile.avatar }} className="h-full w-full" />
+      {avatarUri ? (
+        <Image source={{ uri: avatarUri }} className="h-full w-full" />
       ) : (
         <Text className="font-black text-white">{getInitials(alias)}</Text>
       )}

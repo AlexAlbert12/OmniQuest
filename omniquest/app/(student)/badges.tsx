@@ -489,28 +489,28 @@ const BadgeCard = React.memo(function BadgeCard({
       onPress={handlePress}
       style={{ width: isDesktop ? '31.8%' : '48%', minHeight: isDesktop ? 292 : 224 }}
     >
-      <View className="flex-row items-start justify-between gap-3">
+      <View className={isDesktop ? 'flex-row items-start justify-between gap-3' : 'gap-2.5'}>
         <View
           className={isDesktop ? 'h-16 w-16 items-center justify-center rounded-2xl border-2' : 'h-14 w-14 items-center justify-center rounded-2xl border-2'}
           style={{ backgroundColor: `${badge.color}20`, borderColor: badge.color }}
         >
           <Ionicons name={badge.unlocked ? badge.icon : 'lock-closed'} size={isDesktop ? 30 : 25} color={badge.color} />
         </View>
-        <View className="items-end gap-1.5">
+        <View className={isDesktop ? 'items-end gap-1.5' : 'flex-row flex-wrap items-center gap-1.5'}>
           {featured ? (
             <View
-              className="flex-row items-center gap-1 rounded-full border px-2 py-0.5"
-              style={{ backgroundColor: withAlpha(accentColor, '14'), borderColor: withAlpha(accentColor, '55') }}
+              className="flex-row items-center gap-1 self-start rounded-full border px-2 py-0.5"
+              style={{ maxWidth: '100%', backgroundColor: withAlpha(accentColor, '14'), borderColor: withAlpha(accentColor, '55') }}
             >
               <Ionicons name="star" size={10} color={accentColor} />
-              <Text className="text-[9px] font-black" style={{ color: accentColor }}>Destacado</Text>
+              <Text className="text-[7px] font-black" style={{ color: accentColor }} numberOfLines={1}>Destacado</Text>
             </View>
           ) : null}
           <View
-            className="rounded-full px-3 py-1"
-            style={{ backgroundColor: badge.unlocked ? 'rgba(52,211,153,0.16)' : 'rgba(143,167,199,0.14)' }}
+            className={`${isDesktop ? 'px-3' : 'px-2.5'} self-start rounded-full py-1`}
+            style={{ maxWidth: '100%', backgroundColor: badge.unlocked ? 'rgba(52,211,153,0.16)' : 'rgba(143,167,199,0.14)' }}
           >
-            <Text className={`text-[11px] font-black ${badge.unlocked ? 'text-semantic-success' : 'text-text-secondary'}`} numberOfLines={1}>
+            <Text className={`${isDesktop ? 'text-[11px]' : 'text-[10px]'} font-black ${badge.unlocked ? 'text-semantic-success' : 'text-text-secondary'}`} numberOfLines={1}>
               {badge.statusLabel}
             </Text>
           </View>

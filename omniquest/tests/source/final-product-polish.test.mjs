@@ -43,7 +43,7 @@ test('full-screen loading uses the shared Omni waiting state', () => {
   assert.match(loader, /accessibilityRole="progressbar"/)
   assert.match(layout, /OmniGuide state="blink" size=\{116\}/)
   assert.match(layout, /loading \? styles\.loadingViewport : null/)
-  assert.match(layout, /loadingViewport: \{ flexGrow: 1 \}/)
+  assert.match(layout, /loadingViewport: \{ minHeight: '100%' \}/)
   assert.match(layout, /loading: \{ flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' \}/)
   assert.doesNotMatch(layout, /minHeight: 260/)
   assert.match(home, /<OmniLoadingScreen/)

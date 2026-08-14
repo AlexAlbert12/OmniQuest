@@ -30,6 +30,7 @@ import type {
   UserPreferencesState,
 } from './SettingsTypes'
 import StudentRankingPrivacyCard from './StudentRankingPrivacyCard'
+import AppButton from '../ui/AppButton'
 type PreferenceOptions = Record<PreferenceKey, string[]>
 type FormatPreferenceLabel = (key: PreferenceKey, value: string) => string
 
@@ -101,7 +102,6 @@ export function SettingsProfilePanel({
   userInitials,
   avatar,
   saving,
-  accentColor,
   name,
   email,
   onNameChange,
@@ -113,7 +113,6 @@ export function SettingsProfilePanel({
   userInitials: string
   avatar?: string | null
   saving: boolean
-  accentColor: string
   name: string
   email: string
   onNameChange: (value: string) => void
@@ -162,24 +161,14 @@ export function SettingsProfilePanel({
             />
           </Field>
 
-          <Pressable
+          <AppButton
+            label={saving ? t('settings.profile.saving') : t('settings.profile.save')}
+            role={isTeacher ? 'teacher' : 'student'}
+            loading={saving}
+            fullWidth={!isWide}
             onPress={onSaveProfile}
-            disabled={saving}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: saving, busy: saving }}
-            className={`${isWide ? 'min-w-[180px] self-end' : 'w-full'} mt-2 min-h-[46px] flex-row items-center justify-center gap-2 rounded-lg px-5 py-3`}
-            style={({ pressed }) => ({
-              backgroundColor: saving ? tokens.surface.disabled : accentColor,
-              borderWidth: 1,
-              borderColor: saving ? colors.border : accentColor,
-              opacity: pressed && !saving ? 0.86 : 1,
-            })}
-          >
-            {saving ? <ActivityIndicator size="small" color={tokens.text.disabled} /> : null}
-            <Text className="text-[12px] font-bold" style={{ color: saving ? tokens.text.disabled : tokens.text.onAccent }}>
-              {saving ? t('settings.profile.saving') : t('settings.profile.save')}
-            </Text>
-          </Pressable>
+            style={isWide ? { minWidth: 180, alignSelf: 'flex-end', marginTop: 8 } : { marginTop: 8 }}
+          />
         </View>
       </View>
       <View className="mt-4 border-t border-border-subtle pt-4">
@@ -536,14 +525,13 @@ function DangerDataRow({
   onPress: () => void
 }) {
   const { colors } = useAppTheme()
-  const dangerBorder = withAlpha(colors.danger, tone === 'major' ? '8F' : '55')
   const dangerSurface = tone === 'major' ? withAlpha(colors.danger, '12') : colors.surface
   return (
     <Pressable
       onPress={onPress}
       disabled={deletingData}
-      className="flex-row items-center justify-between rounded-lg border p-3"
-      style={({ pressed }) => ({ borderColor: dangerBorder, backgroundColor: dangerSurface, opacity: pressed ? 0.78 : 1 })}
+      className="flex-row items-center justify-between rounded-lg border border-border-default p-3"
+      style={({ pressed }) => ({ backgroundColor: dangerSurface, opacity: pressed ? 0.78 : 1 })}
     >
       <View className="min-w-0 flex-1 flex-row items-center gap-3">
         <Ionicons name={icon} size={16} color={colors.danger} />
