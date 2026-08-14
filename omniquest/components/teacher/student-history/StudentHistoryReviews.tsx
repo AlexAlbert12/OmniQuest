@@ -20,7 +20,7 @@ export default function StudentHistoryReviews({ items, total, page, pageSize, on
           const actionable = Boolean(onOpenReview)
           const actionLabel = item.status === 'pending' || item.status === 'needs_changes' ? 'Revisar' : 'Ver revisión'
           return (
-            <Pressable key={item.id} accessibilityRole={actionable ? 'button' : undefined} accessibilityLabel={actionable ? `${actionLabel}: ${item.question_text}` : undefined} disabled={!actionable} onPress={() => onOpenReview?.(item)} className="rounded-2xl border p-4" style={({ pressed }) => ({ borderColor: tokens.border.default, backgroundColor: pressed && actionable ? tokens.surface.interactive : tokens.surface.default, opacity: pressed && actionable ? 0.86 : 1 })}>
+            <Pressable key={item.id} accessibilityRole={actionable ? 'button' : undefined} accessibilityLabel={actionable ? `${actionLabel}: ${item.question_text}` : undefined} disabled={!actionable} onPress={() => onOpenReview?.(item)} className="rounded-2xl border border-border-default p-4" style={({ pressed }) => ({ borderColor: tokens.border.default, backgroundColor: pressed && actionable ? tokens.surface.interactive : tokens.surface.default, opacity: pressed && actionable ? 0.86 : 1 })}>
               <View className="flex-row flex-wrap items-center justify-between gap-2">
                 <Text className="min-w-[230px] flex-1 font-black" style={{ color: tokens.text.primary }}>{item.question_text}</Text>
                 <Text className="text-[11px] font-black uppercase" style={{ color: getStatusColor(item.status, tokens) }}>{formatStatus(item.status)}</Text>

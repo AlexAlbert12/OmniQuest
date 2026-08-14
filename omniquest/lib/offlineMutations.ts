@@ -280,8 +280,8 @@ async function executeMutation(entry: OfflineMutationEntry) {
     const response = await fetch(localUri)
     if (!response.ok) throw new Error('No se pudo leer la imagen pendiente.')
     const blob = await response.blob()
-    const fileName = `${entry.userId}.jpg`
-    const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, blob, { upsert: true })
+    const fileName = `${entry.userId}/${Date.now()}.jpg`
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, blob, { upsert: false, contentType: blob.type || 'image/jpeg' })
     if (uploadError) throw uploadError
     const { data, error } = await supabase.functions.invoke('profile-update-avatar', {
       body: { avatarPath: fileName },

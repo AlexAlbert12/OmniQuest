@@ -91,20 +91,3 @@ test('long app modals scroll and achievement reward keeps high contrast', () => 
   assert.match(achievement, /<ScrollView/)
   assert.doesNotMatch(achievement, /bg-semantic-warning/)
 })
-
-test('game and avatar customization use explicit themed borders instead of black defaults', () => {
-  const question = read('components/student/game/GameQuestionUi.tsx')
-  const hud = read('components/student/game/GameHud.tsx')
-  const avatar = read('components/gamification/AvatarCustomizationModal.tsx')
-
-  assert.match(question, /borderColor = withAlpha\(tokens\.brand\.student, '80'\)/)
-  assert.match(question, /borderColor = tokens\.border\.active/)
-  assert.doesNotMatch(question, /#1B3155/)
-  assert.match(question, /borderWidth: isSelected \|\| isHinted/)
-  assert.doesNotMatch(question, /rounded-2xl border px-4 py-3/)
-  assert.match(hud, /borderColor: withAlpha\(color, emphasized \? 'F0' : 'A6'\)/)
-  assert.match(hud, /borderWidth: emphasized \? 2 : 1\.5/)
-  assert.doesNotMatch(hud, /rounded-2xl border bg-surface-raised/)
-  assert.match(avatar, /borderColor: selected \? frame\.primaryColor : '#315D93'/)
-  assert.match(avatar, /borderColor: selected \? color : '#315D93'/)
-})

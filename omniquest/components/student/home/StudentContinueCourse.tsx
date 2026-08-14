@@ -38,7 +38,7 @@ export default function StudentContinueCourse({
   const progress = row.progress?.percent ?? 0
   const failed = row.progress?.failedQuestions ?? 0
   const pending = row.progress?.pendingQuestions ?? 0
-  const color = row.subject.theme_color || tokens.brand.student
+  const color = tokens.brand.student
   const actionLabel = failed > 0 ? 'Repasar curso' : progress > 0 ? 'Continuar curso' : 'Empezar curso'
 
   return (

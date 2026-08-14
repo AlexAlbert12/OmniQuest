@@ -142,10 +142,9 @@ export default function AvatarCustomizationModal({
                     accessibilityState={{ selected, disabled: !frame.unlocked }}
                     disabled={!frame.unlocked}
                     onPress={() => selectFrame(frame)}
-                    className="min-w-[150px] flex-1 rounded-2xl border p-4"
+                    className="min-w-[150px] flex-1 rounded-2xl border border-border-default p-4"
                     style={({ pressed }) => ({
                       opacity: frame.unlocked ? (pressed ? 0.82 : 1) : 0.52,
-                      borderColor: selected ? frame.primaryColor : '#315D93',
                       borderWidth: selected ? 2 : 1,
                       backgroundColor: selected ? withAlpha(frame.primaryColor, '22') : '#0A1A36',
                     })}
@@ -242,10 +241,9 @@ function BadgeOption({
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       onPress={onPress}
-      className="w-[30.8%] min-w-[94px] items-center rounded-2xl border p-3"
+      className="w-[30.8%] min-w-[94px] items-center border-border-default rounded-2xl border p-3"
       style={({ pressed }) => ({
         opacity: pressed ? 0.82 : 1,
-        borderColor: selected ? color : '#315D93',
         borderWidth: selected ? 2 : 1,
         backgroundColor: selected ? withAlpha(color, '22') : '#0A1A36',
       })}

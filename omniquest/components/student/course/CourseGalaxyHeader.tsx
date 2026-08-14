@@ -1,7 +1,6 @@
 import React from 'react'
 import { View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { LinearGradient } from 'expo-linear-gradient'
 import StudentPageHeader from '../StudentPageHeader'
 import { withAlpha } from '../../../lib/color'
 import { useAppTheme } from '../../../lib/appTheme'
@@ -35,17 +34,11 @@ export default function CourseGalaxyHeader({
       showNotifications={isDesktop}
       showAvatar={isDesktop}
       leading={(
-        <View className={isDesktop ? 'h-20 w-20' : 'h-16 w-16'}>
-          <View className="absolute -inset-1 rounded-full bg-surface-disabled" />
-          <LinearGradient
-            colors={[withAlpha(color, 'FF'), tokens.gamification.xp, withAlpha(color, '99')]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            className="h-full w-full items-center justify-center rounded-full border-4"
-            style={{ borderColor: withAlpha(color, 'CC') }}
-          >
-            <Ionicons name={iconName} size={isDesktop ? 34 : 28} color={tokens.text.inverse} />
-          </LinearGradient>
+        <View
+          className={`${isDesktop ? 'h-14 w-14' : 'h-12 w-12'} items-center justify-center rounded-2xl`}
+          style={{ backgroundColor: withAlpha(color, '24') }}
+        >
+          <Ionicons name={iconName} size={isDesktop ? 27 : 23} color={color} />
         </View>
       )}
     />

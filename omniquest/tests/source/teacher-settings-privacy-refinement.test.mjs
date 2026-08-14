@@ -14,7 +14,8 @@ test('teacher settings remove redundant security, timezone and profile visibilit
   const bottomNav = read('components/teacher/TeacherBottomNav.tsx')
 
   assert.doesNotMatch(teacherDefinitions, /key: 'security'/)
-  assert.match(sections, /hideTimezone/)
+  assert.doesNotMatch(sections, /hideTimezone/)
+  assert.doesNotMatch(sharedSections, /settings\.preference\.timezone/)
   assert.match(sharedSections, /!isTeacher \? \(/)
   assert.match(sharedSections, /StudentRankingPrivacyCard/)
   assert.doesNotMatch(sharedSections, /function VisibilityButton/)

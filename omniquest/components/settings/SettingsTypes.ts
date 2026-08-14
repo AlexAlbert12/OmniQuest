@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 
 export type IconName = keyof typeof Ionicons.glyphMap
 export type AppRole = 'student' | 'teacher'
-export type PreferenceKey = 'language' | 'timezone' | 'dateFormat' | 'timeFormat' | 'weekStart'
+export type PreferenceKey = 'language' | 'dateFormat' | 'timeFormat' | 'weekStart'
 export type NotificationSettingKey = 'push' | 'email' | 'daily' | 'activities' | 'news'
 export type NotificationFrequency = 'instant' | 'daily' | 'weekly'
 export type TeacherDigestFrequency = 'off' | 'daily' | 'weekly'
@@ -22,7 +22,6 @@ export type UserProfile = {
 
 export type UserPreferencesState = {
   language: string
-  timezone: string
   dateFormat: string
   timeFormat: string
   weekStart: string
@@ -32,7 +31,6 @@ export type UserPreferencesState = {
 
 export type UserPreferencesRow = {
   language: string | null
-  timezone: string | null
   date_format: string | null
   time_format: string | null
   week_start: string | null

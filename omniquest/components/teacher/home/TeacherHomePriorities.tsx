@@ -83,6 +83,7 @@ export function TeacherPriorityOverview({
         title="Alumnos que necesitan atención"
         subtitle="Inactividad y cursos sin alumnos"
         onViewAll={onOpenStudents}
+        isDesktop={isDesktop}
       >
         {attentionItems.length > 0 ? attentionItems.slice(0, 2).map((item) => (
           <Pressable
@@ -111,8 +112,9 @@ export function TeacherPriorityOverview({
         subtitle="Respuestas que esperan tu criterio"
         onViewAll={onOpenReviews}
         centerContent={isDesktop}
+        isDesktop={isDesktop}
       >
-        <Pressable onPress={onOpenReviews} className="min-h-[78px] flex-row items-center gap-4 rounded-xl border border-border-active bg-surface-disabled p-4">
+        <Pressable onPress={onOpenReviews} className="min-h-[78px] flex-row items-center gap-4 rounded-xl border border-border-default bg-surface-raised p-4">
           <View className="h-12 w-12 items-center justify-center rounded-xl bg-surface-selected">
             <Text className="text-[22px] font-black text-brand-teacher">{openReviewCount}</Text>
           </View>
@@ -133,6 +135,7 @@ export function TeacherPriorityOverview({
         subtitle="Acceso directo a la gestión"
         onViewAll={onOpenClasses}
         centerContent={isDesktop}
+        isDesktop={isDesktop}
       >
         <Pressable onPress={onOpenClasses} className="min-h-[78px] flex-row items-center gap-4 rounded-xl border border-border-default bg-surface-raised p-4">
           <View className="h-12 w-12 items-center justify-center rounded-xl bg-semantic-surface-info">
@@ -149,17 +152,18 @@ export function TeacherPriorityOverview({
   )
 }
 
-function PrioritySection({ accent, centerContent = false, children, index, onViewAll, subtitle, title }: {
+function PrioritySection({ accent, centerContent = false, children, index, isDesktop, onViewAll, subtitle, title }: {
   accent: string
   centerContent?: boolean
   children: React.ReactNode
   index: string
+  isDesktop: boolean
   onViewAll: () => void
   subtitle: string
   title: string
 }) {
   return (
-    <View className="min-w-0 flex-1 rounded-2xl border border-border-default bg-surface-default p-4">
+    <View className={`min-w-0 rounded-2xl border border-border-default bg-surface-default p-4 ${isDesktop ? 'flex-1' : ''}`}>
       <View className="mb-4 flex-row items-start gap-3">
         <View className="h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(accent, '2F') }}>
           <Text className="font-black" style={{ color: accent }}>{index}</Text>

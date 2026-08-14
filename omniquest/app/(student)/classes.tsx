@@ -360,7 +360,7 @@ export default function ClassesScreen() {
             ) : null}
 
             {showMobileFilters && subjects.length > 0 ? (
-              <View className="mb-8 rounded-[24px] border border-border-default bg-surface-disabled p-4">
+              <View className="mb-8 rounded-[24px] border border-border-default bg-surface-disabled p-4" style={{ position: 'relative', zIndex: openFilterMenu ? 50 : 1, overflow: 'visible' }}>
                 {subjects.length <= 5 ? (
                   <View className="flex-row items-center rounded-2xl border border-border-default bg-background-primary px-4">
                     <Ionicons name="search-outline" size={20} color={tokens.text.muted} />
@@ -516,7 +516,7 @@ function CompactSelect({
   const { accentColor } = useAppTheme()
 
   return (
-    <View className="relative flex-1">
+    <View className="relative flex-1" style={{ zIndex: open ? 60 : 1 }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${value}`}
@@ -531,7 +531,7 @@ function CompactSelect({
       </Pressable>
 
       {open ? (
-        <View className="absolute left-0 right-0 top-[68px] z-30 overflow-hidden rounded-2xl border border-border-active bg-background-primary">
+        <View className="absolute left-0 right-0 top-[68px] z-30 overflow-hidden rounded-2xl border border-border-active bg-background-primary" style={{ zIndex: 70, elevation: 18 }}>
           {options.map((option) => (
             <Pressable
               key={option.key}

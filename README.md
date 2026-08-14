@@ -2,7 +2,7 @@
 
 OmniQuest es una aplicación educativa gamificada desarrollada con Expo, React Native y Supabase. El objetivo del proyecto es ofrecer un entorno donde el profesorado pueda crear cursos, clases, temas y preguntas, y donde el alumnado pueda practicar mediante partidas con puntuación, progreso, logros, ranking e historial de actividad.
 
-Este repositorio corresponde a un Trabajo Fin de Máster y busca ser reproducible: incluye el código de la app, migraciones SQL, políticas RLS, funciones RPC, Storage, documentación técnica y **32 Supabase Edge Functions** para operaciones sensibles y procesos asíncronos.
+Este repositorio corresponde a un Trabajo Fin de Máster y busca ser reproducible: incluye el código de la app, migraciones SQL, políticas RLS, funciones RPC, Storage, documentación técnica y **33 Supabase Edge Functions** para operaciones sensibles y procesos asíncronos.
 
 ## Objetivo educativo
 
@@ -33,7 +33,7 @@ La puntuación se usa como elemento motivador, pero la analítica docente priori
 - Push nativo con registro de dispositivos, cola de entrega, reintentos y recibos.
 - Caché offline por usuario y reintento duradero de mutaciones y respuestas de juego.
 - Soporte con tickets, conversación, adjuntos, estados, SLA y entrega opcional por email.
-- Revisión manual de respuestas abiertas con cola, rúbricas, asignación y trazabilidad.
+- Revisión manual de respuestas abiertas con cola priorizada, SLA, comentarios reutilizables, decisiones individuales o por lote e historial inmutable.
 - Contenido multimedia privado para preguntas, con URLs firmadas y procesamiento en servidor.
 - Auditoría administrativa en `admin_audit_logs`.
 - Auditoría docente en `teacher_audit_logs`.
@@ -162,7 +162,7 @@ Funciones administrativas y reporting:
 
 ## Edge Functions
 
-El proyecto incluye **32 Edge Functions** para operaciones sensibles y procesos asíncronos. Cubren gobierno administrativo, acciones docentes, seguridad de cuenta, importaciones, avatares, push, correo, soporte, exportaciones, solicitudes de privacidad y procesamiento de contenido multimedia.
+El proyecto incluye **33 Edge Functions** para operaciones sensibles y procesos asíncronos. Cubren gobierno administrativo, acciones docentes, seguridad de cuenta, importaciones, avatares, push, correo, soporte, exportaciones, solicitudes de privacidad y procesamiento de contenido multimedia.
 
 El inventario se genera automáticamente desde el repositorio y se mantiene en [el catálogo de backend](omniquest/docs/generated/BACKEND_CATALOG.md). Las funciones autenticadas validan identidad, rol y propiedad en servidor. Los procesadores sin verificación JWT del gateway requieren un secreto interno o la service role y no quedan expuestos como operaciones anónimas privilegiadas.
 

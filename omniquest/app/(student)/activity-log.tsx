@@ -113,6 +113,7 @@ export default function ActivityLogScreen() {
       contentContainerStyle={{ flex: 1 }}
     >
       <FlatList
+        style={{ flex: 1 }}
         data={activity.activityRows}
         keyExtractor={(item: ActivityListItem) => item.key}
         renderItem={renderItem}

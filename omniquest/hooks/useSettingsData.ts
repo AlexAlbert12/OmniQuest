@@ -28,7 +28,6 @@ const LOGIN_ROUTE = '/(auth)/login' as Href
 
 const DEFAULT_PREFERENCES: UserPreferencesState = {
   language: 'es-ES',
-  timezone: 'Europe/Madrid',
   dateFormat: 'DD/MM/YYYY',
   timeFormat: '24h',
   weekStart: 'monday',
@@ -55,7 +54,6 @@ const notificationFrequencyLabels: Record<NotificationFrequency, string> = {
 
 export const preferenceOptions: Record<PreferenceKey, string[]> = {
   language: ['es-ES', 'en-US'],
-  timezone: ['Europe/Madrid', 'UTC', 'America/Mexico_City', 'America/Bogota'],
   dateFormat: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'],
   timeFormat: ['24h', '12h'],
   weekStart: ['monday', 'sunday'],
@@ -65,12 +63,6 @@ const preferenceLabels = {
   language: {
     'es-ES': '🇪🇸 Español',
     'en-US': '🇺🇸 English',
-  },
-  timezone: {
-    'Europe/Madrid': '(GMT+02:00) Madrid, España',
-    UTC: 'UTC',
-    'America/Mexico_City': '(GMT-06:00) Ciudad de México',
-    'America/Bogota': '(GMT-05:00) Bogotá',
   },
   dateFormat: {
     'DD/MM/YYYY': 'DD/MM/YYYY',
@@ -119,7 +111,6 @@ function getErrorCode(error: unknown) {
 function toPreferenceState(row: UserPreferencesRow | null): UserPreferencesState {
   return {
     language: row?.language || DEFAULT_PREFERENCES.language,
-    timezone: row?.timezone || DEFAULT_PREFERENCES.timezone,
     dateFormat: row?.date_format || DEFAULT_PREFERENCES.dateFormat,
     timeFormat: row?.time_format || DEFAULT_PREFERENCES.timeFormat,
     weekStart: row?.week_start || DEFAULT_PREFERENCES.weekStart,
@@ -388,7 +379,6 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
       {
         user_id: targetUserId,
         language: next.language,
-        timezone: next.timezone,
         date_format: next.dateFormat,
         time_format: next.timeFormat,
         week_start: next.weekStart,
@@ -436,7 +426,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
         fetchProfileWithOptionalVisibility(session.user.id),
         supabase
           .from('user_preferences')
-          .select('language, timezone, date_format, time_format, week_start, haptics_enabled, analytics_enabled, analytics_consent_updated_at')
+          .select('language, date_format, time_format, week_start, haptics_enabled, analytics_enabled, analytics_consent_updated_at')
           .eq('user_id', session.user.id)
           .maybeSingle(),
         supabase.from('subjects').select('id').eq('teacher_id', session.user.id).eq('is_archived', false),

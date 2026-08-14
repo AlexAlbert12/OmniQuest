@@ -82,9 +82,9 @@ function NotificationListItem({
   }), [commitAction, notification.isRead, resetPosition, swipeEnabled, translateX])
 
   return (
-    <View className="overflow-hidden rounded-2xl" style={{ backgroundColor: tokens.surface.interactive }}>
+    <View className="w-full overflow-hidden rounded-2xl" style={{ backgroundColor: tokens.surface.interactive }}>
       {swipeEnabled ? (
-        <View className="absolute inset-0 flex-row items-stretch justify-between">
+        <View className="absolute inset-0 flex-row items-stretch justify-between" style={{ pointerEvents: 'none' }}>
           <View className="w-20 items-center justify-center" style={{ backgroundColor: withAlpha(tokens.semantic.success, '36') }}>
             <Ionicons name="checkmark-done" size={24} color={tokens.semantic.success} />
             <Text className="mt-1 text-[10px] font-black" style={{ color: tokens.semantic.success }}>Leída</Text>
@@ -98,7 +98,7 @@ function NotificationListItem({
 
       <Animated.View
         {...(swipeEnabled ? panResponder.panHandlers : {})}
-        style={{ transform: [{ translateX }] }}
+        style={{ width: '100%', transform: [{ translateX }] }}
       >
         <View
           className={`flex-row gap-3 border ${compact ? 'px-3 py-3' : 'px-4 py-4'}`}
@@ -118,7 +118,7 @@ function NotificationListItem({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${notification.title}. ${notification.description}`}
-            accessibilityHint={swipeEnabled ? 'Abre la notificación. También puedes usar los botones para marcarla como leída o eliminarla.' : 'Abre la notificación.'}
+            accessibilityHint={swipeEnabled ? 'Abre la notificación. Desliza a la derecha para marcarla como leída o a la izquierda para eliminarla.' : 'Abre la notificación.'}
             onPress={() => void onPress()}
             className="min-w-0 flex-1"
             style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
@@ -161,29 +161,13 @@ function NotificationListItem({
               </View>
             </Pressable>
 
-              <View className="flex-row gap-2" accessibilityLabel="Acciones de notificación">
+              <View className="flex-row gap-2" accessibilityLabel="Acciones de notificación" style={{ display: swipeEnabled ? 'none' : 'flex' }}>
                 {!notification.isRead ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Marcar como leída"
-                    accessibilityHint="Alternativa al gesto de deslizar hacia la derecha"
-                    hitSlop={6}
-                    onPress={() => void onMarkAsRead()}
-                    className="min-h-9 min-w-9 items-center justify-center rounded-xl"
-                    style={({ pressed }) => ({ backgroundColor: withAlpha(tokens.semantic.success, '22'), opacity: pressed ? 0.7 : 1 })}
-                  >
+                  <Pressable accessibilityRole="button" accessibilityLabel="Marcar como leída" accessibilityHint="Alternativa al gesto de deslizar hacia la derecha" hitSlop={6} onPress={() => void onMarkAsRead()} className="min-h-9 min-w-9 items-center justify-center rounded-xl" style={({ pressed }) => ({ backgroundColor: withAlpha(tokens.semantic.success, '22'), opacity: pressed ? 0.7 : 1 })}>
                     <Ionicons name="checkmark" size={17} color={tokens.semantic.success} />
                   </Pressable>
                 ) : null}
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Eliminar notificación"
-                  accessibilityHint="Alternativa al gesto de deslizar hacia la izquierda"
-                  hitSlop={6}
-                  onPress={() => void onDelete()}
-                  className="min-h-9 min-w-9 items-center justify-center rounded-xl"
-                  style={({ pressed }) => ({ backgroundColor: withAlpha(tokens.semantic.danger, '22'), opacity: pressed ? 0.7 : 1 })}
-                >
+                <Pressable accessibilityRole="button" accessibilityLabel="Eliminar notificación" accessibilityHint="Alternativa al gesto de deslizar hacia la izquierda" hitSlop={6} onPress={() => void onDelete()} className="min-h-9 min-w-9 items-center justify-center rounded-xl" style={({ pressed }) => ({ backgroundColor: withAlpha(tokens.semantic.danger, '22'), opacity: pressed ? 0.7 : 1 })}>
                   <Ionicons name="trash-outline" size={17} color={tokens.semantic.danger} />
                 </Pressable>
               </View>

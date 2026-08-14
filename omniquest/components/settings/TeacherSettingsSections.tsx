@@ -64,7 +64,6 @@ export default function TeacherSettingsSections({
             preferenceOptions={data.preferenceOptions}
             savingPreference={data.savingPreference}
             savingHaptics={data.savingHaptics}
-            hideTimezone
             onTogglePreferenceMenu={data.togglePreferenceMenu}
             onSelectPreference={(key, value) => void data.selectPreference(key, value)}
             onToggleHaptics={(enabled) => void data.updateHapticsEnabled(enabled)}
@@ -82,7 +81,7 @@ export default function TeacherSettingsSections({
 
       {!securityOnly && activeSettingsSection === 'privacy' ? (
         <>
-          <TeacherPrivacyNotice />
+          <SettingsSectionIntro icon="shield-checkmark-outline" title={t('settings.section.privacy')} description={t('settings.teacher.privacy.description')} />
           <SettingsPrivacyPanel
             isTeacher
             profileVisibility={data.profileVisibility}
@@ -99,7 +98,7 @@ export default function TeacherSettingsSections({
 
       {!securityOnly && activeSettingsSection === 'data' ? (
         <>
-          <TeacherDataNotice />
+          <SettingsSectionIntro icon="server-outline" title={t('settings.section.data')} description={t('settings.teacher.data.description')} />
           <SettingsDataPanel isTeacher deletingData={data.deletingData} deletingAccount={data.deletingAccount} onRequestDeletion={data.handleDeleteAccount} onDeletePartialData={data.handleDeletePartialData} />
         </>
       ) : null}
@@ -131,7 +130,12 @@ export default function TeacherSettingsSections({
         />
       ) : null}
 
-      {!securityOnly && activeSettingsSection === 'about' ? <SettingsAboutPanel onOpenHelpCenter={onOpenHelpCenter} /> : null}
+      {!securityOnly && activeSettingsSection === 'about' ? (
+        <>
+          <SettingsSectionIntro icon="information-circle-outline" title={t('settings.section.about')} description={t('settings.teacher.about.description')} />
+          <SettingsAboutPanel onOpenHelpCenter={onOpenHelpCenter} />
+        </>
+      ) : null}
     </>
   )
 }
@@ -147,28 +151,6 @@ function SettingsSectionIntro({ icon, title, description }: { icon: keyof typeof
         <Text className="text-[16px] font-black" style={{ color: tokens.text.primary }}>{title}</Text>
         <Text className="mt-1 text-[13px] leading-5" style={{ color: tokens.text.secondary }}>{description}</Text>
       </View>
-    </View>
-  )
-}
-
-function TeacherPrivacyNotice() {
-  const { tokens } = useAppTheme()
-  const { t } = useI18n()
-  return (
-    <View className="rounded-2xl border p-4" style={{ borderColor: tokens.semantic.info, backgroundColor: tokens.surface.raised }}>
-      <Text className="font-black" style={{ color: tokens.text.primary }}>{t('settings.teacher.privacy.title')}</Text>
-      <Text className="mt-2 text-[13px] leading-5" style={{ color: tokens.text.secondary }}>{t('settings.teacher.privacy.description')}</Text>
-    </View>
-  )
-}
-
-function TeacherDataNotice() {
-  const { tokens } = useAppTheme()
-  const { t } = useI18n()
-  return (
-    <View className="rounded-2xl border p-4" style={{ borderColor: tokens.semantic.warning, backgroundColor: tokens.surface.raised }}>
-      <Text className="font-black" style={{ color: tokens.text.primary }}>{t('settings.teacher.data.title')}</Text>
-      <Text className="mt-2 text-[13px] leading-5" style={{ color: tokens.text.secondary }}>{t('settings.teacher.data.description')}</Text>
     </View>
   )
 }

@@ -1,5 +1,7 @@
 # Preparación de los recorridos autenticados
 
+> Snapshot histórico del hito de preparación inicial. Las cifras de este documento corresponden a ese momento; para el inventario backend actual consulta `BACKEND_CATALOG.md`.
+
 ## Resumen ejecutivo
 
 - Estado del código y de los contratos estáticos: **PASS**.

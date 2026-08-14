@@ -57,12 +57,9 @@ export default function TeacherProfessionalAvatar({ alias, avatar, uploading, on
             backgroundColor: tokens.brand.teacher,
           }}
         >
-          {uploading ? <ActivityIndicator size="small" color={tokens.text.inverse} /> : <Ionicons name="camera" size={17} color={tokens.text.inverse} />}
+          {uploading ? <ActivityIndicator size="small" color={tokens.text.inverse} /> : <Ionicons name="camera" size={17} color={tokens.text.primary} />}
         </View>
       </AppPressable>
-      <Text maxFontSizeMultiplier={2} style={{ marginTop: 9, textAlign: 'center', color: tokens.text.muted, fontSize: 11, lineHeight: 16 }}>
-        Foto profesional
-      </Text>
     </View>
   )
 }

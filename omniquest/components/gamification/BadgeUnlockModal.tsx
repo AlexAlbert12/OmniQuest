@@ -80,13 +80,6 @@ export default function BadgeUnlockModal({
       onRequestClose={onClose}
     >
       <View className="flex-1 items-center justify-center px-5 py-6" style={{ backgroundColor: tokens.background.overlay }}>
-        <Pressable
-          accessibilityLabel="Cerrar celebración de logro"
-          accessibilityRole="button"
-          onPress={onClose}
-          style={{ position: 'absolute', inset: 0 }}
-        />
-
         <Animated.View
           accessibilityRole="alert"
           accessibilityLabel={`Logro desbloqueado: ${badge.title}. Recompensa ${badge.xp}`}
@@ -165,7 +158,6 @@ export default function BadgeUnlockModal({
                 <Text className="text-[11px] font-black uppercase tracking-[0.1em] text-text-secondary">Recompensa conseguida</Text>
                 <Text className="mt-0.5 text-[21px] font-black" style={{ color: tokens.gamification.xp }}>{badge.xp}</Text>
               </View>
-              <Ionicons name="checkmark-circle" size={24} color={tokens.semantic.success} />
             </LinearGradient>
 
             {remainingCount > 0 ? (

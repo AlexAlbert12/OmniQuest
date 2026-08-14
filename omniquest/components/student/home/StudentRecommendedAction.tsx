@@ -30,7 +30,7 @@ export default function StudentRecommendedAction({
       onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
     >
-      <View className="overflow-hidden rounded-[28px] border border-border-active" style={{ padding: compact ? 20 : 24 }}>
+      <View className="overflow-hidden rounded-[28px] border border-border-default" style={{ padding: compact ? 20 : 24 }}>
         <LinearGradient
           colors={[withAlpha(toneColor, '3D'), tokens.surface.raised, tokens.surface.default]}
           start={{ x: 0, y: 0 }}
@@ -74,11 +74,6 @@ export default function StudentRecommendedAction({
             <Text maxFontSizeMultiplier={2} className="max-w-[720px] text-[14px] text-text-secondary" style={{ marginTop: compact ? 6 : 8, lineHeight: compact ? 21 : 24 }}>
               {action.description}
             </Text>
-          </View>
-
-          <View className="min-h-12 flex-row items-center justify-center gap-2 rounded-2xl px-5 py-3" style={{ backgroundColor: toneColor, width: compact ? '100%' : undefined }}>
-            <Text maxFontSizeMultiplier={2} className="text-[14px] font-black text-text-inverse">{action.buttonLabel}</Text>
-            <Ionicons name="arrow-forward" size={18} color={tokens.text.inverse} />
           </View>
         </View>
       </View>

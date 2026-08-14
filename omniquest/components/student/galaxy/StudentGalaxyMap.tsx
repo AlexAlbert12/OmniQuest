@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   AccessibilityInfo,
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -197,7 +196,7 @@ export function CourseGalaxyMap({
   const mapWidth = Math.max(320, Math.min(isDesktop ? responsive.width - 330 : responsive.width - 30, maxMapWidth))
   const planetSize = responsive.isWide ? 220 : isDesktop ? 206 : responsive.isTablet ? 196 : 156
   const rowHeight = isDesktop ? 302 : responsive.isTablet ? 294 : 294
-  const addRowHeight = 390
+  const addRowHeight = 430
   const pageSize = responsive.isWide ? 6 : isDesktop ? 5 : responsive.isTablet ? 4 : 4
   const [joinOpen, setJoinOpen] = useState(false)
   const [viewMode, setViewMode] = useAccessibleGalaxyViewMode()
@@ -589,7 +588,7 @@ export function TopicGalaxyMap({ items }: { items: GalaxyTopicItem[] }) {
                     <Text maxFontSizeMultiplier={2} style={styles.topicTitle} numberOfLines={2}>{item.title}</Text>
                     {item.failedQuestions > 0 ? (
                       <View style={styles.reviewPill}>
-                        <Ionicons name="flame" size={13} color={tokens.text.inverse} />
+                        <Ionicons name="flame" size={13} color={tokens.text.onAccent} />
                         <Text maxFontSizeMultiplier={2} style={styles.reviewPillText}>{item.failedQuestions} para repasar</Text>
                       </View>
                     ) : typeof item.bestScore === 'number' ? (
@@ -638,6 +637,7 @@ function AddCourseGalaxyNode({
   onChangeInviteCode: (value: string) => void
   onJoin: () => void
 }) {
+  const { tokens } = useAppTheme()
   const responsive = useResponsiveLayout()
   const isDesktop = responsive.isDesktop
   const size = isDesktop ? 190 : 156
@@ -655,42 +655,20 @@ function AddCourseGalaxyNode({
         onPress={onToggle}
         style={({ pressed }) => ({ position: 'absolute', left: x, top: 0, width: size, alignItems: 'center', opacity: pressed ? 0.82 : 1 })}
       >
-        <View style={[styles.addPlanet, { width: size, height: size, borderRadius: size / 2 }]}>
-          <Ionicons name={open ? 'close' : 'add'} size={isDesktop ? 70 : 58} color="#A96CFF" />
+        <View style={[styles.addPlanet, { width: size, height: size, borderRadius: size / 2, borderColor: tokens.brand.student, backgroundColor: withAlpha(tokens.brand.student, '0.06') }]}>
+          <Ionicons name={open ? 'close' : 'add'} size={isDesktop ? 70 : 58} color={tokens.brand.student} />
         </View>
-        <Text style={styles.addTitle}>Añadir curso</Text>
+        <Text style={[styles.addTitle, { color: tokens.brand.student }]}>Añadir curso</Text>
         <Text style={styles.addSubtitle}>Introduce tu código de clase</Text>
       </Pressable>
 
       {open ? (
-        <View style={[styles.joinPanel, { width: formWidth, left: formX, top: size + 92 }]}>
+        <View style={[styles.joinPanel, { width: formWidth, left: formX, top: size + 92, borderColor: withAlpha(tokens.brand.student, '0.55') }]}>
           <View style={styles.joinInputRow}>
             <Ionicons name="keypad-outline" size={20} color="#9FB0CA" />
-            <TextInput
-              value={inviteCode}
-              onChangeText={(value) => onChangeInviteCode(value.trim().toUpperCase())}
-              maxLength={6}
-              autoCapitalize="characters"
-              placeholder="Código de clase"
-              placeholderTextColor="#647896"
-              style={styles.joinPanelInput}
-              accessibilityLabel="Código de clase"
-              accessibilityHint="Introduce el código de seis caracteres facilitado por tu profesor"
-            />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Unirme al curso"
-              accessibilityHint="Envía el código para unirte al curso"
-              onPress={onJoin}
-              disabled={joining || inviteCode.trim().length === 0}
-              style={({ pressed }) => [
-                styles.joinButton,
-                { opacity: joining || inviteCode.trim().length === 0 ? 0.5 : pressed ? 0.82 : 1 },
-              ]}
-            >
-              {joining ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />}
-            </Pressable>
+            <TextInput value={inviteCode} onChangeText={(value) => onChangeInviteCode(value.trim().toUpperCase())} maxLength={6} autoCapitalize="characters" placeholder="Código de clase" placeholderTextColor="#647896" style={styles.joinPanelInput} accessibilityLabel="Código de clase" accessibilityHint="Introduce el código de seis caracteres facilitado por tu profesor" />
           </View>
+          <AppButton label="Unirse al curso" accessibilityHint="Envía el código y solicita la inscripción" role="student" loading={joining} disabled={joining || inviteCode.trim().length === 0} onPress={onJoin} fullWidth />
         </View>
       ) : null}
     </View>
@@ -1236,15 +1214,12 @@ const styles = StyleSheet.create({
   },
   addPlanet: {
     borderWidth: 4,
-    borderColor: '#7451A9',
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(20,13,44,0.22)',
   },
   addTitle: {
     marginTop: 18,
-    color: '#B476FF',
     fontSize: 21,
     lineHeight: 26,
     fontWeight: '900',
@@ -1260,9 +1235,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#432A70',
     backgroundColor: 'rgba(13,17,36,0.96)',
     padding: 12,
+    gap: 12,
   },
   joinInputRow: {
     minHeight: 54,
@@ -1282,13 +1257,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     paddingHorizontal: 12,
     paddingVertical: 14,
-  },
-  joinButton: {
-    width: 58,
-    alignSelf: 'stretch',
-    backgroundColor: '#8B5CF6',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   emptyTitle: {
     color: '#FFFFFF',

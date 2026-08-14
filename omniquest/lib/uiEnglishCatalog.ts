@@ -734,7 +734,6 @@ export const uiEnglishCatalog: Record<string, string> = {
   "La descarga CSV está disponible desde la versión web. En móvil puedes reenviar el correo de credenciales.": "CSV download is available from the web version. On mobile you can resend the credentials email.",
   "La descripción no puede superar 120 caracteres.": "The description cannot exceed 120 characters.",
   "La descripción no puede superar 160 caracteres.": "The description cannot exceed 160 characters.",
-  "La fotografía profesional se muestra en espacios docentes y está separada de marcos, insignias y cosméticos del alumnado.": "Your professional photo is shown in teacher areas and is separate from student frames, badges and cosmetics.",
   "La misma decisión se aplicará al lote. Cada cambio quedará en el historial inmutable.": "The same decision will be applied to the batch. Every change will remain in the immutable history.",
   "La opción Pista solo aparecerá al alumno cuando este campo tenga contenido.": "The Hint option will only appear to the student when this field has content.",
   "La pregunta dejará de aparecer en nuevas partidas, pero conservará sus datos históricos.": "The question will stop appearing in new games, but its historical data will be preserved.",

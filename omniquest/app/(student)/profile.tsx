@@ -84,14 +84,14 @@ export default function ProfileScreen() {
           />
 
           <View className={`${isDesktop ? 'flex-row' : ''} gap-5`}>
-            <View className="flex-1">
+            <View className={isDesktop ? 'flex-1' : ''}>
               <StudentProfilePrivacy
                 isPublic={profile.rankingVisible}
                 onOpenSettings={() => router.push(STUDENT_ROUTES.settingsPrivacy)}
               />
             </View>
             <View
-              className="flex-1 rounded-2xl border p-5"
+              className={`${isDesktop ? 'flex-1' : ''} rounded-2xl border p-5`}
               style={{ backgroundColor: tokens.surface.default, borderColor: tokens.border.default }}
             >
               <Text className="text-[18px] font-black" style={{ color: tokens.text.primary }}>Información personal</Text>

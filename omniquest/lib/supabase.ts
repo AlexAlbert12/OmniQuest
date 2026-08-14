@@ -61,7 +61,7 @@ const authProcessLock: AuthLock = async (name, _acquireTimeout, fn) => {
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: isWeb ? webStorage : AsyncStorage,
-    lock: authProcessLock,
+    ...(!isWeb ? { lock: authProcessLock } : {}),
     autoRefreshToken: !isWeb || isBrowser,
     persistSession: !isWeb || isBrowser,
     detectSessionInUrl: isWeb,

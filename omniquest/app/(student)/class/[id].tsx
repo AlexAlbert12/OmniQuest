@@ -424,7 +424,7 @@ export default function StudentClassDetailScreen() {
       testID: `student-topic-${topic.id}`,
       progress,
       state,
-      actionLabel: topic.answeredQuestions > 0 ? 'Ver opciones' : getTopicActionLabel(topic),
+      actionLabel: getTopicActionLabel(topic),
       color,
       icon: topic.icon,
       failedQuestions: topic.failedQuestions,

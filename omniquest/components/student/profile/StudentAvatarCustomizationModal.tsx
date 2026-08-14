@@ -110,9 +110,9 @@ export default function StudentAvatarCustomizationModal({
       if (!await getNetworkAvailability()) throw new Error('En web necesitas conexión para subir una foto nueva.')
       const response = await fetch(uri)
       const blob = await response.blob()
-      const fileName = `${profile.id}.jpg`
+      const fileName = `${profile.id}/${Date.now()}.jpg`
 
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, blob, { upsert: true })
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, blob, { upsert: false, contentType: blob.type || 'image/jpeg' })
       if (uploadError) throw uploadError
 
       const { data, error: updateError } = await supabase.functions.invoke('profile-update-avatar', {

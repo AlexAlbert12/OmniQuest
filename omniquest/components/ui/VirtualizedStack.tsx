@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import { FlatList, type ListRenderItem, type StyleProp, View, type ViewStyle } from 'react-native'
+import { FlatList, Platform, type ListRenderItem, type StyleProp, View, type ViewStyle } from 'react-native'
 
 type VirtualizedStackProps<T> = {
   data: readonly T[]
@@ -32,6 +32,7 @@ export default function VirtualizedStack<T>({
   return (
     <FlatList<T>
       accessibilityLabel={accessibilityLabel}
+      style={Platform.OS === 'web' && !scrollEnabled ? ({ touchAction: 'pan-y' } as any) : undefined}
       data={data as T[]}
       keyExtractor={keyExtractor}
       renderItem={renderRow}

@@ -205,7 +205,6 @@ export function SettingsPreferencesPanel({
   onSelectPreference,
   onToggleHaptics,
   formatPreferenceLabel,
-  hideTimezone = false,
 }: {
   accentColor: string
   preferences: UserPreferencesState
@@ -217,7 +216,6 @@ export function SettingsPreferencesPanel({
   onSelectPreference: (key: PreferenceKey, value: string) => void
   onToggleHaptics: (enabled: boolean) => void
   formatPreferenceLabel: FormatPreferenceLabel
-  hideTimezone?: boolean
 }) {
   const { t } = useI18n()
 
@@ -248,11 +246,10 @@ export function SettingsPreferencesPanel({
         />
       </View>
 
-      {(['timezone', 'dateFormat', 'timeFormat', 'weekStart'] as PreferenceKey[]).filter((key) => !(hideTimezone && key === 'timezone')).map((key) => (
+      {(['dateFormat', 'timeFormat', 'weekStart'] as PreferenceKey[]).map((key) => (
         <PreferenceRow
           key={key}
           label={{
-            timezone: t('settings.preference.timezone'),
             dateFormat: t('settings.preference.dateFormat'),
             timeFormat: t('settings.preference.timeFormat'),
             weekStart: t('settings.preference.weekStart'),
