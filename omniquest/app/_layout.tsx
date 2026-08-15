@@ -23,8 +23,9 @@ import { getNetworkAvailability } from '../lib/gameOffline'
 import { readOfflineCache, writeOfflineCache } from '../lib/offlineCache'
 import { isRetriableOfflineError } from '../lib/offlineMutations'
 import { markPasswordRecoverySession } from '../lib/recoverySession'
+import { getOnboardingRouteForRole, profileNeedsOnboarding } from '../lib/onboarding'
 
-type CachedAuthProfile = { role_id: string | null; active: boolean | null }
+type CachedAuthProfile = { role_id: string | null; active: boolean | null; onboarding_version?: number | null; onboarding_completed_at?: string | null }
 
 const AUTH_ROUTE_ALIASES: Record<string, string> = {
   '/login': '/(auth)/login',
@@ -84,6 +85,7 @@ function RootNavigator() {
   const pathname = usePathname()
   const segments = useSegments()
   const rootSegment = segments[0]
+  const childSegment = segments[1]
   const { theme, colors, ready } = useAppTheme()
   const { ready: localeReady, t } = useI18n()
   usePasswordRecoveryLinkObserver()
@@ -163,7 +165,7 @@ function RootNavigator() {
       if (networkAvailable) {
         const profileResult = await supabase
           .from('profiles')
-          .select('role_id, active')
+          .select('role_id, active, onboarding_version, onboarding_completed_at')
           .eq('id', session.user.id)
           .maybeSingle()
         profile = profileResult.data
@@ -181,7 +183,7 @@ function RootNavigator() {
         if (!guestInitError) {
           const guestProfileResult = await supabase
             .from('profiles')
-            .select('role_id, active')
+            .select('role_id, active, onboarding_version, onboarding_completed_at')
             .eq('id', session.user.id)
             .maybeSingle()
           profile = guestProfileResult.data
@@ -196,6 +198,8 @@ function RootNavigator() {
         profile = {
           role_id: verifiedUser.is_anonymous ? 'guest' : 'student',
           active: true,
+          onboarding_version: undefined,
+          onboarding_completed_at: undefined,
         }
       }
 
@@ -241,6 +245,13 @@ function RootNavigator() {
         }
       }
 
+      const isOwnOnboardingRoute = (profile.role_id === 'student' && rootSegment === '(student)' && childSegment === 'onboarding') || (profile.role_id === 'teacher' && rootSegment === '(teacher)' && childSegment === 'onboarding')
+      if (networkAvailable && !profileError && profileNeedsOnboarding(profile) && !isOwnOnboardingRoute) {
+        router.replace(getOnboardingRouteForRole(profile.role_id as 'student' | 'teacher') as any)
+        setIsInitialized(true)
+        return
+      }
+
       if (isAuthRoute) {
         router.replace(getHomeRouteForRole(profile.role_id) as any)
         setIsInitialized(true)
@@ -275,7 +286,7 @@ function RootNavigator() {
       isMounted = false
       authListener.subscription.unsubscribe()
     }
-  }, [pathname, rootSegment, router])
+  }, [childSegment, pathname, rootSegment, router])
 
   useEffect(() => {
     if (!isInitialized) return
