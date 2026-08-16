@@ -56,6 +56,8 @@ test('authenticated E2E credentials come exclusively from the six required envir
   const fixture = read('scripts/prepare-authenticated-e2e.mjs')
 
   for (const name of requiredEnvironment) assert.match(helper, new RegExp(name))
+  assert.match(fixture, /onboarding_version/)
+  assert.match(fixture, /onboarding_completed_at/)
   assert.match(fixture, /readAccount\('student'/)
   assert.match(fixture, /readAccount\('teacher'/)
   assert.match(fixture, /readAccount\('admin'/)

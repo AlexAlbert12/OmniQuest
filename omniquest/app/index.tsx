@@ -5,6 +5,7 @@ import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from '
 import { useState } from 'react'
 import BrandLogo from '../components/BrandLogo'
 import HomeVisualBackground from '../components/HomeVisualBackground'
+import LandingInfoSections from '../components/public/LandingInfoSections'
 import { supabase } from '../lib/supabase'
 import { createShadowStyle } from '../lib/platformShadow'
 import { useResponsiveLayout } from '../lib/responsive'
@@ -172,7 +173,7 @@ export default function IndexScreen() {
           />
         </View>
 
-        {isDesktop ? <LandingFooter isDesktop={isDesktop} /> : null}
+        <LandingFooter isDesktop={isDesktop} />
       </View>
     </ScrollView>
   )
@@ -308,6 +309,8 @@ function LandingPanel({
           ))}
         </View>
       ) : null}
+
+      <LandingInfoSections isDesktop={isDesktop} />
     </View>
   )
 }

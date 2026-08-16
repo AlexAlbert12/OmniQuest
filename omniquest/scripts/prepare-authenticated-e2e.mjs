@@ -71,7 +71,7 @@ async function ensureUser(account, knownUsers) {
   const result = current ? await supabase.auth.admin.updateUserById(current.id, attributes) : await supabase.auth.admin.createUser(attributes)
   if (result.error || !result.data.user) throw result.error || new Error(`No se pudo preparar ${account.email}.`)
   const user = result.data.user
-  await assertNoError(supabase.from('profiles').upsert({ id: user.id, email: account.email, alias: account.alias, role_id: account.roleId, active: true, visibility: 'public', expires_at: null }, { onConflict: 'id' }), `No se pudo preparar el perfil ${account.email}.`)
+  await assertNoError(supabase.from('profiles').upsert({ id: user.id, email: account.email, alias: account.alias, role_id: account.roleId, active: true, visibility: 'public', expires_at: null, onboarding_version: account.roleId === 'student' || account.roleId === 'teacher' ? 1 : 0, onboarding_completed_at: account.roleId === 'student' || account.roleId === 'teacher' ? new Date().toISOString() : null }, { onConflict: 'id' }), `No se pudo preparar el perfil ${account.email}.`)
   return user
 }
 

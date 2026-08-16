@@ -48,6 +48,10 @@ La puntuación se usa como elemento motivador, pero la analítica docente priori
 
 - [Arquitectura del proyecto](omniquest/docs/ARCHITECTURE.md)
 - [Despliegue y Edge Functions](omniquest/docs/DEPLOYMENT.md)
+- [Pruebas y validación](omniquest/docs/TESTING.md)
+- [Matriz de permisos](omniquest/docs/PERMISSIONS_MATRIX.md)
+- [Checklist de producción](omniquest/docs/PRODUCTION_CHECKLIST.md)
+- [Revisión de seguridad de dependencias](omniquest/docs/SECURITY_DEPENDENCY_REVIEW.md)
 
 ## Arquitectura
 

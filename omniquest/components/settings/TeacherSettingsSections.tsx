@@ -50,7 +50,6 @@ export default function TeacherSettingsSections({
             userInitials={data.userInitials}
             avatar={data.profile?.avatar}
             saving={data.saving}
-            accentColor={accentColor}
             name={data.name}
             email={data.email}
             onNameChange={data.setName}

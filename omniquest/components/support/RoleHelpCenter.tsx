@@ -393,6 +393,13 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
     </SupportPanel>
   )
 
+  const tutorialPanel = (
+    <SupportPanel title={t('support.tutorial.title')} icon="compass-outline">
+      <Text className="mb-4 text-[12px] leading-5" style={{ color: colors.textSecondary }}>{t(role === 'teacher' ? 'support.tutorial.teacherDescription' : 'support.tutorial.studentDescription')}</Text>
+      <AppButton label={t('support.tutorial.action')} icon="play-circle-outline" variant="secondary" role={role} onPress={() => router.push(`/${role === 'teacher' ? '(teacher)' : '(student)'}/onboarding?replay=1` as never)} />
+    </SupportPanel>
+  )
+
   const supportPreferencePanel = role === 'teacher' ? (
     <SupportPanel title={t('support.preference.title')} icon="chatbubbles-outline">
       <Text className="mb-4 text-[12px] leading-5" style={{ color: colors.textSecondary }}>{t('support.preference.description')}</Text>
@@ -636,6 +643,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
               </View>
               <View className="min-w-0 flex-1 gap-5">
                 {faqPanel}
+                {tutorialPanel}
                 {conversationPanel}
                 {channelsPanel}
                 {emailHistoryPanel}
@@ -644,6 +652,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
           ) : (
             <View className="gap-5">
               {faqPanel}
+              {tutorialPanel}
               {supportPreferencePanel}
               {createTicketPanel}
               {ticketsPanel}

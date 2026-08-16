@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
       account_backup_codes: {
@@ -120,6 +125,44 @@ export type Database = {
           row_count?: number
         }
         Relationships: []
+      }
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: number
+          metadata: Json
+          target_id: string | null
+          target_table: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          id?: number
+          metadata?: Json
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          id?: number
+          metadata?: Json
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_log_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       admin_audit_logs: {
         Row: {
@@ -2599,8 +2642,8 @@ export type Database = {
         Row: {
           answer_id: number | null
           attempt_id: string | null
-          attempted_at: string
-          created_at: string
+          attempted_at: string | null
+          created_at: string | null
           earned_points: number
           hint_used: boolean
           id: number
@@ -2620,8 +2663,8 @@ export type Database = {
         Insert: {
           answer_id?: number | null
           attempt_id?: string | null
-          attempted_at?: string
-          created_at?: string
+          attempted_at?: string | null
+          created_at?: string | null
           earned_points?: number
           hint_used?: boolean
           id?: number
@@ -2641,8 +2684,8 @@ export type Database = {
         Update: {
           answer_id?: number | null
           attempt_id?: string | null
-          attempted_at?: string
-          created_at?: string
+          attempted_at?: string | null
+          created_at?: string | null
           earned_points?: number
           hint_used?: boolean
           id?: number
@@ -2684,13 +2727,6 @@ export type Database = {
           {
             foreignKeyName: "attempt_history_reviewed_by_fkey"
             columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "attempt_history_student_id_fkey"
-            columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -3004,22 +3040,22 @@ export type Database = {
           classroom_id: number | null
           id: number
           joined_at: string
-          student_id: string
-          subject_id: number
+          student_id: string | null
+          subject_id: number | null
         }
         Insert: {
           classroom_id?: number | null
           id?: number
           joined_at?: string
-          student_id: string
-          subject_id: number
+          student_id?: string | null
+          subject_id?: number | null
         }
         Update: {
           classroom_id?: number | null
           id?: number
           joined_at?: string
-          student_id?: string
-          subject_id?: number
+          student_id?: string | null
+          subject_id?: number | null
         }
         Relationships: [
           {
@@ -3464,41 +3500,33 @@ export type Database = {
       }
       notification_state: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: number
           is_deleted: boolean
           is_read: boolean
           notification_id: string
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: number
           is_deleted?: boolean
           is_read?: boolean
           notification_id: string
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: number
           is_deleted?: boolean
           is_read?: boolean
           notification_id?: string
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "notification_state_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       notifications: {
         Row: {
@@ -3626,6 +3654,8 @@ export type Database = {
           email: string | null
           expires_at: string | null
           id: string
+          onboarding_completed_at: string | null
+          onboarding_version: number
           points: number | null
           reactivate_at: string | null
           role_id: string | null
@@ -3642,6 +3672,8 @@ export type Database = {
           email?: string | null
           expires_at?: string | null
           id: string
+          onboarding_completed_at?: string | null
+          onboarding_version?: number
           points?: number | null
           reactivate_at?: string | null
           role_id?: string | null
@@ -3658,6 +3690,8 @@ export type Database = {
           email?: string | null
           expires_at?: string | null
           id?: string
+          onboarding_completed_at?: string | null
+          onboarding_version?: number
           points?: number | null
           reactivate_at?: string | null
           role_id?: string | null
@@ -3944,7 +3978,7 @@ export type Database = {
           badge_id: string
           created_at: string
           id: number
-          reward_xp: number | null
+          reward_xp: number
           student_id: string
         }
         Insert: {
@@ -3952,7 +3986,7 @@ export type Database = {
           badge_id: string
           created_at?: string
           id?: number
-          reward_xp?: number | null
+          reward_xp?: number
           student_id: string
         }
         Update: {
@@ -3960,7 +3994,7 @@ export type Database = {
           badge_id?: string
           created_at?: string
           id?: number
-          reward_xp?: number | null
+          reward_xp?: number
           student_id?: string
         }
         Relationships: [
@@ -3983,38 +4017,38 @@ export type Database = {
       subject_scores: {
         Row: {
           classroom_id: number | null
-          correct_answers: number | null
+          correct_answers: number
           created_at: string
           id: number
           max_score: number | null
-          played_at: string | null
-          played_days: string[] | null
-          student_id: string
-          subject_id: number
+          played_at: string
+          played_days: string[]
+          student_id: string | null
+          subject_id: number | null
           updated_at: string
         }
         Insert: {
           classroom_id?: number | null
-          correct_answers?: number | null
+          correct_answers?: number
           created_at?: string
           id?: number
           max_score?: number | null
-          played_at?: string | null
-          played_days?: string[] | null
-          student_id: string
-          subject_id: number
+          played_at?: string
+          played_days?: string[]
+          student_id?: string | null
+          subject_id?: number | null
           updated_at?: string
         }
         Update: {
           classroom_id?: number | null
-          correct_answers?: number | null
+          correct_answers?: number
           created_at?: string
           id?: number
           max_score?: number | null
-          played_at?: string | null
-          played_days?: string[] | null
-          student_id?: string
-          subject_id?: number
+          played_at?: string
+          played_days?: string[]
+          student_id?: string | null
+          subject_id?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -4050,7 +4084,7 @@ export type Database = {
           description: string | null
           icon: string | null
           id: number
-          sort_order: number | null
+          sort_order: number
           subject_id: number
           title: string
         }
@@ -4062,7 +4096,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: number
-          sort_order?: number | null
+          sort_order?: number
           subject_id: number
           title: string
         }
@@ -4074,7 +4108,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: number
-          sort_order?: number | null
+          sort_order?: number
           subject_id?: number
           title?: string
         }
@@ -4994,8 +5028,8 @@ export type Database = {
           classroom_id: number | null
           created_at: string
           id: number
-          max_score: number | null
-          played_at: string | null
+          max_score: number
+          played_at: string
           student_id: string
           subject_id: number
           topic_id: number
@@ -5005,8 +5039,8 @@ export type Database = {
           classroom_id?: number | null
           created_at?: string
           id?: number
-          max_score?: number | null
-          played_at?: string | null
+          max_score?: number
+          played_at?: string
           student_id: string
           subject_id: number
           topic_id: number
@@ -5016,8 +5050,8 @@ export type Database = {
           classroom_id?: number | null
           created_at?: string
           id?: number
-          max_score?: number | null
-          played_at?: string | null
+          max_score?: number
+          played_at?: string
           student_id?: string
           subject_id?: number
           topic_id?: number
@@ -5124,65 +5158,49 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_notification_preferences_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_preferences: {
         Row: {
           analytics_consent_updated_at: string | null
           analytics_enabled: boolean
           created_at: string
-          date_format: string | null
+          date_format: string
           haptics_enabled: boolean
-          language: string | null
-          time_format: string | null
-          timezone: string | null
+          language: string
+          time_format: string
+          timezone: string
           updated_at: string
           user_id: string
-          week_start: string | null
+          week_start: string
         }
         Insert: {
           analytics_consent_updated_at?: string | null
           analytics_enabled?: boolean
           created_at?: string
-          date_format?: string | null
+          date_format?: string
           haptics_enabled?: boolean
-          language?: string | null
-          time_format?: string | null
-          timezone?: string | null
+          language?: string
+          time_format?: string
+          timezone?: string
           updated_at?: string
           user_id: string
-          week_start?: string | null
+          week_start?: string
         }
         Update: {
           analytics_consent_updated_at?: string | null
           analytics_enabled?: boolean
           created_at?: string
-          date_format?: string | null
+          date_format?: string
           haptics_enabled?: boolean
-          language?: string | null
-          time_format?: string | null
-          timezone?: string | null
+          language?: string
+          time_format?: string
+          timezone?: string
           updated_at?: string
           user_id?: string
-          week_start?: string | null
+          week_start?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_preferences_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_sessions: {
         Row: {
@@ -5331,13 +5349,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "user_support_tickets_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
     }
@@ -5383,10 +5394,7 @@ export type Database = {
         Args: { p_queue_id: number }
         Returns: Json
       }
-      admin_retry_push_delivery: {
-        Args: { p_queue_id: number }
-        Returns: Json
-      }
+      admin_retry_push_delivery: { Args: { p_queue_id: number }; Returns: Json }
       admin_sha256_hex: { Args: { p_value: string }; Returns: string }
       admin_update_support_ticket: {
         Args: {
@@ -5427,10 +5435,6 @@ export type Database = {
         Args: { p_reason: string; p_role_id: string; p_user_id: string }
         Returns: Json
       }
-      revoke_admin_role: {
-        Args: { p_reason: string; p_user_id: string }
-        Returns: Json
-      }
       badge_metric_value: {
         Args: { p_metric_key: string; p_metrics: Json }
         Returns: number
@@ -5446,6 +5450,10 @@ export type Database = {
       }
       can_access_question_media: {
         Args: { p_classroom_id?: number; p_subject_id: number }
+        Returns: boolean
+      }
+      can_access_question_media_object: {
+        Args: { p_name: string }
         Returns: boolean
       }
       can_read_profile: { Args: { p_profile_id: string }; Returns: boolean }
@@ -5589,6 +5597,13 @@ export type Database = {
         Args: { p_job_id: string; p_row_count: number; p_storage_path: string }
         Returns: undefined
       }
+      complete_current_user_onboarding: {
+        Args: { p_version?: number }
+        Returns: {
+          onboarding_completed_at: string
+          onboarding_version: number
+        }[]
+      }
       complete_teacher_audit_export: {
         Args: {
           p_error_message?: string
@@ -5661,6 +5676,7 @@ export type Database = {
         Args: { p_expo_push_token?: string }
         Returns: number
       }
+      delete_my_account: { Args: never; Returns: undefined }
       delete_notifications: { Args: { p_ids: string[] }; Returns: number }
       delete_user_relational_data: {
         Args: { p_user_id: string }
@@ -5747,6 +5763,23 @@ export type Database = {
       get_activity_attempt_detail: {
         Args: { p_attempt_history_id: number }
         Returns: Json
+      }
+      get_admin_account_export_requests_page: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          completed_at: string
+          error_message: string
+          expires_at: string
+          file_size_bytes: number
+          id: string
+          requested_at: string
+          started_at: string
+          status: string
+          total_count: number
+          user_alias: string
+          user_id: string
+          user_role: string
+        }[]
       }
       get_admin_audit_logs_page: {
         Args: {
@@ -5850,23 +5883,6 @@ export type Database = {
           total_count: number
         }[]
       }
-      get_admin_account_export_requests_page: {
-        Args: { p_limit?: number; p_offset?: number }
-        Returns: {
-          completed_at: string | null
-          error_message: string | null
-          expires_at: string | null
-          file_size_bytes: number | null
-          id: string
-          requested_at: string
-          started_at: string | null
-          status: string
-          total_count: number
-          user_alias: string
-          user_id: string
-          user_role: string
-        }[]
-      }
       get_admin_dashboard_metrics: { Args: never; Returns: Json }
       get_admin_directory_filters: { Args: never; Returns: Json }
       get_admin_enrollments_summary: { Args: never; Returns: Json }
@@ -5877,22 +5893,22 @@ export type Database = {
       get_admin_export_jobs_page: {
         Args: { p_limit?: number; p_offset?: number }
         Returns: {
-          completed_at: string | null
+          completed_at: string
           created_at: string
-          error_message: string | null
-          expires_at: string | null
+          error_message: string
+          expires_at: string
           export_type: string
           filters: Json
           id: string
           processed_rows: number
           requested_by: string
-          row_count: number | null
-          started_at: string | null
+          row_count: number
+          started_at: string
           status: string
-          storage_path: string | null
+          storage_path: string
           total_count: number
           updated_at: string
-          worker_id: string | null
+          worker_id: string
         }[]
       }
       get_admin_portal_context: { Args: never; Returns: Json }
@@ -5940,6 +5956,7 @@ export type Database = {
           admin_permissions: string[]
           admin_role_name: string
           alias: string
+          avatar: string
           change_count: number
           created_at: string
           deactivated_at: string
@@ -5967,14 +5984,14 @@ export type Database = {
       }
       get_admin_push_delivery_page: {
         Args: {
-          p_from?: string | null
+          p_from?: string
           p_limit?: number
           p_offset?: number
-          p_role?: string | null
-          p_search?: string | null
-          p_status?: string | null
-          p_to?: string | null
-          p_type?: string | null
+          p_role?: string
+          p_search?: string
+          p_status?: string
+          p_to?: string
+          p_type?: string
         }
         Returns: {
           active_devices: number
@@ -6183,17 +6200,6 @@ export type Database = {
           id: string
           points: number
           visibility: string
-        }[]
-      }
-      get_class_weekly_ranking_profiles: {
-        Args: { p_classroom_id: number; p_limit?: number }
-        Returns: {
-          alias: string
-          avatar: string
-          id: string
-          points: number
-          visibility: string
-          weekly_points: number
         }[]
       }
       get_game_attempt_review_index: {
@@ -6688,23 +6694,13 @@ export type Database = {
         Returns: Json
       }
       get_teacher_topic_summary: { Args: { p_topic_id: number }; Returns: Json }
-      get_weekly_ranking_profiles: {
-        Args: { p_limit?: number }
-        Returns: {
-          alias: string
-          avatar: string
-          id: string
-          points: number
-          visibility: string
-          weekly_points: number
-        }[]
-      }
       harden_admin_audit_partition_privileges: { Args: never; Returns: number }
       initialize_guest_profile: { Args: { p_alias: string }; Returns: Json }
       invoke_account_requests_processor: { Args: never; Returns: number }
       invoke_admin_export_processor: { Args: never; Returns: undefined }
       invoke_notification_delivery_worker: { Args: never; Returns: number }
       invoke_support_email_processor: { Args: never; Returns: undefined }
+      invoke_teacher_audit_export_processor: { Args: never; Returns: number }
       invoke_teacher_digest_processor: { Args: never; Returns: undefined }
       is_active_teacher: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
@@ -6714,6 +6710,10 @@ export type Database = {
       }
       is_classroom_teacher: {
         Args: { p_classroom_id: number }
+        Returns: boolean
+      }
+      is_enrolled_in_subject: {
+        Args: { p_subject_id: number; p_user_id: string }
         Returns: boolean
       }
       is_invite_code_available: {
@@ -6729,10 +6729,18 @@ export type Database = {
         Returns: boolean
       }
       is_subject_enrolled: { Args: { p_subject_id: number }; Returns: boolean }
-      is_subject_teacher: { Args: { p_subject_id: number }; Returns: boolean }
+      is_subject_teacher:
+        | { Args: { p_subject_id: number }; Returns: boolean }
+        | {
+            Args: { p_subject_id: number; p_user_id: string }
+            Returns: boolean
+          }
       join_subject_by_code: { Args: { p_code: string }; Returns: Json }
       maintain_admin_audit_partitions: { Args: never; Returns: Json }
-      mark_all_notifications_read: { Args: { p_audience: string }; Returns: number }
+      mark_all_notifications_read: {
+        Args: { p_audience: string }
+        Returns: number
+      }
       mark_notifications_read: { Args: { p_ids: string[] }; Returns: number }
       normalize_answer_text: { Args: { value: string }; Returns: string }
       reactivate_due_admin_users: { Args: never; Returns: number }
@@ -6794,6 +6802,10 @@ export type Database = {
           p_notes?: string
           p_status: string
         }
+        Returns: Json
+      }
+      revoke_admin_role: {
+        Args: { p_reason: string; p_user_id: string }
         Returns: Json
       }
       revoke_other_user_sessions: {
@@ -6975,6 +6987,7 @@ export type Database = {
       }
       sync_student_badges: { Args: never; Returns: Json }
       sync_student_points: { Args: { student_id: string }; Returns: number }
+      teacher_attach_student_avatars: { Args: { p_items: Json }; Returns: Json }
       teacher_notification_category: {
         Args: {
           p_action_url: string
@@ -7024,116 +7037,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {

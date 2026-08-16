@@ -153,7 +153,7 @@ export async function fetchAdminPushDeliveryMetrics(days = 30) {
 }
 
 export async function fetchAdminPushDeliveryPage(filters: { search?: string; status?: string | null; role?: string | null; type?: string | null; from?: string | null; to?: string | null; limit?: number; offset?: number }) {
-  const { data, error } = await supabase.rpc('get_admin_push_delivery_page', { p_search: filters.search || null, p_status: filters.status || null, p_role: filters.role || null, p_type: filters.type || null, p_from: filters.from || null, p_to: filters.to || null, p_limit: filters.limit || 25, p_offset: filters.offset || 0 })
+  const { data, error } = await supabase.rpc('get_admin_push_delivery_page', { p_search: filters.search || undefined, p_status: filters.status || undefined, p_role: filters.role || undefined, p_type: filters.type || undefined, p_from: filters.from || undefined, p_to: filters.to || undefined, p_limit: filters.limit || 25, p_offset: filters.offset || 0 })
   if (error) throw error
   return (data || []) as unknown as AdminPushDeliveryRow[]
 }
