@@ -13,7 +13,6 @@ export default function StudentHistoryReviews({ items, total, page, pageSize, on
     <View>
       <View className="mb-3">
         <Text className="text-[14px] font-black" style={{ color: tokens.text.primary }}>{formatCount(total, 'revisión', 'revisiones')}</Text>
-        <Text className="mt-1 text-[12px]" style={{ color: tokens.text.muted }}>Se muestran todas las revisiones del historial, independientemente del periodo de análisis.</Text>
       </View>
       <View className="gap-3">
         {items.map((item) => {

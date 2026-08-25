@@ -1,20 +1,19 @@
 import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Pressable,
   ScrollView,
-  Text,
   useWindowDimensions,
   View,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 import AppConfirmModal from '../../components/AppConfirmModal'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import RolePageHeader from '../../components/ui/RolePageHeader'
+import AppBackButton from '../../components/ui/AppBackButton'
 import { DestructiveConfirmModal } from '../../components/settings/SettingsDangerZone'
 import { SettingsMenu } from '../../components/settings/SettingsUi'
 import StudentSettingsSections from '../../components/settings/StudentSettingsSections'
@@ -128,7 +127,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   if (data.loading) return <OmniLoadingScreen />
 
   return (
-    <View className="flex-1" style={{ backgroundColor: colors.background }}>
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1" style={{ backgroundColor: colors.background }}>
       <View className="flex-1 flex-row">
         {isDesktop ? (
           data.isTeacher ? (
@@ -160,17 +159,13 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
             }}
           >
             {securityOnly ? (
-              <Pressable
-                accessibilityRole="button"
+              <AppBackButton
                 accessibilityLabel={t('settings.back')}
-                hitSlop={8}
+                label={t('settings.back')}
                 onPress={backToSettings}
-                className="mb-3 flex-row items-center gap-2 self-start rounded-lg px-1 py-2"
-                style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
-              >
-                <Ionicons name="arrow-back" size={18} color={accentColor} />
-                <Text className="text-[13px] font-bold" style={{ color: accentColor }}>{t('settings.back')}</Text>
-              </Pressable>
+                size="sm"
+                style={{ marginBottom: 12 }}
+              />
             ) : null}
 
             <RolePageHeader
@@ -264,7 +259,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
       {!securityOnly && !isDesktop && !data.isTeacher ? <StudentBottomNav active="settings" /> : null}
       {!securityOnly && !isDesktop && data.isTeacher ? <TeacherBottomNav active="settings" /> : null}
       {securityOnly && !isDesktop && data.isTeacher ? <TeacherBottomNav active="settings" /> : null}
-    </View>
+    </SafeAreaView>
   )
 }
 

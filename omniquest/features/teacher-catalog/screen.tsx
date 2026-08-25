@@ -1,11 +1,12 @@
 import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React from 'react'
-import { FlatList, Pressable, RefreshControl, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { FlatList, RefreshControl, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
+import TeacherScreenLayout from '../../components/layouts/TeacherScreenLayout'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import AppButton from '../../components/ui/AppButton'
 import AppTabs from '../../components/ui/AppTabs'
@@ -27,79 +28,93 @@ export default function TeacherClassesScreen() {
   if (catalog.activePayload.loading && catalog.items.length === 0) return <OmniLoadingScreen />
 
   return (
-    <View className="flex-1 bg-background-primary">
-      <View className="flex-1 flex-row">
-        {isDesktop ? <TeacherSidebar activeSection="classes" subjectsCount={catalog.subjectsCount} onSignOut={() => { void signOutTeacherCatalog() }} /> : null}
-        <FlatList
-          className="flex-1"
-          data={catalog.items}
-          keyExtractor={(item: TeacherCatalogItem) => `${item.kind}:${item.value.id}`}
-          renderItem={({ item }: { item: TeacherCatalogItem }) => item.kind === 'course'
-            ? <TeacherCourseCard course={item.value} analytics={item.value.analytics} isDesktop={isDesktop} />
-            : <TeacherClassroomCard classroom={item.value} analytics={item.value.analytics} course={item.value.course} isDesktop={isDesktop} />}
-          ItemSeparatorComponent={() => <View className={isDesktop ? "h-px bg-border-default" : "h-3"} />}
-          ListHeaderComponent={(
-            <>
-              <TeacherPageHeader
-                icon="book"
-                isDesktop={isDesktop}
-                title="Cursos y clases"
-                mobileTitle="Cursos y clases"
-                subtitle="Gestiona tus cursos, clases, alumnos y contenidos."
-                notificationOnPress={() => router.push('/(teacher)/notifications' as never)}
-                actions={isDesktop ? <AppButton label="Crear curso" accessibilityLabel="Crear curso" icon="add" role="teacher" onPress={() => router.push('/(teacher)/create-subject' as never)} /> : undefined}
+    <TeacherScreenLayout
+      bottomPadding={0}
+      contentContainerStyle={{ flex: 1 }}
+      contentLabel="Cursos del profesor"
+      desktopSidebar={isDesktop ? <TeacherSidebar activeSection="classes" subjectsCount={catalog.subjectsCount} onSignOut={() => { void signOutTeacherCatalog() }} /> : undefined}
+      horizontalPadding={0}
+      isDesktop={isDesktop}
+      mobileBottomNavigation={!isDesktop ? <TeacherBottomNav active="classes" /> : undefined}
+      scroll={false}
+      topPadding={0}
+    >
+      <FlatList
+        className="flex-1"
+        data={catalog.items}
+        keyExtractor={(item: TeacherCatalogItem) => `${item.kind}:${item.value.id}`}
+        renderItem={({ item }: { item: TeacherCatalogItem }) => item.kind === 'course'
+          ? <TeacherCourseCard course={item.value} analytics={item.value.analytics} isDesktop={isDesktop} />
+          : <TeacherClassroomCard classroom={item.value} analytics={item.value.analytics} course={item.value.course} isDesktop={isDesktop} />}
+        ItemSeparatorComponent={() => <View className={isDesktop ? "h-px bg-border-default" : "h-3"} />}
+        ListHeaderComponent={(
+          <>
+            <TeacherPageHeader
+              icon="book"
+              isDesktop={isDesktop}
+              title="Cursos y clases"
+              mobileTitle="Cursos"
+              subtitle="Gestiona tus cursos, clases, alumnos y contenidos."
+              notificationOnPress={() => router.push('/(teacher)/notifications' as never)}
+              actions={isDesktop ? <AppButton label="Crear curso" accessibilityLabel="Crear curso" icon="add" role="teacher" onPress={() => router.push('/(teacher)/create-subject' as never)} /> : undefined}
+            />
+            {catalog.activePayload.error ? <View className="mb-4 rounded-xl border border-semantic-danger bg-semantic-surface-danger p-4"><Text className="font-bold text-semantic-danger">{catalog.activePayload.error}</Text></View> : null}
+            <View className="mb-4">
+              <AppTabs<TeacherCatalogTab>
+                accessibilityLabel="Ver cursos o clases"
+                fill
+                items={[
+                  { key: 'courses', label: `Cursos (${catalog.coursesPage.summary.courses})`, icon: 'book-outline' },
+                  { key: 'classrooms', label: `Clases (${catalog.classroomsPage.summary.classrooms})`, icon: 'people-outline' },
+                ]}
+                onChange={catalog.setCatalogTab}
+                role="teacher"
+                value={catalog.catalogTab}
               />
-              {catalog.activePayload.error ? <View className="mb-4 rounded-xl border border-semantic-danger bg-semantic-surface-danger p-4"><Text className="font-bold text-semantic-danger">{catalog.activePayload.error}</Text></View> : null}
-              <View className="mb-4">
-                <AppTabs<TeacherCatalogTab>
-                  accessibilityLabel="Ver cursos o clases"
-                  fill
-                  items={[
-                    { key: 'courses', label: `Cursos (${catalog.coursesPage.summary.courses})`, icon: 'book-outline' },
-                    { key: 'classrooms', label: `Clases (${catalog.classroomsPage.summary.classrooms})`, icon: 'people-outline' },
-                  ]}
-                  onChange={catalog.setCatalogTab}
-                  role="teacher"
-                  value={catalog.catalogTab}
-                />
+            </View>
+            <View className="mb-4 gap-3">
+              <View className="min-h-12 flex-row items-center rounded-xl border border-border-default bg-surface-default px-4 py-2">
+                <Ionicons name="search-outline" size={20} color="#AFC2DB" />
+                <TextInput accessibilityLabel={catalog.catalogTab === 'courses' ? 'Buscar curso' : 'Buscar clase'} className="ml-3 min-w-0 flex-1 text-text-primary" placeholder={catalog.catalogTab === 'courses' ? 'Buscar curso...' : 'Buscar clase o curso...'} placeholderTextColor="#8FA7C7" value={catalog.searchInput} onChangeText={catalog.setSearchInput} />
               </View>
-              <View className="mb-4 gap-3">
-                <View className="min-h-12 flex-row items-center rounded-xl border border-border-default bg-surface-default px-4 py-2">
-                  <Ionicons name="search-outline" size={20} color="#AFC2DB" />
-                  <TextInput accessibilityLabel={catalog.catalogTab === 'courses' ? 'Buscar curso' : 'Buscar clase'} className="ml-3 min-w-0 flex-1 text-text-primary" placeholder={catalog.catalogTab === 'courses' ? 'Buscar curso...' : 'Buscar clase o curso...'} placeholderTextColor="#8FA7C7" value={catalog.searchInput} onChangeText={catalog.setSearchInput} />
-                </View>
-                {catalog.catalogTab === 'courses' ? (
-                  <View className="gap-3">
+              {catalog.catalogTab === 'courses' ? (
+                <View className="flex-row items-center gap-3">
+                  <View className="min-w-0 flex-1">
                     <AppTabs<TeacherCourseFilter> accessibilityLabel="Filtrar cursos" compact mobileRail={!isDesktop} role="teacher" items={teacherCourseFilters} value={catalog.filter} onChange={catalog.setFilter} />
-                    {isDesktop ? <AppTabs<TeacherCourseSort> accessibilityLabel="Ordenar cursos" compact role="teacher" items={teacherCourseSorts.map((item) => ({ ...item, icon: 'swap-vertical-outline' as const }))} value={catalog.sort} onChange={catalog.setSort} /> : null}
                   </View>
-                ) : null}
-              </View>
-              <View className="mb-3 flex-row items-center justify-between gap-3">
-                <Text className="min-w-0 flex-1 text-[13px] text-text-secondary">{catalog.catalogTab === 'courses' ? `${catalog.total} cursos · ${catalog.courseSummary.students} matrículas · ${catalog.courseSummary.questions} preguntas · ${catalog.participation}% participación` : `${catalog.total} clases activas`}</Text>
-                {!isDesktop && catalog.catalogTab === 'courses' ? (
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Orden: ${teacherCourseSorts.find((item) => item.key === catalog.sort)?.label || 'Reciente'}`} onPress={() => { const index = teacherCourseSorts.findIndex((item) => item.key === catalog.sort); catalog.setSort(teacherCourseSorts[(index + 1) % teacherCourseSorts.length].key) }} className="flex-row items-center gap-2 rounded-lg border border-border-default bg-surface-interactive px-3 py-2">
-                    <Ionicons name="swap-vertical-outline" size={15} color="#09ACF4" />
-                    <Text className="text-[12px] font-black text-brand-teacher">Orden: {teacherCourseSorts.find((item) => item.key === catalog.sort)?.label || 'Reciente'}</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-              {isDesktop && catalog.items.length > 0 ? <CatalogTableHeader tab={catalog.catalogTab} /> : null}
-            </>
-          )}
-          ListEmptyComponent={<View className="items-center rounded-2xl border border-dashed border-border-default bg-surface-default px-5 py-10"><Text className="font-black text-white">No hay resultados</Text><Text className="mt-2 text-center text-[13px] text-text-muted">Prueba con otros filtros o crea un curso nuevo.</Text></View>}
-          ListFooterComponent={<PaginationControls compact={!isDesktop} onNext={() => catalog.setPage((current) => Math.min(catalog.maxPage, current + 1))} onPrevious={() => catalog.setPage((current) => Math.max(0, current - 1))} page={catalog.safePage} pageSize={pageSize} total={catalog.total} />}
-          refreshControl={<RefreshControl refreshing={catalog.activePayload.refreshing} onRefresh={catalog.activePayload.refresh} tintColor="#8B5CF6" />}
-          contentContainerStyle={{ paddingHorizontal: isDesktop ? 28 : 18, paddingTop: isDesktop ? 28 : 18, paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER + 84 }}
-          showsVerticalScrollIndicator={false}
-          initialNumToRender={8}
-          maxToRenderPerBatch={8}
-          windowSize={7}
-        />
-      </View>
-      {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
+                  {isDesktop ? (
+                    <View className="min-w-[340px] flex-[0.65]">
+                      <AppTabs<TeacherCourseSort> accessibilityLabel="Ordenar cursos" compact fill role="teacher" items={teacherCourseSorts.map((item) => ({ ...item, icon: 'swap-vertical-outline' as const }))} value={catalog.sort} onChange={catalog.setSort} />
+                    </View>
+                  ) : (
+                    <AppButton
+                      accessibilityLabel={`Orden: ${teacherCourseSorts.find((item) => item.key === catalog.sort)?.label || 'Reciente'}`}
+                      icon="swap-vertical-outline"
+                      label={`Orden: ${teacherCourseSorts.find((item) => item.key === catalog.sort)?.label || 'Reciente'}`}
+                      onPress={() => { const index = teacherCourseSorts.findIndex((item) => item.key === catalog.sort); catalog.setSort(teacherCourseSorts[(index + 1) % teacherCourseSorts.length].key) }}
+                      role="teacher"
+                      size="sm"
+                      style={{ minHeight: 48, maxWidth: 154 }}
+                      variant="secondary"
+                    />
+                  )}
+                </View>
+              ) : null}
+            </View>
+            {isDesktop && catalog.items.length > 0 ? <CatalogTableHeader tab={catalog.catalogTab} /> : null}
+          </>
+        )}
+        ListEmptyComponent={<View className="items-center rounded-2xl border border-dashed border-border-default bg-surface-default px-5 py-10"><Text className="font-black text-white">No hay resultados</Text><Text className="mt-2 text-center text-[13px] text-text-muted">Prueba con otros filtros o crea un curso nuevo.</Text></View>}
+        ListFooterComponent={<PaginationControls compact={!isDesktop} onNext={() => catalog.setPage((current) => Math.min(catalog.maxPage, current + 1))} onPrevious={() => catalog.setPage((current) => Math.max(0, current - 1))} page={catalog.safePage} pageSize={pageSize} total={catalog.total} />}
+        refreshControl={<RefreshControl refreshing={catalog.activePayload.refreshing} onRefresh={catalog.activePayload.refresh} tintColor="#8B5CF6" />}
+        contentContainerStyle={{ paddingHorizontal: isDesktop ? 28 : 18, paddingTop: isDesktop ? 24 : 18, paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER + 96 }}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+      />
       {!isDesktop ? <CreateCourseCTA onPress={() => router.push('/(teacher)/create-subject' as never)} sticky /> : null}
-    </View>
+    </TeacherScreenLayout>
   )
 }
 

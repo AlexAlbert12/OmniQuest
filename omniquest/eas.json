@@ -27,6 +27,13 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "tfm-apk": {
+      "distribution": "internal",
+      "environment": "production",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {

@@ -1,7 +1,8 @@
 import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React, { useEffect, useState } from 'react'
-import { RefreshControl, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { RefreshControl, Text, TextInput, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import TeacherScreenLayout from '../../components/layouts/TeacherScreenLayout'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
@@ -17,7 +18,7 @@ import ManualReviewBatchSheet from '../../components/teacher/reviews/ManualRevie
 import ManualReviewConfigurationSheet from '../../components/teacher/reviews/ManualReviewConfigurationSheet'
 import { useManualReview } from '../../hooks/teacher/useManualReview'
 import { useAppTheme } from '../../lib/appTheme'
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import { useResponsiveLayout } from '../../lib/responsive'
 import type { ManualReviewQueueRow, ManualReviewStatus } from '../../lib/teacherManualReview'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
@@ -32,9 +33,9 @@ const STATUS_OPTIONS: { key: 'all' | ManualReviewStatus; label: string; icon: an
 export default function TeacherReviewsScreen() {
   const params = useLocalSearchParams<{ studentId?: string; attemptId?: string; subjectId?: string; classroomId?: string }>()
   const router = useRouter()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
-  const isDesktop = width >= 1080
+  const isDesktop = responsive.isDesktop
   const pageSize = isDesktop ? 15 : 6
   const studentId = normalizeStringParam(params.studentId)
   const attemptId = parseNumberParam(params.attemptId)
@@ -65,35 +66,38 @@ export default function TeacherReviewsScreen() {
   if (review.loading) return <OmniLoadingScreen />
 
   return (
-    <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
-      <View className="flex-1 flex-row">
-        {isDesktop ? <TeacherSidebar activeSection="reviews" subjectsCount={review.configuration.subjects.length} onSignOut={handleSignOut} /> : null}
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: isDesktop ? 32 : 16, paddingTop: isDesktop ? 30 : 22, paddingBottom: isDesktop ? 48 : MOBILE_BOTTOM_NAV_SPACER + 24 }}
-          refreshControl={<RefreshControl refreshing={review.refreshing} onRefresh={review.refresh} tintColor={tokens.brand.teacher} />}
-        >
+    <>
+      <TeacherScreenLayout
+        isDesktop={isDesktop}
+        desktopSidebar={<TeacherSidebar activeSection="reviews" subjectsCount={review.configuration.subjects.length} onSignOut={handleSignOut} />}
+        mobileBottomNavigation={<TeacherBottomNav active="reviews" />}
+        refreshControl={<RefreshControl refreshing={review.refreshing} onRefresh={review.refresh} tintColor={tokens.brand.teacher} />}
+      >
           <TeacherPageHeader
             icon="create"
             isDesktop={isDesktop}
             title="Revisión manual"
             subtitle="Revisa respuestas abiertas, prioriza las pendientes y deja feedback al alumnado."
             notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
-            actions={<AppButton label="Configurar" icon="settings-outline" role="teacher" onPress={() => setSettingsOpen(true)} />}
+            titleNumberOfLines={1}
+            compactMobileTitle
+            mobileStackedIdentity
+            actionsPosition="top"
+            actions={<AppButton accessibilityLabel="Configurar revisión manual" label="Configurar" icon="settings-outline" iconOnly={!isDesktop} role="teacher" size="sm" onPress={() => setSettingsOpen(true)} />}
           />
 
           {review.error ? <AppStatusBanner variant="danger" title="No se pudo completar la operación" message={review.error} style={{ marginBottom: 16 }} /> : null}
           {studentId ? <AppStatusBanner variant="info" title="Revisiones del alumno" message={attemptId ? 'Se ha abierto la revisión seleccionada desde su historial.' : 'La cola está filtrada por el alumno seleccionado desde su historial.'} style={{ marginBottom: 16 }} /> : null}
 
-          <View className="mb-5 flex-row flex-wrap gap-3">
-            <MobileMetricCard semantic="attention" label="Pendientes" value={String(review.queue.summary.pending || 0)} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
-            <MobileMetricCard semantic="audit" label="Necesita cambios" value={String(review.queue.summary.needs_changes || 0)} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
-            <MobileMetricCard icon="alarm-outline" label="Vencen pronto" value={String(review.queue.summary.due_soon || 0)} color={tokens.semantic.info} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
-            <MobileMetricCard semantic="critical" label="Plazo vencido" value={String(review.queue.summary.overdue || 0)} compact style={isDesktop ? { flex: 1 } : { width: '48%' }} />
+          <View className={`mb-5 flex-row ${isDesktop ? 'flex-wrap gap-3' : 'gap-2'}`}>
+            <MobileMetricCard semantic="attention" label="Pendientes" value={String(review.queue.summary.pending || 0)} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, flex: 1, aspectRatio: 1 }} />
+            <MobileMetricCard semantic="audit" label="Necesita cambios" value={String(review.queue.summary.needs_changes || 0)} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, flex: 1, aspectRatio: 1 }} />
+            <MobileMetricCard icon="alarm-outline" label="Vencen pronto" value={String(review.queue.summary.due_soon || 0)} color={tokens.semantic.info} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, flex: 1, aspectRatio: 1 }} />
+            <MobileMetricCard semantic="critical" label="Plazo vencido" value={String(review.queue.summary.overdue || 0)} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, flex: 1, aspectRatio: 1 }} />
           </View>
 
           <View className="mb-4 rounded-2xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
-            <View className="flex-row flex-wrap gap-3">
+            <View className={`${isDesktop ? 'flex-row flex-wrap' : ''} gap-3`}>
               <View className="min-w-[240px] flex-[2]">
                 <Text className="mb-2 text-[11px] font-black uppercase" style={{ color: tokens.text.muted }}>Buscar</Text>
                 <TextInput
@@ -106,22 +110,24 @@ export default function TeacherReviewsScreen() {
                   style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised, color: tokens.text.primary }}
                 />
               </View>
-              <AppDropdown<number>
-                label="Curso"
-                value={review.filters.subjectId}
-                options={review.configuration.subjects.map((item) => ({ value: item.id, label: item.name }))}
-                onChange={(nextSubjectId) => review.updateFilters({ subjectId: nextSubjectId, classroomId: null })}
-                placeholder="Todos los cursos"
-                style={{ minWidth: 210, flex: 1 }}
-              />
-              <AppDropdown<number>
-                label="Clase"
-                value={review.filters.classroomId}
-                options={review.visibleClassrooms.map((item) => ({ value: item.id, label: item.name }))}
-                onChange={(nextClassroomId) => review.updateFilters({ classroomId: nextClassroomId })}
-                placeholder="Todas las clases"
-                style={{ minWidth: 210, flex: 1 }}
-              />
+              <View className="flex-row gap-2" style={isDesktop ? { minWidth: 430, flex: 2 } : undefined}>
+                <AppDropdown<number>
+                  label="Curso"
+                  value={review.filters.subjectId}
+                  options={review.configuration.subjects.map((item) => ({ value: item.id, label: item.name }))}
+                  onChange={(nextSubjectId) => review.updateFilters({ subjectId: nextSubjectId, classroomId: null })}
+                  placeholder="Todos los cursos"
+                  style={{ minWidth: 0, flex: 1 }}
+                />
+                <AppDropdown<number>
+                  label="Clase"
+                  value={review.filters.classroomId}
+                  options={review.visibleClassrooms.map((item) => ({ value: item.id, label: item.name }))}
+                  onChange={(nextClassroomId) => review.updateFilters({ classroomId: nextClassroomId })}
+                  placeholder="Todas las clases"
+                  style={{ minWidth: 0, flex: 1 }}
+                />
+              </View>
             </View>
             <View className="mt-4">
               <AppTabs<'all' | ManualReviewStatus> accessibilityLabel="Estado de la revisión" compact role="teacher" items={STATUS_OPTIONS} value={review.filters.status} onChange={(status) => review.updateFilters({ status })} />
@@ -131,9 +137,7 @@ export default function TeacherReviewsScreen() {
           <ManualReviewBatchBar selectedCount={review.selectedIds.length} busy={review.busy} onReview={() => setBatchOpen(true)} onClear={review.clearSelection} />
 
           <ManualReviewQueue rows={review.queue.items} total={review.queue.total} page={review.page} pageSize={pageSize} selectedIds={review.selectedIds} onToggle={review.toggleSelected} onTogglePage={review.selectPage} onOpen={setSelectedRow} onPage={review.setPage} />
-        </ScrollView>
-      </View>
-      {!isDesktop ? <TeacherBottomNav active="reviews" /> : null}
+      </TeacherScreenLayout>
 
       <ManualReviewDetailSheet row={selectedRow} configuration={review.configuration} visible={Boolean(selectedRow)} busy={review.busy} onClose={() => setSelectedRow(null)} onLoadDetail={review.loadDetail} onReview={review.reviewOne} />
 
@@ -148,7 +152,7 @@ export default function TeacherReviewsScreen() {
       />
 
       <ManualReviewConfigurationSheet visible={settingsOpen} configuration={review.configuration} busy={review.busy} onClose={() => setSettingsOpen(false)} onSaveSla={review.saveSla} onSaveTemplate={review.saveTemplate} />
-    </View>
+    </>
   )
 }
 

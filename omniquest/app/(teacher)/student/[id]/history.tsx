@@ -4,21 +4,20 @@ import {
   ActivityIndicator,
   Image,
   RefreshControl,
-  ScrollView,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
 import { supabase } from '../../../../lib/supabase'
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../../../lib/mobileLayout'
 import { useAppTheme } from '../../../../lib/appTheme'
+import { useResponsiveLayout } from '../../../../lib/responsive'
 import { useTeacherStudentHistory, type TeacherStudentHistoryTab } from '../../../../hooks/teacher/useTeacherStudentHistory'
 import TeacherSidebar from '../../../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../../../components/teacher/TeacherPageHeader'
-import AppButton from '../../../../components/ui/AppButton'
+import TeacherScreenLayout from '../../../../components/layouts/TeacherScreenLayout'
+import AppBackButton from '../../../../components/ui/AppBackButton'
 import AppStatusBanner from '../../../../components/ui/AppStatusBanner'
 import AppTabs from '../../../../components/ui/AppTabs'
 import { useAppFeedback } from '../../../../hooks/useAppFeedback'
@@ -41,10 +40,10 @@ const historyTabs: { key: TeacherStudentHistoryTab; label: string; icon: keyof t
 export default function TeacherStudentHistoryScreen() {
   const params = useLocalSearchParams<{ id?: string; subjectId?: string; classroomId?: string }>()
   const router = useRouter()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
   const feedback = useAppFeedback()
-  const isDesktop = width >= 1080
+  const isDesktop = responsive.isDesktop
   const studentId = normalizeStringParam(params.id)
   const subjectId = parseNumberParam(params.subjectId)
   const classroomId = parseNumberParam(params.classroomId)
@@ -91,50 +90,38 @@ export default function TeacherStudentHistoryScreen() {
         <Ionicons name="alert-circle-outline" size={48} color={tokens.semantic.danger} />
         <Text className="mt-4 text-center text-[18px] font-black" style={{ color: tokens.text.primary }}>No se pudo abrir el historial</Text>
         <Text className="mt-2 text-center" style={{ color: tokens.text.muted }}>{history.error || 'Comprueba que el alumno pertenece a uno de tus cursos.'}</Text>
-        <AppButton label="Volver" icon="arrow-back" variant="secondary" style={{ marginTop: 20 }} onPress={() => router.back()} />
+        <AppBackButton label="Volver" style={{ marginTop: 20 }} onPress={() => router.back()} />
       </View>
     )
   }
 
   const content = (
-    <ScrollView
-      className="flex-1"
-      contentContainerStyle={{
-        paddingHorizontal: isDesktop ? 28 : 16,
-        paddingTop: isDesktop ? 24 : 16,
-        paddingBottom: isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER,
-      }}
-      refreshControl={<RefreshControl refreshing={history.refreshing} onRefresh={history.refresh} tintColor={tokens.brand.teacher} />}
-      showsVerticalScrollIndicator={false}
-    >
+    <>
       <TeacherPageHeader
         icon="person-circle-outline"
         isDesktop={isDesktop}
-        title={summary.profile.alias || 'Alumno'}
+        title="Historial"
         subtitle="Analiza su actividad, progreso y necesidades de aprendizaje."
         backAction={{ label: 'Alumnos', onPress: () => router.back() }}
         notificationOnPress={() => router.push('/(teacher)/notifications' as Href)}
       />
 
-      <View className="mb-5 flex-row flex-wrap items-center gap-4 rounded-2xl border p-5" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
-        <View className="h-16 w-16 overflow-hidden rounded-full border-2" style={{ borderColor: tokens.border.active, backgroundColor: tokens.surface.selected }}>
+      <View className={`mb-5 flex-row items-center rounded-2xl border ${isDesktop ? 'gap-4 p-5' : 'gap-3 p-3'}`} style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
+        <View className={`${isDesktop ? 'h-16 w-16' : 'h-12 w-12'} overflow-hidden rounded-full border-2`} style={{ borderColor: tokens.border.active, backgroundColor: tokens.surface.selected }}>
           {summary.profile.avatar?.startsWith('http') ? (
             <Image accessibilityLabel={`Foto de ${summary.profile.alias || 'alumno'}`} source={{ uri: summary.profile.avatar }} className="h-full w-full" resizeMode="cover" />
           ) : (
             <View className="h-full w-full items-center justify-center">
-              <Text className="text-[20px] font-black" style={{ color: tokens.brand.teacher }}>{getInitials(summary.profile.alias || 'Alumno')}</Text>
+              <Text className={`${isDesktop ? 'text-[20px]' : 'text-[16px]'} font-black`} style={{ color: tokens.brand.teacher }}>{getInitials(summary.profile.alias || 'Alumno')}</Text>
             </View>
           )}
         </View>
-        <View className="min-w-[230px] flex-1">
-          <Text className="text-[21px] font-black" style={{ color: tokens.text.primary }}>{summary.profile.alias || 'Alumno'}</Text>
-          <Text className="mt-1 text-[12px]" style={{ color: tokens.text.muted }}>
-            {summary.courseContexts.map((context) => context.subjectName).filter((value, index, values) => values.indexOf(value) === index).join(' · ') || 'Sin cursos visibles'}
-          </Text>
+        <View className="min-w-0 flex-1">
+          <Text className={`${isDesktop ? 'text-[21px]' : 'text-[18px]'} font-black`} style={{ color: tokens.text.primary }} numberOfLines={1}>{summary.profile.alias || 'Alumno'}</Text>
         </View>
-        <View className="items-end">
-          <Text className="text-[11px] font-black uppercase" style={{ color: tokens.text.muted }}>XP global</Text>
-          <Text className="mt-1 text-[24px] font-black" style={{ color: tokens.gamification.xp }}>{summary.profile.points || 0}</Text>
+        <View className="shrink-0 items-end">
+          <Text className={`${isDesktop ? 'text-[11px]' : 'text-[9px]'} font-black uppercase`} style={{ color: tokens.text.muted }}>XP global</Text>
+          <Text className={`${isDesktop ? 'mt-1 text-[24px]' : 'mt-0.5 text-[20px]'} font-black`} style={{ color: tokens.gamification.xp }}>{summary.profile.points || 0}</Text>
         </View>
       </View>
 
@@ -144,7 +131,7 @@ export default function TeacherStudentHistoryScreen() {
         </View>
       ) : null}
 
-      <View className="mb-5 rounded-2xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
+      <View className={`mb-5 rounded-2xl border ${isDesktop ? 'p-4' : 'p-3'}`} style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
         <Text className="mb-2 text-[10px] font-black uppercase tracking-[0.7px]" style={{ color: tokens.text.muted }}>Periodo de análisis</Text>
         <AppTabs<number>
           compact
@@ -208,17 +195,18 @@ export default function TeacherStudentHistoryScreen() {
         />
       ) : null}
       {!history.loadingTab && history.activeTab === 'metrics' ? <StudentHistoryMetrics data={history.metrics} /> : null}
-    </ScrollView>
+    </>
   )
 
   return (
-    <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
-      <View className="flex-1 flex-row">
-        {isDesktop ? <TeacherSidebar activeSection="students" subjectsCount={summary.subjectsCount} onSignOut={() => signOutCurrentDeviceSession()} /> : null}
-        {content}
-      </View>
-      {!isDesktop ? <TeacherBottomNav active="students" /> : null}
-    </View>
+    <TeacherScreenLayout
+      isDesktop={isDesktop}
+      desktopSidebar={<TeacherSidebar activeSection="students" subjectsCount={summary.subjectsCount} onSignOut={() => void signOutCurrentDeviceSession()} />}
+      mobileBottomNavigation={<TeacherBottomNav active="students" />}
+      refreshControl={<RefreshControl refreshing={history.refreshing} onRefresh={history.refresh} tintColor={tokens.brand.teacher} />}
+    >
+      {content}
+    </TeacherScreenLayout>
   )
 }
 

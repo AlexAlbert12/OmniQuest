@@ -7,10 +7,12 @@ import PaginationControls from '../../ui/PaginationControls'
 import VirtualizedStack from '../../ui/VirtualizedStack'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import type { ManualReviewQueueRow, ManualReviewStatus } from '../../../lib/teacherManualReview'
 
 export default function ManualReviewQueue({ rows, total, page, pageSize, selectedIds, onToggle, onTogglePage, onOpen, onPage }: { rows: ManualReviewQueueRow[]; total: number; page: number; pageSize: number; selectedIds: number[]; onToggle: (id: number) => void; onTogglePage: () => void; onOpen: (row: ManualReviewQueueRow) => void; onPage: (page: number) => void }) {
   const { tokens } = useAppTheme()
+  const { isDesktop } = useResponsiveLayout()
   const eligibleRows = rows.filter((row) => isBatchEligible(row.status))
   const allSelected = eligibleRows.length > 0 && eligibleRows.every((row) => selectedIds.includes(row.id))
 
@@ -25,13 +27,13 @@ export default function ManualReviewQueue({ rows, total, page, pageSize, selecte
   }
 
   return (
-    <View className="rounded-2xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
+    <View className={`rounded-2xl border ${isDesktop ? 'p-4' : 'p-3'}`} style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
       <View className="mb-3 flex-row flex-wrap items-center justify-between gap-3">
         <View>
-          <Text className="text-[18px] font-black" style={{ color: tokens.text.primary }}>Cola de revisión</Text>
+          <Text className={`${isDesktop ? 'text-[18px]' : 'text-[16px]'} font-black`} style={{ color: tokens.text.primary }}>Cola de revisión</Text>
           <Text className="mt-1 text-[12px]" style={{ color: tokens.text.muted }}>{total} respuestas · priorizadas por plazo</Text>
         </View>
-        <AppButton label={allSelected ? 'Deseleccionar página' : 'Seleccionar página'} icon={allSelected ? 'square-outline' : 'checkbox-outline'} variant="secondary" size="sm" disabled={!eligibleRows.length} onPress={onTogglePage} />
+        <AppButton accessibilityLabel={allSelected ? 'Deseleccionar página' : 'Seleccionar página'} label={allSelected ? 'Deseleccionar página' : 'Seleccionar página'} icon={allSelected ? 'square-outline' : 'checkbox-outline'} iconOnly={!isDesktop} variant="secondary" size="sm" disabled={!eligibleRows.length} onPress={onTogglePage} />
       </View>
 
       <VirtualizedStack
@@ -42,32 +44,32 @@ export default function ManualReviewQueue({ rows, total, page, pageSize, selecte
           const selected = eligible && selectedIds.includes(row.id)
           const status = getStatus(row.status, tokens)
           return (
-            <View className="rounded-2xl border p-4" style={{ borderColor: row.is_overdue ? tokens.semantic.danger : selected ? tokens.border.active : tokens.border.default, backgroundColor: selected ? tokens.surface.selected : tokens.surface.raised }}>
-              <View className="flex-row items-start gap-3">
+            <View className={`overflow-hidden rounded-2xl border ${isDesktop ? 'p-4' : 'p-3'}`} style={{ borderColor: row.is_overdue ? tokens.semantic.danger : selected ? tokens.border.active : tokens.border.default, backgroundColor: selected ? tokens.surface.selected : tokens.surface.raised }}>
+              <View className={`flex-row items-start ${isDesktop ? 'gap-3' : 'gap-2'}`}>
                 {eligible ? (
                   <AppPressable accessibilityLabel={selected ? `Deseleccionar revisión de ${row.student_name}` : `Seleccionar revisión de ${row.student_name}`} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} onPress={() => onToggle(row.id)} style={{ paddingTop: 2 }}>
-                    <Ionicons name={selected ? 'checkbox' : 'square-outline'} size={24} color={selected ? tokens.border.active : tokens.text.muted} />
+                    <Ionicons name={selected ? 'checkbox' : 'square-outline'} size={isDesktop ? 24 : 21} color={selected ? tokens.border.active : tokens.text.muted} />
                   </AppPressable>
-                ) : <View style={{ width: 24, height: 24 }} />}
+                ) : <View style={{ width: isDesktop ? 24 : 21, height: isDesktop ? 24 : 21 }} />}
 
                 <View className="min-w-0 flex-1">
                   <View className="flex-row flex-wrap items-center gap-2">
-                    <Text className="text-[15px] font-black" style={{ color: tokens.text.primary }}>{row.student_name}</Text>
+                    <Text className={`${isDesktop ? 'text-[15px]' : 'text-[13px]'} font-black`} style={{ color: tokens.text.primary }} numberOfLines={1}>{row.student_name}</Text>
                     <Pill label={status.label} color={status.color} />
                     {row.is_overdue ? <Pill label="Plazo vencido" color={tokens.semantic.danger} /> : null}
                   </View>
-                  <Text className="mt-2 text-[14px] font-bold leading-5" style={{ color: tokens.text.primary }}>{row.question_text}</Text>
-                  <Text className="mt-2 text-[13px] leading-5" style={{ color: tokens.text.secondary }} numberOfLines={3}>{row.answer_text || 'Sin respuesta escrita'}</Text>
-                  <View className="mt-3 flex-row flex-wrap gap-x-4 gap-y-2">
+                  <Text className={`${isDesktop ? 'mt-2 text-[14px] leading-5' : 'mt-1.5 text-[13px] leading-4'} font-bold`} style={{ color: tokens.text.primary }} numberOfLines={2}>{row.question_text}</Text>
+                  <Text className={`${isDesktop ? 'mt-2 text-[13px] leading-5' : 'mt-1 text-[11px] leading-4'}`} style={{ color: tokens.text.secondary }} numberOfLines={isDesktop ? 3 : 2}>{row.answer_text || 'Sin respuesta escrita'}</Text>
+                  <View className={`${isDesktop ? 'mt-3 gap-x-4 gap-y-2' : 'mt-2 gap-x-3 gap-y-1'} flex-row flex-wrap`}>
                     <Meta icon="book-outline" value={row.subject_name} />
                     <Meta icon="people-outline" value={row.classroom_name} />
                     {row.status === 'pending' ? <Meta icon="time-outline" value={formatPending(row.pending_seconds)} /> : row.reviewed_at ? <Meta icon="checkmark-done-outline" value={`Revisada el ${formatDate(row.reviewed_at)}`} /> : null}
                     {row.status === 'pending' && row.due_at ? <Meta icon="alarm-outline" value={formatDue(row.due_at, row.is_overdue)} danger={row.is_overdue} /> : null}
-                    <Meta icon="chatbubbles-outline" value={`${row.comments_count} comentarios`} />
+                    {row.comments_count > 0 ? <Meta icon="chatbubbles-outline" value={`${row.comments_count} comentarios`} /> : null}
                   </View>
                 </View>
 
-                <AppButton label="Abrir" icon="open-outline" size="sm" role="teacher" onPress={() => onOpen(row)} />
+                <AppButton accessibilityLabel={`Abrir revisión de ${row.student_name}`} label="Abrir" icon="open-outline" iconOnly={!isDesktop} size="sm" role="teacher" onPress={() => onOpen(row)} />
               </View>
             </View>
           )

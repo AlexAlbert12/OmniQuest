@@ -233,7 +233,7 @@ function LandingPanel({
           alignSelf: 'center',
           alignItems: 'center',
           justifyContent: 'center',
-          marginTop: isDesktop ? 28 : isTablet ? 22 : 18,
+          marginTop: isDesktop ? 28 : 32,
           flexDirection: isTablet ? 'row' : 'column',
           gap: isMobile ? 14 : 18,
           maxWidth: 820,
@@ -261,7 +261,7 @@ function LandingPanel({
         />
       </View>
 
-      <View className="mt-6 flex-row flex-wrap items-center justify-center gap-2">
+      <View className="mt-6 mb-6 flex-row flex-wrap items-center justify-center gap-2">
         <Text maxFontSizeMultiplier={2} className="text-[16px] font-semibold text-text-secondary">{t('landing.noAccount')}</Text>
         <Link href="/register" asChild>
           <Pressable

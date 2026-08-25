@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import TeacherPageHeader from './TeacherPageHeader';
@@ -204,7 +205,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
   if (loadingInitial) return <OmniLoadingScreen />;
 
   return (
-    <View className="flex-1 bg-background-primary">
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-background-primary">
       <View className="absolute inset-0 bg-background-primary" />
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isWide ? 20 : MOBILE_BOTTOM_NAV_SPACER }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pb-5 pt-4 md:px-6 lg:px-8">
@@ -364,7 +365,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
         </View>
       </ScrollView>
       {!isWide ? <TeacherBottomNav active="classes" /> : null}
-    </View>
+    </SafeAreaView>
   );
 }
 

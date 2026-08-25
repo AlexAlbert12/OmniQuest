@@ -30,6 +30,7 @@ export default function DateCalendar({
   const { accentColor, tokens } = useAppTheme()
   const activeColor = selectionColor || accentColor
   const days = useMemo(() => getMonthGrid(month), [month])
+  const weeks = useMemo(() => Array.from({ length: Math.ceil(days.length / 7) }, (_, index) => days.slice(index * 7, index * 7 + 7)), [days])
   const weekdays = useMemo(() => Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(locale, { weekday: 'narrow' }).format(new Date(2024, 0, index + 1))), [locale])
   const today = new Date()
   const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(month)
@@ -65,38 +66,42 @@ export default function DateCalendar({
       </View>
 
       <View style={styles.grid}>
-        {days.map((date) => {
-          const isCurrentMonth = date.getMonth() === month.getMonth()
-          const isSelected = selectedDate ? sameCalendarDay(date, selectedDate) : false
-          const isToday = sameCalendarDay(date, today)
-          const disabled = minimumDay ? startOfDay(date).getTime() < minimumDay.getTime() : false
-          return (
-            <AppPressable
-              key={date.toISOString()}
-              accessibilityLabel={date.toLocaleDateString(locale)}
-              accessibilityState={{ selected: isSelected, disabled }}
-              disabled={disabled}
-              onPress={() => onSelectDate(date)}
-              style={({ pressed }) => [
-                styles.day,
-                {
-                  borderColor: isSelected ? activeColor : isToday ? withAlpha(activeColor, '75') : 'transparent',
-                  backgroundColor: isSelected ? withAlpha(activeColor, '24') : pressed ? tokens.surface.interactive : 'transparent',
-                  opacity: disabled ? 0.28 : 1,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.dayNumber,
-                  { color: isSelected ? activeColor : isCurrentMonth ? tokens.text.primary : withAlpha(tokens.text.muted, '80') },
-                ]}
-              >
-                {date.getDate()}
-              </Text>
-            </AppPressable>
-          )
-        })}
+        {weeks.map((week, weekIndex) => (
+          <View key={`week-${weekIndex}`} style={styles.dayRow}>
+            {week.map((date) => {
+              const isCurrentMonth = date.getMonth() === month.getMonth()
+              const isSelected = selectedDate ? sameCalendarDay(date, selectedDate) : false
+              const isToday = sameCalendarDay(date, today)
+              const disabled = minimumDay ? startOfDay(date).getTime() < minimumDay.getTime() : false
+              return (
+                <AppPressable
+                  key={date.toISOString()}
+                  accessibilityLabel={date.toLocaleDateString(locale)}
+                  accessibilityState={{ selected: isSelected, disabled }}
+                  disabled={disabled}
+                  onPress={() => onSelectDate(date)}
+                  style={({ pressed }) => [
+                    styles.day,
+                    {
+                      borderColor: isSelected ? activeColor : isToday ? withAlpha(activeColor, '75') : 'transparent',
+                      backgroundColor: isSelected ? withAlpha(activeColor, '24') : pressed ? tokens.surface.interactive : 'transparent',
+                      opacity: disabled ? 0.28 : 1,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.dayNumber,
+                      { color: isSelected ? activeColor : isCurrentMonth ? tokens.text.primary : withAlpha(tokens.text.muted, '80') },
+                    ]}
+                  >
+                    {date.getDate()}
+                  </Text>
+                </AppPressable>
+              )
+            })}
+          </View>
+        ))}
       </View>
     </View>
   )
@@ -117,9 +122,10 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '900' },
   subtitle: { marginTop: 2, fontSize: 11, textAlign: 'center' },
   iconButton: { width: 40, height: 40, borderWidth: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  weekRow: { marginTop: 14, flexDirection: 'row' },
-  weekday: { width: `${100 / 7}%`, textAlign: 'center', fontSize: 10, fontWeight: '900' },
-  grid: { marginTop: 5, flexDirection: 'row', flexWrap: 'wrap' },
-  day: { width: `${100 / 7}%`, minHeight: 44, borderWidth: 1, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  weekRow: { marginTop: 12, flexDirection: 'row', gap: 4 },
+  weekday: { minWidth: 0, flex: 1, textAlign: 'center', fontSize: 10, fontWeight: '900' },
+  grid: { marginTop: 5, gap: 4 },
+  dayRow: { flexDirection: 'row', gap: 4 },
+  day: { minWidth: 0, flex: 1, minHeight: 38, borderWidth: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   dayNumber: { fontSize: 12, fontWeight: '900' },
 })

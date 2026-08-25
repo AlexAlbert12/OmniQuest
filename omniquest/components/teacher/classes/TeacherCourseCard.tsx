@@ -6,6 +6,8 @@ import { withAlpha } from '../../../lib/color'
 import type { TeacherCourse, TeacherCourseAnalytics } from './types'
 import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 
+const ATTENTION_BADGE_BACKGROUND = '#B77900'
+
 export default function TeacherCourseCard({
   analytics,
   course,
@@ -69,7 +71,11 @@ export default function TeacherCourseCard({
           </Text>
           <View className="mt-3 flex-row flex-wrap items-center gap-2">
             <Text className={`text-[12px] font-black ${needsAttention ? 'text-gamification-badge' : 'text-text-secondary'}`}>{participation}% participación</Text>
-            {needsAttention ? <View className="rounded-full bg-semantic-surface-warning px-2 py-1"><Text className="text-[10px] font-black text-gamification-badge">Necesita atención</Text></View> : null}
+            {needsAttention ? (
+              <View className="rounded-full px-2 py-1" style={{ backgroundColor: ATTENTION_BADGE_BACKGROUND }}>
+                <Text className="text-[10px] font-black text-white">Necesita atención</Text>
+              </View>
+            ) : null}
           </View>
         </View>
         <Ionicons name="chevron-forward" size={20} color="#AFC2DB" />

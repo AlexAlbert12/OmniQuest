@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import type { RealtimePostgresInsertPayload } from '@supabase/supabase-js'
 import type { AppNotification, NotificationCursor, NotificationType } from '../../lib/notifications/types'
-import { deletePersistentNotifications, markAllPersistentNotificationsRead, markPersistentNotificationsRead } from '../../lib/notifications/persistent'
 import { supabase } from '../../lib/supabase'
 import { getErrorMessage, isRecord } from '../../lib/typeGuards'
+import { useNotifications } from '../useNotifications'
 
 export type TeacherNotificationBucket = 'all' | 'critical' | 'informative'
 export type TeacherNotificationCategory = 'all' | 'students' | 'review' | 'courses' | 'system' | 'audit'
@@ -35,6 +35,12 @@ const EMPTY_PAGE: NotificationPage = { rows: [], cursor: null, hasMore: false, t
 const PAGE_SIZE = 20
 
 export function useTeacherNotifications() {
+  const {
+    deleteNotification: deleteSharedNotification,
+    markAllAsRead: markAllSharedNotificationsAsRead,
+    markAsRead: markSharedNotificationAsRead,
+    refresh: refreshSharedNotifications,
+  } = useNotifications('teacher')
   const [bucket, setBucket] = useState<TeacherNotificationBucket>('all')
   const [category, setCategory] = useState<TeacherNotificationCategory>('all')
   const [subjectId, setSubjectId] = useState<number | null>(null)
@@ -170,7 +176,7 @@ export function useTeacherNotifications() {
 
   const markAsRead = useCallback(async (notification: AppNotification) => {
     if (notification.isRead) return
-    await markPersistentNotificationsRead([notification.id])
+    await markSharedNotificationAsRead(notification.id)
     setPage((current) => {
       const rows = unreadOnly ? current.rows.filter((item) => item.id !== notification.id) : current.rows.map((item) => item.id === notification.id ? { ...item, isRead: true } : item)
       const next = { ...current, total: unreadOnly ? Math.max(0, current.total - 1) : current.total, unreadCount: Math.max(0, current.unreadCount - 1), rows }
@@ -178,11 +184,12 @@ export function useTeacherNotifications() {
       return next
     })
     setSummary((current) => ({ ...current, unreadNotifications: Math.max(0, current.unreadNotifications - 1) }))
+    void refreshSharedNotifications()
     if (unreadOnly) void loadPage('reset')
-  }, [loadPage, unreadOnly])
+  }, [loadPage, markSharedNotificationAsRead, refreshSharedNotifications, unreadOnly])
 
   const markAllAsRead = useCallback(async () => {
-    await markAllPersistentNotificationsRead('teacher')
+    await markAllSharedNotificationsAsRead()
     setPage((current) => {
       const next: NotificationPage = unreadOnly
         ? { ...current, rows: [], cursor: null, hasMore: false, total: 0, unreadCount: 0 }
@@ -191,10 +198,11 @@ export function useTeacherNotifications() {
       return next
     })
     setSummary((current) => ({ ...current, unreadNotifications: 0 }))
-  }, [unreadOnly])
+    void refreshSharedNotifications()
+  }, [markAllSharedNotificationsAsRead, refreshSharedNotifications, unreadOnly])
 
   const deleteNotification = useCallback(async (notification: AppNotification) => {
-    await deletePersistentNotifications([notification.id])
+    await deleteSharedNotification(notification.id)
     setPage((current) => {
       const next = {
         ...current,
@@ -208,7 +216,8 @@ export function useTeacherNotifications() {
       return next
     })
     if (!notification.isRead) setSummary((current) => ({ ...current, unreadNotifications: Math.max(0, current.unreadNotifications - 1) }))
-  }, [])
+    void refreshSharedNotifications()
+  }, [deleteSharedNotification, refreshSharedNotifications])
 
   const muteUntil = useCallback(async (until: string | null) => {
     const { error: rpcError } = await supabase.rpc('set_teacher_notifications_mute', { p_until: until ?? undefined })

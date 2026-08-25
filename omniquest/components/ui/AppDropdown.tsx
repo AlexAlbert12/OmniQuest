@@ -24,6 +24,7 @@ type AppDropdownProps<T extends string | number> = {
   disabled?: boolean
   accessibilityLabel?: string
   role?: AppRole
+  compact?: boolean
   style?: StyleProp<ViewStyle>
 }
 
@@ -36,6 +37,7 @@ export default function AppDropdown<T extends string | number>({
   disabled = false,
   accessibilityLabel,
   role,
+  compact = false,
   style,
 }: AppDropdownProps<T>) {
   const [open, setOpen] = useState(false)
@@ -52,7 +54,7 @@ export default function AppDropdown<T extends string | number>({
 
   return (
     <View style={style}>
-      {label ? <Text maxFontSizeMultiplier={2} style={[styles.fieldLabel, { color: tokens.text.secondary }]}>{label}</Text> : null}
+      {label ? <Text maxFontSizeMultiplier={2} style={[styles.fieldLabel, compact ? styles.compactFieldLabel : null, { color: tokens.text.secondary }]}>{label}</Text> : null}
       <AppPressable
         accessibilityLabel={resolvedLabel}
         accessibilityHint="Abre una lista de opciones"
@@ -61,22 +63,31 @@ export default function AppDropdown<T extends string | number>({
         onPress={() => setOpen(true)}
         style={({ pressed }) => [
           styles.trigger,
+          compact ? styles.compactTrigger : null,
           {
-            backgroundColor: disabled ? tokens.surface.disabled : tokens.surface.interactive,
+            backgroundColor: disabled ? tokens.surface.disabled : tokens.surface.raised,
             borderColor: open ? activeColor : tokens.border.default,
             opacity: disabled ? 0.56 : pressed ? 0.82 : 1,
           },
         ]}
       >
-        {selected?.icon ? <Ionicons name={selected.icon} size={18} color={tokens.text.secondary} /> : null}
-        <Text
-          numberOfLines={2}
-          maxFontSizeMultiplier={2}
-          style={[styles.triggerText, { color: selected ? tokens.text.primary : tokens.text.muted }]}
-        >
-          {selected?.label || placeholder}
-        </Text>
-        <Ionicons name="chevron-down" size={18} color={tokens.text.muted} />
+        {selected?.icon && !compact ? (
+          <View style={[styles.leadingIcon, compact ? styles.compactLeadingIcon : null, { backgroundColor: activeSurface }]}>
+            <Ionicons name={selected.icon} size={compact ? 15 : 17} color={activeColor} />
+          </View>
+        ) : null}
+        <View style={styles.triggerCopy}>
+          <Text
+            numberOfLines={compact ? 1 : 2}
+            maxFontSizeMultiplier={2}
+            style={[styles.triggerText, compact ? styles.compactTriggerText : null, { color: selected ? tokens.text.primary : tokens.text.muted }]}
+          >
+            {selected?.label || placeholder}
+          </Text>
+          <View style={[styles.chevronBox, compact ? styles.compactChevronBox : null, { backgroundColor: activeSurface }]}>
+            <Ionicons name="chevron-down" size={compact ? 14 : 16} color={activeColor} />
+          </View>
+        </View>
       </AppPressable>
 
       <AppBottomSheet visible={open} onClose={() => setOpen(false)} title={label || 'Seleccionar'}>
@@ -101,18 +112,24 @@ export default function AppDropdown<T extends string | number>({
                   },
                 ]}
               >
-                {option.icon ? <Ionicons name={option.icon} size={19} color={active ? activeColor : tokens.text.secondary} /> : null}
-                <View style={styles.optionCopy}>
-                  <Text maxFontSizeMultiplier={2} style={[styles.optionLabel, { color: tokens.text.primary }]}>{option.label}</Text>
-                  {option.description ? (
-                    <Text maxFontSizeMultiplier={2} style={[styles.optionDescription, { color: tokens.text.secondary }]}>{option.description}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1 }}>
+                  {option.icon ? (
+                    <View style={[styles.optionIcon, { backgroundColor: active ? activeSurface : tokens.surface.interactive }]}>
+                      <Ionicons name={option.icon} size={18} color={active ? activeColor : tokens.text.secondary} />
+                    </View>
                   ) : null}
+                  <View style={styles.optionCopy}>
+                    <Text maxFontSizeMultiplier={2} style={[styles.optionLabel, { color: tokens.text.primary }]}>{option.label}</Text>
+                    {option.description ? (
+                      <Text maxFontSizeMultiplier={2} style={[styles.optionDescription, { color: tokens.text.secondary }]}>{option.description}</Text>
+                    ) : null}
+                  </View>
+                  <Ionicons
+                    name={active ? 'radio-button-on' : 'radio-button-off'}
+                    size={20}
+                    color={active ? activeColor : tokens.text.muted}
+                  />
                 </View>
-                <Ionicons
-                  name={active ? 'radio-button-on' : 'radio-button-off'}
-                  size={20}
-                  color={active ? activeColor : tokens.text.muted}
-                />
               </AppPressable>
             )
           })}
@@ -128,6 +145,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.55,
+  },
+  compactFieldLabel: {
+    marginBottom: 5,
+    fontSize: 9,
+    lineHeight: 12,
   },
   trigger: {
     minHeight: 46,
@@ -137,6 +161,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  compactTrigger: {
+    minHeight: 42,
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    gap: 4,
+  },
+  leadingIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactLeadingIcon: {
+    width: 25,
+    height: 25,
+    borderRadius: 8,
+  },
+  triggerCopy: {
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   triggerText: {
     minWidth: 0,
@@ -144,6 +198,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '800',
+  },
+  compactTriggerText: {
+    fontSize: 10.5,
+    lineHeight: 14,
+  },
+  chevronBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactChevronBox: {
+    width: 18,
+    height: 18,
+    borderRadius: 6,
   },
   options: {
     gap: 9,
@@ -161,6 +231,13 @@ const styles = StyleSheet.create({
   optionCopy: {
     minWidth: 0,
     flex: 1,
+  },
+  optionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   optionLabel: {
     fontSize: 14,

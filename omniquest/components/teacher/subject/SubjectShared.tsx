@@ -2,9 +2,55 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppButton from '../../ui/AppButton';
+import MobileMetricCard from '../../ui/mobile/MobileMetricCard';
 import { useAppTheme } from '../../../lib/appTheme';
 
 export type IconName = keyof typeof Ionicons.glyphMap
+
+export function SubjectKpiCard({
+  color,
+  detail,
+  icon,
+  isDesktop,
+  label,
+  value,
+}: {
+  color?: string
+  detail: string
+  icon: IconName
+  isDesktop: boolean
+  label: string
+  value: string
+}) {
+  const { tokens } = useAppTheme();
+  const resolvedColor = color || tokens.brand.teacher;
+
+  if (!isDesktop) {
+    return (
+      <View
+        accessible
+        accessibilityLabel={`${label}: ${value}. ${detail}`}
+        className="min-w-0 flex-1 items-center justify-center rounded-xl border border-border-default bg-surface-default p-1.5"
+        style={{ aspectRatio: 1 }}
+      >
+        <Ionicons name={icon} size={19} color={resolvedColor} />
+        <Text className="mt-1 text-center text-[17px] font-black text-text-primary" numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+        <Text className="mt-0.5 text-center text-[9px] font-bold leading-3 text-text-secondary" numberOfLines={2}>{label}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <MobileMetricCard
+      className="min-w-[190px] flex-1"
+      color={resolvedColor}
+      detail={detail}
+      icon={icon}
+      label={label}
+      value={value}
+    />
+  );
+}
 
 export function SubjectPanel({
   actionLabel,
@@ -56,7 +102,7 @@ export function GradeDistributionBars({
 
   return (
     <View className="gap-3">
-      <View className="flex-row items-baseline justify-between">
+      <View className="flex-row items-baseline justify-between border-b border-border-subtle pb-3">
         <Text className="text-[12px] font-semibold" style={{ color: tokens.text.secondary }}>Alumnos con nota</Text>
         <Text className="text-[18px] font-black" style={{ color: tokens.text.primary }}>{total}</Text>
       </View>

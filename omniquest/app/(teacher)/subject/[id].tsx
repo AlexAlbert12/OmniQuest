@@ -10,6 +10,7 @@ import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader'
 import TeacherScreenLayout from '../../../components/layouts/TeacherScreenLayout'
 import TeacherStudentImportModal from '../../../components/teacher/TeacherStudentImportModal'
 import AppButton from '../../../components/ui/AppButton'
+import AppBackButton from '../../../components/ui/AppBackButton'
 import AppTabs from '../../../components/ui/AppTabs'
 import SubjectSummaryTab from '../../../components/teacher/subject/SubjectSummaryTab'
 import SubjectAnalyticsTab from '../../../components/teacher/subject/SubjectAnalyticsTab'
@@ -27,6 +28,7 @@ import {
   type SubjectTabKey,
 } from '../../../hooks/teacher/useTeacherSubjectDetail'
 import { useAppTheme } from '../../../lib/appTheme'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { useResponsiveLayout } from '../../../lib/responsive'
 
 export default function SubjectDetailScreen() {
@@ -69,12 +71,9 @@ export default function SubjectDetailScreen() {
               onPress={() => { void detail.fetchData() }}
             />
           ) : null}
-          <AppButton
+          <AppBackButton
             label="Volver a cursos"
             accessibilityLabel="Volver al listado de cursos"
-            icon="arrow-back-outline"
-            variant={loadFailed ? 'secondary' : 'primary'}
-            role="teacher"
             onPress={() => router.replace('/(teacher)/classes' as never)}
           />
         </View>
@@ -109,7 +108,7 @@ export default function SubjectDetailScreen() {
         mobileBottomNavigation={<TeacherBottomNav active="classes" />}
         isDesktop={isDesktop}
         horizontalPadding={isDesktop ? undefined : 14}
-        bottomPadding={isDesktop ? 36 : 104}
+        bottomPadding={isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER + 32}
         refreshControl={(
           <RefreshControl
             refreshing={detail.refreshing}
@@ -124,10 +123,8 @@ export default function SubjectDetailScreen() {
           title={subject.name}
           titleNumberOfLines={2}
           mobileStackedIdentity
+          mobileInlineActions
           compactMobileTitle
-          mobileSubtitle={`${detail.classrooms.length} clase${detail.classrooms.length === 1 ? '' : 's'} · ${detail.selectedClassroom?.name || 'Sin clase activa'}`}
-          subtitle={`${subject.description || 'Curso sin descripción'} · Código: ${subject.code} · ${detail.classrooms.length} clase${detail.classrooms.length === 1 ? '' : 's'} · Clase activa: ${detail.selectedClassroom?.name || 'Sin seleccionar'} · Creado ${formatDate(subject.created_at)}`}
-          subtitleNumberOfLines={3}
           leading={(
             <View className={`${isDesktop ? 'h-20 w-20' : 'h-14 w-14'} items-center justify-center rounded-2xl border border-border-active bg-surface-selected`}>
               <Ionicons name={normalizeAcademicIcon(subject.icon, 'school-outline')} size={isDesktop ? 42 : 30} color={tokens.brand.teacher} />
@@ -151,12 +148,12 @@ export default function SubjectDetailScreen() {
                 onPress={() => { void detail.handleShareCode() }}
               />
               <AppButton
-                label={isDesktop ? 'Editar curso' : undefined}
-                accessibilityLabel="Editar curso"
-                icon="create-outline"
+                label={isDesktop ? 'Crear pregunta' : undefined}
+                accessibilityLabel="Crear pregunta"
+                icon="add-circle-outline"
                 iconOnly={!isDesktop}
                 role="teacher"
-                onPress={() => router.push(`/(teacher)/edit-subject?id=${subject.id}` as never)}
+                onPress={() => router.push(addQuestionHref as never)}
               />
             </>
           )}
@@ -186,7 +183,6 @@ export default function SubjectDetailScreen() {
         {detail.activeTab === 'summary' ? (
           <View className="gap-5">
             <SubjectClassroomsSection
-              classrooms={detail.classrooms}
               creating={detail.creatingClassroom}
               newClassroomName={detail.newClassroomName}
               onCreate={detail.handleCreateClassroom}
@@ -316,10 +312,4 @@ function buildAddQuestionHref({
   topicId: number | 'all' | 'general'
 }) {
   return `/(teacher)/subject/add-question?subjectId=${subjectId}${classroomId ? `&classroomId=${classroomId}` : ''}${typeof topicId === 'number' ? `&topicId=${topicId}` : ''}${difficulty !== 'all' ? `&difficulty=${difficulty}` : ''}`
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return 'sin fecha'
-  const date = new Date(value)
-  return Number.isFinite(date.getTime()) ? date.toLocaleDateString('es-ES') : 'sin fecha'
 }

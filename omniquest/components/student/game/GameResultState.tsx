@@ -1,11 +1,13 @@
 import React from 'react'
-import { Pressable, ScrollView, Text, View } from 'react-native'
+import { ScrollView, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import OmniGuide, { type OmniSize, type OmniState } from '../../OmniGuide'
 import AnimatedXpCounter from '../../gamification/AnimatedXpCounter'
 import BadgeUnlockModal from '../../gamification/BadgeUnlockModal'
 import type { StudentBadge } from '../../../lib/studentBadges'
 import { useAppTheme } from '../../../lib/appTheme'
+import AppBackButton from '../../ui/AppBackButton'
+import AppButton from '../../ui/AppButton'
 
 type GameSummary = {
   questionsTotal: number
@@ -48,6 +50,9 @@ export default function ResultState({
   unlockedBadges?: StudentBadge[]
   onDismissUnlockedBadge?: () => void
 }) {
+  const actionIsBack = action.toLocaleLowerCase().startsWith('volver')
+  const secondaryActionIsBack = secondaryAction?.toLocaleLowerCase().startsWith('volver')
+
   return (
     <>
       <ScrollView
@@ -88,23 +93,17 @@ export default function ResultState({
 
         <View className="gap-3">
           {secondaryAction && onSecondaryPress ? (
-            <Pressable
-              onPress={onSecondaryPress}
-              className="flex-row items-center justify-center gap-2 rounded-2xl bg-brand-student px-7 py-4"
-              style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-            >
-              <Ionicons name="refresh" size={18} color="#FFFFFF" />
-              <Text className="text-center text-[16px] font-black text-white">{secondaryAction}</Text>
-            </Pressable>
+            secondaryActionIsBack ? (
+              <AppBackButton fullWidth label={secondaryAction} size="lg" onPress={onSecondaryPress} />
+            ) : (
+              <AppButton fullWidth icon="refresh" label={secondaryAction} role="student" size="lg" onPress={onSecondaryPress} />
+            )
           ) : null}
-          <Pressable
-            onPress={onPress}
-            className="flex-row items-center justify-center gap-2 rounded-2xl border border-border-default bg-surface-raised px-7 py-4"
-            style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-          >
-            <Ionicons name="home" size={17} color="#FFFFFF" />
-            <Text className="text-center text-[16px] font-black text-white">{action}</Text>
-          </Pressable>
+          {actionIsBack ? (
+            <AppBackButton fullWidth label={action} size="lg" onPress={onPress} />
+          ) : (
+            <AppButton fullWidth icon="home" label={action} role="student" size="lg" variant="secondary" onPress={onPress} />
+          )}
         </View>
       </View>
       </ScrollView>

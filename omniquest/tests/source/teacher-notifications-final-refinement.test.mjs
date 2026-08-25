@@ -21,11 +21,19 @@ test('teacher notifications expose truthful shell metrics and secondary mobile n
 test('teacher notification read actions are global and unread filtering stays coherent', () => {
   const hook = read('hooks/teacher/useTeacherNotifications.ts')
   const screen = read('app/(teacher)/notifications.tsx')
+  const badge = read('components/NotificationBadge.tsx')
 
-  assert.match(hook, /markAllPersistentNotificationsRead\('teacher'\)/)
+  assert.match(hook, /useNotifications\('teacher'\)/)
+  assert.match(hook, /await markAllSharedNotificationsAsRead\(\)/)
+  assert.match(hook, /await markSharedNotificationAsRead\(notification\.id\)/)
+  assert.match(hook, /await deleteSharedNotification\(notification\.id\)/)
+  assert.match(hook, /void refreshSharedNotifications\(\)/)
+  assert.doesNotMatch(hook, /markAllPersistentNotificationsRead\('teacher'\)/)
   assert.doesNotMatch(hook, /const ids = page\.rows\.filter/)
   assert.match(hook, /unreadOnly \? current\.rows\.filter/)
   assert.match(hook, /if \(unreadOnly\) void loadPage\('reset'\)/)
+  assert.match(badge, /const \{ refresh, unreadCount \} = useNotifications\(inferredAudience\)/)
+  assert.match(badge, /void refresh\(\)/)
   assert.match(screen, /Marcar todas como leídas/)
 })
 

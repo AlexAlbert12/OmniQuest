@@ -5,7 +5,6 @@ import { LinearGradient } from 'expo-linear-gradient'
 import AppPressable from './AppPressable'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
-import { useResponsiveLayout } from '../../lib/responsive'
 import type { AppRole } from '../../lib/designTokens'
 
 type IconName = keyof typeof Ionicons.glyphMap
@@ -42,9 +41,8 @@ export default function AppTabs<Key extends string | number>({
   mobileRail = false,
 }: AppTabsProps<Key>) {
   const { accentColor, tokens } = useAppTheme()
-  const responsive = useResponsiveLayout()
   const activeColor = role ? tokens.brand[role] : accentColor
-  const rail = !fill && (mobileRail || responsive.isMobile)
+  const rail = !fill && mobileRail
   const scrollRef = useRef<ScrollView>(null)
   const itemLayouts = useRef(new Map<string, TabLayout>())
   const [viewportWidth, setViewportWidth] = useState(0)
@@ -107,14 +105,18 @@ export default function AppTabs<Key extends string | number>({
                 compact ? styles.compactTab : styles.regularTab,
                 rail ? styles.mobileRailTab : null,
                 fill ? styles.fillTab : null,
-                { backgroundColor: selected ? withAlpha(activeColor, '24') : 'transparent', borderColor: selected ? withAlpha(activeColor, 'A0') : 'transparent', opacity: pressed ? 0.78 : 1 },
+                {
+                  backgroundColor: selected ? withAlpha(activeColor, '24') : tokens.surface.interactive,
+                  borderColor: selected ? withAlpha(activeColor, 'A0') : tokens.border.subtle,
+                  opacity: pressed ? 0.78 : 1,
+                },
               ]}
             >
               {item.icon ? <Ionicons name={selected ? item.activeIcon || filledIcon(item.icon) : item.icon} size={compact ? 15 : 17} color={selected ? activeColor : tokens.text.muted} /> : null}
               <Text
                 numberOfLines={rail ? 1 : 2}
                 ellipsizeMode={rail ? 'clip' : 'tail'}
-                maxFontSizeMultiplier={2}
+                maxFontSizeMultiplier={1.25}
                 style={[styles.label, compact ? styles.compactLabel : styles.regularLabel, { color: selected ? activeColor : tokens.text.secondary }]}
               >
                 {item.label}

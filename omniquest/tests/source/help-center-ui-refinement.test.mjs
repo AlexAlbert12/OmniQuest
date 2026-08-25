@@ -20,10 +20,15 @@ test('help center keeps the authenticated shell and contextual return to Setting
 
 test('help center prioritizes FAQ and has coherent empty conversation states', () => {
   const help = read('components/support/RoleHelpCenter.tsx')
-  const mobileBranch = help.slice(help.indexOf('<View className="gap-5">\n              {faqPanel}'))
+  const mobileFaqIndex = help.lastIndexOf('{faqPanel}')
+  const mobileCreateTicketIndex = help.lastIndexOf('{createTicketPanel}')
+  const mobileTicketsIndex = help.lastIndexOf('{ticketsPanel}')
 
-  assert.ok(mobileBranch.indexOf('{faqPanel}') < mobileBranch.indexOf('{createTicketPanel}'))
-  assert.ok(mobileBranch.indexOf('{createTicketPanel}') < mobileBranch.indexOf('{ticketsPanel}'))
+  assert.ok(mobileFaqIndex >= 0)
+  assert.ok(mobileCreateTicketIndex >= 0)
+  assert.ok(mobileTicketsIndex >= 0)
+  assert.ok(mobileFaqIndex < mobileCreateTicketIndex)
+  assert.ok(mobileCreateTicketIndex < mobileTicketsIndex)
   assert.match(help, /ticketsTotal === 0[\s\S]*support\.detail\.noTicketsTitle/)
   assert.match(help, /support\.detail\.noTicketsDescription/)
   assert.match(help, /externalContactChannels[\s\S]*channel_type !== 'in_app'/)

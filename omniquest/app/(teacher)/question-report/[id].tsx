@@ -1,6 +1,7 @@
 import OmniLoadingScreen from '../../../components/ui/OmniLoadingScreen'
 import React, { useState } from 'react'
 import { RefreshControl, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import TeacherSidebar from '../../../components/teacher/TeacherSidebar'
@@ -77,7 +78,7 @@ export default function TeacherQuestionReportScreen() {
   const question = report.report?.question
 
   return (
-    <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
       <View className="flex-1 flex-row">
         {isDesktop ? <TeacherSidebar activeSection="classes" subjectsCount={report.subjectsCount} onSignOut={handleSignOut} /> : null}
         <ScrollView
@@ -192,7 +193,7 @@ export default function TeacherQuestionReportScreen() {
         onCancel={() => setArchiveOpen(false)}
         onConfirm={() => void report.archive().then(() => setArchiveOpen(false))}
       />
-    </View>
+    </SafeAreaView>
   )
 }
 

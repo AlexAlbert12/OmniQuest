@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import NotificationBadge from '../NotificationBadge'
 import StudentHeaderAvatar from '../student/StudentHeaderAvatar'
 import TeacherHeaderAvatar from '../teacher/TeacherHeaderAvatar'
 import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
+import AppBackButton from './AppBackButton'
 
 export type PageHeaderRole = 'student' | 'teacher'
 export type PageHeaderIcon = keyof typeof Ionicons.glyphMap
@@ -40,6 +41,8 @@ export type RolePageHeaderProps = {
 
   mobileStackedIdentity?: boolean
 
+  mobileInlineActions?: boolean
+
   compactMobileTitle?: boolean
   notificationCount?: number
   notificationOnPress?: () => void
@@ -64,45 +67,35 @@ export default function RolePageHeader({
   isDesktop,
   leading,
   mobileTitle,
-  mobileSubtitle,
   mobileStackedIdentity = false,
+  mobileInlineActions = false,
   compactMobileTitle = false,
   notificationCount,
   notificationOnPress,
   showAvatar = true,
   showNotifications = true,
   showStreak = false,
-  subtitle,
-  subtitleNumberOfLines = 3,
   title,
   titleNumberOfLines = 2,
 }: RolePageHeaderProps) {
   const { colors, tokens } = useAppTheme()
   const { t } = useI18n()
   const displayTitle = !isDesktop && mobileTitle ? mobileTitle : title
-  const displaySubtitle = !isDesktop && mobileSubtitle !== undefined ? mobileSubtitle : subtitle
   const resolvedIconColor = iconColor || tokens.brand[role]
   const Avatar = role === 'teacher' ? TeacherHeaderAvatar : StudentHeaderAvatar
-  const actionsOnTop = Boolean(actions) && (actionsPosition === 'top' || (actionsPosition === 'auto' && isDesktop))
-  const actionsBelow = Boolean(actions) && (actionsPosition === 'below' || (actionsPosition === 'auto' && !isDesktop))
+  const actionsInline = Boolean(actions) && !isDesktop && mobileInlineActions
+  const actionsOnTop = Boolean(actions) && !actionsInline && (actionsPosition === 'top' || (actionsPosition === 'auto' && isDesktop))
+  const actionsBelow = Boolean(actions) && !actionsInline && (actionsPosition === 'below' || (actionsPosition === 'auto' && !isDesktop))
   const showTopControls = Boolean(utilityActions) || actionsOnTop || showNotifications || showAvatar
 
   const backControl = backAction ? (
-    <Pressable
-      accessibilityLabel={backAction.label || t('common.back')}
+    <AppBackButton
       accessibilityHint="Vuelve a la pantalla anterior"
-      accessibilityRole="button"
-      focusable
-      hitSlop={8}
+      accessibilityLabel={backAction.label || t('common.back')}
+      label={backAction.label || t('common.back')}
       onPress={backAction.onPress}
-      className="flex-row items-center gap-2 self-start rounded-xl px-3 py-2"
-      style={({ pressed }) => ({ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, opacity: pressed ? 0.78 : 1 })}
-    >
-      <Ionicons name="arrow-back" size={16} color={colors.text} />
-      <Text allowFontScaling maxFontSizeMultiplier={2} className="text-[12px] font-bold" style={{ color: colors.text, lineHeight: 18 }}>
-        {backAction.label || t('common.back')}
-      </Text>
-    </Pressable>
+      size="sm"
+    />
   ) : null
 
   const topControls = showTopControls ? (
@@ -132,12 +125,6 @@ export default function RolePageHeader({
     </View>
   )
 
-  const supportingCopy = displaySubtitle ? (
-    <Text allowFontScaling maxFontSizeMultiplier={2} className="mt-1 max-w-[780px] text-[13px] leading-5" style={{ color: colors.textMuted }} numberOfLines={subtitleNumberOfLines}>
-      {displaySubtitle}
-    </Text>
-  ) : null
-
   if (!isDesktop && mobileStackedIdentity) {
     return (
       <View className={`mb-6 ${className}`}>
@@ -145,9 +132,9 @@ export default function RolePageHeader({
           {backControl ?? <View />}
           {topControls}
         </View>
-        <View className="mt-4">
-          {identity}
-          {supportingCopy}
+        <View className="mt-4 flex-row items-center gap-3">
+          <View className="min-w-0 flex-1">{identity}</View>
+          {actionsInline ? <View className="shrink-0 flex-row items-center gap-2">{actions}</View> : null}
         </View>
         {actionsBelow ? <View className="mt-4 flex-row flex-wrap items-center gap-3">{actions}</View> : null}
       </View>
@@ -160,7 +147,6 @@ export default function RolePageHeader({
         <View className="min-w-0 flex-1">
           {backControl ? <View className="mb-3">{backControl}</View> : null}
           {identity}
-          {supportingCopy}
         </View>
         {topControls}
       </View>

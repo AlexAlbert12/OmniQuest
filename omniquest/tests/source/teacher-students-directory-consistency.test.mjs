@@ -34,12 +34,31 @@ test('mobile teacher student filters are explicit selectors and expose every sta
   assert.match(mobile, /AppDropdown<StudentSortKey>/)
   assert.match(mobile, /AppDropdown<number \| 'all'> label="Curso"/)
   assert.match(mobile, /AppDropdown<number \| 'all'> label="Clase"/)
+  assert.match(mobile, /mb-5 flex-row items-end gap-1\.5[\s\S]*label="Curso" compact[\s\S]*label="Clase" compact[\s\S]*label="Estado" compact[\s\S]*label="Ordenar" compact/)
   assert.doesNotMatch(mobile, /getNextStringOption/)
   assert.doesNotMatch(mobile, /Cambia a la siguiente opción disponible/)
   assert.match(mobile, /if \(status === 'attention'\) return stats\.attention/)
   assert.match(mobile, /if \(status === 'needs_help'\) return stats\.needsHelp/)
   assert.match(mobile, /if \(status === 'inactive'\) return stats\.inactive/)
   assert.match(mobile, /if \(status === 'excellent'\) return stats\.excellent/)
+})
+
+test('mobile student directory matches the shared background and uses compact clipped cards', () => {
+  const mobile = read('components/teacher/students/MobileTeacherStudents.tsx')
+  const modal = read('components/teacher/students/StudentModals.tsx')
+  const dropdown = read('components/ui/AppDropdown.tsx')
+
+  assert.match(mobile, /title="Mis alumnos"[\s\S]*titleNumberOfLines=\{1\}[\s\S]*compactMobileTitle/)
+  assert.doesNotMatch(mobile, /backgroundColor="#020B1B"/)
+  assert.match(mobile, /function DirectoryMetric/)
+  assert.doesNotMatch(mobile, /MobileMetricCard/)
+  assert.ok((mobile.match(/borderRadius: 16, overflow: 'hidden'/g) || []).length >= 2)
+  assert.match(mobile, /function MobileStudentMiniMetric[\s\S]*px-3 py-2/)
+  assert.doesNotMatch(modal, /MobileMetricCard/)
+  assert.match(modal, /min-w-\[100px\][\s\S]*minHeight: 78/)
+  assert.match(dropdown, /compact\?: boolean/)
+  assert.match(dropdown, /styles\.chevronBox/)
+  assert.match(dropdown, /styles\.optionIcon/)
 })
 
 test('student metrics distinguish XP scope, attempts and accuracy equivalence', () => {

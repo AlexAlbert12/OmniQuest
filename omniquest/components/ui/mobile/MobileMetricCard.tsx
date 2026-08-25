@@ -21,6 +21,7 @@ type MobileMetricCardProps = {
   color?: string
   width?: number
   compact?: boolean
+  dense?: boolean
   className?: string
   onPress?: () => void
   style?: StyleProp<ViewStyle>
@@ -39,6 +40,7 @@ export default function MobileMetricCard({
   color,
   width,
   compact = false,
+  dense = false,
   className = '',
   onPress,
   style,
@@ -50,26 +52,26 @@ export default function MobileMetricCard({
   const resolvedColor = semanticDefinition ? getSemanticColor(tokens, semanticDefinition.colorKey) : color || accentColor
   const metricLabel = label ?? title ?? ''
   const valueText = `${String(value)}${suffix ?? ''}`
-  const baseClassName = `overflow-hidden rounded-2xl border border-border-default ${compact ? 'p-3' : 'p-4'} ${className}`
+  const baseClassName = `overflow-hidden rounded-2xl border border-border-default ${dense ? 'p-1.5' : compact ? 'p-3' : 'p-4'} ${className}`
   const fixedWidthStyle = width ? { width } : undefined
 
   const content = (
     <>
       <LinearGradient
-        colors={[withAlpha(resolvedColor, compact ? '2B' : '38'), colors.surface]}
+        colors={[withAlpha(resolvedColor, dense ? '24' : compact ? '2B' : '38'), colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
       />
       <View className="absolute -right-6 -top-6 h-20 w-20 rounded-full" style={{ backgroundColor: withAlpha(resolvedColor, '18') }} />
       <View
-        className={`${compact ? 'h-10 w-10 rounded-2xl' : 'h-14 w-14 rounded-full'} items-center justify-center`}
+        className={`${dense ? 'h-5 w-5 rounded-lg' : compact ? 'h-10 w-10 rounded-2xl' : 'h-14 w-14 rounded-full'} items-center justify-center`}
         style={{ backgroundColor: withAlpha(resolvedColor, '3D') }}
       >
-        <Ionicons name={resolvedIcon} size={compact ? 22 : 29} color={resolvedColor} />
+        <Ionicons name={resolvedIcon} size={dense ? 14 : compact ? 22 : 29} color={resolvedColor} />
       </View>
       <Text
-        className={`${compact ? 'mt-4 text-[24px]' : 'mt-5 text-[30px]'} font-black`}
+        className={`${dense ? 'mt-1 text-[17px]' : compact ? 'mt-4 text-[24px]' : 'mt-5 text-[30px]'} font-black`}
         style={{ color: colors.text }}
         numberOfLines={1}
         adjustsFontSizeToFit
@@ -78,12 +80,12 @@ export default function MobileMetricCard({
         {valueText}
       </Text>
       {metricLabel ? (
-        <Text className="mt-1 text-[13px] font-bold" style={{ color: colors.textSecondary }} numberOfLines={compact ? 1 : 2}>
+        <Text className={`${dense ? 'mt-0.5 text-[8px] leading-2.5' : 'mt-1 text-[13px]'} font-bold`} style={{ color: colors.textSecondary }} numberOfLines={dense ? 2 : compact ? 1 : 2}>
           {metricLabel}
         </Text>
       ) : null}
       {detail !== undefined && detail !== null && String(detail).length > 0 ? (
-        <Text className="mt-1 text-[12px] font-semibold" style={{ color: detailColor ?? colors.textMuted }} numberOfLines={2}>
+        <Text className={`${dense ? 'mt-0.5 text-[9px] leading-3' : 'mt-1 text-[12px]'} font-semibold`} style={{ color: detailColor ?? colors.textMuted }} numberOfLines={dense ? 1 : 2}>
           {String(detail)}
         </Text>
       ) : null}

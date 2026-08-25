@@ -3,12 +3,15 @@ import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { createShadowStyle } from '../../../lib/platformShadow'
 import { MOBILE_BOTTOM_NAV_HEIGHT } from '../../../lib/mobileLayout'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function CreateCourseCTA({ label = 'Crear curso', onPress, sticky = false }: {
   label?: string
   onPress: () => void
   sticky?: boolean
 }) {
+  const insets = useSafeAreaInsets()
+
   return (
     <View
       className={sticky ? 'absolute left-4 right-4' : 'mt-5'}
@@ -19,7 +22,7 @@ export default function CreateCourseCTA({ label = 'Crear curso', onPress, sticky
         offsetY: 8,
         elevation: 12,
         web: '0 8px 28px rgba(0, 0, 0, 0.35)',
-      }), { bottom: MOBILE_BOTTOM_NAV_HEIGHT + 14 }] : undefined}
+      }), { bottom: MOBILE_BOTTOM_NAV_HEIGHT + insets.bottom + 18, zIndex: 30 }] : undefined}
     >
       <Pressable
         accessibilityLabel={label}

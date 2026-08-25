@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { Pressable, ScrollView, Text, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
+import { ScrollView, Text, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -15,6 +15,7 @@ import { useResponsiveLayout } from '../../../lib/responsive'
 import { enqueueOfflineMutation } from '../../../lib/offlineMutations'
 import { updateOfflineCache } from '../../../lib/offlineCache'
 import AppButton from '../../../components/ui/AppButton'
+import AppBackButton from '../../../components/ui/AppBackButton'
 import AppConfirmModal from '../../../components/AppConfirmModal'
 import OmniLoadingScreen from '../../../components/ui/OmniLoadingScreen'
 import {
@@ -394,9 +395,7 @@ export default function StudentClassDetailScreen() {
       <View className="flex-1 items-center justify-center bg-background-primary px-6">
         <Ionicons name="alert-circle-outline" size={52} color={tokens.semantic.danger} />
         <Text className="mt-4 text-center text-xl font-black text-white">No se encontró esta clase</Text>
-        <Pressable onPress={() => router.replace('/(student)/classes' as any)} className="mt-5 rounded-xl bg-brand-student px-5 py-3">
-          <Text className="font-bold text-white">Volver a clases</Text>
-        </Pressable>
+        <AppBackButton label="Volver a clases" style={{ marginTop: 20 }} onPress={() => router.replace('/(student)/classes' as any)} />
       </View>
     )
   }

@@ -1,6 +1,7 @@
 import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React from 'react'
 import { RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
@@ -32,7 +33,7 @@ export default function TeacherAuditScreen() {
   if (audit.loading) return <OmniLoadingScreen />
 
   return (
-    <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
       <View className="flex-1 flex-row">
         {isDesktop ? <TeacherSidebar activeSection="audit" subjectsCount={audit.subjectsCount} onSignOut={handleSignOut} /> : null}
         <ScrollView
@@ -79,6 +80,6 @@ export default function TeacherAuditScreen() {
         </ScrollView>
       </View>
       {!isDesktop ? <TeacherBottomNav active="audit" /> : null}
-    </View>
+    </SafeAreaView>
   )
 }

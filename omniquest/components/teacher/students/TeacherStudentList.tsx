@@ -209,8 +209,8 @@ export const NoActivityQuickActions = React.memo(function NoActivityQuickActions
   onRequestPasswordRecovery: (student: StudentRow) => void
 }) {
   return (
-    <View className="mt-4 rounded-xl border border-border-default bg-surface-raised p-3">
-      <View className="mb-3 flex-row items-center gap-2">
+    <View className="mt-3 rounded-xl border border-border-default bg-surface-raised p-2.5">
+      <View className="mb-2 flex-row items-center gap-2">
         <Ionicons name="mail-unread-outline" size={16} color="#C4B5FD" />
         <Text className="text-[12px] font-black text-white">Acciones de primer acceso</Text>
       </View>
@@ -247,7 +247,7 @@ export const QuickStudentAction = React.memo(function QuickStudentAction({
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      className="flex-row items-center gap-2 rounded-lg border border-border-active bg-surface-interactive px-3 py-2"
+      className="min-h-9 flex-row items-center gap-1.5 rounded-lg border border-border-active bg-surface-interactive px-2.5 py-1.5"
       style={({ pressed }) => ({ opacity: disabled ? 0.55 : pressed ? 0.82 : 1 })}
     >
       {disabled ? <ActivityIndicator size="small" color="#C4B5FD" /> : <Ionicons name={icon} size={14} color="#C4B5FD" />}

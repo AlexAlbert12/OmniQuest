@@ -58,10 +58,15 @@ function NotificationListItem({
     })
   }, [onDelete, onMarkAsRead, resetPosition, translateX])
 
+  const shouldStartSwipe = useCallback((_event: unknown, gesture: { dx: number; dy: number }) => (
+    swipeEnabled && Math.abs(gesture.dx) > 8 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.15
+  ), [swipeEnabled])
+
   const panResponder = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_event, gesture) => (
-      swipeEnabled && Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy)
-    ),
+    onMoveShouldSetPanResponder: shouldStartSwipe,
+    onMoveShouldSetPanResponderCapture: shouldStartSwipe,
+    onPanResponderGrant: () => translateX.stopAnimation(),
+    onPanResponderTerminationRequest: () => false,
     onPanResponderMove: (_event, gesture) => {
       const min = -SWIPE_LIMIT
       const max = notification.isRead ? 0 : SWIPE_LIMIT
@@ -79,7 +84,7 @@ function NotificationListItem({
       resetPosition()
     },
     onPanResponderTerminate: resetPosition,
-  }), [commitAction, notification.isRead, resetPosition, swipeEnabled, translateX])
+  }), [commitAction, notification.isRead, resetPosition, shouldStartSwipe, translateX])
 
   return (
     <View className="w-full overflow-hidden rounded-2xl" style={{ backgroundColor: tokens.surface.interactive }}>

@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
@@ -599,7 +600,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   )
 
   return (
-    <View className="flex-1" style={{ backgroundColor: colors.background }}>
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1" style={{ backgroundColor: colors.background }}>
       <View className="flex-1 flex-row">
         {isDesktop ? role === 'teacher' ? (
           <TeacherSidebar activeSection="settings" subjectsCount={subjectsCount} onSignOut={handleSignOut} alias={shellAlias} avatar={shellAvatar} />
@@ -617,11 +618,11 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
             accessibilityLabel={t('settings.back')}
             hitSlop={8}
             onPress={backToSettings}
-            className="mb-3 flex-row items-center gap-2 self-start rounded-lg px-1 py-2"
-            style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
+            className="mb-3 flex-row items-center gap-2 self-start rounded-xl border px-3 py-2"
+            style={({ pressed }) => ({ minHeight: 38, borderColor: accentColor, backgroundColor: accentColor, opacity: pressed ? 0.8 : 1 })}
           >
-            <Ionicons name="arrow-back" size={18} color={accentColor} />
-            <Text className="text-[13px] font-bold" style={{ color: accentColor }}>{t('settings.back')}</Text>
+            <Ionicons name="arrow-back" size={16} color="#FFFFFF" />
+            <Text className="text-[12px] font-black text-white">{t('settings.back')}</Text>
           </Pressable>
 
           <RolePageHeader
@@ -664,7 +665,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
         </ScrollView>
       </View>
       {!isDesktop ? role === 'teacher' ? <TeacherBottomNav active="settings" /> : <StudentBottomNav active="settings" /> : null}
-    </View>
+    </SafeAreaView>
   )
 }
 

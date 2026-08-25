@@ -17,7 +17,7 @@ test('admin More links directly to account security and the obsolete settings ro
   assert.match(settingsRoute, /<Redirect href="\/\(admin\)\/security" \/>/)
 })
 
-test('admin security uses the lightweight context, explicit More navigation and admin identity accents', () => {
+test('admin security uses the lightweight context, explicit More navigation and the shared blue back action', () => {
   const security = read('app/(admin)/security.tsx')
   assert.match(security, /useAdminPortalContext\(\)/)
   assert.doesNotMatch(security, /useAdminData\(\)/)
@@ -25,7 +25,7 @@ test('admin security uses the lightweight context, explicit More navigation and 
   assert.match(security, /router\.replace\('\/\(admin\)\/more'/)
   assert.doesNotMatch(security, /router\.back\(\)/)
   assert.match(security, /Volver a Más/)
-  assert.match(security, /tokens\.brand\.admin/)
+  assert.match(security, /<AppBackButton[\s\S]*label="Volver a Más"/)
   assert.match(security, /<ManagedSessionsCard role="admin" splitSections \/>/)
   assert.match(security, /showModal\(\{ title: 'Cerrar sesión'/)
 })

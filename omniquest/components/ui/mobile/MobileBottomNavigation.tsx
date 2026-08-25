@@ -5,6 +5,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAppTheme } from '../../../lib/appTheme'
 import { releaseWebFocus } from '../../../lib/webFocus'
+import { withAlpha } from '../../../lib/color'
 
 export type MobileBottomNavigationItem<Key extends string> = {
   key: Key
@@ -53,6 +54,10 @@ export default function MobileBottomNavigation<Key extends string>({
         style={({ pressed }) => [
           styles.item,
           scrollable ? styles.scrollableItem : styles.flexItem,
+          {
+            backgroundColor: isActive ? withAlpha(accentColor, '18') : 'transparent',
+            borderColor: isActive ? withAlpha(accentColor, '70') : 'transparent',
+          },
           pressed && !isActive && styles.pressedItem,
         ]}
       >
@@ -71,6 +76,9 @@ export default function MobileBottomNavigation<Key extends string>({
         </View>
 
         <Text
+          adjustsFontSizeToFit
+          maxFontSizeMultiplier={1.2}
+          minimumFontScale={0.82}
           numberOfLines={1}
           style={[
             styles.label,
@@ -131,13 +139,14 @@ const styles = StyleSheet.create({
   navigationSurface: {
     height: 82,
     width: '100%',
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
   },
   row: {
     width: '100%',
     height: '100%',
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   scrollContent: {
     minWidth: '100%',
@@ -150,10 +159,13 @@ const styles = StyleSheet.create({
     height: 70,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
+    paddingHorizontal: 4,
+    borderRadius: 14,
+    borderWidth: 1,
   },
   flexItem: {
     flex: 1,
+    flexBasis: 0,
     minWidth: 0,
   },
   scrollableItem: {
@@ -182,7 +194,7 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   label: {
-    width: '100%',
+    maxWidth: '100%',
     marginTop: 2,
     fontSize: 11.5,
     lineHeight: 14,

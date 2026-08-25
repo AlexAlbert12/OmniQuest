@@ -1,11 +1,11 @@
 import React from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import type { ConfirmDialog, IconName, StudentRow } from './types';
 import { formatDate, formatRelativeDate, getStatusMeta } from './studentUtils';
 import AppConfirmModal from '../../AppConfirmModal';
 import { useResponsiveLayout } from '../../../lib/responsive';
+import { withAlpha } from '../../../lib/color';
 
 export function StudentActionsModal({
   student,
@@ -148,11 +148,11 @@ export function StudentDetailModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View className={`flex-1 ${isPhone ? 'justify-end' : 'justify-center p-4 md:items-center'}`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.62)' }}>
         <Pressable accessibilityRole="button" accessibilityLabel="Cerrar detalle del estudiante" accessibilityHint="Cierra el diálogo" className="absolute inset-0" onPress={onClose} />
-        <View accessibilityViewIsModal accessibilityLabel={`Detalle de ${student.alias}`} className={`${isPhone ? 'max-h-[94%] w-full rounded-t-3xl p-5' : 'max-h-[92%] w-full max-w-[620px] rounded-2xl p-5'} border border-border-default bg-surface-default`}>
+        <View accessibilityViewIsModal accessibilityLabel={`Detalle de ${student.alias}`} className={`${isPhone ? 'max-h-[92%] w-full rounded-t-3xl p-4' : 'max-h-[90%] w-full max-w-[580px] rounded-2xl p-4'} border border-border-default bg-surface-default`}>
           <View className="flex-row items-start justify-between gap-4">
             <View className="min-w-0 flex-1">
               <Text className="text-[13px] font-semibold text-semantic-info">Detalle del estudiante</Text>
-              <Text accessibilityRole="header" className="mt-1 text-[24px] font-black text-white" numberOfLines={2} maxFontSizeMultiplier={2}>{student.alias}</Text>
+              <Text accessibilityRole="header" className="mt-0.5 text-[21px] font-black text-white" numberOfLines={1} maxFontSizeMultiplier={2}>{student.alias}</Text>
               <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>{student.handle}</Text>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel="Cerrar detalle" accessibilityHint="Cierra el diálogo" onPress={onClose} className="min-h-10 min-w-10 items-center justify-center rounded-xl border border-border-default bg-surface-raised">
@@ -160,9 +160,9 @@ export function StudentDetailModal({
             </Pressable>
           </View>
 
-          <ScrollView className="mt-5" showsVerticalScrollIndicator={false}>
-            <View className="gap-4">
-              <View className="flex-row flex-wrap gap-3">
+          <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
+            <View className="gap-3">
+              <View className="flex-row flex-wrap gap-2">
                 <DetailMetric label="Precisión" value={student.hasActivity ? `${student.accuracyPercent}%` : 'Sin datos'} color="#38BDF8" />
                 <DetailMetric label="Intentos" value={student.challenges.toLocaleString()} color="#8B5CF6" />
                 <DetailMetric label="Preguntas respondidas" value={student.questions.toLocaleString()} color="#A78BFA" />
@@ -170,7 +170,7 @@ export function StudentDetailModal({
                 <DetailMetric label="Equivalencia /10" value={student.hasActivity ? `${student.averageScore.toFixed(1)} /10` : 'Sin datos'} color="#F6A64A" />
               </View>
 
-              <View className="rounded-xl border border-border-default bg-surface-default p-4">
+              <View className="rounded-xl border border-border-default bg-surface-default p-3">
                 <View className="flex-row flex-wrap items-center justify-between gap-3">
                   <View className="min-w-0 flex-1">
                     <Text className="text-[12px] font-bold text-text-muted">Estado</Text>
@@ -178,9 +178,9 @@ export function StudentDetailModal({
                       <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: status.color }} />
                       <Text className="font-black" style={{ color: status.color }}>{status.label}</Text>
                     </View>
-                    <Text className="mt-2 text-[12px] leading-5 text-text-secondary">{status.description}</Text>
+                    <Text className="mt-1.5 text-[11px] leading-4 text-text-secondary">{status.description}</Text>
                   </View>
-                  <View className="rounded-xl border border-border-default bg-surface-raised px-4 py-3">
+                  <View className="rounded-xl border border-border-default bg-surface-raised px-3 py-2.5">
                     <Text className="text-[11px] text-text-muted">Última actividad</Text>
                     <Text className="mt-1 text-[13px] font-black text-white">{formatRelativeDate(student.lastActivityAt)}</Text>
                   </View>
@@ -190,7 +190,7 @@ export function StudentDetailModal({
               <DetailSection title="Cursos y clases">
                 <View className="gap-2">
                   {student.courseContexts.map((context) => (
-                    <View key={`${context.subjectId}:${context.classroomId ?? 'general'}`} className="rounded-xl border border-border-default bg-surface-default p-3">
+                    <View key={`${context.subjectId}:${context.classroomId ?? 'general'}`} className="rounded-xl border border-border-default bg-surface-default p-2.5">
                       <Text className="text-[13px] font-black text-white">{context.subjectName}</Text>
                       <Text className="mt-1 text-[12px] text-text-secondary">Clase: {context.classroomName}</Text>
                       <Text className="mt-1 text-[11px] text-text-muted">Inscrito: {formatDate(context.joinedAt)}</Text>
@@ -205,7 +205,7 @@ export function StudentDetailModal({
               <DetailSection title="Áreas a reforzar">
                 <View className="gap-2">
                   {student.weakAreas.map((area) => (
-                    <View key={`${area.title}:${area.detail}`} className="rounded-xl border border-border-default bg-semantic-surface-danger p-3">
+                    <View key={`${area.title}:${area.detail}`} className="rounded-xl border border-border-default bg-semantic-surface-danger p-2.5">
                       <View className="flex-row items-start justify-between gap-3">
                         <View className="min-w-0 flex-1">
                           <Text className="text-[13px] font-black text-white" numberOfLines={2}>{area.title}</Text>
@@ -231,7 +231,7 @@ export function StudentDetailModal({
               <DetailSection title="Últimos intentos">
                 <View className="gap-2">
                   {student.recentAttempts.slice(0, 5).map((attempt) => (
-                    <View key={attempt.id} className="rounded-xl border border-border-default bg-surface-default p-3">
+                    <View key={attempt.id} className="rounded-xl border border-border-default bg-surface-default p-2.5">
                       <View className="flex-row items-start gap-3">
                         <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: attempt.isCorrect ? '#22C55E24' : '#EF444424' }}>
                           <Ionicons name={attempt.isCorrect ? 'checkmark' : 'close'} size={17} color={attempt.isCorrect ? '#22C55E' : '#FB7185'} />
@@ -333,7 +333,7 @@ export function ModalActionButton({
         <Ionicons name={icon} size={19} color={destructive ? '#FF8A8A' : '#B9A7FF'} />
       </View>
       <View className="min-w-0 flex-1">
-        <Text className={`font-black ${destructive ? 'text-gamification-badge' : 'text-white'}`}>{title}</Text>
+        <Text className={`font-black ${destructive ? 'text-semantic-danger' : 'text-white'}`}>{title}</Text>
         <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={2}>{detail}</Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color="#8FA7C7" />
@@ -343,21 +343,23 @@ export function ModalActionButton({
 
 export function DetailMetric({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <MobileMetricCard
-      className="min-w-[140px] flex-1 rounded-xl"
-      color={color}
-      compact
-      icon="analytics"
-      label={label}
-      value={value}
-    />
+    <View
+      accessible
+      accessibilityLabel={`${label}: ${value}`}
+      className="min-w-[100px] flex-1 rounded-xl border px-3 py-2.5"
+      style={{ minHeight: 78, borderColor: withAlpha(color, '70'), backgroundColor: withAlpha(color, '18') }}
+    >
+      <Ionicons name="analytics" size={15} color={color} />
+      <Text className="mt-1 text-[18px] font-black text-white" numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      <Text className="mt-0.5 text-[10px] font-bold text-text-secondary" numberOfLines={2}>{label}</Text>
+    </View>
   )
 }
 
 export function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View className="rounded-xl border border-border-default bg-surface-default p-4">
-      <Text className="mb-3 font-black text-white">{title}</Text>
+    <View className="rounded-xl border border-border-default bg-surface-default p-3">
+      <Text className="mb-2 text-[14px] font-black text-white">{title}</Text>
       {children}
     </View>
   );

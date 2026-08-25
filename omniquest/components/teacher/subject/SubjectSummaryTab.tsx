@@ -2,9 +2,10 @@ import React from 'react'
 import { Link } from 'expo-router'
 import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import AppButton from '../../ui/AppButton'
-import { GradeDistributionBars, SubjectPanel } from './SubjectShared'
+import { GradeDistributionBars, SubjectKpiCard, SubjectPanel } from './SubjectShared'
+import { useAppTheme } from '../../../lib/appTheme'
+import { withAlpha } from '../../../lib/color'
 import type { ActivityItem, Subject } from '../../../hooks/teacher/useTeacherSubjectDetail'
 import type { TeacherSubjectOverview } from '../../../lib/teacherServerData'
 
@@ -30,14 +31,15 @@ export default function SubjectSummaryTab({
   subject: Subject
 }) {
   const summary = overview.summary
+  const { tokens } = useAppTheme()
 
   return (
     <View className="gap-5">
-      <View className={isDesktop ? 'flex-row gap-4' : 'flex-row flex-wrap gap-3'}>
-        <SummaryMetric icon="people-outline" label="Participación" value={`${summary.participation}%`} detail={`${summary.activeStudents}/${summary.enrolledCount} alumnos con actividad`} />
-        <SummaryMetric icon="shield-checkmark-outline" label="Precisión global" value={`${summary.averageAccuracy}%`} detail={`${summary.correctAnswers}/${summary.totalAnswers} respuestas correctas`} />
-        <SummaryMetric icon="star-outline" label="XP media" value={`${summary.averageXp} XP`} detail="Media del alumnado matriculado" />
-        <SummaryMetric icon="analytics-outline" label="Progreso" value={`${summary.progress}%`} detail={`${summary.answeredClassQuestions}/${summary.possibleClassQuestions} combinaciones respondidas`} />
+      <View className={isDesktop ? 'flex-row gap-4' : 'flex-row gap-2'}>
+        <SubjectKpiCard isDesktop={isDesktop} icon="people-outline" label="Participación" value={`${summary.participation}%`} detail={`${summary.activeStudents}/${summary.enrolledCount} alumnos con actividad`} />
+        <SubjectKpiCard isDesktop={isDesktop} icon="shield-checkmark-outline" label="Precisión global" value={`${summary.averageAccuracy}%`} detail={`${summary.correctAnswers}/${summary.totalAnswers} respuestas correctas`} />
+        <SubjectKpiCard isDesktop={isDesktop} icon="star-outline" label="XP media" value={`${summary.averageXp} XP`} detail="Media del alumnado matriculado" />
+        <SubjectKpiCard isDesktop={isDesktop} icon="analytics-outline" label="Progreso" value={`${summary.progress}%`} detail={`${summary.answeredClassQuestions}/${summary.possibleClassQuestions} combinaciones respondidas`} />
       </View>
 
       <View className={isDesktop ? 'flex-row gap-6' : 'gap-5'}>
@@ -93,7 +95,9 @@ export default function SubjectSummaryTab({
 
           <View className="rounded-xl border border-border-active bg-surface-selected p-5">
             <View className="flex-row items-center gap-3">
-              <Ionicons name="qr-code-outline" size={24} color="#A78BFA" />
+              <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(tokens.brand.teacher, '24') }}>
+                <Ionicons name="qr-code-outline" size={23} color={tokens.brand.teacher} />
+              </View>
               <Text className="font-black text-text-primary">Código del curso</Text>
             </View>
             <Text className="mt-3 text-[12px] leading-5 text-text-secondary">Comparte este código para que el alumnado se una.</Text>
@@ -108,23 +112,5 @@ export default function SubjectSummaryTab({
         </View>
       </View>
     </View>
-  )
-}
-
-function SummaryMetric({ icon, label, value, detail }: {
-  icon: keyof typeof Ionicons.glyphMap
-  label: string
-  value: string
-  detail: string
-}) {
-  return (
-    <MobileMetricCard
-      className="min-w-[190px] flex-1"
-      color="#8B5CF6"
-      detail={detail}
-      icon={icon}
-      label={label}
-      value={value}
-    />
   )
 }

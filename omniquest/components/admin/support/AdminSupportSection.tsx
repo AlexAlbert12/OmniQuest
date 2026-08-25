@@ -12,6 +12,7 @@ import { fetchAdminSupportDirectory, fetchSupportThread, openSupportAttachment, 
 import AdminButton from '../shared/AdminButton'
 import AdminSearchBar from '../shared/AdminSearchBar'
 import VirtualizedStack from '../../ui/VirtualizedStack'
+import AppBackButton from '../../ui/AppBackButton'
 import { AdminFilterSelect, AdminMobileFilterShell } from '../shared/AdminAdvancedFilters'
 import { useAdminData } from '../hooks/useAdminData'
 import { useAdminExportJobs } from '../hooks/useAdminExportJobs'
@@ -205,7 +206,7 @@ export function AdminSupportSection() {
   return (
     <AdminScaffold activeSection="support" title="Soporte" subtitle="Gestiona solicitudes, conversación, SLA y coordinación interna desde una única cola." data={data}>
       {selectedTicket ? <Panel title={`Gestionar ticket #${selectedTicket.id}`} icon="chatbubble-ellipses-outline" className="mt-5">
-        {!isDesktop ? <View className="mb-4"><AdminButton label="Volver a soporte" icon="arrow-back" variant="secondary" onPress={closeTicket} /></View> : null}
+        {!isDesktop ? <View className="mb-4"><AppBackButton label="Volver a soporte" onPress={closeTicket} /></View> : null}
         <View className={isDesktop ? 'flex-row gap-5' : 'gap-4'}>
           <View className="min-w-0 flex-1">
             <View className="flex-row flex-wrap items-center gap-2"><SupportStatusPill status={selectedTicket.status} /><SupportPriorityPill priority={selectedTicket.priority} /><SupportSlaPill state={selectedTicket.sla_state} /><MiniPill icon={selectedTicket.role === 'teacher' ? 'school-outline' : 'person-outline'} label={selectedTicket.role === 'teacher' ? 'Profesor' : 'Alumno'} /></View>
@@ -227,7 +228,7 @@ export function AdminSupportSection() {
             <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Respuesta al usuario</Text><TextInput accessibilityLabel="Respuesta pública del administrador" className="mt-2 min-h-[130px] rounded-xl border border-border-default bg-surface-default px-4 py-3 text-[14px] leading-5 text-text-primary" multiline onChangeText={setAdminResponse} placeholder="Explica la solución o los siguientes pasos..." placeholderTextColor={tokens.text.muted} textAlignVertical="top" value={adminResponse} />
             <Pressable accessibilityRole="button" accessibilityLabel="Añadir adjunto" onPress={() => void chooseAttachment()} className="mt-3 flex-row items-center justify-center gap-2 rounded-xl border border-border-default bg-surface-default px-4 py-3"><Ionicons name="attach-outline" size={17} color={tokens.text.secondary} /><Text className="font-black text-text-secondary">{pickedAttachment ? pickedAttachment.fileName : 'Añadir adjunto'}</Text></Pressable>{pickedAttachment ? <Pressable accessibilityRole="button" accessibilityLabel="Quitar adjunto" onPress={() => setPickedAttachment(null)} className="mt-2 self-end"><Text className="text-[11px] font-black text-semantic-danger">Quitar adjunto</Text></Pressable> : null}
             <View className="mt-4 rounded-xl border p-3" style={{ borderColor: withAlpha(tokens.brand.admin, '70'), backgroundColor: withAlpha(tokens.brand.admin, '0D') }}><View className="flex-row items-center gap-2"><Ionicons name="lock-closed-outline" size={15} color={tokens.brand.admin} /><View className="min-w-0 flex-1"><Text className="text-[12px] font-black uppercase tracking-[0.7px] text-text-primary">Comentario interno</Text><Text className="mt-0.5 text-[11px] text-text-muted">Visible solo para administradores</Text></View></View><TextInput accessibilityLabel="Comentario interno del administrador" className="mt-3 min-h-[100px] rounded-xl border border-border-default bg-surface-default px-4 py-3 text-[14px] leading-5 text-text-primary" multiline onChangeText={setInternalComment} placeholder="Añade contexto para el equipo de soporte..." placeholderTextColor={tokens.text.muted} textAlignVertical="top" value={internalComment} /></View>
-            <View className="mt-4 flex-row flex-wrap justify-end gap-2"><AdminButton label="Volver a la cola" icon="arrow-back" variant="secondary" onPress={closeTicket} /><AdminButton label={saving ? 'Guardando...' : notifiesUser ? 'Guardar y notificar' : 'Guardar cambios'} icon="save-outline" loading={saving} disabled={saving || !canManage} onPress={() => void saveTicket()} /></View>
+            <View className="mt-4 flex-row flex-wrap justify-end gap-2"><AppBackButton label="Volver a la cola" onPress={closeTicket} /><AdminButton label={saving ? 'Guardando...' : notifiesUser ? 'Guardar y notificar' : 'Guardar cambios'} icon="save-outline" loading={saving} disabled={saving || !canManage} onPress={() => void saveTicket()} /></View>
           </View>
         </View>
       </Panel> : null}

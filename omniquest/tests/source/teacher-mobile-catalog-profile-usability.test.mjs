@@ -20,7 +20,7 @@ test('teacher mobile course cards use the shared default border and create CTA c
   const cta = read('components/teacher/classes/CreateCourseCTA.tsx')
   assert.match(card, /border border-border-default bg-surface-default/)
   assert.doesNotMatch(card, /borderColor: needsAttention/)
-  assert.match(cta, /MOBILE_BOTTOM_NAV_HEIGHT \+ 14/)
+  assert.match(cta, /MOBILE_BOTTOM_NAV_HEIGHT \+ insets\.bottom \+ 18/)
   assert.doesNotMatch(cta, /bottom-\[82px\]/)
 })
 

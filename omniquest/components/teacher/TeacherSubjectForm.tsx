@@ -1,8 +1,8 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react'
 import { Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../../lib/supabase'
 import { COURSE_ICON_CHOICES, normalizeAcademicIcon, type AcademicIconName } from '../../lib/academicIcons'
 import { formatCount } from '../../lib/formatCount'
@@ -258,7 +258,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
   )
 
   return (
-    <View className="flex-1 bg-background-primary">
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-background-primary">
       <View className="absolute inset-0 bg-background-primary" />
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: isWide ? 20 : 112 + insets.bottom }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pb-5 pt-4 md:px-6 lg:px-8">
@@ -373,7 +373,7 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
           {actionButtons}
         </View>
       ) : null}
-    </View>
+    </SafeAreaView>
   )
 }
 

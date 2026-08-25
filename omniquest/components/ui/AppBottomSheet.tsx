@@ -148,9 +148,9 @@ const styles = StyleSheet.create({
   },
   header: {
     flexShrink: 0,
-    minHeight: 70,
+    minHeight: 58,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -174,7 +174,8 @@ const styles = StyleSheet.create({
   },
   content: {
     width: '100%',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
   },
   scrollContent: {
     minHeight: 0,
@@ -184,6 +185,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     borderTopWidth: 1,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
 })

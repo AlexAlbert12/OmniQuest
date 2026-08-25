@@ -29,11 +29,18 @@ export default function NotificationBadge({
   const segments = useSegments()
   const inferredAudience: NotificationAudience =
     audience ?? (segments && segments[0] === '(teacher)' ? 'teacher' : 'student')
-  const { unreadCount } = useNotifications(inferredAudience)
+  const { refresh, unreadCount } = useNotifications(inferredAudience)
   const [calculatedStreakDays, setCalculatedStreakDays] = useState(0)
   const shouldShowStreak = showStreak ?? audience === 'student'
   const displayCount = count ?? unreadCount
   const displayStreakDays = streakDays ?? calculatedStreakDays
+
+  useFocusEffect(
+    useCallback(() => {
+      if (typeof count === 'number') return
+      void refresh()
+    }, [count, refresh])
+  )
 
   useFocusEffect(
     useCallback(() => {

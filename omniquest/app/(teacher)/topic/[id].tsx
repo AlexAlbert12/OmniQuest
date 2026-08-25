@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -16,6 +17,7 @@ import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader'
 import TeacherTopicOverview, { TeacherTopicAddQuestionCTA } from '../../../components/teacher/topic/TeacherTopicOverview'
 import AppButton from '../../../components/ui/AppButton'
+import AppBackButton from '../../../components/ui/AppBackButton'
 import AppTabs from '../../../components/ui/AppTabs'
 import PaginationControls from '../../../components/ui/PaginationControls'
 import AppConfirmModal from '../../../components/AppConfirmModal'
@@ -108,7 +110,7 @@ export default function TopicDetailScreen() {
     return (
       <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: tokens.background.primary }}>
         <AppStatusBanner variant="danger" title="No se pudo cargar el tema" message={detail.error} />
-        <AppButton label="Volver a cursos" variant="secondary" style={{ marginTop: 18 }} onPress={() => router.replace('/(teacher)/classes' as never)} />
+        <AppBackButton label="Volver a cursos" style={{ marginTop: 18 }} onPress={() => router.replace('/(teacher)/classes' as never)} />
       </View>
     )
   }
@@ -116,7 +118,7 @@ export default function TopicDetailScreen() {
   if (!topic || !subject || !summary) return <LoadingState />
 
   return (
-    <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <TeacherSidebar activeSection="classes" subjectsCount={summary.subjectsCount} onSignOut={handleSignOut} />
@@ -295,7 +297,7 @@ export default function TopicDetailScreen() {
         onCancel={() => setQuestionToDelete(null)}
         onConfirm={handleDeleteQuestion}
       />
-    </View>
+    </SafeAreaView>
   )
 }
 

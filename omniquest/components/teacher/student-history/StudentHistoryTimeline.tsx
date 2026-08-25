@@ -4,40 +4,60 @@ import { Ionicons } from '@expo/vector-icons'
 import PaginationControls from '../../ui/PaginationControls'
 import { useAppTheme } from '../../../lib/appTheme'
 import { formatCount } from '../../../lib/formatCount'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import type { TeacherStudentHistoryTimelineItem } from '../../../lib/teacherServerData'
 
 export default function StudentHistoryTimeline({ items, total, page, pageSize, onPage }: { items: TeacherStudentHistoryTimelineItem[]; total: number; page: number; pageSize: number; onPage: (page: number) => void }) {
   const { tokens } = useAppTheme()
+  const { isDesktop } = useResponsiveLayout()
   if (!items.length) return <Empty icon="time-outline" message="No hay actividad registrada en el historial." />
 
   return (
     <View>
       <View className="mb-3">
         <Text className="text-[14px] font-black" style={{ color: tokens.text.primary }}>Actividad histórica · {formatCount(total, 'intento', 'intentos')}</Text>
-        <Text className="mt-1 text-[12px]" style={{ color: tokens.text.muted }}>Se muestra el historial completo; el periodo de análisis no limita esta pestaña.</Text>
       </View>
       <View accessibilityRole="list" className="gap-3">
         {items.map((item) => {
           const state = getAttemptState(item, tokens)
           const answerText = item.was_skipped || item.answer_text === 'Sin respuesta registrada' ? 'Sin responder' : item.answer_text
           return (
-            <View key={item.id} accessible accessibilityLabel={`${item.question_text}. ${state.label}. ${item.earned_points} XP.`} className="rounded-2xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
-              <View className="flex-row flex-wrap items-start gap-3">
-                <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: state.background }}><Ionicons name={state.icon} size={20} color={state.color} /></View>
-                <View className="min-w-[230px] flex-1">
-                  <View className="flex-row flex-wrap items-center gap-2">
-                    <Text className="flex-1 font-black" style={{ color: tokens.text.primary }}>{item.question_text}</Text>
-                    <Text className="text-[10px] font-black uppercase" style={{ color: state.color }}>{state.label}</Text>
+            <View key={item.id} accessible accessibilityLabel={`${item.question_text}. ${state.label}. ${item.earned_points} XP.`} className={`rounded-2xl border ${isDesktop ? 'p-4' : 'p-3'}`} style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
+              {isDesktop ? (
+                <View className="flex-row flex-wrap items-start gap-3">
+                  <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: state.background }}><Ionicons name={state.icon} size={20} color={state.color} /></View>
+                  <View className="min-w-[230px] flex-1">
+                    <View className="flex-row flex-wrap items-center gap-2">
+                      <Text className="flex-1 font-black" style={{ color: tokens.text.primary }}>{item.question_text}</Text>
+                      <Text className="text-[10px] font-black uppercase" style={{ color: state.color }}>{state.label}</Text>
+                    </View>
+                    <Text className="mt-1 text-[12px]" style={{ color: tokens.text.muted }}>{item.subject_name} · {item.topic_title} · {formatDateTime(item.attempted_at)}</Text>
+                    <Text className="mt-3 text-[13px]" style={{ color: item.was_skipped ? tokens.text.muted : tokens.text.secondary }}>Respuesta: {answerText}</Text>
+                    {item.review_notes ? <Text className="mt-2 text-[12px]" style={{ color: tokens.semantic.info }}>Feedback: {item.review_notes}</Text> : null}
                   </View>
-                  <Text className="mt-1 text-[12px]" style={{ color: tokens.text.muted }}>{item.subject_name} · {item.topic_title} · {formatDateTime(item.attempted_at)}</Text>
-                  <Text className="mt-3 text-[13px]" style={{ color: item.was_skipped ? tokens.text.muted : tokens.text.secondary }}>Respuesta: {answerText}</Text>
-                  {item.review_notes ? <Text className="mt-2 text-[12px]" style={{ color: tokens.semantic.info }}>Feedback: {item.review_notes}</Text> : null}
+                  <View className="items-end">
+                    <Text className="font-black" style={{ color: tokens.gamification.xp }}>+{item.earned_points} XP</Text>
+                    {item.comments_count > 0 ? <Text className="mt-2 text-[11px]" style={{ color: tokens.text.muted }}>{formatCount(item.comments_count, 'comentario', 'comentarios')}</Text> : null}
+                  </View>
                 </View>
-                <View className="items-end">
-                  <Text className="font-black" style={{ color: tokens.gamification.xp }}>+{item.earned_points} XP</Text>
-                  {item.comments_count > 0 ? <Text className="mt-2 text-[11px]" style={{ color: tokens.text.muted }}>{formatCount(item.comments_count, 'comentario', 'comentarios')}</Text> : null}
+              ) : (
+                <View className="flex-row items-start gap-2.5">
+                  <View className="h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: state.background }}><Ionicons name={state.icon} size={18} color={state.color} /></View>
+                  <View className="min-w-0 flex-1">
+                    <View className="flex-row items-start gap-2">
+                      <Text className="min-w-0 flex-1 text-[13px] font-black leading-4" style={{ color: tokens.text.primary }} numberOfLines={2}>{item.question_text}</Text>
+                      <Text className="text-[9px] font-black uppercase" style={{ color: state.color }} numberOfLines={1}>{state.label}</Text>
+                    </View>
+                    <Text className="mt-1 text-[10px]" style={{ color: tokens.text.muted }} numberOfLines={1}>{item.subject_name} · {item.topic_title} · {formatDateTime(item.attempted_at)}</Text>
+                    <View className="mt-2 flex-row items-center justify-between gap-2">
+                      <Text className="min-w-0 flex-1 text-[11px]" style={{ color: item.was_skipped ? tokens.text.muted : tokens.text.secondary }} numberOfLines={1}>Respuesta: {answerText}</Text>
+                      <Text className="text-[12px] font-black" style={{ color: tokens.gamification.xp }}>+{item.earned_points} XP</Text>
+                    </View>
+                    {item.review_notes ? <Text className="mt-1.5 text-[11px]" style={{ color: tokens.semantic.info }} numberOfLines={2}>Feedback: {item.review_notes}</Text> : null}
+                    {item.comments_count > 0 ? <Text className="mt-1 text-[10px]" style={{ color: tokens.text.muted }}>{formatCount(item.comments_count, 'comentario', 'comentarios')}</Text> : null}
+                  </View>
                 </View>
-              </View>
+              )}
             </View>
           )
         })}

@@ -29,8 +29,6 @@ export function SubjectClassroomContextSelector({ classrooms, selectedClassroomI
             <Text className="text-[11px] font-black uppercase tracking-wide text-text-muted">Clase activa</Text>
             {!compact ? <Text className="mt-1 text-[12px] text-text-secondary">Este contexto se mantiene al cambiar entre Resumen, Temas, Preguntas, Alumnos y Analítica.</Text> : null}
           </View>
-        </View>
-        <View className={compact ? 'w-full' : 'min-w-[260px] flex-[0.8]'}>
           <AppDropdown
             accessibilityLabel="Seleccionar clase activa"
             value={selectedClassroomId ?? classrooms[0].id}
@@ -38,7 +36,6 @@ export function SubjectClassroomContextSelector({ classrooms, selectedClassroomI
               value: classroom.id,
               label: classroom.name,
               description: classroom.code ? `Código ${classroom.code}${classroom.academic_year ? ` · ${classroom.academic_year}` : ''}` : classroom.academic_year || undefined,
-              icon: 'people-outline',
             }))}
             onChange={onSelect}
           />
@@ -49,13 +46,11 @@ export function SubjectClassroomContextSelector({ classrooms, selectedClassroomI
 }
 
 export function SubjectClassroomsSection({
-  classrooms,
   creating,
   newClassroomName,
   onCreate,
   onNameChange,
 }: {
-  classrooms: Classroom[]
   creating: boolean
   newClassroomName: string
   onCreate: () => void
@@ -63,24 +58,19 @@ export function SubjectClassroomsSection({
 }) {
   return (
     <Panel title="Clases del curso">
-      <View className="rounded-xl border border-border-subtle bg-surface-raised p-3">
-        <Text className="text-[12px] text-text-secondary">
-          {classrooms.length === 1 ? '1 clase disponible.' : `${classrooms.length} clases disponibles.`} La clase activa se selecciona encima de las pestañas.
-        </Text>
-      </View>
-      <View className="mt-4 flex-row flex-wrap items-end gap-3 border-t border-border-subtle pt-4">
-        <View className="min-w-[240px] flex-1">
-          <Text className="mb-2 text-[12px] font-semibold text-text-secondary">Nueva clase dentro del curso</Text>
+      <View className="border-t border-border-subtle pt-3">
+        <Text className="mb-2 text-[12px] font-semibold text-text-secondary">Nueva clase dentro del curso</Text>
+        <View className="flex-row items-center gap-2">
           <TextInput
             accessibilityLabel="Nombre de la nueva clase"
-            className="rounded-xl border border-border-default bg-surface-default px-4 py-3 text-white"
+            className="min-w-0 flex-1 rounded-xl border border-border-default bg-surface-default px-4 py-3 text-white"
             placeholder="Ej. Grupo A, 1º DAM tarde..."
             placeholderTextColor="#60799C"
             value={newClassroomName}
             onChangeText={onNameChange}
           />
+          <AppButton label="Crear clase" accessibilityLabel={creating ? 'Creando clase' : 'Crear clase'} icon="add" loading={creating} disabled={creating} role="teacher" variant="primary" onPress={onCreate} />
         </View>
-        <AppButton label="Crear clase" accessibilityLabel={creating ? 'Creando clase' : 'Crear clase'} icon="add" loading={creating} disabled={creating} role="teacher" onPress={onCreate} />
       </View>
     </Panel>
   )
@@ -160,9 +150,6 @@ export function SubjectTopicsSection({
             </View>
             <View className="min-w-0 flex-1">
               <Text className="font-black text-white" numberOfLines={1}>{topic.title}</Text>
-              <Text className="mt-1 text-[12px] text-text-muted">
-                {topic.questionsCount} preguntas · {topic.playedCount} resultados · {topic.averageScore} XP media
-              </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#8FA7C7" />
           </Pressable>

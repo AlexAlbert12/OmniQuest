@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { Animated, Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { Animated, Modal, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import OmniGuide from '../OmniGuide'
@@ -96,7 +96,7 @@ export default function BadgeUnlockModal({
             colors={[withAlpha(badge.color, '35'), tokens.surface.raised]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            className="flex-row items-center justify-between border-b px-5 py-4"
+            className="items-center justify-center border-b px-5 py-4"
             style={{ borderBottomColor: withAlpha(badge.color, '66') }}
           >
             <View className="flex-row items-center gap-2 rounded-full border px-4 py-2" style={{ borderColor: withAlpha(tokens.gamification.xp, '99'), backgroundColor: withAlpha(tokens.gamification.xp, '18') }}>
@@ -105,16 +105,6 @@ export default function BadgeUnlockModal({
                   Logro desbloqueado
                 </Text>
             </View>
-            <Pressable
-              accessibilityLabel="Cerrar logro"
-              accessibilityRole="button"
-              hitSlop={8}
-              onPress={onClose}
-              className="h-10 w-10 items-center justify-center rounded-full border"
-              style={({ pressed }) => ({ borderColor: tokens.border.active, backgroundColor: tokens.surface.interactive, opacity: pressed ? 0.76 : 1 })}
-            >
-              <Ionicons name="close" size={21} color={tokens.text.secondary} />
-            </Pressable>
           </LinearGradient>
 
           <ScrollView contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 24, paddingBottom: 24, paddingTop: 20 }} showsVerticalScrollIndicator={false}>
@@ -144,21 +134,25 @@ export default function BadgeUnlockModal({
             <Text className="mt-2 text-center text-[30px] font-black leading-[38px] text-white">{badge.title}</Text>
             <Text className="mt-2 max-w-[390px] text-center text-[14px] leading-6 text-text-secondary">{badge.requirement}</Text>
 
-            <LinearGradient
-              colors={[withAlpha(tokens.gamification.xp, '2E'), tokens.surface.raised]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              className="mt-5 w-full flex-row items-center rounded-2xl border px-4 py-4"
-              style={{ borderColor: withAlpha(tokens.gamification.xp, 'AA') }}
+            <View
+              className="mt-5 w-full overflow-hidden rounded-2xl border"
+              style={{ borderColor: withAlpha(tokens.gamification.xp, 'AA'), borderRadius: 16, overflow: 'hidden' }}
             >
-              <View className="h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(tokens.gamification.xp, '26') }}>
-                <Ionicons name="flash" size={25} color={tokens.gamification.xp} />
-              </View>
-              <View className="ml-3 min-w-0 flex-1">
-                <Text className="text-[11px] font-black uppercase tracking-[0.1em] text-text-secondary">Recompensa conseguida</Text>
-                <Text className="mt-0.5 text-[21px] font-black" style={{ color: tokens.gamification.xp }}>{badge.xp}</Text>
-              </View>
-            </LinearGradient>
+              <LinearGradient
+                colors={[withAlpha(tokens.gamification.xp, '2E'), tokens.surface.raised]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                className="flex-row items-center px-4 py-4"
+              >
+                <View className="h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(tokens.gamification.xp, '26') }}>
+                  <Ionicons name="flash" size={25} color={tokens.gamification.xp} />
+                </View>
+                <View className="ml-3 min-w-0 flex-1">
+                  <Text className="text-[11px] font-black uppercase tracking-[0.1em] text-text-secondary">Recompensa conseguida</Text>
+                  <Text className="mt-0.5 text-[21px] font-black" style={{ color: tokens.gamification.xp }}>{badge.xp}</Text>
+                </View>
+              </LinearGradient>
+            </View>
 
             {remainingCount > 0 ? (
               <View className="mt-3 w-full rounded-xl px-3 py-2" style={{ backgroundColor: tokens.semanticSurface.info }}>
@@ -175,6 +169,7 @@ export default function BadgeUnlockModal({
               label={remainingCount > 0 ? 'Ver siguiente logro' : '¡Genial!'}
               onPress={onClose}
               role="student"
+              variant="primary"
               style={{ marginTop: 20 }}
             />
           </ScrollView>

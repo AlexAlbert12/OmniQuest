@@ -1,6 +1,6 @@
 import React from 'react'
 import { Alert, ScrollView, Text, useWindowDimensions, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import TeacherPageHeader from './TeacherPageHeader'
 import { useAppTheme } from '../../lib/appTheme'
 import AppButton from '../ui/AppButton'
@@ -92,7 +92,7 @@ export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
   )
 
   return (
-    <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: isDesktop ? 30 : 126 + insets.bottom }}
@@ -262,7 +262,7 @@ export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
           </View>
         </View>
       ) : null}
-    </View>
+    </SafeAreaView>
   )
 }
 

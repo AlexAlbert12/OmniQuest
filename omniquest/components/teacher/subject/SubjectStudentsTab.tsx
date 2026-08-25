@@ -1,22 +1,20 @@
 import React from 'react'
-import { Pressable, Text, TextInput, View } from 'react-native'
+import { Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
+import AppButton from '../../ui/AppButton'
 import AppDropdown from '../../ui/AppDropdown'
 import PaginationControls from '../../ui/PaginationControls'
 import VirtualizedStack from '../../ui/VirtualizedStack'
 import {
   getGradeColor,
-  getStudentSortLabel,
   getStudentStatus,
-  getStudentStatusFilterLabel,
   getStudentStatusMeta,
   slugifyStudentName,
   type StudentReport,
   type StudentSortKey,
   type StudentStatusFilter,
 } from '../../../lib/teacherSubjectAnalytics'
-import { SubjectPanel, GradeDistributionBars } from './SubjectShared'
+import { SubjectPanel, GradeDistributionBars, SubjectKpiCard } from './SubjectShared'
 import { formatCount } from '../../../lib/formatCount'
 import StudentProfileAvatar from '../students/StudentProfileAvatar'
 
@@ -95,36 +93,32 @@ export function SubjectStudentsTab({
   return (
     <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
       <View className={isDesktop ? 'flex-[1.55] gap-5' : 'gap-5'}>
-        <View className={isWide ? 'flex-row gap-4' : 'flex-row flex-wrap gap-3'}>
-          <StudentMetricCard compact={!isWide} icon="people" label="Alumnos inscritos" value={String(enrollmentsCount)} detail={evaluatedDetail} color="#8B5CF6" />
-          <StudentMetricCard compact={!isWide} icon="checkmark-circle" label="Activos esta semana" value={String(activeThisWeek)} detail={`${weeklyActivePercent}% del total`} color="#34D399" />
-          <StudentMetricCard compact={!isWide} icon="star" label="XP media" value={`${averageXp} XP`} detail="Media del alumnado matriculado" color="#3B82F6" />
-          <StudentMetricCard compact={!isWide} icon="trophy" label="Mejor alumno" value={`${bestStudent?.score ?? 0} XP`} detail={bestStudent?.name || 'Sin actividad'} color="#F59E0B" />
+        <View className={isDesktop ? 'flex-row gap-4' : 'flex-row gap-2'}>
+          <SubjectKpiCard isDesktop={isDesktop} icon="people" label="Alumnos inscritos" value={String(enrollmentsCount)} detail={evaluatedDetail} color="#8B5CF6" />
+          <SubjectKpiCard isDesktop={isDesktop} icon="checkmark-circle" label="Activos esta semana" value={String(activeThisWeek)} detail={`${weeklyActivePercent}% del total`} color="#34D399" />
+          <SubjectKpiCard isDesktop={isDesktop} icon="star" label="XP media" value={`${averageXp} XP`} detail="Media del alumnado matriculado" color="#3B82F6" />
+          <SubjectKpiCard isDesktop={isDesktop} icon="trophy" label="Mejor alumno" value={`${bestStudent?.score ?? 0} XP`} detail={bestStudent?.name || 'Sin actividad'} color="#F59E0B" />
         </View>
 
         <View className="rounded-xl border border-border-default bg-surface-default p-4">
-          <View className="mb-4 gap-3">
-            <View className={isWide ? 'flex-row flex-wrap items-end gap-3' : 'gap-3'}>
-              <View className="h-12 min-w-[220px] flex-1 flex-row items-center rounded-xl border border-border-default bg-surface-default px-3">
+          <View className="mb-4">
+            <View className="flex-row items-end gap-2">
+              <View className={isWide ? 'min-w-[220px] flex-1' : 'min-w-0 flex-[1.35]'}>
+                <Text className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-text-secondary">Buscar</Text>
+                <View className="h-[42px] flex-row items-center rounded-xl border border-border-default bg-surface-raised px-3">
                 <TextInput className="min-w-0 flex-1 text-[13px] text-white" placeholder="Buscar alumno..." placeholderTextColor="#60799C" value={studentSearch} onChangeText={onStudentSearchChange} />
                 <Ionicons name="search-outline" size={17} color="#8FA7C7" />
+                </View>
               </View>
-              <View className={isWide ? 'w-[190px]' : 'w-full'}>
-                <AppDropdown<StudentStatusFilter> accessibilityLabel="Filtrar alumnos por estado" label="Estado" value={studentStatusFilter} options={statusOptions} onChange={onStudentStatusFilterChange} />
+              <View className={isWide ? 'w-[190px]' : 'min-w-0 flex-1'}>
+                <AppDropdown<StudentStatusFilter> accessibilityLabel="Filtrar alumnos por estado" label="Estado" compact={!isWide} role="teacher" value={studentStatusFilter} options={statusOptions} onChange={onStudentStatusFilterChange} />
               </View>
-              <View className={isWide ? 'w-[190px]' : 'w-full'}>
-                <AppDropdown<StudentSortKey> accessibilityLabel="Ordenar alumnos" label="Ordenar por" value={studentSortKey} options={sortOptions} onChange={onStudentSortKeyChange} />
+              <View className={isWide ? 'w-[190px]' : 'min-w-0 flex-1'}>
+                <AppDropdown<StudentSortKey> accessibilityLabel="Ordenar alumnos" label="Ordenar por" compact={!isWide} role="teacher" value={studentSortKey} options={sortOptions} onChange={onStudentSortKeyChange} />
               </View>
-              <Pressable
-                onPress={onImportStudents}
-                className={`${isWide ? 'h-12' : 'min-h-12 w-full justify-center'} flex-row items-center gap-2 rounded-xl px-4`}
-                style={({ pressed }) => ({ borderWidth: 1, borderColor: '#38BDF8', backgroundColor: '#0D2848', opacity: pressed ? 0.82 : 1 })}
-              >
-                <Ionicons name="person-add-outline" size={17} color="#38BDF8" />
-                <Text className="text-[12px] font-black text-brand-teacher">Importar alumnos</Text>
-              </Pressable>
+              {isWide ? <AppButton label="Importar alumnos" icon="person-add-outline" role="teacher" onPress={onImportStudents} /> : null}
             </View>
-            <Text className="text-[11px] text-text-muted">Estado: {getStudentStatusFilterLabel(studentStatusFilter)} · Orden: {getStudentSortLabel(studentSortKey)}</Text>
+            {!isWide ? <AppButton label="Importar alumnos" icon="person-add-outline" role="teacher" fullWidth onPress={onImportStudents} style={{ marginTop: 12 }} /> : null}
           </View>
 
           <View className="hidden flex-row border-b border-border-default px-2 pb-3 md:flex">
@@ -163,8 +157,8 @@ export function SubjectStudentsTab({
         </SubjectPanel>
 
         <SubjectPanel title="Actividad de la clase">
-          <ProgressLine label="Activos esta semana" value={activeThisWeek} total={Math.max(enrollmentsCount, 1)} color="#8B5CF6" />
-          <ProgressLine label="Retos completados" value={playedSessionsTotal} total={activityCapacity} color="#7C5CFF" />
+          <ProgressLine label="Activos esta semana" value={activeThisWeek} total={Math.max(enrollmentsCount, 1)} color="#3B82F6" />
+          <ProgressLine label="Retos completados" value={playedSessionsTotal} total={activityCapacity} color="#3B82F6" />
           <ProgressLine label="XP generado" value={generatedXp} total={Math.max(generatedXp + 500, 1)} color="#3B82F6" />
         </SubjectPanel>
 
@@ -187,17 +181,6 @@ export function SubjectStudentsTab({
       </View>
     </View>
   )
-}
-
-function StudentMetricCard({ icon, label, value, detail, color, compact }: {
-  icon: keyof typeof Ionicons.glyphMap
-  label: string
-  value: string
-  detail?: string
-  color: string
-  compact?: boolean
-}) {
-  return <MobileMetricCard className={compact ? 'min-w-[150px] flex-1' : 'min-w-[190px] flex-1'} compact={compact} color={color} detail={detail} icon={icon} label={label} value={value} />
 }
 
 function StudentTableHeader({ label, flex }: { label: string; flex: number }) {

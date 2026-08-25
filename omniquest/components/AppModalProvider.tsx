@@ -6,6 +6,7 @@ import AppBottomSheet from './ui/AppBottomSheet'
 import AppButton, { type AppButtonVariant } from './ui/AppButton'
 import AppStatusBanner, { type AppStatusBannerVariant } from './ui/AppStatusBanner'
 import { releaseWebFocus } from '../lib/webFocus'
+import { useResponsiveLayout } from '../lib/responsive'
 
 export type NativeAlertButton = {
   text?: string
@@ -167,6 +168,7 @@ function StyledAppModal({
   onClose: () => void
 }) {
   const config = modal ? variantConfig[modal.variant] : variantConfig.info
+  const responsive = useResponsiveLayout()
 
   return (
     <AppBottomSheet
@@ -176,7 +178,7 @@ function StyledAppModal({
       scrollable
       closeOnBackdropPress={busyButtonIndex === null}
       footer={modal ? (
-        <View style={styles.actions}>
+        <View style={[styles.actions, responsive.isDesktop ? styles.desktopActions : styles.mobileActions]}>
           {modal.buttons.map((button, index) => {
             const variant: AppButtonVariant = button.role === 'danger'
               ? 'danger'
@@ -190,10 +192,12 @@ function StyledAppModal({
                 key={`${button.label}-${index}`}
                 label={button.label}
                 variant={variant}
+                size="sm"
+                fullWidth={!responsive.isDesktop}
                 loading={busyButtonIndex === index}
                 disabled={busyButtonIndex !== null && busyButtonIndex !== index}
                 onPress={() => onButtonPress(button, index)}
-                style={styles.action}
+                style={responsive.isDesktop ? styles.desktopAction : styles.mobileAction}
               />
             )
           })}
@@ -236,11 +240,21 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'stretch',
+  },
+  desktopActions: {
     justifyContent: 'flex-end',
     gap: 10,
   },
-  action: {
+  mobileActions: {
+    gap: 8,
+  },
+  desktopAction: {
     minWidth: 120,
+    flexGrow: 1,
+  },
+  mobileAction: {
+    width: '100%',
   },
 })
 function normalizeButtons(buttons?: NativeAlertButton[]): AppModalButton[] {

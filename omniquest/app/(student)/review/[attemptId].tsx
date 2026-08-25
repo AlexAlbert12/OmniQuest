@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import GameShell from '../../../components/student/game/GameShell'
 import OmniLoadingScreen from '../../../components/ui/OmniLoadingScreen'
 import AppButton from '../../../components/ui/AppButton'
+import AppBackButton from '../../../components/ui/AppBackButton'
 import OmniGuide from '../../../components/OmniGuide'
 import { getQuestionTypeLabel, getSubmittedAnswerText } from '../../../components/student/activity/utils'
 import { getDifficultyMeta, normalizeDifficulty } from '../../../lib/difficulty'
@@ -134,7 +135,7 @@ export default function StudentGameReviewScreen() {
       >
         <View className="w-full">
           <View className="flex-row flex-wrap items-center justify-between gap-3">
-            <AppButton label="Volver" icon="arrow-back" variant="secondary" size="sm" onPress={() => router.back()} />
+            <AppBackButton label="Volver" size="sm" onPress={() => router.back()} />
             <View
               className="flex-row items-center gap-2 rounded-full border px-3 py-2"
               style={{ borderColor: withAlpha(tokens.semantic.info, '88'), backgroundColor: tokens.semanticSurface.info }}
@@ -293,7 +294,7 @@ function ReviewState({ icon, title, detail, actionLabel, onAction, onBack }: { i
           <Text className="mt-2 text-center text-[14px] leading-6 text-text-secondary">{detail}</Text>
           <View className="mt-6 w-full gap-3">
             <AppButton fullWidth label={actionLabel} role="student" onPress={onAction} />
-            {onBack ? <AppButton fullWidth label="Volver" variant="secondary" onPress={onBack} /> : null}
+            {onBack ? <AppBackButton fullWidth label="Volver" onPress={onBack} /> : null}
           </View>
         </View>
       </View>

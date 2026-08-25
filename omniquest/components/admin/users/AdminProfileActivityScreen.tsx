@@ -3,12 +3,12 @@ import * as Clipboard from 'expo-clipboard'
 import { Text, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import AdminButton from '../shared/AdminButton'
 import AdminProfileAvatar from '../shared/AdminProfileAvatar'
 import AdminSearchBar from '../shared/AdminSearchBar'
 import { AdminPaginationControls, EmptyState, ListLoadingState, Panel } from '../shared/AdminPrimitives'
 import { AdminDateRangeFields, AdminFilterSelect, toAdminFilterTimestamp } from '../shared/AdminAdvancedFilters'
 import AppPressable from '../../ui/AppPressable'
+import AppBackButton from '../../ui/AppBackButton'
 import { supabase } from '../../../lib/supabase'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
@@ -105,7 +105,7 @@ export default function AdminProfileActivityScreen() {
         <Panel title="No se ha podido cargar el usuario" icon="alert-circle-outline" className="mt-5">
           <Text className="text-[13px] leading-5 text-text-secondary">{profileError}</Text>
           <Text className="mt-2 text-[12px] text-text-muted">El usuario puede haber sido eliminado o no estar disponible.</Text>
-          <View className="mt-4 self-start"><AdminButton label="Volver a usuarios" icon="arrow-back" variant="secondary" onPress={() => router.back()} /></View>
+          <View className="mt-4 self-start"><AppBackButton label="Volver a usuarios" onPress={() => router.back()} /></View>
         </Panel>
       ) : (
         <>
@@ -120,7 +120,7 @@ export default function AdminProfileActivityScreen() {
                     <Text className="mt-1 text-[12px] text-text-muted">{profile.email || 'Sin correo guardado'}</Text>
                     <Text className="mt-1 text-[11px] font-bold text-text-secondary">{getRoleLabel(profile.role_id)} · {profile.active === false ? 'Cuenta inactiva' : 'Cuenta activa'}</Text>
                   </View>
-                  <AdminButton label={profile.role_id === 'teacher' ? 'Volver a profesores' : 'Volver a alumnos'} icon="arrow-back" variant="secondary" onPress={() => router.back()} />
+                  <AppBackButton label={profile.role_id === 'teacher' ? 'Volver a profesores' : 'Volver a alumnos'} onPress={() => router.back()} />
                 </View>
                 <View className="mt-4 flex-row flex-wrap gap-2">
                   <SummaryFact icon={profile.role_id === 'teacher' ? 'book-outline' : 'people-outline'} label={getScopeSummary(profile)} />
