@@ -1,6 +1,6 @@
 import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Text, useWindowDimensions, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import AppButton from '../../components/ui/AppButton'
@@ -13,6 +13,7 @@ import { useNotifications, type AppNotification, type NotificationType } from '.
 import { useAppTheme } from '../../lib/appTheme'
 import { formatCount } from '../../lib/formatCount'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import { useResponsiveLayout } from '../../lib/responsive'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { supabase } from '../../lib/supabase'
 import { readThroughCache } from '../../lib/offlineCache'
@@ -41,7 +42,7 @@ const categoryLabels: Record<NotificationType, string> = {
 }
 
 export default function StudentNotificationsScreen() {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const router = useRouter()
   const { tokens } = useAppTheme()
   const { showModal } = useAppModal()
@@ -65,7 +66,7 @@ export default function StudentNotificationsScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [selectedFilter, setSelectedFilter] = useState<NotificationFilter>('all')
 
-  const isDesktop = width >= 1080
+  const isDesktop = responsive.isDesktop
   const points = profile?.points ?? 0
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)

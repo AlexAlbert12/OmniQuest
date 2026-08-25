@@ -33,7 +33,10 @@ test('mobile navigation and tab controls retain spacing and visible button surfa
   assert.match(navigation, /maxFontSizeMultiplier=\{1\.2\}/)
   assert.match(navigation, /flexBasis: 0/)
   assert.match(navigation, /gap: 4/)
-  assert.match(navigation, /backgroundColor: isActive \? withAlpha\(accentColor, '18'\)/)
+  assert.match(navigation, /backgroundColor: isActive \? withAlpha\(accentColor, '24'\)/)
+  assert.match(navigation, /borderColor: isActive \? withAlpha\(accentColor, 'A0'\)/)
+  assert.match(navigation, /width: '100%'/)
+  assert.match(navigation, /includeFontPadding: false/)
   assert.match(tabs, /selected \? withAlpha\(activeColor, '24'\) : tokens\.surface\.interactive/)
   assert.match(tabs, /selected \? withAlpha\(activeColor, 'A0'\) : tokens\.border\.subtle/)
 })
@@ -52,6 +55,9 @@ test('teacher catalog uses the safe shared layout and generated feature styles',
   assert.match(courseCard, /ATTENTION_BADGE_BACKGROUND/)
   assert.match(courseCard, /Necesita atención<\/Text>/)
   assert.match(tailwind, /\.\/features\/\*\*\/\*\.\{js,jsx,ts,tsx\}/)
+  assert.doesNotMatch(tailwind, /var\(--omni-/)
+  assert.match(tailwind, /background:[\s\S]*primary: '#061126'/)
+  assert.match(tailwind, /border:[\s\S]*default: '#1A3155'/)
 })
 
 test('manual review and student history share the safe teacher shell and compact mobile structure', () => {

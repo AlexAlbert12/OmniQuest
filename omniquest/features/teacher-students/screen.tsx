@@ -1,8 +1,9 @@
 import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React from 'react'
-import { RefreshControl, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { RefreshControl, ScrollView, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../lib/appTheme'
+import { useResponsiveLayout } from '../../lib/responsive'
 import { useTeacherStudentsController } from './useTeacherStudentsController'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
@@ -16,10 +17,10 @@ import TeacherStudentsDesktopTable, { TeacherStudentPrioritySections } from '../
 import { statusFilterOptions, sortOptions, type StudentSortKey, type StudentStatusFilter } from './types'
 
 export default function TeacherStudentsScreen() {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
-  const isDesktop = width >= 1080
-  const isWide = width >= 900
+  const isDesktop = responsive.isDesktop
+  const isWide = responsive.isDesktop
   const pageSize = isDesktop ? 12 : 5
   const {
     directory, needsAttention, pendingStudents, stats, actionStudent, detailStudent, confirmDialog,

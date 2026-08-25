@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react'
-import { Text, useWindowDimensions, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../lib/appTheme'
+import { useResponsiveLayout } from '../../lib/responsive'
 import StudentLayout from '../../components/student/StudentLayout'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import StudentDashboardCard from '../../components/student/StudentDashboardCard'
@@ -17,11 +18,11 @@ import { useStudentProgress, type PracticeOpportunity, type StudentCourseProgres
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export default function ProgressScreen() {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const router = useRouter()
   const { accentColor } = useAppTheme()
   const progress = useStudentProgress()
-  const isDesktop = width >= 1024
+  const isDesktop = responsive.isDesktop
   const secondaryOpportunities = progress.recommendation ? progress.opportunities.filter((item) => item.id !== progress.recommendation?.id) : progress.opportunities
 
   const handlePractice = useCallback((opportunity: PracticeOpportunity) => {

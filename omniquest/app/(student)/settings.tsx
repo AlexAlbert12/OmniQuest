@@ -2,7 +2,6 @@ import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ScrollView,
-  useWindowDimensions,
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -14,6 +13,7 @@ import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import RolePageHeader from '../../components/ui/RolePageHeader'
 import AppBackButton from '../../components/ui/AppBackButton'
+import AppButton from '../../components/ui/AppButton'
 import { DestructiveConfirmModal } from '../../components/settings/SettingsDangerZone'
 import { SettingsMenu } from '../../components/settings/SettingsUi'
 import StudentSettingsSections from '../../components/settings/StudentSettingsSections'
@@ -29,6 +29,7 @@ import { useSettingsData } from '../../hooks/useSettingsData'
 import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import { useResponsiveLayout } from '../../lib/responsive'
 
 type AppHref = Href
 
@@ -67,7 +68,8 @@ function roleRoute(isTeacher: boolean, teacherRoute: AppHref, studentRoute: AppH
 }
 
 export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { forcedRole?: AppRole; securityOnly?: boolean }) {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
+  const { width } = responsive
   const router = useRouter()
   const { section } = useLocalSearchParams<{ section?: string }>()
   const { colors, accentColor } = useAppTheme()
@@ -76,14 +78,14 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsMenuSectionKey>('general')
   const data = useSettingsData({ forcedRole })
 
-  const isDesktop = width >= 1080
+  const isDesktop = responsive.isDesktop
   const settingsSections = useMemo(
     () => (data.isTeacher ? teacherSettingsSectionDefinitions : studentSettingsSectionDefinitions)
       .map((item) => ({ ...item, label: t(item.labelKey) })),
     [data.isTeacher, t]
   )
-  const isLargeDesktop = width >= 1280
-  const isMediumSettings = width >= 760
+  const isLargeDesktop = responsive.isWide
+  const isMediumSettings = !responsive.isMobile
   const settingsMenuVariant: SettingsMenuVariant = isLargeDesktop ? 'side' : isMediumSettings ? 'tabs' : 'chips'
   const settingsHorizontalPadding = isDesktop ? 28 : 16
   const RoleSections = data.isTeacher ? TeacherSettingsSections : StudentSettingsSections
@@ -226,6 +228,18 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                   securityOnly={securityOnly}
                   width={width}
                 />
+                {!securityOnly && !isDesktop && data.isTeacher ? (
+                  <View className="rounded-2xl border border-border-default bg-surface-default p-4">
+                    <AppButton
+                      label={t('settings.signOut')}
+                      icon="log-out-outline"
+                      role="teacher"
+                      variant="danger"
+                      fullWidth
+                      onPress={data.handleSignOut}
+                    />
+                  </View>
+                ) : null}
               </View>
             </ScrollView>
           </View>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Image, Pressable, Text } from 'react-native'
+import { Pressable, Text } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import { getRenderableAvatarUri } from '../../lib/avatarUri'
@@ -7,6 +7,7 @@ import type { PageHeaderRole } from './RolePageHeader'
 import GamifiedAvatar from '../gamification/GamifiedAvatar'
 import { useProfileCosmetics } from '../../hooks/useProfileCosmetics'
 import { getStudentLevel } from '../../lib/studentLevel'
+import AvatarImage from './AvatarImage'
 
 type HeaderProfile = {
   alias: string | null
@@ -78,7 +79,7 @@ export default function RoleHeaderAvatar({ role }: RoleHeaderAvatarProps) {
       style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
     >
       {avatarUri ? (
-        <Image source={{ uri: avatarUri }} className="h-full w-full" />
+        <AvatarImage uri={avatarUri} />
       ) : (
         <Text className="font-black text-white">{getInitials(alias)}</Text>
       )}

@@ -11,6 +11,24 @@ const priorityScreens = [
   'app/index.tsx',
 ]
 
+const structuralResponsiveScreens = [
+  'app/(auth)/login.tsx',
+  'app/(auth)/register.tsx',
+  'app/(auth)/forgot-password.tsx',
+  'app/(auth)/update-password.tsx',
+  'app/(student)/notifications.tsx',
+  'app/(student)/settings.tsx',
+  'app/(student)/review/[attemptId].tsx',
+  'app/(teacher)/audit.tsx',
+  'app/(teacher)/question-report/[id].tsx',
+  'app/(teacher)/topic/[id].tsx',
+  'components/teacher/TeacherQuestionForm.tsx',
+  'components/admin/support/AdminSupportSection.tsx',
+  'components/support/RoleHelpCenter.tsx',
+  'features/teacher-catalog/screen.tsx',
+  'features/teacher-students/screen.tsx',
+]
+
 const failures = []
 const read = (file) => fs.readFileSync(file, 'utf8')
 
@@ -72,6 +90,17 @@ for (const file of priorityScreens) {
   if (/numberOfLines=\{1\}/.test(source)) {
     failures.push(`${file}: conserva numberOfLines={1} en información prioritaria`)
   }
+}
+
+for (const file of structuralResponsiveScreens) {
+  if (!fs.existsSync(file)) {
+    failures.push(`${file}: falta el archivo responsive estructural`)
+    continue
+  }
+  const source = read(file)
+  if (!/useResponsiveLayout/.test(source)) failures.push(`${file}: no usa useResponsiveLayout para el modo estructural`)
+  if (/useWindowDimensions/.test(source)) failures.push(`${file}: decide la estructura con useWindowDimensions`)
+  if (/isDesktop\s*=\s*width\s*[<>]=?/.test(source)) failures.push(`${file}: conserva un breakpoint desktop local`)
 }
 
 const responsive = read('lib/responsive.ts')

@@ -2,7 +2,6 @@ import OmniLoadingScreen from '../../../../components/ui/OmniLoadingScreen'
 import React from 'react'
 import {
   ActivityIndicator,
-  Image,
   RefreshControl,
   Text,
   View,
@@ -20,6 +19,7 @@ import TeacherScreenLayout from '../../../../components/layouts/TeacherScreenLay
 import AppBackButton from '../../../../components/ui/AppBackButton'
 import AppStatusBanner from '../../../../components/ui/AppStatusBanner'
 import AppTabs from '../../../../components/ui/AppTabs'
+import AvatarImage from '../../../../components/ui/AvatarImage'
 import { useAppFeedback } from '../../../../hooks/useAppFeedback'
 import {
   StudentHistoryMetrics,
@@ -109,7 +109,7 @@ export default function TeacherStudentHistoryScreen() {
       <View className={`mb-5 flex-row items-center rounded-2xl border ${isDesktop ? 'gap-4 p-5' : 'gap-3 p-3'}`} style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
         <View className={`${isDesktop ? 'h-16 w-16' : 'h-12 w-12'} overflow-hidden rounded-full border-2`} style={{ borderColor: tokens.border.active, backgroundColor: tokens.surface.selected }}>
           {summary.profile.avatar?.startsWith('http') ? (
-            <Image accessibilityLabel={`Foto de ${summary.profile.alias || 'alumno'}`} source={{ uri: summary.profile.avatar }} className="h-full w-full" resizeMode="cover" />
+            <AvatarImage accessibilityLabel={`Foto de ${summary.profile.alias || 'alumno'}`} uri={summary.profile.avatar} />
           ) : (
             <View className="h-full w-full items-center justify-center">
               <Text className={`${isDesktop ? 'text-[20px]' : 'text-[16px]'} font-black`} style={{ color: tokens.brand.teacher }}>{getInitials(summary.profile.alias || 'Alumno')}</Text>
@@ -117,7 +117,7 @@ export default function TeacherStudentHistoryScreen() {
           )}
         </View>
         <View className="min-w-0 flex-1">
-          <Text className={`${isDesktop ? 'text-[21px]' : 'text-[18px]'} font-black`} style={{ color: tokens.text.primary }} numberOfLines={1}>{summary.profile.alias || 'Alumno'}</Text>
+          <Text className={`${isDesktop ? 'text-[21px]' : 'text-[18px]'} font-black`} style={{ color: tokens.text.primary }} numberOfLines={2}>{summary.profile.alias || 'Alumno'}</Text>
         </View>
         <View className="shrink-0 items-end">
           <Text className={`${isDesktop ? 'text-[11px]' : 'text-[9px]'} font-black uppercase`} style={{ color: tokens.text.muted }}>XP global</Text>

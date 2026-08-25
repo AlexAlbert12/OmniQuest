@@ -40,6 +40,8 @@ check('DocumentPicker instalado', /^14\.0\./.test(version('expo-document-picker'
 check('Sharing instalado', /^14\.0\./.test(version('expo-sharing') || ''), `expo-sharing=${version('expo-sharing') || 'ausente'}`)
 check('Notifications instalado', /^0\.32\./.test(version('expo-notifications') || ''), `expo-notifications=${version('expo-notifications') || 'ausente'}`)
 check('ImagePicker instalado', /^17\.0\./.test(version('expo-image-picker') || ''), `expo-image-picker=${version('expo-image-picker') || 'ausente'}`)
+check('Expo Image instalado para avatares remotos', /^3\.0\./.test(version('expo-image') || ''), `expo-image=${version('expo-image') || 'ausente'}`)
+check('Teclado Android conserva resize', expo.android?.softwareKeyboardLayoutMode === 'resize', String(expo.android?.softwareKeyboardLayoutMode || 'ausente'))
 check('Variables locales no se versionan', read('.gitignore').includes('.env.*'), '.gitignore excluye .env y variantes')
 check('Redirect nativo de recuperación permitido', read('supabase/config.toml').includes('"omniquest://update-password"'), 'supabase/config.toml')
 check('Observador nativo de recuperación registrado', read('app/_layout.tsx').includes('usePasswordRecoveryLinkObserver()'), 'app/_layout.tsx')
@@ -50,7 +52,7 @@ check('Selector de archivos implementado', /DocumentPicker\.getDocumentAsync\(/.
 check('Compartir exportaciones implementado', /Sharing\.shareAsync\(/.test(read('lib/reportExports.ts')), 'lib/reportExports.ts')
 check('Offline nativo implementado', /expo-network/.test(read('lib/gameOffline.ts')), 'lib/gameOffline.ts')
 
-for (const flow of ['public-login-smoke.yaml', 'student-authenticated-smoke.yaml', 'teacher-authenticated-smoke.yaml', 'admin-authenticated-smoke.yaml']) {
+for (const flow of ['public-login-smoke.yaml', 'student-authenticated-smoke.yaml', 'teacher-authenticated-smoke.yaml', 'admin-authenticated-smoke.yaml', 'android-keyboard-resize.yaml']) {
   check(`Maestro ${flow}`, existsSync(resolve(root, '.maestro', flow)), `.maestro/${flow}`)
 }
 

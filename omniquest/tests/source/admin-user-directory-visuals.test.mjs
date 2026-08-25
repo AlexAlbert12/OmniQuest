@@ -21,7 +21,7 @@ test('teacher, student and activity views render profile photos with an initials
   const types = read('components/admin/types/admin.ts')
   const migration = read('supabase/migrations/20260812170000_admin_profile_avatars.sql')
 
-  assert.match(avatar, /<Image source=\{\{ uri: avatarUri \}\}/)
+  assert.match(avatar, /<AvatarImage[^>]*uri=\{avatarUri\}/)
   assert.match(avatar, /getInitials\(alias\)/)
   assert.match(avatar, /onError=\{\(\) => setFailed\(true\)\}/)
   assert.match(primitives, /<AdminProfileAvatar alias=\{profile\.alias\} avatar=\{profile\.avatar\}/)

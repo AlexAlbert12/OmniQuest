@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { supabase } from '../../../lib/supabase'
 import { useAppFeedback } from '../../../hooks/useAppFeedback'
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue'
 import { useAppTheme } from '../../../lib/appTheme'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import { withAlpha } from '../../../lib/color'
 import { getErrorMessage, isRecord } from '../../../lib/typeGuards'
 import { fetchAdminSupportDirectory, fetchSupportThread, openSupportAttachment, pickSupportAttachment, uploadAdminSupportAttachment, type PickedSupportAttachment, type SupportAttachment, type SupportDirectory, type SupportHistory, type SupportMessage } from '../../../lib/support'
@@ -31,8 +32,8 @@ const SLA_OPTIONS = [{ value: 'all', label: 'Todos' }, { value: 'breached', labe
 export function AdminSupportSection() {
   const params = useLocalSearchParams<{ ticket?: string }>()
   const router = useRouter()
-  const { width } = useWindowDimensions()
-  const isDesktop = width >= 1040
+  const responsive = useResponsiveLayout()
+  const isDesktop = responsive.isDesktop
   const pageSize = isDesktop ? 25 : 8
   const feedback = useAppFeedback()
   const { tokens } = useAppTheme()

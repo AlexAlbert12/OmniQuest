@@ -4,7 +4,7 @@ import { useI18n } from '../../lib/i18n'
 import MobileBottomNavigation, { MobileBottomNavigationItem } from '../ui/mobile/MobileBottomNavigation'
 import type { TeacherSection } from './TeacherSidebar'
 
-type VisibleTeacherBottomNavKey = 'home' | 'classes' | 'students' | 'reviews' | 'profile'
+type VisibleTeacherBottomNavKey = 'home' | 'classes' | 'students' | 'reviews' | 'more'
 
 export default function TeacherBottomNav({ active }: { active: TeacherSection }) {
   const { tokens } = useAppTheme()
@@ -14,13 +14,13 @@ export default function TeacherBottomNav({ active }: { active: TeacherSection })
     { key: 'classes', label: t('nav.teacher.courses'), href: '/(teacher)/classes', icon: 'book-outline', activeIcon: 'book', testID: 'teacher-nav-classes' },
     { key: 'students', label: t('nav.teacher.students'), href: '/(teacher)/students', icon: 'people-outline', activeIcon: 'people', testID: 'teacher-nav-students' },
     { key: 'reviews', label: t('nav.teacher.reviews'), href: '/(teacher)/reviews', icon: 'create-outline', activeIcon: 'create', testID: 'teacher-nav-reviews' },
-    { key: 'profile', label: t('nav.teacher.profile'), href: '/(teacher)/profile', icon: 'person-outline', activeIcon: 'person', testID: 'teacher-nav-profile' },
+    { key: 'more', label: 'Más', href: '/(teacher)/more', icon: 'ellipsis-horizontal-circle-outline', activeIcon: 'ellipsis-horizontal-circle', testID: 'teacher-nav-more' },
   ], [t])
 
   return <MobileBottomNavigation activeKey={getVisibleActiveKey(active)} accentColor={tokens.brand.teacher} items={navItems} />
 }
 
 function getVisibleActiveKey(active: TeacherSection): VisibleTeacherBottomNavKey | null {
-  if (active === 'notifications' || active === 'settings' || active === 'audit') return null
+  if (active === 'more' || active === 'profile' || active === 'notifications' || active === 'settings' || active === 'audit') return 'more'
   return active
 }

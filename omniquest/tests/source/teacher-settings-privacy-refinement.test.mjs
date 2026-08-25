@@ -19,7 +19,7 @@ test('teacher settings remove redundant security, timezone and profile visibilit
   assert.match(sharedSections, /!isTeacher \? \(/)
   assert.match(sharedSections, /StudentRankingPrivacyCard/)
   assert.doesNotMatch(sharedSections, /function VisibilityButton/)
-  assert.match(bottomNav, /active === 'notifications' \|\| active === 'settings' \|\| active === 'audit'\) return null/)
+  assert.match(bottomNav, /active === 'more' \|\| active === 'profile' \|\| active === 'notifications' \|\| active === 'settings' \|\| active === 'audit'\) return 'more'/)
 })
 
 test('teacher account export excludes individual student academic records', () => {

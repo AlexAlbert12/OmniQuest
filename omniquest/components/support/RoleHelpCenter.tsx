@@ -8,13 +8,13 @@ import {
   ScrollView,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import { useResponsiveLayout } from '../../lib/responsive'
 import {
   addSupportReply,
   createSupportTicket,
@@ -60,7 +60,7 @@ const contactPreferenceKeys: SupportContactPreference[] = ['in_app', 'email', 'b
 export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   const router = useRouter()
   const params = useLocalSearchParams<{ ticket?: string }>()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { accentColor, colors } = useAppTheme()
   const { t, formatDate } = useI18n()
   const { showModal } = useAppModal()
@@ -101,7 +101,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   const [replyBody, setReplyBody] = useState('')
   const [replyAttachment, setReplyAttachment] = useState<PickedSupportAttachment | null>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
-  const isDesktop = width >= 1024
+  const isDesktop = responsive.isDesktop
   const canSubmitTicket = subject.trim().length >= 5 && body.trim().length >= 15
   const externalContactChannels = useMemo(() => contactChannels.filter((channel) => channel.channel_type !== 'in_app' && Boolean(channel.value)), [contactChannels])
   const studentLevel = getStudentLevel(shellPoints)

@@ -24,6 +24,10 @@ const semanticPrimitives = [
   'components/ui/AppDropdown.tsx',
   'components/ui/AppMenu.tsx',
   'components/ui/AppBottomSheet.tsx',
+  'components/ui/AppTabs.tsx',
+  'components/ui/RolePageHeader.tsx',
+  'components/ui/mobile/MobileBottomNavigation.tsx',
+  'components/ui/mobile/MobileMetricCard.tsx',
 ]
 
 function walk(directory) {

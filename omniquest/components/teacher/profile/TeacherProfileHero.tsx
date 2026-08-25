@@ -74,10 +74,33 @@ export default function TeacherProfileHero(props: Props) {
         </View>
       </View>
 
-      <View style={{ marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-        <AppButton label="Editar perfil" icon="create-outline" role="teacher" size="sm" onPress={props.onEditProfile} />
-        <AppButton label="Configuración" icon="settings-outline" role="teacher" variant="secondary" size="sm" onPress={props.onSettings} />
-        <AppButton label="Seguridad" icon="lock-closed-outline" variant="secondary" size="sm" onPress={props.onSecurity} />
+      <View style={{ marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: responsive.isMobile ? 8 : 10 }}>
+        <AppButton
+          label="Editar perfil"
+          icon="create-outline"
+          role="teacher"
+          size="sm"
+          style={responsive.isMobile ? { flexGrow: 1, flexBasis: 92 } : undefined}
+          onPress={props.onEditProfile}
+        />
+        <AppButton
+          label="Configuración"
+          icon="settings-outline"
+          role="teacher"
+          variant="secondary"
+          size="sm"
+          style={responsive.isMobile ? { flexGrow: 1, flexBasis: 92 } : undefined}
+          onPress={props.onSettings}
+        />
+        <AppButton
+          label="Seguridad"
+          icon="lock-closed-outline"
+          role="teacher"
+          variant="secondary"
+          size="sm"
+          style={responsive.isMobile ? { flexGrow: 1, flexBasis: 92 } : undefined}
+          onPress={props.onSecurity}
+        />
       </View>
     </View>
   )

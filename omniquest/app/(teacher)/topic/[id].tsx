@@ -5,7 +5,6 @@ import {
   ScrollView,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -23,6 +22,7 @@ import PaginationControls from '../../../components/ui/PaginationControls'
 import AppConfirmModal from '../../../components/AppConfirmModal'
 import AppStatusBanner from '../../../components/ui/AppStatusBanner'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import { getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty'
 import { useAppTheme } from '../../../lib/appTheme'
 import { supabase } from '../../../lib/supabase'
@@ -49,14 +49,14 @@ export default function TopicDetailScreen() {
   const topicIdValue = Array.isArray(id) ? id[0] : id
   const topicId = topicIdValue && /^\d+$/.test(topicIdValue) ? Number(topicIdValue) : null
   const router = useRouter()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [archiveBusy, setArchiveBusy] = useState(false)
   const [questionToDelete, setQuestionToDelete] = useState<TeacherTopicQuestion | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const detail = useTeacherTopicDetail(topicId)
-  const isDesktop = width >= 1080
+  const isDesktop = responsive.isDesktop
 
   const summary = detail.summary
   const topic = summary?.topic

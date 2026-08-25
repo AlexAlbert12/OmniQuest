@@ -5,6 +5,7 @@ import AppBottomSheet from './AppBottomSheet'
 import AppPressable from './AppPressable'
 import { useAppTheme } from '../../lib/appTheme'
 import { withAlpha } from '../../lib/color'
+import { createShadowStyle } from '../../lib/platformShadow'
 import type { AppRole } from '../../lib/designTokens'
 
 export type AppDropdownOption<T extends string | number> = {
@@ -64,6 +65,14 @@ export default function AppDropdown<T extends string | number>({
         style={({ pressed }) => [
           styles.trigger,
           compact ? styles.compactTrigger : null,
+          createShadowStyle({
+            color: tokens.background.overlay,
+            opacity: 0.12,
+            radius: 4,
+            offsetY: 2,
+            elevation: 2,
+            web: `0 2px 4px ${tokens.background.overlay}`,
+          }),
           {
             backgroundColor: disabled ? tokens.surface.disabled : tokens.surface.raised,
             borderColor: open ? activeColor : tokens.border.default,
@@ -78,7 +87,7 @@ export default function AppDropdown<T extends string | number>({
         ) : null}
         <View style={styles.triggerCopy}>
           <Text
-            numberOfLines={compact ? 1 : 2}
+            numberOfLines={2}
             maxFontSizeMultiplier={2}
             style={[styles.triggerText, compact ? styles.compactTriggerText : null, { color: selected ? tokens.text.primary : tokens.text.muted }]}
           >
@@ -161,11 +170,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 2,
   },
   compactTrigger: {
     minHeight: 42,

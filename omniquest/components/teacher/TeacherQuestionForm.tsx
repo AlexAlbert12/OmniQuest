@@ -1,8 +1,9 @@
 import React from 'react'
-import { Alert, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { Alert, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import TeacherPageHeader from './TeacherPageHeader'
 import { useAppTheme } from '../../lib/appTheme'
+import { useResponsiveLayout } from '../../lib/responsive'
 import AppButton from '../ui/AppButton'
 import AppDropdown from '../ui/AppDropdown'
 import AppStatusBanner from '../ui/AppStatusBanner'
@@ -25,11 +26,12 @@ import {
 } from './question-form'
 
 export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
+  const { width } = responsive
   const insets = useSafeAreaInsets()
   const { tokens } = useAppTheme()
   const form = useTeacherQuestionForm(props)
-  const isDesktop = width >= 1080
+  const isDesktop = responsive.isDesktop
   const typeColumns = width >= 1320 ? 3 : width >= 720 ? 2 : 1
 
   if (form.initializing) return <OmniLoadingScreen />

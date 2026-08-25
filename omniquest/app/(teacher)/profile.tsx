@@ -113,21 +113,22 @@ export default function TeacherProfileScreen() {
         onPeriodChange={profile.setPeriod}
       />
 
-      <View style={{ marginTop: 18 }}>
+      <View style={{ marginTop: 18, borderWidth: responsive.isMobile ? 1 : 0, borderColor: tokens.border.default, backgroundColor: responsive.isMobile ? tokens.surface.default : 'transparent', borderRadius: 20, padding: responsive.isMobile ? 16 : 0 }}>
         <Text style={{ color: tokens.text.primary, fontSize: 17, fontWeight: '900' }}>Accesos docentes</Text>
         <Text style={{ color: tokens.text.secondary, marginTop: 3, fontSize: 11 }}>Accede rápidamente a las tareas habituales.</Text>
-        <View style={{ marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        <View style={{ marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: responsive.isMobile ? 8 : 10 }}>
           <AppButton
             label="Crear pregunta"
             icon="add-circle-outline"
             role="teacher"
+            style={responsive.isMobile ? { flexGrow: 1, flexBasis: '46%' } : undefined}
             disabled={!summary.primarySubjectId}
             onPress={() => summary.primarySubjectId && router.push(`/(teacher)/subject/add-question?subjectId=${summary.primarySubjectId}` as Href)}
           />
-          <AppButton label="Importar alumnos" icon="cloud-upload-outline" role="teacher" variant="secondary" onPress={() => router.push('/(teacher)/students?import=1' as Href)} />
-          <AppButton label="Revisar respuestas" icon="create-outline" role="teacher" variant="secondary" onPress={() => router.push(ROUTES.reviews)} />
-          <AppButton label="Revisar alumnos" icon="people-outline" role="teacher" variant="secondary" onPress={() => router.push(ROUTES.students)} />
-          <AppButton label="Auditoría" icon="shield-checkmark-outline" role="teacher" variant="secondary" onPress={() => router.push(ROUTES.audit)} />
+          <AppButton label="Importar alumnos" icon="cloud-upload-outline" role="teacher" variant="secondary" style={responsive.isMobile ? { flexGrow: 1, flexBasis: '46%' } : undefined} onPress={() => router.push('/(teacher)/students?import=1' as Href)} />
+          <AppButton label="Revisar respuestas" icon="create-outline" role="teacher" variant="secondary" style={responsive.isMobile ? { flexGrow: 1, flexBasis: '46%' } : undefined} onPress={() => router.push(ROUTES.reviews)} />
+          <AppButton label="Revisar alumnos" icon="people-outline" role="teacher" variant="secondary" style={responsive.isMobile ? { flexGrow: 1, flexBasis: '46%' } : undefined} onPress={() => router.push(ROUTES.students)} />
+          <AppButton label="Auditoría" icon="shield-checkmark-outline" role="teacher" variant="secondary" style={responsive.isMobile ? { flexGrow: 1, flexBasis: '46%' } : undefined} onPress={() => router.push(ROUTES.audit)} />
         </View>
       </View>
 

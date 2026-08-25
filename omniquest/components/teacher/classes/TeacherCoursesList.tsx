@@ -29,7 +29,7 @@ export default function TeacherCoursesList({ analyticsByCourse, courses, isDeskt
         data={courses}
         keyExtractor={(course) => String(course.id)}
         gap={isDesktop ? 0 : 12}
-        renderItem={(course) => <TeacherCourseCard course={course} analytics={analyticsByCourse[course.id]} isDesktop={isDesktop} />}
+        renderItem={(course) => <TeacherCourseCard course={course} analytics={analyticsByCourse[course.id]} density={isDesktop ? 'comfortable' : 'compact'} />}
         accessibilityLabel="Cursos del profesor"
       />
     </View>

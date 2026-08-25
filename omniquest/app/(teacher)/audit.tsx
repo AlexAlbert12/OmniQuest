@@ -1,6 +1,6 @@
 import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React from 'react'
-import { RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native'
+import { RefreshControl, ScrollView, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
@@ -15,13 +15,14 @@ import TeacherAuditExports from '../../components/teacher/audit/TeacherAuditExpo
 import { useTeacherAudit } from '../../hooks/teacher/useTeacherAudit'
 import { useAppTheme } from '../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import { useResponsiveLayout } from '../../lib/responsive'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export default function TeacherAuditScreen() {
   const router = useRouter()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
-  const isDesktop = width >= 1080
+  const isDesktop = responsive.isDesktop
   const pageSize = isDesktop ? 25 : 8
   const audit = useTeacherAudit(pageSize)
 

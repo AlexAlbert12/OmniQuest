@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native'
 import { useFocusEffect, useRouter, type Href } from 'expo-router'
@@ -27,6 +26,7 @@ import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import { useAppTheme } from '../../lib/appTheme'
+import { useResponsiveLayout } from '../../lib/responsive'
 import { useAppFeedback } from '../../hooks/useAppFeedback'
 import { readThroughCache, updateOfflineCache } from '../../lib/offlineCache'
 import { enqueueOfflineMutation } from '../../lib/offlineMutations'
@@ -62,7 +62,7 @@ const EMPTY_SUMMARY: StudentBadgeCatalogSummary = {
 }
 
 export default function BadgesScreen() {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [badges, setBadges] = useState<StudentBadge[]>([])
@@ -83,7 +83,7 @@ export default function BadgesScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const isDesktop = width >= 1024
+  const isDesktop = responsive.isDesktop
   const { accentColor } = useAppTheme()
   const feedback = useAppFeedback()
   const { refresh: refreshStudentNotifications } = useNotifications('student')

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Animated, Easing, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native'
+import { Animated, Easing, Platform, Pressable, Text, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -11,6 +11,7 @@ import GamifiedAvatar from '../gamification/GamifiedAvatar'
 import { useProfileCosmetics } from '../../hooks/useProfileCosmetics'
 import { releaseWebFocus } from '../../lib/webFocus'
 import { useI18n } from '../../lib/i18n'
+import { useResponsiveLayout } from '../../lib/responsive'
 
 export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings'
 
@@ -56,11 +57,11 @@ export default function StudentSidebar({
   onSignOut,
 }: StudentSidebarProps) {
   const { theme, tokens } = useAppTheme()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { cosmetics } = useProfileCosmetics()
   const isDark = theme === 'dark'
   const accentColor = tokens.brand.student
-  const isCompact = width >= 1024 && width < 1280
+  const isCompact = responsive.isDesktop && !responsive.isWide
   const safeProgress = Math.min(Math.max(nextLevelProgress, 0), 100)
 
   return (

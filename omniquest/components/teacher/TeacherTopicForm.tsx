@@ -7,7 +7,6 @@ import {
   ScrollView,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +20,7 @@ import AppButton from '../ui/AppButton';
 import DateTimeCalendarField from '../ui/DateTimeCalendarField';
 import { parseDateTimeInput, toDateTimeInputValue } from '../../lib/calendar';
 import { TOPIC_ICON_CHOICES, normalizeAcademicIcon, type AcademicIconName } from '../../lib/academicIcons';
+import { useResponsiveLayout } from '../../lib/responsive';
 
 type TeacherTopicFormProps = {
   topicId?: string;
@@ -50,7 +50,8 @@ type SubjectOwnerRow = {
 }
 
 export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
-  const { width } = useWindowDimensions();
+  const responsive = useResponsiveLayout();
+  const { width } = responsive;
   const router = useRouter();
   const normalizedTopicId = Array.isArray(topicId) ? topicId[0] : topicId;
   const [topic, setTopic] = useState<TopicRow | null>(null);
@@ -62,7 +63,7 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const isWide = width >= 980;
+  const isWide = responsive.isDesktop;
   const titleCounter = `${title.trim().length}/60`;
   const descriptionCounter = `${description.trim().length}/160`;
   const previewTitle = useMemo(() => title.trim() || 'Nombre del tema', [title]);

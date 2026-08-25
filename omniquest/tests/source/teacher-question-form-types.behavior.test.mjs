@@ -103,6 +103,6 @@ test('teacher student history renders the stored profile photo before initials',
   const history = read('app/(teacher)/student/[id]/history.tsx')
 
   assert.match(history, /summary\.profile\.avatar\?\.startsWith\('http'\)/)
-  assert.match(history, /source=\{\{ uri: summary\.profile\.avatar \}\}/)
+  assert.match(history, /<AvatarImage[^>]*uri=\{summary\.profile\.avatar\}/)
   assert.match(history, /accessibilityLabel=.*Foto de/)
 })

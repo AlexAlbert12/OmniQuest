@@ -1,8 +1,9 @@
 import React from 'react'
-import { ActivityIndicator, Image, Pressable, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
+import AvatarImage from '../ui/AvatarImage'
 import { withAlpha } from '../../lib/color'
 import {
   ActionRow,
@@ -133,7 +134,7 @@ export function SettingsProfilePanel({
             style={{ borderColor: colors.border, backgroundColor: colors.surfaceRaised }}
           >
             {hasRemoteAvatar ? (
-              <Image source={{ uri: avatar as string }} className="h-full w-full" resizeMode="cover" />
+              <AvatarImage uri={avatar as string} />
             ) : (
               <Text className="text-[28px] font-black" style={{ color: tokens.text.primary }}>{userInitials}</Text>
             )}

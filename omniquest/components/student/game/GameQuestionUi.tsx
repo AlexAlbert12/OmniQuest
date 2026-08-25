@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { Animated, Easing, Pressable, Text, useWindowDimensions, View } from 'react-native'
+import { Animated, Easing, Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import OmniGuide from '../../OmniGuide'
 import AnswerFeedbackMotion from '../../gamification/AnswerFeedbackMotion'
@@ -7,6 +7,7 @@ import CelebrationParticles from '../../gamification/CelebrationParticles'
 import XpGainBurst from '../../gamification/XpGainBurst'
 import { USE_NATIVE_ANIMATION_DRIVER } from '../../../lib/animation'
 import { useAppTheme } from '../../../lib/appTheme'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import { withAlpha } from '../../../lib/color'
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -76,9 +77,9 @@ export function QuestionFeedbackCard({
   streak: number
 }) {
   const isCorrect = feedback.status === 'correct'
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
-  const isDesktop = width >= 1024
+  const isDesktop = responsive.isDesktop
   const isPending = feedback.status === 'pending'
   const color = isPending ? tokens.semantic.warning : isCorrect ? tokens.semantic.success : tokens.gamification.performanceLow
   const title = isPending ? 'Pendiente de revisión' : isCorrect ? '¡Correcto!' : 'Incorrecto'

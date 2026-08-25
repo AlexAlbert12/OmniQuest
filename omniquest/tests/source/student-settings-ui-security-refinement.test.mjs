@@ -26,7 +26,7 @@ test('profile settings use the current avatar, keep language in preferences and 
   const saveIndex = sections.indexOf("t('settings.profile.save')")
 
   assert.match(roleSections, /avatar=\{data\.profile\?\.avatar\}/)
-  assert.match(sections, /<Image source=\{\{ uri: avatar as string \}\}/)
+  assert.match(sections, /<AvatarImage[^>]*uri=\{avatar as string\}/)
   assert.doesNotMatch(sections.slice(sections.indexOf('export function SettingsProfilePanel'), sections.indexOf('export function SettingsPreferencesPanel')), /settings\.profile\.language/)
   assert.ok(aliasIndex >= 0 && emailIndex > aliasIndex && saveIndex > emailIndex, 'save action must follow the profile fields')
   assert.match(sections, /<AppButton\s+label=\{saving \? t\('settings\.profile\.saving'\) : t\('settings\.profile\.save'\)\}\s+role=\{isTeacher \? 'teacher' : 'student'\}/)

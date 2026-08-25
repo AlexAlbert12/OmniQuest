@@ -152,7 +152,7 @@ export function StudentDetailModal({
           <View className="flex-row items-start justify-between gap-4">
             <View className="min-w-0 flex-1">
               <Text className="text-[13px] font-semibold text-semantic-info">Detalle del estudiante</Text>
-              <Text accessibilityRole="header" className="mt-0.5 text-[21px] font-black text-white" numberOfLines={1} maxFontSizeMultiplier={2}>{student.alias}</Text>
+              <Text accessibilityRole="header" className="mt-0.5 text-[21px] font-black leading-7 text-white" numberOfLines={2} maxFontSizeMultiplier={2}>{student.alias}</Text>
               <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>{student.handle}</Text>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel="Cerrar detalle" accessibilityHint="Cierra el diálogo" onPress={onClose} className="min-h-10 min-w-10 items-center justify-center rounded-xl border border-border-default bg-surface-raised">
@@ -350,7 +350,7 @@ export function DetailMetric({ label, value, color }: { label: string; value: st
       style={{ minHeight: 78, borderColor: withAlpha(color, '70'), backgroundColor: withAlpha(color, '18') }}
     >
       <Ionicons name="analytics" size={15} color={color} />
-      <Text className="mt-1 text-[18px] font-black text-white" numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      <Text className="mt-1 text-[18px] font-black text-white">{value}</Text>
       <Text className="mt-0.5 text-[10px] font-bold text-text-secondary" numberOfLines={2}>{label}</Text>
     </View>
   )

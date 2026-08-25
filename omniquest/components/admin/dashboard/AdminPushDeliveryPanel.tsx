@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Text, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { type Href, useRouter } from 'expo-router'
 import { useAppTheme } from '../../../lib/appTheme'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import { formatAdminPushRelative } from '../../../lib/adminPushPresentation'
 import { fetchAdminPushDeliveryMetrics } from '../api/adminApi'
 import type { AdminPushDeliveryMetrics } from '../types/admin'
@@ -10,10 +11,10 @@ import { AdminMetric, EmptyState, Panel } from '../shared/AdminPrimitives'
 import { AppPressable } from '../../ui'
 
 export default function AdminPushDeliveryPanel({ refreshVersion }: { refreshVersion: number }) {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
   const router = useRouter()
-  const isDesktop = width >= 1040
+  const isDesktop = responsive.isDesktop
   const [metrics, setMetrics] = useState<AdminPushDeliveryMetrics | null>(null)
   const [loading, setLoading] = useState(true)
 

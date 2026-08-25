@@ -1,10 +1,11 @@
 import React from 'react'
-import { useWindowDimensions, View } from 'react-native'
+import { View } from 'react-native'
 import HomeVisualBackground from '../../HomeVisualBackground'
+import { useResponsiveLayout } from '../../../lib/responsive'
 
 export default function GameShell({ children }: { children: React.ReactNode }) {
-  const { width } = useWindowDimensions()
-  const isDesktop = width >= 1024
+  const responsive = useResponsiveLayout()
+  const isDesktop = responsive.isDesktop
 
   return (
     <View className="flex-1 overflow-hidden bg-background-secondary">

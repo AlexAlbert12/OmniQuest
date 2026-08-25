@@ -265,6 +265,7 @@ function LandingPanel({
         <Text maxFontSizeMultiplier={2} className="text-[16px] font-semibold text-text-secondary">{t('landing.noAccount')}</Text>
         <Link href="/register" asChild>
           <Pressable
+            testID="landing-register"
             accessibilityRole="link"
             accessibilityLabel={t('landing.register')}
             accessibilityHint={t('landing.registerHint')}

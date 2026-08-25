@@ -1,5 +1,5 @@
 import React from 'react'
-import { Animated, Easing, Image, Platform, Pressable, Text, View } from 'react-native'
+import { Animated, Easing, Platform, Pressable, Text, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -9,7 +9,8 @@ import { supabase } from '../../lib/supabase'
 
 import { releaseWebFocus } from '../../lib/webFocus'
 import { useI18n } from '../../lib/i18n'
-export type TeacherSection = 'home' | 'classes' | 'students' | 'reviews' | 'notifications' | 'audit' | 'profile' | 'settings'
+import AvatarImage from '../ui/AvatarImage'
+export type TeacherSection = 'home' | 'classes' | 'students' | 'reviews' | 'notifications' | 'audit' | 'profile' | 'settings' | 'more'
 
 type TeacherSidebarProps = {
   activeSection: TeacherSection
@@ -137,7 +138,7 @@ export default function TeacherSidebar({
           <View className="flex-row items-center gap-3">
             <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-surface-selected">
               {localAvatar && localAvatar.startsWith('http') ? (
-                <Image source={{ uri: localAvatar }} className="h-full w-full" />
+                <AvatarImage uri={localAvatar} />
               ) : (
                 <Text className="font-black text-white">{getInitials(displayAlias)}</Text>
               )}

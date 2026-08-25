@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useWindowDimensions, View } from 'react-native'
+import { View } from 'react-native'
 import { useLocalSearchParams, type Href } from 'expo-router'
 import AdminSearchBar from '../shared/AdminSearchBar'
 import AdminButton from '../shared/AdminButton'
@@ -21,10 +21,11 @@ import { AdminPaginationControls, EmptyState, ListLoadingState, Panel, ProfileRo
 import { ADMIN_PAGE_SIZE, type ProfileRow } from '../types/admin'
 import { getSearchParam, runAdminExport } from '../utils/adminUtils'
 import { useAppFeedback } from '../../../hooks/useAppFeedback'
+import { useResponsiveLayout } from '../../../lib/responsive'
 
 export function AdminStudentsSection() {
   const feedback = useAppFeedback()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const data = useAdminData()
   const confirmation = useAdminTypedConfirmation()
   const actions = useAdminActions(data, confirmation.request)
@@ -44,7 +45,7 @@ export function AdminStudentsSection() {
   const [governanceMode, setGovernanceMode] = useState<AdminGovernanceMode | null>(null)
   const [historyProfile, setHistoryProfile] = useState<ProfileRow | null>(null)
   const [progressProfile, setProgressProfile] = useState<ProfileRow | null>(null)
-  const pageSize = width >= 1040 ? ADMIN_PAGE_SIZE : 8
+  const pageSize = responsive.isDesktop ? ADMIN_PAGE_SIZE : 8
 
   useEffect(() => setSearch(getSearchParam(params.search)), [params.search])
   const rpcFilters = useMemo(() => ({
@@ -69,7 +70,7 @@ export function AdminStudentsSection() {
   const canManage = Boolean(data.portalContext?.permissions.includes('users.manage'))
   const canSecurity = Boolean(data.portalContext?.permissions.includes('users.security'))
   const canExport = Boolean(data.portalContext?.permissions.includes('users.export'))
-  const isMobile = width < 600
+  const isMobile = responsive.isMobile
 
   return (
     <AdminScaffold activeSection="students" title="Alumnos" subtitle="Supervisa cuentas, seguridad, inscripciones y actividad académica." data={data}>

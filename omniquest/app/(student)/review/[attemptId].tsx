@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { ScrollView, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import GameShell from '../../../components/student/game/GameShell'
@@ -10,6 +10,7 @@ import OmniGuide from '../../../components/OmniGuide'
 import { getQuestionTypeLabel, getSubmittedAnswerText } from '../../../components/student/activity/utils'
 import { getDifficultyMeta, normalizeDifficulty } from '../../../lib/difficulty'
 import { useAppTheme } from '../../../lib/appTheme'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import { useI18n } from '../../../lib/i18n'
 import {
   fetchGameAttemptReview,
@@ -28,7 +29,7 @@ export default function StudentGameReviewScreen() {
     difficulty?: string
   }>()
   const router = useRouter()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
   const { formatDate } = useI18n()
   const [review, setReview] = useState<GameAttemptReview | null>(null)
@@ -43,7 +44,7 @@ export default function StudentGameReviewScreen() {
   const topicName = firstParam(params.topicName)
   const difficulty = normalizeDifficulty(firstParam(params.difficulty))
   const isGeneralTopic = topicIdParam === 'general'
-  const isDesktop = width >= 900
+  const isDesktop = responsive.isDesktop
 
   const loadReview = useCallback(async () => {
     setLoading(true)

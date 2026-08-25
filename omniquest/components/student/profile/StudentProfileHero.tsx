@@ -1,10 +1,11 @@
 import React from 'react'
-import { Text, useWindowDimensions, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import GamifiedAvatar from '../../gamification/GamifiedAvatar'
 import type { ProfileCosmetics } from '../../../lib/avatarCosmetics'
 import { useAppTheme } from '../../../lib/appTheme'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import { withAlpha } from '../../../lib/color'
 
 type Props = {
@@ -18,10 +19,10 @@ type Props = {
 }
 
 export default function StudentProfileHero({ alias, avatar, level, points, nextLevelProgress, cosmetics, onCustomize }: Props) {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
-  const isMobile = width < 640
-  const isDesktop = width >= 1024
+  const isMobile = responsive.isMobile
+  const isDesktop = responsive.isDesktop
   const remaining = Math.max(0, 100 - nextLevelProgress)
   const heroText = tokens.text.primary
   const heroSecondaryText = tokens.text.secondary

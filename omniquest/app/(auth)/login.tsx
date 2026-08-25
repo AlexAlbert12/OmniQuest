@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'expo-router'
-import { Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import AuthCapsLockWarning from '../../components/auth/AuthCapsLockWarning'
 import AuthCard from '../../components/auth/AuthCard'
 import AuthHomeLink from '../../components/auth/AuthHomeLink'
@@ -24,6 +24,7 @@ import {
 } from '../../lib/authSecurity'
 import { prepareAuthSubmission, validateLoginForm } from '../../lib/authFormValidation'
 import { useI18n } from '../../lib/i18n'
+import { useResponsiveLayout } from '../../lib/responsive'
 import { registerCurrentSession } from '../../lib/sessionSecurity'
 import { supabase } from '../../lib/supabase'
 
@@ -31,7 +32,8 @@ type LoginErrors = { email?: string; password?: string }
 type Status = { variant: 'info' | 'success' | 'warning' | 'error'; title?: string; message: string } | null
 
 export default function LoginScreen() {
-  const { width, height } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
+  const { height } = responsive
   const { locale, t } = useI18n()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -43,8 +45,8 @@ export default function LoginScreen() {
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<LoginErrors>({})
 
-  const isDesktop = width >= 1100
-  const isTablet = width >= 760
+  const isDesktop = responsive.isDesktop
+  const isTablet = !responsive.isMobile
   const isWeb = Platform.OS === 'web'
 
   const validationMessages = {
@@ -194,7 +196,7 @@ export default function LoginScreen() {
         >
           <AuthHomeLink />
 
-          <View className="items-center px-2" style={{ marginBottom: isTablet ? 32 : 24 }}>
+          <View className="items-center p-2" style={{ marginBottom: isTablet ? 32 : 24 }}>
             <BrandLogo center size={isDesktop ? 68 : 52} />
           </View>
 

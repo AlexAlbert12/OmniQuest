@@ -1,6 +1,6 @@
 import OmniLoadingScreen from '../../../components/ui/OmniLoadingScreen'
 import React, { useState } from 'react'
-import { RefreshControl, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { RefreshControl, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -19,6 +19,7 @@ import QuestionReportActions from '../../../components/teacher/question-report/Q
 import { useQuestionReport } from '../../../hooks/teacher/useQuestionReport'
 import { useAppTheme } from '../../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import { exportCsvFile, slugifyFilename } from '../../../lib/reportExports'
 import type { ClassroomComparisonPoint, QuestionReportPeriod, TemporalTrendPoint } from '../../../lib/teacherQuestionReport'
 import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
@@ -43,11 +44,11 @@ const TYPE_LABELS: Record<string, string> = {
 export default function TeacherQuestionReportScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>()
   const router = useRouter()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
   const questionId = Number(Array.isArray(id) ? id[0] : id)
-  const isDesktop = width >= 1080
-  const isWide = width >= 900
+  const isDesktop = responsive.isDesktop
+  const isWide = responsive.width >= 900
   const affectedPageSize = isDesktop ? 12 : 6
   const report = useQuestionReport(questionId, affectedPageSize)
   const [archiveOpen, setArchiveOpen] = useState(false)

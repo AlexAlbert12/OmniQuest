@@ -15,7 +15,7 @@ test('teacher notifications expose truthful shell metrics and secondary mobile n
   assert.match(migration, /'active_subjects', v_active_subjects/)
   assert.match(hook, /activeSubjects: Number\(payload\.active_subjects/)
   assert.match(screen, /subjectsCount=\{notifications\.summary\.activeSubjects\}/)
-  assert.match(bottomNav, /active === 'notifications' \|\| active === 'settings' \|\| active === 'audit'\) return null/)
+  assert.match(bottomNav, /active === 'more' \|\| active === 'profile' \|\| active === 'notifications' \|\| active === 'settings' \|\| active === 'audit'\) return 'more'/)
 })
 
 test('teacher notification read actions are global and unread filtering stays coherent', () => {

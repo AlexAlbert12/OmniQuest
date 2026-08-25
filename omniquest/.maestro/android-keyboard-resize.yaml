@@ -1,0 +1,50 @@
+appId: com.alexalbert.omniquest
+name: Android keyboard resize and reachable auth actions
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "landing-login"
+- tapOn:
+    id: "landing-login"
+- tapOn:
+    id: "login-email"
+- inputText: keyboard.check@omniquest.test
+- tapOn:
+    id: "login-password"
+- inputText: KeyboardCheck123!
+- scrollUntilVisible:
+    element:
+      id: "login-submit"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "login-submit"
+- hideKeyboard
+
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "landing-register"
+- tapOn:
+    id: "landing-register"
+- tapOn:
+    id: "register-alias"
+- inputText: Alumno Teclado
+- tapOn:
+    id: "register-email"
+- inputText: keyboard.register@omniquest.test
+- tapOn:
+    id: "register-password"
+- inputText: KeyboardCheck123!
+- tapOn:
+    id: "register-confirm-password"
+- inputText: KeyboardCheck123!
+- scrollUntilVisible:
+    element:
+      id: "register-submit"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "register-submit"
+- hideKeyboard

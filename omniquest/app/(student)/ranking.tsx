@@ -1,9 +1,10 @@
 import React from 'react'
-import { RefreshControl, Text, useWindowDimensions, View } from 'react-native'
+import { RefreshControl, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { formatCount } from '../../lib/formatCount'
 import { useAppTheme } from '../../lib/appTheme'
+import { useResponsiveLayout } from '../../lib/responsive'
 import StudentLayout from '../../components/student/StudentLayout'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import PaginationControls from '../../components/ui/PaginationControls'
@@ -20,9 +21,9 @@ import { useStudentRanking } from '../../hooks/student/useStudentRanking'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export default function RankingScreen() {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
-  const isDesktop = width >= 1024
+  const isDesktop = responsive.isDesktop
   const pageSize = isDesktop ? 12 : 6
   const ranking = useStudentRanking(pageSize)
   const profilePoints = ranking.profile?.points ?? 0

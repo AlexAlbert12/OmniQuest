@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useRouter } from 'expo-router'
-import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { Pressable, ScrollView, Text, View } from 'react-native'
 import AuthCapsLockWarning from '../../components/auth/AuthCapsLockWarning'
 import AuthCard from '../../components/auth/AuthCard'
 import AuthInput from '../../components/auth/AuthInput'
@@ -13,6 +13,7 @@ import OmniGuide from '../../components/OmniGuide'
 import { getAuthErrorMessage, getPasswordStrength } from '../../lib/auth'
 import { validatePasswordUpdateForm } from '../../lib/authFormValidation'
 import { useI18n } from '../../lib/i18n'
+import { useResponsiveLayout } from '../../lib/responsive'
 import {
   clearPasswordRecoverySession,
   hasActivePasswordRecoverySession,
@@ -24,7 +25,8 @@ import { supabase } from '../../lib/supabase'
 type RecoveryState = 'checking' | 'ready' | 'invalid'
 
 export default function UpdatePasswordScreen() {
-  const { width, height } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
+  const { height } = responsive
   const router = useRouter()
   const { t } = useI18n()
   const [password, setPassword] = useState('')
@@ -38,8 +40,8 @@ export default function UpdatePasswordScreen() {
   const [recoveryState, setRecoveryState] = useState<RecoveryState>('checking')
   const [status, setStatus] = useState<{ variant: 'success' | 'error'; title?: string; message: string } | null>(null)
 
-  const isDesktop = width >= 1100
-  const isTablet = width >= 760
+  const isDesktop = responsive.isDesktop
+  const isTablet = !responsive.isMobile
   const strength = useMemo(() => getPasswordStrength(password, t), [password, t])
   const validationMessages = {
     weakPassword: t('auth.validation.weakPassword'),

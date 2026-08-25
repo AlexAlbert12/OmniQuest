@@ -1,11 +1,13 @@
 import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAppTheme } from '../../../lib/appTheme'
 import { releaseWebFocus } from '../../../lib/webFocus'
 import { withAlpha } from '../../../lib/color'
+import { createShadowStyle } from '../../../lib/platformShadow'
+import AppPressable from '../AppPressable'
 
 export type MobileBottomNavigationItem<Key extends string> = {
   key: Key
@@ -39,7 +41,7 @@ export default function MobileBottomNavigation<Key extends string>({
     const isActive = item.key === activeKey
 
     return (
-      <Pressable
+      <AppPressable
         key={item.key}
         testID={item.testID}
         accessibilityLabel={item.label}
@@ -55,8 +57,8 @@ export default function MobileBottomNavigation<Key extends string>({
           styles.item,
           scrollable ? styles.scrollableItem : styles.flexItem,
           {
-            backgroundColor: isActive ? withAlpha(accentColor, '18') : 'transparent',
-            borderColor: isActive ? withAlpha(accentColor, '70') : 'transparent',
+            backgroundColor: isActive ? withAlpha(accentColor, '24') : 'transparent',
+            borderColor: isActive ? withAlpha(accentColor, 'A0') : 'transparent',
           },
           pressed && !isActive && styles.pressedItem,
         ]}
@@ -87,14 +89,25 @@ export default function MobileBottomNavigation<Key extends string>({
         >
           {item.label}
         </Text>
-      </Pressable>
+      </AppPressable>
     )
   })
 
   return (
     <SafeAreaView
       edges={['bottom']}
-      style={[styles.safeArea, { backgroundColor: colors.navigation, borderTopColor: colors.border }]}
+      style={[
+        styles.safeArea,
+        { backgroundColor: colors.navigation, borderTopColor: colors.border },
+        createShadowStyle({
+          color: tokens.background.overlay,
+          opacity: 0.24,
+          radius: 13,
+          offsetY: -5,
+          elevation: 22,
+          web: `0 -7px 22px ${tokens.background.overlay}`,
+        }),
+      ]}
     >
       <View style={[styles.navigationSurface, { backgroundColor: colors.navigation }]}>
         {scrollable ? (
@@ -121,20 +134,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 1000,
     borderTopWidth: StyleSheet.hairlineWidth,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -5 },
-        shadowOpacity: 0.24,
-        shadowRadius: 13,
-      },
-      android: {
-        elevation: 22,
-      },
-      default: {
-        boxShadow: '0 -7px 22px rgba(0, 0, 0, 0.32)',
-      },
-    }),
   },
   navigationSurface: {
     height: 82,
@@ -157,11 +156,13 @@ const styles = StyleSheet.create({
   },
   item: {
     height: 70,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderRadius: 14,
+    paddingHorizontal: 3,
+    borderRadius: 16,
     borderWidth: 1,
+    overflow: 'hidden',
   },
   flexItem: {
     flex: 1,
@@ -194,11 +195,15 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   label: {
-    maxWidth: '100%',
+    width: '100%',
+    minWidth: 0,
+    flexShrink: 1,
     marginTop: 2,
+    paddingHorizontal: 1,
     fontSize: 11.5,
     lineHeight: 14,
     fontWeight: '800',
     textAlign: 'center',
+    includeFontPadding: false,
   },
 })

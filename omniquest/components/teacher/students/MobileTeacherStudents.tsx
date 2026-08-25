@@ -251,8 +251,8 @@ function DirectoryMetric({
       <View className="h-7 w-7 items-center justify-center rounded-lg" style={{ backgroundColor: withAlpha(color, '2E') }}>
         <Ionicons name={icon} size={16} color={color} />
       </View>
-      <Text className="mt-1.5 text-[21px] font-black text-white" numberOfLines={1}>{value}</Text>
-      <Text className="text-[10px] font-bold text-text-secondary" numberOfLines={1}>{label}</Text>
+      <Text className="mt-1.5 text-[21px] font-black text-white">{value}</Text>
+      <Text className="text-[10px] font-bold text-text-secondary" numberOfLines={2}>{label}</Text>
     </View>
   );
 }
@@ -328,8 +328,6 @@ function MobileAttentionStudentCard({
   onAssignActivity: (student: StudentRow) => void
 }) {
   const status = getStatusMeta(student.status);
-  const context = student.courseContexts[0];
-
   return (
     <View
       accessibilityLabel={`${student.alias}. ${status.label}. Precisión ${student.hasActivity ? `${student.accuracyPercent}%` : 'sin datos'}. Participación ${student.progress}%`}
@@ -338,13 +336,8 @@ function MobileAttentionStudentCard({
       <View className="flex-row items-center gap-3">
         <StudentProfileAvatar alias={student.alias} avatar={student.avatar} size={40} accentColor={status.color} />
         <View className="min-w-0 flex-1">
-          <View className="flex-row items-center gap-2">
-            <Text className="min-w-0 flex-1 text-[15px] font-black text-white" numberOfLines={1} maxFontSizeMultiplier={2}>{student.alias}</Text>
-            <Text className="text-[10px] font-black" style={{ color: status.color }} numberOfLines={1} maxFontSizeMultiplier={2}>{status.label}</Text>
-          </View>
-          <Text className="mt-0.5 text-[12px] text-text-secondary" numberOfLines={1} maxFontSizeMultiplier={2}>
-            {context ? context.subjectName : 'Sin curso asignado'}
-          </Text>
+          <Text className="text-[15px] font-black leading-5 text-white" numberOfLines={2} maxFontSizeMultiplier={2}>{student.alias}</Text>
+          <Text className="mt-0.5 text-[10px] font-black leading-4" style={{ color: status.color }} numberOfLines={2} maxFontSizeMultiplier={2}>{status.label}</Text>
         </View>
       </View>
       <View className="mt-2 gap-2">
@@ -412,13 +405,13 @@ function MobileTeacherStudentCard({
         <View className="min-w-0 flex-1">
           <View className="flex-row items-start gap-2">
             <View className="min-w-0 flex-1">
-              <Text className="text-[17px] font-black text-white" numberOfLines={1} maxFontSizeMultiplier={2}>{student.alias}</Text>
-              <Text className="mt-0.5 text-[12px] leading-4 text-text-secondary" numberOfLines={1}>
-                {context ? `${context.subjectName} · ${context.classroomName}` : student.handle}
+              <Text className="text-[17px] font-black leading-5 text-white" numberOfLines={2} maxFontSizeMultiplier={2}>{student.alias}</Text>
+              <Text className="mt-0.5 text-[12px] leading-4 text-text-secondary" numberOfLines={2}>
+                {context ? context.subjectName : student.handle}
               </Text>
             </View>
             <View className="rounded-full px-2 py-1" style={{ backgroundColor: withAlpha(status.color, '2E') }}>
-              <Text className="text-[10px] font-black" style={{ color: status.color }} numberOfLines={1} maxFontSizeMultiplier={2}>{status.label}</Text>
+              <Text className="text-[10px] font-black" style={{ color: status.color }} numberOfLines={2} maxFontSizeMultiplier={2}>{status.label}</Text>
             </View>
           </View>
         </View>
@@ -432,7 +425,7 @@ function MobileTeacherStudentCard({
       <View className="mt-3 flex-row items-center justify-between gap-2 rounded-xl border border-border-default bg-surface-default px-3 py-2">
         <View className="min-w-0 flex-1 flex-row items-center gap-2">
           <Ionicons name="calendar-outline" size={15} color="#9FB2CE" />
-          <Text className="text-[11px] text-text-muted" numberOfLines={1} maxFontSizeMultiplier={2}>Última actividad: {formatRelativeDate(student.lastActivityAt)}</Text>
+          <Text className="text-[11px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>Última actividad: {formatRelativeDate(student.lastActivityAt)}</Text>
         </View>
         <Text className="text-[12px] font-black" style={{ color: progressColor }}>{student.progress}%</Text>
       </View>
@@ -494,9 +487,9 @@ function MobileStudentMiniMetric({ label, value, color, icon }: { label: string;
     >
       <View className="flex-row items-center gap-1.5">
         <Ionicons name={icon} size={14} color={color} />
-        <Text className="min-w-0 flex-1 text-[10px] font-bold text-text-secondary" numberOfLines={1}>{label}</Text>
+        <Text className="min-w-0 flex-1 text-[10px] font-bold text-text-secondary" numberOfLines={2}>{label}</Text>
       </View>
-      <Text className="mt-1 text-[18px] font-black" style={{ color }} numberOfLines={1}>{value}</Text>
+      <Text className="mt-1 text-[18px] font-black" style={{ color }}>{value}</Text>
     </View>
   );
 }

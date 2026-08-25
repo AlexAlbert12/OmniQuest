@@ -9,10 +9,42 @@ const read = (path) => readFileSync(join(root, path), 'utf8')
 test('teacher profile exposes settings directly alongside profile and security actions', () => {
   const screen = read('app/(teacher)/profile.tsx')
   const hero = read('components/teacher/profile/TeacherProfileHero.tsx')
+  const metrics = read('components/teacher/profile/TeacherProfileMetrics.tsx')
+  const resources = read('components/teacher/profile/TeacherProfileLazyResources.tsx')
   assert.match(screen, /settingsRoot: '\/\(teacher\)\/settings'/)
   assert.match(screen, /onSettings=\{\(\) => router\.push\(ROUTES\.settingsRoot\)\}/)
   assert.match(hero, /label="Configuración"/)
   assert.match(hero, /icon="settings-outline"/)
+  assert.match(hero, /flexGrow: 1, flexBasis: 92/)
+  assert.match(screen, /flexGrow: 1, flexBasis: '46%'/)
+  assert.match(metrics, /<MobileMetricCard/)
+  assert.match(metrics, /dense/)
+  assert.match(metrics, /flexDirection: 'row', gap: 6/)
+  assert.match(resources, /role="teacher" variant="secondary" fullWidth/)
+  assert.match(resources, /borderColor: tokens\.border\.subtle/)
+})
+
+test('teacher mobile navigation groups account destinations under a dedicated more hub', () => {
+  const bottomNav = read('components/teacher/TeacherBottomNav.tsx')
+  const hub = read('components/teacher/TeacherMoreScreen.tsx')
+  const route = read('app/(teacher)/more.tsx')
+
+  assert.match(bottomNav, /key: 'more'.*href: '\/\(teacher\)\/more'/)
+  assert.doesNotMatch(bottomNav, /key: 'profile'/)
+  assert.match(bottomNav, /active === 'profile'.*return 'more'/)
+  assert.match(route, /<TeacherMoreScreen/)
+  for (const label of ['Perfil docente', 'Configuración', 'Seguridad', 'Auditoría', 'Notificaciones', 'Centro de ayuda']) {
+    assert.match(hub, new RegExp(label))
+  }
+  assert.match(hub, /label="Cerrar sesión"/)
+})
+
+test('teacher settings expose sign out outside the desktop-only side menu', () => {
+  const settings = read('app/(student)/settings.tsx')
+  assert.match(settings, /!securityOnly && !isDesktop && data\.isTeacher/)
+  assert.match(settings, /label=\{t\('settings\.signOut'\)\}/)
+  assert.match(settings, /variant="danger"/)
+  assert.match(settings, /onPress=\{data\.handleSignOut\}/)
 })
 
 test('teacher mobile course cards use the shared default border and create CTA clears the bottom nav', () => {

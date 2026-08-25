@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import { FlatList, Text, useWindowDimensions, View } from 'react-native'
+import { FlatList, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import OmniGuide from '../../components/OmniGuide'
 import PaginationControls from '../../components/ui/PaginationControls'
@@ -15,13 +15,14 @@ import type { ActivityListItem } from '../../components/student/activity/types'
 import { normalizeSingleRelation } from '../../components/student/activity/utils'
 import { STUDENT_ACTIVITY_PAGE_SIZE, useStudentActivity } from '../../hooks/student/useStudentActivity'
 import { useAppTheme } from '../../lib/appTheme'
+import { useResponsiveLayout } from '../../lib/responsive'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export default function ActivityLogScreen() {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
   const router = useRouter()
-  const isDesktop = width >= 1024
+  const isDesktop = responsive.isDesktop
   const activity = useStudentActivity()
   const { detailedAttempts, expandedAttemptId, loadingAttemptId, toggleAttempt } = activity
 

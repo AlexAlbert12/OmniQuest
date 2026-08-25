@@ -1,5 +1,5 @@
 import React from 'react'
-import { Image, Pressable, Text, View, type ViewStyle } from 'react-native'
+import { Pressable, Text, View, type ViewStyle } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import type { AvatarFrame, ProfileCosmetics } from '../../lib/avatarCosmetics'
@@ -7,6 +7,7 @@ import { DEFAULT_AVATAR_FRAME } from '../../lib/avatarCosmetics'
 import { withAlpha } from '../../lib/color'
 import { createShadowStyle } from '../../lib/platformShadow'
 import { getStudentBadgePresentation } from '../../lib/studentBadges'
+import AvatarImage from '../ui/AvatarImage'
 
 export type GamifiedAvatarProps = {
   avatarUrl?: string | null
@@ -95,7 +96,7 @@ export default function GamifiedAvatar({
           }}
         >
           {avatarUrl && avatarUrl.startsWith('http') ? (
-            <Image source={{ uri: avatarUrl }} style={{ width: '100%', height: '100%' }} />
+            <AvatarImage uri={avatarUrl} />
           ) : (
             <Text style={{ color: '#FFFFFF', fontSize: Math.round(size * 0.3), fontWeight: '900' }}>
               {getInitials(alias)}

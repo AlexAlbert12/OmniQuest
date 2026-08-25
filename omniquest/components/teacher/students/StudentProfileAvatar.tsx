@@ -1,9 +1,10 @@
 import React from 'react'
-import { Image, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { useAppTheme } from '../../../lib/appTheme'
 import { getRenderableAvatarUri } from '../../../lib/avatarUri'
 import { withAlpha } from '../../../lib/color'
 import { getInitials } from './studentUtils'
+import AvatarImage from '../../ui/AvatarImage'
 
 export default function StudentProfileAvatar({ alias, avatar, size = 44, accentColor }: {
   alias: string
@@ -36,7 +37,7 @@ export default function StudentProfileAvatar({ alias, avatar, size = 44, accentC
       }}
     >
       {avatarUri && !failed ? (
-        <Image source={{ uri: avatarUri }} resizeMode="cover" onError={() => setFailed(true)} style={{ width: '100%', height: '100%' }} />
+        <AvatarImage uri={avatarUri} onError={() => setFailed(true)} />
       ) : (
         <Text style={{ color: tokens.text.primary, fontSize: Math.max(12, Math.round(size * 0.31)), fontWeight: '900' }}>
           {getInitials(alias)}

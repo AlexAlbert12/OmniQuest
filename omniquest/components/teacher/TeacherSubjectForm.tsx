@@ -1,11 +1,12 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react'
-import { Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 import { COURSE_ICON_CHOICES, normalizeAcademicIcon, type AcademicIconName } from '../../lib/academicIcons'
 import { formatCount } from '../../lib/formatCount'
+import { useResponsiveLayout } from '../../lib/responsive'
 import { generateUniqueClassCode, isClassCodeAvailable, isValidInviteCode, normalizeInviteCode } from '../../lib/classCode'
 import { useAppModal } from '../AppModalProvider'
 import AppButton from '../ui/AppButton'
@@ -33,13 +34,14 @@ const iconChoices = COURSE_ICON_CHOICES
 const CURRENT_ACADEMIC_YEAR = getCurrentAcademicYear()
 
 export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFormProps) {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
+  const { width } = responsive
   const router = useRouter()
   const navigation = useNavigation()
   const insets = useSafeAreaInsets()
   const { showModal } = useAppModal()
   const isEdit = mode === 'edit'
-  const isWide = width >= 980
+  const isWide = responsive.isDesktop
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')

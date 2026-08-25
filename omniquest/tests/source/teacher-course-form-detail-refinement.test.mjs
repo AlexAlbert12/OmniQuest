@@ -197,7 +197,7 @@ test('analytics and student KPIs use mobile 4x1 rows while student filters share
   assert.match(students, /<AppDropdown<StudentSortKey>/)
   assert.match(students, /StudentProfileAvatar/)
   assert.match(students, /avatar=\{student\.avatar\}/)
-  assert.match(avatar, /<Image source=\{\{ uri: avatarUri \}\}/)
+  assert.match(avatar, /<AvatarImage[^>]*uri=\{avatarUri\}/)
   assert.match(avatar, /onError=\{\(\) => setFailed\(true\)\}/)
   assert.match(avatarMigration, /get_teacher_students_page_with_avatars/)
   assert.match(avatarMigration, /get_teacher_subject_students_page_with_avatars/)

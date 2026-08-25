@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Text, useWindowDimensions, View } from 'react-native'
+import { Text, View } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
 import { useLocalSearchParams, type Href } from 'expo-router'
 import { supabase } from '../../../lib/supabase'
@@ -23,11 +23,12 @@ import { AdminInput, AdminPaginationControls, EmptyState, ListLoadingState, Pane
 import { ADMIN_PAGE_SIZE, type CreateTeacherResult, type ProfileRow } from '../types/admin'
 import { getSearchParam, runAdminExport } from '../utils/adminUtils'
 import { useAppFeedback } from '../../../hooks/useAppFeedback'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import { getErrorMessage } from '../../../lib/typeGuards'
 
 export function AdminTeachersSection() {
   const feedback = useAppFeedback()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const data = useAdminData()
   const confirmation = useAdminTypedConfirmation()
   const actions = useAdminActions(data, confirmation.request)
@@ -51,7 +52,7 @@ export function AdminTeachersSection() {
   const [createdTeacher, setCreatedTeacher] = useState<CreateTeacherResult | null>(null)
   const [governanceMode, setGovernanceMode] = useState<AdminGovernanceMode | null>(null)
   const [historyProfile, setHistoryProfile] = useState<ProfileRow | null>(null)
-  const pageSize = width >= 1040 ? ADMIN_PAGE_SIZE : 8
+  const pageSize = responsive.isDesktop ? ADMIN_PAGE_SIZE : 8
 
   useEffect(() => setSearch(getSearchParam(params.search)), [params.search])
 
@@ -92,7 +93,7 @@ export function AdminTeachersSection() {
   const canManage = Boolean(data.portalContext?.permissions.includes('users.manage'))
   const canSecurity = Boolean(data.portalContext?.permissions.includes('users.security'))
   const canExport = Boolean(data.portalContext?.permissions.includes('users.export'))
-  const isMobile = width < 600
+  const isMobile = responsive.isMobile
   const copyTemporaryPassword = async () => {
     if (!createdTeacher?.temporaryPassword) return
     try { await Clipboard.setStringAsync(createdTeacher.temporaryPassword); feedback.success('Contraseña copiada', 'Guárdala de forma segura y compártela únicamente con el profesor.') }

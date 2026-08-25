@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import * as Clipboard from 'expo-clipboard'
-import { Text, useWindowDimensions, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import AdminProfileAvatar from '../shared/AdminProfileAvatar'
@@ -11,6 +11,7 @@ import AppPressable from '../../ui/AppPressable'
 import AppBackButton from '../../ui/AppBackButton'
 import { supabase } from '../../../lib/supabase'
 import { useAppTheme } from '../../../lib/appTheme'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import { withAlpha } from '../../../lib/color'
 import { useAppFeedback } from '../../../hooks/useAppFeedback'
 import { getErrorMessage } from '../../../lib/typeGuards'
@@ -24,7 +25,7 @@ export default function AdminProfileActivityScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>()
   const profileId = Array.isArray(id) ? id[0] : id
   const router = useRouter()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
   const feedback = useAppFeedback()
   const data = useAdminData()
@@ -36,7 +37,7 @@ export default function AdminProfileActivityScreen() {
   const [eventType, setEventType] = useState('')
   const [createdFrom, setCreatedFrom] = useState('')
   const [createdTo, setCreatedTo] = useState('')
-  const pageSize = width >= 1040 ? 25 : 8
+  const pageSize = responsive.isDesktop ? 25 : 8
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 350)

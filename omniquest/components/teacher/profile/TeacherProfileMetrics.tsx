@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAppModal } from '../../AppModalProvider'
 import AppPressable from '../../ui/AppPressable'
 import AppTabs from '../../ui/AppTabs'
+import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import { useAppTheme } from '../../../lib/appTheme'
 import { translateUiText, useI18n } from '../../../lib/i18n'
 import { useResponsiveLayout } from '../../../lib/responsive'
@@ -54,11 +55,26 @@ export default function TeacherProfileMetrics(props: Props) {
         <AppTabs items={periods} value={props.period} onChange={props.onPeriodChange} role="teacher" compact fill accessibilityLabel="Periodo de métricas docentes" />
       </View>
 
-      <View style={{ marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: responsive.isMobile ? 10 : 12 }}>
-        {cards.map((card, index) => {
-          const fullWidthMobile = responsive.isMobile && index === cards.length - 1
-          return (
-            <View key={card.label} style={{ minWidth: responsive.isMobile ? 0 : 170, flexGrow: 1, flexBasis: responsive.isMobile ? (fullWidthMobile ? '100%' : '45%') : 190, borderRadius: 16, padding: responsive.isMobile ? 14 : 15, backgroundColor: tokens.surface.raised, borderWidth: 1, borderColor: tokens.border.subtle }}>
+      {responsive.isMobile ? (
+        <View style={{ marginTop: 14, flexDirection: 'row', gap: 6 }}>
+          {cards.map((card) => (
+            <MobileMetricCard
+              key={card.label}
+              dense
+              icon={card.icon}
+              label={card.label}
+              value={card.value}
+              color={tokens.brand.teacher}
+              onPress={card.info ? showParticipationInfo : undefined}
+              accessibilityLabel={card.info ? t('teacher.profile.participation.title') : `${card.label}: ${card.value}`}
+              style={{ minWidth: 0, minHeight: 104, flex: 1 }}
+            />
+          ))}
+        </View>
+      ) : (
+        <View style={{ marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          {cards.map((card) => (
+            <View key={card.label} style={{ minWidth: 170, flexGrow: 1, flexBasis: 190, borderRadius: 16, padding: 15, backgroundColor: tokens.surface.raised, borderWidth: 1, borderColor: tokens.border.subtle }}>
               <Ionicons name={card.icon} size={21} color={tokens.brand.teacher} />
               {card.info ? (
                 <AppPressable accessibilityLabel={t('teacher.profile.participation.title')} accessibilityHint={t('teacher.profile.participation.hint')} onPress={showParticipationInfo} style={({ pressed }) => ({ position: 'absolute', top: 11, right: 11, width: 30, height: 30, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive, opacity: pressed ? 0.72 : 1 })}>
@@ -69,9 +85,9 @@ export default function TeacherProfileMetrics(props: Props) {
               <Text maxFontSizeMultiplier={2} style={{ marginTop: 3, color: tokens.text.secondary, fontSize: 12, fontWeight: '800' }}>{card.label}</Text>
               <Text maxFontSizeMultiplier={2} style={{ marginTop: 2, color: tokens.text.muted, fontSize: 11 }}>{card.detail}</Text>
             </View>
-          )
-        })}
-      </View>
+          ))}
+        </View>
+      )}
     </View>
   )
 }

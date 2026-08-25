@@ -1,6 +1,6 @@
 import OmniLoadingScreen from '../../components/ui/OmniLoadingScreen'
 import React from 'react'
-import { FlatList, RefreshControl, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { FlatList, RefreshControl, Text, TextInput, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import TeacherSidebar from '../../components/teacher/TeacherSidebar'
@@ -8,6 +8,7 @@ import TeacherBottomNav from '../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../components/teacher/TeacherPageHeader'
 import TeacherScreenLayout from '../../components/layouts/TeacherScreenLayout'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import { useResponsiveLayout } from '../../lib/responsive'
 import AppButton from '../../components/ui/AppButton'
 import AppTabs from '../../components/ui/AppTabs'
 import PaginationControls from '../../components/ui/PaginationControls'
@@ -19,9 +20,9 @@ import { teacherCourseFilters, teacherCourseSorts, type TeacherCatalogItem, type
 import { useTeacherCatalog } from './useTeacherCatalog'
 
 export default function TeacherClassesScreen() {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const router = useRouter()
-  const isDesktop = width >= 1024
+  const isDesktop = responsive.isDesktop
   const pageSize = isDesktop ? 12 : 6
   const catalog = useTeacherCatalog(pageSize)
 
@@ -44,8 +45,8 @@ export default function TeacherClassesScreen() {
         data={catalog.items}
         keyExtractor={(item: TeacherCatalogItem) => `${item.kind}:${item.value.id}`}
         renderItem={({ item }: { item: TeacherCatalogItem }) => item.kind === 'course'
-          ? <TeacherCourseCard course={item.value} analytics={item.value.analytics} isDesktop={isDesktop} />
-          : <TeacherClassroomCard classroom={item.value} analytics={item.value.analytics} course={item.value.course} isDesktop={isDesktop} />}
+          ? <TeacherCourseCard course={item.value} analytics={item.value.analytics} density={isDesktop ? 'comfortable' : 'compact'} />
+          : <TeacherClassroomCard classroom={item.value} analytics={item.value.analytics} course={item.value.course} density={isDesktop ? 'comfortable' : 'compact'} />}
         ItemSeparatorComponent={() => <View className={isDesktop ? "h-px bg-border-default" : "h-3"} />}
         ListHeaderComponent={(
           <>

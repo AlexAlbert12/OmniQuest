@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { BackHandler, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { BackHandler, ScrollView, Text, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useGame } from '../../../hooks/useGame'
 import { getDifficultyMeta, normalizeDifficulty } from '../../../lib/difficulty'
 import { createShadowStyle } from '../../../lib/platformShadow'
 import { useAppTheme } from '../../../lib/appTheme'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import { getQuestionInstruction, normalizeQuestionType } from '../../../lib/gameQuestionLogic'
 import GameShell from '../../../components/student/game/GameShell'
 import GameErrorBoundary from '../../../components/student/game/GameErrorBoundary'
@@ -40,7 +41,7 @@ function PlayScreenContent() {
     classroomId?: string
     difficulty?: string
   }>()
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const router = useRouter()
   const { tokens } = useAppTheme()
   const [pendingAction, setPendingAction] = useState<GamePendingAction>(null)
@@ -52,7 +53,7 @@ function PlayScreenContent() {
   const selectedTopicName = firstParam(topicName)
   const normalizedDifficulty = normalizeDifficulty(selectedDifficulty)
   const difficultyMeta = normalizedDifficulty ? getDifficultyMeta(normalizedDifficulty) : null
-  const isDesktop = width >= 1024
+  const isDesktop = responsive.isDesktop
   const game = useGame(String(id), selectedTopicId, selectedClassroomId, selectedDifficulty)
 
   useEffect(() => {

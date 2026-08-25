@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'expo-router'
-import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { Pressable, ScrollView, Text, View } from 'react-native'
 import AuthCard from '../../components/auth/AuthCard'
 import AuthInput from '../../components/auth/AuthInput'
 import AuthStatusBanner from '../../components/auth/AuthStatusBanner'
@@ -13,9 +13,11 @@ import { checkAuthAttempt, formatRetryDelay } from '../../lib/authSecurity'
 import { prepareAuthSubmission, validateRecoveryForm } from '../../lib/authFormValidation'
 import { useI18n } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
+import { useResponsiveLayout } from '../../lib/responsive'
 
 export default function ForgotPasswordScreen() {
-  const { width, height } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
+  const { height } = responsive
   const { locale, t } = useI18n()
   const [email, setEmail] = useState('')
   const [emailError, setEmailError] = useState<string | undefined>()
@@ -23,8 +25,8 @@ export default function ForgotPasswordScreen() {
   const [sent, setSent] = useState(false)
   const [status, setStatus] = useState<{ variant: 'success' | 'warning' | 'error'; title?: string; message: string } | null>(null)
 
-  const isDesktop = width >= 1100
-  const isTablet = width >= 760
+  const isDesktop = responsive.isDesktop
+  const isTablet = !responsive.isMobile
   const validationMessages = { invalidEmail: t('auth.validation.invalidEmail') }
 
   const validateEmail = (value = email) => {

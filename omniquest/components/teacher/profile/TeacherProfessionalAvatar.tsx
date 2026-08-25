@@ -1,8 +1,9 @@
 import React from 'react'
-import { ActivityIndicator, Image, Text, View } from 'react-native'
+import { ActivityIndicator, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import AppPressable from '../../ui/AppPressable'
 import { useAppTheme } from '../../../lib/appTheme'
+import AvatarImage from '../../ui/AvatarImage'
 
 type Props = {
   alias: string
@@ -37,7 +38,7 @@ export default function TeacherProfessionalAvatar({ alias, avatar, uploading, on
       >
         <View style={{ width: innerSize, height: innerSize, borderRadius: innerSize / 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
           {avatar?.startsWith('http') ? (
-            <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
+            <AvatarImage uri={avatar} />
           ) : (
             <Text maxFontSizeMultiplier={2} style={{ color: tokens.text.primary, fontSize: size * 0.3, fontWeight: '900' }}>
               {getInitials(alias)}

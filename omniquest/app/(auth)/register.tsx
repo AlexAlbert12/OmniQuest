@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { Link, useRouter } from 'expo-router'
-import { Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import AuthCapsLockWarning from '../../components/auth/AuthCapsLockWarning'
 import AuthCard from '../../components/auth/AuthCard'
 import AuthHomeLink from '../../components/auth/AuthHomeLink'
@@ -15,13 +15,15 @@ import { getAuthErrorMessage, getEmailRedirectTo, getPasswordStrength, normalize
 import { checkAuthAttempt, formatRetryDelay } from '../../lib/authSecurity'
 import { buildPublicStudentSignUpOptions, prepareAuthSubmission, validateRegistrationForm } from '../../lib/authFormValidation'
 import { useI18n } from '../../lib/i18n'
+import { useResponsiveLayout } from '../../lib/responsive'
 import { supabase } from '../../lib/supabase'
 
 type RegisterErrors = { alias?: string; confirmPassword?: string; email?: string; password?: string }
 type Status = { variant: 'info' | 'success' | 'warning' | 'error'; title?: string; message: string } | null
 
 export default function RegisterScreen() {
-  const { width, height } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
+  const { height } = responsive
   const router = useRouter()
   const { locale, t } = useI18n()
   const [alias, setAlias] = useState('')
@@ -38,8 +40,8 @@ export default function RegisterScreen() {
   const [status, setStatus] = useState<Status>(null)
   const [fieldErrors, setFieldErrors] = useState<RegisterErrors>({})
 
-  const isDesktop = width >= 1100
-  const isTablet = width >= 760
+  const isDesktop = responsive.isDesktop
+  const isTablet = !responsive.isMobile
   const isWeb = Platform.OS === 'web'
   const passwordStrength = useMemo(() => getPasswordStrength(password, t), [password, t])
   const validationMessages = {
@@ -194,6 +196,7 @@ export default function RegisterScreen() {
             ) : (
               <>
                 <AuthInput
+                  testID="register-alias"
                   label={t('auth.common.alias')}
                   icon="person-outline"
                   placeholder={t('auth.common.aliasPlaceholder')}
@@ -211,6 +214,7 @@ export default function RegisterScreen() {
                   textContentType="username"
                 />
                 <AuthInput
+                  testID="register-email"
                   label={t('auth.common.email')}
                   icon="mail-outline"
                   placeholder={t('auth.common.emailPlaceholder')}
@@ -231,6 +235,7 @@ export default function RegisterScreen() {
                   textContentType="emailAddress"
                 />
                 <AuthInput
+                  testID="register-password"
                   label={t('auth.common.password')}
                   icon="lock-closed-outline"
                   placeholder={t('auth.register.passwordPlaceholder')}
@@ -253,6 +258,7 @@ export default function RegisterScreen() {
                 <AuthCapsLockWarning visible={capsLock} />
                 <PasswordStrength result={passwordStrength} />
                 <AuthInput
+                  testID="register-confirm-password"
                   label={t('auth.common.confirmPassword')}
                   icon="shield-checkmark-outline"
                   placeholder={t('auth.register.confirmPlaceholder')}
@@ -277,6 +283,7 @@ export default function RegisterScreen() {
                 />
                 {status ? <AuthStatusBanner variant={status.variant} title={status.title} message={status.message} /> : null}
                 <AuthSubmitButton
+                  testID="register-submit"
                   label={t('auth.register.submit')}
                   loadingLabel={t('auth.register.loading')}
                   loading={loading}

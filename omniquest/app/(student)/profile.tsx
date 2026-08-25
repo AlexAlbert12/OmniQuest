@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Text, useWindowDimensions, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { useRouter, type Href } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import StudentLayout from '../../components/student/StudentLayout'
@@ -14,6 +14,7 @@ import {
 } from '../../components/student/profile'
 import { useStudentProfile } from '../../hooks/student/useStudentProfile'
 import { useAppTheme } from '../../lib/appTheme'
+import { useResponsiveLayout } from '../../lib/responsive'
 import { withAlpha } from '../../lib/color'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
@@ -28,12 +29,12 @@ const STUDENT_ROUTES = {
 } satisfies Record<string, Href>
 
 export default function ProfileScreen() {
-  const { width } = useWindowDimensions()
+  const responsive = useResponsiveLayout()
   const router = useRouter()
   const { tokens } = useAppTheme()
   const [customizationVisible, setCustomizationVisible] = useState(false)
   const profile = useStudentProfile()
-  const isDesktop = width >= 1024
+  const isDesktop = responsive.isDesktop
 
   const handleSignOut = async () => {
     await signOutCurrentDeviceSession()

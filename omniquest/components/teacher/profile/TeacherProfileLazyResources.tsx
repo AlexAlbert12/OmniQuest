@@ -91,11 +91,11 @@ function LazyPanel<T extends { id: number }>({
           <Text style={{ color: tokens.text.primary, fontSize: 16, fontWeight: '900' }}>{title}</Text>
           <Text style={{ marginTop: 2, color: tokens.text.muted, fontSize: 11, lineHeight: 16 }}>{description}</Text>
         </View>
-        {state.loaded && onViewAll ? <AppButton label="Ver todo" size="sm" variant="ghost" onPress={onViewAll} /> : null}
+        {state.loaded && onViewAll ? <AppButton label="Ver todo" role="teacher" size="sm" variant="secondary" onPress={onViewAll} /> : null}
       </View>
 
       {!state.loaded ? (
-        <AppButton label={loadLabel} icon="download-outline" variant="secondary" fullWidth style={{ marginTop: 14 }} onPress={onLoad} />
+        <AppButton label={loadLabel} icon="download-outline" role="teacher" variant="secondary" fullWidth style={{ marginTop: 14 }} onPress={onLoad} />
       ) : state.loading ? (
         <View style={{ minHeight: 86, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={tokens.brand.teacher} /></View>
       ) : state.error ? (
@@ -117,7 +117,7 @@ function ResourceRow({ icon, title, description, onPress }: { icon?: keyof typeo
       accessibilityHint="Abre el recurso docente"
       accessibilityRole="link"
       onPress={onPress}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, padding: 12, backgroundColor: tokens.surface.raised, opacity: pressed ? 0.8 : 1 })}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, borderWidth: 1, borderColor: tokens.border.subtle, padding: 12, backgroundColor: tokens.surface.raised, opacity: pressed ? 0.8 : 1 })}
     >
       <View style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: tokens.surface.interactive }}>
         <Ionicons name={icon || 'document-outline'} size={20} color={tokens.brand.teacher} />

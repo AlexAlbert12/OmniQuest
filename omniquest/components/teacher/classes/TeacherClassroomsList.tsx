@@ -41,7 +41,7 @@ export default function TeacherClassroomsList({ analyticsByClassroom, classrooms
             analytics={analyticsByClassroom[classroom.id] || { studentsCount: 0, questionsCount: 0, topicsCount: 0 }}
             classroom={classroom}
             course={classroom.subject_id ? coursesById[classroom.subject_id] : undefined}
-            isDesktop={isDesktop}
+            density={isDesktop ? 'comfortable' : 'compact'}
           />
         )}
         accessibilityLabel="Clases del profesor"
