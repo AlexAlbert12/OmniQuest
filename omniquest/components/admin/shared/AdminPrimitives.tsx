@@ -118,11 +118,37 @@ export function AdminFilterRow({ label, onChange, options, value }: {
   return <AppDropdown label={label} value={value} options={options} onChange={onChange} accessibilityLabel={`Filtrar por ${label}`} />
 }
 
-export function AdminChoiceChip({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
+export type AdminChoiceChipTone = 'admin' | 'info' | 'success' | 'warning' | 'danger' | 'neutral'
+
+export function AdminChoiceChip({ active, label, onPress, tone = 'admin' }: { active: boolean; label: string; onPress: () => void; tone?: AdminChoiceChipTone }) {
   const { tokens } = useAppTheme()
+  const palette: Record<AdminChoiceChipTone, { color: string; surface: string }> = {
+    admin: { color: tokens.brand.admin, surface: withAlpha(tokens.brand.admin, '24') },
+    info: { color: tokens.semantic.info, surface: tokens.semanticSurface.info },
+    success: { color: tokens.semantic.success, surface: tokens.semanticSurface.success },
+    warning: { color: tokens.semantic.warning, surface: tokens.semanticSurface.warning },
+    danger: { color: tokens.semantic.danger, surface: tokens.semanticSurface.danger },
+    neutral: { color: tokens.text.primary, surface: tokens.surface.selected },
+  }
+  const selected = palette[tone]
+
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint="Aplica este filtro" accessibilityState={{ selected: active }} onPress={onPress} className="min-h-10 items-center justify-center rounded-xl border px-3 py-2" style={({ pressed }) => ({ borderColor: active ? withAlpha(tokens.brand.admin, 'A0') : tokens.border.default, backgroundColor: active ? withAlpha(tokens.brand.admin, '18') : tokens.surface.default, opacity: pressed ? 0.78 : 1 })}>
-      <Text className="text-[12px] font-black" style={{ color: active ? tokens.text.primary : tokens.text.secondary }}>{label}</Text>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint="Selecciona esta opción"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      className="min-h-[42px] flex-row items-center justify-center gap-2 rounded-xl border px-3.5 py-2.5"
+      style={({ pressed }) => ({
+        borderColor: active ? selected.color : tokens.border.default,
+        backgroundColor: active ? selected.surface : tokens.surface.interactive,
+        opacity: pressed ? 0.78 : 1,
+        transform: [{ scale: pressed ? 0.985 : 1 }],
+      })}
+    >
+      {active ? <Ionicons name="checkmark-circle" size={15} color={selected.color} /> : null}
+      <Text maxFontSizeMultiplier={1.5} className="text-[12px] font-black" style={{ color: active ? selected.color : tokens.text.secondary }}>{label}</Text>
     </Pressable>
   )
 }
@@ -399,11 +425,44 @@ export function AdminPaginationControls({ hasNext, hasPrevious, onNext, onPrevio
 export function HomeShortcut({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
   const { tokens } = useAppTheme()
   const responsive = useResponsiveLayout()
+  const compact = !responsive.isDesktop
+  const shortcutWidth = responsive.isMobile ? '48%' : responsive.isWide ? '23.5%' : '31.5%'
+
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className={`flex-row items-center gap-3 border border-border-default ${responsive.isDesktop ? 'rounded-2xl bg-surface-default p-4' : 'rounded-xl bg-surface-interactive px-3 py-3'}`} style={({ pressed }) => ({ flexBasis: responsive.isDesktop ? '15%' : '47%', flexGrow: 1, minWidth: responsive.isDesktop ? 145 : 0, minHeight: responsive.isDesktop ? 76 : 62, opacity: pressed ? 0.8 : 1 })}>
-      <View className={`${responsive.isDesktop ? 'h-11 w-11' : 'h-9 w-9'} shrink-0 items-center justify-center rounded-xl bg-surface-selected`}><Ionicons name={icon} size={responsive.isDesktop ? 21 : 18} color={tokens.brand.admin} /></View>
-      <Text numberOfLines={2} className={`${responsive.isDesktop ? 'text-[14px]' : 'text-[12px]'} min-w-0 flex-1 font-black text-text-primary`} style={{ flexShrink: 1 }}>{label}</Text>
-      <Ionicons name="chevron-forward" size={responsive.isDesktop ? 18 : 15} color={tokens.text.muted} />
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={`Abre ${label}`}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        position: 'relative',
+        flexBasis: shortcutWidth,
+        width: shortcutWidth,
+        maxWidth: shortcutWidth,
+        flexGrow: 0,
+        minWidth: 0,
+        minHeight: compact ? 102 : 78,
+        flexDirection: compact ? 'column' : 'row',
+        alignItems: compact ? 'flex-start' : 'center',
+        justifyContent: compact ? 'space-between' : 'flex-start',
+        gap: compact ? 0 : 12,
+        borderWidth: 1,
+        borderColor: pressed ? withAlpha(tokens.brand.admin, 'B0') : tokens.border.default,
+        borderRadius: compact ? 16 : 18,
+        backgroundColor: pressed ? withAlpha(tokens.brand.admin, '18') : tokens.surface.interactive,
+        paddingHorizontal: compact ? 13 : 16,
+        paddingVertical: compact ? 13 : 16,
+        opacity: pressed ? 0.84 : 1,
+        transform: [{ scale: pressed ? 0.99 : 1 }],
+      })}
+    >
+      <View style={{ width: compact ? 40 : 44, height: compact ? 40 : 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 13, borderWidth: 1, borderColor: withAlpha(tokens.brand.admin, '45'), backgroundColor: withAlpha(tokens.brand.admin, '1F') }}>
+        <Ionicons name={icon} size={compact ? 19 : 21} color={tokens.brand.admin} />
+      </View>
+      <Text maxFontSizeMultiplier={1.4} numberOfLines={2} className={`${compact ? 'text-[12px] leading-4' : 'text-[14px] leading-5'} min-w-0 font-black text-text-primary`} style={{ width: compact ? '100%' : undefined, flex: compact ? undefined : 1, flexShrink: 1, paddingRight: compact ? 24 : 0, marginTop: compact ? 9 : 0 }}>{label}</Text>
+      <View style={{ position: compact ? 'absolute' : 'relative', top: compact ? 14 : undefined, right: compact ? 11 : undefined, width: compact ? 28 : 30, height: compact ? 28 : 30, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: withAlpha(tokens.brand.admin, '12') }}>
+        <Ionicons name="chevron-forward" size={compact ? 15 : 17} color={tokens.brand.admin} />
+      </View>
     </Pressable>
   )
 }

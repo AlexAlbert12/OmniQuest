@@ -1,0 +1,81 @@
+appId: com.alexalbert.omniquest
+name: Student UI capture matrix
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "landing-login"
+- tapOn:
+    id: "landing-login"
+- tapOn:
+    id: "login-email"
+- inputText: ${MAESTRO_STUDENT_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${MAESTRO_STUDENT_PASSWORD}
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "student-nav-classes"
+    timeout: 30000
+- takeScreenshot:
+    path: ui-student-home
+- tapOn:
+    id: "student-nav-classes"
+- assertVisible: "Mis cursos|My courses"
+- takeScreenshot:
+    path: ui-student-courses
+- tapOn:
+    id: "student-nav-progress"
+- takeScreenshot:
+    path: ui-student-progress
+- tapOn:
+    id: "student-nav-ranking"
+- takeScreenshot:
+    path: ui-student-ranking
+- tapOn:
+    id: "student-nav-more"
+- assertVisible: "Más|More"
+- takeScreenshot:
+    path: ui-student-more
+- tapOn:
+    id: "student-more-profile"
+- takeScreenshot:
+    path: ui-student-profile
+- tapOn:
+    id: "student-nav-more"
+- tapOn:
+    id: "student-more-activity"
+- takeScreenshot:
+    path: ui-student-activity
+- tapOn:
+    id: "student-nav-more"
+- tapOn:
+    id: "student-more-badges"
+- takeScreenshot:
+    path: ui-student-badges
+- tapOn:
+    id: "student-nav-more"
+- tapOn:
+    id: "student-more-notifications"
+- takeScreenshot:
+    path: ui-student-notifications
+- tapOn:
+    id: "student-nav-more"
+- tapOn:
+    id: "student-more-settings"
+- takeScreenshot:
+    path: ui-student-settings
+- tapOn:
+    id: "student-nav-more"
+- tapOn:
+    id: "student-more-security"
+- takeScreenshot:
+    path: ui-student-security
+- tapOn:
+    id: "student-nav-more"
+- tapOn:
+    id: "student-more-help"
+- takeScreenshot:
+    path: ui-student-help

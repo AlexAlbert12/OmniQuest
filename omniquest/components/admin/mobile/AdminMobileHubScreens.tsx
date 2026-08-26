@@ -95,8 +95,54 @@ function HubGrid({ compactOnMobile = false, items, permissions }: { compactOnMob
   const responsive = useResponsiveLayout()
   const availablePermissions = permissions || []
   const visible = items.filter((item) => (Array.isArray(item.permission) ? item.permission.some((permission) => availablePermissions.includes(permission)) : availablePermissions.includes(item.permission)))
-  if (compactOnMobile && !responsive.isDesktop) return <View className="mt-5 gap-3">{visible.map((item) => <Pressable key={item.href} accessibilityRole="link" accessibilityLabel={`Abrir ${item.title}`} onPress={() => router.push(item.href as any)} className="min-h-[92px] flex-row items-center gap-4 rounded-2xl border border-border-default bg-surface-default px-4 py-3" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}><View className="h-11 w-11 shrink-0 items-center justify-center rounded-xl border" style={{ backgroundColor: withAlpha(tokens.brand.admin, '18'), borderColor: withAlpha(tokens.brand.admin, '50') }}><Ionicons name={item.icon} size={22} color={tokens.brand.admin} /></View><View className="min-w-0 flex-1"><Text numberOfLines={1} className="text-[15px] font-black text-text-primary">{item.title}</Text><Text numberOfLines={2} className="mt-1 text-[12px] leading-4 text-text-secondary">{item.description}</Text></View><Ionicons name="chevron-forward" size={19} color={tokens.brand.admin} /></Pressable>)}</View>
-  return <View className="mt-5 flex-row flex-wrap gap-4">{visible.map((item) => <Pressable key={item.href} accessibilityRole="link" accessibilityLabel={`Abrir ${item.title}`} onPress={() => router.push(item.href as any)} className="min-w-[250px] flex-1 rounded-[24px] border border-border-default bg-surface-default p-5" style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}><View className="h-12 w-12 items-center justify-center rounded-2xl border" style={{ backgroundColor: withAlpha(tokens.brand.admin, '18'), borderColor: withAlpha(tokens.brand.admin, '50') }}><Ionicons name={item.icon} size={25} color={tokens.brand.admin} /></View><Text className="mt-4 text-[18px] font-black text-text-primary">{item.title}</Text><Text className="mt-2 text-[13px] leading-5 text-text-secondary">{item.description}</Text><View className="mt-4 flex-row items-center gap-2"><Text className="font-black text-brand-admin">Entrar</Text><Ionicons name="arrow-forward" size={17} color={tokens.brand.admin} /></View></Pressable>)}</View>
+  if (compactOnMobile && !responsive.isDesktop) {
+    return (
+      <View className="mt-5 gap-3">
+        {visible.map((item) => (
+          <Pressable
+            key={item.href}
+            testID={getHubItemTestID(item)}
+            accessibilityRole="link"
+            accessibilityLabel={`Abrir ${item.title}`}
+            accessibilityHint={item.description}
+            onPress={() => router.push(item.href as any)}
+            className="min-h-[104px] flex-row items-center gap-4 rounded-2xl border border-border-default bg-surface-default px-4 py-3"
+            style={({ pressed }) => ({ borderColor: pressed ? withAlpha(tokens.brand.admin, 'A0') : tokens.border.default, backgroundColor: pressed ? withAlpha(tokens.brand.admin, '16') : tokens.surface.default, opacity: pressed ? 0.84 : 1, transform: [{ scale: pressed ? 0.992 : 1 }] })}
+          >
+            <View className="h-11 w-11 shrink-0 items-center justify-center rounded-xl border" style={{ backgroundColor: withAlpha(tokens.brand.admin, '18'), borderColor: withAlpha(tokens.brand.admin, '50') }}><Ionicons name={item.icon} size={22} color={tokens.brand.admin} /></View>
+            <View className="min-w-0 flex-1"><Text maxFontSizeMultiplier={1.5} className="text-[15px] font-black leading-5 text-text-primary">{item.title}</Text><Text maxFontSizeMultiplier={1.5} numberOfLines={2} className="mt-1 text-[12px] leading-4 text-text-secondary">{item.description}</Text></View>
+            <View className="h-8 w-8 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: withAlpha(tokens.brand.admin, '14') }}><Ionicons name="chevron-forward" size={18} color={tokens.brand.admin} /></View>
+          </Pressable>
+        ))}
+      </View>
+    )
+  }
+  return (
+    <View className="mt-5 flex-row flex-wrap gap-4">
+      {visible.map((item) => (
+        <Pressable
+          key={item.href}
+          testID={getHubItemTestID(item)}
+          accessibilityRole="link"
+          accessibilityLabel={`Abrir ${item.title}`}
+          accessibilityHint={item.description}
+          onPress={() => router.push(item.href as any)}
+          className="min-w-[250px] flex-1 rounded-[24px] border border-border-default bg-surface-default p-5"
+          style={({ pressed }) => ({ borderColor: pressed ? withAlpha(tokens.brand.admin, 'A0') : tokens.border.default, backgroundColor: pressed ? withAlpha(tokens.brand.admin, '16') : tokens.surface.default, opacity: pressed ? 0.84 : 1, transform: [{ scale: pressed ? 0.992 : 1 }] })}
+        >
+          <View className="h-12 w-12 items-center justify-center rounded-2xl border" style={{ backgroundColor: withAlpha(tokens.brand.admin, '18'), borderColor: withAlpha(tokens.brand.admin, '50') }}><Ionicons name={item.icon} size={25} color={tokens.brand.admin} /></View>
+          <Text maxFontSizeMultiplier={1.5} className="mt-4 text-[18px] font-black text-text-primary">{item.title}</Text>
+          <Text maxFontSizeMultiplier={1.5} className="mt-2 text-[13px] leading-5 text-text-secondary">{item.description}</Text>
+          <View className="mt-4 flex-row items-center gap-2"><Text className="font-black text-brand-admin">Entrar</Text><Ionicons name="arrow-forward" size={17} color={tokens.brand.admin} /></View>
+        </Pressable>
+      ))}
+    </View>
+  )
+}
+
+function getHubItemTestID(item: HubItem) {
+  const slug = item.href.split('?')[0].split('/').filter((segment) => segment && !segment.startsWith('(')).at(-1) || item.title
+  return `admin-hub-${slug.toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}`
 }
 type PermissionGroup = { title: string; icon: IconName; items: { permission: AdminPermission; label: string }[] }
 const ADMIN_PERMISSION_GROUPS: PermissionGroup[] = [

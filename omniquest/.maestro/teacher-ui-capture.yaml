@@ -1,0 +1,75 @@
+appId: com.alexalbert.omniquest
+name: Teacher UI capture matrix
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "landing-login"
+- tapOn:
+    id: "landing-login"
+- tapOn:
+    id: "login-email"
+- inputText: ${MAESTRO_TEACHER_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${MAESTRO_TEACHER_PASSWORD}
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "teacher-nav-classes"
+    timeout: 30000
+- takeScreenshot:
+    path: ui-teacher-home
+- tapOn:
+    id: "teacher-nav-classes"
+- assertVisible: "Cursos y clases|Courses and classes"
+- takeScreenshot:
+    path: ui-teacher-courses
+- tapOn:
+    id: "teacher-nav-students"
+- takeScreenshot:
+    path: ui-teacher-students
+- tapOn:
+    id: "teacher-nav-reviews"
+- takeScreenshot:
+    path: ui-teacher-reviews
+- tapOn:
+    id: "teacher-nav-more"
+- assertVisible: "Más|More"
+- takeScreenshot:
+    path: ui-teacher-more
+- tapOn:
+    id: "teacher-more-profile"
+- takeScreenshot:
+    path: ui-teacher-profile
+- tapOn:
+    id: "teacher-nav-more"
+- tapOn:
+    id: "teacher-more-settings"
+- takeScreenshot:
+    path: ui-teacher-settings
+- tapOn:
+    id: "teacher-nav-more"
+- tapOn:
+    id: "teacher-more-security"
+- takeScreenshot:
+    path: ui-teacher-security
+- tapOn:
+    id: "teacher-nav-more"
+- tapOn:
+    id: "teacher-more-audit"
+- takeScreenshot:
+    path: ui-teacher-audit
+- tapOn:
+    id: "teacher-nav-more"
+- tapOn:
+    id: "teacher-more-notifications"
+- takeScreenshot:
+    path: ui-teacher-notifications
+- tapOn:
+    id: "teacher-nav-more"
+- tapOn:
+    id: "teacher-more-help"
+- takeScreenshot:
+    path: ui-teacher-help

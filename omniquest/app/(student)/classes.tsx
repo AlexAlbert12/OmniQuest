@@ -18,6 +18,7 @@ import StudentBottomNav from '../../components/student/StudentBottomNav'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
 import HomeVisualBackground from '../../components/HomeVisualBackground'
 import { useAppTheme } from '../../lib/appTheme'
+import { withAlpha } from '../../lib/color'
 import { useAppModal } from '../../components/AppModalProvider'
 import { useResponsiveLayout } from '../../lib/responsive'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
@@ -119,16 +120,17 @@ export default function ClassesScreen() {
 
     return [...rows].sort((left, right) => {
       if (selectedSort === 'name') {
-        return left.name.localeCompare(right.name, 'es', { sensitivity: 'base' })
+        return compareCourseIdentity(left, right)
       }
 
       if (selectedSort === 'progress') {
         const rightProgress = progressBySubject[getCourseRowKey(right)]?.percent ?? 0
         const leftProgress = progressBySubject[getCourseRowKey(left)]?.percent ?? 0
-        return rightProgress - leftProgress || left.name.localeCompare(right.name, 'es', { sensitivity: 'base' })
+        return rightProgress - leftProgress || compareCourseIdentity(left, right)
       }
 
       return getSortableTimestamp(right.joined_at) - getSortableTimestamp(left.joined_at)
+        || compareCourseIdentity(left, right)
     })
   }, [progressBySubject, search, selectedFilter, selectedSort, subjects])
 
@@ -146,6 +148,17 @@ export default function ClassesScreen() {
     0
   )
   const hasActiveMobileFilters = selectedFilter !== 'all' || selectedSort !== 'recent' || search.trim().length > 0
+  const activeMobileFilterSummary = [
+    selectedFilter !== 'all' ? getFilterLabel(selectedFilter) : null,
+    selectedSort !== 'recent' ? `Orden: ${getSortLabel(selectedSort)}` : null,
+    search.trim() ? `“${search.trim()}”` : null,
+  ].filter(Boolean).join(' · ')
+  const resetClassFilters = () => {
+    setSelectedFilter('all')
+    setSelectedSort('recent')
+    setSearch('')
+    setOpenFilterMenu(null)
+  }
 
   const fetchClasses = useCallback(async () => {
     setLoading(true)
@@ -296,7 +309,7 @@ export default function ClassesScreen() {
                     className="h-12 w-12 items-center justify-center rounded-2xl border border-border-default bg-surface-interactive"
                     style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
                   >
-                    <Ionicons name={showMobileFilters ? 'close' : 'options'} size={24} color="#C7D5F2" />
+                    <Ionicons name={showMobileFilters ? 'close' : 'options'} size={24} color={showMobileFilters ? tokens.brand.student : tokens.text.secondary} />
                   </Pressable>
                 </>
               ) : undefined}
@@ -347,7 +360,7 @@ export default function ClassesScreen() {
                 <TextInput
                   accessibilityLabel="Buscar en mis cursos"
                   accessibilityHint="Filtra los cursos por nombre, clase o descripción"
-                  className="min-w-0 flex-1 px-3 py-4 text-white"
+                  className="min-w-0 flex-1 px-3 py-4 text-text-primary"
                   placeholder="Buscar entre mis cursos..."
                   placeholderTextColor={tokens.text.disabled}
                   value={search}
@@ -367,18 +380,32 @@ export default function ClassesScreen() {
             ) : null}
 
             {showMobileFilters && subjects.length > 0 ? (
-              <View className="mb-8 rounded-[24px] border border-border-default bg-surface-disabled p-4" style={{ position: 'relative', zIndex: openFilterMenu ? 50 : 1, overflow: 'visible' }}>
+              <View className="mb-8 rounded-[24px] border border-border-default bg-surface-default p-4" style={{ position: 'relative', zIndex: openFilterMenu ? 50 : 1, overflow: 'visible' }}>
+                <View className="mb-3 flex-row items-center justify-between gap-3">
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-[13px] font-black text-text-primary">Filtrar y ordenar</Text>
+                    <Text className="mt-1 text-[11px] leading-4 text-text-muted">Ajusta la lista sin perder de vista el criterio activo.</Text>
+                  </View>
+                  {hasActiveMobileFilters ? (
+                    <Pressable accessibilityRole="button" accessibilityLabel="Restablecer filtros de cursos" onPress={resetClassFilters} className="min-h-10 flex-row items-center gap-1.5 rounded-xl border border-border-default bg-surface-interactive px-3 py-2" style={({ pressed }) => ({ opacity: pressed ? 0.76 : 1 })}>
+                      <Ionicons name="refresh-outline" size={15} color={tokens.brand.student} />
+                      <Text className="text-[11px] font-black" style={{ color: tokens.brand.student }}>Restablecer</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+
                 {subjects.length <= 5 ? (
                   <View className="flex-row items-center rounded-2xl border border-border-default bg-background-primary px-4">
                     <Ionicons name="search-outline" size={20} color={tokens.text.muted} />
                     <TextInput
                       accessibilityLabel="Buscar en mis cursos"
-                      className="min-w-0 flex-1 px-3 py-4 text-white"
+                      className="min-w-0 flex-1 px-3 py-4 text-text-primary"
                       placeholder="Buscar un curso..."
                       placeholderTextColor={tokens.text.disabled}
                       value={search}
                       onChangeText={setSearch}
                     />
+                    {search ? <Pressable accessibilityRole="button" accessibilityLabel="Limpiar búsqueda de cursos" onPress={() => setSearch('')} className="h-10 w-10 items-center justify-center rounded-xl"><Ionicons name="close" size={18} color={tokens.text.muted} /></Pressable> : null}
                   </View>
                 ) : null}
 
@@ -390,14 +417,17 @@ export default function ClassesScreen() {
                         <Pressable
                           key={filter.id}
                           accessibilityRole="button"
+                          accessibilityLabel={`Filtrar cursos por ${filter.label}`}
+                          accessibilityState={{ selected: active }}
                           onPress={() => setSelectedFilter(filter.id)}
                           className="rounded-full border px-4 py-2.5"
-                          style={{
-                            borderColor: active ? accentColor : '#2B3C5C',
-                            backgroundColor: active ? `${accentColor}2E` : '#0A1224',
-                          }}
+                          style={({ pressed }) => ({
+                            borderColor: active ? accentColor : tokens.border.default,
+                            backgroundColor: active ? withAlpha(accentColor, '2E') : tokens.surface.interactive,
+                            opacity: pressed ? 0.78 : 1,
+                          })}
                         >
-                          <Text className="font-black" style={{ color: active ? '#FFFFFF' : '#B8C4DC' }}>{filter.label}</Text>
+                          <Text className="font-black" style={{ color: active ? tokens.text.primary : tokens.text.secondary }}>{filter.label}</Text>
                         </Pressable>
                       )
                     })}
@@ -408,11 +438,13 @@ export default function ClassesScreen() {
                           <Pressable
                             key={sort.id}
                             accessibilityRole="button"
+                            accessibilityLabel={`Ordenar cursos por ${sort.label}`}
+                            accessibilityState={{ selected: active }}
                             onPress={() => setSelectedSort(sort.id)}
-                            className="rounded-full px-4 py-2.5"
-                            style={{ backgroundColor: active ? '#253153' : '#0A1224' }}
+                            className="rounded-full border px-4 py-2.5"
+                            style={({ pressed }) => ({ borderColor: active ? tokens.border.active : tokens.border.default, backgroundColor: active ? tokens.surface.selected : tokens.surface.interactive, opacity: pressed ? 0.78 : 1 })}
                           >
-                            <Text className="font-bold" style={{ color: active ? '#FFFFFF' : '#8FA2C1' }}>{sort.label}</Text>
+                            <Text className="font-bold" style={{ color: active ? tokens.text.primary : tokens.text.secondary }}>{sort.label}</Text>
                           </Pressable>
                         )
                       })}
@@ -462,8 +494,8 @@ export default function ClassesScreen() {
                 onPress={() => setShowMobileFilters(true)}
                 className="mb-4 self-start flex-row items-center gap-2 rounded-full border border-border-default bg-surface-disabled px-4 py-2"
               >
-                <Ionicons name="funnel" size={14} color="#A96CFF" />
-                <Text className="text-[12px] font-black text-text-secondary">{getFilterLabel(selectedFilter)}</Text>
+                <Ionicons name="funnel" size={14} color={tokens.brand.student} />
+                <Text className="text-[12px] font-black text-text-secondary">{activeMobileFilterSummary || 'Filtros activos'}</Text>
               </Pressable>
             ) : null}
 
@@ -521,37 +553,40 @@ function CompactSelect({
   options: { key: string; label: string; active: boolean; onPress: () => void }[]
   value: string
 }) {
-  const { accentColor } = useAppTheme()
+  const { accentColor, tokens } = useAppTheme()
 
   return (
     <View className="relative flex-1" style={{ zIndex: open ? 60 : 1 }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${value}`}
+        accessibilityHint="Abre las opciones disponibles"
+        accessibilityState={{ expanded: open }}
         onPress={onToggle}
-        className="flex-row items-center justify-between rounded-2xl border border-border-default bg-background-primary px-4 py-3"
+        className="flex-row items-center justify-between rounded-2xl border px-4 py-3"
+        style={({ pressed }) => ({ borderColor: open ? tokens.border.active : tokens.border.default, backgroundColor: open ? tokens.surface.selected : tokens.surface.interactive, opacity: pressed ? 0.8 : 1 })}
       >
         <View className="min-w-0 flex-1">
           <Text className="text-[10px] font-black uppercase tracking-[1px] text-text-muted">{label}</Text>
-          <Text className="mt-1 font-black text-white" numberOfLines={1}>{value}</Text>
+          <Text className="mt-1 font-black text-text-primary" numberOfLines={1}>{value}</Text>
         </View>
-        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color="#B8C4DC" />
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={open ? accentColor : tokens.text.secondary} />
       </Pressable>
 
       {open ? (
-        <View className="absolute left-0 right-0 top-[68px] z-30 overflow-hidden rounded-2xl border border-border-active bg-background-primary" style={{ zIndex: 70, elevation: 18 }}>
+        <View className="absolute left-0 right-0 top-[68px] z-30 overflow-hidden rounded-2xl border" style={{ zIndex: 70, elevation: 18, borderColor: tokens.border.active, backgroundColor: tokens.surface.raised }}>
           {options.map((option) => (
             <Pressable
               key={option.key}
               accessibilityRole="button"
+              accessibilityLabel={`${label}: ${option.label}`}
+              accessibilityState={{ selected: option.active }}
               onPress={option.onPress}
-              className="flex-row items-center justify-between border-b border-border-default px-4 py-3 last:border-b-0"
-              style={{ backgroundColor: option.active ? `${accentColor}24` : 'transparent' }}
+              className="flex-row items-center justify-between border-b px-4 py-3 last:border-b-0"
+              style={({ pressed }) => ({ borderColor: tokens.border.default, backgroundColor: option.active ? withAlpha(accentColor, '24') : pressed ? tokens.surface.interactive : tokens.surface.raised })}
             >
-              <Text className="font-bold" style={{ color: option.active ? '#FFFFFF' : '#CAD5E7' }}>
-                {option.label}
-              </Text>
-              {option.active ? <Ionicons name="checkmark" size={17} color={accentColor} /> : null}
+              <Text className="font-bold" style={{ color: option.active ? tokens.text.primary : tokens.text.secondary }}>{option.label}</Text>
+              {option.active ? <Ionicons name="checkmark-circle" size={17} color={accentColor} /> : null}
             </Pressable>
           ))}
         </View>
@@ -636,4 +671,10 @@ function getSortableTimestamp(value: string | null | undefined) {
   if (!value) return 0
   const timestamp = new Date(value).getTime()
   return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+function compareCourseIdentity(left: Subject, right: Subject) {
+  return left.name.localeCompare(right.name, 'es', { sensitivity: 'base' })
+    || (left.classroom_id ?? 0) - (right.classroom_id ?? 0)
+    || left.id - right.id
 }

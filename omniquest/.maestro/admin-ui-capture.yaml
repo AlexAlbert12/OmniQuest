@@ -1,0 +1,107 @@
+appId: com.alexalbert.omniquest
+name: Admin UI capture matrix
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "landing-login"
+- tapOn:
+    id: "landing-login"
+- tapOn:
+    id: "login-email"
+- inputText: ${MAESTRO_ADMIN_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${MAESTRO_ADMIN_PASSWORD}
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "admin-nav-users"
+    timeout: 30000
+- takeScreenshot:
+    path: ui-admin-home
+- tapOn:
+    id: "admin-nav-users"
+- assertVisible: "Usuarios|Users"
+- takeScreenshot:
+    path: ui-admin-users
+- tapOn:
+    id: "admin-nav-content"
+- assertVisible: "Contenido|Content"
+- takeScreenshot:
+    path: ui-admin-content
+- tapOn:
+    id: "admin-nav-audit"
+- assertVisible: "Auditoría|Audit"
+- takeScreenshot:
+    path: ui-admin-audit
+- tapOn:
+    id: "admin-nav-more"
+- assertVisible: "Más|More"
+- takeScreenshot:
+    path: ui-admin-more
+- runFlow:
+    when:
+      visible:
+        id: "admin-hub-support"
+    commands:
+      - tapOn:
+          id: "admin-hub-support"
+      - takeScreenshot:
+          path: ui-admin-support
+      - tapOn:
+          id: "admin-nav-more"
+- runFlow:
+    when:
+      visible:
+        id: "admin-hub-push"
+    commands:
+      - tapOn:
+          id: "admin-hub-push"
+      - takeScreenshot:
+          path: ui-admin-push
+      - tapOn:
+          id: "admin-nav-more"
+- runFlow:
+    when:
+      visible:
+        id: "admin-hub-exports"
+    commands:
+      - tapOn:
+          id: "admin-hub-exports"
+      - takeScreenshot:
+          path: ui-admin-exports
+      - tapOn:
+          id: "admin-nav-more"
+- runFlow:
+    when:
+      visible:
+        id: "admin-hub-permissions"
+    commands:
+      - tapOn:
+          id: "admin-hub-permissions"
+      - takeScreenshot:
+          path: ui-admin-permissions
+      - tapOn:
+          id: "admin-nav-more"
+- runFlow:
+    when:
+      visible:
+        id: "admin-hub-profile"
+    commands:
+      - tapOn:
+          id: "admin-hub-profile"
+      - takeScreenshot:
+          path: ui-admin-profile
+      - tapOn:
+          id: "admin-nav-more"
+- runFlow:
+    when:
+      visible:
+        id: "admin-hub-security"
+    commands:
+      - tapOn:
+          id: "admin-hub-security"
+      - takeScreenshot:
+          path: ui-admin-security
