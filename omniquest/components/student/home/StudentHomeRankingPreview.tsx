@@ -1,7 +1,7 @@
 import React from 'react'
 import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import AppButton from '../../ui/AppButton'
+import AppPressable from '../../ui/AppPressable'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
 import type { StudentHomeRankingPreviewRow, StudentHomeRankingSummary } from './types'
@@ -24,7 +24,13 @@ export default function StudentHomeRankingPreview({
   const { tokens } = useAppTheme()
 
   return (
-    <View className="rounded-[24px] border border-border-default bg-surface-default p-5">
+    <AppPressable
+      accessibilityLabel="Abrir ranking"
+      accessibilityHint="Muestra la clasificación completa"
+      onPress={onOpen}
+      className="rounded-[24px] border border-border-default bg-surface-default p-5"
+      style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
+    >
       <View className="flex-row items-start justify-between gap-3">
         <View className="min-w-0 flex-1">
           <Text className="text-[18px] font-black text-white">Ranking</Text>
@@ -72,7 +78,10 @@ export default function StudentHomeRankingPreview({
         })}
       </View>
 
-      <AppButton label="Ver ranking completo" variant="ghost" size="sm" icon="arrow-forward" iconPosition="right" onPress={onOpen} style={{ marginTop: 14 }} />
-    </View>
+      <View className="mt-4 flex-row items-center justify-end gap-1">
+        <Text className="text-[11px] font-black text-brand-student">Abrir ranking</Text>
+        <Ionicons name="chevron-forward" size={16} color={tokens.brand.student} />
+      </View>
+    </AppPressable>
   )
 }

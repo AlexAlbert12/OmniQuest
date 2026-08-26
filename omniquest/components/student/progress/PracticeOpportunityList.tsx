@@ -12,8 +12,6 @@ export default function PracticeOpportunityList({ opportunities, primaryRecommen
   onPractice: (opportunity: PracticeOpportunity) => void
   onSeeAll: () => void
 }) {
-  const hasDetectedPatterns = opportunities.some((item) => item.id.startsWith('type-'))
-
   return (
     <StudentDashboardCard title="Oportunidades de práctica" actionLabel="Revisar historial" onAction={onSeeAll}>
       {opportunities.length === 0 ? (
@@ -24,7 +22,6 @@ export default function PracticeOpportunityList({ opportunities, primaryRecommen
         />
       ) : (
         <View className="gap-3">
-          {hasDetectedPatterns ? <Text className="text-[12px] leading-5 text-text-muted">Los patrones detectados resumen los formatos donde se concentran tus fallos recientes.</Text> : null}
           {opportunities.map((item) => {
             const isDetectedPattern = item.id.startsWith('type-')
             return (
@@ -57,7 +54,9 @@ export default function PracticeOpportunityList({ opportunities, primaryRecommen
 
                 <View className="mt-3 flex-row flex-wrap items-center justify-between gap-3">
                   <Text className="text-[13px] font-black text-gamification-xp">+{item.rewardXp} XP posibles</Text>
-                  <AppButton size="sm" role="student" label={item.actionLabel} icon={item.subjectId ? 'play' : 'time-outline'} onPress={() => onPractice(item)} />
+                  {!isDetectedPattern ? (
+                    <AppButton size="sm" role="student" label={item.actionLabel} icon="play" onPress={() => onPractice(item)} />
+                  ) : null}
                 </View>
               </View>
             )

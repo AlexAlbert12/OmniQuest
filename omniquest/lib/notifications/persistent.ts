@@ -1,5 +1,9 @@
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../supabase'
+import {
+  isJwtIssuedInFutureError,
+  retrySupabaseRequestAfterJwtRecovery,
+} from '../supabaseJwtRecovery'
 import type { Json, Tables } from '../../types/database.types'
 import type {
   AppNotification,
@@ -46,12 +50,14 @@ export async function fetchPersistentNotificationPage({
   const safePageSize = Math.min(Math.max(pageSize, 1), 50)
 
   try {
-    const { data, error } = await supabase.rpc('get_notifications_page', {
-      p_audience: audience,
-      p_limit: safePageSize,
-      p_cursor_created_at: cursor?.createdAt,
-      p_cursor_id: cursor?.id,
-    })
+    const { data, error } = await retrySupabaseRequestAfterJwtRecovery(() => (
+      supabase.rpc('get_notifications_page', {
+        p_audience: audience,
+        p_limit: safePageSize,
+        p_cursor_created_at: cursor?.createdAt,
+        p_cursor_id: cursor?.id,
+      })
+    ))
 
     if (error) {
       if (isMissingNotificationRpcError(error)) return emptyPersistentPage(false)
@@ -78,7 +84,9 @@ export async function fetchPersistentNotificationPage({
       return emptyPersistentPage(false)
     }
 
-    console.error('Error cargando notificaciones persistentes:', error)
+    if (!isJwtIssuedInFutureError(error)) {
+      console.error('Error cargando notificaciones persistentes:', error)
+    }
     throw error
   }
 }
@@ -173,10 +181,12 @@ export async function updatePersistentNotificationState(id: string, state: { rea
 
 export async function loadNotificationStateFromDB(userId: string): Promise<{ read: Set<string>; deleted: Set<string> }> {
   try {
-    const { data, error } = await supabase
-      .from('notification_state')
-      .select('notification_id, is_read, is_deleted')
-      .eq('user_id', userId)
+    const { data, error } = await retrySupabaseRequestAfterJwtRecovery(() => (
+      supabase
+        .from('notification_state')
+        .select('notification_id, is_read, is_deleted')
+        .eq('user_id', userId)
+    ))
 
     if (error) throw error
 
@@ -194,7 +204,9 @@ export async function loadNotificationStateFromDB(userId: string): Promise<{ rea
       return { read: new Set(), deleted: new Set() }
     }
 
-    console.error('Error loading notification state from DB:', error)
+    if (!isJwtIssuedInFutureError(error)) {
+      console.error('Error loading notification state from DB:', error)
+    }
     throw error
   }
 }

@@ -25,7 +25,7 @@ type MobileBottomNavigationProps<Key extends string> = {
   scrollable?: boolean
 }
 
-const ICON_SIZE = 26
+const ICON_SIZE = 25
 
 export default function MobileBottomNavigation<Key extends string>({
   activeKey,
@@ -57,8 +57,8 @@ export default function MobileBottomNavigation<Key extends string>({
           styles.item,
           scrollable ? styles.scrollableItem : styles.flexItem,
           {
-            backgroundColor: isActive ? withAlpha(accentColor, '24') : 'transparent',
-            borderColor: isActive ? withAlpha(accentColor, 'A0') : 'transparent',
+            backgroundColor: isActive ? withAlpha(accentColor, '30') : 'transparent',
+            borderColor: isActive ? withAlpha(accentColor, 'D0') : 'transparent',
           },
           pressed && !isActive && styles.pressedItem,
         ]}
@@ -79,8 +79,8 @@ export default function MobileBottomNavigation<Key extends string>({
 
         <Text
           adjustsFontSizeToFit
-          maxFontSizeMultiplier={1.2}
-          minimumFontScale={0.82}
+          maxFontSizeMultiplier={1.15}
+          minimumFontScale={0.8}
           numberOfLines={1}
           style={[
             styles.label,
@@ -133,35 +133,37 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 1000,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 1,
   },
   navigationSurface: {
-    height: 82,
+    height: 86,
     width: '100%',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
   },
   row: {
     width: '100%',
     height: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'space-between',
+    gap: 6,
   },
   scrollContent: {
     minWidth: '100%',
-    height: 82,
+    height: 86,
     alignItems: 'center',
     paddingHorizontal: 2,
-    gap: 4,
+    gap: 6,
   },
   item: {
-    height: 70,
+    height: 72,
     minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderRadius: 16,
-    borderWidth: 1,
+    paddingHorizontal: 2,
+    paddingVertical: 6,
+    borderRadius: 18,
+    borderWidth: 1.5,
     overflow: 'hidden',
   },
   flexItem: {
@@ -170,12 +172,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   scrollableItem: {
-    width: 82,
+    width: 80,
     flexShrink: 0,
   },
   iconShell: {
-    width: 40,
-    height: 34,
+    width: 38,
+    height: 32,
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
@@ -187,22 +189,22 @@ const styles = StyleSheet.create({
   activeIndicator: {
     position: 'absolute',
     bottom: 0,
-    width: 14,
+    width: 18,
     height: 3,
     borderRadius: 999,
   },
   pressedItem: {
-    opacity: 0.65,
+    opacity: 0.68,
   },
   label: {
     width: '100%',
     minWidth: 0,
     flexShrink: 1,
     marginTop: 2,
-    paddingHorizontal: 1,
-    fontSize: 11.5,
-    lineHeight: 14,
-    fontWeight: '800',
+    paddingHorizontal: 0,
+    fontSize: 11,
+    lineHeight: 13,
+    fontWeight: '900',
     textAlign: 'center',
     includeFontPadding: false,
   },

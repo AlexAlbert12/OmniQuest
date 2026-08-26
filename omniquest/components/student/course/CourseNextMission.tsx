@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import AppButton from '../../ui/AppButton'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import type { StudentCourseTopic } from './types'
 
 export default function CourseNextMission({
@@ -22,6 +23,7 @@ export default function CourseNextMission({
   style?: StyleProp<ViewStyle>
 }) {
   const { tokens } = useAppTheme()
+  const responsive = useResponsiveLayout()
   const title = topic ? buildMissionTitle(topic, position) : 'Has completado el curso'
   const description = topic?.description || courseDescription || 'Selecciona un planeta para iniciar una misión.'
 
@@ -53,7 +55,7 @@ export default function CourseNextMission({
           <Text className="text-[10px] font-black uppercase tracking-[1px] text-brand-student">Siguiente misión</Text>
           <Text maxFontSizeMultiplier={2} numberOfLines={1} className="mt-0.5 text-[13px] font-black text-white">{title}</Text>
         </View>
-        <AppButton label="Continuar" accessibilityHint={`Abre ${title}`} icon="play" role="student" size="sm" onPress={onContinue} />
+        <AppButton label="Continuar" accessibilityHint={`Abre ${title}`} icon="play" role="student" size="sm" variant="primary" onPress={onContinue} />
       </View>
     )
   }
@@ -69,7 +71,16 @@ export default function CourseNextMission({
         <Ionicons name={topic ? 'book-outline' : 'checkmark-done'} size={30} color={tokens.brand.student} />
       </View>
       {topic && onContinue ? (
-        <AppButton label={buildMissionActionLabel(topic, position)} accessibilityHint={`Abre ${title}`} icon="play" role="student" onPress={onContinue} />
+        <AppButton
+          fullWidth={responsive.isMobile}
+          label={buildMissionActionLabel(topic, position)}
+          accessibilityHint={`Abre ${title}`}
+          icon="play"
+          role="student"
+          variant="primary"
+          onPress={onContinue}
+          style={responsive.isMobile ? undefined : { minWidth: 190 }}
+        />
       ) : null}
     </View>
   )

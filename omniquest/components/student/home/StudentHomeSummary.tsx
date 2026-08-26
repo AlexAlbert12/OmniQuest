@@ -31,10 +31,7 @@ export default function StudentHomeSummary({
   return (
     <View>
       <View className="mb-3 flex-row items-center justify-between gap-3">
-        <View>
-          <Text className="text-[20px] font-black text-white">Resumen</Text>
-          <Text className="mt-1 text-[13px] text-text-muted">Solo lo esencial de tu progreso.</Text>
-        </View>
+        <Text className="text-[20px] font-black text-white">Resumen</Text>
         <AppPressable
           accessibilityLabel="Abrir progreso detallado"
           accessibilityHint="Muestra estadísticas, cursos y actividad completa"
@@ -44,33 +41,36 @@ export default function StudentHomeSummary({
           <Text className="text-[13px] font-black text-brand-student">Ver detalle</Text>
         </AppPressable>
       </View>
-      <View className="flex-row flex-wrap gap-3">
+      <View className={`flex-row ${isDesktop ? 'gap-3' : 'gap-2'}`}>
         {metrics.map((metric) => (
           <View
             key={metric.label}
-            className="min-w-[140px] flex-1 flex-row gap-4 items-center rounded-[20px] border border-border-subtle bg-surface-raised px-4"
-            style={{ paddingVertical: isDesktop ? 13 : 16 }}
+            className={`min-w-0 flex-1 border border-border-subtle bg-surface-raised ${isDesktop ? 'flex-row items-center gap-4 rounded-[20px] px-4' : 'items-center justify-center rounded-2xl px-1.5'}`}
+            style={{ paddingVertical: isDesktop ? 13 : 8, minHeight: isDesktop ? undefined : 88 }}
           >
             <View
               className="items-center justify-center"
               style={{
-                width: isDesktop ? 34 : 40,
-                height: isDesktop ? 34 : 40,
-                borderRadius: isDesktop ? 10 : 12,
+                width: isDesktop ? 34 : 28,
+                height: isDesktop ? 34 : 28,
+                borderRadius: isDesktop ? 10 : 9,
                 backgroundColor: withAlpha(metric.color, '24'),
               }}
             >
-              <Ionicons name={metric.icon} size={isDesktop ? 19 : 21} color={metric.color} />
+              <Ionicons name={metric.icon} size={isDesktop ? 19 : 16} color={metric.color} />
             </View>
-            <View className="flex-1">
+            <View className={isDesktop ? 'flex-1' : 'mt-1 items-center'}>
               <Text
                 maxFontSizeMultiplier={2}
                 className="font-black text-text-primary"
-                style={{ fontSize: isDesktop ? 22 : 24, lineHeight: isDesktop ? 26 : 29 }}
+                style={{ fontSize: isDesktop ? 22 : 17, lineHeight: isDesktop ? 26 : 20, textAlign: isDesktop ? 'left' : 'center' }}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
               >
                 {metric.value}
               </Text>
-              <Text maxFontSizeMultiplier={2} className="mt-0.5 text-[12px] font-bold text-text-muted">{metric.label}</Text>
+              <Text maxFontSizeMultiplier={1.4} className={`mt-0.5 font-bold text-text-muted ${isDesktop ? 'text-[12px]' : 'text-center text-[9px] leading-3'}`} numberOfLines={2}>{metric.label}</Text>
             </View>
           </View>
         ))}

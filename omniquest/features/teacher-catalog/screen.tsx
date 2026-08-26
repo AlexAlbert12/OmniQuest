@@ -10,6 +10,7 @@ import TeacherScreenLayout from '../../components/layouts/TeacherScreenLayout'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { useResponsiveLayout } from '../../lib/responsive'
 import AppButton from '../../components/ui/AppButton'
+import AppDropdown from '../../components/ui/AppDropdown'
 import AppTabs from '../../components/ui/AppTabs'
 import PaginationControls from '../../components/ui/PaginationControls'
 import TeacherCourseCard from '../../components/teacher/classes/TeacherCourseCard'
@@ -79,27 +80,28 @@ export default function TeacherClassesScreen() {
                 <TextInput accessibilityLabel={catalog.catalogTab === 'courses' ? 'Buscar curso' : 'Buscar clase'} className="ml-3 min-w-0 flex-1 text-text-primary" placeholder={catalog.catalogTab === 'courses' ? 'Buscar curso...' : 'Buscar clase o curso...'} placeholderTextColor="#8FA7C7" value={catalog.searchInput} onChangeText={catalog.setSearchInput} />
               </View>
               {catalog.catalogTab === 'courses' ? (
-                <View className="flex-row items-center gap-3">
-                  <View className="min-w-0 flex-1">
-                    <AppTabs<TeacherCourseFilter> accessibilityLabel="Filtrar cursos" compact mobileRail={!isDesktop} role="teacher" items={teacherCourseFilters} value={catalog.filter} onChange={catalog.setFilter} />
-                  </View>
-                  {isDesktop ? (
+                isDesktop ? (
+                  <View className="flex-row items-center gap-3">
+                    <View className="min-w-0 flex-1">
+                      <AppTabs<TeacherCourseFilter> accessibilityLabel="Filtrar cursos" compact role="teacher" items={teacherCourseFilters} value={catalog.filter} onChange={catalog.setFilter} />
+                    </View>
                     <View className="min-w-[340px] flex-[0.65]">
                       <AppTabs<TeacherCourseSort> accessibilityLabel="Ordenar cursos" compact fill role="teacher" items={teacherCourseSorts.map((item) => ({ ...item, icon: 'swap-vertical-outline' as const }))} value={catalog.sort} onChange={catalog.setSort} />
                     </View>
-                  ) : (
-                    <AppButton
-                      accessibilityLabel={`Orden: ${teacherCourseSorts.find((item) => item.key === catalog.sort)?.label || 'Reciente'}`}
-                      icon="swap-vertical-outline"
-                      label={`Orden: ${teacherCourseSorts.find((item) => item.key === catalog.sort)?.label || 'Reciente'}`}
-                      onPress={() => { const index = teacherCourseSorts.findIndex((item) => item.key === catalog.sort); catalog.setSort(teacherCourseSorts[(index + 1) % teacherCourseSorts.length].key) }}
+                  </View>
+                ) : (
+                  <View className="gap-2">
+                    <AppTabs<TeacherCourseFilter> accessibilityLabel="Filtrar cursos" compact mobileRail role="teacher" items={teacherCourseFilters} value={catalog.filter} onChange={catalog.setFilter} />
+                    <AppDropdown<TeacherCourseSort>
+                      accessibilityLabel="Ordenar cursos"
+                      compact
                       role="teacher"
-                      size="sm"
-                      style={{ minHeight: 48, maxWidth: 154 }}
-                      variant="secondary"
+                      value={catalog.sort}
+                      options={teacherCourseSorts.map((item) => ({ value: item.key, label: `Orden: ${item.label}`, icon: 'swap-vertical-outline' as const }))}
+                      onChange={catalog.setSort}
                     />
-                  )}
-                </View>
+                  </View>
+                )
               ) : null}
             </View>
             {isDesktop && catalog.items.length > 0 ? <CatalogTableHeader tab={catalog.catalogTab} /> : null}

@@ -55,9 +55,9 @@ export default function AdminPushDeliveryPanel({ refreshVersion }: { refreshVers
             ].map((metric) => <View key={metric.label} style={isDesktop ? { flexGrow: 1, minWidth: 160 } : { flexBasis: '47%', flexGrow: 1, minWidth: 0 }}><AdminMetric compact={!isDesktop} color={metric.color} icon={metric.icon} label={metric.label} value={String(metric.value)} /></View>)}
           </View>
           <View className="mt-4 flex-row flex-wrap gap-3">
-            <MetricSummary label="Tasa de entrega" value={metrics.delivery_rate === null ? '—' : `${metrics.delivery_rate.toFixed(1)}%`} detail={metrics.delivery_rate === null ? 'Sin entregas resueltas todavía.' : undefined} />
+            <MetricSummary label="Tasa de entrega" value={metrics.delivery_rate === null ? '—' : `${metrics.delivery_rate.toFixed(1)}%`} />
             <MetricSummary label="Reintentando" value={String(metrics.retrying)} />
-            <MetricSummary label="Omitidas" value={String(metrics.skipped)} detail="Respeta preferencias y dispositivos disponibles." />
+            <MetricSummary label="Omitidas" value={String(metrics.skipped)} />
           </View>
           <AppPressable accessibilityRole="button" accessibilityLabel="Abrir centro de notificaciones push" onPress={() => router.push('/(admin)/push' as Href)} className={isDesktop ? 'mt-4 self-start rounded-xl border border-border-default bg-surface-interactive px-4 py-3' : 'mt-4 items-center rounded-xl border border-border-default bg-surface-interactive px-4 py-3'}><View className="flex-row items-center gap-2"><Text className="text-[13px] font-black text-brand-admin">Ver centro push</Text><Ionicons name="arrow-forward" size={16} color={tokens.brand.admin} /></View></AppPressable>
         </>
@@ -66,6 +66,6 @@ export default function AdminPushDeliveryPanel({ refreshVersion }: { refreshVers
   )
 }
 
-function MetricSummary({ detail, label, value }: { detail?: string; label: string; value: string }) {
-  return <View className="rounded-xl border border-border-default bg-surface-default p-4" style={{ flexBasis: '30%', flexGrow: 1, minWidth: 92 }}><Text className="text-[12px] font-bold text-text-muted">{label}</Text><Text className="mt-1 text-[26px] font-black text-white">{value}</Text>{detail ? <Text className="mt-1 text-[11px] leading-4 text-text-muted">{detail}</Text> : null}</View>
+function MetricSummary({ label, value }: { label: string; value: string }) {
+  return <View className="rounded-xl border border-border-default bg-surface-default p-4" style={{ flexBasis: '30%', flexGrow: 1, minWidth: 92 }}><Text className="text-[12px] font-bold text-text-muted">{label}</Text><Text className="mt-1 text-[26px] font-black text-white">{value}</Text></View>
 }

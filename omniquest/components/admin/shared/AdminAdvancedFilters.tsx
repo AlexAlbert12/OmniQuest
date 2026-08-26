@@ -296,7 +296,7 @@ export function AdminProfileFilters({
   return <View style={styles.mobileFilters}>
     <View style={styles.mobileFilterActions}><View style={{ flex: 1 }}><AdminButton label={activeFilters.length > 0 ? `Filtros (${activeFilters.length})` : 'Filtros'} icon="options-outline" variant="secondary" fullWidth onPress={() => setMobileOpen(true)} /></View>{mobileAction}</View>
     {activeFilters.length > 0 ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.activeFilterChips}>{activeFilters.map((filter) => <AppPressable key={filter.key} accessibilityLabel={`Quitar ${filter.label}`} onPress={filter.clear} style={({ pressed }) => ({ minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, backgroundColor: withAlpha(tokens.brand.admin, '18'), borderColor: withAlpha(tokens.brand.admin, '70'), opacity: pressed ? 0.76 : 1 })}><Text numberOfLines={1} style={{ maxWidth: 220, color: tokens.text.primary, fontSize: 11, fontWeight: '800' }}>{filter.label}</Text><Ionicons name="close" size={14} color={tokens.brand.admin} /></AppPressable>)}</ScrollView> : null}
-    <AppBottomSheet visible={mobileOpen} onClose={() => setMobileOpen(false)} title="Filtros" description={`Refina el listado de ${currentRole === 'teacher' ? 'profesores' : 'alumnos'} sin perder espacio en la vista principal.`} footer={<AdminButton label="Ver resultados" icon="checkmark" fullWidth onPress={() => setMobileOpen(false)} />}>
+    <AppBottomSheet visible={mobileOpen} onClose={() => setMobileOpen(false)} title="Filtros" footer={<AdminButton label="Ver resultados" icon="checkmark" fullWidth onPress={() => setMobileOpen(false)} />}>
       <View style={styles.mobileFilterStack}>{sharedFields(true)}</View>
     </AppBottomSheet>
   </View>
@@ -521,7 +521,7 @@ export function AdminCourseSupervisionFilters({
     <View style={{ width: mobile ? '100%' : undefined, minWidth: mobile ? 0 : 300, flexGrow: 1 }}><Text style={[styles.fieldLabel, { color: tokens.text.muted }]}>Fecha de creación</Text><AdminDateRangeFields from={createdFrom} to={createdTo} onChangeFrom={onChangeCreatedFrom} onChangeTo={onChangeCreatedTo} /></View>
   </>
   if (!responsive.isMobile) return <View style={styles.filterGrid}>{fields(false)}</View>
-  return <AdminMobileFilterShell activeFilters={activeFilters} mobileAction={mobileAction} open={mobileOpen} setOpen={setMobileOpen} description="Refina el listado de cursos sin perder espacio en la vista principal.">{fields(true)}</AdminMobileFilterShell>
+  return <AdminMobileFilterShell activeFilters={activeFilters} mobileAction={mobileAction} open={mobileOpen} setOpen={setMobileOpen}>{fields(true)}</AdminMobileFilterShell>
 }
 
 export function AdminClassroomSupervisionFilters({
@@ -574,10 +574,10 @@ export function AdminClassroomSupervisionFilters({
     <View style={{ width: mobile ? '100%' : undefined, minWidth: mobile ? 0 : 300, flexGrow: 1 }}><Text style={[styles.fieldLabel, { color: tokens.text.muted }]}>Fecha de creación</Text><AdminDateRangeFields from={createdFrom} to={createdTo} onChangeFrom={onChangeCreatedFrom} onChangeTo={onChangeCreatedTo} /></View>
   </>
   if (!responsive.isMobile) return <View style={styles.filterGrid}>{fields(false)}</View>
-  return <AdminMobileFilterShell activeFilters={activeFilters} mobileAction={mobileAction} open={mobileOpen} setOpen={setMobileOpen} description="Refina el listado de clases sin perder espacio en la vista principal.">{fields(true)}</AdminMobileFilterShell>
+  return <AdminMobileFilterShell activeFilters={activeFilters} mobileAction={mobileAction} open={mobileOpen} setOpen={setMobileOpen}>{fields(true)}</AdminMobileFilterShell>
 }
 
-export function AdminMobileFilterShell({ actionFirst = false, activeFilters, applyLabel = 'Ver resultados', children, description, mobileAction, onClear, open, setOpen }: { actionFirst?: boolean; activeFilters: { key: string; label: string; clear: () => void }[]; applyLabel?: string; children: React.ReactNode; description: string; mobileAction?: React.ReactNode; onClear?: () => void; open: boolean; setOpen: (value: boolean) => void }) {
+export function AdminMobileFilterShell({ actionFirst = false, activeFilters, applyLabel = 'Ver resultados', children, description, mobileAction, onClear, open, setOpen }: { actionFirst?: boolean; activeFilters: { key: string; label: string; clear: () => void }[]; applyLabel?: string; children: React.ReactNode; description?: string; mobileAction?: React.ReactNode; onClear?: () => void; open: boolean; setOpen: (value: boolean) => void }) {
   const { tokens } = useAppTheme()
   const filterButton = <View style={{ flex: 1 }}><AdminButton label={activeFilters.length > 0 ? `Filtros (${activeFilters.length})` : 'Filtros'} icon="options-outline" variant="secondary" fullWidth onPress={() => setOpen(true)} /></View>
   const footer = onClear ? <View className="flex-row gap-2"><View className="flex-1"><AdminButton label="Limpiar" icon="refresh-outline" variant="secondary" fullWidth onPress={onClear} /></View><View className="flex-1"><AdminButton label={applyLabel} icon="checkmark" fullWidth onPress={() => setOpen(false)} /></View></View> : <AdminButton label={applyLabel} icon="checkmark" fullWidth onPress={() => setOpen(false)} />

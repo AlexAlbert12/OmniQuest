@@ -226,7 +226,7 @@ export default function StudentNotificationsScreen() {
           onLoadMore={loadMore}
         />
       </View>
-      {!isDesktop ? <StudentBottomNav active={null} /> : null}
+      {!isDesktop ? <StudentBottomNav active="notifications" /> : null}
     </View>
   )
 }

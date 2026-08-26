@@ -42,4 +42,14 @@ test('student profile separates personal data from quick navigation and labels p
 test('compact profile streak follows the shared count-formatting convention', () => {
   const metrics = read('components/student/profile/StudentProfileMetrics.tsx')
   assert.match(metrics, /formatCount\(streakDays, 'd', 'd'\)/)
+  assert.equal((metrics.match(/dense=\{dense\}/g) || []).length, 4)
+  assert.equal((metrics.match(/className="min-w-0"/g) || []).length, 4)
+})
+
+test('student profile editing uses a blue pencil affordance across breakpoints', () => {
+  const avatar = read('components/gamification/GamifiedAvatar.tsx')
+
+  assert.match(avatar, /backgroundColor: tokens\.brand\.student/)
+  assert.match(avatar, /name="pencil"/)
+  assert.doesNotMatch(avatar, /editable[\s\S]*name="sparkles"/)
 })

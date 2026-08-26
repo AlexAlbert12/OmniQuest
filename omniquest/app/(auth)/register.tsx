@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Link, useRouter } from 'expo-router'
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import AuthCapsLockWarning from '../../components/auth/AuthCapsLockWarning'
 import AuthCard from '../../components/auth/AuthCard'
 import AuthHomeLink from '../../components/auth/AuthHomeLink'
@@ -152,11 +153,12 @@ export default function RegisterScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-background-secondary" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-      <View className="overflow-hidden bg-background-secondary" style={{ minHeight: Math.max(height, 860), borderRadius: isWeb ? 0 : 34 }}>
-        <HomeVisualBackground isDesktop={isDesktop} />
-        <View className="z-10 flex-1 items-center justify-center" style={{ paddingHorizontal: isDesktop ? 32 : 22, paddingVertical: 32 }}>
-          <AuthHomeLink />
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-background-secondary">
+      <ScrollView className="flex-1 bg-background-secondary" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        <View className="overflow-hidden bg-background-secondary" style={{ minHeight: Math.max(height, 860), borderRadius: isWeb ? 0 : 34 }}>
+          <HomeVisualBackground isDesktop={isDesktop} />
+          <View className="z-10 flex-1 items-center justify-center" style={{ paddingHorizontal: isDesktop ? 32 : 22, paddingVertical: 32 }}>
+            <AuthHomeLink />
 
           <View className="items-center px-2 mb-8">
             <BrandLogo center size={isDesktop ? 68 : 48} />
@@ -292,9 +294,10 @@ export default function RegisterScreen() {
                 />
               </>
             )}
-          </AuthCard>
+            </AuthCard>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   )
 }

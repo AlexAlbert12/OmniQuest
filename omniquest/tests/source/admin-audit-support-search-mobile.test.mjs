@@ -22,6 +22,7 @@ test('admin audit is immutable, partitioned, retained and chained by the server'
   assert.match(migration, /capture_request_context boolean not null default false/)
   assert.match(screen, /Antes → después/)
   assert.match(screen, /Verificar integridad/)
+  assert.match(screen, /Verificar integridad'\} icon="shield-checkmark-outline" size="sm" variant="primary"/)
   assert.match(screen, /Integridad del registro/)
   assert.match(screen, /Ver detalles técnicos/)
   assert.doesNotMatch(screen, /JSON\.stringify\(log\.metadata \|\| \{\}, null, 2\)/)

@@ -42,15 +42,17 @@ export default function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVe
         <View className="rounded-xl border border-semantic-warning bg-semantic-surface-warning p-4"><Text className="text-[14px] font-black text-text-primary">No se pudo cargar la analítica</Text><Text className="mt-2 text-[12px] leading-5 text-text-secondary">{error}</Text><View className="mt-4 items-start"><AdminButton label="Reintentar" icon="refresh-outline" size="sm" variant="secondary" onPress={() => setRetryVersion((value) => value + 1)} /></View></View>
       ) : analytics && hasEvents ? (
         <>
-          <View className="flex-row flex-wrap gap-3">
-            <AdminMetric color={tokens.brand.admin} icon="eye" label="Visitas de pantalla" value={String(analytics.screen_views || 0)} />
-            <AdminMetric color={tokens.semantic.warning} icon="document-text" label="Formularios abandonados" value={String(analytics.form_abandoned || 0)} />
-            <AdminMetric color={tokens.semantic.info} icon="enter" label="Uniones a cursos" value={String(analytics.course_joins || 0)} />
-            <AdminMetric color={tokens.semantic.info} icon="play" label="Partidas iniciadas" value={String(analytics.game_started || 0)} />
-            <AdminMetric color={tokens.semantic.success} icon="checkmark-circle" label="Completadas" value={String(analytics.game_finished || 0)} />
-            <AdminMetric color={tokens.semantic.warning} icon="exit" label="Abandonadas" value={String(analytics.game_abandoned || 0)} />
-            <AdminMetric color={tokens.semantic.danger} icon="warning" label="Errores" value={String(analytics.game_errors || 0)} />
-            <AdminMetric color={tokens.semantic.danger} icon="cloud-offline" label="Errores Edge" value={String(analytics.edge_function_errors || 0)} />
+          <View className="flex-row flex-wrap" style={{ gap: responsive.isMobile ? 8 : 12 }}>
+            {[
+              { color: tokens.brand.admin, icon: 'eye' as const, label: responsive.isMobile ? 'Visitas' : 'Visitas de pantalla', value: analytics.screen_views },
+              { color: tokens.semantic.warning, icon: 'document-text' as const, label: responsive.isMobile ? 'Formularios' : 'Formularios abandonados', value: analytics.form_abandoned },
+              { color: tokens.semantic.info, icon: 'enter' as const, label: responsive.isMobile ? 'Uniones' : 'Uniones a cursos', value: analytics.course_joins },
+              { color: tokens.semantic.info, icon: 'play' as const, label: responsive.isMobile ? 'Iniciadas' : 'Partidas iniciadas', value: analytics.game_started },
+              { color: tokens.semantic.success, icon: 'checkmark-circle' as const, label: 'Completadas', value: analytics.game_finished },
+              { color: tokens.semantic.warning, icon: 'exit' as const, label: 'Abandonadas', value: analytics.game_abandoned },
+              { color: tokens.semantic.danger, icon: 'warning' as const, label: 'Errores', value: analytics.game_errors },
+              { color: tokens.semantic.danger, icon: 'cloud-offline' as const, label: 'Errores Edge', value: analytics.edge_function_errors },
+            ].map((metric) => <View key={metric.label} style={responsive.isMobile ? { flexBasis: '22%', flexGrow: 1, minWidth: 0 } : { flexGrow: 1, minWidth: 160 }}><AdminMetric {...metric} value={String(metric.value || 0)} dense={responsive.isMobile} style={responsive.isMobile ? { width: '100%', aspectRatio: 1 } : undefined} /></View>)}
           </View>
           <View className={responsive.isDesktop ? 'mt-4 flex-row gap-4' : 'mt-4 gap-3'}>
             <View className="flex-1 rounded-xl border border-border-default bg-surface-default p-4"><Text className="text-[12px] font-bold text-text-muted">Retención</Text><Text className="mt-2 text-[13px] font-black text-text-primary">D1 {Number(analytics.retention?.d1 || 0).toFixed(1)}% · D7 {Number(analytics.retention?.d7 || 0).toFixed(1)}% · D30 {Number(analytics.retention?.d30 || 0).toFixed(1)}%</Text></View>

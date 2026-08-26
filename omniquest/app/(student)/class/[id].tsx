@@ -459,7 +459,6 @@ export default function StudentClassDetailScreen() {
             classroom={classroom}
             totals={totals}
             isDesktop={isDesktop}
-            onBack={() => router.back()}
           />
 
           <View onLayout={!isDesktop && recommendedTopic ? handleInlineMissionLayout : undefined}>
@@ -488,7 +487,15 @@ export default function StudentClassDetailScreen() {
 
           {classroom ? (
             <View className={`${isDesktop ? 'mt-6 items-end' : 'mt-5'} pb-2`}>
-              <AppButton label="Abandonar clase" icon="log-out-outline" variant="danger" onPress={() => setLeaveConfirmationVisible(true)} style={isDesktop ? { minWidth: 190 } : { width: '100%' }} />
+              <AppButton
+                fullWidth={!isDesktop}
+                label="Abandonar clase"
+                icon="log-out-outline"
+                size="lg"
+                variant="danger"
+                onPress={() => setLeaveConfirmationVisible(true)}
+                style={isDesktop ? { minWidth: 190 } : undefined}
+              />
             </View>
           ) : null}
         </View>

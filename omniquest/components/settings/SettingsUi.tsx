@@ -85,13 +85,11 @@ export function SettingsMenu({
           backgroundColor: active ? withAlpha(accentColor, '24') : colors.surfaceRaised,
         })}
       >
-        {isChip ? null : (
-          <Ionicons
-            name={section.icon}
-            size={16}
-            color={active ? accentColor : colors.textSecondary}
-          />
-        )}
+        <Ionicons
+          name={section.icon}
+          size={16}
+          color={active ? accentColor : colors.textSecondary}
+        />
 
         <Text
           className="text-[12px] font-black"

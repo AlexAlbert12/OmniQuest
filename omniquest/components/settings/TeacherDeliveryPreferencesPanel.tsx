@@ -151,6 +151,7 @@ export default function TeacherDeliveryPreferencesPanel({ dateFormat, timeFormat
                 <AppButton
                   key={hour}
                   label={`${String(hour).padStart(2, '0')}:00`}
+                  role="teacher"
                   size="sm"
                   variant={settings.global.digestHour === hour ? 'primary' : 'secondary'}
                   onPress={() => settings.setGlobalDraft((current) => ({ ...current, digestHour: hour }))}
@@ -163,6 +164,7 @@ export default function TeacherDeliveryPreferencesPanel({ dateFormat, timeFormat
                   <AppButton
                     key={day.value}
                     label={(locale === 'en-US' ? day.en : day.es).slice(0, 3)}
+                    role="teacher"
                     size="sm"
                     variant={settings.global.digestWeekday === day.value ? 'primary' : 'secondary'}
                     onPress={() => settings.setGlobalDraft((current) => ({ ...current, digestWeekday: day.value }))}
@@ -194,13 +196,13 @@ export default function TeacherDeliveryPreferencesPanel({ dateFormat, timeFormat
         {settings.global.mutedUntil && new Date(settings.global.mutedUntil).getTime() > Date.now() ? (
           <View style={{ gap: 8 }}>
             <Text style={{ color: tokens.text.secondary, fontSize: 12 }}>Silenciado hasta {formatConfiguredDate(settings.global.mutedUntil)}.</Text>
-            <AppButton label="Reactivar ahora" icon="volume-high-outline" size="sm" variant="secondary" loading={settings.savingKey === 'mute'} onPress={() => void settings.setMute(null)} />
+            <AppButton label="Reactivar ahora" icon="volume-high-outline" role="teacher" size="sm" variant="secondary" loading={settings.savingKey === 'mute'} onPress={() => void settings.setMute(null)} />
           </View>
         ) : (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <AppButton label="1 hora" size="sm" variant="secondary" onPress={() => void settings.setMute(new Date(Date.now() + 60 * 60 * 1000).toISOString())} />
-            <AppButton label="8 horas" size="sm" variant="secondary" onPress={() => void settings.setMute(new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString())} />
-            <AppButton label="24 horas" size="sm" variant="secondary" onPress={() => void settings.setMute(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())} />
+            <AppButton label="1 hora" role="teacher" size="sm" variant="secondary" onPress={() => void settings.setMute(new Date(Date.now() + 60 * 60 * 1000).toISOString())} />
+            <AppButton label="8 horas" role="teacher" size="sm" variant="secondary" onPress={() => void settings.setMute(new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString())} />
+            <AppButton label="24 horas" role="teacher" size="sm" variant="secondary" onPress={() => void settings.setMute(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())} />
           </View>
         )}
       </Section>
@@ -222,7 +224,7 @@ export default function TeacherDeliveryPreferencesPanel({ dateFormat, timeFormat
                   <ToggleButton label="Críticas" enabled={course.criticalEnabled} disabled={saving} onPress={() => void settings.saveCourse(course.subjectId, { criticalEnabled: !course.criticalEnabled })} />
                   <ToggleButton label="Informativas" enabled={course.informativeEnabled} disabled={saving} onPress={() => void settings.saveCourse(course.subjectId, { informativeEnabled: !course.informativeEnabled })} />
                   <ToggleButton label="En resumen" enabled={course.digestEnabled} disabled={saving} onPress={() => void settings.saveCourse(course.subjectId, { digestEnabled: !course.digestEnabled })} />
-                  <AppButton label={muted ? 'Reactivar curso' : 'Silenciar 24 h'} icon={muted ? 'volume-high-outline' : 'volume-mute-outline'} size="sm" variant="secondary" disabled={saving} onPress={() => void settings.saveCourse(course.subjectId, { mutedUntil: muted ? null : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() })} />
+                  <AppButton label={muted ? 'Reactivar curso' : 'Silenciar 24 h'} icon={muted ? 'volume-high-outline' : 'volume-mute-outline'} role="teacher" size="sm" variant="secondary" disabled={saving} onPress={() => void settings.saveCourse(course.subjectId, { mutedUntil: muted ? null : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() })} />
                 </View>
               </View>
             )
@@ -288,7 +290,7 @@ function Section({ icon, title, description, children }: { icon: keyof typeof Io
 }
 
 function ToggleButton({ label, enabled, disabled, onPress }: { label: string; enabled: boolean; disabled: boolean; onPress: () => void }) {
-  return <AppButton label={label} icon={enabled ? 'checkmark-circle' : 'ellipse-outline'} size="sm" disabled={disabled} variant={enabled ? 'primary' : 'secondary'} onPress={onPress} />
+  return <AppButton label={label} icon={enabled ? 'checkmark-circle' : 'ellipse-outline'} role="teacher" size="sm" disabled={disabled} variant={enabled ? 'primary' : 'secondary'} onPress={onPress} />
 }
 
 function inputStyle(tokens: ReturnType<typeof useAppTheme>['tokens']) {

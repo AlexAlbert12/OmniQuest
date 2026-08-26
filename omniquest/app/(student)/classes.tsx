@@ -6,6 +6,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
@@ -251,7 +252,7 @@ export default function ClassesScreen() {
   if (loading) return <OmniLoadingScreen />
 
   return (
-    <View className="flex-1 bg-background-secondary">
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-background-secondary">
       <HomeVisualBackground isDesktop={isDesktop} />
       <View className="z-10 flex-1 flex-row">
         {isDesktop ? (
@@ -277,12 +278,14 @@ export default function ClassesScreen() {
         >
           <View className="w-full">
             <StudentPageHeader
+              compactMobileTitle
               icon="book"
               isDesktop={isDesktop}
+              mobileStackedIdentity={!isDesktop}
               title="Mis cursos"
               subtitle="Elige un curso para continuar tu viaje."
-              showNotifications={isDesktop}
-              showAvatar={isDesktop}
+              showNotifications
+              showAvatar
               actionsPosition="top"
               actions={subjects.length > 0 ? (
                 <>
@@ -299,38 +302,42 @@ export default function ClassesScreen() {
               ) : undefined}
             />
 
-            <View className={isDesktop ? 'mb-8 flex-row gap-4' : 'mb-7 flex-row flex-wrap gap-3'}>
+            <View className={isDesktop ? 'mb-8 flex-row gap-4' : 'mb-6 flex-row gap-2'}>
               <MobileMetricCard
-                compact
+                compact={isDesktop}
+                dense={!isDesktop}
                 icon="school"
                 color="#8B5CF6"
                 value={activeClasses}
                 label="Cursos"
-                style={{ flex: 1, minWidth: isDesktop ? undefined : '47%', minHeight: isDesktop ? 132 : 118 }}
+                style={{ flex: 1, minWidth: 0, minHeight: isDesktop ? 132 : 88, aspectRatio: isDesktop ? undefined : 1 }}
               />
               <MobileMetricCard
-                compact
+                compact={isDesktop}
+                dense={!isDesktop}
                 icon="flame"
                 color="#FB4772"
                 value={failedQuestions}
                 label="Repasar"
-                style={{ flex: 1, minWidth: isDesktop ? undefined : '47%', minHeight: isDesktop ? 132 : 118 }}
+                style={{ flex: 1, minWidth: 0, minHeight: isDesktop ? 132 : 88, aspectRatio: isDesktop ? undefined : 1 }}
               />
               <MobileMetricCard
-                compact
+                compact={isDesktop}
+                dense={!isDesktop}
                 icon="star-outline"
                 color="#4EC4FF"
                 value={pendingQuestions}
                 label="Practicar"
-                style={{ flex: 1, minWidth: isDesktop ? undefined : '47%', minHeight: isDesktop ? 132 : 118 }}
+                style={{ flex: 1, minWidth: 0, minHeight: isDesktop ? 132 : 88, aspectRatio: isDesktop ? undefined : 1 }}
               />
               <MobileMetricCard
-                compact
+                compact={isDesktop}
+                dense={!isDesktop}
                 icon="sparkles"
                 color="#F6A64A"
                 value={`${points.toLocaleString()} XP`}
                 label="Experiencia"
-                style={{ flex: 1, minWidth: isDesktop ? undefined : '47%', minHeight: isDesktop ? 132 : 118 }}
+                style={{ flex: 1, minWidth: 0, minHeight: isDesktop ? 132 : 88, aspectRatio: isDesktop ? undefined : 1 }}
               />
             </View>
 
@@ -461,6 +468,7 @@ export default function ClassesScreen() {
             ) : null}
 
             <CourseGalaxyMap
+              density={isDesktop ? 'comfortable' : 'compact'}
               items={classRows.map((subject) => {
                 const progress = progressBySubject[getCourseRowKey(subject)]
                 const progressPercent = progress?.percent ?? 0
@@ -496,7 +504,7 @@ export default function ClassesScreen() {
       </View>
 
       {!isDesktop ? <StudentBottomNav active="classes" /> : null}
-    </View>
+    </SafeAreaView>
   )
 }
 

@@ -6,7 +6,6 @@ import AnimatedXpCounter from '../../gamification/AnimatedXpCounter'
 import BadgeUnlockModal from '../../gamification/BadgeUnlockModal'
 import type { StudentBadge } from '../../../lib/studentBadges'
 import { useAppTheme } from '../../../lib/appTheme'
-import AppBackButton from '../../ui/AppBackButton'
 import AppButton from '../../ui/AppButton'
 
 type GameSummary = {
@@ -93,17 +92,25 @@ export default function ResultState({
 
         <View className="gap-3">
           {secondaryAction && onSecondaryPress ? (
-            secondaryActionIsBack ? (
-              <AppBackButton fullWidth label={secondaryAction} size="lg" onPress={onSecondaryPress} />
-            ) : (
-              <AppButton fullWidth icon="refresh" label={secondaryAction} role="student" size="lg" onPress={onSecondaryPress} />
-            )
+            <AppButton
+              fullWidth
+              icon={secondaryActionIsBack ? 'arrow-back' : 'refresh'}
+              label={secondaryAction}
+              role="student"
+              size="lg"
+              variant="primary"
+              onPress={onSecondaryPress}
+            />
           ) : null}
-          {actionIsBack ? (
-            <AppBackButton fullWidth label={action} size="lg" onPress={onPress} />
-          ) : (
-            <AppButton fullWidth icon="home" label={action} role="student" size="lg" variant="secondary" onPress={onPress} />
-          )}
+          <AppButton
+            fullWidth
+            icon={actionIsBack ? 'arrow-back' : action === 'Reintentar' ? 'refresh' : 'home'}
+            label={action}
+            role="student"
+            size="lg"
+            variant="primary"
+            onPress={onPress}
+          />
         </View>
       </View>
       </ScrollView>

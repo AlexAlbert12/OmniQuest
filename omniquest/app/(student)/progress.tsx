@@ -103,7 +103,7 @@ export default function ProgressScreen() {
 
       <DailyPracticeRecommendation recommendation={progress.recommendation} coursesCount={progress.courseProgress.length} accentColor={accentColor} onPractice={handlePractice} onBrowseCourses={() => router.push('/(student)/classes' as any)} />
 
-      <ProgressOverview progressPercent={progress.progressPercent} accuracyPercent={progress.accuracyPercent} answeredQuestions={progress.answeredQuestions} failedQuestions={progress.failedQuestions} weeklyAttemptsCount={progress.weeklyAttemptsCount} streakDays={progress.streakDays} />
+      <ProgressOverview progressPercent={progress.progressPercent} accuracyPercent={progress.accuracyPercent} answeredQuestions={progress.answeredQuestions} failedQuestions={progress.failedQuestions} streakDays={progress.streakDays} />
 
       <View className={`${isDesktop ? 'flex-row items-start' : ''} mt-5 gap-5`}>
         <View className={isDesktop ? 'min-w-0 flex-[1.4]' : ''}>

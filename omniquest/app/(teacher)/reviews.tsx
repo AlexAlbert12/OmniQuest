@@ -89,11 +89,11 @@ export default function TeacherReviewsScreen() {
           {review.error ? <AppStatusBanner variant="danger" title="No se pudo completar la operación" message={review.error} style={{ marginBottom: 16 }} /> : null}
           {studentId ? <AppStatusBanner variant="info" title="Revisiones del alumno" message={attemptId ? 'Se ha abierto la revisión seleccionada desde su historial.' : 'La cola está filtrada por el alumno seleccionado desde su historial.'} style={{ marginBottom: 16 }} /> : null}
 
-          <View className={`mb-5 flex-row ${isDesktop ? 'flex-wrap gap-3' : 'gap-2'}`}>
-            <MobileMetricCard semantic="attention" label="Pendientes" value={String(review.queue.summary.pending || 0)} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, flex: 1, aspectRatio: 1 }} />
-            <MobileMetricCard semantic="audit" label="Necesita cambios" value={String(review.queue.summary.needs_changes || 0)} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, flex: 1, aspectRatio: 1 }} />
-            <MobileMetricCard icon="alarm-outline" label="Vencen pronto" value={String(review.queue.summary.due_soon || 0)} color={tokens.semantic.info} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, flex: 1, aspectRatio: 1 }} />
-            <MobileMetricCard semantic="critical" label="Plazo vencido" value={String(review.queue.summary.overdue || 0)} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, flex: 1, aspectRatio: 1 }} />
+          <View style={{ marginBottom: 20, flexDirection: 'row', flexWrap: 'wrap', gap: isDesktop ? 12 : 10 }}>
+            <MobileMetricCard semantic="attention" label="Pendientes" value={String(review.queue.summary.pending || 0)} compact style={isDesktop ? { minWidth: 170, flex: 1 } : { minWidth: 0, flexGrow: 1, flexBasis: '46%', minHeight: 108 }} />
+            <MobileMetricCard semantic="audit" label="Necesita cambios" value={String(review.queue.summary.needs_changes || 0)} compact style={isDesktop ? { minWidth: 170, flex: 1 } : { minWidth: 0, flexGrow: 1, flexBasis: '46%', minHeight: 108 }} />
+            <MobileMetricCard icon="alarm-outline" label="Vencen pronto" value={String(review.queue.summary.due_soon || 0)} color={tokens.semantic.info} compact style={isDesktop ? { minWidth: 170, flex: 1 } : { minWidth: 0, flexGrow: 1, flexBasis: '46%', minHeight: 108 }} />
+            <MobileMetricCard semantic="critical" label="Plazo vencido" value={String(review.queue.summary.overdue || 0)} compact style={isDesktop ? { minWidth: 170, flex: 1 } : { minWidth: 0, flexGrow: 1, flexBasis: '46%', minHeight: 108 }} />
           </View>
 
           <View className="mb-4 rounded-2xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
@@ -130,7 +130,7 @@ export default function TeacherReviewsScreen() {
               </View>
             </View>
             <View className="mt-4">
-              <AppTabs<'all' | ManualReviewStatus> accessibilityLabel="Estado de la revisión" compact role="teacher" items={STATUS_OPTIONS} value={review.filters.status} onChange={(status) => review.updateFilters({ status })} />
+              <AppTabs<'all' | ManualReviewStatus> accessibilityLabel="Estado de la revisión" compact mobileRail={!isDesktop} role="teacher" items={STATUS_OPTIONS} value={review.filters.status} onChange={(status) => review.updateFilters({ status })} />
             </View>
           </View>
 

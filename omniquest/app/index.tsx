@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Link, useRouter } from 'expo-router'
 import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useState } from 'react'
 import BrandLogo from '../components/BrandLogo'
 import HomeVisualBackground from '../components/HomeVisualBackground'
@@ -72,6 +73,7 @@ const features: Feature[] = [
 
 export default function IndexScreen() {
   const responsive = useResponsiveLayout()
+  const insets = useSafeAreaInsets()
   const { width, height } = responsive
   const router = useRouter()
   const { showModal } = useAppModal()
@@ -173,7 +175,7 @@ export default function IndexScreen() {
           />
         </View>
 
-        <LandingFooter isDesktop={isDesktop} />
+        <LandingFooter isDesktop={isDesktop} bottomInset={insets.bottom} />
       </View>
     </ScrollView>
   )
@@ -712,20 +714,23 @@ function FeatureCard({
   )
 }
 
-function LandingFooter({ isDesktop }: { isDesktop: boolean }) {
+function LandingFooter({ bottomInset, isDesktop }: { bottomInset: number; isDesktop: boolean }) {
   const { t } = useI18n()
+  const mobileBottomPadding = Math.max(36, bottomInset + 20)
   return (
     <View
       className="z-10 border-t border-border-default bg-background-secondary"
       style={{
         paddingHorizontal: isDesktop ? 36 : 22,
-        paddingVertical: isDesktop ? 24 : 22,
+        paddingTop: isDesktop ? 24 : 22,
+        paddingBottom: isDesktop ? 24 : mobileBottomPadding,
       }}
     >
       <View
-        className="items-center justify-between gap-6"
+        className="items-center justify-between"
         style={{
           flexDirection: isDesktop ? 'row' : 'column',
+          gap: isDesktop ? 24 : 18,
         }}
       >
         <View className="flex-row items-center gap-5">
@@ -734,14 +739,33 @@ function LandingFooter({ isDesktop }: { isDesktop: boolean }) {
           <Text className="text-[15px] text-text-muted">© 2026 TFM</Text>
         </View>
 
-        <View className="flex-row items-center gap-8">
+        <View
+          className="flex-row items-stretch"
+          style={{ gap: isDesktop ? 32 : 12, maxWidth: isDesktop ? undefined : 420, width: isDesktop ? undefined : '100%' }}
+        >
           <Link href="/privacy" asChild>
-            <Pressable accessibilityRole="link" accessibilityLabel={t('landing.privacy')} accessibilityHint={t('landing.privacyHint')} hitSlop={6}>
+            <Pressable
+              testID="landing-privacy"
+              accessibilityRole="link"
+              accessibilityLabel={t('landing.privacy')}
+              accessibilityHint={t('landing.privacyHint')}
+              hitSlop={6}
+              className={isDesktop ? '' : 'min-h-12 flex-1 items-center justify-center rounded-xl border border-border-default bg-surface-interactive px-3'}
+              style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
+            >
               <Text maxFontSizeMultiplier={2} className="font-extrabold text-semantic-info">{t('landing.privacy')}</Text>
             </Pressable>
           </Link>
           <Link href="/terms" asChild>
-            <Pressable accessibilityRole="link" accessibilityLabel={t('landing.terms')} accessibilityHint={t('landing.termsHint')} hitSlop={6}>
+            <Pressable
+              testID="landing-terms"
+              accessibilityRole="link"
+              accessibilityLabel={t('landing.terms')}
+              accessibilityHint={t('landing.termsHint')}
+              hitSlop={6}
+              className={isDesktop ? '' : 'min-h-12 flex-1 items-center justify-center rounded-xl border border-border-default bg-surface-interactive px-3'}
+              style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
+            >
               <Text maxFontSizeMultiplier={2} className="font-extrabold text-semantic-info">{t('landing.terms')}</Text>
             </Pressable>
           </Link>

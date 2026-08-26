@@ -178,6 +178,7 @@ export function CourseGalaxyMap({
   onChangeInviteCode,
   onJoin,
   emptyMessage = 'No hay cursos que coincidan con los filtros.',
+  density = 'comfortable',
 }: {
   items: GalaxyCourseItem[]
   inviteCode: string
@@ -185,18 +186,20 @@ export function CourseGalaxyMap({
   onChangeInviteCode: (value: string) => void
   onJoin: () => void
   emptyMessage?: string
+  density?: 'compact' | 'comfortable'
 }) {
   const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
   const isDesktop = responsive.isDesktop
+  const compact = density === 'compact' && !isDesktop
   const desktopCanvasWidth = isDesktop ? 1440 : 430
   const maxMapWidth = responsive.isTablet
     ? 860
     : Math.min(desktopCanvasWidth, responsive.isWide ? 1180 : isDesktop ? 1080 : 560)
   const mapWidth = Math.max(320, Math.min(isDesktop ? responsive.width - 330 : responsive.width - 30, maxMapWidth))
-  const planetSize = responsive.isWide ? 220 : isDesktop ? 206 : responsive.isTablet ? 196 : 156
-  const rowHeight = isDesktop ? 302 : responsive.isTablet ? 294 : 294
-  const addRowHeight = 430
+  const planetSize = compact ? 124 : responsive.isWide ? 220 : isDesktop ? 206 : responsive.isTablet ? 196 : 156
+  const rowHeight = compact ? 238 : isDesktop ? 302 : responsive.isTablet ? 294 : 294
+  const addRowHeight = compact ? 350 : 430
   const pageSize = responsive.isWide ? 6 : isDesktop ? 5 : responsive.isTablet ? 4 : 4
   const [joinOpen, setJoinOpen] = useState(false)
   const [viewMode, setViewMode] = useAccessibleGalaxyViewMode()
@@ -207,7 +210,7 @@ export function CourseGalaxyMap({
   const safePage = Math.min(page, totalPages - 1)
   const pageItems = items.slice(safePage * pageSize, safePage * pageSize + pageSize)
   const isLastPage = safePage >= totalPages - 1
-  const addTop = pageItems.length === 0 ? 252 : pageItems.length * rowHeight + 18
+  const addTop = pageItems.length === 0 ? (compact ? 214 : 252) : pageItems.length * rowHeight + (compact ? 10 : 18)
   const mapHeight = addTop + (isLastPage ? addRowHeight : 90)
   const visibleListItems = items.slice(0, visibleListCount)
   const groupedItems = useMemo(() => groupCourseItems(visibleListItems), [visibleListItems])
@@ -338,12 +341,12 @@ export function CourseGalaxyMap({
               const palette = getCoursePalette(item.color, globalIndex)
               const x = side === 'left' ? 12 : mapWidth - planetSize - 24
               const nextX = nextSide === 'left' ? 12 : mapWidth - planetSize - 24
-              const labelWidth = Math.min(isDesktop ? 280 : 286, mapWidth - 20)
+              const labelWidth = Math.min(compact ? 238 : isDesktop ? 280 : 286, mapWidth - 20)
               const labelX = side === 'left' ? 8 : mapWidth - labelWidth - 8
               const connectToAdd = isLastPage && pageIndex === pageItems.length - 1
               const hasNextOnPage = pageIndex < pageItems.length - 1
               const addSide = pageItems.length % 2 === 0 ? 'right' : 'left'
-              const addSize = isDesktop ? 184 : 156
+              const addSize = compact ? 132 : isDesktop ? 184 : 156
               const addX = addSide === 'left' ? 24 : mapWidth - addSize - 24
               const targetX = connectToAdd ? addX + addSize / 2 : nextX + planetSize / 2
 
@@ -355,7 +358,7 @@ export function CourseGalaxyMap({
                       x1={x + planetSize / 2}
                       y1={planetSize - 4}
                       x2={targetX}
-                      y2={rowHeight + 34}
+                      y2={rowHeight + (compact ? 20 : 34)}
                       bend={side === 'left' ? 1 : -1}
                       dotSize={isDesktop ? 5 : 4}
                     />
@@ -369,6 +372,7 @@ export function CourseGalaxyMap({
                       label={item.title}
                       badgeLabel={item.badgeLabel}
                       badgeColor={item.badgeColor}
+                      compact={compact}
                       onPress={item.onPress}
                     />
                   </View>
@@ -379,11 +383,11 @@ export function CourseGalaxyMap({
                       {
                         width: labelWidth,
                         left: labelX,
-                        top: planetSize + (isDesktop ? 10 : 18),
-                        minHeight: isDesktop ? 76 : 80,
-                        borderRadius: 20,
-                        paddingHorizontal: 16,
-                        paddingVertical: isDesktop ? 10 : 12,
+                        top: planetSize + (compact ? 10 : isDesktop ? 10 : 18),
+                        minHeight: compact ? 64 : isDesktop ? 76 : 80,
+                        borderRadius: compact ? 16 : 20,
+                        paddingHorizontal: compact ? 12 : 16,
+                        paddingVertical: compact ? 8 : isDesktop ? 10 : 12,
                       },
                     ]}
                   >
@@ -399,6 +403,7 @@ export function CourseGalaxyMap({
                         maxFontSizeMultiplier={2}
                         style={[
                           styles.courseTitle,
+                          compact ? styles.courseTitleCompact : null,
                           isDesktop ? styles.courseTitleDesktop : null,
                           { textAlign: side === 'left' ? 'left' : 'right' },
                         ]}
@@ -410,6 +415,7 @@ export function CourseGalaxyMap({
                         maxFontSizeMultiplier={2}
                         style={[
                           styles.courseSubtitle,
+                          compact ? styles.courseSubtitleCompact : null,
                           isDesktop ? styles.courseSubtitleDesktop : null,
                           { textAlign: side === 'left' ? 'left' : 'right' },
                         ]}
@@ -426,6 +432,7 @@ export function CourseGalaxyMap({
 
             {isLastPage ? (
               <AddCourseGalaxyNode
+                compact={compact}
                 top={addTop}
                 mapWidth={mapWidth}
                 side={pageItems.length === 0 ? 'center' : pageItems.length % 2 === 0 ? 'right' : 'left'}
@@ -459,8 +466,8 @@ export function TopicGalaxyMap({ items }: { items: GalaxyTopicItem[] }) {
   const isDesktop = responsive.isDesktop
   const maxMapWidth = responsive.isWide ? 1120 : isDesktop ? 1020 : responsive.isTablet ? 840 : 560
   const mapWidth = Math.max(320, Math.min(isDesktop ? responsive.width - 330 : responsive.width - 24, maxMapWidth))
-  const nodeSize = responsive.isWide ? 178 : isDesktop ? 166 : responsive.isTablet ? 158 : 146
-  const rowHeight = isDesktop ? 286 : responsive.isTablet ? 274 : 260
+  const nodeSize = responsive.isWide ? 178 : isDesktop ? 166 : 124
+  const rowHeight = isDesktop ? 286 : 244
   const mapTopPadding = isDesktop ? 68 : responsive.isTablet ? 64 : 56
   const minimumMapHeight = isDesktop ? 360 : responsive.isTablet ? 340 : 312
   const pageSize = responsive.isWide ? 6 : isDesktop ? 5 : responsive.isTablet ? 4 : 5
@@ -617,6 +624,7 @@ export function TopicGalaxyMap({ items }: { items: GalaxyTopicItem[] }) {
 }
 
 function AddCourseGalaxyNode({
+  compact,
   top,
   mapWidth,
   side,
@@ -627,6 +635,7 @@ function AddCourseGalaxyNode({
   onChangeInviteCode,
   onJoin,
 }: {
+  compact: boolean
   top: number
   mapWidth: number
   side: 'left' | 'right' | 'center'
@@ -640,13 +649,13 @@ function AddCourseGalaxyNode({
   const { tokens } = useAppTheme()
   const responsive = useResponsiveLayout()
   const isDesktop = responsive.isDesktop
-  const size = isDesktop ? 190 : 156
+  const size = compact ? 132 : isDesktop ? 190 : 156
   const x = side === 'center' ? (mapWidth - size) / 2 : side === 'left' ? 24 : mapWidth - size - 24
   const formWidth = Math.min(isDesktop ? 420 : 306, mapWidth - 24)
   const formX = side === 'center' ? (mapWidth - formWidth) / 2 : side === 'left' ? 12 : mapWidth - formWidth - 12
 
   return (
-    <View style={{ position: 'absolute', left: 0, right: 0, top, minHeight: open ? 330 : 260 }}>
+    <View style={{ position: 'absolute', left: 0, right: 0, top, minHeight: open ? 330 : compact ? 220 : 260 }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={open ? 'Cerrar formulario para añadir curso' : 'Añadir un curso con código'}
@@ -656,14 +665,14 @@ function AddCourseGalaxyNode({
         style={({ pressed }) => ({ position: 'absolute', left: x, top: 0, width: size, alignItems: 'center', opacity: pressed ? 0.82 : 1 })}
       >
         <View style={[styles.addPlanet, { width: size, height: size, borderRadius: size / 2, borderColor: tokens.brand.student, backgroundColor: withAlpha(tokens.brand.student, '0.06') }]}>
-          <Ionicons name={open ? 'close' : 'add'} size={isDesktop ? 70 : 58} color={tokens.brand.student} />
+          <Ionicons name={open ? 'close' : 'add'} size={compact ? 48 : isDesktop ? 70 : 58} color={tokens.brand.student} />
         </View>
-        <Text style={[styles.addTitle, { color: tokens.brand.student }]}>Añadir curso</Text>
-        <Text style={styles.addSubtitle}>Introduce tu código de clase</Text>
+        <Text style={[styles.addTitle, compact ? styles.addTitleCompact : null, { color: tokens.brand.student }]}>Añadir curso</Text>
+        <Text style={[styles.addSubtitle, compact ? styles.addSubtitleCompact : null]}>Introduce tu código de clase</Text>
       </Pressable>
 
       {open ? (
-        <View style={[styles.joinPanel, { width: formWidth, left: formX, top: size + 92, borderColor: withAlpha(tokens.brand.student, '0.55') }]}>
+        <View style={[styles.joinPanel, { width: formWidth, left: formX, top: size + (compact ? 76 : 92), borderColor: withAlpha(tokens.brand.student, '0.55') }]}>
           <View style={styles.joinInputRow}>
             <Ionicons name="keypad-outline" size={20} color="#9FB0CA" />
             <TextInput value={inviteCode} onChangeText={(value) => onChangeInviteCode(value.trim().toUpperCase())} maxLength={6} autoCapitalize="characters" placeholder="Código de clase" placeholderTextColor="#647896" style={styles.joinPanelInput} accessibilityLabel="Código de clase" accessibilityHint="Introduce el código de seis caracteres facilitado por tu profesor" />
@@ -682,6 +691,7 @@ function GalaxyPlanet({
   label,
   badgeLabel,
   badgeColor,
+  compact,
   onPress,
 }: {
   size: number
@@ -690,6 +700,7 @@ function GalaxyPlanet({
   label: string
   badgeLabel: string
   badgeColor: string
+  compact: boolean
   onPress: () => void
 }) {
   const validIcon = normalizeAcademicIcon(icon, 'book-outline')
@@ -744,9 +755,9 @@ function GalaxyPlanet({
         </LinearGradient>
       </View>
 
-      <View style={[styles.planetBadge, { backgroundColor: badgeColor }]}>
-        <Ionicons name={badgeLabel === 'Repasar' ? 'flame' : badgeLabel === 'Completado' ? 'checkmark-circle' : 'play'} size={16} color="#FFFFFF" />
-        <Text style={styles.planetBadgeText}>{badgeLabel}</Text>
+      <View style={[styles.planetBadge, compact ? styles.planetBadgeCompact : null, { backgroundColor: badgeColor }]}>
+        <Ionicons name={badgeLabel === 'Repasar' ? 'flame' : badgeLabel === 'Completado' ? 'checkmark-circle' : 'play'} size={compact ? 13 : 16} color="#FFFFFF" />
+        <Text style={[styles.planetBadgeText, compact ? styles.planetBadgeTextCompact : null]}>{badgeLabel}</Text>
       </View>
     </Pressable>
   )
@@ -1180,6 +1191,16 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontSize: 15,
   },
+  planetBadgeCompact: {
+    right: -6,
+    top: -5,
+    minHeight: 34,
+    paddingHorizontal: 11,
+    gap: 5,
+  },
+  planetBadgeTextCompact: {
+    fontSize: 12,
+  },
   courseLabelCard: {
     position: 'absolute',
     minHeight: 92,
@@ -1201,6 +1222,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 23,
   },
+  courseTitleCompact: {
+    fontSize: 17,
+    lineHeight: 21,
+  },
   courseSubtitle: {
     color: '#BBC8E3',
     fontSize: 16,
@@ -1211,6 +1236,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
     marginTop: 3,
+  },
+  courseSubtitleCompact: {
+    marginTop: 3,
+    fontSize: 12,
+    lineHeight: 16,
   },
   addPlanet: {
     borderWidth: 4,
@@ -1225,11 +1255,19 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textAlign: 'center',
   },
+  addTitleCompact: {
+    marginTop: 12,
+    fontSize: 18,
+    lineHeight: 22,
+  },
   addSubtitle: {
     marginTop: 4,
     color: '#B7C2DC',
     fontSize: 15,
     textAlign: 'center',
+  },
+  addSubtitleCompact: {
+    fontSize: 12,
   },
   joinPanel: {
     position: 'absolute',

@@ -511,12 +511,7 @@ function PairingQuestion({
                       <Text className="mt-1 text-[17px] font-black text-text-primary">{answer.text}</Text>
                       {selected ? (
                         <PairConnectionChip left={answer.text} right={selected.text} />
-                      ) : (
-                        <View className="mt-2 flex-row items-center gap-2">
-                          <Ionicons name="arrow-forward" size={14} color={tokens.text.muted} />
-                          <Text className="text-[12px] font-semibold text-text-secondary">Elige {labels.rightLabel.toLowerCase()} en la columna derecha</Text>
-                        </View>
-                      )}
+                      ) : null}
                     </View>
                     {selected && !hasAnswered && !isSubmitting ? (
                       <Pressable

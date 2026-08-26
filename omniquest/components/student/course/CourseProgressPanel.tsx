@@ -2,7 +2,6 @@ import React from 'react'
 import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
-import AppButton from '../../ui/AppButton'
 import AppPressable from '../../ui/AppPressable'
 import OmniGuide from '../../OmniGuide'
 import { useAppTheme } from '../../../lib/appTheme'
@@ -40,27 +39,16 @@ export default function CourseProgressPanel({
   const { tokens } = useAppTheme()
 
   return (
-    <View className={isDesktop ? 'mt-6 rounded-[28px] border border-border-default bg-surface-default p-5' : 'mt-5'}>
-      <View className={isDesktop ? 'mb-5 flex-row flex-wrap items-center justify-between gap-3' : 'mb-4 flex-row flex-wrap items-start justify-between gap-3'}>
-        <View className="min-w-[220px] flex-1">
-          <Text className="text-[24px] font-black text-white">Progreso del curso</Text>
-          <Text className="mt-1 text-[14px] text-text-muted">Resumen de aprendizaje, repaso y clasificación.</Text>
-        </View>
-        <AppButton
-          label="Ver actividad"
-          variant="secondary"
-          size="sm"
-          icon="time-outline"
-          onPress={onOpenActivity}
-          style={isDesktop ? undefined : { minHeight: 44, backgroundColor: tokens.surface.raised, borderColor: tokens.border.subtle }}
-        />
+    <View className={isDesktop ? 'mt-6 rounded-[28px] border border-border-default bg-surface-default p-5' : 'mt-5 rounded-[24px] border border-border-default bg-surface-default p-4'}>
+      <View className="mb-4">
+        <Text className="text-[24px] font-black text-white">Progreso del curso</Text>
       </View>
 
-      <View className="flex-row flex-wrap gap-3">
-        <MobileMetricCard compact icon="planet" color={color} value={topicsCount} label="Temas" style={{ flex: 1, minWidth: 130, minHeight: 112 }} />
-        <MobileMetricCard compact icon="checkmark-circle" color={tokens.semantic.success} value={`${totals.progress}%`} label="Avance" style={{ flex: 1, minWidth: 130, minHeight: 112 }} />
-        <MobileMetricCard compact icon="flame" color={tokens.semantic.danger} value={totals.failed} label="Repasar" style={{ flex: 1, minWidth: 130, minHeight: 112 }} />
-        <MobileMetricCard compact icon="diamond" color={tokens.semantic.info} value={totals.earnedXp} suffix=" XP" label="Experiencia" style={{ flex: 1, minWidth: 130, minHeight: 112 }} />
+      <View className={isDesktop ? 'flex-row gap-3' : 'flex-row gap-2'}>
+        <MobileMetricCard compact={isDesktop} dense={!isDesktop} icon="planet" color={color} value={topicsCount} label="Temas" style={{ flex: 1, minWidth: isDesktop ? 130 : 0, minHeight: isDesktop ? 112 : 88, aspectRatio: isDesktop ? undefined : 1 }} />
+        <MobileMetricCard compact={isDesktop} dense={!isDesktop} icon="checkmark-circle" color={tokens.semantic.success} value={`${totals.progress}%`} label="Avance" style={{ flex: 1, minWidth: isDesktop ? 130 : 0, minHeight: isDesktop ? 112 : 88, aspectRatio: isDesktop ? undefined : 1 }} />
+        <MobileMetricCard compact={isDesktop} dense={!isDesktop} icon="flame" color={tokens.semantic.danger} value={totals.failed} label="Repasar" style={{ flex: 1, minWidth: isDesktop ? 130 : 0, minHeight: isDesktop ? 112 : 88, aspectRatio: isDesktop ? undefined : 1 }} />
+        <MobileMetricCard compact={isDesktop} dense={!isDesktop} icon="diamond" color={tokens.semantic.info} value={totals.earnedXp} suffix=" XP" label="Experiencia" style={{ flex: 1, minWidth: isDesktop ? 130 : 0, minHeight: isDesktop ? 112 : 88, aspectRatio: isDesktop ? undefined : 1 }} />
       </View>
 
       <View className={isDesktop ? 'mt-6 flex-row items-start gap-5' : 'mt-3'}>
@@ -161,7 +149,7 @@ function FailedQuestionCard({ question, onPress }: { question: StudentCourseFail
         minHeight: 78,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: tokens.border.default,
+        borderColor: withAlpha(tokens.semantic.danger, 'A0'),
         backgroundColor: tokens.semanticSurface.danger,
         padding: 14,
         flexDirection: 'row',

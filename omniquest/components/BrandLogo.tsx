@@ -15,6 +15,7 @@ export default function BrandLogo({ center = false, questColor = '#38BDF8', size
       className="flex-row flex-wrap items-center"
       style={[
         center ? { alignSelf: 'center', justifyContent: 'center' } : undefined,
+        { overflow: 'visible', paddingBottom: Math.max(4, Math.round(size * 0.1)) },
         style,
       ]}
     >
@@ -23,7 +24,8 @@ export default function BrandLogo({ center = false, questColor = '#38BDF8', size
         style={{
           fontFamily: 'Pacifico_400Regular',
           fontSize: size,
-          lineHeight: Math.round(size * 1.25),
+          includeFontPadding: true,
+          lineHeight: Math.round(size * 1.4),
           ...createTextShadowStyle({
             color: 'rgba(255, 255, 255, 0.18)',
             offsetY: 2,
@@ -38,7 +40,8 @@ export default function BrandLogo({ center = false, questColor = '#38BDF8', size
           color: questColor,
           fontFamily: 'Pacifico_400Regular',
           fontSize: size,
-          lineHeight: Math.round(size * 1.25),
+          includeFontPadding: true,
+          lineHeight: Math.round(size * 1.4),
           ...createTextShadowStyle({
             color: withAlpha(questColor, '52'),
             offsetY: 2,

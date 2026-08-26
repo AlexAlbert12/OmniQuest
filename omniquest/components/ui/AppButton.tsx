@@ -167,15 +167,18 @@ const styles = StyleSheet.create({
   },
   content: {
     minWidth: 0,
+    maxWidth: '100%',
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   label: {
+    minWidth: 0,
     flexShrink: 1,
     textAlign: 'center',
     fontWeight: '900',
+    includeFontPadding: false,
   },
 })

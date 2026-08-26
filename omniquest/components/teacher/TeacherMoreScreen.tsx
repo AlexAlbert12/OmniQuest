@@ -123,6 +123,57 @@ export default function TeacherMoreScreen() {
 
 function QuickAccessCard({ item, compact, onPress }: { item: QuickAccess; compact: boolean; onPress: () => void }) {
   const { tokens } = useAppTheme()
+
+  if (compact) {
+    return (
+      <AppPressable
+        accessibilityRole="link"
+        accessibilityLabel={item.title}
+        accessibilityHint={item.description}
+        onPress={onPress}
+        style={({ pressed }) => ({
+          width: '100%',
+          minHeight: 82,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          borderRadius: 18,
+          borderWidth: 1,
+          borderColor: pressed ? tokens.border.active : tokens.border.default,
+          backgroundColor: pressed ? tokens.surface.selected : tokens.surface.default,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+          opacity: pressed ? 0.86 : 1,
+        })}
+      >
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            flexShrink: 0,
+            borderRadius: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: withAlpha(tokens.brand.teacher, '22'),
+          }}
+        >
+          <Ionicons name={item.icon} size={22} color={tokens.brand.teacher} />
+        </View>
+        <View style={{ minWidth: 0, flex: 1 }}>
+          <Text style={{ color: tokens.text.primary, fontSize: 15, lineHeight: 20, fontWeight: '900', includeFontPadding: false }}>
+            {item.title}
+          </Text>
+          <Text numberOfLines={2} style={{ marginTop: 3, color: tokens.text.secondary, fontSize: 11, lineHeight: 16, includeFontPadding: false }}>
+            {item.description}
+          </Text>
+        </View>
+        <View style={{ width: 32, height: 32, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: tokens.surface.interactive }}>
+          <Ionicons name="chevron-forward" size={18} color={tokens.brand.teacher} />
+        </View>
+      </AppPressable>
+    )
+  }
+
   return (
     <AppPressable
       accessibilityRole="link"
@@ -131,36 +182,37 @@ function QuickAccessCard({ item, compact, onPress }: { item: QuickAccess; compac
       onPress={onPress}
       style={({ pressed }) => ({
         minWidth: 0,
-        minHeight: compact ? 142 : 122,
+        minHeight: 122,
         flexGrow: 1,
-        flexBasis: compact ? '46%' : 280,
+        flexBasis: 280,
         borderRadius: 20,
         borderWidth: 1,
         borderColor: pressed ? tokens.border.active : tokens.border.default,
         backgroundColor: pressed ? tokens.surface.selected : tokens.surface.default,
-        padding: compact ? 14 : 18,
+        padding: 18,
         opacity: pressed ? 0.86 : 1,
       })}
     >
       <View
         style={{
-          width: compact ? 42 : 46,
-          height: compact ? 42 : 46,
+          width: 46,
+          height: 46,
           borderRadius: 15,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: withAlpha(tokens.brand.teacher, '22'),
         }}
       >
-        <Ionicons name={item.icon} size={compact ? 21 : 23} color={tokens.brand.teacher} />
+        <Ionicons name={item.icon} size={23} color={tokens.brand.teacher} />
       </View>
-      <Text numberOfLines={2} style={{ marginTop: 12, color: tokens.text.primary, fontSize: compact ? 14 : 16, lineHeight: compact ? 18 : 21, fontWeight: '900' }}>
+      <Text numberOfLines={2} style={{ marginTop: 12, color: tokens.text.primary, fontSize: 16, lineHeight: 21, fontWeight: '900' }}>
         {item.title}
       </Text>
-      <Text numberOfLines={compact ? 3 : 2} style={{ marginTop: 4, color: tokens.text.secondary, fontSize: compact ? 10 : 12, lineHeight: compact ? 14 : 17 }}>
+      <Text numberOfLines={2} style={{ marginTop: 4, color: tokens.text.secondary, fontSize: 12, lineHeight: 17 }}>
         {item.description}
       </Text>
-      <Ionicons name="chevron-forward" size={18} color={tokens.brand.teacher} style={{ position: 'absolute', top: compact ? 25 : 29, right: 14 }} />
+      <Ionicons name="chevron-forward" size={18} color={tokens.brand.teacher} style={{ position: 'absolute', top: 29, right: 14 }} />
     </AppPressable>
   )
 }
+

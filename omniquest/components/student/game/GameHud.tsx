@@ -3,10 +3,11 @@ import { Pressable, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { withAlpha } from '../../../lib/color'
 import { createShadowStyle } from '../../../lib/platformShadow'
+import { useAppTheme } from '../../../lib/appTheme'
 
 export function TimerPill({ timeLeft, compact = false }: { timeLeft: number; compact?: boolean }) {
-  const isLow = timeLeft <= 5
-  const color = isLow ? '#FB7185' : '#8B5CF6'
+  const { tokens } = useAppTheme()
+  const color = tokens.brand.student
 
   return (
     <View className="items-center justify-center">
@@ -27,7 +28,10 @@ export function TimerPill({ timeLeft, compact = false }: { timeLeft: number; com
         }}
       >
         <Ionicons name="timer-outline" size={compact ? 16 : 18} color={color} />
-        <Text className={`${compact ? 'mt-0.5 text-[20px]' : 'mt-1 text-[22px]'} font-black ${isLow ? 'text-semantic-danger' : 'text-white'}`}>
+        <Text
+          className={`${compact ? 'mt-0.5 text-[20px]' : 'mt-1 text-[22px]'} font-black`}
+          style={{ color }}
+        >
           00:{timeLeft.toString().padStart(2, '0')}
         </Text>
       </View>

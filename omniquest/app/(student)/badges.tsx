@@ -8,9 +8,9 @@ import {
   Text,
   View,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, useRouter, type Href } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import MobileMetricCard from '../../components/ui/mobile/MobileMetricCard'
 import AppTabs from '../../components/ui/AppTabs'
 import BadgeUnlockModal from '../../components/gamification/BadgeUnlockModal'
 import { supabase } from '../../lib/supabase'
@@ -220,7 +220,7 @@ export default function BadgesScreen() {
   if (loading) return <OmniLoadingScreen />
 
   return (
-    <View className="flex-1 bg-background-primary">
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-background-primary">
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <StudentSidebar
@@ -252,8 +252,8 @@ export default function BadgesScreen() {
               : 'Desbloquea insignias y sigue tu próxima recompensa.'}
           />
 
-          <View className={isDesktop ? 'flex-row gap-5' : 'gap-5'}>
-            <View className="flex-[1.25] overflow-hidden rounded-2xl border border-border-default bg-surface-interactive p-6">
+          <View>
+            <View className="overflow-hidden rounded-2xl border border-border-default bg-surface-interactive p-6">
               <View className="absolute right-[-30px] top-[-32px] h-36 w-36 rounded-full" style={{ backgroundColor: withAlpha(accentColor, '25') }} />
               <View className="absolute bottom-[-34px] left-[-18px] h-28 w-44 rounded-full bg-surface-selected" />
               <View className="relative flex-row items-center gap-5">
@@ -270,10 +270,6 @@ export default function BadgesScreen() {
               </View>
             </View>
 
-            <View className={isDesktop ? 'flex-1 flex-row gap-4' : 'flex-row gap-3'}>
-              <MetricTile icon="lock-closed" color="#F6A64A" label="Pendientes" value={String(summary.locked)} />
-              <MetricTile icon="flame" color="#FF7B45" label="Racha" value={formatCount(summary.streakDays, 'día', 'días')} />
-            </View>
           </View>
 
           {nextBadge ? (
@@ -311,7 +307,6 @@ export default function BadgesScreen() {
                 <BadgeCard
                   key={badge.id}
                   badge={badge}
-                  featured={featuredBadgeId === badge.id}
                   isDesktop={isDesktop}
                   onSelect={setSelectedBadge}
                 />
@@ -375,7 +370,7 @@ export default function BadgesScreen() {
       />
 
       {!isDesktop ? <StudentBottomNav active="badges" /> : null}
-    </View>
+    </SafeAreaView>
   )
 }
 
@@ -428,29 +423,6 @@ function getRemainingBadgeMessage(badge: StudentBadge, remaining: number) {
   return `Te faltan ${amount} ${unit || 'pasos'} para desbloquearlo.`
 }
 
-function MetricTile({
-  icon,
-  color,
-  label,
-  value,
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  color: string
-  label: string
-  value: string
-}) {
-  return (
-    <MobileMetricCard
-      className="min-w-0 flex-1"
-      color={color}
-      compact
-      icon={icon}
-      label={label}
-      value={value}
-    />
-  )
-}
-
 function FilterButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   const { accentColor } = useAppTheme()
 
@@ -467,18 +439,15 @@ function FilterButton({ label, active, onPress }: { label: string; active: boole
 
 const BadgeCard = React.memo(function BadgeCard({
   badge,
-  featured,
   isDesktop,
   onSelect,
 }: {
   badge: StudentBadge
-  featured: boolean
   isDesktop: boolean
   onSelect: (badge: StudentBadge) => void
 }) {
   const progressPercent = Math.min(100, Math.round((badge.current / Math.max(badge.target, 1)) * 100))
   const handlePress = useCallback(() => onSelect(badge), [badge, onSelect])
-  const { accentColor } = useAppTheme()
 
   return (
     <Pressable
@@ -487,7 +456,7 @@ const BadgeCard = React.memo(function BadgeCard({
       accessibilityRole="button"
       className={`rounded-2xl border bg-surface-raised ${isDesktop ? 'p-4' : 'p-3'} ${badge.unlocked ? 'border-semantic-success' : 'border-border-default'}`}
       onPress={handlePress}
-      style={{ width: isDesktop ? '31.8%' : '48%', minHeight: isDesktop ? 292 : 224 }}
+      style={{ width: isDesktop ? '31.8%' : '48%', minHeight: isDesktop ? 190 : 168 }}
     >
       <View className={isDesktop ? 'flex-row items-start justify-between gap-3' : 'gap-2.5'}>
         <View
@@ -497,15 +466,6 @@ const BadgeCard = React.memo(function BadgeCard({
           <Ionicons name={badge.unlocked ? badge.icon : 'lock-closed'} size={isDesktop ? 30 : 25} color={badge.color} />
         </View>
         <View className={isDesktop ? 'items-end gap-1.5' : 'flex-row flex-wrap items-center gap-1.5'}>
-          {featured ? (
-            <View
-              className="flex-row items-center gap-1 self-start rounded-full border px-2 py-0.5"
-              style={{ maxWidth: '100%', backgroundColor: withAlpha(accentColor, '14'), borderColor: withAlpha(accentColor, '55') }}
-            >
-              <Ionicons name="star" size={10} color={accentColor} />
-              <Text className="text-[7px] font-black" style={{ color: accentColor }} numberOfLines={1}>Destacado</Text>
-            </View>
-          ) : null}
           <View
             className={`${isDesktop ? 'px-3' : 'px-2.5'} self-start rounded-full py-1`}
             style={{ maxWidth: '100%', backgroundColor: badge.unlocked ? 'rgba(52,211,153,0.16)' : 'rgba(143,167,199,0.14)' }}
@@ -517,10 +477,9 @@ const BadgeCard = React.memo(function BadgeCard({
         </View>
       </View>
 
-      <Text className={`${isDesktop ? 'mt-4 text-[17px]' : 'mt-3 text-[15px]'} font-black text-white`} numberOfLines={2}>{badge.title}</Text>
-      <Text className="mt-1 text-[12px] leading-5 text-text-secondary" numberOfLines={isDesktop ? 3 : 2}>{badge.requirement}</Text>
+      <Text className={`${isDesktop ? 'mt-4 text-[17px]' : 'mt-3 text-[15px]'} font-black text-white`}>{badge.title}</Text>
 
-      <View className="mt-4">
+      <View className="mt-auto pt-4">
         <View className="mb-2 flex-row items-center justify-between">
           <Text className="text-[12px] text-text-muted">Progreso</Text>
           <Text className="text-[12px] font-bold text-text-secondary" numberOfLines={1}>{badge.progressLabel}</Text>
@@ -528,16 +487,6 @@ const BadgeCard = React.memo(function BadgeCard({
         <View className="h-2 overflow-hidden rounded-full bg-surface-interactive">
           <View className="h-full rounded-full" style={{ width: `${progressPercent}%`, backgroundColor: badge.color }} />
         </View>
-      </View>
-
-      <View className="mt-4 flex-row items-center justify-between border-t border-border-subtle pt-3">
-        <View>
-          <Text className="text-[12px] text-text-muted">Recompensa</Text>
-          {badge.unlocked && badge.awardedAt ? (
-            <Text className="mt-1 text-[10px] text-text-muted">{formatAwardedAt(badge.awardedAt)}</Text>
-          ) : null}
-        </View>
-        <Text className="text-[12px] font-black text-brand-student">{badge.xp}</Text>
       </View>
     </Pressable>
   )

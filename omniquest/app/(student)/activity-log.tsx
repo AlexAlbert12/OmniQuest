@@ -83,7 +83,7 @@ export default function ActivityLogScreen() {
           onSignOut={() => void signOutCurrentDeviceSession()}
         />
       ) : null}
-      mobileBottomNavigation={<StudentBottomNav active="profile" />}
+      mobileBottomNavigation={<StudentBottomNav active="activity" />}
       isDesktop={isDesktop}
       loading={activity.loading}
       loadingLabel="Cargando actividad…"
@@ -94,11 +94,10 @@ export default function ActivityLogScreen() {
       contentContainerStyle={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0 }}
     >
       <StudentPageHeader
-        backAction={{ label: 'Volver', onPress: () => router.back() }}
+        compactMobileTitle
         icon="time-outline"
         isDesktop={isDesktop}
-        title="Historial de actividad"
-        subtitle="Consulta tus intentos anteriores y vuelve a practicar desde el tema correspondiente."
+        title="Historial"
       />
       {activity.error ? (
         <View className="mb-4">

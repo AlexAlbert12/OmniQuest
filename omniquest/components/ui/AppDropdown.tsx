@@ -172,10 +172,10 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   compactTrigger: {
-    minHeight: 42,
+    minHeight: 44,
     borderRadius: 12,
-    paddingHorizontal: 6,
-    gap: 4,
+    paddingHorizontal: 10,
+    gap: 6,
   },
   leadingIcon: {
     width: 30,
@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   compactTriggerText: {
-    fontSize: 10.5,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 16,
   },
   chevronBox: {
     width: 28,
@@ -215,9 +215,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   compactChevronBox: {
-    width: 18,
-    height: 18,
-    borderRadius: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 8,
   },
   options: {
     gap: 9,

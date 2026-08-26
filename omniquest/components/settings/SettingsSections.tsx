@@ -164,7 +164,9 @@ export function SettingsProfilePanel({
 
           <AppButton
             label={saving ? t('settings.profile.saving') : t('settings.profile.save')}
+            icon="save-outline"
             role={isTeacher ? 'teacher' : 'student'}
+            variant="primary"
             loading={saving}
             fullWidth={!isWide}
             onPress={onSaveProfile}
@@ -413,7 +415,7 @@ export function SettingsPrivacyPanel({
           disabled={savingAnalytics}
           loading={savingAnalytics}
         />
-        <Text className="px-4 pb-4 text-[11px] leading-4 text-text-muted">
+        <Text className="px-4 pb-4 pt-3 text-[11px] leading-4 text-text-muted">
           {t('settings.privacy.analytics.retention')}
         </Text>
       </View>

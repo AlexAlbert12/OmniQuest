@@ -8,6 +8,7 @@ import { withAlpha } from '../../lib/color'
 import { createShadowStyle } from '../../lib/platformShadow'
 import { getStudentBadgePresentation } from '../../lib/studentBadges'
 import AvatarImage from '../ui/AvatarImage'
+import { useAppTheme } from '../../lib/appTheme'
 
 export type GamifiedAvatarProps = {
   avatarUrl?: string | null
@@ -38,6 +39,7 @@ export default function GamifiedAvatar({
   showFeaturedBadge = true,
   style,
 }: GamifiedAvatarProps) {
+  const { tokens } = useAppTheme()
   const equippedFrame = frame || cosmetics?.frame || DEFAULT_AVATAR_FRAME
   const equippedBadgeId = featuredBadgeId ?? cosmetics?.featuredBadgeId ?? null
   const badge = equippedBadgeId ? getStudentBadgePresentation(equippedBadgeId) : null
@@ -158,12 +160,12 @@ export default function GamifiedAvatar({
             borderRadius: 999,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: equippedFrame.secondaryColor,
+            backgroundColor: tokens.brand.student,
             borderWidth: 2,
             borderColor: '#FFFFFF',
           }}
         >
-          <Ionicons name="sparkles" size={Math.max(13, size * 0.16)} color="#FFFFFF" />
+          <Ionicons name="pencil" size={Math.max(13, size * 0.16)} color="#FFFFFF" />
         </View>
       ) : null}
     </View>

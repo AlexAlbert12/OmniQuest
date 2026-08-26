@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import { ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import OmniGuide, { type OmniState } from '../OmniGuide'
 import AppButton from '../ui/AppButton'
@@ -10,6 +10,7 @@ import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
 import { completeCurrentUserOnboarding, getHelpRouteForOnboardingRole, getHomeRouteForOnboardingRole, type OnboardingRole } from '../../lib/onboarding'
 import { withAlpha } from '../../lib/color'
+import { useResponsiveLayout } from '../../lib/responsive'
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -37,7 +38,7 @@ const TEACHER_STEPS: StepDefinition[] = [
 export default function RoleOnboardingScreen({ role }: { role: OnboardingRole }) {
   const router = useRouter()
   const params = useLocalSearchParams<{ replay?: string | string[] }>()
-  const { width } = useWindowDimensions()
+  const { width } = useResponsiveLayout()
   const { colors, tokens } = useAppTheme()
   const { t } = useI18n()
   const { showModal } = useAppModal()
@@ -124,9 +125,9 @@ export default function RoleOnboardingScreen({ role }: { role: OnboardingRole })
             </View>
 
             <View style={{ marginTop: 28, gap: 10 }}>
-              <View style={{ flexDirection: width >= 560 ? 'row' : 'column', gap: 10 }}>
-                {stepIndex > 0 ? <AppButton label={t('common.previous')} icon="arrow-back-outline" variant="secondary" role={role} onPress={() => setStepIndex((current) => Math.max(0, current - 1))} disabled={saving} style={{ flex: width >= 560 ? 1 : undefined }} fullWidth={width < 560} /> : null}
-                <AppButton label={isLastStep ? (replay ? t('onboarding.common.backToHelp') : t('onboarding.common.start')) : t('common.next')} icon={isLastStep ? (replay ? 'help-circle-outline' : 'rocket-outline') : 'arrow-forward-outline'} iconPosition="right" role={role} onPress={handlePrimary} loading={saving} style={{ flex: width >= 560 ? 1 : undefined }} fullWidth={width < 560} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+                {stepIndex > 0 ? <AppButton label={t('common.previous')} icon="arrow-back-outline" variant="secondary" role={role} onPress={() => setStepIndex((current) => Math.max(0, current - 1))} disabled={saving} style={{ flex: 1 }} /> : <View style={{ flex: 1 }} />}
+                <AppButton label={isLastStep ? (replay ? t('onboarding.common.backToHelp') : t('onboarding.common.start')) : t('common.next')} icon={isLastStep ? (replay ? 'help-circle-outline' : 'rocket-outline') : 'arrow-forward-outline'} iconPosition="right" role={role} onPress={handlePrimary} loading={saving} style={{ flex: 1 }} />
               </View>
               <AppButton label={replay ? t('onboarding.common.close') : t('onboarding.common.skip')} variant="ghost" role={role} onPress={handleSkipOrClose} disabled={saving} fullWidth />
             </View>

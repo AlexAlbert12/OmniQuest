@@ -60,21 +60,25 @@ test('achievement screen uses user-facing copy, consistent pending state and sta
 
   assert.match(screen, /Explora tus insignias por categoría y abre cualquiera para consultar sus detalles y progreso\./)
   assert.doesNotMatch(screen, /se cargan desde el catálogo/)
-  assert.doesNotMatch(screen, /MetricTile[^\r\n]*label="Conseguidas"/)
-  assert.match(screen, /label="Racha" value=\{formatCount\(summary\.streakDays, 'día', 'días'\)\}/)
+  assert.doesNotMatch(screen, /function MetricTile|<MetricTile/)
+  assert.doesNotMatch(screen, /label="Racha"/)
   assert.match(screen, /FilterButton label="Pendientes"/)
   assert.match(model, /statusLabel: unlocked \? 'Conseguida' : 'Pendiente'/)
   assert.match(screen, /omni-no-hover-lift flex-1 items-center justify-center/)
   assert.match(screen, /omni-no-hover-lift w-full max-w-\[560px\]/)
-  assert.match(screen, /withAlpha\(accentColor, '14'\)/)
+  assert.match(screen, /<SafeAreaView edges=\{\['top', 'left', 'right'\]\}/)
   assert.match(tabs, /gap: 8/)
 })
 
 test('achievement status pills stay inside compact mobile cards', () => {
   const screen = read('app/(student)/badges.tsx')
+  const collectionCard = screen.split('const BadgeCard')[1].split('function BadgeDetailModal')[0]
 
   assert.match(screen, /isDesktop \? 'items-end gap-1\.5' : 'flex-row flex-wrap items-center gap-1\.5'/)
-  assert.match(screen, /style=\{\{ maxWidth: '100%', backgroundColor: withAlpha\(accentColor, '14'\)/)
+  assert.match(screen, /style=\{\{ maxWidth: '100%', backgroundColor: badge\.unlocked/)
   assert.match(screen, /isDesktop \? 'px-3' : 'px-2\.5'/)
   assert.match(screen, /isDesktop \? 'text-\[11px\]' : 'text-\[10px\]'/)
+  assert.match(collectionCard, /badge\.title/)
+  assert.match(collectionCard, /badge\.progressLabel/)
+  assert.doesNotMatch(collectionCard, /badge\.requirement|badge\.xp|formatAwardedAt/)
 })

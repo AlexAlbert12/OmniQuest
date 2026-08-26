@@ -30,6 +30,7 @@ export default function StudentHome() {
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)
   const continueHref = home.continueRow ? buildStudentClassHref(home.continueRow.subject) : '/(student)/classes'
+  const greetingName = getCompactGreetingName(alias)
 
   return (
     <StudentLayout
@@ -45,9 +46,11 @@ export default function StudentHome() {
     >
       <StudentPageHeader
         className={!responsive.isDesktop ? 'mb-5' : undefined}
+        compactMobileTitle
         icon="home"
         isDesktop={responsive.isDesktop}
-        title={`¡Hola, ${alias}!`}
+        title={responsive.isDesktop ? `¡Hola, ${alias}!` : greetingName ? `¡Hola, ${greetingName}!` : '¡Hola!'}
+        titleNumberOfLines={responsive.isDesktop ? 2 : 1}
         subtitle="Tu siguiente paso está preparado. Empieza por la acción recomendada."
       />
 
@@ -69,25 +72,26 @@ export default function StudentHome() {
         />
       </View>
 
-      <View className={responsive.isDesktop ? 'mt-5 flex-row items-stretch gap-5' : 'mt-5 gap-5'}>
+      <View className={responsive.isDesktop ? 'mt-5 flex-row items-stretch gap-5' : 'mt-3 gap-3'}>
         <View className={responsive.isDesktop ? 'flex-1' : ''}>
           <StudentContinueCourse
+            compact={!responsive.isDesktop}
             row={home.continueRow}
-            onOpenCourse={() => router.push(continueHref as any)}
-            onOpenAll={() => router.push('/(student)/classes' as any)}
+            onPress={() => router.push(continueHref as any)}
           />
         </View>
         <View className={responsive.isDesktop ? 'flex-1' : ''}>
           <StudentDailyMission
+            compact={!responsive.isDesktop}
             count={home.todayAttemptCount}
             target={home.dailyMissionTarget}
             streakDays={home.streakDays}
-            onStart={() => router.push(continueHref as any)}
+            onPress={() => router.push(continueHref as any)}
           />
         </View>
       </View>
 
-      <View className="mt-6">
+      <View className={responsive.isDesktop ? 'mt-6' : 'mt-4'}>
         <StudentHomeSummary
           progressPercent={home.progressSummary?.overallPercent ?? 0}
           attemptCount={home.attemptCount}
@@ -98,7 +102,7 @@ export default function StudentHome() {
         />
       </View>
 
-      <View className={responsive.isDesktop ? 'mt-6 flex-row items-start gap-5' : 'mt-6 gap-5'}>
+      <View className={responsive.isDesktop ? 'mt-6 flex-row items-start gap-5' : 'mt-5 gap-4'}>
         <View className={responsive.isDesktop ? 'flex-1' : ''}>
           <StudentHomeAchievements
             achievements={home.achievements}
@@ -118,4 +122,9 @@ export default function StudentHome() {
       </View>
     </StudentLayout>
   )
+}
+
+function getCompactGreetingName(alias: string) {
+  const firstName = alias.trim().split(/\s+/)[0] || ''
+  return firstName.length <= 18 ? firstName : ''
 }

@@ -13,7 +13,7 @@ import { releaseWebFocus } from '../../lib/webFocus'
 import { useI18n } from '../../lib/i18n'
 import { useResponsiveLayout } from '../../lib/responsive'
 
-export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings'
+export type StudentSection = 'home' | 'classes' | 'progress' | 'ranking' | 'badges' | 'notifications' | 'profile' | 'settings' | 'more'
 
 type StudentSidebarProps = {
   activeSection: StudentSection

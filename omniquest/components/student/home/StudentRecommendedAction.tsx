@@ -30,7 +30,7 @@ export default function StudentRecommendedAction({
       onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
     >
-      <View className="overflow-hidden rounded-[28px] border border-border-default" style={{ padding: compact ? 20 : 24 }}>
+      <View className="overflow-hidden border border-border-default" style={{ padding: compact ? 14 : 24, borderRadius: compact ? 22 : 28 }}>
         <LinearGradient
           colors={[withAlpha(toneColor, '3D'), tokens.surface.raised, tokens.surface.default]}
           start={{ x: 0, y: 0 }}
@@ -50,28 +50,28 @@ export default function StudentRecommendedAction({
           }}
         />
 
-        <View className="relative flex-row flex-wrap items-center" style={{ gap: compact ? 16 : 20 }}>
+        <View className="relative flex-row items-center" style={{ gap: compact ? 12 : 20 }}>
           <View
             className="items-center justify-center border"
             style={{
-              width: compact ? 56 : 64,
-              height: compact ? 56 : 64,
-              borderRadius: compact ? 18 : 20,
+              width: compact ? 44 : 64,
+              height: compact ? 44 : 64,
+              borderRadius: compact ? 14 : 20,
               backgroundColor: withAlpha(toneColor, '26'),
               borderColor: withAlpha(toneColor, '80'),
             }}
           >
-            <Ionicons name={action.icon} size={compact ? 28 : 32} color={toneColor} />
+            <Ionicons name={action.icon} size={compact ? 23 : 32} color={toneColor} />
           </View>
 
           <View className="min-w-0 flex-1" style={{ minWidth: compact ? 0 : 220 }}>
-            <Text className="text-[12px] font-black uppercase tracking-[1.4px]" style={{ color: toneColor }}>
+            <Text className={`${compact ? 'text-[10px]' : 'text-[12px]'} font-black uppercase tracking-[1.4px]`} style={{ color: toneColor }}>
               Siguiente paso
             </Text>
-            <Text maxFontSizeMultiplier={2} className="font-black text-white" style={{ marginTop: compact ? 6 : 8, fontSize: compact ? 24 : 26, lineHeight: compact ? 30 : 32 }}>
+            <Text maxFontSizeMultiplier={2} className="font-black text-white" style={{ marginTop: compact ? 3 : 8, fontSize: compact ? 19 : 26, lineHeight: compact ? 24 : 32 }}>
               {action.title}
             </Text>
-            <Text maxFontSizeMultiplier={2} className="max-w-[720px] text-[14px] text-text-secondary" style={{ marginTop: compact ? 6 : 8, lineHeight: compact ? 21 : 24 }}>
+            <Text maxFontSizeMultiplier={2} className={`max-w-[720px] text-text-secondary ${compact ? 'text-[12px]' : 'text-[14px]'}`} style={{ marginTop: compact ? 3 : 8, lineHeight: compact ? 17 : 24 }}>
               {action.description}
             </Text>
           </View>

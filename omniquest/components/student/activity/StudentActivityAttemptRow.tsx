@@ -173,6 +173,8 @@ export default React.memo(function StudentActivityAttemptRow({
                 accessibilityHint="Abre el curso para iniciar una nueva práctica, sin mostrar las soluciones anteriores"
                 icon="play-circle"
                 role="student"
+                variant="primary"
+                fullWidth
                 onPress={onPractice}
               />
             </View>

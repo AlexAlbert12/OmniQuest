@@ -5,8 +5,8 @@ import MobileBottomNavigation, {
   MobileBottomNavigationItem,
 } from '../ui/mobile/MobileBottomNavigation'
 
-export type StudentBottomNavKey = 'home' | 'classes' | 'progress' | 'profile' | 'settings' | 'ranking' | 'badges' | 'notifications'
-type VisibleStudentBottomNavKey = 'home' | 'classes' | 'progress' | 'ranking' | 'profile'
+export type StudentBottomNavKey = 'home' | 'classes' | 'progress' | 'profile' | 'settings' | 'ranking' | 'badges' | 'notifications' | 'activity' | 'security' | 'help' | 'more'
+type VisibleStudentBottomNavKey = 'home' | 'classes' | 'progress' | 'ranking' | 'more'
 
 export default function StudentBottomNav({ active }: { active: StudentBottomNavKey | null }) {
   const { tokens } = useAppTheme()
@@ -16,7 +16,7 @@ export default function StudentBottomNav({ active }: { active: StudentBottomNavK
     { key: 'classes', label: t('nav.student.courses'), href: '/(student)/classes', icon: 'book-outline', activeIcon: 'book', testID: 'student-nav-classes' },
     { key: 'progress', label: t('nav.student.progress'), href: '/(student)/progress', icon: 'stats-chart-outline', activeIcon: 'stats-chart', testID: 'student-nav-progress' },
     { key: 'ranking', label: t('nav.student.ranking'), href: '/(student)/ranking', icon: 'trophy-outline', activeIcon: 'trophy', testID: 'student-nav-ranking' },
-    { key: 'profile', label: t('nav.student.profile'), href: '/(student)/profile', icon: 'person-outline', activeIcon: 'person', testID: 'student-nav-profile' },
+    { key: 'more', label: 'Más', href: '/(student)/more', icon: 'ellipsis-horizontal-circle-outline', activeIcon: 'ellipsis-horizontal-circle', testID: 'student-nav-more' },
   ], [t])
 
   return (
@@ -29,6 +29,6 @@ export default function StudentBottomNav({ active }: { active: StudentBottomNavK
 }
 
 function getVisibleActiveKey(active: StudentBottomNavKey | null): VisibleStudentBottomNavKey | null {
-  if (active === 'badges' || active === 'notifications' || active === 'settings') return null
+  if (active === 'more' || active === 'profile' || active === 'badges' || active === 'notifications' || active === 'settings' || active === 'activity' || active === 'security' || active === 'help') return 'more'
   return active
 }

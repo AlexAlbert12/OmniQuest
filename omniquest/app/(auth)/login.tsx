@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Link } from 'expo-router'
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import AuthCapsLockWarning from '../../components/auth/AuthCapsLockWarning'
 import AuthCard from '../../components/auth/AuthCard'
 import AuthHomeLink from '../../components/auth/AuthHomeLink'
@@ -182,19 +183,20 @@ export default function LoginScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-background-secondary" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-      <View className="overflow-hidden bg-background-secondary" style={{ minHeight: Math.max(height, 760), borderRadius: isWeb ? 0 : 34 }}>
-        <HomeVisualBackground isDesktop={isDesktop} />
-        <View
-          className="z-10 flex-1 items-center"
-          style={{
-            justifyContent: isTablet ? 'center' : 'flex-start',
-            paddingBottom: 32,
-            paddingHorizontal: isDesktop ? 32 : 22,
-            paddingTop: isTablet ? 32 : 100,
-          }}
-        >
-          <AuthHomeLink />
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-background-secondary">
+      <ScrollView className="flex-1 bg-background-secondary" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        <View className="overflow-hidden bg-background-secondary" style={{ minHeight: Math.max(height, 760), borderRadius: isWeb ? 0 : 34 }}>
+          <HomeVisualBackground isDesktop={isDesktop} />
+          <View
+            className="z-10 flex-1 items-center"
+            style={{
+              justifyContent: isTablet ? 'center' : 'flex-start',
+              paddingBottom: 32,
+              paddingHorizontal: isDesktop ? 32 : 22,
+              paddingTop: isTablet ? 32 : 100,
+            }}
+          >
+            <AuthHomeLink />
 
           <View className="items-center p-2" style={{ marginBottom: isTablet ? 32 : 24 }}>
             <BrandLogo center size={isDesktop ? 68 : 52} />
@@ -286,9 +288,10 @@ export default function LoginScreen() {
               testID="login-submit"
               onPress={() => void signInWithEmail()}
             />
-          </AuthCard>
+            </AuthCard>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   )
 }

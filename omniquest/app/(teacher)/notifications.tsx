@@ -16,6 +16,7 @@ import { useTeacherNotifications, type TeacherNotificationBucket, type TeacherNo
 import type { AppNotification } from '../../lib/notifications/types'
 import { useAppTheme } from '../../lib/appTheme'
 import { useResponsiveLayout } from '../../lib/responsive'
+import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 const bucketTabs = [
@@ -138,9 +139,13 @@ export default function TeacherNotificationsScreen() {
           </View>
         </>
       ) : (
-        <View style={{ marginTop: 10, marginBottom: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <AppButton label={notifications.category === 'all' ? 'Filtros' : `Filtros · ${categoryLabelForKey(notifications.category)}`} icon="options-outline" role="teacher" size="sm" variant="secondary" onPress={() => setFiltersOpen(true)} />
-          <AppButton label={notifications.unreadOnly ? 'Sin leer' : 'Solo sin leer'} icon={notifications.unreadOnly ? 'mail-unread' : 'mail-unread-outline'} role="teacher" size="sm" variant={notifications.unreadOnly ? 'primary' : 'secondary'} onPress={() => notifications.setUnreadOnly(!notifications.unreadOnly)} />
+        <View style={{ marginTop: 10, marginBottom: 6, flexDirection: 'row', alignItems: 'stretch', gap: 8 }}>
+          <View style={{ minWidth: 0, flex: 1 }}>
+            <AppButton fullWidth label={notifications.category === 'all' ? 'Filtros' : `Filtros · ${categoryLabelForKey(notifications.category)}`} icon="options-outline" role="teacher" size="sm" variant="secondary" onPress={() => setFiltersOpen(true)} />
+          </View>
+          <View style={{ minWidth: 0, flex: 1 }}>
+            <AppButton fullWidth label={notifications.unreadOnly ? 'Sin leer' : 'Solo sin leer'} icon={notifications.unreadOnly ? 'mail-unread' : 'mail-unread-outline'} role="teacher" size="sm" variant={notifications.unreadOnly ? 'primary' : 'secondary'} onPress={() => notifications.setUnreadOnly(!notifications.unreadOnly)} />
+          </View>
         </View>
       )}
     </View>
@@ -177,7 +182,7 @@ export default function TeacherNotificationsScreen() {
           onDelete={notifications.deleteNotification}
           onRefresh={notifications.refresh}
           onLoadMore={notifications.loadMore}
-          contentContainerStyle={{ paddingBottom: responsive.isDesktop ? 36 : 100 }}
+          contentContainerStyle={{ paddingBottom: responsive.isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER }}
         />
       </TeacherScreenLayout>
 

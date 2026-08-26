@@ -12,13 +12,11 @@ export default function CourseGalaxyHeader({
   classroom,
   totals,
   isDesktop,
-  onBack,
 }: {
   subject: StudentCourseSubject
   classroom: StudentCourseClassroom | null
   totals: StudentCourseTotals
   isDesktop: boolean
-  onBack: () => void
 }) {
   const { tokens } = useAppTheme()
   const color = subject.theme_color || tokens.brand.student
@@ -26,7 +24,6 @@ export default function CourseGalaxyHeader({
 
   return (
     <StudentPageHeader
-      backAction={{ label: 'Mis cursos', onPress: onBack }}
       isDesktop={isDesktop}
       title={subject.name}
       subtitle={`${totals.progress}% avance  ·  ${totals.failed} ${totals.failed === 1 ? 'fallo pendiente' : 'fallos pendientes'}${classroom ? `  ·  ${classroom.name}` : ''}`}

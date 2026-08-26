@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import AdminButton from './AdminButton'
 import AdminProfileAvatar from './AdminProfileAvatar'
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Pressable, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import MobileMetricCard from '../../ui/mobile/MobileMetricCard'
 import { AppDropdown, AppMenu } from '../../ui'
@@ -45,15 +45,18 @@ export function Panel({ children, className = '', compact = false, icon, title }
   )
 }
 
-export function AdminMetric({ color, compact = false, icon, label, value, width }: {
+export function AdminMetric({ className, color, compact = false, dense = false, icon, label, style, value, width }: {
+  className?: string
   color: string
   compact?: boolean
+  dense?: boolean
   icon: IconName
   label: string
+  style?: StyleProp<ViewStyle>
   value: string
   width?: number
 }) {
-  return <MobileMetricCard className={compact ? '' : 'min-w-[160px] flex-1'} color={color} compact={compact} icon={icon} title={label} value={value} width={width} />
+  return <MobileMetricCard className={className ?? (compact || dense ? '' : 'min-w-[160px] flex-1')} color={color} compact={compact} dense={dense} icon={icon} title={label} style={style} value={value} width={width} />
 }
 
 export function AdminInput({ autoCapitalize, label, onChangeText, placeholder, value }: {
@@ -317,14 +320,29 @@ export function SupportSlaPill({ state }: { state?: string | null }) {
 }
 
 export function RowActions({ actions }: { actions: RowAction[] }) {
+  const responsive = useResponsiveLayout()
   const [open, setOpen] = useState(false)
-  const menuItems = actions.map((action, index) => ({ key: `${action.label}-${index}`, label: action.label, icon: action.icon, destructive: action.destructive, disabled: action.disabled, onPress: action.onPress }))
+  const menuItems = actions.map((action, index) => ({ key: `${action.label}-${index}`, label: action.label, description: getRowActionDescription(action.label), icon: action.icon, destructive: action.destructive, disabled: action.disabled, onPress: action.onPress }))
   return (
-    <View className="mt-4 items-start">
-      <AdminButton label="Acciones" icon="ellipsis-horizontal" variant="secondary" size="sm" onPress={() => setOpen(true)} />
-      <AppMenu visible={open} onClose={() => setOpen(false)} title="Acciones disponibles" items={menuItems} />
+    <View className={`mt-4 ${responsive.isMobile ? '' : 'items-start'}`}>
+      <AdminButton label={responsive.isMobile ? 'Gestionar' : 'Acciones'} icon="ellipsis-horizontal-circle-outline" variant="secondary" size="sm" fullWidth={responsive.isMobile} onPress={() => setOpen(true)} />
+      <AppMenu visible={open} onClose={() => setOpen(false)} title="Acciones" description="Elige qué quieres hacer con este elemento." items={menuItems} />
     </View>
   )
+}
+
+function getRowActionDescription(label: string) {
+  const normalized = label.toLocaleLowerCase('es')
+  if (normalized.includes('actividad')) return 'Consulta la actividad y las señales recientes.'
+  if (normalized.includes('historial')) return 'Revisa los cambios administrativos registrados.'
+  if (normalized.includes('curso')) return 'Abre los cursos vinculados a este elemento.'
+  if (normalized.includes('clase')) return 'Abre las clases vinculadas a este elemento.'
+  if (normalized.includes('contraseña')) return 'Inicia una recuperación de acceso segura.'
+  if (normalized.includes('desactivar')) return 'Suspende temporalmente el acceso.'
+  if (normalized.includes('activar')) return 'Restaura el acceso a la plataforma.'
+  if (normalized.includes('archivar')) return 'Retira el elemento de los listados activos.'
+  if (normalized.includes('restaurar')) return 'Devuelve el elemento a los listados activos.'
+  return 'Abre esta acción administrativa.'
 }
 
 export function StatusPill({ active, label }: { active: boolean; label?: string }) {
@@ -382,8 +400,10 @@ export function HomeShortcut({ icon, label, onPress }: { icon: IconName; label: 
   const { tokens } = useAppTheme()
   const responsive = useResponsiveLayout()
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className={`${responsive.isDesktop ? 'flex-row items-center gap-3' : ''} rounded-2xl border border-border-default bg-surface-default p-4`} style={({ pressed }) => ({ flexBasis: responsive.isDesktop ? '15%' : '47%', flexGrow: 1, minWidth: responsive.isDesktop ? 145 : 0, minHeight: 76, opacity: pressed ? 0.8 : 1 })}>
-      {responsive.isDesktop ? <><View className="h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-selected"><Ionicons name={icon} size={21} color={tokens.brand.admin} /></View><Text numberOfLines={2} className="min-w-0 flex-1 font-black text-text-primary" style={{ flexShrink: 1 }}>{label}</Text><Ionicons name="chevron-forward" size={18} color={tokens.text.muted} /></> : <><View className="flex-row items-center justify-between"><View className="h-10 w-10 items-center justify-center rounded-xl bg-surface-selected"><Ionicons name={icon} size={20} color={tokens.brand.admin} /></View><Ionicons name="chevron-forward" size={17} color={tokens.text.muted} /></View><Text numberOfLines={2} className="mt-3 font-black text-text-primary">{label}</Text></>}
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className={`flex-row items-center gap-3 border border-border-default ${responsive.isDesktop ? 'rounded-2xl bg-surface-default p-4' : 'rounded-xl bg-surface-interactive px-3 py-3'}`} style={({ pressed }) => ({ flexBasis: responsive.isDesktop ? '15%' : '47%', flexGrow: 1, minWidth: responsive.isDesktop ? 145 : 0, minHeight: responsive.isDesktop ? 76 : 62, opacity: pressed ? 0.8 : 1 })}>
+      <View className={`${responsive.isDesktop ? 'h-11 w-11' : 'h-9 w-9'} shrink-0 items-center justify-center rounded-xl bg-surface-selected`}><Ionicons name={icon} size={responsive.isDesktop ? 21 : 18} color={tokens.brand.admin} /></View>
+      <Text numberOfLines={2} className={`${responsive.isDesktop ? 'text-[14px]' : 'text-[12px]'} min-w-0 flex-1 font-black text-text-primary`} style={{ flexShrink: 1 }}>{label}</Text>
+      <Ionicons name="chevron-forward" size={responsive.isDesktop ? 18 : 15} color={tokens.text.muted} />
     </Pressable>
   )
 }

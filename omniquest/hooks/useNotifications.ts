@@ -31,6 +31,10 @@ import {
 } from '../lib/notifications/persistent'
 import { filterNotificationsByPreferences, loadNotificationPreferences } from '../lib/notifications/preferences'
 import { supabase } from '../lib/supabase'
+import {
+  isJwtIssuedInFutureError,
+  retrySupabaseRequestAfterJwtRecovery,
+} from '../lib/supabaseJwtRecovery'
 import { readThroughCache, updateOfflineCache } from '../lib/offlineCache'
 import { enqueueOfflineMutation } from '../lib/offlineMutations'
 
@@ -76,8 +80,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true
+    const retryTimers = new Set<ReturnType<typeof setTimeout>>()
 
-    const syncUser = async (nextUserId: string | null) => {
+    const syncUser = async (nextUserId: string | null, retryAttempt = 0) => {
       if (!isMounted) return
 
       setUserId(nextUserId)
@@ -92,7 +97,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       try {
         const [{ data: profile, error: profileError }, notificationState] = await Promise.all([
-          supabase.from('profiles').select('role_id, active').eq('id', nextUserId).single(),
+          retrySupabaseRequestAfterJwtRecovery(() => (
+            supabase.from('profiles').select('role_id, active').eq('id', nextUserId).single()
+          )),
           loadNotificationStateFromDB(nextUserId),
         ])
         if (profileError) throw profileError
@@ -108,6 +115,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           student: nextAudience === 'student' ? current.student : createEmptyAudienceState(false),
         }))
       } catch (error) {
+        if (isJwtIssuedInFutureError(error)) {
+          if (isMounted && retryAttempt < 2) {
+            const retryDelay = retryAttempt === 0 ? 1_500 : 4_000
+            const timer = setTimeout(() => {
+              retryTimers.delete(timer)
+              void syncUser(nextUserId, retryAttempt + 1)
+            }, retryDelay)
+            retryTimers.add(timer)
+          }
+          return
+        }
+
         console.error('Error resolviendo el rol para notificaciones:', error)
         if (isMounted) {
           setActiveAudience(null)
@@ -137,6 +156,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isMounted = false
+      retryTimers.forEach((timer) => clearTimeout(timer))
+      retryTimers.clear()
       authListener.subscription.unsubscribe()
     }
   }, [])
@@ -249,14 +270,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       applySnapshot(audience, nextSnapshot)
       await updateOfflineCache<NotificationCacheSnapshot>(userId, `notifications:${audience}`, () => nextSnapshot)
     } catch (error: any) {
-      console.error('Error cargando notificaciones:', error?.message || error)
+      const recoverableJwtClockSkew = isJwtIssuedInFutureError(error)
+      if (!recoverableJwtClockSkew) {
+        console.error('Error cargando notificaciones:', error?.message || error)
+      }
       setAudienceState((current) => ({
         ...current,
         [audience]: {
           ...current[audience],
           loading: false,
           loadingMore: false,
-          error: 'No se pudieron cargar las notificaciones. Revisa tu conexión o vuelve a iniciar sesión.',
+          error: recoverableJwtClockSkew
+            ? null
+            : 'No se pudieron cargar las notificaciones. Revisa tu conexión o vuelve a iniciar sesión.',
         },
       }))
     }

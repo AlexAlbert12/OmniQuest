@@ -47,3 +47,13 @@ test('all shared Admin date ranges open a calendar instead of accepting manual d
   assert.doesNotMatch(governance, /placeholder="AAAA-MM-DD"/)
   assert.match(calendar, /selectionColor\?: string/)
 })
+
+test('admin directory actions use the shared compact menu presentation', () => {
+  const primitives = read('components/admin/shared/AdminPrimitives.tsx')
+  const teachers = read('components/admin/users/AdminTeachersSection.tsx')
+
+  assert.match(primitives, /label=\{responsive\.isMobile \? 'Gestionar' : 'Acciones'\}[\s\S]*fullWidth=\{responsive\.isMobile\}/)
+  assert.match(primitives, /description="Elige qué quieres hacer con este elemento\."/)
+  assert.match(primitives, /description: getRowActionDescription/)
+  assert.match(teachers, /label=\{creatingTeacher \? 'Creando\.\.\.' : 'Crear profesor'\}[\s\S]*variant="primary"[\s\S]*fullWidth=\{isMobile\}/)
+})

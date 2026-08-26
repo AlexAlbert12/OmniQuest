@@ -41,9 +41,9 @@ test('student notification mobile navigation and rails follow secondary-screen d
   const empty = read('components/notifications/NotificationEmptyState.tsx')
   const item = read('components/notifications/NotificationListItem.tsx')
 
-  assert.match(screen, /<StudentBottomNav active=\{null\}/)
+  assert.match(screen, /<StudentBottomNav active="notifications"/)
   assert.doesNotMatch(screen, /accessibilityLabel="Actualizar notificaciones"/)
-  assert.match(studentNav, /badges' \|\| active === 'notifications' \|\| active === 'settings'\) return null/)
+  assert.match(studentNav, /badges' \|\| active === 'notifications' \|\| active === 'settings'.*return 'more'/)
   assert.match(mobileNav, /activeKey: Key \| null/)
   assert.match(screen, /mobileRail=\{!isDesktop\}/)
   assert.match(tabs, /mobileRailTab:[\s\S]*minHeight: 42/)

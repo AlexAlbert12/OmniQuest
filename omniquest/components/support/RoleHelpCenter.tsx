@@ -397,7 +397,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
   const tutorialPanel = (
     <SupportPanel title={t('support.tutorial.title')} icon="compass-outline">
       <Text className="mb-4 text-[12px] leading-5" style={{ color: colors.textSecondary }}>{t(role === 'teacher' ? 'support.tutorial.teacherDescription' : 'support.tutorial.studentDescription')}</Text>
-      <AppButton label={t('support.tutorial.action')} icon="play-circle-outline" variant="secondary" role={role} onPress={() => router.push(`/${role === 'teacher' ? '(teacher)' : '(student)'}/onboarding?replay=1` as never)} />
+      <AppButton label={t('support.tutorial.action')} icon="play-circle-outline" variant="primary" role={role} onPress={() => router.push(`/${role === 'teacher' ? '(teacher)' : '(student)'}/onboarding?replay=1` as never)} />
     </SupportPanel>
   )
 
@@ -417,7 +417,7 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
       {defaultSupportChannel !== 'in_app' ? (
         <SupportInput label={t('support.preference.email')} value={supportPreferenceEmail} onChangeText={setSupportPreferenceEmail} colors={colors} placeholder={email || 'profesor@centro.es'} />
       ) : null}
-      <AppButton label={t('support.preference.save')} icon="save-outline" role="teacher" loading={savingSupportPreference} onPress={() => void saveTeacherSupportPreference()} />
+      <AppButton label={t('support.preference.save')} icon="save-outline" role="teacher" variant="primary" loading={savingSupportPreference} onPress={() => void saveTeacherSupportPreference()} />
     </SupportPanel>
   ) : null
 

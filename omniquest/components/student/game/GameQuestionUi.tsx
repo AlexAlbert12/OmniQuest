@@ -170,7 +170,7 @@ export function QuestionFeedbackCard({
         hitSlop={6}
         onPress={onContinue}
         className={`${isDesktop ? 'mt-5 py-4' : 'mt-4 py-3'} min-h-12 flex-row items-center justify-center gap-2 rounded-2xl px-5`}
-        style={({ pressed }) => ({ backgroundColor: isCorrect ? tokens.brand.student : color, opacity: pressed ? 0.82 : 1 })}
+        style={({ pressed }) => ({ backgroundColor: tokens.brand.student, opacity: pressed ? 0.82 : 1 })}
       >
         <Text className="text-[16px] font-black text-white">Siguiente pregunta</Text>
         <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />

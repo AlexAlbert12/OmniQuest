@@ -27,9 +27,9 @@ test('auth flows share modern cards, inline validation and verification resend',
 test('student progress leads with an actionable daily recommendation', () => {
   const progress = read('app/(student)/progress.tsx') + read('hooks/student/useStudentProgress.ts') + read('components/student/progress/DailyPracticeRecommendation.tsx') + read('components/student/progress/PracticeOpportunityList.tsx') + read('components/student/progress/ProgressOverview.tsx')
 
-  assert.match(progress, /Tu recomendación de hoy/)
+  assert.doesNotMatch(progress, /Tu recomendación de hoy/)
   assert.match(progress, /Oportunidades de práctica/)
-  assert.match(progress, /Oportunidades de mejora/)
+  assert.doesNotMatch(progress, /Oportunidades de mejora/)
   assert.match(progress, /últimos 30 días/)
   assert.match(progress, /item\.id !== progress\.recommendation\?\.id/)
   assert.match(progress, /primaryRecommendationShown/)
@@ -37,6 +37,9 @@ test('student progress leads with an actionable daily recommendation', () => {
   assert.match(progress, /streakDays === 1 \? 'día' : 'días'/)
   assert.match(progress, /Revisar historial/)
   assert.match(progress, /stackActionOnMobile/)
+  assert.match(progress, /label="Precisión"[\s\S]*label="Periodo"[\s\S]*label="Intentos"/)
+  assert.match(progress, /!isDetectedPattern/)
+  assert.doesNotMatch(progress, /Los patrones detectados resumen los formatos/)
   assert.doesNotMatch(progress, /Este formato de pregunta está reduciendo tu precisión global/)
 })
 

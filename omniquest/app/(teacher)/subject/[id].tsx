@@ -183,6 +183,7 @@ export default function SubjectDetailScreen() {
         {detail.activeTab === 'summary' ? (
           <View className="gap-5">
             <SubjectClassroomsSection
+              compact={!isDesktop}
               creating={detail.creatingClassroom}
               newClassroomName={detail.newClassroomName}
               onCreate={detail.handleCreateClassroom}

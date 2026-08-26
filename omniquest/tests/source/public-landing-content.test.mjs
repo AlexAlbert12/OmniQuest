@@ -9,8 +9,13 @@ test('public landing renders product information and a footer on every layout', 
 
   assert.match(landing, /import LandingInfoSections from ['"]\.\.\/components\/public\/LandingInfoSections['"]/)
   assert.match(landing, /<LandingInfoSections isDesktop=\{isDesktop\} \/>/)
-  assert.match(landing, /<LandingFooter isDesktop=\{isDesktop\} \/>/)
+  assert.match(landing, /<LandingFooter isDesktop=\{isDesktop\} bottomInset=\{insets\.bottom\} \/>/)
   assert.doesNotMatch(landing, /isDesktop \? <LandingFooter/)
+  assert.match(landing, /useSafeAreaInsets\(\)/)
+  assert.match(landing, /Math\.max\(36, bottomInset \+ 20\)/)
+  assert.match(landing, /testID="landing-privacy"/)
+  assert.match(landing, /testID="landing-terms"/)
+  assert.equal((landing.match(/min-h-12 flex-1 items-center justify-center rounded-xl/g) ?? []).length, 2)
 
   assert.match(info, /QUÉ ES OMNIQUEST/)
   assert.match(info, /CÓMO FUNCIONA/)
