@@ -1,34 +1,39 @@
-export function formatShortDate(value?: string | Date | null) {
+export function formatShortDate(value?: string | Date | null, locale = 'es-ES') {
   const date = toValidDate(value)
-  if (!date) return 'Fecha sin registrar'
+  if (!date) return locale.toLowerCase().startsWith('en') ? 'Date not recorded' : 'Fecha sin registrar'
 
-  return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(date)
+  return new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short' }).format(date)
 }
 
-export function formatLongDate(value?: string | Date | null, fallback = 'Fecha sin registrar') {
+export function formatLongDate(value?: string | Date | null, fallback?: string, locale = 'es-ES') {
   const date = toValidDate(value)
-  if (!date) return fallback
+  if (!date) return fallback ?? (locale.toLowerCase().startsWith('en') ? 'Date not recorded' : 'Fecha sin registrar')
 
-  return new Intl.DateTimeFormat('es-ES', {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   }).format(date)
 }
 
-export function formatRelativeDate(value?: string | Date | null) {
+export function formatRelativeDate(value?: string | Date | null, locale = 'es-ES') {
   const date = toValidDate(value)
-  if (!date) return 'Sin fecha'
+  const english = locale.toLowerCase().startsWith('en')
+  if (!date) return english ? 'No date' : 'Sin fecha'
 
   const diffMs = Date.now() - date.getTime()
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-  if (diffDays <= 0) return 'Hoy'
-  if (diffDays === 1) return 'Ayer'
-  if (diffDays < 7) return `Hace ${diffDays} dias`
-  if (diffDays < 30) return `Hace ${Math.floor(diffDays / 7)} sem`
+  if (diffDays <= 0) return english ? 'Today' : 'Hoy'
+  if (diffDays === 1) return english ? 'Yesterday' : 'Ayer'
+  if (diffDays < 7) return english ? `${diffDays} days ago` : `Hace ${diffDays} días`
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7)
+    if (english) return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`
+    return `Hace ${weeks} ${weeks === 1 ? 'semana' : 'semanas'}`
+  }
 
-  return formatShortDate(date)
+  return formatShortDate(date, locale)
 }
 
 function toValidDate(value?: string | Date | null) {

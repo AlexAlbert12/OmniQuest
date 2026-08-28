@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Text, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import AppButton from '../../components/ui/AppButton'
 import AppTabs from '../../components/ui/AppTabs'
 import NotificationFeed from '../../components/notifications/NotificationFeed'
@@ -187,7 +188,7 @@ export default function StudentNotificationsScreen() {
   )
 
   return (
-    <View className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1" style={{ backgroundColor: tokens.background.primary }}>
       <View className="flex-1 flex-row">
         {isDesktop ? (
           <StudentSidebar
@@ -227,7 +228,7 @@ export default function StudentNotificationsScreen() {
         />
       </View>
       {!isDesktop ? <StudentBottomNav active="notifications" /> : null}
-    </View>
+    </SafeAreaView>
   )
 }
 

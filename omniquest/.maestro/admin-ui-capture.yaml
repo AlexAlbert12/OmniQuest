@@ -3,16 +3,35 @@ name: Admin UI capture matrix
 ---
 - launchApp:
     clearState: true
-- assertVisible:
-    id: "landing-login"
+- extendedWaitUntil:
+    visible:
+      id: "landing-login"
+    timeout: 30000
 - tapOn:
     id: "landing-login"
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 15000
+
 - tapOn:
     id: "login-email"
+
 - inputText: ${MAESTRO_ADMIN_EMAIL}
 - tapOn:
     id: "login-password"
 - inputText: ${MAESTRO_ADMIN_PASSWORD}
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      id: "login-submit"
+    direction: DOWN
+    timeout: 10000
+
+- assertVisible:
+    id: "login-submit"
+
 - tapOn:
     id: "login-submit"
 - extendedWaitUntil:
@@ -96,12 +115,20 @@ name: Admin UI capture matrix
           path: ui-admin-profile
       - tapOn:
           id: "admin-nav-more"
-- runFlow:
-    when:
-      visible:
-        id: "admin-hub-security"
-    commands:
-      - tapOn:
-          id: "admin-hub-security"
-      - takeScreenshot:
-          path: ui-admin-security
+- scrollUntilVisible:
+    element:
+      id: "admin-hub-security"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 90
+    centerElement: true
+
+- tapOn:
+    id: "admin-hub-security"
+
+- extendedWaitUntil:
+    visible: "Seguridad|Security"
+    timeout: 15000
+
+- takeScreenshot:
+    path: ui-admin-security

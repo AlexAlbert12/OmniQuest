@@ -8,6 +8,7 @@ import { AppDropdown, AppMenu } from '../../ui'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
 import { useResponsiveLayout } from '../../../lib/responsive'
+import { useI18n } from '../../../lib/i18n'
 import type {
   AdminSupportTicketRow,
   ClassroomRow,
@@ -20,7 +21,6 @@ import {
   formatAdminCount,
   formatAdminDate,
   formatAuditDate,
-  getSupportPriorityLabel,
   getSupportStatusLabel,
 } from '../utils/adminUtils'
 
@@ -328,8 +328,10 @@ export function SupportStatusPill({ status }: { status: AdminSupportTicketRow['s
 
 export function SupportPriorityPill({ priority }: { priority: AdminSupportTicketRow['priority'] }) {
   const { tokens } = useAppTheme()
+  const { t } = useI18n()
   const meta = { high: { bg: tokens.semanticSurface.danger, color: tokens.semantic.danger }, medium: { bg: tokens.semanticSurface.warning, color: tokens.semantic.warning }, low: { bg: tokens.semanticSurface.info, color: tokens.semantic.info } }[priority]
-  return <View className="rounded-full px-3 py-1" style={{ backgroundColor: meta.bg }}><Text className="text-[11px] font-black" style={{ color: meta.color }}>Prioridad {getSupportPriorityLabel(priority).toLowerCase()}</Text></View>
+  const label = t('support.priority.label', { priority: t(`support.priority.${priority}`).toLocaleLowerCase() })
+  return <View className="rounded-full px-3 py-1" style={{ backgroundColor: meta.bg }}><Text className="text-[11px] font-black" style={{ color: meta.color }}>{label}</Text></View>
 }
 
 export function SupportSlaPill({ state }: { state?: string | null }) {

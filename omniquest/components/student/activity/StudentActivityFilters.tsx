@@ -61,7 +61,7 @@ export default React.memo(function StudentActivityFilters({
         Filtra tu actividad
       </Text>
       <Text maxFontSizeMultiplier={2} className="mt-1 text-[12px]" style={{ color: tokens.text.muted }}>
-        Mostrando {visibleCount} de {totalCount} intentos.
+        {`Mostrando ${visibleCount} de ${totalCount} intentos.`}
       </Text>
 
       <View className="mt-4 flex-row items-center gap-3 rounded-xl border px-4 py-3" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}>

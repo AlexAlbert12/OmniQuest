@@ -9,7 +9,7 @@ test('admin More keeps desktop secondary navigation concise and mobile navigatio
   assert.match(hubs, /subtitle="Soporte, notificaciones, exportaciones, permisos y gestión de tu cuenta\."/)
   assert.match(hubs, /!responsive\.isDesktop \? \[\{ title: 'Soporte'/)
   assert.match(hubs, /compactOnMobile/)
-  assert.match(hubs, /min-h-\[92px\]/)
+  assert.match(hubs, /min-h-\[104px\]/)
   assert.match(hubs, /Supervisa envíos, entregas, reintentos y dispositivos registrados\./)
   assert.match(hubs, /Gestiona el acceso y los permisos de otros administradores\./)
   assert.match(hubs, /!responsive\.isDesktop \? <Pressable[\s\S]*accessibilityLabel="Cerrar sesión"/)

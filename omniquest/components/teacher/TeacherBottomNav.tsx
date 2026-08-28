@@ -17,10 +17,17 @@ export default function TeacherBottomNav({ active }: { active: TeacherSection })
     { key: 'more', label: 'Más', href: '/(teacher)/more', icon: 'ellipsis-horizontal-circle-outline', activeIcon: 'ellipsis-horizontal-circle', testID: 'teacher-nav-more' },
   ], [t])
 
-  return <MobileBottomNavigation activeKey={getVisibleActiveKey(active)} accentColor={tokens.brand.teacher} items={navItems} />
+  const activeKey = getVisibleActiveKey(active)
+  const disabledKey = getDisabledVisibleKey(active)
+  return <MobileBottomNavigation activeKey={activeKey} disabledKey={disabledKey} accentColor={tokens.brand.teacher} items={navItems} />
 }
 
 function getVisibleActiveKey(active: TeacherSection): VisibleTeacherBottomNavKey | null {
   if (active === 'more' || active === 'profile' || active === 'notifications' || active === 'settings' || active === 'audit') return 'more'
   return active
+}
+
+function getDisabledVisibleKey(active: TeacherSection): VisibleTeacherBottomNavKey | null {
+  if (active === 'home' || active === 'classes' || active === 'students' || active === 'reviews' || active === 'more') return active
+  return null
 }

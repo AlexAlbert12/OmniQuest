@@ -3,16 +3,34 @@ name: Teacher UI capture matrix
 ---
 - launchApp:
     clearState: true
-- assertVisible:
-    id: "landing-login"
+- extendedWaitUntil:
+    visible:
+      id: "landing-login"
+    timeout: 30000
 - tapOn:
     id: "landing-login"
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 15000
+
 - tapOn:
     id: "login-email"
 - inputText: ${MAESTRO_TEACHER_EMAIL}
 - tapOn:
     id: "login-password"
 - inputText: ${MAESTRO_TEACHER_PASSWORD}
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      id: "login-submit"
+    direction: DOWN
+    timeout: 10000
+
+- assertVisible:
+    id: "login-submit"
+
 - tapOn:
     id: "login-submit"
 - extendedWaitUntil:
@@ -23,7 +41,9 @@ name: Teacher UI capture matrix
     path: ui-teacher-home
 - tapOn:
     id: "teacher-nav-classes"
-- assertVisible: "Cursos y clases|Courses and classes"
+- extendedWaitUntil:
+    visible: "Cursos|Courses"
+    timeout: 15000
 - takeScreenshot:
     path: ui-teacher-courses
 - tapOn:
@@ -53,6 +73,11 @@ name: Teacher UI capture matrix
     id: "teacher-nav-more"
 - tapOn:
     id: "teacher-more-security"
+
+- extendedWaitUntil:
+    visible: "Seguridad|Security"
+    timeout: 15000
+
 - takeScreenshot:
     path: ui-teacher-security
 - tapOn:
@@ -69,7 +94,21 @@ name: Teacher UI capture matrix
     path: ui-teacher-notifications
 - tapOn:
     id: "teacher-nav-more"
+
+- scrollUntilVisible:
+    element:
+      id: "teacher-more-help"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 90
+    centerElement: true
+
 - tapOn:
     id: "teacher-more-help"
+
+- extendedWaitUntil:
+    visible: "Centro de ayuda|Help center"
+    timeout: 15000
+
 - takeScreenshot:
     path: ui-teacher-help

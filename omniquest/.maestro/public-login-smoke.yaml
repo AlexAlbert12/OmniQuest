@@ -3,12 +3,16 @@ name: Public login validation smoke
 ---
 - launchApp:
     clearState: true
-- assertVisible:
-    id: "landing-login"
+- extendedWaitUntil:
+    visible:
+      id: "landing-login"
+    timeout: 30000
 - tapOn:
     id: "landing-login"
-- assertVisible:
-    id: "login-email"
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 15000
 - assertVisible:
     id: "login-password"
 - tapOn:

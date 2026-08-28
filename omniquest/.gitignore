@@ -58,7 +58,4 @@ test-results/
 
 # Pre-deploy backups and release evidence (may contain personal data)
 release-artifacts/
-
-# Local/generated validation state
-validation-logs/
-supabase/.branches/
+.artifacts/

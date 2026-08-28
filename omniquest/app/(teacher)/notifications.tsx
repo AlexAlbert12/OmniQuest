@@ -61,8 +61,9 @@ export default function TeacherNotificationsScreen() {
 
   const tabs = useMemo(() => bucketTabs.map((tab) => ({
     ...tab,
+    label: responsive.isMobile && tab.key === 'informative' ? 'Avisos' : tab.label,
     badge: tab.key === 'all' ? notifications.total : tab.key === 'critical' ? notifications.criticalCount : notifications.informativeCount,
-  })), [notifications.criticalCount, notifications.informativeCount, notifications.total])
+  })), [notifications.criticalCount, notifications.informativeCount, notifications.total, responsive.isMobile])
 
   const openMuteMenu = useCallback(() => {
     showModal({
@@ -106,7 +107,8 @@ export default function TeacherNotificationsScreen() {
         mobileTitle="Notificaciones"
         subtitle={notifications.activeFilterDescription}
         showNotifications={false}
-        actionsPosition="top"
+        mobileStackedIdentity={responsive.isMobile}
+        actionsPosition={responsive.isDesktop ? 'below' : 'top'}
         actions={headerActions}
       />
 

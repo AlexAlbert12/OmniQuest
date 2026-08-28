@@ -8,6 +8,7 @@ import { useDebouncedValue } from '../../../hooks/useDebouncedValue'
 import { useAppTheme } from '../../../lib/appTheme'
 import { useResponsiveLayout } from '../../../lib/responsive'
 import { withAlpha } from '../../../lib/color'
+import { useI18n } from '../../../lib/i18n'
 import { getErrorMessage, isRecord } from '../../../lib/typeGuards'
 import { fetchAdminSupportDirectory, fetchSupportThread, openSupportAttachment, pickSupportAttachment, uploadAdminSupportAttachment, type PickedSupportAttachment, type SupportAttachment, type SupportDirectory, type SupportHistory, type SupportMessage } from '../../../lib/support'
 import AdminButton from '../shared/AdminButton'
@@ -21,11 +22,10 @@ import { useAdminRpcPage } from '../hooks/useAdminRpcPage'
 import { AdminScaffold } from '../shared/AdminScaffold'
 import { AdminChoiceChip, AdminPaginationControls, EmptyState, ListLoadingState, MiniPill, Panel, SupportPriorityPill, SupportSlaPill, SupportStatusPill, SupportTicketCard, type AdminChoiceChipTone } from '../shared/AdminPrimitives'
 import type { AdminSupportTicketRow } from '../types/admin'
-import { formatAdminCount, formatAuditDate, getSupportPriorityLabel, getSupportStatusLabel } from '../utils/adminUtils'
+import { formatAdminCount, formatAuditDate, getSupportStatusLabel } from '../utils/adminUtils'
 
 const EMPTY_DIRECTORY: SupportDirectory = { admins: [], tags: [], templates: [] }
 const STATUS_OPTIONS = [{ value: 'all', label: 'Todos' }, { value: 'open', label: 'Abiertos' }, { value: 'in_progress', label: 'En proceso' }, { value: 'resolved', label: 'Resueltos' }, { value: 'closed', label: 'Cerrados' }]
-const PRIORITY_OPTIONS = [{ value: 'all', label: 'Todas' }, { value: 'high', label: 'Alta' }, { value: 'medium', label: 'Media' }, { value: 'low', label: 'Baja' }]
 const ROLE_OPTIONS = [{ value: 'all', label: 'Todos' }, { value: 'student', label: 'Alumnos' }, { value: 'teacher', label: 'Profesores' }]
 const SLA_OPTIONS = [{ value: 'all', label: 'Todos' }, { value: 'breached', label: 'Vencidos' }, { value: 'at_risk', label: 'En riesgo' }, { value: 'on_track', label: 'En plazo' }, { value: 'completed', label: 'Completados' }]
 const SUPPORT_STATUS_TONES: Record<AdminSupportTicketRow['status'], AdminChoiceChipTone> = { open: 'admin', in_progress: 'info', resolved: 'success', closed: 'neutral' }
@@ -39,6 +39,13 @@ export function AdminSupportSection() {
   const pageSize = isDesktop ? 25 : 8
   const feedback = useAppFeedback()
   const { tokens } = useAppTheme()
+  const { locale, t } = useI18n()
+  const priorityOptions = useMemo(() => [
+    { value: 'all', label: locale === 'en-US' ? 'All' : 'Todas' },
+    { value: 'high', label: t('support.priority.high') },
+    { value: 'medium', label: t('support.priority.medium') },
+    { value: 'low', label: t('support.priority.low') },
+  ], [locale, t])
   const data = useAdminData()
   const exportJobs = useAdminExportJobs()
   const canRead = Boolean(data.portalContext?.permissions.includes('support.read'))
@@ -183,18 +190,18 @@ export function AdminSupportSection() {
   const activeFilters = useMemo(() => {
     const result: { key: string; label: string; clear: () => void }[] = []
     if (statusFilter !== 'all') result.push({ key: 'status', label: `Estado: ${STATUS_OPTIONS.find((item) => item.value === statusFilter)?.label || statusFilter}`, clear: () => setStatusFilter('all') })
-    if (priorityFilter !== 'all') result.push({ key: 'priority', label: `Prioridad: ${PRIORITY_OPTIONS.find((item) => item.value === priorityFilter)?.label || priorityFilter}`, clear: () => setPriorityFilter('all') })
+    if (priorityFilter !== 'all') result.push({ key: 'priority', label: `Prioridad: ${priorityOptions.find((item) => item.value === priorityFilter)?.label || priorityFilter}`, clear: () => setPriorityFilter('all') })
     if (roleFilter !== 'all') result.push({ key: 'role', label: `Rol: ${ROLE_OPTIONS.find((item) => item.value === roleFilter)?.label || roleFilter}`, clear: () => setRoleFilter('all') })
     if (slaFilter !== 'all') result.push({ key: 'sla', label: `SLA: ${SLA_OPTIONS.find((item) => item.value === slaFilter)?.label || slaFilter}`, clear: () => setSlaFilter('all') })
     if (assigneeFilter !== 'all') result.push({ key: 'assignee', label: `Responsable: ${directory.admins.find((admin) => admin.id === assigneeFilter)?.alias || 'Administrador'}`, clear: () => setAssigneeFilter('all') })
     if (tagFilter !== 'all') result.push({ key: 'tag', label: `Etiqueta: ${directory.tags.find((tag) => tag.slug === tagFilter)?.label || tagFilter}`, clear: () => setTagFilter('all') })
     return result
-  }, [assigneeFilter, directory.admins, directory.tags, priorityFilter, roleFilter, slaFilter, statusFilter, tagFilter])
+  }, [assigneeFilter, directory.admins, directory.tags, priorityFilter, priorityOptions, roleFilter, slaFilter, statusFilter, tagFilter])
 
   const filterFields = (stacked: boolean) => {
     const configs = [
       { key: 'status', label: 'Estado', icon: 'flag-outline' as const, value: statusFilter, onChange: setStatusFilter, options: STATUS_OPTIONS },
-      { key: 'priority', label: 'Prioridad', icon: 'alert-circle-outline' as const, value: priorityFilter, onChange: setPriorityFilter, options: PRIORITY_OPTIONS },
+      { key: 'priority', label: 'Prioridad', icon: 'alert-circle-outline' as const, value: priorityFilter, onChange: setPriorityFilter, options: priorityOptions },
       { key: 'role', label: 'Rol', icon: 'people-outline' as const, value: roleFilter, onChange: setRoleFilter, options: ROLE_OPTIONS },
       { key: 'sla', label: 'SLA', icon: 'timer-outline' as const, value: slaFilter, onChange: setSlaFilter, options: SLA_OPTIONS },
       { key: 'assignee', label: 'Responsable', icon: 'person-outline' as const, value: assigneeFilter, onChange: setAssigneeFilter, options: [{ value: 'all', label: 'Todos los responsables' }, ...directory.admins.map((admin) => ({ value: admin.id, label: admin.alias }))] },
@@ -225,7 +232,7 @@ export function AdminSupportSection() {
             <AdminFilterSelect label="Asignado a" icon="person-add-outline" value={assignedAdminId} onChange={setAssignedAdminId} options={assigneeOptions} />
             {!selectedTicket.assigned_admin_id && !assignedAdminId ? <Text className="mt-2 text-[11px] leading-4 text-text-muted">El ticket seguirá sin asignar hasta que elijas un responsable.</Text> : null}
             <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Estado</Text><View className="mt-2 flex-row flex-wrap gap-2">{(['open', 'in_progress', 'resolved', 'closed'] as const).map((status) => <AdminChoiceChip key={status} active={editStatus === status} label={getSupportStatusLabel(status)} tone={SUPPORT_STATUS_TONES[status]} onPress={() => setEditStatus(status)} />)}</View>
-            <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Prioridad</Text><View className="mt-2 flex-row flex-wrap gap-2">{(['low', 'medium', 'high'] as const).map((priority) => <AdminChoiceChip key={priority} active={editPriority === priority} label={getSupportPriorityLabel(priority)} tone={SUPPORT_PRIORITY_TONES[priority]} onPress={() => setEditPriority(priority)} />)}</View>
+            <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Prioridad</Text><View className="mt-2 flex-row flex-wrap gap-2">{(['low', 'medium', 'high'] as const).map((priority) => <AdminChoiceChip key={priority} active={editPriority === priority} label={t(`support.priority.${priority}`)} tone={SUPPORT_PRIORITY_TONES[priority]} onPress={() => setEditPriority(priority)} />)}</View>
             <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Etiquetas</Text><View className="mt-2 flex-row flex-wrap gap-2">{directory.tags.map((tag) => <AdminChoiceChip key={tag.slug} active={selectedTagSlugs.includes(tag.slug)} label={tag.label} tone="admin" onPress={() => setSelectedTagSlugs((current) => current.includes(tag.slug) ? current.filter((value) => value !== tag.slug) : [...current, tag.slug])} />)}</View>
             <View className="mt-4"><AdminFilterSelect label="Plantilla" icon="document-text-outline" value={templateId} onChange={applyTemplate} options={[{ value: '', label: 'Sin plantilla' }, ...directory.templates.map((template) => ({ value: String(template.id), label: template.title, subtitle: template.category || undefined }))]} /></View>
             <Text className="mt-4 text-[12px] font-black uppercase tracking-[0.7px] text-text-muted">Respuesta al usuario</Text><TextInput accessibilityLabel="Respuesta pública del administrador" className="mt-2 min-h-[130px] rounded-xl border border-border-default bg-surface-default px-4 py-3 text-[14px] leading-5 text-text-primary" multiline onChangeText={setAdminResponse} placeholder="Explica la solución o los siguientes pasos..." placeholderTextColor={tokens.text.muted} textAlignVertical="top" value={adminResponse} />

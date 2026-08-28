@@ -147,7 +147,7 @@ async function navigateAndCapture(page: Page, testInfo: TestInfo, target: Naviga
 }
 
 async function openWithoutCapture(page: Page, testID: string, fallbackPath?: string) {
-  const navigation = await findVisibleLocator(page.getByTestId(testID), 1_500)
+  const navigation = await findVisibleLocator(page.getByTestId(testID), 5_000)
   if (navigation) {
     await navigation.click()
     await waitForVisualReady(page)
@@ -164,7 +164,7 @@ async function openWithoutCapture(page: Page, testID: string, fallbackPath?: str
 }
 
 async function hasVisibleTestId(page: Page, testID: string) {
-  return Boolean(await findVisibleLocator(page.getByTestId(testID), 500))
+  return Boolean(await findVisibleLocator(page.getByTestId(testID), 1_500))
 }
 
 async function findVisibleLocator(locator: Locator, timeout: number): Promise<Locator | null> {
@@ -182,11 +182,11 @@ async function findVisibleLocator(locator: Locator, timeout: number): Promise<Lo
 
 async function waitForVisualReady(page: Page) {
   await expect(page.locator('body')).toBeVisible({ timeout: 30_000 })
-  await page.waitForFunction(() => !(document.body.innerText || '').includes('Omni está preparando'), undefined, { timeout: 45_000 }).catch(() => undefined)
+  await expect(page.locator('[role="progressbar"]:visible'), 'La pantalla sigue mostrando un loader bloqueante.').toHaveCount(0, { timeout: 45_000 })
   await page.evaluate(async () => {
     if ('fonts' in document) await document.fonts.ready
   }).catch(() => undefined)
-  await page.waitForTimeout(500)
+  await page.waitForTimeout(600)
 }
 
 async function captureScreen(page: Page, testInfo: TestInfo, name: string) {

@@ -299,6 +299,8 @@ function RootNavigator() {
   if (!isInitialized || (!fontsLoaded && !fontError) || !ready || !localeReady) {
     return (
       <View
+        accessibilityRole="progressbar"
+        accessibilityLabel={t('root.preparing')}
         className="flex-1 justify-center items-center"
         style={{ backgroundColor: colors.background }}
       >

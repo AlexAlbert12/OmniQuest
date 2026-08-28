@@ -13,6 +13,12 @@ function resolveActiveGroup(active: AdminSection): AdminMobileGroup {
   return 'home'
 }
 
+
+function resolveDisabledGroup(active: AdminSection): AdminMobileGroup | null {
+  if (active === 'home' || active === 'users' || active === 'content' || active === 'audit' || active === 'more') return active
+  return null
+}
+
 export default function AdminBottomNav({ active, permissions }: { active: AdminSection; permissions?: AdminPermission[] }) {
   const { tokens } = useAppTheme()
   const activeGroup = resolveActiveGroup(active)
@@ -27,5 +33,6 @@ export default function AdminBottomNav({ active, permissions }: { active: AdminS
     ]
     return allItems.filter((item) => availablePermissions.includes(item.permission)).map(({ permission: _permission, ...item }) => item)
   }, [permissions])
-  return <MobileBottomNavigation activeKey={activeGroup} accentColor={tokens.brand.admin} items={navItems} />
+  const disabledKey = resolveDisabledGroup(active)
+  return <MobileBottomNavigation activeKey={activeGroup} disabledKey={disabledKey} accentColor={tokens.brand.admin} items={navItems} />
 }

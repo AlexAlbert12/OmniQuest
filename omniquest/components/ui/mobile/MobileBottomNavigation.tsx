@@ -20,6 +20,7 @@ export type MobileBottomNavigationItem<Key extends string> = {
 
 type MobileBottomNavigationProps<Key extends string> = {
   activeKey: Key | null
+  disabledKey?: Key | null
   accentColor: string
   items: MobileBottomNavigationItem<Key>[]
   scrollable?: boolean
@@ -29,6 +30,7 @@ const ICON_SIZE = 25
 
 export default function MobileBottomNavigation<Key extends string>({
   activeKey,
+  disabledKey = activeKey,
   accentColor,
   items,
   scrollable = false,
@@ -39,6 +41,7 @@ export default function MobileBottomNavigation<Key extends string>({
 
   const navigationItems = items.map((item) => {
     const isActive = item.key === activeKey
+    const isDisabled = item.key === disabledKey
 
     return (
       <AppPressable
@@ -46,8 +49,8 @@ export default function MobileBottomNavigation<Key extends string>({
         testID={item.testID}
         accessibilityLabel={item.label}
         accessibilityRole="tab"
-        accessibilityState={{ selected: isActive }}
-        disabled={isActive}
+        accessibilityState={{ selected: isActive, disabled: isDisabled }}
+        disabled={isDisabled}
         hitSlop={4}
         onPress={() => {
           releaseWebFocus()
@@ -60,7 +63,7 @@ export default function MobileBottomNavigation<Key extends string>({
             backgroundColor: isActive ? withAlpha(accentColor, '30') : 'transparent',
             borderColor: isActive ? withAlpha(accentColor, 'D0') : 'transparent',
           },
-          pressed && !isActive && styles.pressedItem,
+          pressed && !isDisabled && styles.pressedItem,
         ]}
       >
         <View style={styles.iconShell}>

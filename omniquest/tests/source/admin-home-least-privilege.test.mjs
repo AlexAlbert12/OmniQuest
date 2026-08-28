@@ -41,7 +41,7 @@ test('admin home uses actionable non-duplicated alerts and stable mobile shortcu
   assert.match(alerts, /Alumnos inactivos · más de 7 días/)
   assert.doesNotMatch(alerts, /Actividad administrativa/)
   assert.match(metrics, /metrics\.slice\(0, 4\)[\s\S]*dense[\s\S]*aspectRatio: 1/)
-  assert.match(primitives, /flexBasis: responsive\.isDesktop \? '15%' : '47%'/)
+  assert.match(primitives, /const shortcutWidth = responsive\.isMobile \? '48%' : responsive\.isWide \? '23\.5%' : '31\.5%'/)
   assert.match(primitives, /numberOfLines=\{2\}/)
 })
 

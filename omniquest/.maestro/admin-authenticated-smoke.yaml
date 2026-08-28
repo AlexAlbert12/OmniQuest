@@ -3,12 +3,16 @@ name: Admin authenticated navigation smoke
 ---
 - launchApp:
     clearState: true
-- assertVisible:
-    id: "landing-login"
+- extendedWaitUntil:
+    visible:
+      id: "landing-login"
+    timeout: 30000
 - tapOn:
     id: "landing-login"
-- tapOn:
-    id: "login-email"
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 15000
 - inputText: ${MAESTRO_ADMIN_EMAIL}
 - tapOn:
     id: "login-password"

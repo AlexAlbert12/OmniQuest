@@ -1,4 +1,5 @@
 import type { SafeAttemptAnswer, SafeAttemptQuestion, SafeStudentAttempt } from '../../../lib/studentSecureData'
+import type { AppLocale } from '../../../lib/i18n'
 import type { ActivityListItem } from './types'
 
 export function normalizeSingleRelation<T>(relation: T | T[] | null | undefined): T | null {
@@ -6,7 +7,7 @@ export function normalizeSingleRelation<T>(relation: T | T[] | null | undefined)
   return relation ?? null
 }
 
-export function buildActivityRows(attempts: SafeStudentAttempt[]): ActivityListItem[] {
+export function buildActivityRows(attempts: SafeStudentAttempt[], locale: AppLocale = 'es-ES'): ActivityListItem[] {
   const groups = new Map<string, SafeStudentAttempt[]>()
   attempts.forEach((attempt) => {
     const key = getAttemptDateKey(attempt.attempted_at)
@@ -20,7 +21,7 @@ export function buildActivityRows(attempts: SafeStudentAttempt[]): ActivityListI
     rows.push({
       kind: 'date',
       key: `date-${key}`,
-      label: formatActivityGroupLabel(groupAttempts[0]?.attempted_at),
+      label: formatActivityGroupLabel(groupAttempts[0]?.attempted_at, locale),
       count: groupAttempts.length,
     })
     groupAttempts.forEach((attempt) => rows.push({ kind: 'attempt', key: `attempt-${attempt.id}`, attempt }))
@@ -33,17 +34,18 @@ export function getAttemptDateKey(value: string) {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
 }
 
-export function formatActivityGroupLabel(value?: string) {
-  if (!value) return 'Actividad'
+export function formatActivityGroupLabel(value?: string, locale: AppLocale = 'es-ES') {
+  const english = locale === 'en-US'
+  if (!value) return english ? 'Activity' : 'Actividad'
   const date = new Date(value)
   const today = new Date()
   const yesterday = new Date(today)
   yesterday.setDate(today.getDate() - 1)
 
-  if (getAttemptDateKey(value) === getAttemptDateKey(today.toISOString())) return 'Hoy'
-  if (getAttemptDateKey(value) === getAttemptDateKey(yesterday.toISOString())) return 'Ayer'
+  if (getAttemptDateKey(value) === getAttemptDateKey(today.toISOString())) return english ? 'Today' : 'Hoy'
+  if (getAttemptDateKey(value) === getAttemptDateKey(yesterday.toISOString())) return english ? 'Yesterday' : 'Ayer'
 
-  return date.toLocaleDateString('es-ES', {
+  return date.toLocaleDateString(locale, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -115,8 +117,8 @@ export function getQuestionTypeLabel(type?: string | null) {
   }
 }
 
-export function formatAttemptDate(value: string) {
-  return new Date(value).toLocaleDateString('es-ES', {
+export function formatAttemptDate(value: string, locale: AppLocale = 'es-ES') {
+  return new Date(value).toLocaleDateString(locale, {
     day: '2-digit',
     month: '2-digit',
     hour: '2-digit',
@@ -124,8 +126,8 @@ export function formatAttemptDate(value: string) {
   })
 }
 
-export function formatAttemptTime(value: string) {
-  return new Date(value).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+export function formatAttemptTime(value: string, locale: AppLocale = 'es-ES') {
+  return new Date(value).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 export function formatTimeTaken(seconds: number | null) {

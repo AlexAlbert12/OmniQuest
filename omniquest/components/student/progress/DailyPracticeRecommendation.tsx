@@ -68,7 +68,7 @@ export default function DailyPracticeRecommendation({
               <Text className="text-[12px] font-bold text-semantic-info">{recommendation.improvementPotential}</Text>
             </View>
             <View className="rounded-full bg-semantic-surface-success px-3 py-2">
-              <Text className="text-[12px] font-bold text-semantic-success">Recompensa: +{recommendation.rewardXp} XP</Text>
+              <Text className="text-[12px] font-bold text-semantic-success">{`Recompensa: +${recommendation.rewardXp} XP`}</Text>
             </View>
           </View>
         </View>

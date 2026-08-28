@@ -63,7 +63,7 @@ test('admin push dashboard and analytics expose operationally accurate semantics
   assert.match(panel, /Requiere atención/)
   assert.match(metrics, /metrics\.slice\(0, 4\)[\s\S]*flex: 1[\s\S]*dense[\s\S]*aspectRatio: 1/)
   assert.doesNotMatch(metrics, /responsive\.width - 52/)
-  assert.match(shortcuts, /flexBasis: responsive\.isDesktop \? '15%' : '47%'/)
+  assert.match(shortcuts, /const shortcutWidth = responsive\.isMobile \? '48%' : responsive\.isWide \? '23\.5%' : '31\.5%'/)
   assert.match(audit, /getAuditTargetTypeLabel\(log\.target_table\)/)
   assert.match(auditUtils, /'admin\.notification\.retry': 'Notificación push reintentada'/)
 })

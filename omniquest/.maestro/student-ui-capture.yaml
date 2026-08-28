@@ -3,16 +3,39 @@ name: Student UI capture matrix
 ---
 - launchApp:
     clearState: true
-- assertVisible:
-    id: "landing-login"
+
+- extendedWaitUntil:
+    visible:
+      id: "landing-login"
+    timeout: 30000
+
 - tapOn:
     id: "landing-login"
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 15000
+
 - tapOn:
     id: "login-email"
+
 - inputText: ${MAESTRO_STUDENT_EMAIL}
+
 - tapOn:
     id: "login-password"
+
 - inputText: ${MAESTRO_STUDENT_PASSWORD}
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      id: "login-submit"
+    direction: DOWN
+    timeout: 10000
+
+- assertVisible:
+    id: "login-submit"
+
 - tapOn:
     id: "login-submit"
 - extendedWaitUntil:
@@ -69,13 +92,41 @@ name: Student UI capture matrix
     path: ui-student-settings
 - tapOn:
     id: "student-nav-more"
+
+- scrollUntilVisible:
+    element:
+      id: "student-more-security"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 90
+    centerElement: true
+
 - tapOn:
     id: "student-more-security"
+
+- extendedWaitUntil:
+    visible: "Seguridad|Security"
+    timeout: 15000
+
 - takeScreenshot:
     path: ui-student-security
 - tapOn:
     id: "student-nav-more"
+
+- scrollUntilVisible:
+    element:
+      id: "student-more-help"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 90
+    centerElement: true
+
 - tapOn:
     id: "student-more-help"
+
+- extendedWaitUntil:
+    visible: "Centro de ayuda|Help center"
+    timeout: 15000
+
 - takeScreenshot:
     path: ui-student-help

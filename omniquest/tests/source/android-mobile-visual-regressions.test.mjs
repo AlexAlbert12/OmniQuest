@@ -119,8 +119,51 @@ test('teacher More uses full-width horizontal rows on phone instead of floating 
   assert.match(more, /if \(compact\)/)
   assert.match(more, /width: '100%'/)
   assert.match(more, /flexDirection: 'row'/)
-  assert.match(more, /minHeight: 82/)
-  assert.match(more, /backgroundColor: pressed \? tokens\.surface\.selected : tokens\.surface\.default/)
+  assert.match(more, /minHeight: 88/)
+  assert.match(more, /backgroundColor: pressed \? withAlpha\(accent, '18'\) : tokens\.surface\.default/)
+})
+
+test('student notifications protect the Android status bar and More keeps compact rows', () => {
+  const notifications = read('app/(student)/notifications.tsx')
+  const more = read('components/student/StudentMoreScreen.tsx')
+
+  assert.match(notifications, /<SafeAreaView edges=\{\['top', 'left', 'right'\]\}/)
+  assert.match(more, /if \(compact\)/)
+  assert.match(more, /width: '100%'/)
+  assert.match(more, /minHeight: 88/)
+  assert.match(more, /flexDirection: 'row'/)
+})
+
+test('login keeps its submit action reachable when the native keyboard opens', () => {
+  const login = read('app/(auth)/login.tsx')
+
+  assert.match(login, /const scrollRef = useRef<ScrollView>/)
+  assert.match(login, /Keyboard\.addListener\(eventName/)
+  assert.match(login, /scrollRef\.current\?\.scrollToEnd\(\{ animated: true \}\)/)
+  assert.match(login, /passwordFocusedRef\.current = true/)
+  assert.match(login, /keyboardShouldPersistTaps="handled"/)
+})
+
+test('Android review copy and dates follow the selected English locale', () => {
+  const catalog = read('lib/uiEnglishCatalog.ts')
+  const i18n = read('lib/i18n.tsx')
+  const activity = read('components/student/activity/utils.ts')
+  const profile = read('components/teacher/profile/TeacherProfileHero.tsx')
+
+  for (const entry of [
+    "'12 meses': '12 months'",
+    "'Correctas': 'Correct'",
+    "'Aprobadas': 'Approved'",
+    "'Impacto docente': 'Teaching impact'",
+    "'SLA vencido': 'SLA overdue'",
+    "'Nuevo inicio de sesión': 'New sign-in'",
+  ]) assert.ok(catalog.includes(entry), `missing Android review translation: ${entry}`)
+
+  assert.match(i18n, /Mostrando \(\\d\+\) de \(\\d\+\) intentos/)
+  assert.match(i18n, /Puedes mejorar hasta \(\\d\+\) puntos de precisión/)
+  assert.match(i18n, /Se ha iniciado sesión desde/)
+  assert.match(activity, /toLocaleDateString\(locale/)
+  assert.match(profile, /formatLongDate\(props\.createdAt, undefined, locale\)/)
 })
 
 test('global search uses the same full-width entity cards on mobile and desktop', () => {

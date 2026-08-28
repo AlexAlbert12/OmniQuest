@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import AppButton from '../../ui/AppButton'
 import { useAppTheme } from '../../../lib/appTheme'
 import { formatLongDate } from '../../../lib/dateFormat'
+import { useI18n } from '../../../lib/i18n'
 import TeacherProfessionalAvatar from './TeacherProfessionalAvatar'
 import { useResponsiveLayout } from '../../../lib/responsive'
 
@@ -21,6 +22,7 @@ type Props = {
 
 export default function TeacherProfileHero(props: Props) {
   const { tokens } = useAppTheme()
+  const { locale } = useI18n()
   const responsive = useResponsiveLayout()
 
   return (
@@ -69,7 +71,7 @@ export default function TeacherProfileHero(props: Props) {
             maxFontSizeMultiplier={2}
             style={{ marginTop: 6, color: tokens.text.muted, fontSize: 12, lineHeight: 18 }}
           >
-            Miembro desde {formatLongDate(props.createdAt)}
+            Miembro desde {formatLongDate(props.createdAt, undefined, locale)}
           </Text>
         </View>
       </View>
@@ -80,7 +82,7 @@ export default function TeacherProfileHero(props: Props) {
           icon="create-outline"
           role="teacher"
           size="sm"
-          style={responsive.isMobile ? { flexGrow: 1, flexBasis: 92 } : undefined}
+          style={responsive.isMobile ? { minWidth: 0, flexGrow: 1, flexBasis: '46%' } : undefined}
           onPress={props.onEditProfile}
         />
         <AppButton
@@ -89,7 +91,7 @@ export default function TeacherProfileHero(props: Props) {
           role="teacher"
           variant="secondary"
           size="sm"
-          style={responsive.isMobile ? { flexGrow: 1, flexBasis: 92 } : undefined}
+          style={responsive.isMobile ? { minWidth: 0, flexGrow: 1, flexBasis: '46%' } : undefined}
           onPress={props.onSettings}
         />
         <AppButton
@@ -98,7 +100,7 @@ export default function TeacherProfileHero(props: Props) {
           role="teacher"
           variant="secondary"
           size="sm"
-          style={responsive.isMobile ? { flexGrow: 1, flexBasis: 92 } : undefined}
+          style={responsive.isMobile ? { minWidth: 0, flexGrow: 1, flexBasis: '100%' } : undefined}
           onPress={props.onSecurity}
         />
       </View>

@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'expo-router'
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native'
+import { Keyboard, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import AuthCapsLockWarning from '../../components/auth/AuthCapsLockWarning'
 import AuthCard from '../../components/auth/AuthCard'
@@ -45,10 +45,36 @@ export default function LoginScreen() {
   const [status, setStatus] = useState<Status>(null)
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<LoginErrors>({})
+  const scrollRef = useRef<ScrollView>(null)
+  const passwordFocusedRef = useRef(false)
+  const focusScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isDesktop = responsive.isDesktop
   const isTablet = !responsive.isMobile
   const isWeb = Platform.OS === 'web'
+
+  const scrollToSubmit = useCallback(() => {
+    if (isWeb) return
+    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }))
+  }, [isWeb])
+
+  const scheduleSubmitVisibility = useCallback(() => {
+    if (isWeb) return
+    if (focusScrollTimerRef.current) clearTimeout(focusScrollTimerRef.current)
+    focusScrollTimerRef.current = setTimeout(scrollToSubmit, 180)
+  }, [isWeb, scrollToSubmit])
+
+  useEffect(() => {
+    if (isWeb) return
+    const eventName = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+    const subscription = Keyboard.addListener(eventName, () => {
+      if (passwordFocusedRef.current) scheduleSubmitVisibility()
+    })
+    return () => {
+      subscription.remove()
+      if (focusScrollTimerRef.current) clearTimeout(focusScrollTimerRef.current)
+    }
+  }, [isWeb, scheduleSubmitVisibility])
 
   const validationMessages = {
     invalidEmail: t('auth.validation.invalidEmail'),
@@ -184,7 +210,14 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-background-secondary">
-      <ScrollView className="flex-1 bg-background-secondary" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        className="flex-1 bg-background-secondary"
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      >
         <View className="overflow-hidden bg-background-secondary" style={{ minHeight: Math.max(height, 760), borderRadius: isWeb ? 0 : 34 }}>
           <HomeVisualBackground isDesktop={isDesktop} />
           <View
@@ -255,7 +288,15 @@ export default function LoginScreen() {
                 if (fieldErrors.password) validateValues(email, value)
                 setStatus(null)
               }}
-              onBlur={() => validateValues(email, password)}
+              onFocus={() => {
+                passwordFocusedRef.current = true
+                scheduleSubmitVisibility()
+              }}
+              onBlur={() => {
+                passwordFocusedRef.current = false
+                if (focusScrollTimerRef.current) clearTimeout(focusScrollTimerRef.current)
+                validateValues(email, password)
+              }}
               onSubmitEditing={() => void signInWithEmail()}
               onCapsLockChange={setCapsLock}
               error={fieldErrors.password}

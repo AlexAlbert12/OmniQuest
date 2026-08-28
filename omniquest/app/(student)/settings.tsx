@@ -272,6 +272,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
       {!securityOnly && !isDesktop && !data.isTeacher ? <StudentBottomNav active="settings" /> : null}
       {!securityOnly && !isDesktop && data.isTeacher ? <TeacherBottomNav active="settings" /> : null}
+      {securityOnly && !isDesktop && !data.isTeacher ? <StudentBottomNav active="security" /> : null}
       {securityOnly && !isDesktop && data.isTeacher ? <TeacherBottomNav active="settings" /> : null}
     </SafeAreaView>
   )

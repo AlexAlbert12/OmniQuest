@@ -19,9 +19,13 @@ export default function StudentBottomNav({ active }: { active: StudentBottomNavK
     { key: 'more', label: 'Más', href: '/(student)/more', icon: 'ellipsis-horizontal-circle-outline', activeIcon: 'ellipsis-horizontal-circle', testID: 'student-nav-more' },
   ], [t])
 
+  const activeKey = getVisibleActiveKey(active)
+  const disabledKey = getDisabledVisibleKey(active)
+
   return (
     <MobileBottomNavigation
-      activeKey={getVisibleActiveKey(active)}
+      activeKey={activeKey}
+      disabledKey={disabledKey}
       accentColor={tokens.brand.student}
       items={navItems}
     />
@@ -31,4 +35,9 @@ export default function StudentBottomNav({ active }: { active: StudentBottomNavK
 function getVisibleActiveKey(active: StudentBottomNavKey | null): VisibleStudentBottomNavKey | null {
   if (active === 'more' || active === 'profile' || active === 'badges' || active === 'notifications' || active === 'settings' || active === 'activity' || active === 'security' || active === 'help') return 'more'
   return active
+}
+
+function getDisabledVisibleKey(active: StudentBottomNavKey | null): VisibleStudentBottomNavKey | null {
+  if (active === 'home' || active === 'classes' || active === 'progress' || active === 'ranking' || active === 'more') return active
+  return null
 }

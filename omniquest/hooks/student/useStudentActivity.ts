@@ -10,6 +10,7 @@ import {
   type StudentAttemptStatusCounts,
 } from '../../lib/studentSecureData'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
+import { useI18n } from '../../lib/i18n'
 import { buildActivityRows } from '../../components/student/activity/utils'
 import type { ActivityFilter } from '../../components/student/activity/types'
 
@@ -34,6 +35,7 @@ type ActivityCacheSnapshot = {
 const EMPTY_COUNTS: StudentAttemptStatusCounts = { all: 0, correct: 0, incorrect: 0 }
 
 export function useStudentActivity() {
+  const { locale } = useI18n()
   const [attempts, setAttempts] = useState<SafeStudentAttempt[]>([])
   const [page, setPage] = useState(0)
   const [total, setTotal] = useState(0)
@@ -182,7 +184,7 @@ export function useStudentActivity() {
     setSelectedTopicIdState(value)
   }, [])
 
-  const activityRows = useMemo(() => buildActivityRows(attempts), [attempts])
+  const activityRows = useMemo(() => buildActivityRows(attempts, locale), [attempts, locale])
   const topics = useMemo(() => topicFacets.filter((topic) => (
     selectedSubjectId === 'all' || topic.subjectId === Number(selectedSubjectId)
   )), [selectedSubjectId, topicFacets])

@@ -1,50 +1,110 @@
 appId: com.alexalbert.omniquest
 name: Android keyboard resize and reachable auth actions
 ---
+
+# ---------- LOGIN ----------
+
 - launchApp:
     clearState: true
-- assertVisible:
-    id: "landing-login"
+
+- extendedWaitUntil:
+    visible:
+      id: "landing-login"
+    timeout: 90000
+
 - tapOn:
     id: "landing-login"
+
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 15000
+
 - tapOn:
     id: "login-email"
+
 - inputText: keyboard.check@omniquest.test
+
 - tapOn:
     id: "login-password"
+
 - inputText: KeyboardCheck123!
+
 - scrollUntilVisible:
     element:
       id: "login-submit"
     direction: DOWN
-    timeout: 10000
+    timeout: 15000
+    visibilityPercentage: 50
+    centerElement: true
+
 - assertVisible:
     id: "login-submit"
+
+- takeScreenshot:
+    path: ui-keyboard-login
+
 - hideKeyboard
 
-- launchApp:
-    clearState: true
-- assertVisible:
-    id: "landing-register"
+- back
+
+- extendedWaitUntil:
+    visible:
+      id: "landing-register"
+    timeout: 15000
+
+# ---------- REGISTER ----------
+
 - tapOn:
     id: "landing-register"
+
+- extendedWaitUntil:
+    visible:
+      id: "register-alias"
+    timeout: 15000
+
 - tapOn:
     id: "register-alias"
+
 - inputText: Alumno Teclado
+
 - tapOn:
     id: "register-email"
+
 - inputText: keyboard.register@omniquest.test
+
 - tapOn:
     id: "register-password"
+
 - inputText: KeyboardCheck123!
-- tapOn:
-    id: "register-confirm-password"
+
+- takeScreenshot:
+    path: ui-keyboard-register-password
+
+- hideKeyboard
+
+- extendedWaitUntil:
+    visible: "Repeat your password|Repite tu contraseña"
+    timeout: 15000
+
+- tapOn: "Repeat your password|Repite tu contraseña"
+
 - inputText: KeyboardCheck123!
-- scrollUntilVisible:
-    element:
+
+- takeScreenshot:
+    path: ui-keyboard-register-confirm
+
+- hideKeyboard
+
+- extendedWaitUntil:
+    visible:
       id: "register-submit"
-    direction: DOWN
-    timeout: 10000
+    timeout: 15000
+
 - assertVisible:
     id: "register-submit"
+
+- takeScreenshot:
+    path: ui-keyboard-register
+
 - hideKeyboard

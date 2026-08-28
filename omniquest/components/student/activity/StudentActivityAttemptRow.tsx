@@ -6,6 +6,7 @@ import AppPressable from '../../ui/AppPressable'
 import QuestionMedia from '../../questions/QuestionMedia'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
+import { useI18n } from '../../../lib/i18n'
 import type { ActivityAttempt } from './types'
 import {
   formatAttemptDate,
@@ -35,6 +36,7 @@ export default React.memo(function StudentActivityAttemptRow({
   onPractice,
 }: StudentActivityAttemptRowProps) {
   const { tokens } = useAppTheme()
+  const { locale } = useI18n()
   const question = normalizeSingleRelation(attempt.questions)
   const subject = normalizeSingleRelation(question?.subjects)
   const topic = normalizeSingleRelation(question?.subject_topics)
@@ -89,7 +91,7 @@ export default React.memo(function StudentActivityAttemptRow({
         </View>
 
         <View className="items-end gap-1">
-          <Text maxFontSizeMultiplier={2} className="text-[12px]" style={{ color: tokens.text.muted }}>{formatAttemptTime(attempt.attempted_at)}</Text>
+          <Text maxFontSizeMultiplier={2} className="text-[12px]" style={{ color: tokens.text.muted }}>{formatAttemptTime(attempt.attempted_at, locale)}</Text>
           <View className="rounded-md px-2 py-0.5" style={{ backgroundColor: withAlpha(reviewStatus.color, '14') }}>
             <Text maxFontSizeMultiplier={2} className="text-[12px] font-black" style={{ color: reviewStatus.color }}>
               {earnedPoints > 0 ? `+${earnedPoints} XP` : '0 XP'}
@@ -133,7 +135,7 @@ export default React.memo(function StudentActivityAttemptRow({
                       <View key={comment.id} className="rounded-xl p-3" style={{ backgroundColor: tokens.surface.raised }}>
                         <View className="flex-row items-center justify-between gap-3">
                           <Text maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[11px] font-black" style={{ color: tokens.brand.student }} numberOfLines={2}>{comment.author_name || 'Profesor'}</Text>
-                          <Text maxFontSizeMultiplier={2} className="text-[10px]" style={{ color: tokens.text.muted }}>{formatAttemptDate(comment.created_at)}</Text>
+                          <Text maxFontSizeMultiplier={2} className="text-[10px]" style={{ color: tokens.text.muted }}>{formatAttemptDate(comment.created_at, locale)}</Text>
                         </View>
                         <Text maxFontSizeMultiplier={2} className="mt-2 text-[12px] leading-5" style={{ color: tokens.text.secondary }}>{comment.body}</Text>
                       </View>

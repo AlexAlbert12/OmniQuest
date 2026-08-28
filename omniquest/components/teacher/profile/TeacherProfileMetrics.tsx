@@ -56,8 +56,8 @@ export default function TeacherProfileMetrics(props: Props) {
       </View>
 
       {responsive.isMobile ? (
-        <View style={{ marginTop: 14, flexDirection: 'row', gap: 6 }}>
-          {cards.map((card) => (
+        <View style={{ marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {cards.map((card, index) => (
             <MobileMetricCard
               key={card.label}
               dense
@@ -67,7 +67,7 @@ export default function TeacherProfileMetrics(props: Props) {
               color={tokens.brand.teacher}
               onPress={card.info ? showParticipationInfo : undefined}
               accessibilityLabel={card.info ? t('teacher.profile.participation.title') : `${card.label}: ${card.value}`}
-              style={{ minWidth: 0, minHeight: 104, flex: 1 }}
+              style={{ minWidth: 0, minHeight: 108, flexGrow: 1, flexBasis: index === cards.length - 1 ? '100%' : '46%' }}
             />
           ))}
         </View>

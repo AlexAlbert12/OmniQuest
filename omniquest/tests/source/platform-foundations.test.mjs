@@ -84,7 +84,7 @@ test('shared interactive components expose accessibility semantics and web focus
   const css = read('global.css')
 
   assert.match(navigation, /accessibilityRole="tab"/)
-  assert.match(navigation, /accessibilityState=\{\{ selected: isActive \}\}/)
+  assert.match(navigation, /accessibilityState=\{\{ selected: isActive, disabled: isDisabled \}\}/)
   assert.match(header, /accessibilityRole="header"/)
   assert.match(metrics, /accessibilityRole="button"/)
   assert.match(pagination, /accessibilityLabel/)
