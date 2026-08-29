@@ -270,7 +270,6 @@ export default function TeacherSubjectForm({ mode, subjectId }: TeacherSubjectFo
               icon={isEdit ? 'create-outline' : 'add-circle-outline'}
               isDesktop={isWide}
               title={isEdit ? 'Editar curso' : 'Nuevo curso'}
-              subtitle={isEdit ? 'Actualiza la información y configuración del curso.' : 'Crea un curso y comienza a añadir clases, contenido y alumnos.'}
               showNotifications={false}
               showAvatar={false}
               showGlobalSearch={false}

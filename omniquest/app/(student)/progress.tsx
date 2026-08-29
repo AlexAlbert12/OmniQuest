@@ -93,7 +93,7 @@ export default function ProgressScreen() {
       loadingLabel="Analizando tu progreso..."
       onSignOut={() => { void signOutCurrentDeviceSession() }}
     >
-      <StudentPageHeader icon="stats-chart" isDesktop={isDesktop} title="Progreso" subtitle="Entiende qué practicar, por qué se recomienda y qué puedes ganar." />
+      <StudentPageHeader icon="stats-chart" isDesktop={isDesktop} title="Progreso" />
 
       {progress.error ? (
         <View className="mb-4">

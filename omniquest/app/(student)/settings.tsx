@@ -32,6 +32,7 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { useResponsiveLayout } from '../../lib/responsive'
 
 type AppHref = Href
+type SettingsSectionDefinition = { key: SettingsMenuSectionKey; labelKey: string; mobileLabelKey?: string; icon: IconName; anchor: SettingsAnchorKey }
 
 const ROUTES = {
   studentHelpCenter: '/(student)/help-center' as AppHref,
@@ -44,18 +45,18 @@ const ROUTES = {
   teacherSettings: '/(teacher)/settings' as AppHref,
 }
 
-const studentSettingsSectionDefinitions: { key: SettingsMenuSectionKey; labelKey: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
+const studentSettingsSectionDefinitions: SettingsSectionDefinition[] = [
   { key: 'general', labelKey: 'settings.section.general', icon: 'settings-outline', anchor: 'general' },
   { key: 'profile', labelKey: 'settings.section.profile', icon: 'person-outline', anchor: 'profile' },
-  { key: 'preferences', labelKey: 'settings.section.preferences.short', icon: 'globe-outline', anchor: 'preferences' },
-  { key: 'notifications', labelKey: 'settings.section.notifications', icon: 'notifications-outline', anchor: 'notifications' },
+  { key: 'preferences', labelKey: 'settings.section.preferences.short', mobileLabelKey: 'settings.section.preferences.mobile', icon: 'globe-outline', anchor: 'preferences' },
+  { key: 'notifications', labelKey: 'settings.section.notifications', mobileLabelKey: 'settings.section.notifications.mobile', icon: 'notifications-outline', anchor: 'notifications' },
   { key: 'privacy', labelKey: 'settings.section.privacy', icon: 'shield-checkmark-outline', anchor: 'privacy' },
   { key: 'data', labelKey: 'settings.section.data', icon: 'server-outline', anchor: 'data' },
   { key: 'security', labelKey: 'settings.section.security', icon: 'lock-closed-outline', anchor: 'security' },
   { key: 'about', labelKey: 'settings.section.about', icon: 'information-circle-outline', anchor: 'about' },
 ]
 
-const teacherSettingsSectionDefinitions: { key: SettingsMenuSectionKey; labelKey: string; icon: IconName; anchor: SettingsAnchorKey }[] = [
+const teacherSettingsSectionDefinitions: SettingsSectionDefinition[] = [
   { key: 'personal', labelKey: 'settings.section.personal', icon: 'person-circle-outline', anchor: 'personal' },
   { key: 'teaching', labelKey: 'settings.section.teaching', icon: 'school-outline', anchor: 'teaching' },
   { key: 'privacy', labelKey: 'settings.section.privacy', icon: 'shield-checkmark-outline', anchor: 'privacy' },
@@ -81,8 +82,8 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
   const isDesktop = responsive.isDesktop
   const settingsSections = useMemo(
     () => (data.isTeacher ? teacherSettingsSectionDefinitions : studentSettingsSectionDefinitions)
-      .map((item) => ({ ...item, label: t(item.labelKey) })),
-    [data.isTeacher, t]
+      .map((item) => ({ ...item, label: t(responsive.isMobile && item.mobileLabelKey ? item.mobileLabelKey : item.labelKey) })),
+    [data.isTeacher, responsive.isMobile, t]
   )
   const isLargeDesktop = responsive.isWide
   const isMediumSettings = !responsive.isMobile
@@ -175,9 +176,6 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
               icon={securityOnly ? 'lock-closed' : 'settings'}
               isDesktop={isDesktop}
               title={securityOnly ? t('settings.section.security') : t('settings.title')}
-              subtitle={securityOnly
-                ? t('settings.security.subtitle')
-                : t(data.isTeacher ? 'settings.subtitle.teacher' : 'settings.subtitle.student')}
               notificationOnPress={() => router.push(roleRoute(data.isTeacher, ROUTES.teacherNotifications, ROUTES.studentNotifications))}
               className="mb-4"
             />

@@ -78,7 +78,6 @@ export default function TeacherHomeScreen() {
         isDesktop={isDesktop}
         title={`¡Bienvenido de nuevo, ${summary.teacherAlias}!`}
         mobileTitle="Inicio"
-        subtitle="Prioriza alumnos, revisiones y cursos desde un único panel."
         notificationOnPress={() => router.push('/(teacher)/notifications' as never)}
       />
 

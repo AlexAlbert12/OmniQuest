@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { Alert, Platform } from 'react-native'
 import { useFocusEffect, useRouter, type Href } from 'expo-router'
 import { supabase } from '../lib/supabase'
-import { useI18n, type AppLocale } from '../lib/i18n'
+import { useI18n } from '../lib/i18n'
 import { useAppHaptics } from '../lib/haptics'
 import { deactivateCurrentDevicePushToken, registerCurrentDeviceForPush, signOutCurrentDeviceSession } from '../lib/pushNotifications'
 import { getNextLevelProgress, getStudentLevel } from '../lib/studentLevel'
@@ -53,7 +53,7 @@ const notificationFrequencyLabels: Record<NotificationFrequency, string> = {
 }
 
 export const preferenceOptions: Record<PreferenceKey, string[]> = {
-  language: ['es-ES', 'en-US'],
+  language: ['es-ES'],
   dateFormat: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'],
   timeFormat: ['24h', '12h'],
   weekStart: ['monday', 'sunday'],
@@ -62,7 +62,6 @@ export const preferenceOptions: Record<PreferenceKey, string[]> = {
 const preferenceLabels = {
   language: {
     'es-ES': '🇪🇸 Español',
-    'en-US': '🇺🇸 English',
   },
   dateFormat: {
     'DD/MM/YYYY': 'DD/MM/YYYY',
@@ -110,7 +109,7 @@ function getErrorCode(error: unknown) {
 
 function toPreferenceState(row: UserPreferencesRow | null): UserPreferencesState {
   return {
-    language: row?.language || DEFAULT_PREFERENCES.language,
+    language: DEFAULT_PREFERENCES.language,
     dateFormat: row?.date_format || DEFAULT_PREFERENCES.dateFormat,
     timeFormat: row?.time_format || DEFAULT_PREFERENCES.timeFormat,
     weekStart: row?.week_start || DEFAULT_PREFERENCES.weekStart,
@@ -364,7 +363,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
 
   const formatPreferenceLabel = (key: PreferenceKey, value: string) => {
     if (key === 'language') {
-      return value === 'en-US' ? t('settings.language.english') : t('settings.language.spanish')
+      return t('settings.language.spanish')
     }
     const labelsByKey = preferenceLabels[key] as Record<string, string>
     return labelsByKey[value] || value
@@ -459,9 +458,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
       const nextPreferences = toPreferenceState((preferencesResult.data as UserPreferencesRow | null) || null)
       setPreferences(nextPreferences)
       void setHapticsEnabled(nextPreferences.hapticsEnabled)
-      if (nextPreferences.language === 'es-ES' || nextPreferences.language === 'en-US') {
-        void setLocale(nextPreferences.language as AppLocale)
-      }
+      void setLocale('es-ES')
       setNotificationSettings(detectedRole === 'student'
         ? toNotificationSettingsState((notificationSettingsResult.data as NotificationSettingsRow | null) || null)
         : DEFAULT_NOTIFICATION_SETTINGS)
@@ -721,9 +718,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
 
     try {
       await savePreferences(userId, nextPreferences)
-      if (key === 'language' && (value === 'es-ES' || value === 'en-US')) {
-        await setLocale(value as AppLocale)
-      }
+      if (key === 'language' && value === 'es-ES') await setLocale('es-ES')
     } catch (error: unknown) {
       setPreferences(previousPreferences)
       if (key === 'language') await setLocale(locale)

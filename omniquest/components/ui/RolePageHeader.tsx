@@ -37,8 +37,6 @@ export type RolePageHeaderProps = {
 
   mobileTitle?: string
 
-  mobileSubtitle?: string
-
   mobileStackedIdentity?: boolean
 
   mobileInlineActions?: boolean
@@ -49,8 +47,6 @@ export type RolePageHeaderProps = {
   showAvatar?: boolean
   showNotifications?: boolean
   showStreak?: boolean
-  subtitle?: string
-  subtitleNumberOfLines?: number
   title: string
   titleNumberOfLines?: number
 }

@@ -9,8 +9,6 @@ import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 
 export default function CourseGalaxyHeader({
   subject,
-  classroom,
-  totals,
   isDesktop,
 }: {
   subject: StudentCourseSubject
@@ -26,7 +24,6 @@ export default function CourseGalaxyHeader({
     <StudentPageHeader
       isDesktop={isDesktop}
       title={subject.name}
-      subtitle={`${totals.progress}% avance  ·  ${totals.failed} ${totals.failed === 1 ? 'fallo pendiente' : 'fallos pendientes'}${classroom ? `  ·  ${classroom.name}` : ''}`}
       titleNumberOfLines={2}
       showNotifications={isDesktop}
       showAvatar={isDesktop}

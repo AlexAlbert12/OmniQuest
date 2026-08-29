@@ -45,7 +45,7 @@ test('question form resolves one concrete classroom before loading topics and su
   assert.match(hook, /normalizedSourceQuestionId/)
   assert.match(hook, /cloneQuestionMedia/)
   assert.match(form, /label="Clase"/)
-  assert.match(form, /subtitle=\{form\.contextLabel/)
+  assert.doesNotMatch(form, /subtitle=/)
 })
 
 test('question validation is visible inline and authoring limits are explained before save', () => {

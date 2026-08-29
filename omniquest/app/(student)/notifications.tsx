@@ -12,7 +12,6 @@ import StudentPageHeader from '../../components/student/StudentPageHeader'
 import StudentSidebar from '../../components/student/StudentSidebar'
 import { useNotifications, type AppNotification, type NotificationType } from '../../hooks/useNotifications'
 import { useAppTheme } from '../../lib/appTheme'
-import { formatCount } from '../../lib/formatCount'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { useResponsiveLayout } from '../../lib/responsive'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
@@ -151,8 +150,8 @@ export default function StudentNotificationsScreen() {
         icon="notifications"
         isDesktop={isDesktop}
         title="Notificaciones"
-        subtitle={unreadCount > 0 ? `Tienes ${formatCount(unreadCount, 'novedad', 'novedades')} por revisar` : 'Todo está al día en tus cursos'}
         showNotifications={false}
+        actionsPosition="top"
         actions={unreadCount > 0 ? (
           <AppButton
             accessibilityLabel="Marcar todas las notificaciones como leídas"

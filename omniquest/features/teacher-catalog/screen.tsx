@@ -56,7 +56,6 @@ export default function TeacherClassesScreen() {
               isDesktop={isDesktop}
               title="Cursos y clases"
               mobileTitle="Cursos"
-              subtitle="Gestiona tus cursos, clases, alumnos y contenidos."
               notificationOnPress={() => router.push('/(teacher)/notifications' as never)}
               actions={isDesktop ? <AppButton label="Crear curso" accessibilityLabel="Crear curso" icon="add" role="teacher" onPress={() => router.push('/(teacher)/create-subject' as never)} /> : undefined}
             />

@@ -47,7 +47,6 @@ export default function TeacherAuditScreen() {
             isDesktop={isDesktop}
             title="Auditoría"
             mobileTitle="Auditoría"
-            subtitle="Consulta los cambios y acciones importantes realizados en tus cursos."
             notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
           />
 

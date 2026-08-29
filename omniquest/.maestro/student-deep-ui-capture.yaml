@@ -1,0 +1,123 @@
+appId: com.alexalbert.omniquest
+name: Student deep visual evidence
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "landing-login"
+    timeout: 90000
+- tapOn:
+    id: "landing-login"
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 15000
+- tapOn:
+    id: "login-email"
+- inputText: ${MAESTRO_STUDENT_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${MAESTRO_STUDENT_PASSWORD}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "login-submit"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 50
+    centerElement: true
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "student-nav-classes"
+    timeout: 30000
+
+# Curso y planeta/tema
+- tapOn:
+    id: "student-nav-classes"
+- extendedWaitUntil:
+    visible: "Mis cursos|My courses"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: "Fisioterapia"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 40
+    centerElement: true
+- tapOn: "Fisioterapia"
+- extendedWaitUntil:
+    visible: "Fisioterapia"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-student-course-detail
+- scrollUntilVisible:
+    element:
+      id: "student-topic-.*"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 50
+    centerElement: true
+- tapOn:
+    id: "student-topic-.*"
+- extendedWaitUntil:
+    visible: "¿Qué quieres hacer?.*"
+    timeout: 15000
+- takeScreenshot:
+    path: ui-deep-student-topic-difficulty
+
+# Partida: respuesta correcta
+- tapOn: "Jugar de nuevo|Empezar partida"
+- extendedWaitUntil:
+    visible: "El calentamiento progresivo puede preparar al organismo para una actividad física posterior."
+    timeout: 30000
+- takeScreenshot:
+    path: ui-deep-student-game-question
+- tapOn: "Verdadero"
+- extendedWaitUntil:
+    visible: "¡Correcto!"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-student-game-correct
+- tapOn: "Siguiente pregunta"
+- extendedWaitUntil:
+    visible: "¡Partida completada!|Partida terminada"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-student-game-result-correct
+
+# Partida: respuesta incorrecta
+- tapOn: "Volver al curso"
+- extendedWaitUntil:
+    visible: "Fisioterapia"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "student-topic-.*"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 50
+    centerElement: true
+- tapOn:
+    id: "student-topic-.*"
+- extendedWaitUntil:
+    visible: "¿Qué quieres hacer?.*"
+    timeout: 15000
+- tapOn: "Jugar de nuevo|Empezar partida"
+- extendedWaitUntil:
+    visible: "El calentamiento progresivo puede preparar al organismo para una actividad física posterior."
+    timeout: 30000
+- tapOn: "Falso"
+- extendedWaitUntil:
+    visible: "Incorrecto"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-student-game-incorrect
+- tapOn: "Siguiente pregunta"
+- extendedWaitUntil:
+    visible: "¡Partida completada!|Partida terminada"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-student-game-result-incorrect

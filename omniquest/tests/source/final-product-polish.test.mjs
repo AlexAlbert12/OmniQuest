@@ -93,26 +93,21 @@ test('support success confirmation and academic entities use standard applicatio
   assert.doesNotMatch(topicForm, /\['📚'|\['📘'/)
 })
 
-test('language switching is wired through the whole rendered UI instead of only Settings', () => {
+test('OmniQuest 1.0 keeps Spanish as the only selectable runtime language', () => {
   const i18n = read('lib/i18n.tsx')
-  const primitives = read('components/ui/LocalizedPrimitives.tsx')
-  const babel = read('babel.config.js')
-  const plugin = read('scripts/babel-plugin-localize-ui-text.cjs')
-  const catalog = read('lib/uiEnglishCatalog.ts')
+  const settings = read('hooks/useSettingsData.ts')
+  const app = JSON.parse(read('app.json')).expo
+  const localization = app.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === 'expo-localization')[1]
 
-  assert.match(i18n, /setLocale/)
-  assert.match(i18n, /translateUiText/)
-  assert.match(i18n, /uiEnglishCatalog/)
-  assert.match(primitives, /useI18n\(\)/)
-  assert.match(primitives, /translateUiText\(locale, children\)/)
-  assert.match(plugin, /source\.value !== 'react-native'/)
-  assert.match(plugin, /LocalizedText/)
-  assert.match(plugin, /LocalizedTextInput/)
-  assert.match(babel, /babel-plugin-localize-ui-text\.cjs/)
-  assert.match(catalog, /"Mis cursos"|"Información personal"/)
+  assert.deepEqual(localization.supportedLocales.android, ['es'])
+  assert.deepEqual(localization.supportedLocales.ios, ['es'])
+  assert.match(i18n, /await persistLocale\('es-ES'\)/)
+  assert.match(i18n, /setLocaleState\('es-ES'\)/)
+  assert.match(settings, /language: \['es-ES'\]/)
+  assert.doesNotMatch(settings, /language: \['es-ES', 'en-US'\]/)
 })
 
-test('English localization covers dynamic student, teacher and admin product copy while preserving user-authored names', () => {
+test('the dormant English catalog remains isolated for a future localization pass', () => {
   const i18n = read('lib/i18n.tsx')
 
   assert.match(i18n, /sourceTextToEnglishLower/)

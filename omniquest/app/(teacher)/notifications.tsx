@@ -105,7 +105,6 @@ export default function TeacherNotificationsScreen() {
         isDesktop={responsive.isDesktop}
         title="Centro de notificaciones"
         mobileTitle="Notificaciones"
-        subtitle={notifications.activeFilterDescription}
         showNotifications={false}
         mobileStackedIdentity={responsive.isMobile}
         actionsPosition={responsive.isDesktop ? 'below' : 'top'}

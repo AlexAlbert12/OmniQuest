@@ -21,6 +21,7 @@ test('role page headers hide supporting copy and reuse one blue back button', ()
 
   assert.doesNotMatch(header, /const supportingCopy/)
   assert.doesNotMatch(header, /\{supportingCopy\}/)
+  assert.doesNotMatch(header, /subtitle/)
   assert.match(header, /<AppBackButton/)
   assert.match(backButton, /role="teacher"/)
   assert.match(backButton, /variant="primary"/)
@@ -128,6 +129,7 @@ test('student notifications protect the Android status bar and More keeps compac
   const more = read('components/student/StudentMoreScreen.tsx')
 
   assert.match(notifications, /<SafeAreaView edges=\{\['top', 'left', 'right'\]\}/)
+  assert.match(notifications, /actionsPosition="top"/)
   assert.match(more, /if \(compact\)/)
   assert.match(more, /width: '100%'/)
   assert.match(more, /minHeight: 88/)
@@ -144,26 +146,21 @@ test('login keeps its submit action reachable when the native keyboard opens', (
   assert.match(login, /keyboardShouldPersistTaps="handled"/)
 })
 
-test('Android review copy and dates follow the selected English locale', () => {
-  const catalog = read('lib/uiEnglishCatalog.ts')
+test('OmniQuest 1.0 starts in Spanish and only exposes Spanish in native and Settings', () => {
+  const app = JSON.parse(read('app.json')).expo
   const i18n = read('lib/i18n.tsx')
-  const activity = read('components/student/activity/utils.ts')
-  const profile = read('components/teacher/profile/TeacherProfileHero.tsx')
+  const settingsData = read('hooks/useSettingsData.ts')
+  const settingsScreen = read('app/(student)/settings.tsx')
+  const localization = app.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === 'expo-localization')[1]
 
-  for (const entry of [
-    "'12 meses': '12 months'",
-    "'Correctas': 'Correct'",
-    "'Aprobadas': 'Approved'",
-    "'Impacto docente': 'Teaching impact'",
-    "'SLA vencido': 'SLA overdue'",
-    "'Nuevo inicio de sesión': 'New sign-in'",
-  ]) assert.ok(catalog.includes(entry), `missing Android review translation: ${entry}`)
-
-  assert.match(i18n, /Mostrando \(\\d\+\) de \(\\d\+\) intentos/)
-  assert.match(i18n, /Puedes mejorar hasta \(\\d\+\) puntos de precisión/)
-  assert.match(i18n, /Se ha iniciado sesión desde/)
-  assert.match(activity, /toLocaleDateString\(locale/)
-  assert.match(profile, /formatLongDate\(props\.createdAt, undefined, locale\)/)
+  assert.deepEqual(localization.supportedLocales.android, ['es'])
+  assert.deepEqual(localization.supportedLocales.ios, ['es'])
+  assert.match(i18n, /await persistLocale\('es-ES'\)[\s\S]*return 'es-ES'/)
+  assert.match(i18n, /setLocaleState\('es-ES'\)[\s\S]*persistLocale\('es-ES'\)/)
+  assert.match(settingsData, /language: \['es-ES'\]/)
+  assert.doesNotMatch(settingsData, /language: \['es-ES', 'en-US'\]/)
+  assert.match(settingsScreen, /settings\.section\.preferences\.mobile/)
+  assert.match(settingsScreen, /settings\.section\.notifications\.mobile/)
 })
 
 test('global search uses the same full-width entity cards on mobile and desktop', () => {

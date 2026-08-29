@@ -92,7 +92,6 @@ export default function TeacherQuestionReportScreen() {
             icon="analytics"
             isDesktop={isDesktop}
             title="Informe de pregunta"
-            subtitle="Diagnóstico agregado en servidor con muestra, tendencia, abandono, tiempo y discriminación."
             notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
           />
 

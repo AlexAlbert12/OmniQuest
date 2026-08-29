@@ -57,12 +57,10 @@
         {
           "supportedLocales": {
             "ios": [
-              "es",
-              "en"
+              "es"
             ],
             "android": [
-              "es",
-              "en"
+              "es"
             ]
           }
         }

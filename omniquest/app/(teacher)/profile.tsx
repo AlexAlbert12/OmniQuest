@@ -76,7 +76,6 @@ export default function TeacherProfileScreen() {
         isDesktop={responsive.isDesktop}
         title="Perfil docente"
         mobileTitle="Mi perfil"
-        subtitle="Tu identidad profesional y el impacto generado en el periodo seleccionado"
         notificationOnPress={() => router.push(ROUTES.notifications)}
       />
 

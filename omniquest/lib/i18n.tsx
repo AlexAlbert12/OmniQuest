@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { getLocales } from 'expo-localization'
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { Platform } from 'react-native'
 import { uiEnglishCatalog } from './uiEnglishCatalog'
@@ -66,15 +65,15 @@ const es: TranslationDictionary = {
   'nav.admin.audit': 'Auditoría',
   'nav.admin.support': 'Soporte',
   'settings.title': 'Configuración',
-  'settings.subtitle.student': 'Personaliza tu experiencia y controla tu cuenta de alumno.',
-  'settings.subtitle.teacher': 'Personaliza tu experiencia y controla tu cuenta de profesor.',
   'settings.loading': 'Cargando configuración...',
   'settings.section.general': 'General',
   'settings.section.profile': 'Perfil',
   'settings.section.preferences': 'Idioma, región y apariencia',
   'settings.section.preferences.short': 'Idioma y apariencia',
+  'settings.section.preferences.mobile': 'Idioma',
   'settings.back': 'Configuración',
   'settings.section.notifications': 'Notificaciones',
+  'settings.section.notifications.mobile': 'Avisos',
   'settings.section.privacy': 'Privacidad',
   'settings.section.data': 'Datos',
   'settings.section.security': 'Seguridad',
@@ -94,7 +93,6 @@ const es: TranslationDictionary = {
   'settings.notifications.description': 'Los canales activos se aplican al crear y enviar nuevas notificaciones.',
   'settings.section.personal': 'Ajustes personales',
   'settings.section.teaching': 'Preferencias docentes',
-  'settings.security.subtitle': 'Cambia tu contraseña, revisa sesiones y protege tu cuenta.',
   'settings.general.title': 'Configuración general',
   'settings.general.profile.title': 'Editar perfil',
   'settings.general.profile.description': 'Actualiza tu alias y datos básicos.',
@@ -301,8 +299,6 @@ const es: TranslationDictionary = {
   'accountRequests.error.export': 'No se pudo solicitar la exportación.',
   'accountRequests.error.cancel': 'No se pudo cancelar la solicitud.',
   'support.title': 'Centro de ayuda',
-  'support.subtitle.student': 'Consulta respuestas, abre una solicitud y conversa con soporte.',
-  'support.subtitle.teacher': 'Gestiona incidencias docentes y mantén la conversación con soporte.',
   'support.loading': 'Cargando centro de ayuda...',
   'support.form.title': 'Crear ticket',
   'support.form.subject': 'Asunto',
@@ -658,15 +654,15 @@ const en: TranslationDictionary = {
   'nav.admin.audit': 'Audit',
   'nav.admin.support': 'Support',
   'settings.title': 'Settings',
-  'settings.subtitle.student': 'Personalize your experience and manage your student account.',
-  'settings.subtitle.teacher': 'Personalize your experience and manage your teacher account.',
   'settings.loading': 'Loading settings...',
   'settings.section.general': 'General',
   'settings.section.profile': 'Profile',
   'settings.section.preferences': 'Language, region and appearance',
   'settings.section.preferences.short': 'Language & appearance',
+  'settings.section.preferences.mobile': 'Language',
   'settings.back': 'Settings',
   'settings.section.notifications': 'Notifications',
+  'settings.section.notifications.mobile': 'Alerts',
   'settings.section.privacy': 'Privacy',
   'settings.section.data': 'Data',
   'settings.section.security': 'Security',
@@ -686,7 +682,6 @@ const en: TranslationDictionary = {
   'settings.notifications.description': 'Enabled channels are applied when new notifications are created and sent.',
   'settings.section.personal': 'Personal settings',
   'settings.section.teaching': 'Teaching preferences',
-  'settings.security.subtitle': 'Change your password, review sessions, and protect your account.',
   'settings.general.title': 'General settings',
   'settings.general.profile.title': 'Edit profile',
   'settings.general.profile.description': 'Update your alias and basic information.',
@@ -893,8 +888,6 @@ const en: TranslationDictionary = {
   'accountRequests.error.export': 'The export could not be requested.',
   'accountRequests.error.cancel': 'The request could not be cancelled.',
   'support.title': 'Help center',
-  'support.subtitle.student': 'Find answers, open a request and talk to support.',
-  'support.subtitle.teacher': 'Manage teaching issues and keep the conversation with support.',
   'support.loading': 'Loading help center...',
   'support.form.title': 'Create ticket',
   'support.form.subject': 'Subject',
@@ -1625,22 +1618,14 @@ const rawUiEnglish: Record<string, string> = {
 
 const I18nContext = createContext<I18nContextValue | null>(null)
 
-function normalizeLocale(value: string | null | undefined): AppLocale {
-  return String(value || '').toLowerCase().startsWith('en') ? 'en-US' : 'es-ES'
-}
-
 function webStorage() {
   if (typeof window === 'undefined') return null
   return window.localStorage
 }
 
 async function readLocale(): Promise<AppLocale> {
-  const saved = Platform.OS === 'web'
-    ? webStorage()?.getItem(LOCALE_STORAGE_KEY)
-    : await AsyncStorage.getItem(LOCALE_STORAGE_KEY)
-
-  if (saved) return normalizeLocale(saved)
-  return normalizeLocale(getLocales()[0]?.languageTag)
+  await persistLocale('es-ES')
+  return 'es-ES'
 }
 
 async function persistLocale(locale: AppLocale) {
@@ -1994,9 +1979,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
   }, [locale])
 
-  const setLocale = useCallback(async (nextLocale: AppLocale) => {
-    setLocaleState(nextLocale)
-    await persistLocale(nextLocale)
+  const setLocale = useCallback(async (_nextLocale: AppLocale) => {
+    setLocaleState('es-ES')
+    await persistLocale('es-ES')
   }, [])
 
   const value = useMemo<I18nContextValue>(() => ({

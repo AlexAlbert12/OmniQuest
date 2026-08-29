@@ -20,7 +20,8 @@ test('teacher dashboard places review work before recent activity on mobile and 
   const activity = screen.indexOf('title="Actividad reciente"')
   assert.ok(courses >= 0 && questions > courses && activity > questions)
   assert.match(screen, /flex-\[1\.5\] gap-6/)
-  assert.match(screen, /Prioriza alumnos, revisiones y cursos desde un único panel\./)
+  assert.match(screen, /mobileTitle="Inicio"/)
+  assert.doesNotMatch(screen, /subtitle=/)
 })
 
 test('teacher home keeps category colours informational and uses cyan for routine actions', () => {

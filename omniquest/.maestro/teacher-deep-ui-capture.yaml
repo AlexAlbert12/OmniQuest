@@ -1,0 +1,193 @@
+appId: com.alexalbert.omniquest
+name: Teacher deep visual evidence
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "landing-login"
+    timeout: 90000
+- tapOn:
+    id: "landing-login"
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 15000
+- tapOn:
+    id: "login-email"
+- inputText: ${MAESTRO_TEACHER_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${MAESTRO_TEACHER_PASSWORD}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "login-submit"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 50
+    centerElement: true
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "teacher-nav-classes"
+    timeout: 30000
+- tapOn:
+    id: "teacher-nav-classes"
+- extendedWaitUntil:
+    visible: "Cursos|Courses"
+    timeout: 15000
+
+# Crear curso: solo evidencia, no se guarda
+- tapOn: "Crear curso"
+- extendedWaitUntil:
+    visible: "Nuevo curso"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-teacher-create-course
+- back
+- extendedWaitUntil:
+    visible: "Cursos|Courses"
+    timeout: 15000
+
+# Curso demo y creación de clase (sin guardar)
+- scrollUntilVisible:
+    element:
+      text: "Matemáticas"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 40
+    centerElement: true
+- tapOn: "Matemáticas"
+- extendedWaitUntil:
+    visible: "Matemáticas"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-teacher-course-detail
+- scrollUntilVisible:
+    element:
+      text: "Ej. Grupo A, 1º DAM tarde..."
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 40
+    centerElement: true
+- takeScreenshot:
+    path: ui-deep-teacher-create-class
+- back
+- extendedWaitUntil:
+    visible: "Cursos|Courses"
+    timeout: 15000
+
+# Crear tema: formulario sin guardar
+- scrollUntilVisible:
+    element:
+      text: "Matemáticas"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 40
+    centerElement: true
+- tapOn: "Matemáticas"
+- extendedWaitUntil:
+    visible: "Matemáticas"
+    timeout: 20000
+- tapOn: "Temas"
+- scrollUntilVisible:
+    element:
+      text: "Crear tema"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 40
+    centerElement: true
+- takeScreenshot:
+    path: ui-deep-teacher-create-topic
+- back
+- extendedWaitUntil:
+    visible: "Cursos|Courses"
+    timeout: 15000
+
+# Crear pregunta: formulario sin guardar
+- scrollUntilVisible:
+    element:
+      text: "Matemáticas"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 40
+    centerElement: true
+- tapOn: "Matemáticas"
+- extendedWaitUntil:
+    visible: "Matemáticas"
+    timeout: 20000
+- tapOn: "Preguntas"
+- extendedWaitUntil:
+    visible: "Añadir pregunta"
+    timeout: 20000
+- tapOn: "Añadir pregunta"
+- extendedWaitUntil:
+    visible: "Nueva pregunta"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-teacher-create-question
+- back
+- back
+- extendedWaitUntil:
+    visible: "Cursos|Courses"
+    timeout: 15000
+
+# Importar alumnos: modal sin ejecutar la importación
+- scrollUntilVisible:
+    element:
+      text: "Matemáticas"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 40
+    centerElement: true
+- tapOn: "Matemáticas"
+- extendedWaitUntil:
+    visible: "Matemáticas"
+    timeout: 20000
+- tapOn: "Alumnos"
+- extendedWaitUntil:
+    visible: "Importar alumnos"
+    timeout: 20000
+- tapOn: "Importar alumnos"
+- extendedWaitUntil:
+    visible: "Importar alumnos"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-teacher-import-students
+- tapOn: "Cerrar importación de alumnos"
+- back
+- extendedWaitUntil:
+    visible: "Cursos|Courses"
+    timeout: 15000
+
+# Editar contenido existente: abrir pregunta sin guardar cambios
+- scrollUntilVisible:
+    element:
+      text: "Matemáticas"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 40
+    centerElement: true
+- tapOn: "Matemáticas"
+- extendedWaitUntil:
+    visible: "Matemáticas"
+    timeout: 20000
+- tapOn: "Preguntas"
+- extendedWaitUntil:
+    visible: "Añadir pregunta"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "¿Cuál es el 15 % de 200?"
+    direction: DOWN
+    timeout: 20000
+    visibilityPercentage: 30
+    centerElement: true
+- tapOn: "Editar pregunta:.*15.*200.*"
+- extendedWaitUntil:
+    visible: "Editar pregunta"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-teacher-edit-content

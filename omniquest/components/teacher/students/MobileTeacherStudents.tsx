@@ -115,7 +115,6 @@ export default function MobileTeacherStudents({
         title="Mis alumnos"
         titleNumberOfLines={1}
         compactMobileTitle
-        subtitle="Prioriza quién necesita atención hoy."
         notificationOnPress={onNotifications}
         className="mb-5"
       />

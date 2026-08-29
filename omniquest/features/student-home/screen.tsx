@@ -51,7 +51,6 @@ export default function StudentHome() {
         isDesktop={responsive.isDesktop}
         title={responsive.isDesktop ? `¡Hola, ${alias}!` : greetingName ? `¡Hola, ${greetingName}!` : '¡Hola!'}
         titleNumberOfLines={responsive.isDesktop ? 2 : 1}
-        subtitle="Tu siguiente paso está preparado. Empieza por la acción recomendada."
       />
 
       {home.error ? (

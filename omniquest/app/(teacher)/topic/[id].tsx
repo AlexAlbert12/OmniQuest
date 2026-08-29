@@ -138,9 +138,7 @@ export default function TopicDetailScreen() {
             backAction={{ label: subject.name, onPress: () => router.push(`/(teacher)/subject/${subject.id}` as never) }}
             isDesktop={isDesktop}
             title={topic.title}
-            subtitle={`${topic.description || 'Tema de la clase'} · ${summary.summary.questionsCount} pregunta${summary.summary.questionsCount === 1 ? '' : 's'}`}
             titleNumberOfLines={2}
-            subtitleNumberOfLines={3}
             leading={(
               <View className="h-20 w-20 items-center justify-center rounded-2xl border" style={{ borderColor: tokens.border.active, backgroundColor: tokens.surface.selected }}>
                 <Ionicons name={normalizeAcademicIcon(topic.icon, 'book-outline')} size={42} color={tokens.brand.teacher} />

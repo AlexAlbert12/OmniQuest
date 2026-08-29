@@ -101,7 +101,6 @@ export default function TeacherStudentHistoryScreen() {
         icon="person-circle-outline"
         isDesktop={isDesktop}
         title="Historial"
-        subtitle="Analiza su actividad, progreso y necesidades de aprendizaje."
         backAction={{ label: 'Alumnos', onPress: () => router.back() }}
         notificationOnPress={() => router.push('/(teacher)/notifications' as Href)}
       />

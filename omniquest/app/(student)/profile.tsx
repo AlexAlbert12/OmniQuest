@@ -59,7 +59,6 @@ export default function ProfileScreen() {
         <StudentPageHeader
           icon="person"
           isDesktop={isDesktop}
-          subtitle="Tu identidad, nivel, privacidad y últimos logros."
           title="Perfil"
         />
 

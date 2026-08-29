@@ -111,7 +111,6 @@ export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
               icon={form.isEdit ? 'create-outline' : 'help-circle-outline'}
               isDesktop={isDesktop}
               title={form.isEdit ? 'Editar pregunta' : 'Nueva pregunta'}
-              subtitle={form.contextLabel || 'Selecciona el contexto de la pregunta.'}
               showNotifications={false}
               showAvatar={false}
               showGlobalSearch={false}

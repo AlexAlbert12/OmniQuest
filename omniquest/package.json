@@ -52,7 +52,9 @@
     "e2e:prepare": "node scripts/prepare-authenticated-e2e.mjs",
     "test:native-readiness": "node scripts/validate-native-release-readiness.mjs",
     "dataset:prepare": "node scripts/prepare-tfm-dataset.mjs",
-    "dataset:verify": "node scripts/verify-tfm-dataset.mjs"
+    "dataset:verify": "node scripts/verify-tfm-dataset.mjs",
+    "test:e2e:deep-visual": "playwright test e2e/web/authenticated-deep-visual.spec.ts --workers=1 --project=chromium-desktop --project=chromium-mobile",
+    "test:e2e:final-visual": "playwright test e2e/web/authenticated-visual.spec.ts e2e/web/authenticated-deep-visual.spec.ts --workers=1 --project=chromium-desktop --project=chromium-mobile"
   },
   "dependencies": {
     "@expo-google-fonts/pacifico": "^0.4.1",

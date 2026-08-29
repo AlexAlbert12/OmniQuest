@@ -119,7 +119,6 @@ export default function TeacherStudentsScreen() {
             icon="people"
             isDesktop
             title="Alumnos"
-            subtitle="Consulta y realiza el seguimiento de tus alumnos."
             notificationOnPress={() => openNotifications()}
           />
 

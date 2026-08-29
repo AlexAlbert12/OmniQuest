@@ -631,7 +631,6 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
             icon="help-buoy-outline"
             isDesktop={isDesktop}
             title={t('support.title')}
-            subtitle={t(role === 'teacher' ? 'support.subtitle.teacher' : 'support.subtitle.student')}
             notificationOnPress={() => router.push(`/${role === 'teacher' ? '(teacher)' : '(student)'}/notifications` as never)}
           />
 

@@ -1,0 +1,113 @@
+appId: com.alexalbert.omniquest
+name: Admin deep visual evidence
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "landing-login"
+    timeout: 90000
+- tapOn:
+    id: "landing-login"
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 15000
+- tapOn:
+    id: "login-email"
+- inputText: ${MAESTRO_ADMIN_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${MAESTRO_ADMIN_PASSWORD}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "login-submit"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 50
+    centerElement: true
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "admin-nav-users"
+    timeout: 30000
+
+# Abrir y gestionar un ticket demo, sin guardar cambios
+- tapOn:
+    id: "admin-nav-more"
+- extendedWaitUntil:
+    visible:
+      id: "admin-hub-support"
+    timeout: 15000
+- tapOn:
+    id: "admin-hub-support"
+- extendedWaitUntil:
+    visible: "Cola de tickets|Ticket queue"
+    timeout: 20000
+- tapOn: "Buscar tickets..."
+- inputText: "Duda sobre una pregunta de Matemáticas"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Duda sobre una pregunta de Matemáticas"
+    timeout: 20000
+- tapOn: "Gestionar ticket Duda sobre una pregunta de Matemáticas"
+- extendedWaitUntil:
+    visible: "Gestionar ticket #.*"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-admin-ticket-detail
+
+# Modal de permisos del administrador
+- tapOn:
+    id: "admin-nav-more"
+- scrollUntilVisible:
+    element:
+      id: "admin-hub-profile"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 80
+    centerElement: true
+- tapOn:
+    id: "admin-hub-profile"
+- extendedWaitUntil:
+    visible: "Perfil|Profile"
+    timeout: 15000
+- tapOn: "Permisos:.*Ver permisos asignados.*"
+- extendedWaitUntil:
+    visible:
+      id: "admin-profile-permissions-sheet"
+    timeout: 15000
+- takeScreenshot:
+    path: ui-deep-admin-permissions-modal
+- tapOn: "Cerrar"
+
+# Detalle de usuario y actividad
+- tapOn:
+    id: "admin-nav-users"
+- extendedWaitUntil:
+    visible: "Usuarios|Users"
+    timeout: 15000
+- tapOn: "Abrir Alumnos|Open Students"
+- extendedWaitUntil:
+    visible: "Alumnos|Students"
+    timeout: 20000
+- tapOn: "Buscar alumno por nombre o correo..."
+- inputText: ${MAESTRO_STUDENT_EMAIL}
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Lucía Martín"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-admin-user-details
+- tapOn: "Gestionar"
+- extendedWaitUntil:
+    visible: "Ver actividad"
+    timeout: 10000
+- tapOn: "Ver actividad"
+- extendedWaitUntil:
+    visible: "Actividad de Lucía Martín"
+    timeout: 20000
+- takeScreenshot:
+    path: ui-deep-admin-user-activity

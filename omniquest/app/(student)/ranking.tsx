@@ -50,7 +50,7 @@ export default function RankingScreen() {
       onSignOut={() => { void signOutCurrentDeviceSession() }}
       refreshControl={<RefreshControl refreshing={ranking.refreshing} onRefresh={ranking.reload} tintColor={tokens.brand.student} />}
     >
-      <StudentPageHeader icon="trophy" isDesktop={isDesktop} subtitle="Compite con privacidad y reglas de clasificación transparentes." title="Ranking" />
+      <StudentPageHeader icon="trophy" isDesktop={isDesktop} title="Ranking" />
 
       {ranking.error ? (
         <View className="mt-4">

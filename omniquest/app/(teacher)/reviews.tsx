@@ -77,7 +77,6 @@ export default function TeacherReviewsScreen() {
             icon="create"
             isDesktop={isDesktop}
             title="Revisión manual"
-            subtitle="Revisa respuestas abiertas, prioriza las pendientes y deja feedback al alumnado."
             notificationOnPress={() => router.push('/(teacher)/notifications' as any)}
             titleNumberOfLines={1}
             compactMobileTitle

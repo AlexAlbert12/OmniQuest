@@ -247,9 +247,6 @@ export default function BadgesScreen() {
             icon="ribbon"
             isDesktop={isDesktop}
             title="Logros"
-            subtitle={isDesktop
-              ? 'Consulta tus logros globales: se desbloquean con actividad, constancia, precisión y exploración.'
-              : 'Desbloquea insignias y sigue tu próxima recompensa.'}
           />
 
           <View>

@@ -56,20 +56,33 @@ export default function TeacherProfileMetrics(props: Props) {
       </View>
 
       {responsive.isMobile ? (
-        <View style={{ marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {cards.map((card, index) => (
-            <MobileMetricCard
-              key={card.label}
-              dense
-              icon={card.icon}
-              label={card.label}
-              value={card.value}
-              color={tokens.brand.teacher}
-              onPress={card.info ? showParticipationInfo : undefined}
-              accessibilityLabel={card.info ? t('teacher.profile.participation.title') : `${card.label}: ${card.value}`}
-              style={{ minWidth: 0, minHeight: 108, flexGrow: 1, flexBasis: index === cards.length - 1 ? '100%' : '46%' }}
-            />
+        <View style={{ marginTop: 14, gap: 8 }}>
+          {[cards.slice(0, 2), cards.slice(2, 4)].map((row, rowIndex) => (
+            <View key={rowIndex} style={{ flexDirection: 'row', gap: 8 }}>
+              {row.map((card) => (
+                <MobileMetricCard
+                  key={card.label}
+                  dense
+                  icon={card.icon}
+                  label={card.label}
+                  value={card.value}
+                  color={tokens.brand.teacher}
+                  onPress={card.info ? showParticipationInfo : undefined}
+                  accessibilityLabel={card.info ? t('teacher.profile.participation.title') : `${card.label}: ${card.value}`}
+                  style={{ minWidth: 0, minHeight: 108, flex: 1 }}
+                />
+              ))}
+            </View>
           ))}
+          <MobileMetricCard
+            dense
+            icon={cards[4].icon}
+            label={cards[4].label}
+            value={cards[4].value}
+            color={tokens.brand.teacher}
+            accessibilityLabel={`${cards[4].label}: ${cards[4].value}`}
+            style={{ width: '100%', minHeight: 108 }}
+          />
         </View>
       ) : (
         <View style={{ marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>

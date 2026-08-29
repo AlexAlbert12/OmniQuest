@@ -296,7 +296,6 @@ export default function ClassesScreen() {
               isDesktop={isDesktop}
               mobileStackedIdentity={!isDesktop}
               title="Mis cursos"
-              subtitle="Elige un curso para continuar tu viaje."
               showNotifications
               showAvatar
               actionsPosition="top"

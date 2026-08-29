@@ -15,6 +15,9 @@ test('Expo configuration enables real localization, official dark appearance and
   assert.equal(app.userInterfaceStyle, 'dark')
   assert.match(plugins, /expo-notifications/)
   assert.match(plugins, /expo-localization/)
+  const localization = app.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === 'expo-localization')[1]
+  assert.deepEqual(localization.supportedLocales.android, ['es'])
+  assert.deepEqual(localization.supportedLocales.ios, ['es'])
   for (const dependency of ['expo-notifications', 'expo-device', 'expo-localization', 'expo-network']) {
     assert.ok(pkg.dependencies[dependency], `${dependency} must be installed`)
   }
@@ -101,13 +104,14 @@ test('Edge Function deployment uses a Node 24 compatible Supabase launcher', () 
   assert.doesNotMatch(script, /npx\.cmd/)
 })
 
-test('locale is persisted while OmniQuest keeps a single official dark theme', () => {
+test('Spanish locale is enforced while OmniQuest keeps a single official dark theme', () => {
   const locale = read('lib/i18n.tsx')
   const theme = read('lib/appTheme.tsx')
   const settings = read('components/settings/SettingsSections.tsx')
 
-  assert.match(locale, /expo-localization/)
   assert.match(locale, /LOCALE_STORAGE_KEY/)
+  assert.match(locale, /await persistLocale\('es-ES'\)/)
+  assert.doesNotMatch(locale, /getLocales/)
   assert.match(theme, /AppThemeMode = 'dark'/)
   assert.match(theme, /OFFICIAL_THEME: AppThemeMode = 'dark'/)
   assert.match(theme, /OFFICIAL_ACCENT_COLOR = '#09acf4'/)

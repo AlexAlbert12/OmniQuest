@@ -216,7 +216,6 @@ export default function TeacherTopicForm({ topicId }: TeacherTopicFormProps) {
               icon="create-outline"
               isDesktop={isWide}
               title="Editar tema"
-              subtitle="Ajusta la información del tema y cómo aparece dentro de la clase."
               showNotifications={false}
               showAvatar={false}
               className="mb-0"

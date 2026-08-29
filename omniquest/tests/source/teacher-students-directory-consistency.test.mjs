@@ -110,7 +110,8 @@ test('teacher student directory copy stays product-facing', () => {
   const desktop = read('components/teacher/students/TeacherStudentsDesktop.tsx')
   const utils = read('components/teacher/students/studentUtils.ts')
 
-  assert.match(screen, /Consulta y realiza el seguimiento de tus alumnos\./)
+  assert.match(screen, /title="Alumnos"/)
+  assert.doesNotMatch(screen, /subtitle=/)
   assert.match(screen, /Alumnos en la selección actual/)
   assert.match(screen, /Consulta y gestiona los alumnos según los filtros seleccionados\./)
   assert.doesNotMatch(screen, /Calculado por la RPC/)
