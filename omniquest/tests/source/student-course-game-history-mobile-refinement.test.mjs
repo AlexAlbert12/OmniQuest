@@ -6,16 +6,18 @@ import test from 'node:test'
 const root = process.cwd()
 const read = (path) => readFileSync(join(root, path), 'utf8')
 
-test('course detail removes redundant navigation and keeps mobile progress visually equivalent to desktop', () => {
+test('course detail keeps an explicit return and mobile progress visually equivalent to desktop', () => {
   const detail = read('app/(student)/class/[id].tsx')
   const header = read('components/student/course/CourseGalaxyHeader.tsx')
   const mission = read('components/student/course/CourseNextMission.tsx')
   const progress = read('components/student/course/CourseProgressPanel.tsx')
   const galaxy = read('components/student/galaxy/StudentGalaxyMap.tsx')
 
-  assert.doesNotMatch(header, /backAction=|Mis cursos/)
+  assert.match(header, /backAction=\{\{ label: 'Mis cursos', onPress: onBack \}\}/)
+  assert.match(detail, /onBack=\{\(\) => router\.push\('\/\(student\)\/classes'/)
   assert.match(mission, /variant="primary"/)
   assert.match(mission, /fullWidth=\{responsive\.isMobile\}/)
+  assert.match(mission, /minWidth: 190, alignSelf: 'center'/)
   assert.match(galaxy, /const nodeSize = .*: 124/)
   assert.match(progress, /flex-row gap-2/)
   assert.match(progress, /dense=\{!isDesktop\}/)
@@ -37,8 +39,7 @@ test('game shell, timer, matching copy and continuation actions share the reques
   assert.match(hud, /const color = tokens\.brand\.student/)
   assert.doesNotMatch(hud, /#8B5CF6/)
   assert.doesNotMatch(renderer, /Elige .*en la columna derecha/)
-  assert.match(feedback, /backgroundColor: tokens\.brand\.student/)
-  assert.doesNotMatch(feedback, /backgroundColor: isCorrect \? tokens\.brand\.student : color/)
+  assert.match(feedback, /label="Siguiente pregunta"[\s\S]*role="student"[\s\S]*variant="primary"/)
   assert.doesNotMatch(result, /AppBackButton/)
   assert.ok((result.match(/variant="primary"/g) || []).length >= 2)
 })
@@ -49,6 +50,8 @@ test('student activity uses the concise Historial header and a full blue practic
 
   assert.match(activity, /title="Historial"/)
   assert.match(activity, /compactMobileTitle/)
+  assert.match(activity, /bottomPadding=\{0\}/)
+  assert.match(activity, /Platform\.OS === 'web' \? MOBILE_BOTTOM_NAV_HEIGHT : MOBILE_BOTTOM_NAV_SPACER/)
   assert.doesNotMatch(activity, /backAction=|title="Historial de actividad"|Consulta tus intentos anteriores/)
   assert.match(row, /label=\{`Practicar \$\{topicTitle\}`\}[\s\S]*role="student"[\s\S]*variant="primary"[\s\S]*fullWidth/)
 })

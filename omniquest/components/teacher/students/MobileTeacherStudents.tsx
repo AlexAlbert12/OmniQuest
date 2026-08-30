@@ -176,18 +176,22 @@ export default function MobileTeacherStudents({
         />
       </View>
 
-      <View className="mb-5 flex-row items-end gap-1.5">
-        <View className="min-w-0 flex-1">
-          <AppDropdown<number | 'all'> label="Curso" compact role="teacher" accessibilityLabel="Seleccionar curso" value={selectedSubjectId} options={subjectOptions} onChange={onSelectSubject} />
+      <View className="mb-5 gap-2">
+        <View className="flex-row items-end gap-2">
+          <View className="min-w-0 flex-1">
+            <AppDropdown<number | 'all'> label="Curso" compact role="teacher" accessibilityLabel="Seleccionar curso" value={selectedSubjectId} options={subjectOptions} onChange={onSelectSubject} />
+          </View>
+          <View className="min-w-0 flex-1">
+            <AppDropdown<number | 'all'> label="Clase" compact role="teacher" accessibilityLabel="Seleccionar clase" value={selectedClassroomId} options={classOptions} onChange={onSelectClassroom} />
+          </View>
         </View>
-        <View className="min-w-0 flex-1">
-          <AppDropdown<number | 'all'> label="Clase" compact role="teacher" accessibilityLabel="Seleccionar clase" value={selectedClassroomId} options={classOptions} onChange={onSelectClassroom} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <AppDropdown<StudentStatusFilter> label="Estado" compact role="teacher" accessibilityLabel="Filtrar alumnos por estado" value={selectedStatus} options={statusOptions} onChange={onSelectStatus} />
-        </View>
-        <View className="min-w-0 flex-1">
-          <AppDropdown<StudentSortKey> label="Ordenar" compact role="teacher" accessibilityLabel="Ordenar alumnos" value={selectedSort} options={orderOptions} onChange={onSelectSort} />
+        <View className="flex-row items-end gap-2">
+          <View className="min-w-0 flex-1">
+            <AppDropdown<StudentStatusFilter> label="Estado" compact role="teacher" accessibilityLabel="Filtrar alumnos por estado" value={selectedStatus} options={statusOptions} onChange={onSelectStatus} />
+          </View>
+          <View className="min-w-0 flex-1">
+            <AppDropdown<StudentSortKey> label="Ordenar" compact role="teacher" accessibilityLabel="Ordenar alumnos" value={selectedSort} options={orderOptions} onChange={onSelectSort} />
+          </View>
         </View>
       </View>
 

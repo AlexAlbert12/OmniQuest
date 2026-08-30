@@ -46,7 +46,7 @@ export default function TeacherProfileMetrics(props: Props) {
   ]
 
   return (
-    <View style={{ marginTop: 18, borderWidth: 1, borderColor: tokens.border.default, backgroundColor: tokens.surface.default, borderRadius: 22, padding: 18 }}>
+    <View style={{ marginTop: 18, borderWidth: 1, borderColor: tokens.border.default, backgroundColor: tokens.surface.default, borderRadius: responsive.isMobile ? 18 : 22, padding: responsive.isMobile ? 14 : 18 }}>
       <View style={{ gap: 12 }}>
         <View>
           <Text style={{ color: tokens.text.primary, fontSize: 18, fontWeight: '900' }}>Impacto docente</Text>
@@ -56,9 +56,9 @@ export default function TeacherProfileMetrics(props: Props) {
       </View>
 
       {responsive.isMobile ? (
-        <View style={{ marginTop: 14, gap: 8 }}>
+        <View style={{ marginTop: 12, gap: 6 }}>
           {[cards.slice(0, 2), cards.slice(2, 4)].map((row, rowIndex) => (
-            <View key={rowIndex} style={{ flexDirection: 'row', gap: 8 }}>
+            <View key={rowIndex} style={{ flexDirection: 'row', gap: 6 }}>
               {row.map((card) => (
                 <MobileMetricCard
                   key={card.label}
@@ -69,7 +69,7 @@ export default function TeacherProfileMetrics(props: Props) {
                   color={tokens.brand.teacher}
                   onPress={card.info ? showParticipationInfo : undefined}
                   accessibilityLabel={card.info ? t('teacher.profile.participation.title') : `${card.label}: ${card.value}`}
-                  style={{ minWidth: 0, minHeight: 108, flex: 1 }}
+                  style={{ minWidth: 0, minHeight: 84, flex: 1 }}
                 />
               ))}
             </View>
@@ -81,7 +81,7 @@ export default function TeacherProfileMetrics(props: Props) {
             value={cards[4].value}
             color={tokens.brand.teacher}
             accessibilityLabel={`${cards[4].label}: ${cards[4].value}`}
-            style={{ width: '100%', minHeight: 108 }}
+            style={{ width: '100%', minHeight: 84 }}
           />
         </View>
       ) : (

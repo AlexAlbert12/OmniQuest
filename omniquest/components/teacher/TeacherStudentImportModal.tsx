@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Modal, Platform, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import MobileMetricCard from '../ui/mobile/MobileMetricCard'
 import AppButton from '../ui/AppButton'
 import { supabase } from '../../lib/supabase'
@@ -58,6 +59,7 @@ export default function TeacherStudentImportModal({
   const [sendingReminder, setSendingReminder] = useState(false)
   const [postImportMessage, setPostImportMessage] = useState<string | null>(null)
   const { width } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
   const isPhone = width < 640
 
   const parsed = useMemo(() => parseEmails(rawEmails), [rawEmails])
@@ -214,6 +216,9 @@ export default function TeacherStudentImportModal({
             </View>
             <Pressable
               onPress={resetAndClose}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar importación de alumnos"
+              testID="teacher-import-close"
               className="h-10 w-10 items-center justify-center rounded-xl bg-surface-raised"
               style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
             >
@@ -283,7 +288,10 @@ export default function TeacherStudentImportModal({
 
           </ScrollView>
 
-          <View className={`${isPhone ? 'flex-row px-4 pb-5 pt-3' : 'flex-row justify-end px-5 py-4'} gap-3 border-t border-border-default bg-surface-raised`}>
+          <View
+            className={`${isPhone ? 'flex-row px-4 pt-3' : 'flex-row justify-end px-5 py-4'} gap-3 border-t border-border-default bg-surface-raised`}
+            style={isPhone ? { paddingBottom: Math.max(insets.bottom + 12, 20) } : undefined}
+          >
             <AppButton
               label="Cerrar"
               accessibilityLabel="Cerrar importación de alumnos"

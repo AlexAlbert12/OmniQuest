@@ -1,7 +1,7 @@
 import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Platform, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAppTheme } from '../../../lib/appTheme'
 import { releaseWebFocus } from '../../../lib/webFocus'
@@ -101,6 +101,7 @@ export default function MobileBottomNavigation<Key extends string>({
       edges={['bottom']}
       style={[
         styles.safeArea,
+        Platform.OS === 'web' ? ({ position: 'fixed' } as ViewStyle) : null,
         { backgroundColor: colors.navigation, borderTopColor: colors.border },
         createShadowStyle({
           color: tokens.background.overlay,

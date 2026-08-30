@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Text, View } from 'react-native'
+import { Platform, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import TeacherScreenLayout from '../../components/layouts/TeacherScreenLayout'
 import NotificationFeed from '../../components/notifications/NotificationFeed'
@@ -16,7 +16,7 @@ import { useTeacherNotifications, type TeacherNotificationBucket, type TeacherNo
 import type { AppNotification } from '../../lib/notifications/types'
 import { useAppTheme } from '../../lib/appTheme'
 import { useResponsiveLayout } from '../../lib/responsive'
-import { MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
+import { MOBILE_BOTTOM_NAV_HEIGHT, MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 const bucketTabs = [
@@ -61,6 +61,7 @@ export default function TeacherNotificationsScreen() {
 
   const tabs = useMemo(() => bucketTabs.map((tab) => ({
     ...tab,
+    icon: responsive.isMobile ? undefined : tab.icon,
     label: responsive.isMobile && tab.key === 'informative' ? 'Avisos' : tab.label,
     badge: tab.key === 'all' ? notifications.total : tab.key === 'critical' ? notifications.criticalCount : notifications.informativeCount,
   })), [notifications.criticalCount, notifications.informativeCount, notifications.total, responsive.isMobile])
@@ -123,9 +124,9 @@ export default function TeacherNotificationsScreen() {
       ) : null}
 
       <View style={{ marginBottom: 12, flexDirection: 'row', flexWrap: responsive.isDesktop ? 'wrap' : 'nowrap', gap: responsive.isDesktop ? 10 : 8 }}>
-        <MobileMetricCard compact dense={!responsive.isDesktop} className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} semantic="attention" label={responsive.isDesktop ? 'Pendientes de revisar' : 'Pendientes'} value={notifications.summary.pendingReviews} detail="Respuestas abiertas" onPress={() => router.push('/(teacher)/reviews' as never)} />
-        <MobileMetricCard compact dense={!responsive.isDesktop} className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} icon="time" color={tokens.semantic.info} label="Sin actividad" value={notifications.summary.inactiveStudents} detail="Últimos 7 días" onPress={() => router.push('/(teacher)/students?status=no_activity' as never)} />
-        <MobileMetricCard compact dense={!responsive.isDesktop} className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} semantic="audit" label={responsive.isDesktop ? 'Alertas de auditoría' : 'Alertas'} value={notifications.summary.sensitiveActions} detail="Últimos 7 días" onPress={() => router.push('/(teacher)/audit' as never)} />
+        <MobileMetricCard compact dense={!responsive.isDesktop} className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} semantic="attention" label={responsive.isDesktop ? 'Pendientes de revisar' : 'Pendientes'} value={notifications.summary.pendingReviews} detail={responsive.isDesktop ? 'Respuestas abiertas' : undefined} onPress={() => router.push('/(teacher)/reviews' as never)} />
+        <MobileMetricCard compact dense={!responsive.isDesktop} className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} icon="time" color={tokens.semantic.info} label="Sin actividad" value={notifications.summary.inactiveStudents} detail={responsive.isDesktop ? 'Últimos 7 días' : undefined} onPress={() => router.push('/(teacher)/students?status=no_activity' as never)} />
+        <MobileMetricCard compact dense={!responsive.isDesktop} className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} semantic="audit" label={responsive.isDesktop ? 'Alertas de auditoría' : 'Alertas'} value={notifications.summary.sensitiveActions} detail={responsive.isDesktop ? 'Últimos 7 días' : undefined} onPress={() => router.push('/(teacher)/audit' as never)} />
       </View>
 
       <AppTabs<TeacherNotificationBucket> accessibilityLabel="Separar alertas críticas e informativas" compact fill role="teacher" items={tabs} value={notifications.bucket} onChange={notifications.setBucket} />
@@ -159,6 +160,7 @@ export default function TeacherNotificationsScreen() {
         loading={notifications.loading}
         loadingLabel="Cargando notificaciones docentes…"
         scroll={false}
+        bottomPadding={0}
         horizontalPadding={shellHorizontalPadding}
         contentContainerStyle={{ flex: 1, width: '100%' }}
         desktopSidebar={<TeacherSidebar activeSection="notifications" subjectsCount={notifications.summary.activeSubjects} onSignOut={() => void handleSignOut()} />}
@@ -183,7 +185,7 @@ export default function TeacherNotificationsScreen() {
           onDelete={notifications.deleteNotification}
           onRefresh={notifications.refresh}
           onLoadMore={notifications.loadMore}
-          contentContainerStyle={{ paddingBottom: responsive.isDesktop ? 36 : MOBILE_BOTTOM_NAV_SPACER }}
+          contentContainerStyle={{ paddingBottom: responsive.isDesktop ? 36 : Platform.OS === 'web' ? MOBILE_BOTTOM_NAV_HEIGHT : MOBILE_BOTTOM_NAV_SPACER }}
         />
       </TeacherScreenLayout>
 

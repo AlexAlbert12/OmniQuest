@@ -12,7 +12,7 @@ test('help center keeps the authenticated shell and contextual return to Setting
 
   assert.match(help, /StudentSidebar activeSection="settings"/)
   assert.match(help, /TeacherSidebar activeSection="settings"/)
-  assert.match(help, /Ionicons name="arrow-back"[\s\S]*t\('settings\.back'\)/)
+  assert.match(help, /<AppBackButton[\s\S]*label=\{t\('settings\.back'\)\}/)
   assert.match(help, /settings\?section=about/)
   assert.match(help, /compactMobileTitle/)
   assert.match(header, /compactMobileTitle \? 'text-\[27px\]'/)

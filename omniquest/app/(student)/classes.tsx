@@ -563,7 +563,7 @@ function CompactSelect({
         accessibilityState={{ expanded: open }}
         onPress={onToggle}
         className="flex-row items-center justify-between rounded-2xl border px-4 py-3"
-        style={({ pressed }) => ({ borderColor: open ? tokens.border.active : tokens.border.default, backgroundColor: open ? tokens.surface.selected : tokens.surface.interactive, opacity: pressed ? 0.8 : 1 })}
+        style={({ pressed }) => ({ borderColor: tokens.border.default, backgroundColor: open ? tokens.surface.selected : tokens.surface.interactive, opacity: pressed ? 0.8 : 1 })}
       >
         <View className="min-w-0 flex-1">
           <Text className="text-[10px] font-black uppercase tracking-[1px] text-text-muted">{label}</Text>
@@ -573,7 +573,7 @@ function CompactSelect({
       </Pressable>
 
       {open ? (
-        <View className="absolute left-0 right-0 top-[68px] z-30 overflow-hidden rounded-2xl border" style={{ zIndex: 70, elevation: 18, borderColor: tokens.border.active, backgroundColor: tokens.surface.raised }}>
+        <View className="absolute left-0 right-0 top-[68px] z-30 overflow-hidden rounded-2xl border" style={{ zIndex: 70, elevation: 18, borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}>
           {options.map((option) => (
             <Pressable
               key={option.key}

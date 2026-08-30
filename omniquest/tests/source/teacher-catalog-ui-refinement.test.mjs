@@ -9,9 +9,10 @@ const read = (path) => readFileSync(join(root, path), 'utf8')
 test('teacher catalog keeps one desktop create CTA and a contextual mobile action', () => {
   const screen = read('features/teacher-catalog/screen.tsx')
   assert.match(screen, /actions=\{isDesktop \? <AppButton label="Crear curso"/)
-  assert.match(screen, /ListFooterComponent=\{<PaginationControls/)
+  assert.ok(screen.includes('ListFooterComponent={('))
+  assert.ok(screen.indexOf('<CreateCourseCTA') > screen.indexOf('<PaginationControls'))
   assert.equal((screen.match(/<CreateCourseCTA/g) || []).length, 1)
-  assert.match(screen, /!isDesktop \? <CreateCourseCTA[\s\S]*sticky/)
+  assert.doesNotMatch(screen, /<CreateCourseCTA[^>]*sticky/)
 })
 
 test('course participation keeps the same metric across breakpoints and routine navigation is not duplicated', () => {

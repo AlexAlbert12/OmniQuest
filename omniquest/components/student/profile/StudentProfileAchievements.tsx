@@ -16,12 +16,12 @@ function StudentProfileAchievements({ badges, onOpenAll }: Props) {
   const { tokens } = useAppTheme()
   return (
     <View className="rounded-2xl border p-5" style={{ backgroundColor: tokens.surface.default, borderColor: tokens.border.default }}>
-      <View className="mb-4 flex-row flex-wrap items-center justify-between gap-3">
-        <View>
+      <View className="mb-4 flex-row items-start justify-between gap-2">
+        <View className="min-w-0 flex-1">
           <Text className="text-[18px] font-black" style={{ color: tokens.text.primary }}>Últimos logros</Text>
           <Text className="mt-1 text-[12px]" style={{ color: tokens.text.muted }}>Solo mostramos tus hitos más recientes.</Text>
         </View>
-        <AppButton label="Ver todos" icon="arrow-forward-outline" iconPosition="right" size="sm" variant="ghost" onPress={onOpenAll} />
+        <AppButton label="Ver todos" icon="arrow-forward-outline" iconPosition="right" size="sm" variant="ghost" onPress={onOpenAll} style={{ flexShrink: 0 }} />
       </View>
 
       {badges.length > 0 ? (

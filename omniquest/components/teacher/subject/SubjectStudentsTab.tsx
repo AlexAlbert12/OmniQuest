@@ -103,22 +103,23 @@ export function SubjectStudentsTab({
         <View className="rounded-xl border border-border-default bg-surface-default p-4">
           <View className="mb-4">
             <View className="flex-row items-end gap-2">
-              <View className={isWide ? 'min-w-[220px] flex-1' : 'min-w-0 flex-[1.35]'}>
+              <View className={isWide ? 'min-w-[180px] flex-1' : 'min-w-0 flex-[1.35]'}>
                 <Text className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-text-secondary">Buscar</Text>
                 <View className="h-[42px] flex-row items-center rounded-xl border border-border-default bg-surface-raised px-3">
                 <TextInput className="min-w-0 flex-1 text-[13px] text-white" placeholder="Buscar alumno..." placeholderTextColor="#60799C" value={studentSearch} onChangeText={onStudentSearchChange} />
                 <Ionicons name="search-outline" size={17} color="#8FA7C7" />
                 </View>
               </View>
-              <View className={isWide ? 'w-[190px]' : 'min-w-0 flex-1'}>
+              <View className={isWide ? 'w-[160px]' : 'min-w-0 flex-1'}>
                 <AppDropdown<StudentStatusFilter> accessibilityLabel="Filtrar alumnos por estado" label="Estado" compact={!isWide} role="teacher" value={studentStatusFilter} options={statusOptions} onChange={onStudentStatusFilterChange} />
               </View>
-              <View className={isWide ? 'w-[190px]' : 'min-w-0 flex-1'}>
+              <View className={isWide ? 'w-[160px]' : 'min-w-0 flex-1'}>
                 <AppDropdown<StudentSortKey> accessibilityLabel="Ordenar alumnos" label="Ordenar por" compact={!isWide} role="teacher" value={studentSortKey} options={sortOptions} onChange={onStudentSortKeyChange} />
               </View>
-              {isWide ? <AppButton label="Importar alumnos" icon="person-add-outline" role="teacher" onPress={onImportStudents} /> : null}
             </View>
-            {!isWide ? <AppButton label="Importar alumnos" icon="person-add-outline" role="teacher" fullWidth onPress={onImportStudents} style={{ marginTop: 12 }} /> : null}
+            <View className={isWide ? 'mt-3 items-end' : 'mt-3'}>
+              <AppButton label="Importar alumnos" icon="person-add-outline" role="teacher" fullWidth={!isWide} onPress={onImportStudents} />
+            </View>
           </View>
 
           <View className="hidden flex-row border-b border-border-default px-2 pb-3 md:flex">

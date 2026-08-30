@@ -1,10 +1,11 @@
 import React from 'react'
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native'
+import { Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { withAlpha } from '../../lib/color'
 import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
 import type { IconName } from './SettingsTypes'
+import AppButton from '../ui/AppButton'
 
 export type PasswordChecks = {
   hasCurrentPassword: boolean
@@ -105,27 +106,20 @@ export function SecurityPasswordCard({
         <PasswordRuleRow valid={checks.isDifferentFromCurrent} label={t('security.password.rule.different')} />
       </View>
 
-      <Pressable
-        onPress={onSubmit}
+      <AppButton
+        accessibilityLabel={t('security.password.update')}
         disabled={!checks.canSubmit}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !checks.canSubmit, busy: changingPassword }}
-        className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border px-5 py-4"
-        style={({ pressed }) => ({
+        fullWidth
+        icon="shield-checkmark-outline"
+        label={t('security.password.update')}
+        loading={changingPassword}
+        onPress={onSubmit}
+        style={{
+          marginTop: 16,
           backgroundColor: checks.canSubmit ? accentColor : tokens.surface.disabled,
-          borderColor: checks.canSubmit ? accentColor : colors.border,
-          opacity: pressed && checks.canSubmit ? 0.86 : 1,
-        })}
-      >
-        {changingPassword ? (
-          <ActivityIndicator color={tokens.text.disabled} />
-        ) : (
-          <>
-            <Ionicons name="shield-checkmark-outline" size={18} color={checks.canSubmit ? tokens.text.onAccent : tokens.text.disabled} />
-            <Text className="text-[14px] font-black" style={{ color: checks.canSubmit ? tokens.text.onAccent : tokens.text.disabled }}>{t('security.password.update')}</Text>
-          </>
-        )}
-      </Pressable>
+          borderColor: checks.canSubmit ? accentColor : tokens.border.default,
+        }}
+      />
     </View>
   )
 }
@@ -240,14 +234,15 @@ export function SecurityAccountStatusCard({
         />
       </View>
 
-      <Pressable
+      <AppButton
+        accessibilityLabel={t('security.account.signOut')}
+        fullWidth
+        icon="log-out-outline"
+        label={t('security.account.signOut')}
         onPress={onSignOut}
-        className="mt-4 flex-row items-center justify-center gap-2 rounded-xl border px-5 py-4"
-        style={({ pressed }) => ({ borderColor: colors.border, backgroundColor: colors.surfaceRaised, opacity: pressed ? 0.82 : 1 })}
-      >
-        <Ionicons name="log-out-outline" size={18} color={colors.danger} />
-        <Text className="text-[13px] font-black" style={{ color: colors.danger }}>{t('security.account.signOut')}</Text>
-      </Pressable>
+        variant="danger"
+        style={{ marginTop: 16 }}
+      />
     </View>
   )
 }

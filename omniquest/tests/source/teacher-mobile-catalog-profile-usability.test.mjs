@@ -50,13 +50,13 @@ test('teacher settings expose sign out outside the desktop-only side menu', () =
   assert.match(settings, /onPress=\{data\.handleSignOut\}/)
 })
 
-test('teacher mobile course cards use the shared default border and create CTA clears the bottom nav', () => {
+test('teacher mobile course cards use the shared default border and create CTA stays inline', () => {
   const card = read('components/teacher/classes/TeacherCourseCard.tsx')
   const cta = read('components/teacher/classes/CreateCourseCTA.tsx')
   assert.match(card, /border border-border-default bg-surface-default/)
   assert.doesNotMatch(card, /borderColor: needsAttention/)
-  assert.match(cta, /MOBILE_BOTTOM_NAV_HEIGHT \+ insets\.bottom \+ 18/)
-  assert.doesNotMatch(cta, /bottom-\[82px\]/)
+  assert.match(cta, /<View className="mt-5">/)
+  assert.doesNotMatch(cta, /position: 'absolute'|useSafeAreaInsets|bottom-/)
 })
 
 test('teacher catalog pages reload on focus so created courses appear when returning', () => {

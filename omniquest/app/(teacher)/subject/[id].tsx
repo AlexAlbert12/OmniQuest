@@ -121,9 +121,8 @@ export default function SubjectDetailScreen() {
           backAction={{ label: 'Cursos', onPress: () => router.push('/(teacher)/classes' as never) }}
           isDesktop={isDesktop}
           title={subject.name}
-          titleNumberOfLines={2}
+          titleNumberOfLines={isDesktop ? 2 : 1}
           mobileStackedIdentity
-          mobileInlineActions
           compactMobileTitle
           leading={(
             <View className={`${isDesktop ? 'h-20 w-20' : 'h-14 w-14'} items-center justify-center rounded-2xl border border-border-active bg-surface-selected`}>

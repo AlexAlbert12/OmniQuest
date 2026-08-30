@@ -101,7 +101,17 @@ name: Admin deep visual evidence
     timeout: 20000
 - takeScreenshot:
     path: ui-deep-admin-user-details
+
+- scrollUntilVisible:
+    element:
+      text: "Gestionar"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 50
+    centerElement: true
+
 - tapOn: "Gestionar"
+
 - extendedWaitUntil:
     visible: "Ver actividad"
     timeout: 10000

@@ -10,11 +10,13 @@ import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 export default function CourseGalaxyHeader({
   subject,
   isDesktop,
+  onBack,
 }: {
   subject: StudentCourseSubject
   classroom: StudentCourseClassroom | null
   totals: StudentCourseTotals
   isDesktop: boolean
+  onBack: () => void
 }) {
   const { tokens } = useAppTheme()
   const color = subject.theme_color || tokens.brand.student
@@ -22,6 +24,7 @@ export default function CourseGalaxyHeader({
 
   return (
     <StudentPageHeader
+      backAction={{ label: 'Mis cursos', onPress: onBack }}
       isDesktop={isDesktop}
       title={subject.name}
       titleNumberOfLines={2}

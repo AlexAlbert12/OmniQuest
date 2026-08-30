@@ -44,18 +44,21 @@ export default function DailyPracticeRecommendation({
 
           <View className="mt-3 flex-row gap-2">
             <RecommendationSignal
+              backgroundColor={tokens.surface.interactive}
               color={tokens.semantic.warning}
               icon="analytics-outline"
               label="Precisión"
               value={`${recommendation.accuracyPercent}%`}
             />
             <RecommendationSignal
+              backgroundColor={tokens.surface.interactive}
               color={tokens.brand.student}
               icon="calendar-outline"
               label="Periodo"
               value="30 días"
             />
             <RecommendationSignal
+              backgroundColor={tokens.surface.interactive}
               color={tokens.semantic.info}
               icon="repeat-outline"
               label="Intentos"
@@ -78,11 +81,13 @@ export default function DailyPracticeRecommendation({
 }
 
 function RecommendationSignal({
+  backgroundColor,
   color,
   icon,
   label,
   value,
 }: {
+  backgroundColor: string
   color: string
   icon: keyof typeof Ionicons.glyphMap
   label: string
@@ -91,7 +96,7 @@ function RecommendationSignal({
   return (
     <View
       className="min-w-0 flex-1 rounded-xl border border-border-subtle p-2.5"
-      style={{ backgroundColor: withAlpha(color, '12') }}
+      style={{ backgroundColor }}
     >
       <View className="flex-row items-center gap-1.5">
         <Ionicons name={icon} size={14} color={color} />

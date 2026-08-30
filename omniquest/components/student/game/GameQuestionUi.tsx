@@ -5,6 +5,7 @@ import OmniGuide from '../../OmniGuide'
 import AnswerFeedbackMotion from '../../gamification/AnswerFeedbackMotion'
 import CelebrationParticles from '../../gamification/CelebrationParticles'
 import XpGainBurst from '../../gamification/XpGainBurst'
+import AppButton from '../../ui/AppButton'
 import { USE_NATIVE_ANIMATION_DRIVER } from '../../../lib/animation'
 import { useAppTheme } from '../../../lib/appTheme'
 import { useResponsiveLayout } from '../../../lib/responsive'
@@ -164,17 +165,18 @@ export function QuestionFeedbackCard({
         </View>
       ) : null}
 
-      <Pressable
+      <AppButton
         accessibilityLabel="Siguiente pregunta"
-        accessibilityRole="button"
-        hitSlop={6}
+        fullWidth
+        icon="arrow-forward"
+        iconPosition="right"
+        label="Siguiente pregunta"
+        role="student"
+        size="lg"
+        variant="primary"
         onPress={onContinue}
-        className={`${isDesktop ? 'mt-5 py-4' : 'mt-4 py-3'} min-h-12 flex-row items-center justify-center gap-2 rounded-2xl px-5`}
-        style={({ pressed }) => ({ backgroundColor: tokens.brand.student, opacity: pressed ? 0.82 : 1 })}
-      >
-        <Text className="text-[16px] font-black text-white">Siguiente pregunta</Text>
-        <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-      </Pressable>
+        style={{ marginTop: isDesktop ? 20 : 16 }}
+      />
       </View>
     </AnswerFeedbackMotion>
   )

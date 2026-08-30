@@ -1,5 +1,6 @@
 import React from 'react'
 import { render, waitFor } from '@testing-library/react-native'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AppThemeProvider } from '@/lib/appTheme'
 import AdminAuditPage from '@/app/(admin)/audit'
 
@@ -100,9 +101,16 @@ jest.mock('@/components/admin/shared/AdminScaffold', () => {
 describe('AdminAuditPage', () => {
   it('renders the complete audit route without undefined element types', async () => {
     const screen = render(
-      <AppThemeProvider>
-        <AdminAuditPage />
-      </AppThemeProvider>,
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 1280, height: 800 },
+          insets: { top: 0, right: 0, bottom: 0, left: 0 },
+        }}
+      >
+        <AppThemeProvider>
+          <AdminAuditPage />
+        </AppThemeProvider>
+      </SafeAreaProvider>,
     )
 
     await waitFor(() => expect(screen.getByText('Registro de auditoría')).toBeTruthy())

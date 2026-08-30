@@ -49,6 +49,7 @@ import StudentSidebar from '../student/StudentSidebar'
 import TeacherBottomNav from '../teacher/TeacherBottomNav'
 import TeacherSidebar from '../teacher/TeacherSidebar'
 import AppButton from '../ui/AppButton'
+import AppBackButton from '../ui/AppBackButton'
 import { useAppModal } from '../AppModalProvider'
 
 type HelpCenterRole = 'student' | 'teacher'
@@ -613,17 +614,13 @@ export default function RoleHelpCenter({ role }: { role: HelpCenterRole }) {
           contentContainerStyle={{ paddingHorizontal: isDesktop ? 28 : 16, paddingTop: isDesktop ? 22 : 18, paddingBottom: isDesktop ? 40 : MOBILE_BOTTOM_NAV_SPACER }}
           showsVerticalScrollIndicator={false}
         >
-          <Pressable
-            accessibilityRole="button"
+          <AppBackButton
             accessibilityLabel={t('settings.back')}
-            hitSlop={8}
+            label={t('settings.back')}
             onPress={backToSettings}
-            className="mb-3 flex-row items-center gap-2 self-start rounded-xl border px-3 py-2"
-            style={({ pressed }) => ({ minHeight: 38, borderColor: accentColor, backgroundColor: accentColor, opacity: pressed ? 0.8 : 1 })}
-          >
-            <Ionicons name="arrow-back" size={16} color="#FFFFFF" />
-            <Text className="text-[12px] font-black text-white">{t('settings.back')}</Text>
-          </Pressable>
+            size="sm"
+            style={{ marginBottom: 12 }}
+          />
 
           <RolePageHeader
             role={role}

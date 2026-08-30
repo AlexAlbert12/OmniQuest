@@ -5,19 +5,19 @@ import AppBottomSheet from '../../ui/AppBottomSheet'
 import AppButton from '../../ui/AppButton'
 import { getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty'
 import { withAlpha } from '../../../lib/color'
+import { useAppTheme } from '../../../lib/appTheme'
 import type { StudentCourseTopic } from './types'
 
 export default function TopicDifficultyModal({
-  color,
   topic,
   onClose,
   onChoose,
 }: {
-  color: string
   topic: StudentCourseTopic | null
   onClose: () => void
   onChoose: (difficulty: DifficultyLevel, reviewFailed: boolean) => void
 }) {
+  const { tokens } = useAppTheme()
 
   return (
     <AppBottomSheet
@@ -83,7 +83,7 @@ export default function TopicDifficultyModal({
           })}
 
           <View className="mt-2 rounded-2xl border border-border-default bg-surface-raised p-4">
-            <Text className="text-[12px] font-black uppercase tracking-[1px]" style={{ color }}>Cómo funciona</Text>
+            <Text className="text-[12px] font-black uppercase tracking-[1px]" style={{ color: tokens.brand.student }}>Cómo funciona</Text>
             <Text maxFontSizeMultiplier={2} className="mt-1 text-[13px] leading-5 text-text-secondary">
               La revisión es una muestra de tus fallos: verás tu respuesta y debajo la solución correcta. No podrás jugar ni cambiar respuestas desde esa pantalla.
             </Text>

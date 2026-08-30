@@ -21,6 +21,14 @@ test('la matriz web profunda cubre desktop y móvil con los tres roles', () => {
   assert.match(source, /deep-admin-permissions-modal/)
   assert.match(source, /deep-admin-user-details/)
   assert.match(source, /deep-admin-user-activity/)
+  assert.match(source, /openRoleNavigation\(page, 'student-nav-classes'/)
+  assert.match(source, /openRoleNavigation\(page, 'teacher-nav-classes'/)
+  assert.match(source, /getByLabel\('Crear curso'/)
+  assert.match(source, /Progreso de la partida/)
+  assert.match(source, /findVisibleOnlyLocator\(page\.getByText\(STUDENT_DEMO_QUESTION/)
+  assert.match(source, /getByLabel\(`Curso \${TEACHER_DEMO_COURSE}`/)
+  assert.doesNotMatch(source, /getByText\(TEACHER_DEMO_COURSE, \{ exact: true \}\)\.first\(\)/)
+  assert.doesNotMatch(source, /await page\.goto\('\/classes'\)/)
 })
 
 test('los flujos Maestro profundos dejan evidencia equivalente en Android', () => {

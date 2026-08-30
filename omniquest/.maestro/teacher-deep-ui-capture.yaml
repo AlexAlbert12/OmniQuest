@@ -156,7 +156,8 @@ name: Teacher deep visual evidence
     timeout: 20000
 - takeScreenshot:
     path: ui-deep-teacher-import-students
-- tapOn: "Cerrar importación de alumnos"
+- tapOn:
+    id: "teacher-import-close"
 - back
 - extendedWaitUntil:
     visible: "Cursos|Courses"

@@ -57,7 +57,7 @@ test('feedback, HUD and scoring use compact mobile dimensions and non-system per
   assert.match(feedback, /size=\{isDesktop \? 96 : 82\}/)
   assert.match(feedback, /isDesktop \? 20 : 16/)
   assert.match(feedback, /tokens\.gamification\.performanceLow/)
-  assert.match(feedback, /isDesktop \? 'mt-5 py-4' : 'mt-4 py-3'/)
+  assert.match(feedback, /label="Siguiente pregunta"[\s\S]*size="lg"[\s\S]*variant="primary"/)
   assert.match(tokens, /performanceLow:/)
   assert.match(result, /tokens\.gamification\.performanceLow/)
 })

@@ -93,21 +93,20 @@ test('support success confirmation and academic entities use standard applicatio
   assert.doesNotMatch(topicForm, /\['📚'|\['📘'/)
 })
 
-test('OmniQuest 1.0 keeps Spanish as the only selectable runtime language', () => {
+test('OmniQuest lets users select and persist Spanish or English', () => {
   const i18n = read('lib/i18n.tsx')
   const settings = read('hooks/useSettingsData.ts')
   const app = JSON.parse(read('app.json')).expo
   const localization = app.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === 'expo-localization')[1]
 
-  assert.deepEqual(localization.supportedLocales.android, ['es'])
-  assert.deepEqual(localization.supportedLocales.ios, ['es'])
-  assert.match(i18n, /await persistLocale\('es-ES'\)/)
-  assert.match(i18n, /setLocaleState\('es-ES'\)/)
-  assert.match(settings, /language: \['es-ES'\]/)
-  assert.doesNotMatch(settings, /language: \['es-ES', 'en-US'\]/)
+  assert.deepEqual(localization.supportedLocales.android, ['es', 'en'])
+  assert.deepEqual(localization.supportedLocales.ios, ['es', 'en'])
+  assert.ok(i18n.includes("storedLocale === 'es-ES' || storedLocale === 'en-US'"))
+  assert.ok(i18n.includes('setLocaleState(nextLocale)'))
+  assert.ok(settings.includes("language: ['es-ES', 'en-US']"))
 })
 
-test('the dormant English catalog remains isolated for a future localization pass', () => {
+test('the English UI catalog remains available to the selectable English locale', () => {
   const i18n = read('lib/i18n.tsx')
 
   assert.match(i18n, /sourceTextToEnglishLower/)

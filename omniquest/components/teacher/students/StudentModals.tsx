@@ -6,6 +6,7 @@ import { formatDate, formatRelativeDate, getStatusMeta } from './studentUtils';
 import AppConfirmModal from '../../AppConfirmModal';
 import { useResponsiveLayout } from '../../../lib/responsive';
 import { withAlpha } from '../../../lib/color';
+import { useAppTheme } from '../../../lib/appTheme';
 
 export function StudentActionsModal({
   student,
@@ -376,6 +377,9 @@ export function DetailActionButton({
   destructive?: boolean
   onPress: () => void
 }) {
+  const { tokens } = useAppTheme()
+  const actionColor = destructive ? tokens.semantic.danger : tokens.brand.teacher
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -385,9 +389,9 @@ export function DetailActionButton({
       className="min-h-12 flex-row items-center gap-2 rounded-xl px-4 py-3"
       style={({ pressed }) => ({
         opacity: pressed ? 0.82 : 1,
-        backgroundColor: destructive ? '#7F1D1D66' : '#5A46D8',
-        borderWidth: destructive ? 1 : 0,
-        borderColor: destructive ? '#BE123C' : 'transparent',
+        backgroundColor: actionColor,
+        borderWidth: 1,
+        borderColor: actionColor,
       })}
     >
       <Ionicons name={icon} size={15} color="#FFFFFF" />

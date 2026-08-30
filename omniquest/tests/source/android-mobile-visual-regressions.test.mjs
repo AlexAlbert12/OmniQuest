@@ -70,7 +70,8 @@ test('teacher catalog separates the mobile filter rail from a real sort dropdown
   assert.match(catalog, /<AppDropdown<TeacherCourseSort>/)
   assert.match(catalog, /label: `Orden: \${item\.label}`/)
   assert.match(cta, /<AppButton/)
-  assert.match(cta, /MOBILE_BOTTOM_NAV_HEIGHT \+ insets\.bottom \+ 18/)
+  assert.doesNotMatch(cta, /position: 'absolute'|sticky|useSafeAreaInsets/)
+  assert.ok(catalog.indexOf('<CreateCourseCTA') > catalog.indexOf('<PaginationControls'))
   assert.match(courseCard, /ATTENTION_BADGE_BACKGROUND/)
   assert.match(courseCard, /Necesita atención<\/Text>/)
   assert.match(tailwind, /\.\/features\/\*\*\/\*\.\{js,jsx,ts,tsx\}/)
@@ -146,19 +147,19 @@ test('login keeps its submit action reachable when the native keyboard opens', (
   assert.match(login, /keyboardShouldPersistTaps="handled"/)
 })
 
-test('OmniQuest 1.0 starts in Spanish and only exposes Spanish in native and Settings', () => {
+test('OmniQuest starts in Spanish and exposes Spanish and English in native and Settings', () => {
   const app = JSON.parse(read('app.json')).expo
   const i18n = read('lib/i18n.tsx')
   const settingsData = read('hooks/useSettingsData.ts')
   const settingsScreen = read('app/(student)/settings.tsx')
   const localization = app.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === 'expo-localization')[1]
 
-  assert.deepEqual(localization.supportedLocales.android, ['es'])
-  assert.deepEqual(localization.supportedLocales.ios, ['es'])
-  assert.match(i18n, /await persistLocale\('es-ES'\)[\s\S]*return 'es-ES'/)
-  assert.match(i18n, /setLocaleState\('es-ES'\)[\s\S]*persistLocale\('es-ES'\)/)
-  assert.match(settingsData, /language: \['es-ES'\]/)
-  assert.doesNotMatch(settingsData, /language: \['es-ES', 'en-US'\]/)
+  assert.deepEqual(localization.supportedLocales.android, ['es', 'en'])
+  assert.deepEqual(localization.supportedLocales.ios, ['es', 'en'])
+  assert.ok(i18n.includes("storedLocale === 'es-ES' || storedLocale === 'en-US'"))
+  assert.ok(i18n.includes('setLocaleState(nextLocale)'))
+  assert.ok(i18n.includes('persistLocale(nextLocale)'))
+  assert.ok(settingsData.includes("language: ['es-ES', 'en-US']"))
   assert.match(settingsScreen, /settings\.section\.preferences\.mobile/)
   assert.match(settingsScreen, /settings\.section\.notifications\.mobile/)
 })

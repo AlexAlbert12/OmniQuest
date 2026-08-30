@@ -81,6 +81,13 @@ name: Student deep visual evidence
     timeout: 20000
 - takeScreenshot:
     path: ui-deep-student-game-correct
+- scrollUntilVisible:
+    element:
+      text: "Siguiente pregunta"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 50
+    centerElement: true
 - tapOn: "Siguiente pregunta"
 - extendedWaitUntil:
     visible: "¡Partida completada!|Partida terminada"
@@ -115,6 +122,13 @@ name: Student deep visual evidence
     timeout: 20000
 - takeScreenshot:
     path: ui-deep-student-game-incorrect
+- scrollUntilVisible:
+    element:
+      text: "Siguiente pregunta"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 50
+    centerElement: true
 - tapOn: "Siguiente pregunta"
 - extendedWaitUntil:
     visible: "¡Partida completada!|Partida terminada"

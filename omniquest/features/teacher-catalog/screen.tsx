@@ -107,15 +107,19 @@ export default function TeacherClassesScreen() {
           </>
         )}
         ListEmptyComponent={<View className="items-center rounded-2xl border border-dashed border-border-default bg-surface-default px-5 py-10"><Text className="font-black text-white">No hay resultados</Text><Text className="mt-2 text-center text-[13px] text-text-muted">Prueba con otros filtros o crea un curso nuevo.</Text></View>}
-        ListFooterComponent={<PaginationControls compact={!isDesktop} onNext={() => catalog.setPage((current) => Math.min(catalog.maxPage, current + 1))} onPrevious={() => catalog.setPage((current) => Math.max(0, current - 1))} page={catalog.safePage} pageSize={pageSize} total={catalog.total} />}
+        ListFooterComponent={(
+          <View>
+            <PaginationControls compact={!isDesktop} onNext={() => catalog.setPage((current) => Math.min(catalog.maxPage, current + 1))} onPrevious={() => catalog.setPage((current) => Math.max(0, current - 1))} page={catalog.safePage} pageSize={pageSize} total={catalog.total} />
+            {!isDesktop ? <CreateCourseCTA onPress={() => router.push('/(teacher)/create-subject' as never)} /> : null}
+          </View>
+        )}
         refreshControl={<RefreshControl refreshing={catalog.activePayload.refreshing} onRefresh={catalog.activePayload.refresh} tintColor="#8B5CF6" />}
-        contentContainerStyle={{ paddingHorizontal: isDesktop ? 28 : 18, paddingTop: isDesktop ? 24 : 18, paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER + 96 }}
+        contentContainerStyle={{ paddingHorizontal: isDesktop ? 28 : 18, paddingTop: isDesktop ? 24 : 18, paddingBottom: isDesktop ? 32 : MOBILE_BOTTOM_NAV_SPACER }}
         showsVerticalScrollIndicator={false}
         initialNumToRender={8}
         maxToRenderPerBatch={8}
         windowSize={7}
       />
-      {!isDesktop ? <CreateCourseCTA onPress={() => router.push('/(teacher)/create-subject' as never)} sticky /> : null}
     </TeacherScreenLayout>
   )
 }

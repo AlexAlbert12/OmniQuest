@@ -79,7 +79,7 @@ export default function CourseNextMission({
           role="student"
           variant="primary"
           onPress={onContinue}
-          style={responsive.isMobile ? undefined : { minWidth: 190 }}
+          style={responsive.isMobile ? undefined : { minWidth: 190, alignSelf: 'center' }}
         />
       ) : null}
     </View>

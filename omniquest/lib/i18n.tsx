@@ -93,6 +93,7 @@ const es: TranslationDictionary = {
   'settings.notifications.description': 'Los canales activos se aplican al crear y enviar nuevas notificaciones.',
   'settings.section.personal': 'Ajustes personales',
   'settings.section.teaching': 'Preferencias docentes',
+  'settings.section.teaching.mobile': 'Docencia',
   'settings.general.title': 'Configuración general',
   'settings.general.profile.title': 'Editar perfil',
   'settings.general.profile.description': 'Actualiza tu alias y datos básicos.',
@@ -682,6 +683,7 @@ const en: TranslationDictionary = {
   'settings.notifications.description': 'Enabled channels are applied when new notifications are created and sent.',
   'settings.section.personal': 'Personal settings',
   'settings.section.teaching': 'Teaching preferences',
+  'settings.section.teaching.mobile': 'Teaching',
   'settings.general.title': 'General settings',
   'settings.general.profile.title': 'Edit profile',
   'settings.general.profile.description': 'Update your alias and basic information.',
@@ -1624,6 +1626,10 @@ function webStorage() {
 }
 
 async function readLocale(): Promise<AppLocale> {
+  const storedLocale = Platform.OS === 'web'
+    ? webStorage()?.getItem(LOCALE_STORAGE_KEY)
+    : await AsyncStorage.getItem(LOCALE_STORAGE_KEY)
+  if (storedLocale === 'es-ES' || storedLocale === 'en-US') return storedLocale
   await persistLocale('es-ES')
   return 'es-ES'
 }
@@ -1979,9 +1985,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
   }, [locale])
 
-  const setLocale = useCallback(async (_nextLocale: AppLocale) => {
-    setLocaleState('es-ES')
-    await persistLocale('es-ES')
+  const setLocale = useCallback(async (nextLocale: AppLocale) => {
+    setLocaleState(nextLocale)
+    await persistLocale(nextLocale)
   }, [])
 
   const value = useMemo<I18nContextValue>(() => ({

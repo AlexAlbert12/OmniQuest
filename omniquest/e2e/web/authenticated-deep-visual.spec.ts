@@ -18,8 +18,7 @@ test.describe('evidencia visual profunda autenticada', () => {
     test.skip(!SUPPORTED_PROJECTS.has(testInfo.project.name), 'Este recorrido final solo se captura en web desktop y web móvil.')
 
     await loginAs(page, 'student')
-    await page.goto('/classes')
-    await waitForVisualReady(page)
+    await openRoleNavigation(page, 'student-nav-classes', 'Cursos del alumno')
 
     const course = page.locator('[data-testid^="student-course-"]').filter({ hasText: STUDENT_DEMO_COURSE }).first()
     await expect(course, `No se encontró el curso demo ${STUDENT_DEMO_COURSE}.`).toBeVisible({ timeout: 20_000 })
@@ -61,10 +60,9 @@ test.describe('evidencia visual profunda autenticada', () => {
     test.skip(!SUPPORTED_PROJECTS.has(testInfo.project.name), 'Este recorrido final solo se captura en web desktop y web móvil.')
 
     await loginAs(page, 'teacher')
-    await page.goto('/classes')
-    await waitForVisualReady(page)
+    await openRoleNavigation(page, 'teacher-nav-classes', 'Cursos del profesor')
 
-    const createCourse = await findVisibleLocator(page.getByRole('button', { name: 'Crear curso', exact: true }), 10_000)
+    const createCourse = await findVisibleLocator(page.getByLabel('Crear curso', { exact: true }), 10_000)
     if (!createCourse) throw new Error('No se encontró el CTA Crear curso.')
     await createCourse.click()
     await expect(page.getByText('Nuevo curso', { exact: true })).toBeVisible({ timeout: 20_000 })
@@ -102,14 +100,13 @@ test.describe('evidencia visual profunda autenticada', () => {
     const importStudents = await findVisibleLocator(page.getByRole('button', { name: 'Importar alumnos', exact: true }), 15_000)
     if (!importStudents) throw new Error('No se encontró el CTA Importar alumnos en el curso demo.')
     await importStudents.click()
-    await expect(page.getByText('Importar alumnos', { exact: true }).first()).toBeVisible({ timeout: 20_000 })
+    const closeImport = await findVisibleLocator(page.getByRole('button', { name: 'Cerrar importación de alumnos', exact: true }), 20_000)
+    if (!closeImport) throw new Error('No se abrió correctamente la importación de alumnos.')
     await captureEvidence(page, testInfo, 'deep-teacher-import-students')
-    const closeImport = await findVisibleLocator(page.getByRole('button', { name: 'Cerrar importación de alumnos', exact: true }), 10_000)
-    if (!closeImport) throw new Error('No se encontró el botón para cerrar la importación de alumnos.')
     await closeImport.click()
 
     await selectTeacherSubjectTab(page, 'Preguntas')
-    const editQuestion = await findVisibleLocator(page.getByRole('button', { name: /Editar pregunta:/ }).first(), 20_000)
+    const editQuestion = await findVisibleLocator(page.getByRole('button', { name: /Editar pregunta:/ }), 20_000)
     if (!editQuestion) throw new Error('No se encontró una pregunta editable en el curso demo.')
     await editQuestion.click()
     await expect(page.getByText('Editar pregunta', { exact: true })).toBeVisible({ timeout: 20_000 })
@@ -167,7 +164,8 @@ async function openFirstStudentTopic(page: Page) {
   const topic = await findVisibleLocator(page.locator('[data-testid^="student-topic-"]'), 20_000)
   if (!topic) throw new Error('No se encontró un tema visible dentro del curso demo.')
   await topic.click()
-  await expect(page.getByText(/¿Qué quieres hacer\?/).first()).toBeVisible({ timeout: 20_000 })
+  const chooser = await findVisibleOnlyLocator(page.getByText(/¿Qué quieres hacer\?/), 20_000)
+  if (!chooser) throw new Error('No se abrió el selector de dificultad del tema demo.')
 }
 
 async function startFirstAvailableDifficulty(page: Page) {
@@ -177,17 +175,18 @@ async function startFirstAvailableDifficulty(page: Page) {
 }
 
 async function waitForStudentDemoQuestion(page: Page) {
-  await expect(page.getByText(STUDENT_DEMO_QUESTION, { exact: true })).toBeVisible({ timeout: 30_000 })
+  const question = await findVisibleOnlyLocator(page.getByText(STUDENT_DEMO_QUESTION, { exact: true }), 30_000)
+  if (!question) throw new Error('No se encontró visible la pregunta demo dentro de la partida.')
 }
 
 async function openTeacherDemoCourse(page: Page) {
-  await page.goto('/classes')
-  await waitForVisualReady(page)
   const course = await findVisibleLocator(page.getByRole('button', { name: `Abrir curso ${TEACHER_DEMO_COURSE}`, exact: true }), 20_000)
   if (!course) throw new Error(`No se encontró el curso docente ${TEACHER_DEMO_COURSE}.`)
   await course.click()
-  await expect(page.getByText(TEACHER_DEMO_COURSE, { exact: true }).first()).toBeVisible({ timeout: 20_000 })
   await waitForVisualReady(page)
+  const courseDetail = await findVisibleOnlyLocator(page.getByLabel(`Curso ${TEACHER_DEMO_COURSE}`, { exact: true }), 20_000)
+  const visibleTitle = courseDetail ? null : await findVisibleOnlyLocator(page.getByText(TEACHER_DEMO_COURSE, { exact: true }), 20_000)
+  if (!courseDetail && !visibleTitle) throw new Error(`No se abrió correctamente el detalle del curso ${TEACHER_DEMO_COURSE}.`)
 }
 
 async function selectTeacherSubjectTab(page: Page, name: 'Temas' | 'Preguntas' | 'Alumnos') {
@@ -207,6 +206,27 @@ async function selectTeacherSubjectTab(page: Page, name: 'Temas' | 'Preguntas' |
   await waitForVisualReady(page)
 }
 
+async function openRoleNavigation(page: Page, testID: string, destinationLabel: string) {
+  const navigation = await findVisibleLocator(page.getByTestId(testID), 12_000)
+  if (!navigation) throw new Error(`No se encontró la navegación ${destinationLabel} (${testID}).`)
+  await navigation.click()
+  await waitForVisualReady(page)
+}
+
+
+async function findVisibleOnlyLocator(locator: Locator, timeout: number): Promise<Locator | null> {
+  const deadline = Date.now() + timeout
+  while (Date.now() <= deadline) {
+    const count = await locator.count()
+    for (let index = 0; index < count; index += 1) {
+      const candidate = locator.nth(index)
+      if (await candidate.isVisible().catch(() => false)) return candidate
+    }
+    await new Promise((resolve) => setTimeout(resolve, 75))
+  }
+  return null
+}
+
 async function findVisibleLocator(locator: Locator, timeout: number): Promise<Locator | null> {
   const deadline = Date.now() + timeout
   while (Date.now() <= deadline) {
@@ -222,7 +242,8 @@ async function findVisibleLocator(locator: Locator, timeout: number): Promise<Lo
 
 async function waitForVisualReady(page: Page) {
   await expect(page.locator('body')).toBeVisible({ timeout: 30_000 })
-  await expect(page.locator('[role="progressbar"]:visible'), 'La pantalla sigue mostrando un loader bloqueante.').toHaveCount(0, { timeout: 45_000 })
+  const blockingLoaders = page.locator('[role="progressbar"]:visible:not([aria-label="Progreso de la partida"])')
+  await expect(blockingLoaders, 'La pantalla sigue mostrando un loader bloqueante.').toHaveCount(0, { timeout: 45_000 })
   await page.evaluate(async () => {
     if ('fonts' in document) await document.fonts.ready
   }).catch(() => undefined)

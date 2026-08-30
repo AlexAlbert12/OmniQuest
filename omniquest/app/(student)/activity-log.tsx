@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import { FlatList, Text, View } from 'react-native'
+import { FlatList, Platform, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import OmniGuide from '../../components/OmniGuide'
 import PaginationControls from '../../components/ui/PaginationControls'
@@ -17,6 +17,7 @@ import { STUDENT_ACTIVITY_PAGE_SIZE, useStudentActivity } from '../../hooks/stud
 import { useAppTheme } from '../../lib/appTheme'
 import { useResponsiveLayout } from '../../lib/responsive'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
+import { MOBILE_BOTTOM_NAV_HEIGHT, MOBILE_BOTTOM_NAV_SPACER } from '../../lib/mobileLayout'
 
 export default function ActivityLogScreen() {
   const responsive = useResponsiveLayout()
@@ -91,6 +92,7 @@ export default function ActivityLogScreen() {
       fluidContent
       horizontalPadding={isDesktop ? 28 : 18}
       topPadding={isDesktop ? 24 : 18}
+      bottomPadding={0}
       contentContainerStyle={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0 }}
     >
       <StudentPageHeader
@@ -117,7 +119,10 @@ export default function ActivityLogScreen() {
           keyExtractor={(item: ActivityListItem) => item.key}
           renderItem={renderItem}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}
+          contentContainerStyle={{
+            paddingBottom: isDesktop ? 40 : Platform.OS === 'web' ? MOBILE_BOTTOM_NAV_HEIGHT : MOBILE_BOTTOM_NAV_SPACER,
+            flexGrow: 1,
+          }}
           refreshing={activity.refreshing}
           onRefresh={activity.refresh}
           keyboardShouldPersistTaps="handled"

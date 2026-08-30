@@ -8,6 +8,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import AppIconButton from './AppIconButton'
 import AppPressable from './AppPressable'
 import { useAppTheme } from '../../lib/appTheme'
@@ -39,6 +40,7 @@ export default function AppBottomSheet({
   testID,
 }: AppBottomSheetProps) {
   const responsive = useResponsiveLayout()
+  const insets = useSafeAreaInsets()
   const { tokens } = useAppTheme()
   const isCompact = responsive.isMobile || responsive.isTablet
   const content = scrollable ? (
@@ -47,7 +49,11 @@ export default function AppBottomSheet({
         styles.scrollContent,
         { maxHeight: Math.max(160, responsive.height * (isCompact ? 0.68 : 0.62)) },
       ]}
-      contentContainerStyle={[styles.content, contentStyle]}
+      contentContainerStyle={[
+        styles.content,
+        contentStyle,
+        isCompact ? { paddingBottom: insets.bottom + 16 } : null,
+      ]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >

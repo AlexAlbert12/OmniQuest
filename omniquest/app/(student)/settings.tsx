@@ -58,7 +58,7 @@ const studentSettingsSectionDefinitions: SettingsSectionDefinition[] = [
 
 const teacherSettingsSectionDefinitions: SettingsSectionDefinition[] = [
   { key: 'personal', labelKey: 'settings.section.personal', icon: 'person-circle-outline', anchor: 'personal' },
-  { key: 'teaching', labelKey: 'settings.section.teaching', icon: 'school-outline', anchor: 'teaching' },
+  { key: 'teaching', labelKey: 'settings.section.teaching', mobileLabelKey: 'settings.section.teaching.mobile', icon: 'school-outline', anchor: 'teaching' },
   { key: 'privacy', labelKey: 'settings.section.privacy', icon: 'shield-checkmark-outline', anchor: 'privacy' },
   { key: 'data', labelKey: 'settings.section.data', icon: 'server-outline', anchor: 'data' },
   { key: 'about', labelKey: 'settings.section.about', icon: 'help-circle-outline', anchor: 'about' },

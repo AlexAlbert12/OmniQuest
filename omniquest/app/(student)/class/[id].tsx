@@ -459,6 +459,7 @@ export default function StudentClassDetailScreen() {
             classroom={classroom}
             totals={totals}
             isDesktop={isDesktop}
+            onBack={() => router.push('/(student)/classes' as never)}
           />
 
           <View onLayout={!isDesktop && recommendedTopic ? handleInlineMissionLayout : undefined}>
@@ -521,7 +522,6 @@ export default function StudentClassDetailScreen() {
       ) : null}
 
       <TopicDifficultyModal
-        color={color}
         topic={difficultyChooserTopic}
         onClose={() => setDifficultyChooserTopic(null)}
         onChoose={(difficulty, reviewFailed) => difficultyChooserTopic ? chooseDifficulty(difficultyChooserTopic, difficulty, reviewFailed) : undefined}

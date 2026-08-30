@@ -1,6 +1,7 @@
 import React from 'react'
 import { ScrollView, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import OmniGuide, { type OmniSize, type OmniState } from '../../OmniGuide'
 import AnimatedXpCounter from '../../gamification/AnimatedXpCounter'
 import BadgeUnlockModal from '../../gamification/BadgeUnlockModal'
@@ -49,6 +50,7 @@ export default function ResultState({
   unlockedBadges?: StudentBadge[]
   onDismissUnlockedBadge?: () => void
 }) {
+  const insets = useSafeAreaInsets()
   const actionIsBack = action.toLocaleLowerCase().startsWith('volver')
   const secondaryActionIsBack = secondaryAction?.toLocaleLowerCase().startsWith('volver')
 
@@ -61,7 +63,8 @@ export default function ResultState({
         flexGrow: 1,
         justifyContent: 'center',
         paddingHorizontal: 18,
-        paddingVertical: 28,
+        paddingTop: 28,
+        paddingBottom: Math.max(insets.bottom + 24, 40),
       }}
       showsVerticalScrollIndicator={false}
     >

@@ -127,7 +127,7 @@ name: Admin UI capture matrix
     id: "admin-hub-security"
 
 - extendedWaitUntil:
-    visible: "Seguridad|Security"
+    visible: "Seguridad administrativa"
     timeout: 15000
 
 - takeScreenshot:

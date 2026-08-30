@@ -150,6 +150,8 @@ export default function StudentNotificationsScreen() {
         icon="notifications"
         isDesktop={isDesktop}
         title="Notificaciones"
+        titleNumberOfLines={1}
+        compactMobileTitle
         showNotifications={false}
         actionsPosition="top"
         actions={unreadCount > 0 ? (
