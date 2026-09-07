@@ -31,6 +31,8 @@ import { useAppTheme } from '../../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { useResponsiveLayout } from '../../../lib/responsive'
 
+const STUDENTS_SPLIT_LAYOUT_MIN_WIDTH = 1600
+
 export default function SubjectDetailScreen() {
   const params = useLocalSearchParams<{ id: string | string[]; tab?: string | string[]; classroomId?: string | string[]; importStudents?: string | string[] }>()
   const router = useRouter()
@@ -39,7 +41,7 @@ export default function SubjectDetailScreen() {
   const subjectId = firstParam(params.id)
   const importStudents = firstParam(params.importStudents)
   const isDesktop = responsive.isDesktop
-  const isWide = responsive.isDesktop
+  const isWide = responsive.width >= STUDENTS_SPLIT_LAYOUT_MIN_WIDTH
 
   const detail = useTeacherSubjectDetail({ subjectId, tab: params.tab, classroomId: params.classroomId })
   const { setActiveTab, setShowStudentImportModal } = detail

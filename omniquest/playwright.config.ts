@@ -9,8 +9,10 @@ if (process.platform === 'win32') {
 }
 
 const port = Number(process.env.PLAYWRIGHT_PORT || 8082)
-const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`
+const explicitBaseURL = process.env.PLAYWRIGHT_BASE_URL?.trim()
+const baseURL = explicitBaseURL || `http://127.0.0.1:${port}`
 const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === '1'
+const isLocalBaseURL = /^https?:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?(?:\/|$)/i.test(baseURL)
 
 export default defineConfig({
   testDir: './e2e/web',
@@ -35,11 +37,15 @@ export default defineConfig({
     { name: 'chromium-tablet', use: { ...devices['iPad (gen 7)'], browserName: 'chromium' } },
     { name: 'chromium-mobile', use: { ...devices['Pixel 7'] } },
   ],
-  webServer: {
-    command: 'node scripts/start-playwright-web.mjs',
-    url: baseURL,
-    reuseExistingServer,
-    timeout: 360_000,
-    env: { ...process.env, CI: '1', BROWSER: 'none', PLAYWRIGHT_PORT: String(port) },
-  },
+  ...(isLocalBaseURL
+    ? {
+        webServer: {
+          command: 'node scripts/start-playwright-web.mjs',
+          url: baseURL,
+          reuseExistingServer,
+          timeout: 360_000,
+          env: { ...process.env, CI: '1', BROWSER: 'none', PLAYWRIGHT_PORT: String(port) },
+        },
+      }
+    : {}),
 })

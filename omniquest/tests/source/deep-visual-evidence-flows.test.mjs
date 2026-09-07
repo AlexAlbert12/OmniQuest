@@ -29,6 +29,11 @@ test('la matriz web profunda cubre desktop y móvil con los tres roles', () => {
   assert.match(source, /getByLabel\(`Curso \${TEACHER_DEMO_COURSE}`/)
   assert.doesNotMatch(source, /getByText\(TEACHER_DEMO_COURSE, \{ exact: true \}\)\.first\(\)/)
   assert.doesNotMatch(source, /await page\.goto\('\/classes'\)/)
+
+  const teacherSubject = read('app/(teacher)/subject/[id].tsx')
+  assert.match(teacherSubject, /const STUDENTS_SPLIT_LAYOUT_MIN_WIDTH = 1600/, 'teacher students layout must define a safe split threshold')
+  assert.match(teacherSubject, /const isWide = responsive\.width >= STUDENTS_SPLIT_LAYOUT_MIN_WIDTH/, 'student analytics sidebar must only split when the teacher content has enough horizontal room')
+  assert.doesNotMatch(teacherSubject, /const isWide = responsive\.isDesktop/, 'desktop alone is not wide enough for the students table plus the 360px analytics rail')
 })
 
 test('los flujos Maestro profundos dejan evidencia equivalente en Android', () => {

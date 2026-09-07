@@ -92,7 +92,7 @@ export function SubjectStudentsTab({
 
   return (
     <View className={isWide ? 'flex-row gap-6' : 'gap-6'}>
-      <View className={isDesktop ? 'flex-[1.55] gap-5' : 'gap-5'}>
+      <View className={isDesktop ? 'min-w-0 flex-[1.55] gap-5' : 'gap-5'}>
         <View className={isDesktop ? 'flex-row gap-4' : 'flex-row gap-2'}>
           <SubjectKpiCard isDesktop={isDesktop} icon="people" label="Alumnos inscritos" value={String(enrollmentsCount)} detail={evaluatedDetail} color="#8B5CF6" />
           <SubjectKpiCard isDesktop={isDesktop} icon="checkmark-circle" label="Activos esta semana" value={String(activeThisWeek)} detail={`${weeklyActivePercent}% del total`} color="#34D399" />
