@@ -22,7 +22,7 @@ export function AdminMetrics({ data }: { data: AdminData }) {
         <Text className="text-[19px] font-black text-text-primary">Resumen</Text>
         <Text className="mt-1 text-[12px] font-semibold text-text-muted">Estado general de la plataforma.</Text>
         <View className="mt-4 flex-row" style={{ gap: 8 }}>
-          {metrics.slice(0, 4).map((metric) => <View key={metric.label} style={{ flex: 1, minWidth: 0 }}><AdminMetric {...metric} dense style={{ width: '100%', aspectRatio: 1 }} /></View>)}
+          {metrics.slice(0, 4).map((metric) => <View key={metric.label} style={{ flex: 1, minWidth: 0 }}><AdminMetric {...metric} dense style={{ width: '100%' }} /></View>)}
         </View>
       </View>
     )

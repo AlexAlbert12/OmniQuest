@@ -100,7 +100,7 @@ export default function MobileTeacherStudents({
   const paginatedStudents = visibleStudents;
   const subjectOptions = [{ value: 'all' as const, label: 'Todos', icon: 'book-outline' as const }, ...subjects.map((subject) => ({ value: subject.id, label: subject.name, icon: 'book-outline' as const }))];
   const classOptions = [{ value: 'all' as const, label: 'Todas', icon: 'people-outline' as const }, ...classroomOptions.map((classroom) => ({ value: classroom.id, label: classroom.name, icon: 'people-outline' as const }))];
-  const statusOptions = statusFilterOptions.map((option) => ({ value: option.value, label: `${option.label} (${getStatusCount(option.value, stats)})`, icon: 'pulse-outline' as const }));
+  const statusOptions = statusFilterOptions.map((option) => ({ value: option.value, label: option.label, description: `${getStatusCount(option.value, stats)} alumno${getStatusCount(option.value, stats) === 1 ? '' : 's'}`, icon: 'pulse-outline' as const }));
   const orderOptions = sortOptions.map((option) => ({ value: option.value, label: option.label, icon: 'swap-vertical-outline' as const }));
 
   return (
@@ -248,13 +248,15 @@ function DirectoryMetric({
     <View
       accessible
       accessibilityLabel={`${label}: ${value}`}
-      className="min-w-0 flex-1 rounded-xl border px-2.5 py-2.5"
-      style={{ minHeight: 82, borderColor: withAlpha(color, '70'), backgroundColor: withAlpha(color, '18') }}
+      className="min-w-0 flex-1 rounded-xl border px-2.5 py-2"
+      style={{ borderColor: withAlpha(color, '70'), backgroundColor: withAlpha(color, '18') }}
     >
-      <View className="h-7 w-7 items-center justify-center rounded-lg" style={{ backgroundColor: withAlpha(color, '2E') }}>
-        <Ionicons name={icon} size={16} color={color} />
+      <View className="flex-row items-center gap-2">
+        <View className="h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: withAlpha(color, '2E') }}>
+          <Ionicons name={icon} size={16} color={color} />
+        </View>
+        <Text className="min-w-0 flex-1 text-[21px] font-black text-white" numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
       </View>
-      <Text className="mt-1.5 text-[21px] font-black text-white">{value}</Text>
       <Text className="text-[10px] font-bold text-text-secondary" numberOfLines={2}>{label}</Text>
     </View>
   );
@@ -490,9 +492,9 @@ function MobileStudentMiniMetric({ label, value, color, icon }: { label: string;
     >
       <View className="flex-row items-center gap-1.5">
         <Ionicons name={icon} size={14} color={color} />
-        <Text className="min-w-0 flex-1 text-[10px] font-bold text-text-secondary" numberOfLines={2}>{label}</Text>
+        <Text className="min-w-0 flex-1 text-[18px] font-black" style={{ color }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
       </View>
-      <Text className="mt-1 text-[18px] font-black" style={{ color }}>{value}</Text>
+      <Text className="mt-1 text-[10px] font-bold text-text-secondary" numberOfLines={2}>{label}</Text>
     </View>
   );
 }

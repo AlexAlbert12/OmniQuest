@@ -52,11 +52,11 @@ export default function TeacherAuditScreen() {
 
           {audit.error ? <AppStatusBanner variant="danger" title="No se pudo completar la operación" message={audit.error} style={{ marginBottom: 16 }} /> : null}
 
-          <View style={{ marginBottom: 20, flexDirection: 'row', flexWrap: isDesktop ? 'wrap' : 'nowrap', gap: isDesktop ? 12 : 6 }}>
-            <MobileMetricCard semantic="audit" label="Registros" value={String(audit.pageData.total)} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, minHeight: 92, flex: 1 }} />
-            <MobileMetricCard icon="calendar-outline" label="Últimos 7 días" value={String(audit.pageData.stats.last7Days || 0)} color={tokens.semantic.info} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, minHeight: 92, flex: 1 }} />
-            <MobileMetricCard semantic="attention" label="Advertencias" value={String(audit.pageData.stats.warning || 0)} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, minHeight: 92, flex: 1 }} />
-            <MobileMetricCard semantic="critical" label="Críticas" value={String(audit.pageData.stats.critical || 0)} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, minHeight: 92, flex: 1 }} />
+          <View style={{ marginBottom: 20, flexDirection: 'row', flexWrap: isDesktop ? 'wrap' : 'nowrap', alignItems: 'stretch', gap: isDesktop ? 12 : 5 }}>
+            <MobileMetricCard semantic="audit" label="Registros" value={String(audit.pageData.total)} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, flexBasis: 0, flexGrow: 1, flexShrink: 1 }} />
+            <MobileMetricCard icon="calendar-outline" label="Últimos 7 días" value={String(audit.pageData.stats.last7Days || 0)} color={tokens.semantic.info} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, flexBasis: 0, flexGrow: 1, flexShrink: 1 }} />
+            <MobileMetricCard semantic="attention" label="Advertencias" value={String(audit.pageData.stats.warning || 0)} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, flexBasis: 0, flexGrow: 1, flexShrink: 1 }} />
+            <MobileMetricCard semantic="critical" label="Críticas" value={String(audit.pageData.stats.critical || 0)} compact dense={!isDesktop} style={isDesktop ? { flex: 1 } : { minWidth: 0, flexBasis: 0, flexGrow: 1, flexShrink: 1 }} />
           </View>
 
           <TeacherAuditAlerts alerts={audit.configuration.alerts} busy={audit.busy} onAcknowledge={(id) => void audit.acknowledgeAlert(id)} />
@@ -73,10 +73,10 @@ export default function TeacherAuditScreen() {
 
           <AppStatusBanner
             variant="info"
-            icon="information-circle-outline"
+            icon="information-circle"
             title="Protección de datos"
             message={`Los registros de auditoría se conservan durante ${audit.configuration.retentionDays} días. No se almacenan contraseñas, tokens ni respuestas del alumnado; descripciones, notas y comentarios se excluyen del historial.`}
-            style={{ marginTop: 20 }}
+            style={{ marginTop: 20, borderColor: tokens.semantic.info }}
           />
         </ScrollView>
       </View>

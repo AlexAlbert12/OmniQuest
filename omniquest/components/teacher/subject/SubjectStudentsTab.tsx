@@ -91,7 +91,7 @@ export function SubjectStudentsTab({
   const activityCapacity = Math.max(enrollmentsCount * Math.max(questionsCount, 1), 1)
 
   return (
-    <View className={isDesktop ? 'flex-row gap-6' : 'gap-6'}>
+    <View className={isWide ? 'flex-row gap-6' : 'gap-6'}>
       <View className={isDesktop ? 'flex-[1.55] gap-5' : 'gap-5'}>
         <View className={isDesktop ? 'flex-row gap-4' : 'flex-row gap-2'}>
           <SubjectKpiCard isDesktop={isDesktop} icon="people" label="Alumnos inscritos" value={String(enrollmentsCount)} detail={evaluatedDetail} color="#8B5CF6" />
@@ -152,7 +152,7 @@ export function SubjectStudentsTab({
         </View>
       </View>
 
-      <View className={isDesktop ? 'w-[360px] gap-5' : 'gap-5'}>
+      <View className={isWide ? 'w-[360px] shrink-0 gap-5' : 'gap-5'}>
         <SubjectPanel title="Distribución de notas">
           <GradeDistributionBars distribution={gradeDistribution} total={scorePerformanceCount} unassessed={unassessedCount} />
         </SubjectPanel>

@@ -31,8 +31,8 @@ test('full-screen structure comes from the canonical responsive modes', () => {
 test('priority student identity is allowed to wrap while secondary metadata stays compact', () => {
   const mobile = read('components/teacher/students/MobileTeacherStudents.tsx')
   const modals = read('components/teacher/students/StudentModals.tsx')
-  assert.doesNotMatch(mobile, /numberOfLines=\{1\}/)
-  assert.doesNotMatch(modals, /numberOfLines=\{1\}/)
+  assert.doesNotMatch(mobile, /student\.alias[^\n]*numberOfLines=\{1\}|numberOfLines=\{1\}[^\n]*student\.alias/)
+  assert.doesNotMatch(modals, /student\.alias[^\n]*numberOfLines=\{1\}|numberOfLines=\{1\}[^\n]*student\.alias/)
   assert.match(mobile, /student\.alias[^\n]*numberOfLines=\{2\}|numberOfLines=\{2\}[^\n]*student\.alias/)
   assert.doesNotMatch(mobile, /context\.subjectName} · \$\{context\.classroomName/)
 })

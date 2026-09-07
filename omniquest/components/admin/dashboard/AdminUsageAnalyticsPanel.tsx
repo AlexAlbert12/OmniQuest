@@ -52,7 +52,7 @@ export default function AdminUsageAnalyticsPanel({ refreshVersion }: { refreshVe
               { color: tokens.semantic.warning, icon: 'exit' as const, label: 'Abandonadas', value: analytics.game_abandoned },
               { color: tokens.semantic.danger, icon: 'warning' as const, label: 'Errores', value: analytics.game_errors },
               { color: tokens.semantic.danger, icon: 'cloud-offline' as const, label: 'Errores Edge', value: analytics.edge_function_errors },
-            ].map((metric) => <View key={metric.label} style={responsive.isMobile ? { flexBasis: '22%', flexGrow: 1, minWidth: 0 } : { flexGrow: 1, minWidth: 160 }}><AdminMetric {...metric} value={String(metric.value || 0)} dense={responsive.isMobile} style={responsive.isMobile ? { width: '100%', aspectRatio: 1 } : undefined} /></View>)}
+            ].map((metric) => <View key={metric.label} style={responsive.isMobile ? { flexBasis: '22%', flexGrow: 1, minWidth: 0 } : { flexGrow: 1, minWidth: 160 }}><AdminMetric {...metric} value={String(metric.value || 0)} dense={responsive.isMobile} style={responsive.isMobile ? { width: '100%' } : undefined} /></View>)}
           </View>
           <View className={responsive.isDesktop ? 'mt-4 flex-row gap-4' : 'mt-4 gap-3'}>
             <View className="flex-1 rounded-xl border border-border-default bg-surface-default p-4"><Text className="text-[12px] font-bold text-text-muted">Retención</Text><Text className="mt-2 text-[13px] font-black text-text-primary">D1 {Number(analytics.retention?.d1 || 0).toFixed(1)}% · D7 {Number(analytics.retention?.d7 || 0).toFixed(1)}% · D30 {Number(analytics.retention?.d30 || 0).toFixed(1)}%</Text></View>

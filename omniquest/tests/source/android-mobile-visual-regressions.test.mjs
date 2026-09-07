@@ -53,8 +53,9 @@ test('shared buttons and tab rails do not reorder or squeeze their content on na
   assert.match(tabs, /fillTab: \{ flex: 1, minWidth: 0 \}/)
   assert.match(tabs, /includeFontPadding: false/)
   assert.match(dropdown, /compactTrigger: \{[\s\S]*?minHeight: 44/)
-  assert.match(dropdown, /compactTriggerText: \{[\s\S]*?fontSize: 12/)
-  assert.match(dropdown, /compactChevronBox: \{[\s\S]*?width: 24,[\s\S]*?height: 24/)
+  assert.match(dropdown, /numberOfLines=\{compact \? 1 : 2\}/)
+  assert.match(dropdown, /compactTriggerText: \{[\s\S]*?fontSize: 11/)
+  assert.match(dropdown, /compactChevronBox: \{[\s\S]*?width: 22,[\s\S]*?height: 22/)
 })
 
 test('teacher catalog separates the mobile filter rail from a real sort dropdown', () => {
@@ -78,16 +79,18 @@ test('teacher catalog separates the mobile filter rail from a real sort dropdown
   assert.doesNotMatch(tailwind, /var\(--omni-/)
 })
 
-test('manual review uses a readable two-column metric grid and scrollable mobile status rail', () => {
+test('manual review uses a single-row four-metric strip and keeps mobile controls inline', () => {
   const reviews = read('app/(teacher)/reviews.tsx')
   const history = read('app/(teacher)/student/[id]/history.tsx')
   const queue = read('components/teacher/reviews/ManualReviewQueue.tsx')
 
   assert.match(reviews, /<TeacherScreenLayout/)
   assert.match(history, /<TeacherScreenLayout/)
-  assert.match(reviews, /mobileStackedIdentity/)
-  assert.equal((reviews.match(/flexBasis: '46%'/g) || []).length, 4)
-  assert.equal((reviews.match(/minHeight: 108/g) || []).length, 4)
+  assert.match(reviews, /mobileStackedIdentity=\{false\}/)
+  assert.match(reviews, /actionsPosition="top"/)
+  assert.match(reviews, /accessibilityLabel="Configurar revisión manual"/)
+  assert.equal((reviews.match(/flexBasis: 0, flexGrow: 1, flexShrink: 1/g) || []).length, 4)
+  assert.doesNotMatch(reviews, /minHeight: 82/)
   assert.match(reviews, /compact mobileRail=\{!isDesktop\} role="teacher"/)
   assert.match(queue, /overflow-hidden rounded-2xl border/)
   assert.match(queue, /iconOnly=\{!isDesktop\}/)
@@ -99,7 +102,9 @@ test('teacher notification mobile filters use two equal visible buttons and clea
 
   assert.equal((notifications.match(/dense=\{!responsive\.isDesktop\}/g) || []).length, 3)
   assert.match(notifications, /<View style=\{\{ minWidth: 0, flex: 1 \}\}>[\s\S]*?<AppButton fullWidth label=\{notifications\.category/)
-  assert.match(notifications, /paddingBottom: responsive\.isDesktop \? 36 : MOBILE_BOTTOM_NAV_SPACER/)
+  assert.match(notifications, /Platform\.OS === 'web' \? MOBILE_BOTTOM_NAV_HEIGHT - 10 : MOBILE_BOTTOM_NAV_SPACER/)
+  assert.match(notifications, /badge: responsive\.isMobile \? undefined/)
+  assert.doesNotMatch(notifications, /Respuestas abiertas|Últimos 7 días/)
   assert.match(notifications, /swipeEnabled=\{!responsive\.isDesktop\}/)
   assert.match(item, /onMoveShouldSetPanResponderCapture: shouldStartSwipe/)
 })

@@ -1,7 +1,16 @@
 import { defineConfig, devices } from '@playwright/test'
 
+if (process.platform === 'win32') {
+  const system32 = `${process.env.SystemRoot || 'C:\\Windows'}\\System32`
+  const pathEntries = (process.env.PATH || '').split(';')
+  if (!pathEntries.some((entry) => entry.toLowerCase() === system32.toLowerCase())) {
+    process.env.PATH = [system32, ...pathEntries].filter(Boolean).join(';')
+  }
+}
+
 const port = Number(process.env.PLAYWRIGHT_PORT || 8082)
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`
+const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === '1'
 
 export default defineConfig({
   testDir: './e2e/web',
@@ -27,9 +36,9 @@ export default defineConfig({
     { name: 'chromium-mobile', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
-    command: 'npm run e2e:web-server',
+    command: 'node scripts/start-playwright-web.mjs',
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer,
     timeout: 360_000,
     env: { ...process.env, CI: '1', BROWSER: 'none', PLAYWRIGHT_PORT: String(port) },
   },

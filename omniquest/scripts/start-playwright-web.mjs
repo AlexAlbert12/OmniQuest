@@ -18,14 +18,24 @@ const child = spawn(process.execPath, [expoCli, ...expoArgs], {
   windowsHide: true,
 })
 
-for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal))
+let stopping = false
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.once(signal, () => {
+    if (stopping) return
+    stopping = true
+    child.kill(signal)
+  })
+}
 child.on('error', (error) => {
   console.error(`No se pudo iniciar Expo para Playwright: ${error.message}`)
   process.exitCode = 1
 })
 child.on('exit', (code, signal) => {
-  if (signal) process.kill(process.pid, signal)
-  else process.exitCode = code ?? 1
+  if (stopping) {
+    process.exitCode = 0
+    return
+  }
+  process.exitCode = signal ? 1 : code ?? 1
 })
 
 function readPort(value) {

@@ -46,7 +46,7 @@ export default function TeacherProfileMetrics(props: Props) {
   ]
 
   return (
-    <View style={{ marginTop: 18, borderWidth: 1, borderColor: tokens.border.default, backgroundColor: tokens.surface.default, borderRadius: responsive.isMobile ? 18 : 22, padding: responsive.isMobile ? 14 : 18 }}>
+    <View style={{ marginTop: 18, borderWidth: 1, borderColor: tokens.border.default, backgroundColor: tokens.surface.default, borderRadius: responsive.isMobile ? 18 : 22, padding: responsive.isMobile ? 12 : 18 }}>
       <View style={{ gap: 12 }}>
         <View>
           <Text style={{ color: tokens.text.primary, fontSize: 18, fontWeight: '900' }}>Impacto docente</Text>
@@ -56,9 +56,9 @@ export default function TeacherProfileMetrics(props: Props) {
       </View>
 
       {responsive.isMobile ? (
-        <View style={{ marginTop: 12, gap: 6 }}>
+        <View style={{ marginTop: 10, gap: 5 }}>
           {[cards.slice(0, 2), cards.slice(2, 4)].map((row, rowIndex) => (
-            <View key={rowIndex} style={{ flexDirection: 'row', gap: 6 }}>
+            <View key={rowIndex} style={{ flexDirection: 'row', gap: 5 }}>
               {row.map((card) => (
                 <MobileMetricCard
                   key={card.label}
@@ -69,7 +69,7 @@ export default function TeacherProfileMetrics(props: Props) {
                   color={tokens.brand.teacher}
                   onPress={card.info ? showParticipationInfo : undefined}
                   accessibilityLabel={card.info ? t('teacher.profile.participation.title') : `${card.label}: ${card.value}`}
-                  style={{ minWidth: 0, minHeight: 84, flex: 1 }}
+                  style={{ minWidth: 0, flex: 1 }}
                 />
               ))}
             </View>
@@ -81,22 +81,24 @@ export default function TeacherProfileMetrics(props: Props) {
             value={cards[4].value}
             color={tokens.brand.teacher}
             accessibilityLabel={`${cards[4].label}: ${cards[4].value}`}
-            style={{ width: '100%', minHeight: 84 }}
+            style={{ width: '100%' }}
           />
         </View>
       ) : (
         <View style={{ marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {cards.map((card) => (
             <View key={card.label} style={{ minWidth: 170, flexGrow: 1, flexBasis: 190, borderRadius: 16, padding: 15, backgroundColor: tokens.surface.raised, borderWidth: 1, borderColor: tokens.border.subtle }}>
-              <Ionicons name={card.icon} size={21} color={tokens.brand.teacher} />
+              <View style={{ minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: card.info ? 30 : 0 }}>
+                <Ionicons name={card.icon} size={21} color={tokens.brand.teacher} />
+                <Text maxFontSizeMultiplier={2} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={{ minWidth: 0, flexShrink: 1, color: tokens.text.secondary, fontSize: 12, fontWeight: '800' }}>{card.label}</Text>
+                <Text maxFontSizeMultiplier={2} numberOfLines={1} adjustsFontSizeToFit style={{ minWidth: 0, flexShrink: 1, color: tokens.text.primary, fontSize: 22, fontWeight: '900' }}>{card.value}</Text>
+              </View>
               {card.info ? (
                 <AppPressable accessibilityLabel={t('teacher.profile.participation.title')} accessibilityHint={t('teacher.profile.participation.hint')} onPress={showParticipationInfo} style={({ pressed }) => ({ position: 'absolute', top: 11, right: 11, width: 30, height: 30, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: tokens.border.default, backgroundColor: tokens.surface.interactive, opacity: pressed ? 0.72 : 1 })}>
                   <Ionicons name="information-circle-outline" size={18} color={tokens.semantic.info} />
                 </AppPressable>
               ) : null}
-              <Text maxFontSizeMultiplier={2} style={{ marginTop: 10, color: tokens.text.primary, fontSize: 22, fontWeight: '900' }}>{card.value}</Text>
-              <Text maxFontSizeMultiplier={2} style={{ marginTop: 3, color: tokens.text.secondary, fontSize: 12, fontWeight: '800' }}>{card.label}</Text>
-              <Text maxFontSizeMultiplier={2} style={{ marginTop: 2, color: tokens.text.muted, fontSize: 11 }}>{card.detail}</Text>
+              <Text maxFontSizeMultiplier={2} style={{ marginTop: 3, color: tokens.text.muted, fontSize: 11, textAlign: 'center' }}>{card.detail}</Text>
             </View>
           ))}
         </View>

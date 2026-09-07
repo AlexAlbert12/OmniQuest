@@ -27,7 +27,7 @@ export default function StudentProfileMetrics({
   const { tokens } = useAppTheme()
   const responsive = useResponsiveLayout()
   const dense = responsive.isMobile
-  const metricStyle = dense ? { aspectRatio: 1 } : { minHeight: 118 }
+  const metricStyle = { minWidth: 0 }
 
   return (
     <View className={`flex-row ${dense ? 'gap-2' : 'gap-3'}`}>

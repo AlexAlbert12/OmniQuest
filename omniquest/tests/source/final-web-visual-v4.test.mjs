@@ -24,9 +24,9 @@ test('teacher profile avoids squeezed three-action and five-metric mobile rows',
   assert.match(hero, /flexBasis: '46%'/)
   assert.match(hero, /flexBasis: '100%'/)
   assert.match(metrics, /\[cards\.slice\(0, 2\), cards\.slice\(2, 4\)\]/)
-  assert.match(metrics, /style=\{\{ minWidth: 0, minHeight: 108, flex: 1 \}\}/)
+  assert.match(metrics, /style=\{\{ minWidth: 0, flex: 1 \}\}/)
   assert.match(metrics, /icon=\{cards\[4\]\.icon\}/)
-  assert.match(metrics, /style=\{\{ width: '100%', minHeight: 108 \}\}/)
+  assert.match(metrics, /style=\{\{ width: '100%' \}\}/)
 })
 
 test('root preparation state is exposed to accessibility and visual E2E waits', () => {

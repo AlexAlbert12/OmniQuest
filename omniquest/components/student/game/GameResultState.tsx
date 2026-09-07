@@ -7,6 +7,7 @@ import AnimatedXpCounter from '../../gamification/AnimatedXpCounter'
 import BadgeUnlockModal from '../../gamification/BadgeUnlockModal'
 import type { StudentBadge } from '../../../lib/studentBadges'
 import { useAppTheme } from '../../../lib/appTheme'
+import { useResponsiveLayout } from '../../../lib/responsive'
 import AppButton from '../../ui/AppButton'
 
 type GameSummary = {
@@ -135,6 +136,7 @@ function GameSummaryPanel({
 }) {
   const answered = Math.max(summary.answered, summary.correct + summary.incorrect)
   const { tokens } = useAppTheme()
+  const { isDesktop } = useResponsiveLayout()
   const precision = answered > 0 ? Math.round((summary.correct / answered) * 100) : 0
   const xp = summary.xp || fallbackScore || 0
   const totalQuestions = summary.questionsTotal || answered
@@ -163,9 +165,9 @@ function GameSummaryPanel({
         </View>
 
         <View className="mt-5 gap-2">
-          <SummaryRow icon="analytics" label="Precisión" value={`${precision}%`} color="#FBBF24" />
-          <SummaryRow icon="timer-outline" label="Tiempo" value={formatDuration(summary.timeSeconds)} color="#A78BFA" />
-          <SummaryRow icon="refresh" label="A repasar" value={String(reviewCount)} color="#F97316" />
+          <SummaryRow isDesktop={isDesktop} icon="analytics" label="Precisión" value={`${precision}%`} color="#FBBF24" />
+          <SummaryRow isDesktop={isDesktop} icon="timer-outline" label="Tiempo" value={formatDuration(summary.timeSeconds)} color="#A78BFA" />
+          <SummaryRow isDesktop={isDesktop} icon="refresh" label="A repasar" value={String(reviewCount)} color="#F97316" />
         </View>
       </View>
     </View>
@@ -175,19 +177,24 @@ function GameSummaryPanel({
 function SummaryRow({
   color,
   icon,
+  isDesktop,
   label,
   value,
 }: {
   color: string
   icon: keyof typeof Ionicons.glyphMap
+  isDesktop: boolean
   label: string
   value: string
 }) {
   return (
-    <View className="flex-row items-center gap-3 rounded-2xl border border-border-active bg-surface-default px-4 py-3">
-      <Ionicons name={icon} size={17} color={color} />
-      <Text className="min-w-0 flex-1 text-[12px] font-black uppercase tracking-[0.04em] text-text-secondary">{label}</Text>
-      <Text className="text-[16px] font-black text-white">{value}</Text>
+    <View className="rounded-2xl border border-border-active bg-surface-default px-4 py-2.5">
+      <View className="flex-row items-center justify-center gap-3">
+        <Ionicons name={icon} size={17} color={color} />
+        {isDesktop ? <Text className="min-w-0 text-[12px] font-black uppercase tracking-[0.04em] text-text-secondary" style={{ flexShrink: 1 }} numberOfLines={1}>{label}</Text> : null}
+        <Text className={`${isDesktop ? '' : 'flex-1'} min-w-0 text-[16px] font-black text-white`} style={{ flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      </View>
+      {!isDesktop ? <Text className="mt-1 text-[12px] font-black uppercase tracking-[0.04em] text-text-secondary">{label}</Text> : null}
     </View>
   )
 }

@@ -23,7 +23,7 @@ E2E_ADMIN_EMAIL
 E2E_ADMIN_PASSWORD
 ```
 
-Cuando las seis variables están definidas, el `globalSetup` ejecuta `scripts/prepare-authenticated-e2e.mjs`. Este script usa exclusivamente Supabase local y prepara de forma idempotente las tres cuentas, el rol `super_admin`, un curso, una clase, un tema, una pregunta y la matrícula del alumno.
+Cuando las seis variables están definidas y `E2E_PREPARE_FIXTURES=1`, el `globalSetup` ejecuta `scripts/prepare-authenticated-e2e.mjs`. Este script usa exclusivamente Supabase local y prepara de forma idempotente las tres cuentas, el rol `super_admin`, un curso, una clase, un tema, una pregunta y la matrícula del alumno.
 
 La ejecución completa mediante `npm run test:e2e` exige las seis variables en la misma terminal. Si falta alguna, el `globalSetup` termina inmediatamente para impedir que los recorridos autenticados aparezcan como omitidos. Para ejecutar deliberadamente solo las pruebas públicas puede definirse `E2E_ALLOW_AUTH_SKIP=1`.
 
@@ -54,6 +54,7 @@ $env:E2E_TEACHER_PASSWORD = '<contraseña segura>'
 $env:E2E_ADMIN_EMAIL = 'e2e.admin@omniquest.test'
 $env:E2E_ADMIN_PASSWORD = '<contraseña segura>'
 $env:PLAYWRIGHT_PORT = '8082'
+$env:E2E_PREPARE_FIXTURES = '1'
 
 npx supabase migration up --local
 npm run e2e:prepare
@@ -61,7 +62,9 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-`npm run e2e:prepare` es opcional porque Playwright lo ejecuta automáticamente mediante `globalSetup`; resulta útil para diagnosticar la preparación de datos antes de abrir el navegador. Las variables `$env:E2E_*` solo existen en la ventana actual de PowerShell, por lo que deben definirse de nuevo al abrir otra terminal.
+`npm run e2e:prepare` permite preparar los datos de forma explícita. Como alternativa, `E2E_PREPARE_FIXTURES=1` pide a `globalSetup` que lo haga antes de abrir el navegador. Sin esa opción, los recorridos usan primero el fixture nominal y después un curso accesible ya existente. Las variables `$env:E2E_*` solo existen en la ventana actual de PowerShell, por lo que deben definirse de nuevo al abrir otra terminal.
+
+Playwright inicia un servidor Expo nuevo por defecto para evitar ejecutar la suite contra un bundle antiguo. Solo debe definirse `PLAYWRIGHT_REUSE_EXISTING_SERVER=1` cuando se haya iniciado conscientemente el servidor indicado por `PLAYWRIGHT_BASE_URL` o `PLAYWRIGHT_PORT` con la versión actual del código.
 
 El frontend debe apuntar al entorno local:
 

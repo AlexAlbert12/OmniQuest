@@ -99,7 +99,7 @@ test.describe('evidencia visual profunda autenticada', () => {
     await selectTeacherSubjectTab(page, 'Alumnos')
     const importStudents = await findVisibleLocator(page.getByRole('button', { name: 'Importar alumnos', exact: true }), 15_000)
     if (!importStudents) throw new Error('No se encontró el CTA Importar alumnos en el curso demo.')
-    await importStudents.click()
+    await importStudents.click({ timeout: 20_000 })
     const closeImport = await findVisibleLocator(page.getByRole('button', { name: 'Cerrar importación de alumnos', exact: true }), 20_000)
     if (!closeImport) throw new Error('No se abrió correctamente la importación de alumnos.')
     await captureEvidence(page, testInfo, 'deep-teacher-import-students')

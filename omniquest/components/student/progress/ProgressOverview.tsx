@@ -33,7 +33,6 @@ export default function ProgressOverview({ progressPercent, accuracyPercent, ans
           dense={dense}
           icon={metric.icon}
           label={metric.label}
-          style={dense ? { aspectRatio: 1 } : { minHeight: 118 }}
           value={metric.value}
         />
       ))}

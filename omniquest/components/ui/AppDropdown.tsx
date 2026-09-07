@@ -87,7 +87,7 @@ export default function AppDropdown<T extends string | number>({
         ) : null}
         <View style={styles.triggerCopy}>
           <Text
-            numberOfLines={2}
+            numberOfLines={compact ? 1 : 2}
             maxFontSizeMultiplier={2}
             style={[styles.triggerText, compact ? styles.compactTriggerText : null, { color: selected ? tokens.text.primary : tokens.text.muted }]}
           >
@@ -174,8 +174,8 @@ const styles = StyleSheet.create({
   compactTrigger: {
     minHeight: 44,
     borderRadius: 12,
-    paddingHorizontal: 10,
-    gap: 6,
+    paddingHorizontal: 8,
+    gap: 5,
   },
   leadingIcon: {
     width: 30,
@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   compactTriggerText: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 15,
   },
   chevronBox: {
     width: 28,
@@ -215,8 +215,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   compactChevronBox: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     borderRadius: 8,
   },
   options: {

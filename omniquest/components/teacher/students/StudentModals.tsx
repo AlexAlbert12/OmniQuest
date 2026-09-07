@@ -343,16 +343,21 @@ export function ModalActionButton({
 }
 
 export function DetailMetric({ label, value, color }: { label: string; value: string; color: string }) {
+  const { isDesktop } = useResponsiveLayout()
+
   return (
     <View
       accessible
       accessibilityLabel={`${label}: ${value}`}
-      className="min-w-[100px] flex-1 rounded-xl border px-3 py-2.5"
-      style={{ minHeight: 78, borderColor: withAlpha(color, '70'), backgroundColor: withAlpha(color, '18') }}
+      className={`min-w-[100px] flex-1 rounded-xl border px-3 ${isDesktop ? 'py-2' : 'py-2.5'}`}
+      style={{ borderColor: withAlpha(color, '70'), backgroundColor: withAlpha(color, '18') }}
     >
-      <Ionicons name="analytics" size={15} color={color} />
-      <Text className="mt-1 text-[18px] font-black text-white">{value}</Text>
-      <Text className="mt-0.5 text-[10px] font-bold text-text-secondary" numberOfLines={2}>{label}</Text>
+      <View className="flex-row items-center justify-center gap-2">
+        <Ionicons name="analytics" size={15} color={color} />
+        {isDesktop ? <Text className="min-w-0 text-[10px] font-bold text-text-secondary" style={{ flexShrink: 1 }} numberOfLines={1}>{label}</Text> : null}
+        <Text className={`${isDesktop ? '' : 'flex-1'} min-w-0 text-[18px] font-black text-white`} style={{ flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      </View>
+      {!isDesktop ? <Text className="mt-0.5 text-[10px] font-bold text-text-secondary" numberOfLines={2}>{label}</Text> : null}
     </View>
   )
 }
@@ -379,6 +384,7 @@ export function DetailActionButton({
 }) {
   const { tokens } = useAppTheme()
   const actionColor = destructive ? tokens.semantic.danger : tokens.brand.teacher
+  const actionSurface = destructive ? tokens.semanticSurface.danger : tokens.semanticSurface.info
 
   return (
     <Pressable
@@ -394,7 +400,9 @@ export function DetailActionButton({
         borderColor: actionColor,
       })}
     >
-      <Ionicons name={icon} size={15} color="#FFFFFF" />
+      <View style={{ width: 24, height: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: actionSurface }}>
+        <Ionicons name={icon} size={15} color="#FFFFFF" />
+      </View>
       <Text className="text-[12px] font-black text-white">{label}</Text>
     </Pressable>
   );

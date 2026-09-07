@@ -74,7 +74,7 @@ test('student history keeps its mobile overview compact without diverging from d
   assert.match(historyScreen, /min-w-0 flex-1/)
   assert.match(historySummary, /isDesktop \? 'flex-row flex-wrap gap-3' : 'flex-row gap-2'/)
   assert.equal((historySummary.match(/<Metric isDesktop=\{isDesktop\}/g) || []).length, 4)
-  assert.match(historySummary, /aspectRatio: 1/)
+  assert.doesNotMatch(historySummary, /aspectRatio: 1/)
   assert.match(historySummary, /size="sm"/)
   assert.match(historySummary, /isDesktop \? 'mt-4 flex-row flex-wrap gap-3' : 'mt-3 flex-row gap-2'/)
   assert.match(timeline, /isDesktop \? 'p-4' : 'p-3'/)

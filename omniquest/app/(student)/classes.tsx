@@ -322,7 +322,7 @@ export default function ClassesScreen() {
                 color="#8B5CF6"
                 value={activeClasses}
                 label="Cursos"
-                style={{ flex: 1, minWidth: 0, minHeight: isDesktop ? 132 : 88, aspectRatio: isDesktop ? undefined : 1 }}
+                style={{ flex: 1, minWidth: 0 }}
               />
               <MobileMetricCard
                 compact={isDesktop}
@@ -331,7 +331,7 @@ export default function ClassesScreen() {
                 color="#FB4772"
                 value={failedQuestions}
                 label="Repasar"
-                style={{ flex: 1, minWidth: 0, minHeight: isDesktop ? 132 : 88, aspectRatio: isDesktop ? undefined : 1 }}
+                style={{ flex: 1, minWidth: 0 }}
               />
               <MobileMetricCard
                 compact={isDesktop}
@@ -340,7 +340,7 @@ export default function ClassesScreen() {
                 color="#4EC4FF"
                 value={pendingQuestions}
                 label="Practicar"
-                style={{ flex: 1, minWidth: 0, minHeight: isDesktop ? 132 : 88, aspectRatio: isDesktop ? undefined : 1 }}
+                style={{ flex: 1, minWidth: 0 }}
               />
               <MobileMetricCard
                 compact={isDesktop}
@@ -349,7 +349,7 @@ export default function ClassesScreen() {
                 color="#F6A64A"
                 value={`${points.toLocaleString()} XP`}
                 label="Experiencia"
-                style={{ flex: 1, minWidth: 0, minHeight: isDesktop ? 132 : 88, aspectRatio: isDesktop ? undefined : 1 }}
+                style={{ flex: 1, minWidth: 0 }}
               />
             </View>
 

@@ -45,10 +45,10 @@ export default function CourseProgressPanel({
       </View>
 
       <View className={isDesktop ? 'flex-row gap-3' : 'flex-row gap-2'}>
-        <MobileMetricCard compact={isDesktop} dense={!isDesktop} icon="planet" color={color} value={topicsCount} label="Temas" style={{ flex: 1, minWidth: isDesktop ? 130 : 0, minHeight: isDesktop ? 112 : 88, aspectRatio: isDesktop ? undefined : 1 }} />
-        <MobileMetricCard compact={isDesktop} dense={!isDesktop} icon="checkmark-circle" color={tokens.semantic.success} value={`${totals.progress}%`} label="Avance" style={{ flex: 1, minWidth: isDesktop ? 130 : 0, minHeight: isDesktop ? 112 : 88, aspectRatio: isDesktop ? undefined : 1 }} />
-        <MobileMetricCard compact={isDesktop} dense={!isDesktop} icon="flame" color={tokens.semantic.danger} value={totals.failed} label="Repasar" style={{ flex: 1, minWidth: isDesktop ? 130 : 0, minHeight: isDesktop ? 112 : 88, aspectRatio: isDesktop ? undefined : 1 }} />
-        <MobileMetricCard compact={isDesktop} dense={!isDesktop} icon="diamond" color={tokens.semantic.info} value={totals.earnedXp} suffix=" XP" label="Experiencia" style={{ flex: 1, minWidth: isDesktop ? 130 : 0, minHeight: isDesktop ? 112 : 88, aspectRatio: isDesktop ? undefined : 1 }} />
+        <MobileMetricCard compact={isDesktop} dense={!isDesktop} icon="planet" color={color} value={topicsCount} label="Temas" style={{ flex: 1, minWidth: isDesktop ? 130 : 0 }} />
+        <MobileMetricCard compact={isDesktop} dense={!isDesktop} icon="checkmark-circle" color={tokens.semantic.success} value={`${totals.progress}%`} label="Avance" style={{ flex: 1, minWidth: isDesktop ? 130 : 0 }} />
+        <MobileMetricCard compact={isDesktop} dense={!isDesktop} icon="flame" color={tokens.semantic.danger} value={totals.failed} label="Repasar" style={{ flex: 1, minWidth: isDesktop ? 130 : 0 }} />
+        <MobileMetricCard compact={isDesktop} dense={!isDesktop} icon="diamond" color={tokens.semantic.info} value={totals.earnedXp} suffix=" XP" label="Experiencia" style={{ flex: 1, minWidth: isDesktop ? 130 : 0 }} />
       </View>
 
       <View className={isDesktop ? 'mt-6 flex-row items-start gap-5' : 'mt-3'}>

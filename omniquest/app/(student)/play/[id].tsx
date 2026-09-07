@@ -170,7 +170,7 @@ function PlayScreenContent() {
                     <Ionicons name="sparkles" size={16} color={tokens.brand.student} />
                   </View>
                 ) : null}
-                <Text className={`${isDesktop ? 'mt-4 text-[30px] leading-10' : 'mt-3 text-[24px] leading-8'} max-w-[720px] text-center font-black text-text-primary`}>
+                <Text testID="game-question-prompt" className={`${isDesktop ? 'mt-4 text-[30px] leading-10' : 'mt-3 text-[24px] leading-8'} max-w-[720px] text-center font-black text-text-primary`}>
                   {currentQuestion?.text}
                 </Text>
                 {currentQuestion?.media_type ? (

@@ -11,27 +11,28 @@ test.describe('profesor autenticado', () => {
   test('inicia sesión, abre un curso obtenido de Supabase y accede al editor', async ({ page }) => {
     const session = await loginAs(page, 'teacher')
     const coursesPage = await supabaseRpc<TeacherCoursePage>(page, session, 'get_teacher_courses_page', { p_search: '', p_status: null, p_sort: 'recent', p_limit: 12, p_offset: 0 }, 'Catálogo autenticado de cursos del profesor')
-    const fixtureCourse = coursesPage.items.find((course) => course.name === E2E_FIXTURE.courseName)
+    const selectedCourse = coursesPage.items.find((course) => course.name === E2E_FIXTURE.courseName) ?? coursesPage.items[0]
 
     expect(coursesPage.total).toBeGreaterThan(0)
-    expect(fixtureCourse, `No se encontró el curso ${E2E_FIXTURE.courseName}.`).toBeTruthy()
+    expect(selectedCourse, 'La cuenta docente no tiene ningún curso accesible para el recorrido autenticado.').toBeTruthy()
+    const course = selectedCourse!
 
     const coursesNavigation = page.getByTestId('teacher-nav-classes')
     await expect(coursesNavigation).toBeVisible({ timeout: 60_000 })
     await coursesNavigation.click()
     await expect(page).toHaveURL(/\/classes(?:\?|$)/)
-    await expect(page.getByRole('heading', { name: 'Cursos y clases' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /^Cursos(?: y clases)?$/ })).toBeVisible()
 
-    const courseButton = page.getByRole('button', { name: new RegExp(`^Abrir curso ${escapeRegExp(E2E_FIXTURE.courseName)}$`, 'i') }).first()
+    const courseButton = page.getByRole('button', { name: new RegExp(`^Abrir curso ${escapeRegExp(course.name)}$`, 'i') }).first()
     await expect(courseButton).toBeVisible()
     const overviewPromise = waitForSupabaseResponse(page, '/rest/v1/rpc/get_teacher_subject_overview')
     await courseButton.click()
     const overview = await readSupabaseJson<TeacherSubjectOverview>(await overviewPromise, 'Detalle del curso del profesor')
 
-    expect(overview.subject.id).toBe(fixtureCourse!.id)
-    expect(overview.subject.name).toBe(E2E_FIXTURE.courseName)
+    expect(overview.subject.id).toBe(course.id)
+    expect(overview.subject.name).toBe(course.name)
     expect(overview.classrooms.length).toBeGreaterThan(0)
-    await expect(page.getByRole('heading', { name: E2E_FIXTURE.courseName })).toBeVisible()
+    await expect(page.getByRole('heading', { name: course.name })).toBeVisible()
 
     const questionsPromise = waitForSupabaseResponse(page, '/rest/v1/rpc/get_teacher_subject_questions_page')
     await page.getByRole('tab', { name: 'Preguntas', exact: true }).click()

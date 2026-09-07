@@ -31,10 +31,11 @@ export function SubjectKpiCard({
         accessible
         accessibilityLabel={`${label}: ${value}. ${detail}`}
         className="min-w-0 flex-1 items-center justify-center rounded-xl border border-border-default bg-surface-default p-1.5"
-        style={{ aspectRatio: 1 }}
       >
-        <Ionicons name={icon} size={19} color={resolvedColor} />
-        <Text className="mt-1 text-center text-[17px] font-black text-text-primary" numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+        <View className="w-full flex-row items-center justify-center gap-2">
+          <Ionicons name={icon} size={19} color={resolvedColor} />
+          <Text className="min-w-0 flex-1 text-center text-[17px] font-black text-text-primary" numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+        </View>
         <Text className="mt-0.5 text-center text-[9px] font-bold leading-3 text-text-secondary" numberOfLines={2}>{label}</Text>
       </View>
     );

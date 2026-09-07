@@ -100,10 +100,12 @@ function Metric({ label, mobileLabel, value, detail, icon, isDesktop }: { label:
         accessible
         accessibilityLabel={`${label}: ${value}${detail ? `. ${detail}` : ''}`}
         className="min-w-0 flex-1 items-center justify-center rounded-xl border p-1.5"
-        style={{ aspectRatio: 1, borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}
+        style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}
       >
-        <Ionicons name={icon} size={18} color={tokens.brand.teacher} />
-        <Text className="mt-1 text-center text-[16px] font-black" style={{ color: tokens.text.primary }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+        <View className="w-full flex-row items-center justify-center gap-2">
+          <Ionicons name={icon} size={18} color={tokens.brand.teacher} />
+          <Text className="min-w-0 flex-1 text-center text-[16px] font-black" style={{ color: tokens.text.primary }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+        </View>
         <Text className="mt-0.5 text-center text-[9px] font-black leading-3" style={{ color: tokens.text.muted }} numberOfLines={2}>{mobileLabel || label}</Text>
       </View>
     )
@@ -111,10 +113,12 @@ function Metric({ label, mobileLabel, value, detail, icon, isDesktop }: { label:
 
   return (
     <View className="min-w-[170px] flex-1 rounded-2xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
-      <Ionicons name={icon} size={21} color={tokens.brand.teacher} />
-      <Text className="mt-3 text-[11px] font-black uppercase" style={{ color: tokens.text.muted }}>{label}</Text>
-      <Text className="mt-1 text-[24px] font-black" style={{ color: tokens.text.primary }}>{value}</Text>
-      {detail ? <Text className="mt-1 text-[11px] leading-4" style={{ color: tokens.text.muted }}>{detail}</Text> : null}
+      <View className="flex-row items-center justify-center gap-3">
+        <Ionicons name={icon} size={21} color={tokens.brand.teacher} />
+        <Text className="min-w-0 text-[11px] font-black uppercase" style={{ color: tokens.text.muted, flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
+        <Text className="min-w-0 text-[24px] font-black" style={{ color: tokens.text.primary, flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      </View>
+      {detail ? <Text className="mt-1 text-center text-[11px] leading-4" style={{ color: tokens.text.muted }}>{detail}</Text> : null}
     </View>
   )
 }

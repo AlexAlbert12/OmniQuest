@@ -45,33 +45,34 @@ export default function StudentHomeSummary({
         {metrics.map((metric) => (
           <View
             key={metric.label}
-            className={`min-w-0 flex-1 border border-border-subtle bg-surface-raised ${isDesktop ? 'flex-row items-center gap-4 rounded-[20px] px-4' : 'items-center justify-center rounded-2xl px-1.5'}`}
-            style={{ paddingVertical: isDesktop ? 13 : 8, minHeight: isDesktop ? undefined : 88 }}
+            className={`min-w-0 flex-1 border border-border-subtle bg-surface-raised ${isDesktop ? 'rounded-[20px] px-4' : 'items-center justify-center rounded-2xl px-1.5'}`}
+            style={{ paddingVertical: isDesktop ? 10 : 7 }}
           >
-            <View
-              className="items-center justify-center"
-              style={{
-                width: isDesktop ? 34 : 28,
-                height: isDesktop ? 34 : 28,
-                borderRadius: isDesktop ? 10 : 9,
-                backgroundColor: withAlpha(metric.color, '24'),
-              }}
-            >
-              <Ionicons name={metric.icon} size={isDesktop ? 19 : 16} color={metric.color} />
-            </View>
-            <View className={isDesktop ? 'flex-1' : 'mt-1 items-center'}>
+            <View className={`w-full flex-row items-center justify-center ${isDesktop ? 'gap-3' : 'gap-2'}`}>
+              <View
+                className="shrink-0 items-center justify-center"
+                style={{
+                  width: isDesktop ? 34 : 28,
+                  height: isDesktop ? 34 : 28,
+                  borderRadius: isDesktop ? 10 : 9,
+                  backgroundColor: withAlpha(metric.color, '24'),
+                }}
+              >
+                <Ionicons name={metric.icon} size={isDesktop ? 19 : 16} color={metric.color} />
+              </View>
+              {isDesktop ? <Text maxFontSizeMultiplier={1.4} className="min-w-0 text-[12px] font-bold text-text-muted" numberOfLines={1}>{metric.label}</Text> : null}
               <Text
                 maxFontSizeMultiplier={2}
-                className="font-black text-text-primary"
-                style={{ fontSize: isDesktop ? 22 : 17, lineHeight: isDesktop ? 26 : 20, textAlign: isDesktop ? 'left' : 'center' }}
+                className={`${isDesktop ? '' : 'flex-1'} min-w-0 font-black text-text-primary`}
+                style={{ fontSize: isDesktop ? 22 : 17, lineHeight: isDesktop ? 26 : 20, textAlign: 'center' }}
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.72}
               >
                 {metric.value}
               </Text>
-              <Text maxFontSizeMultiplier={1.4} className={`mt-0.5 font-bold text-text-muted ${isDesktop ? 'text-[12px]' : 'text-center text-[9px] leading-3'}`} numberOfLines={2}>{metric.label}</Text>
             </View>
+            {!isDesktop ? <Text maxFontSizeMultiplier={1.4} className="mt-0.5 text-center text-[9px] font-bold leading-3 text-text-muted" numberOfLines={2}>{metric.label}</Text> : null}
           </View>
         ))}
       </View>

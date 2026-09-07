@@ -23,7 +23,8 @@ test('student home uses cyan role styling and honest empty, ranking and mobile n
 
   assert.match(summary, /attemptCount > 0 \? `\$\{accuracyPercent\}%` : '\\u2014'/)
   assert.match(summary, /border-border-subtle bg-surface-raised/)
-  assert.match(summary, /paddingVertical: isDesktop \? 13 : 8/)
+  assert.match(summary, /paddingVertical: isDesktop \? 10 : 7/)
+  assert.match(summary, /isDesktop \? <Text[\s\S]*\{metric\.label\}[\s\S]*\{metric\.value\}/)
 
   assert.match(ranking, /summary\.estimated \? 'Tu posición estimada' : 'Tu posición'/)
   assert.match(ranking, /row\.estimated \? `≈\$\{row\.position\}` : row\.position/)

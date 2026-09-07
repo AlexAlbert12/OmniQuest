@@ -148,8 +148,8 @@ export default React.memo(function StudentActivityAttemptRow({
 
               <View className="gap-3">
                 <View className="flex-row gap-3">
-                  <CompactMetric icon="timer" label="Tiempo" value={formatTimeTaken(attempt.time_taken_seconds)} />
-                  <CompactMetric icon="flash" label="XP ganado" value={`${earnedPoints} XP`} />
+                  <CompactMetric isDesktop={isDesktop} icon="timer" label="Tiempo" value={formatTimeTaken(attempt.time_taken_seconds)} />
+                  <CompactMetric isDesktop={isDesktop} icon="flash" label="XP ganado" value={`${earnedPoints} XP`} />
                 </View>
                 {isDesktop ? (
                   <View className="flex-row gap-3">
@@ -164,8 +164,8 @@ export default React.memo(function StudentActivityAttemptRow({
                 )}
                 {attempt.hint_used || attempt.was_skipped ? (
                   <View className="flex-row gap-3">
-                    {attempt.hint_used ? <CompactMetric icon="bulb" label="Pista" value="Usada" /> : null}
-                    {attempt.was_skipped ? <CompactMetric icon="play-skip-forward" label="Estado" value="Saltada" /> : null}
+                    {attempt.hint_used ? <CompactMetric isDesktop={isDesktop} icon="bulb" label="Pista" value="Usada" /> : null}
+                    {attempt.was_skipped ? <CompactMetric isDesktop={isDesktop} icon="play-skip-forward" label="Estado" value="Saltada" /> : null}
                   </View>
                 ) : null}
               </View>
@@ -226,17 +226,18 @@ function DetailBlock({
   )
 }
 
-function CompactMetric({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+function CompactMetric({ icon, isDesktop, label, value }: { icon: keyof typeof Ionicons.glyphMap; isDesktop: boolean; label: string; value: string }) {
   const { tokens } = useAppTheme()
   return (
-    <View className="min-h-[72px] min-w-0 flex-1 justify-center rounded-xl border px-3 py-2" style={{ borderColor: tokens.border.subtle, backgroundColor: tokens.surface.raised }}>
-      <View className="flex-row items-center gap-2">
+    <View className="min-w-0 flex-1 justify-center rounded-xl border px-3 py-2" style={{ borderColor: tokens.border.subtle, backgroundColor: tokens.surface.raised }}>
+      <View className="flex-row items-center justify-center gap-2">
         <Ionicons name={icon} size={16} color={tokens.brand.student} />
-        <Text maxFontSizeMultiplier={2} className="text-[11px] font-black uppercase tracking-wide" style={{ color: tokens.text.muted }}>{label}</Text>
+        {isDesktop ? <Text maxFontSizeMultiplier={2} className="min-w-0 text-[11px] font-black uppercase tracking-wide" style={{ color: tokens.text.muted, flexShrink: 1 }} numberOfLines={1}>{label}</Text> : null}
+        <Text maxFontSizeMultiplier={2} className={`${isDesktop ? '' : 'flex-1'} min-w-0 text-[16px] font-black`} style={{ color: tokens.text.primary, flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {value || 'Sin información'}
+        </Text>
       </View>
-      <Text maxFontSizeMultiplier={2} className="mt-1 text-[16px] font-black" style={{ color: tokens.text.primary }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
-        {value || 'Sin información'}
-      </Text>
+      {!isDesktop ? <Text maxFontSizeMultiplier={2} className="mt-1 text-[11px] font-black uppercase tracking-wide" style={{ color: tokens.text.muted }}>{label}</Text> : null}
     </View>
   )
 }
