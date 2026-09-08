@@ -10,12 +10,14 @@ import { normalizeAcademicIcon } from '../../../lib/academicIcons'
 export default function CourseGalaxyHeader({
   subject,
   isDesktop,
+  guestMode = false,
   onBack,
 }: {
   subject: StudentCourseSubject
   classroom: StudentCourseClassroom | null
   totals: StudentCourseTotals
   isDesktop: boolean
+  guestMode?: boolean
   onBack: () => void
 }) {
   const { tokens } = useAppTheme()
@@ -24,12 +26,12 @@ export default function CourseGalaxyHeader({
 
   return (
     <StudentPageHeader
-      backAction={{ label: 'Mis cursos', onPress: onBack }}
+      backAction={{ label: guestMode ? 'Nueva partida' : 'Mis cursos', onPress: onBack }}
       isDesktop={isDesktop}
       title={subject.name}
       titleNumberOfLines={2}
-      showNotifications={isDesktop}
-      showAvatar={isDesktop}
+      showNotifications={isDesktop && !guestMode}
+      showAvatar={isDesktop && !guestMode}
       leading={(
         <View
           className={`${isDesktop ? 'h-14 w-14' : 'h-12 w-12'} items-center justify-center rounded-2xl`}

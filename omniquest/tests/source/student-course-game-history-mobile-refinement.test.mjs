@@ -13,8 +13,8 @@ test('course detail keeps an explicit return and mobile progress visually equiva
   const progress = read('components/student/course/CourseProgressPanel.tsx')
   const galaxy = read('components/student/galaxy/StudentGalaxyMap.tsx')
 
-  assert.match(header, /backAction=\{\{ label: 'Mis cursos', onPress: onBack \}\}/)
-  assert.match(detail, /onBack=\{\(\) => router\.push\('\/\(student\)\/classes'/)
+  assert.match(header, /guestMode \? 'Nueva partida' : 'Mis cursos'/)
+  assert.match(detail, /guest\.isGuest \? '\/\(student\)\/homeStudent'.*'\/\(student\)\/classes'/)
   assert.match(mission, /variant="primary"/)
   assert.match(mission, /fullWidth=\{responsive\.isMobile\}/)
   assert.match(mission, /minWidth: 190, alignSelf: 'center'/)

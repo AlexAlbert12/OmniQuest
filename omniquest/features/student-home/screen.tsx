@@ -17,8 +17,19 @@ import { useStudentHome, buildStudentClassHref } from './useStudentHome'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { signOutStudent } from './api'
 import { useResponsiveLayout } from '../../lib/responsive'
+import { useGuestSession } from '../../hooks/useGuestSession'
+import GuestHomeScreen from './GuestHomeScreen'
 
 export default function StudentHome() {
+  const guest = useGuestSession()
+
+  if (!guest.ready) return <OmniLoadingScreen />
+  if (guest.isGuest) return <GuestHomeScreen alias={guest.alias} />
+
+  return <RegisteredStudentHome />
+}
+
+function RegisteredStudentHome() {
   const router = useRouter()
   const responsive = useResponsiveLayout()
   const home = useStudentHome()

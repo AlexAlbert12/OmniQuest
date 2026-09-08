@@ -197,6 +197,7 @@ export function SettingsPreferencesPanel({
   onSelectPreference,
   onToggleHaptics,
   formatPreferenceLabel,
+  guestMode = false,
 }: {
   accentColor: string
   preferences: UserPreferencesState
@@ -208,14 +209,15 @@ export function SettingsPreferencesPanel({
   onSelectPreference: (key: PreferenceKey, value: string) => void
   onToggleHaptics: (enabled: boolean) => void
   formatPreferenceLabel: FormatPreferenceLabel
+  guestMode?: boolean
 }) {
   const { t } = useI18n()
 
   return (
-    <Panel title={t('settings.section.preferences')}>
+    <Panel title={guestMode ? t('guest.settings.title') : t('settings.section.preferences')}>
       <NotificationRow
         icon="phone-portrait-outline"
-        title="Respuesta táctil"
+        title={t('settings.haptics.title')}
         description={t('settings.haptics.description')}
         enabled={preferences.hapticsEnabled}
         onPress={() => onToggleHaptics(!preferences.hapticsEnabled)}
@@ -238,7 +240,7 @@ export function SettingsPreferencesPanel({
         />
       </View>
 
-      {(['dateFormat', 'timeFormat', 'weekStart'] as PreferenceKey[]).map((key) => (
+      {!guestMode ? (['dateFormat', 'timeFormat', 'weekStart'] as PreferenceKey[]).map((key) => (
         <PreferenceRow
           key={key}
           label={{
@@ -257,7 +259,7 @@ export function SettingsPreferencesPanel({
           disabled={Boolean(savingPreference)}
           loading={savingPreference === key}
         />
-      ))}
+      )) : null}
     </Panel>
   )
 }

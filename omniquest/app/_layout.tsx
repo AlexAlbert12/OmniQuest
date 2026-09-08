@@ -1,7 +1,7 @@
 import '../global.css'
 import { Pacifico_400Regular, useFonts } from '@expo-google-fonts/pacifico'
 import { Ionicons } from '@expo/vector-icons'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Stack, usePathname, useRouter, useSegments } from 'expo-router'
 import { supabase } from '../lib/supabase'
 import { Text, View } from 'react-native'
@@ -37,6 +37,7 @@ const AUTH_ROUTE_ALIASES: Record<string, string> = {
 const TEACHER_HOME = '/(teacher)/homeTeacher'
 const STUDENT_HOME = '/(student)/homeStudent'
 const ADMIN_HOME = '/(admin)/homeAdmin'
+const GUEST_STUDENT_ROUTES = new Set(['homeStudent', 'class', 'play', 'settings'])
 
 function normalizeAuthPath(path: string) {
   return AUTH_ROUTE_ALIASES[path] || path
@@ -53,6 +54,10 @@ function getRouteGroup(rootSegment: string | undefined, pathname: string) {
 function getHomeRouteForRole(roleId: string | null | undefined) {
   if (roleId === 'admin') return ADMIN_HOME
   return roleId === 'teacher' ? TEACHER_HOME : STUDENT_HOME
+}
+
+function isGuestStudentRouteAllowed(childSegment: string | undefined) {
+  return Boolean(childSegment && GUEST_STUDENT_ROUTES.has(childSegment))
 }
 
 export default function RootLayout() {
@@ -86,6 +91,7 @@ function RootNavigator() {
   const segments = useSegments()
   const rootSegment = segments[0]
   const childSegment = segments[1]
+  const activeRoleRef = useRef<string | null>(null)
   const { theme, colors, ready } = useAppTheme()
   const { ready: localeReady, t } = useI18n()
   usePasswordRecoveryLinkObserver()
@@ -121,6 +127,7 @@ function RootNavigator() {
       const isPasswordRecoveryRoute = normalizedPath === '/(auth)/update-password'
 
       if (!session) {
+        activeRoleRef.current = null
         if (!isAuthRoute && !isPublicLegalRoute) {
           redirectToLogin()
         }
@@ -225,11 +232,15 @@ function RootNavigator() {
         return
       }
 
-      if (networkAvailable) {
+      activeRoleRef.current = profile.role_id
+
+      if (networkAvailable && profile.role_id !== 'guest') {
         void writeOfflineCache(session.user.id, 'auth:profile', profile)
       }
 
-      void syncAnalyticsConsentFromServer(session.user.id)
+      if (profile.role_id !== 'guest') {
+        void syncAnalyticsConsentFromServer(session.user.id)
+      }
 
       if (profile.role_id === 'student' || profile.role_id === 'teacher' || profile.role_id === 'admin') {
         try {
@@ -261,8 +272,11 @@ function RootNavigator() {
       const isTeacherRouteBlocked = routeGroup === 'teacher' && profile.role_id !== 'teacher'
       const isStudentRouteBlocked = routeGroup === 'student' && profile.role_id !== 'student' && profile.role_id !== 'guest'
       const isAdminRouteBlocked = routeGroup === 'admin' && profile.role_id !== 'admin'
+      const isGuestRouteBlocked = profile.role_id === 'guest'
+        && routeGroup === 'student'
+        && !isGuestStudentRouteAllowed(childSegment)
 
-      if (isTeacherRouteBlocked || isStudentRouteBlocked || isAdminRouteBlocked) {
+      if (isTeacherRouteBlocked || isStudentRouteBlocked || isAdminRouteBlocked || isGuestRouteBlocked) {
         router.replace(getHomeRouteForRole(profile.role_id) as any)
         setIsInitialized(true)
         return
@@ -293,6 +307,7 @@ function RootNavigator() {
     const normalizedPath = normalizeAuthPath(pathname)
     const routeGroup = getRouteGroup(rootSegment, normalizedPath)
     if (routeGroup === 'auth' || normalizedPath === '/' || normalizedPath === '/privacy' || normalizedPath === '/terms') return
+    if (activeRoleRef.current === 'guest') return
     void trackScreenView(normalizedPath, routeGroup)
   }, [isInitialized, pathname, rootSegment])
 

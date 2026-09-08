@@ -3,6 +3,7 @@ import OmniLoadingScreen from '../../ui/OmniLoadingScreen'
 import GameShell from './GameShell'
 import ResultState from './GameResultState'
 import type { DesignColorTokens } from '../../../lib/designTokens'
+import { useI18n } from '../../../lib/i18n'
 
 type Summary = {
   questionsTotal: number
@@ -23,6 +24,7 @@ export default function GameStateView({
   tokens,
   onRetry,
   onBack,
+  isGuest = false,
   onReviewMistakes,
 }: {
   status: 'loading' | 'error' | 'empty' | 'gameOver' | 'finished'
@@ -33,8 +35,11 @@ export default function GameStateView({
   tokens: DesignColorTokens
   onRetry: () => void
   onBack: () => void
-  onReviewMistakes: () => void
+  isGuest?: boolean
+  onReviewMistakes?: () => void
 }) {
+  const { t } = useI18n()
+
   if (status === 'loading') return <OmniLoadingScreen />
 
   if (status === 'error') {
@@ -82,14 +87,18 @@ export default function GameStateView({
         omniState={gameOver ? 'error' : 'happy'}
         title={gameOver ? 'Partida terminada' : '¡Partida completada!'}
         detail={gameOver
-          ? 'Te has quedado sin vidas, pero ya tienes pistas claras para mejorar.'
-          : 'Buen cierre. Ya tienes claro qué reforzar.'}
+          ? isGuest
+            ? t('guest.game.overDetail')
+            : 'Te has quedado sin vidas, pero ya tienes pistas claras para mejorar.'
+          : isGuest
+            ? t('guest.game.finishedDetail')
+            : 'Buen cierre. Ya tienes claro qué reforzar.'}
         score={score}
         summary={summary}
-        action="Volver al curso"
+        action={isGuest ? t('guest.game.again') : 'Volver al curso'}
         onPress={onBack}
-        secondaryAction={summary.reviewQuestions.length > 0 ? 'Repasar fallos' : undefined}
-        onSecondaryPress={summary.reviewQuestions.length > 0 ? onReviewMistakes : undefined}
+        secondaryAction={!isGuest && summary.reviewQuestions.length > 0 ? 'Repasar fallos' : undefined}
+        onSecondaryPress={!isGuest && summary.reviewQuestions.length > 0 ? onReviewMistakes : undefined}
       />
     </GameShell>
   )

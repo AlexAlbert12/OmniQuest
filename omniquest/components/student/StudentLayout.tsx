@@ -10,6 +10,7 @@ type StudentLayoutProps = {
   avatar?: string | null
   bottomNavActive: StudentBottomNavKey
   children: ReactNode
+  guestMode?: boolean
   isDesktop: boolean
   loading?: boolean
   loadingLabel?: string
@@ -26,6 +27,7 @@ export default function StudentLayout({
   avatar,
   bottomNavActive,
   children,
+  guestMode = false,
   isDesktop,
   level,
   loading,
@@ -37,19 +39,20 @@ export default function StudentLayout({
 }: StudentLayoutProps) {
   return (
     <StudentScreenLayout
-      contentLabel={`Pantalla de estudiante: ${activeSection}`}
+      contentLabel={guestMode ? `Modo invitado: ${activeSection}` : `Pantalla de estudiante: ${activeSection}`}
       desktopSidebar={(
         <StudentSidebar
           activeSection={activeSection}
           alias={alias}
           avatar={avatar}
+          guestMode={guestMode}
           level={level}
           points={points}
           nextLevelProgress={nextLevelProgress}
           onSignOut={onSignOut}
         />
       )}
-      mobileBottomNavigation={<StudentBottomNav active={bottomNavActive} />}
+      mobileBottomNavigation={<StudentBottomNav active={bottomNavActive} guestMode={guestMode} />}
       isDesktop={isDesktop}
       fluidContent
       horizontalPadding={isDesktop ? 28 : 18}

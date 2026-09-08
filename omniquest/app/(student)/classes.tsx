@@ -135,7 +135,7 @@ export default function ClassesScreen() {
   }, [progressBySubject, search, selectedFilter, selectedSort, subjects])
 
   const points = profile?.points ?? 0
-  const alias = profile?.alias || 'Alex'
+  const alias = profile?.alias || 'Alumno'
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)
   const activeClasses = subjects.length

@@ -12,6 +12,7 @@ import { fetchStudentAttemptHistory, fetchStudentQuestionCatalog } from '../../.
 import { useAppTheme } from '../../../lib/appTheme'
 import { useAppModal } from '../../../components/AppModalProvider'
 import { useResponsiveLayout } from '../../../lib/responsive'
+import { useGuestSession } from '../../../hooks/useGuestSession'
 import { enqueueOfflineMutation } from '../../../lib/offlineMutations'
 import { updateOfflineCache } from '../../../lib/offlineCache'
 import AppButton from '../../../components/ui/AppButton'
@@ -92,6 +93,7 @@ export default function StudentClassDetailScreen() {
   const { id, classroomId } = useLocalSearchParams<{ id: string; classroomId?: string }>()
   const router = useRouter()
   const responsive = useResponsiveLayout()
+  const guest = useGuestSession()
   const insets = useSafeAreaInsets()
   const [subject, setSubject] = useState<Subject | null>(null)
   const [classroom, setClassroom] = useState<Classroom | null>(null)
@@ -459,7 +461,8 @@ export default function StudentClassDetailScreen() {
             classroom={classroom}
             totals={totals}
             isDesktop={isDesktop}
-            onBack={() => router.push('/(student)/classes' as never)}
+            guestMode={guest.isGuest}
+            onBack={() => router.push(guest.isGuest ? '/(student)/homeStudent' as never : '/(student)/classes' as never)}
           />
 
           <View onLayout={!isDesktop && recommendedTopic ? handleInlineMissionLayout : undefined}>
@@ -473,7 +476,7 @@ export default function StudentClassDetailScreen() {
 
           <TopicGalaxyMap items={topicGalaxyItems} />
 
-          <CourseProgressPanel
+          {!guest.isGuest ? <CourseProgressPanel
             totals={totals}
             topicsCount={topics.length}
             color={color}
@@ -484,9 +487,9 @@ export default function StudentClassDetailScreen() {
             isDesktop={isDesktop}
             onOpenActivity={() => router.push('/(student)/activity-log' as any)}
             onOpenFailedQuestion={openFailedQuestion}
-          />
+          /> : null}
 
-          {classroom ? (
+          {classroom && !guest.isGuest ? (
             <View className={`${isDesktop ? 'mt-6 items-end' : 'mt-5'} pb-2`}>
               <AppButton
                 fullWidth={!isDesktop}
@@ -537,7 +540,7 @@ export default function StudentClassDetailScreen() {
         onCancel={() => setLeaveConfirmationVisible(false)}
         onConfirm={() => void executeLeaveClass()}
       />
-      {!isDesktop ? <StudentBottomNav active="classes" /> : null}
+      {!isDesktop ? <StudentBottomNav active="classes" guestMode={guest.isGuest} /> : null}
     </View>
   )
 }

@@ -59,8 +59,8 @@ const copy: Record<AppLocale, LandingCopy> = {
       description: 'Respuestas rápidas sobre acceso, modo invitado y conservación del progreso.',
       items: [
         { question: '¿Quién puede crear una cuenta?', answer: 'El alumnado puede registrarse de forma pública y verificar su correo. Las cuentas de profesor y administrador se crean mediante invitación o alta administrativa.' },
-        { question: '¿Puedo probar OmniQuest sin registrarme?', answer: 'Sí. El modo invitado permite explorar la experiencia, pero su progreso es temporal y la cuenta anónima puede limpiarse automáticamente.' },
-        { question: '¿Se conserva mi progreso?', answer: 'En una cuenta registrada, la actividad y el progreso quedan asociados al perfil. El modo invitado está pensado únicamente para una exploración temporal.' },
+        { question: '¿Puedo jugar sin registrarme?', answer: 'Sí. Introduce el código de una partida y juega con una sesión invitada temporal, sin acceder a las áreas personales del alumnado.' },
+        { question: '¿Se conserva mi progreso?', answer: 'En una cuenta registrada, la actividad y el progreso quedan asociados al perfil. El modo invitado descarta resultados, progreso y matrícula al terminar la sesión.' },
       ],
       show: 'Mostrar respuesta',
       hide: 'Ocultar respuesta',
@@ -94,8 +94,8 @@ const copy: Record<AppLocale, LandingCopy> = {
       description: 'Quick answers about access, guest mode and keeping your progress.',
       items: [
         { question: 'Who can create an account?', answer: 'Students can register publicly and verify their email. Teacher and administrator accounts are created through invitation or authorised administration.' },
-        { question: 'Can I try OmniQuest without registering?', answer: 'Yes. Guest mode lets you explore the experience, but its progress is temporary and the anonymous account may be cleaned automatically.' },
-        { question: 'Is my progress kept?', answer: 'With a registered account, activity and progress remain linked to your profile. Guest mode is intended only for temporary exploration.' },
+        { question: 'Can I play without registering?', answer: 'Yes. Enter a game code and play in a temporary guest session without access to the student personal areas.' },
+        { question: 'Is my progress kept?', answer: 'With a registered account, activity and progress remain linked to your profile. Guest mode discards results, progress and enrolment when the session ends.' },
       ],
       show: 'Show answer',
       hide: 'Hide answer',

@@ -6695,6 +6695,7 @@ export type Database = {
       }
       get_teacher_topic_summary: { Args: { p_topic_id: number }; Returns: Json }
       harden_admin_audit_partition_privileges: { Args: never; Returns: number }
+      discard_current_guest_session: { Args: never; Returns: boolean }
       initialize_guest_profile: { Args: { p_alias: string }; Returns: Json }
       invoke_account_requests_processor: { Args: never; Returns: number }
       invoke_admin_export_processor: { Args: never; Returns: undefined }

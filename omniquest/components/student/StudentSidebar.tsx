@@ -19,6 +19,7 @@ type StudentSidebarProps = {
   activeSection: StudentSection
   alias: string
   avatar?: string | null
+  guestMode?: boolean
   level: number
   points: number
   nextLevelProgress: number
@@ -36,7 +37,7 @@ type NavItem = {
   testID?: string
 }
 
-const navItems: NavItem[] = [
+const studentNavItems: NavItem[] = [
   { section: 'home', label: 'Inicio', labelKey: 'nav.student.home', icon: 'home-outline', href: '/(student)/homeStudent', testID: 'student-nav-home' },
   { section: 'classes', label: 'Cursos', labelKey: 'nav.student.courses', icon: 'book-outline', href: '/(student)/classes', testID: 'student-nav-classes' },
   { section: 'progress', label: 'Progreso', labelKey: 'nav.student.progress', icon: 'stats-chart-outline', href: '/(student)/progress', testID: 'student-nav-progress' },
@@ -47,7 +48,16 @@ const navItems: NavItem[] = [
   { section: 'settings', label: 'Configuración', labelKey: 'nav.student.settings', icon: 'settings-outline', href: '/(student)/settings', testID: 'student-nav-settings' },
 ]
 
-export default function StudentSidebar({
+const guestNavItems: NavItem[] = [
+  { section: 'home', label: 'Jugar', labelKey: 'nav.guest.play', icon: 'game-controller-outline', href: '/(student)/homeStudent', testID: 'guest-nav-play' },
+  { section: 'settings', label: 'Configuración', labelKey: 'nav.guest.settings', icon: 'settings-outline', href: '/(student)/settings', testID: 'guest-nav-settings' },
+]
+
+export default function StudentSidebar(props: StudentSidebarProps) {
+  return props.guestMode ? <GuestStudentSidebar {...props} /> : <RegisteredStudentSidebar {...props} />
+}
+
+function RegisteredStudentSidebar({
   activeSection,
   alias,
   avatar,
@@ -94,7 +104,7 @@ export default function StudentSidebar({
       </View>
 
       <View style={{ gap: isCompact ? 9 : 8 }}>
-        {navItems.map((item) => {
+        {studentNavItems.map((item) => {
           const isActive = item.section === activeSection
           return (
             <StudentNavButton
@@ -153,6 +163,83 @@ export default function StudentSidebar({
             )}
           </Pressable>
         </Link>
+      </View>
+    </View>
+  )
+}
+
+function GuestStudentSidebar({
+  activeSection,
+  alias,
+  onSignOut,
+}: StudentSidebarProps) {
+  const { theme, tokens } = useAppTheme()
+  const responsive = useResponsiveLayout()
+  const { t } = useI18n()
+  const isDark = theme === 'dark'
+  const isCompact = responsive.isDesktop && !responsive.isWide
+  const accentColor = tokens.brand.student
+  const initial = alias.trim().charAt(0).toUpperCase() || 'I'
+
+  return (
+    <View
+      className="border-r py-7"
+      style={{
+        width: isCompact ? 88 : 244,
+        paddingHorizontal: isCompact ? 12 : 16,
+        borderColor: isDark ? '#183052' : '#29466F',
+        backgroundColor: isDark ? '#041024' : '#0E1E38',
+      }}
+    >
+      <View
+        className="mb-5 flex-row items-center"
+        style={{
+          justifyContent: isCompact ? 'center' : 'flex-start',
+          paddingHorizontal: isCompact ? 0 : 8,
+        }}
+      >
+        {isCompact ? (
+          <View className="h-12 w-12 items-center justify-center rounded-2xl border border-border-default bg-surface-default">
+            <OmniGuide size={24} state="happy" />
+          </View>
+        ) : <BrandLogo size={30} />}
+      </View>
+
+      <View style={{ gap: isCompact ? 9 : 8 }}>
+        {guestNavItems.map((item) => (
+          <StudentNavButton
+            key={item.labelKey}
+            item={item}
+            isActive={item.section === activeSection}
+            accentColor={accentColor}
+            isDark={isDark}
+            compact={isCompact}
+          />
+        ))}
+      </View>
+
+      <View className="mt-auto rounded-2xl border border-border-default bg-surface-default p-3">
+        <View className={`flex-row items-center ${isCompact ? 'justify-center' : 'gap-3'}`}>
+          <View className="h-11 w-11 items-center justify-center rounded-full border-2 border-brand-student bg-surface-raised">
+            <Text className="text-[16px] font-black text-white">{initial}</Text>
+          </View>
+          {!isCompact ? (
+            <View className="min-w-0 flex-1">
+              <Text className="text-[14px] font-black text-white" numberOfLines={1}>{alias}</Text>
+              <Text className="mt-0.5 text-[11px] font-bold text-brand-student">{t('guest.temporarySession')}</Text>
+            </View>
+          ) : null}
+        </View>
+        <Pressable
+          accessibilityLabel={t('guest.exit')}
+          accessibilityRole="button"
+          className={`${isCompact ? 'mt-2 h-10 items-center justify-center' : 'mt-3 min-h-10 flex-row items-center justify-center gap-2'} rounded-xl border border-semantic-danger bg-semantic-surface-danger`}
+          onPress={onSignOut}
+          style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}
+        >
+          <Ionicons name="exit-outline" size={18} color={tokens.semantic.danger} />
+          {!isCompact ? <Text className="text-[12px] font-black text-semantic-danger">{t('guest.exit')}</Text> : null}
+        </Pressable>
       </View>
     </View>
   )

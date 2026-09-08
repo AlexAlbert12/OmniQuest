@@ -158,9 +158,10 @@ async function fetchProfileWithOptionalVisibility(targetUserId: string) {
 export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   const router = useRouter()
   const { locale, setLocale, t } = useI18n()
-  const { setEnabled: setHapticsEnabled, selection: hapticSelection } = useAppHaptics()
+  const { enabled: hapticsEnabled, setEnabled: setHapticsEnabled, selection: hapticSelection } = useAppHaptics()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [role, setRole] = useState<AppRole>(forcedRole || 'student')
+  const [isGuest, setIsGuest] = useState(false)
   const [subjectsCount, setSubjectsCount] = useState(0)
   const [name, setName] = useState('Alumno')
   const [email, setEmail] = useState('alumno@omniquest.com')
@@ -196,7 +197,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
 
   const isTeacher = role === 'teacher'
   const points = profile?.points ?? 0
-  const alias = profile?.alias || (isTeacher ? 'Profesor' : 'Alumno')
+  const alias = profile?.alias || (isGuest ? 'Invitado' : isTeacher ? 'Profesor' : 'Alumno')
   const level = getStudentLevel(points)
   const nextLevelProgress = getNextLevelProgress(points)
   const userInitials = getInitials(name)
@@ -422,6 +423,38 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
       setLastSignInAt(session.user.last_sign_in_at || null)
       setEmailConfirmedAt(session.user.email_confirmed_at || session.user.confirmed_at || null)
 
+      if (session.user.is_anonymous) {
+        const guestAlias = typeof session.user.user_metadata?.alias === 'string' && session.user.user_metadata.alias.trim()
+          ? session.user.user_metadata.alias.trim().slice(0, 30)
+          : 'Invitado'
+        const guestProfile: UserProfile = {
+          id: session.user.id,
+          alias: guestAlias,
+          avatar: null,
+          points: 0,
+          role_id: 'guest',
+          visibility: null,
+        }
+        setIsGuest(true)
+        setRole('student')
+        setProfile(guestProfile)
+        setName(guestAlias)
+        setEmail('')
+        setProfileVisibilityAvailable(false)
+        setProfileVisibility(null)
+        setSubjectsCount(0)
+        setNotificationSettings(DEFAULT_NOTIFICATION_SETTINGS)
+        setPreferences({
+          ...DEFAULT_PREFERENCES,
+          language: locale,
+          hapticsEnabled,
+          analyticsEnabled: false,
+        })
+        return
+      }
+
+      setIsGuest(false)
+
       const [profileFetch, preferencesResult, subjectsResult] = await Promise.all([
         fetchProfileWithOptionalVisibility(session.user.id),
         supabase
@@ -469,7 +502,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     } finally {
       setLoading(false)
     }
-  }, [forcedRole, router, setHapticsEnabled, setLocale])
+  }, [forcedRole, hapticsEnabled, locale, router, setHapticsEnabled, setLocale])
 
   useFocusEffect(
     useCallback(() => {
@@ -717,6 +750,15 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     setPreferences(nextPreferences)
     setSavingPreference(key)
 
+    if (isGuest) {
+      try {
+        if (key === 'language') await setLocale(value as AppLocale)
+      } finally {
+        setSavingPreference(null)
+      }
+      return
+    }
+
     try {
       await savePreferences(userId, nextPreferences)
       if (key === 'language') await setLocale(value as AppLocale)
@@ -744,6 +786,12 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     setPreferences(nextPreferences)
     setSavingHaptics(true)
     await setHapticsEnabled(enabled)
+
+    if (isGuest) {
+      if (enabled) void hapticSelection()
+      setSavingHaptics(false)
+      return
+    }
 
     try {
       await savePreferences(userId, nextPreferences)
@@ -803,6 +851,7 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
     handleProfileVisibilityChange,
     handleSaveProfile,
     handleSignOut,
+    isGuest,
     isTeacher,
     lastSignInAt,
     level,

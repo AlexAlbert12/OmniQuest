@@ -227,6 +227,7 @@ function sanitizeAnalyticsPath(pathname: string) {
 
 async function getCurrentUserId() {
   const { data } = await supabase.auth.getSession()
+  if (data.session?.user.is_anonymous) return null
   return data.session?.user.id || null
 }
 

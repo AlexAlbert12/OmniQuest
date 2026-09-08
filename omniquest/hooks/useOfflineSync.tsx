@@ -54,18 +54,32 @@ export function OfflineSyncProvider({ children }: { children: ReactNode }) {
     let mounted = true
     void supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return
-      const nextUserId = data.session?.user.id || null
+      const guestUserId = data.session?.user.is_anonymous ? data.session.user.id : null
+      const nextUserId = guestUserId ? null : data.session?.user.id || null
       userIdRef.current = nextUserId
       setUserId(nextUserId)
       void refreshSummary(nextUserId)
+      if (guestUserId) {
+        void Promise.all([
+          clearOfflineCacheForUser(guestUserId),
+          clearOfflineMutationsForUser(guestUserId),
+        ])
+      }
     })
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       const previousUserId = userIdRef.current
-      const nextUserId = session?.user.id || null
+      const guestUserId = session?.user.is_anonymous ? session.user.id : null
+      const nextUserId = guestUserId ? null : session?.user.id || null
       userIdRef.current = nextUserId
       setUserId(nextUserId)
       void refreshSummary(nextUserId)
+      if (guestUserId) {
+        void Promise.all([
+          clearOfflineCacheForUser(guestUserId),
+          clearOfflineMutationsForUser(guestUserId),
+        ])
+      }
       if (event === 'SIGNED_OUT' && previousUserId) {
         void Promise.all([
           clearOfflineCacheForUser(previousUserId),

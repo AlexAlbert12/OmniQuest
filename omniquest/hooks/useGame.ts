@@ -43,6 +43,9 @@ type SubmitAnswerResult = {
   earned_points?: number;
   attempt_score?: number;
   attempt_history_id?: number;
+  correct_answer_id?: number | null;
+  correct_answer_text?: string | null;
+  explanation?: string | null;
 };
 
 function asSubmitAnswerResult(value: unknown): SubmitAnswerResult {
@@ -110,6 +113,7 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
   const [feedbackNextStatus, setFeedbackNextStatus] = useState<'gameOver' | 'finished' | null>(null);
   const [summary, setSummary] = useState<GameSummary>(emptySummary);
   const [isOffline, setIsOffline] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   const [resumedFromSnapshot, setResumedFromSnapshot] = useState(false);
   const [pendingAnswer, setPendingAnswer] = useState<PendingGameAnswer | null>(null);
   const [newlyUnlockedBadges, setNewlyUnlockedBadges] = useState<StudentBadge[]>([]);
@@ -125,7 +129,10 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData.session?.user.id;
-      const snapshot = userId ? await loadGameSnapshot(gameSnapshotKey) : null;
+      const guestSession = Boolean(sessionData.session?.user.is_anonymous);
+      setIsGuest(guestSession);
+      if (guestSession) await clearGameSnapshot(gameSnapshotKey);
+      const snapshot = userId && !guestSession ? await loadGameSnapshot(gameSnapshotKey) : null;
 
       if (snapshot && snapshot.userId === userId && snapshot.questions.length > 0) {
         const restoredQuestions = snapshot.questions as any[];
@@ -441,7 +448,7 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
       setSyncState('synced');
 
       const result = asSubmitAnswerResult(data);
-      let secureFeedback: AttemptFeedback = {};
+      let secureFeedback: AttemptFeedback = result;
 
       if (typeof result.attempt_history_id === 'number') {
         try {
@@ -611,6 +618,10 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
       const { data } = await supabase.auth.getSession();
       const userId = data.session?.user.id;
       if (!userId || cancelled) return;
+      if (data.session?.user.is_anonymous) {
+        await clearGameSnapshot(gameSnapshotKey);
+        return;
+      }
       await saveGameSnapshot(gameSnapshotKey, {
         userId,
         questions,
@@ -741,6 +752,7 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
     feedback,
     summary,
     isOffline,
+    isGuest,
     resumedFromSnapshot,
     pendingAnswer,
     newlyUnlockedBadges,

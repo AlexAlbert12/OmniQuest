@@ -97,6 +97,39 @@ export async function clearGameSnapshot(gameKey: string) {
   await AsyncStorage.removeItem(storageKey(gameKey))
 }
 
+export async function clearGameSnapshotsForUser(userId: string | null) {
+  if (!userId) return
+
+  if (Platform.OS === 'web') {
+    const storage = webStorage()
+    if (!storage) return
+    const keys = Array.from({ length: storage.length }, (_, index) => storage.key(index))
+      .filter((key): key is string => Boolean(key?.startsWith(SNAPSHOT_PREFIX)))
+    keys.forEach((key) => {
+      try {
+        const parsed = JSON.parse(storage.getItem(key) || '{}') as Partial<StoredGameSnapshot>
+        if (parsed.userId === userId) storage.removeItem(key)
+      } catch {
+        storage.removeItem(key)
+      }
+    })
+    return
+  }
+
+  const keys = (await AsyncStorage.getAllKeys()).filter((key) => key.startsWith(SNAPSHOT_PREFIX))
+  if (keys.length === 0) return
+  const snapshots = await AsyncStorage.multiGet(keys)
+  const matchingKeys = snapshots.flatMap(([key, value]) => {
+    try {
+      const parsed = JSON.parse(value || '{}') as Partial<StoredGameSnapshot>
+      return parsed.userId === userId ? [key] : []
+    } catch {
+      return [key]
+    }
+  })
+  if (matchingKeys.length > 0) await AsyncStorage.multiRemove(matchingKeys)
+}
+
 export async function getNetworkAvailability() {
   if (Platform.OS === 'web') {
     return typeof navigator === 'undefined' ? true : navigator.onLine

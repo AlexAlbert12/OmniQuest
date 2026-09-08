@@ -34,15 +34,20 @@ export async function joinClassByInviteCode(inviteCode: string) {
   if (joinError) throw joinError
 
   const payload = subject && typeof subject === 'object' && !Array.isArray(subject)
-    ? subject as { name?: string; classroomName?: string; classroomId?: number }
+    ? subject as { id?: number; name?: string; classroomName?: string; classroomId?: number }
     : null
 
+  const subjectId = Number(payload?.id)
+  if (!Number.isFinite(subjectId) || subjectId <= 0) {
+    throw new Error('La partida no devolvió un curso válido.')
+  }
   const subjectName = String(payload?.name || 'el curso')
   const classroomName = payload?.classroomName ? String(payload.classroomName) : null
   const classroomId = typeof payload?.classroomId === 'number' ? payload.classroomId : null
 
   return {
     code: normalizedCode,
+    subjectId,
     subjectName,
     classroomName,
     classroomId,

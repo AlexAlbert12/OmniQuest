@@ -6,21 +6,26 @@ import MobileBottomNavigation, {
 } from '../ui/mobile/MobileBottomNavigation'
 
 export type StudentBottomNavKey = 'home' | 'classes' | 'progress' | 'profile' | 'settings' | 'ranking' | 'badges' | 'notifications' | 'activity' | 'security' | 'help' | 'more'
-type VisibleStudentBottomNavKey = 'home' | 'classes' | 'progress' | 'ranking' | 'more'
+type VisibleStudentBottomNavKey = 'home' | 'classes' | 'progress' | 'ranking' | 'more' | 'settings'
 
-export default function StudentBottomNav({ active }: { active: StudentBottomNavKey | null }) {
+export default function StudentBottomNav({ active, guestMode = false }: { active: StudentBottomNavKey | null; guestMode?: boolean }) {
   const { tokens } = useAppTheme()
   const { t } = useI18n()
-  const navItems = useMemo<MobileBottomNavigationItem<VisibleStudentBottomNavKey>[]>(() => [
-    { key: 'home', label: t('nav.student.home'), href: '/(student)/homeStudent', icon: 'home-outline', activeIcon: 'home', testID: 'student-nav-home' },
-    { key: 'classes', label: t('nav.student.courses'), href: '/(student)/classes', icon: 'book-outline', activeIcon: 'book', testID: 'student-nav-classes' },
-    { key: 'progress', label: t('nav.student.progress'), href: '/(student)/progress', icon: 'stats-chart-outline', activeIcon: 'stats-chart', testID: 'student-nav-progress' },
-    { key: 'ranking', label: t('nav.student.ranking'), href: '/(student)/ranking', icon: 'trophy-outline', activeIcon: 'trophy', testID: 'student-nav-ranking' },
-    { key: 'more', label: 'Más', href: '/(student)/more', icon: 'ellipsis-horizontal-circle-outline', activeIcon: 'ellipsis-horizontal-circle', testID: 'student-nav-more' },
-  ], [t])
+  const navItems = useMemo<MobileBottomNavigationItem<VisibleStudentBottomNavKey>[]>(() => guestMode
+    ? [
+        { key: 'home', label: t('nav.guest.play'), href: '/(student)/homeStudent', icon: 'game-controller-outline', activeIcon: 'game-controller', testID: 'guest-nav-play' },
+        { key: 'settings', label: t('nav.guest.settings'), href: '/(student)/settings', icon: 'settings-outline', activeIcon: 'settings', testID: 'guest-nav-settings' },
+      ]
+    : [
+        { key: 'home', label: t('nav.student.home'), href: '/(student)/homeStudent', icon: 'home-outline', activeIcon: 'home', testID: 'student-nav-home' },
+        { key: 'classes', label: t('nav.student.courses'), href: '/(student)/classes', icon: 'book-outline', activeIcon: 'book', testID: 'student-nav-classes' },
+        { key: 'progress', label: t('nav.student.progress'), href: '/(student)/progress', icon: 'stats-chart-outline', activeIcon: 'stats-chart', testID: 'student-nav-progress' },
+        { key: 'ranking', label: t('nav.student.ranking'), href: '/(student)/ranking', icon: 'trophy-outline', activeIcon: 'trophy', testID: 'student-nav-ranking' },
+        { key: 'more', label: 'Más', href: '/(student)/more', icon: 'ellipsis-horizontal-circle-outline', activeIcon: 'ellipsis-horizontal-circle', testID: 'student-nav-more' },
+      ], [guestMode, t])
 
-  const activeKey = getVisibleActiveKey(active)
-  const disabledKey = getDisabledVisibleKey(active)
+  const activeKey = guestMode ? (active === 'settings' ? 'settings' : 'home') : getVisibleActiveKey(active)
+  const disabledKey = guestMode ? activeKey : getDisabledVisibleKey(active)
 
   return (
     <MobileBottomNavigation

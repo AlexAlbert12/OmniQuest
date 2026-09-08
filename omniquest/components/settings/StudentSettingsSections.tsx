@@ -78,6 +78,7 @@ export function RoleSettingsSections({
           onSelectPreference={(key, value) => void data.selectPreference(key, value)}
           onToggleHaptics={(enabled) => void data.updateHapticsEnabled(enabled)}
           formatPreferenceLabel={data.formatPreferenceLabel}
+          guestMode={data.isGuest}
         />
       ) : null}
 

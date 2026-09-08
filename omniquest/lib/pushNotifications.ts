@@ -5,6 +5,7 @@ import { Platform } from 'react-native'
 import { supabase } from './supabase'
 import { PUSH_TOKEN_STORAGE_KEY } from './pushTokenStorage'
 import { removeTeacherQuestionDraftsForUser } from './questionDraftStorage'
+import { clearGameSnapshotsForUser } from './gameOffline'
 
 export type PushRegistrationResult = {
   status: 'registered' | 'denied' | 'unsupported' | 'error'
@@ -111,12 +112,24 @@ export async function deactivateCurrentDevicePushToken() {
 export async function signOutCurrentDeviceSession() {
   const { data: sessionData } = await supabase.auth.getSession()
   const userId = sessionData.session?.user.id || null
+  const isGuest = Boolean(sessionData.session?.user.is_anonymous)
   await deactivateCurrentDevicePushToken().catch((error) => {
     console.warn('[push] could not deactivate device token before sign-out', error)
   })
   await removeTeacherQuestionDraftsForUser(userId).catch((error) => {
     console.warn('[drafts] could not clear teacher question drafts before sign-out', error)
   })
+  await clearGameSnapshotsForUser(userId).catch((error) => {
+    console.warn('[game] could not clear local game state before sign-out', error)
+  })
+  if (isGuest) {
+    try {
+      const { error } = await supabase.rpc('discard_current_guest_session')
+      if (error) console.warn('[guest] could not discard the temporary server session before sign-out', error)
+    } catch (error) {
+      console.warn('[guest] could not discard the temporary server session before sign-out', error)
+    }
+  }
   return supabase.auth.signOut()
 }
 

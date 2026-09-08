@@ -79,10 +79,20 @@ function PlayScreenContent() {
     } as any)
   }
 
-  const handleBack = () => router.back()
+  const handleBack = () => {
+    if (game.isGuest) {
+      router.replace('/(student)/homeStudent' as never)
+      return
+    }
+    router.back()
+  }
   const confirmExit = async () => {
     setPendingAction(null)
     await game.abandonGame()
+    if (game.isGuest) {
+      router.replace('/(student)/homeStudent' as never)
+      return
+    }
     router.back()
   }
 
@@ -98,9 +108,10 @@ function PlayScreenContent() {
           tokens={tokens}
           onRetry={game.retryLoadGame}
           onBack={handleBack}
-          onReviewMistakes={handleReviewMistakes}
+          isGuest={game.isGuest}
+          onReviewMistakes={game.isGuest ? undefined : handleReviewMistakes}
         />
-        <GameAchievementModal badges={game.newlyUnlockedBadges} onDismiss={game.dismissUnlockedBadge} />
+        {!game.isGuest ? <GameAchievementModal badges={game.newlyUnlockedBadges} onDismiss={game.dismissUnlockedBadge} /> : null}
       </>
     )
   }
@@ -251,7 +262,7 @@ function PlayScreenContent() {
         onReloadConflict={() => void game.restartAfterConflict()}
         onExitConflict={() => void confirmExit()}
       />
-      <GameAchievementModal badges={game.newlyUnlockedBadges} onDismiss={game.dismissUnlockedBadge} />
+      {!game.isGuest ? <GameAchievementModal badges={game.newlyUnlockedBadges} onDismiss={game.dismissUnlockedBadge} /> : null}
     </GameShell>
   )
 }

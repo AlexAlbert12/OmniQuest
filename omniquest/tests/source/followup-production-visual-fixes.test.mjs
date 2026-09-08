@@ -30,8 +30,8 @@ test('course detail exposes a return to My courses on web and native', () => {
   const header = read('components/student/course/CourseGalaxyHeader.tsx')
   const screen = read('app/(student)/class/[id].tsx')
 
-  assert.ok(header.includes("backAction={{ label: 'Mis cursos', onPress: onBack }}"))
-  assert.ok(screen.includes("onBack={() => router.push('/(student)/classes' as never)}"))
+  assert.ok(header.includes("guestMode ? 'Nueva partida' : 'Mis cursos'"))
+  assert.ok(screen.includes("guest.isGuest ? '/(student)/homeStudent' as never : '/(student)/classes' as never"))
 })
 
 test('game feedback uses the canonical blue next-question action', () => {

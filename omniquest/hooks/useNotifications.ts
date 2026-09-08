@@ -82,13 +82,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     let isMounted = true
     const retryTimers = new Set<ReturnType<typeof setTimeout>>()
 
-    const syncUser = async (nextUserId: string | null, retryAttempt = 0) => {
+    const syncUser = async (nextSession: Session | null, retryAttempt = 0) => {
       if (!isMounted) return
 
+      const nextUserId = nextSession?.user.id || null
       setUserId(nextUserId)
       setAudienceState(createInitialState())
 
-      if (!nextUserId) {
+      if (!nextUserId || nextSession?.user.is_anonymous) {
+        setUserId(null)
         setActiveAudience(null)
         setReadIds(new Set())
         setDeletedIds(new Set())
@@ -120,7 +122,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             const retryDelay = retryAttempt === 0 ? 1_500 : 4_000
             const timer = setTimeout(() => {
               retryTimers.delete(timer)
-              void syncUser(nextUserId, retryAttempt + 1)
+              void syncUser(nextSession, retryAttempt + 1)
             }, retryDelay)
             retryTimers.add(timer)
           }
@@ -141,7 +143,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const syncInitialSession = async () => {
       try {
         const { data: session } = await supabase.auth.getSession()
-        await syncUser(session.session?.user.id || null)
+        await syncUser(session.session)
       } catch (error) {
         console.error('Error sincronizando sesión para notificaciones:', error)
         await syncUser(null)
@@ -151,7 +153,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     void syncInitialSession()
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      void syncUser(session?.user.id || null)
+      void syncUser(session)
     })
 
     return () => {

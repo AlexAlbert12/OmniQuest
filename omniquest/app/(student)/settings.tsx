@@ -64,6 +64,10 @@ const teacherSettingsSectionDefinitions: SettingsSectionDefinition[] = [
   { key: 'about', labelKey: 'settings.section.about', icon: 'help-circle-outline', anchor: 'about' },
 ]
 
+const guestSettingsSectionDefinitions: SettingsSectionDefinition[] = [
+  { key: 'preferences', labelKey: 'settings.section.preferences.short', mobileLabelKey: 'settings.section.preferences.mobile', icon: 'options-outline', anchor: 'preferences' },
+]
+
 function roleRoute(isTeacher: boolean, teacherRoute: AppHref, studentRoute: AppHref) {
   return isTeacher ? teacherRoute : studentRoute
 }
@@ -81,17 +85,22 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
 
   const isDesktop = responsive.isDesktop
   const settingsSections = useMemo(
-    () => (data.isTeacher ? teacherSettingsSectionDefinitions : studentSettingsSectionDefinitions)
+    () => (data.isGuest ? guestSettingsSectionDefinitions : data.isTeacher ? teacherSettingsSectionDefinitions : studentSettingsSectionDefinitions)
       .map((item) => ({ ...item, label: t(responsive.isMobile && item.mobileLabelKey ? item.mobileLabelKey : item.labelKey) })),
-    [data.isTeacher, responsive.isMobile, t]
+    [data.isGuest, data.isTeacher, responsive.isMobile, t]
   )
   const isLargeDesktop = responsive.isWide
   const isMediumSettings = !responsive.isMobile
   const settingsMenuVariant: SettingsMenuVariant = isLargeDesktop ? 'side' : isMediumSettings ? 'tabs' : 'chips'
   const settingsHorizontalPadding = isDesktop ? 28 : 16
   const RoleSections = data.isTeacher ? TeacherSettingsSections : StudentSettingsSections
+  const visibleActiveSettingsSection = data.isGuest ? 'preferences' : activeSettingsSection
 
   useEffect(() => {
+    if (data.isGuest && activeSettingsSection !== 'preferences') {
+      setActiveSettingsSection('preferences')
+      return
+    }
     if (data.isTeacher && activeSettingsSection === 'general') {
       setActiveSettingsSection('personal')
       return
@@ -99,7 +108,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
     if (!settingsSections.some((item) => item.key === activeSettingsSection)) {
       setActiveSettingsSection(data.isTeacher ? 'personal' : 'general')
     }
-  }, [activeSettingsSection, data.isTeacher, settingsSections])
+  }, [activeSettingsSection, data.isGuest, data.isTeacher, settingsSections])
 
   useEffect(() => {
     if (!section) return
@@ -150,6 +159,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
               points={data.points}
               nextLevelProgress={data.nextLevelProgress}
               onSignOut={data.handleSignOut}
+              guestMode={data.isGuest}
             />
           )
         ) : null}
@@ -177,14 +187,16 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
               isDesktop={isDesktop}
               title={securityOnly ? t('settings.section.security') : t('settings.title')}
               notificationOnPress={() => router.push(roleRoute(data.isTeacher, ROUTES.teacherNotifications, ROUTES.studentNotifications))}
+              showAvatar={!data.isGuest}
+              showNotifications={!data.isGuest}
               className="mb-4"
             />
 
-            {!securityOnly && settingsMenuVariant !== 'side' ? (
+            {!securityOnly && !data.isGuest && settingsMenuVariant !== 'side' ? (
               <SettingsMenu
                 variant={settingsMenuVariant}
                 onSignOut={data.handleSignOut}
-                activeSection={activeSettingsSection}
+                activeSection={visibleActiveSettingsSection}
                 onSectionPress={handleMenuSectionPress}
                 sections={settingsSections}
               />
@@ -198,11 +210,11 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
               paddingTop: 16,
             }}
           >
-            {!securityOnly && settingsMenuVariant === 'side' ? (
+            {!securityOnly && !data.isGuest && settingsMenuVariant === 'side' ? (
               <SettingsMenu
                 variant="side"
                 onSignOut={data.handleSignOut}
-                activeSection={activeSettingsSection}
+                activeSection={visibleActiveSettingsSection}
                 onSectionPress={handleMenuSectionPress}
                 sections={settingsSections}
               />
@@ -216,7 +228,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
             >
               <View className="gap-5">
                 <RoleSections
-                  activeSettingsSection={activeSettingsSection}
+                  activeSettingsSection={visibleActiveSettingsSection}
                   accentColor={accentColor}
                   data={data}
                   isDesktop={isDesktop}
@@ -226,6 +238,18 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
                   securityOnly={securityOnly}
                   width={width}
                 />
+                {data.isGuest ? (
+                  <View className="rounded-2xl border border-border-default bg-surface-default p-4">
+                    <AppButton
+                      label={t('guest.settings.signOut')}
+                      icon="exit-outline"
+                      role="student"
+                      variant="danger"
+                      fullWidth
+                      onPress={data.handleSignOut}
+                    />
+                  </View>
+                ) : null}
                 {!securityOnly && !isDesktop && data.isTeacher ? (
                   <View className="rounded-2xl border border-border-default bg-surface-default p-4">
                     <AppButton
@@ -257,10 +281,12 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
       <AppConfirmModal
         visible={data.showSignOutConfirm}
         variant="warning"
-        title="¿Cerrar sesión?"
-        message="Saldrás de tu cuenta en este dispositivo. Podrás volver a entrar con tu correo y contraseña."
+        title={data.isGuest ? t('guest.settings.signOutTitle') : '¿Cerrar sesión?'}
+        message={data.isGuest
+          ? t('guest.settings.signOutMessage')
+          : 'Saldrás de tu cuenta en este dispositivo. Podrás volver a entrar con tu correo y contraseña.'}
         cancelLabel="Cancelar"
-        confirmLabel="Cerrar sesión"
+        confirmLabel={data.isGuest ? t('guest.exit') : 'Cerrar sesión'}
         onCancel={() => data.setShowSignOutConfirm(false)}
         onConfirm={() => {
           data.setShowSignOutConfirm(false)
@@ -268,7 +294,7 @@ export function UnifiedSettingsScreen({ forcedRole, securityOnly = false }: { fo
         }}
       />
 
-      {!securityOnly && !isDesktop && !data.isTeacher ? <StudentBottomNav active="settings" /> : null}
+      {!securityOnly && !isDesktop && !data.isTeacher ? <StudentBottomNav active="settings" guestMode={data.isGuest} /> : null}
       {!securityOnly && !isDesktop && data.isTeacher ? <TeacherBottomNav active="settings" /> : null}
       {securityOnly && !isDesktop && !data.isTeacher ? <StudentBottomNav active="security" /> : null}
       {securityOnly && !isDesktop && data.isTeacher ? <TeacherBottomNav active="settings" /> : null}
