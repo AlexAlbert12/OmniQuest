@@ -74,15 +74,6 @@ export default function MobileMetricCard({
         >
           <Ionicons name={resolvedIcon} size={dense ? 14 : compact ? 22 : 29} color={resolvedColor} />
         </View>
-        {desktopInline && metricLabel ? (
-          <Text
-            className={`${dense ? 'text-[8px]' : 'text-[13px]'} min-w-0 font-bold`}
-            style={{ color: colors.textSecondary, flexShrink: 1 }}
-            numberOfLines={1}
-          >
-            {metricLabel}
-          </Text>
-        ) : null}
         <Text
           className={`${dense ? 'text-[17px]' : compact ? 'text-[24px]' : 'text-[30px]'} min-w-0 font-black`}
           style={{ color: colors.text, flex: desktopInline ? undefined : 1, flexShrink: 1 }}
@@ -92,6 +83,15 @@ export default function MobileMetricCard({
         >
           {valueText}
         </Text>
+        {desktopInline && metricLabel ? (
+          <Text
+            className={`${dense ? 'text-[8px]' : 'text-[13px]'} min-w-0 font-bold`}
+            style={{ color: colors.textSecondary, flexShrink: 1 }}
+            numberOfLines={1}
+          >
+            {metricLabel}
+          </Text>
+        ) : null}
       </View>
       {!desktopInline && metricLabel ? (
         <Text className={`${dense ? 'mt-0.5 text-[8px] leading-2.5' : 'mt-1 text-[13px]'} font-bold`} style={{ color: colors.textSecondary }} numberOfLines={dense ? 2 : compact ? 1 : 2}>

@@ -18,6 +18,8 @@ test('mobile question authoring is a focused full-screen wizard with a persisten
   assert.match(wizard, /<AppBottomSheet/)
   assert.match(types, /min-h-\[122px\]/)
   assert.match(types, /Puede requerir revisión/)
+  assert.match(types, /borderWidth: 1, borderColor: active \? type\.accent : tokens\.border\.default/)
+  assert.doesNotMatch(types, /rounded-2xl border`/)
 })
 
 test('question drafts are scoped by user, course and classroom, expire and are cleared on sign-out', () => {

@@ -6,7 +6,7 @@ import test from 'node:test'
 const root = process.cwd()
 const read = (path) => readFileSync(join(root, path), 'utf8')
 
-test('shared metric cards keep mobile hierarchy and center icon, label and value inline on desktop', () => {
+test('shared metric cards keep mobile hierarchy and center icon, value and label inline on desktop', () => {
   const metric = read('components/ui/mobile/MobileMetricCard.tsx')
   const rowStart = metric.indexOf("<View style={{ minWidth: 0, flexDirection: 'row', alignItems: 'center'")
   const desktopLabelStart = metric.indexOf('{desktopInline && metricLabel ?')
@@ -20,9 +20,9 @@ test('shared metric cards keep mobile hierarchy and center icon, label and value
   assert.match(metric, /justifyContent: desktopInline \? 'center' : undefined/)
   assert.match(primaryRow, /<Ionicons name=\{resolvedIcon\}/)
   assert.match(primaryRow, /\{valueText\}/)
-  assert.ok(desktopLabelStart > rowStart)
-  assert.ok(valueStart > desktopLabelStart)
-  assert.ok(mobileLabelStart > valueStart)
+  assert.ok(valueStart > rowStart)
+  assert.ok(desktopLabelStart > valueStart)
+  assert.ok(mobileLabelStart > desktopLabelStart)
   assert.ok(detailStart > mobileLabelStart)
   assert.match(metric, /numberOfLines=\{1\}[\s\S]*adjustsFontSizeToFit[\s\S]*minimumFontScale=\{0\.72\}/)
   assert.match(metric, /<LinearGradient/)

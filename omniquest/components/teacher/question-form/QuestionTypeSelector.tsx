@@ -21,8 +21,8 @@ export default function QuestionTypeSelector({ selectedType, columns, isDesktop,
                 accessibilityState={{ selected: active, disabled: !type.supported }}
                 disabled={!type.supported}
                 onPress={() => onSelect(type.id, type.supported)}
-                className={`${isDesktop ? 'min-h-[156px] p-4' : 'min-h-[122px] p-3.5'} rounded-2xl border`}
-                style={({ pressed }) => ({ borderColor: active ? type.accent : tokens.border.default, backgroundColor: active ? withAlpha(type.accent, '20') : tokens.surface.interactive, opacity: !type.supported ? 0.45 : pressed ? 0.8 : 1 })}
+                className={`${isDesktop ? 'min-h-[156px] p-4' : 'min-h-[122px] p-3.5'} rounded-2xl`}
+                style={({ pressed }) => ({ borderWidth: 1, borderColor: active ? type.accent : tokens.border.default, backgroundColor: active ? withAlpha(type.accent, '20') : tokens.surface.interactive, opacity: !type.supported ? 0.45 : pressed ? 0.8 : 1 })}
               >
                 {active ? <View className="absolute right-3 top-3 h-7 w-7 items-center justify-center rounded-full" style={{ backgroundColor: type.accent }}><Ionicons name="checkmark" size={16} color={tokens.text.onAccent} /></View> : null}
                 <View className={`${isDesktop ? 'h-12 w-12' : 'h-10 w-10'} items-center justify-center rounded-xl`} style={{ backgroundColor: withAlpha(type.accent, '26') }}>
