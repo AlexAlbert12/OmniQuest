@@ -19,7 +19,8 @@ test('game results and bottom sheets keep their final actions above Android syst
 test('mobile web navigation remains fixed to the viewport', () => {
   const navigation = read('components/ui/mobile/MobileBottomNavigation.tsx')
 
-  assert.ok(navigation.includes("Platform.OS === 'web' ? ({ position: 'fixed' } as ViewStyle) : null"))
+  assert.ok(navigation.includes("const WEB_FIXED_STYLE = { position: 'fixed' } as unknown as ViewStyle"))
+  assert.ok(navigation.includes("Platform.OS === 'web' ? WEB_FIXED_STYLE : null"))
   assert.ok(navigation.includes('bottom: 0'))
   assert.ok(navigation.includes('zIndex: 1000'))
 })

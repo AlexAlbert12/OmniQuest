@@ -88,9 +88,9 @@ function RootNavigator() {
   })
   const router = useRouter()
   const pathname = usePathname()
-  const segments = useSegments()
-  const rootSegment = segments[0]
-  const childSegment = segments[1]
+  const segments = useSegments() as readonly string[]
+  const rootSegment: string | undefined = segments[0]
+  const childSegment: string | undefined = segments[1]
   const activeRoleRef = useRef<string | null>(null)
   const { theme, colors, ready } = useAppTheme()
   const { ready: localeReady, t } = useI18n()

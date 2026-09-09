@@ -9,9 +9,11 @@ const ADMIN_DEMO_STUDENT_EMAIL = 'alumno01@demo.omniquest.test'
 const ADMIN_DEMO_TICKET = 'Duda sobre una pregunta de Matemáticas'
 
 const SUPPORTED_PROJECTS = new Set(['chromium-desktop', 'chromium-mobile'])
+const USES_SYNTHETIC_FIXTURES = process.env.E2E_PREPARE_FIXTURES === '1'
 
 test.describe('evidencia visual profunda autenticada', () => {
   test.skip(!hasAuthenticatedE2EEnvironment(), 'Define las seis variables E2E_* para capturar los recorridos profundos.')
+  test.skip(USES_SYNTHETIC_FIXTURES, 'La evidencia visual profunda requiere el dataset TFM curado; el CI aislado usa fixtures sintéticos mínimos.')
 
   test('student cubre curso, tema, partida, feedback correcto/incorrecto y resultado', async ({ page }, testInfo) => {
     test.setTimeout(360_000)

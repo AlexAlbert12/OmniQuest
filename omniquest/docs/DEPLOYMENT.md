@@ -136,6 +136,8 @@ Playwright inicia Expo Web mediante `webServer`, ejecuta los smoke tests en view
 
 ## 9. Publicación
 
+El perfil `production` genera un Android App Bundle (`.aab`) para Google Play. Los perfiles `preview` y `tfm-apk` generan APK instalables para validación y defensa; no deben confundirse con el artefacto de tienda.
+
 Antes de publicar, completa [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md). El pipeline de `../.github/workflows/quality.yml` (en la raíz del repositorio) constituye el mínimo automatizado; no sustituye las comprobaciones de secrets, cron, correo, push, backup y observabilidad del entorno real.
 
 Tras el despliegue abre una ventana de observación y sigue [OBSERVABILITY.md](runbooks/OBSERVABILITY.md). El snippet `supabase/snippets/operational_health.sql` comprueba ejecuciones de cron, respuestas de `pg_net`, colas, exportaciones, correo, push tickets sin receipt y anomalías de auditoría.

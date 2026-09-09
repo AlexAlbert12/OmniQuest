@@ -7,6 +7,7 @@
 - [ ] Tests source, unitarios, SQL y Edge Functions superados.
 - [ ] Build web y E2E mínimo superados.
 - [ ] Revisión móvil Maestro realizada para la release.
+- [ ] Build Android `production` generada como AAB y build `tfm-apk`/`preview` reservada para instalación directa.
 
 ## Datos y seguridad
 
@@ -20,6 +21,8 @@
 - [ ] RLS activa en tablas expuestas y grants revisados.
 - [ ] RPC críticas verifican identidad, propiedad y rol.
 - [ ] Secrets configurados y no presentes en repositorio/logs.
+- [ ] Cuentas demo/E2E ausentes del entorno productivo o con contraseñas rotadas y acceso restringido.
+- [ ] Contraseña del administrador de producción rotada, única y no reutilizada en documentación, demos o pruebas.
 - [ ] Buckets privados, políticas y expiración de URLs revisados.
 
 ## Operaciones

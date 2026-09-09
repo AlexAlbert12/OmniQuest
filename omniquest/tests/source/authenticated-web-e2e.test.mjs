@@ -139,8 +139,13 @@ test('Playwright runs authenticated E2E in desktop and mobile Chromium with dete
   assert.match(packageJson, /"e2e:prepare": "node scripts\/prepare-authenticated-e2e\.mjs"/)
   assert.match(workflow, /PLAYWRIGHT_PORT: 8082/)
   assert.match(workflow, /Configure authenticated E2E accounts/)
+  assert.match(workflow, /E2E_PREPARE_FIXTURES: '1'/)
   for (const name of requiredEnvironment) assert.match(workflow, new RegExp(name))
   assert.match(workflow, /npx playwright install --with-deps chromium/)
   assert.match(workflow, /npm run test:e2e/)
   assert.doesNotMatch(workflow, /supabase\/setup-cli@/)
+
+  const deepVisual = read('e2e/web/authenticated-deep-visual.spec.ts')
+  assert.match(deepVisual, /process\.env\.E2E_PREPARE_FIXTURES === '1'/)
+  assert.match(deepVisual, /evidencia visual profunda requiere el dataset TFM curado/)
 })

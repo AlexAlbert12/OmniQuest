@@ -13,6 +13,14 @@ test('preview EAS build is an installable APK on a published EAS CLI line', () =
   assert.equal(eas.cli.version, '>= 19.1.0')
 })
 
+test('production Android build targets Google Play while preview and TFM builds remain installable', () => {
+  const eas = readJson('eas.json')
+  assert.equal(eas.build.production.android.buildType, 'app-bundle')
+  assert.equal(eas.build.preview.android.buildType, 'apk')
+  assert.equal(eas.build['tfm-apk'].android.buildType, 'apk')
+  assert.equal(eas.build.production.autoIncrement, true)
+})
+
 test('native config uses least privilege for media and keeps notifications configured', () => {
   const app = readJson('app.json')
   const imagePicker = app.expo.plugins.find((entry) => Array.isArray(entry) && entry[0] === 'expo-image-picker')

@@ -30,6 +30,8 @@ check('Proyecto EAS enlazado', typeof expo.extra?.eas?.projectId === 'string' &&
 check('Preview es distribución interna', eas.build?.preview?.distribution === 'internal', String(eas.build?.preview?.distribution || 'ausente'))
 check('Preview genera APK', eas.build?.preview?.android?.buildType === 'apk', String(eas.build?.preview?.android?.buildType || 'ausente'))
 check('Preview usa entorno EAS preview', eas.build?.preview?.environment === 'preview', String(eas.build?.preview?.environment || 'ausente'))
+check('Producción Android genera AAB para la tienda', eas.build?.production?.android?.buildType === 'app-bundle', String(eas.build?.production?.android?.buildType || 'ausente'))
+check('APK académica permanece separada de producción', eas.build?.['tfm-apk']?.android?.buildType === 'apk', String(eas.build?.['tfm-apk']?.android?.buildType || 'ausente'))
 check('EAS CLI usa versión publicada compatible', /^>=\s*19\.1\.0$/.test(eas.cli?.version || ''), eas.cli?.version || 'ausente')
 check('Plugin expo-notifications configurado', Boolean(plugin('expo-notifications')), 'expo-notifications')
 const imagePicker = plugin('expo-image-picker')

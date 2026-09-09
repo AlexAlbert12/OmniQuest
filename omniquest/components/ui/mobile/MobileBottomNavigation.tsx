@@ -27,6 +27,7 @@ type MobileBottomNavigationProps<Key extends string> = {
 }
 
 const ICON_SIZE = 25
+const WEB_FIXED_STYLE = { position: 'fixed' } as unknown as ViewStyle
 
 export default function MobileBottomNavigation<Key extends string>({
   activeKey,
@@ -101,7 +102,7 @@ export default function MobileBottomNavigation<Key extends string>({
       edges={['bottom']}
       style={[
         styles.safeArea,
-        Platform.OS === 'web' ? ({ position: 'fixed' } as ViewStyle) : null,
+        Platform.OS === 'web' ? WEB_FIXED_STYLE : null,
         { backgroundColor: colors.navigation, borderTopColor: colors.border },
         createShadowStyle({
           color: tokens.background.overlay,

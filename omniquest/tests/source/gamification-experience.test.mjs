@@ -19,7 +19,8 @@ test('haptics are centralized and configurable from settings', () => {
   assert.match(haptics, /Platform\.OS === 'web'/)
   assert.doesNotMatch(game, /from 'expo-haptics'/)
   assert.match(game, /useAppHaptics/)
-  assert.match(settings, /Respuesta táctil/)
+  assert.match(settings, /settings\.haptics\.title/)
+  assert.match(read('lib/i18n.tsx'), /'settings\.haptics\.title': 'Respuesta táctil'/)
   assert.match(migration, /haptics_enabled boolean not null default true/)
 })
 

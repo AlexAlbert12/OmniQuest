@@ -104,7 +104,9 @@ El workflow `../.github/workflows/quality.yml` (en la raíz del repositorio) eje
 2. `backend`: migraciones, pgTAP y pruebas Deno.
 3. `web-e2e`: Supabase local limpio, credenciales E2E temporales, Edge Functions, Chromium y los dos proyectos Playwright.
 
-El trabajo `web-e2e` usa `PLAYWRIGHT_PORT=8082`, genera una contraseña temporal en memoria y la oculta en los logs. No necesita guardar las seis credenciales como secretos del repositorio.
+El trabajo `web-e2e` usa `PLAYWRIGHT_PORT=8082`, genera una contraseña temporal en memoria y la oculta en los logs. También activa `E2E_PREPARE_FIXTURES=1`, por lo que el `globalSetup` crea las cuentas y el fixture mínimo antes de abrir el navegador. No necesita guardar las seis credenciales como secretos del repositorio.
+
+Los recorridos de `authenticated-deep-visual.spec.ts` dependen del dataset TFM curado (`Fisioterapia`, `Matemáticas`, tickets y usuarios demo) y se omiten deliberadamente cuando `E2E_PREPARE_FIXTURES=1`. Se ejecutan mediante `npm run test:e2e:deep-visual` o `npm run test:e2e:final-visual` contra la preview que contiene ese dataset; no forman parte del CI aislado con Supabase recién reseteado.
 
 Para comprobarlo en GitHub, el archivo debe estar versionado en la raíz real del repositorio y presente en la rama por defecto. En la pestaña `Actions`, abre `Quality`, pulsa `Run workflow` y ejecuta la rama que contiene los cambios. El punto se considera validado en CI cuando los trabajos `application`, `backend` y `web-e2e` aparecen en verde.
 

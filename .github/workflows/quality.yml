@@ -84,6 +84,7 @@ jobs:
         working-directory: omniquest
     env:
       PLAYWRIGHT_PORT: 8082
+      E2E_PREPARE_FIXTURES: '1'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

@@ -354,7 +354,7 @@ export function DetailMetric({ label, value, color }: { label: string; value: st
     >
       <View className="flex-row items-center justify-center gap-2">
         <Ionicons name="analytics" size={15} color={color} />
-        {isDesktop ? <Text className="min-w-0 text-[10px] font-bold text-text-secondary" style={{ flexShrink: 1 }} numberOfLines={1}>{label}</Text> : null}
+        {isDesktop ? <Text className="min-w-0 text-[10px] font-bold text-text-secondary" style={{ flexShrink: 1 }} maxFontSizeMultiplier={2}>{label}</Text> : null}
         <Text className={`${isDesktop ? '' : 'flex-1'} min-w-0 text-[18px] font-black text-white`} style={{ flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
       </View>
       {!isDesktop ? <Text className="mt-0.5 text-[10px] font-bold text-text-secondary" numberOfLines={2}>{label}</Text> : null}

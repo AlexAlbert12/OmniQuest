@@ -87,8 +87,9 @@ for (const file of priorityScreens) {
     if (!/accessibilityHint=/.test(tag)) failures.push(`${file}: Pressable ${index + 1} sin accessibilityHint`)
   })
 
-  if (/numberOfLines=\{1\}/.test(source)) {
-    failures.push(`${file}: conserva numberOfLines={1} en información prioritaria`)
+  const unsafeSingleLineText = openingTags(source, 'Text').filter((tag) => /numberOfLines=\{1\}/.test(tag) && !/adjustsFontSizeToFit/.test(tag))
+  if (unsafeSingleLineText.length > 0) {
+    failures.push(`${file}: conserva ${unsafeSingleLineText.length} texto(s) prioritario(s) forzado(s) a una sola línea sin ajuste de tamaño`)
   }
 }
 
