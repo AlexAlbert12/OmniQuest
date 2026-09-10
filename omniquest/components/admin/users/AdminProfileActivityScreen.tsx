@@ -8,7 +8,6 @@ import AdminSearchBar from '../shared/AdminSearchBar'
 import { AdminPaginationControls, EmptyState, ListLoadingState, Panel } from '../shared/AdminPrimitives'
 import { AdminDateRangeFields, AdminFilterSelect, toAdminFilterTimestamp } from '../shared/AdminAdvancedFilters'
 import AppPressable from '../../ui/AppPressable'
-import AppBackButton from '../../ui/AppBackButton'
 import { supabase } from '../../../lib/supabase'
 import { useAppTheme } from '../../../lib/appTheme'
 import { useResponsiveLayout } from '../../../lib/responsive'
@@ -90,6 +89,7 @@ export default function AdminProfileActivityScreen() {
 
   const activeSection: AdminSection = profile?.role_id === 'teacher' ? 'teachers' : profile ? 'students' : 'users'
   const title = profile ? `Actividad de ${profile.alias}` : 'Actividad del usuario'
+  const backLabel = profile?.role_id === 'teacher' ? 'Volver a profesores' : profile ? 'Volver a alumnos' : 'Volver a usuarios'
 
   const copyReference = async (value: string) => {
     try {
@@ -101,12 +101,11 @@ export default function AdminProfileActivityScreen() {
   }
 
   return (
-    <AdminScaffold activeSection={activeSection} title={title} subtitle="Cronología segura de actividad, accesos académicos y acciones auditadas." data={data}>
+    <AdminScaffold activeSection={activeSection} backAction={{ label: backLabel, onPress: () => router.back() }} title={title} subtitle="Cronología segura de actividad, accesos académicos y acciones auditadas." data={data}>
       {profileError ? (
         <Panel title="No se ha podido cargar el usuario" icon="alert-circle-outline" className="mt-5">
           <Text className="text-[13px] leading-5 text-text-secondary">{profileError}</Text>
           <Text className="mt-2 text-[12px] text-text-muted">El usuario puede haber sido eliminado o no estar disponible.</Text>
-          <View className="mt-4 self-start"><AppBackButton label="Volver a usuarios" onPress={() => router.back()} /></View>
         </Panel>
       ) : (
         <>
@@ -121,7 +120,6 @@ export default function AdminProfileActivityScreen() {
                     <Text className="mt-1 text-[12px] text-text-muted">{profile.email || 'Sin correo guardado'}</Text>
                     <Text className="mt-1 text-[11px] font-bold text-text-secondary">{getRoleLabel(profile.role_id)} · {profile.active === false ? 'Cuenta inactiva' : 'Cuenta activa'}</Text>
                   </View>
-                  <AppBackButton label={profile.role_id === 'teacher' ? 'Volver a profesores' : 'Volver a alumnos'} onPress={() => router.back()} />
                 </View>
                 <View className="mt-4 flex-row flex-wrap gap-2">
                   <SummaryFact icon={profile.role_id === 'teacher' ? 'book-outline' : 'people-outline'} label={getScopeSummary(profile)} />

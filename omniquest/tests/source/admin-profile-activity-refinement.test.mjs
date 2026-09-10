@@ -55,3 +55,16 @@ test('admin activity profile summary fails explicitly, uses governed profile dat
   assert.match(hook, /enabled = true/)
   assert.match(hub, /Gestiona profesores y alumnos desde un único punto\./)
 })
+
+test('admin activity places its purple back action above the page title', () => {
+  const screen = read('components/admin/users/AdminProfileActivityScreen.tsx')
+  const scaffold = read('components/admin/shared/AdminScaffold.tsx')
+  const backActionPosition = scaffold.indexOf('{backAction ?')
+  const headerPosition = scaffold.indexOf('{isDesktop ? <View className="mb-6')
+
+  assert.match(screen, /const backLabel = profile\?\.role_id === 'teacher' \? 'Volver a profesores' : profile \? 'Volver a alumnos' : 'Volver a usuarios'/)
+  assert.match(screen, /<AdminScaffold[^>]*backAction=\{\{ label: backLabel, onPress: \(\) => router\.back\(\) \}\}/)
+  assert.doesNotMatch(screen, /<AppBackButton/)
+  assert.match(scaffold, /\{backAction \? <View className="mb-4"><AdminButton \{\.\.\.backAction\} icon="arrow-back" \/><\/View> : null\}/)
+  assert.ok(backActionPosition >= 0 && backActionPosition < headerPosition)
+})

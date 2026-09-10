@@ -36,7 +36,24 @@ const SECTION_PERMISSIONS: Record<AdminSection, AdminPermission[]> = {
 
 type AdminScaffoldData = Pick<AdminData, 'portalContext' | 'portalContextError' | 'loading' | 'refreshing' | 'onRefresh'>
 
-export function AdminScaffold({ activeSection, children, data, requiredPermissions, subtitle, title }: { activeSection: AdminSection; children: React.ReactNode; data: AdminScaffoldData; requiredPermissions?: AdminPermission[]; subtitle: string; title: string }) {
+type AdminScaffoldBackAction = {
+  accessibilityHint?: string
+  accessibilityLabel?: string
+  label: string
+  onPress: () => void
+}
+
+type AdminScaffoldProps = {
+  activeSection: AdminSection
+  backAction?: AdminScaffoldBackAction
+  children: React.ReactNode
+  data: AdminScaffoldData
+  requiredPermissions?: AdminPermission[]
+  subtitle: string
+  title: string
+}
+
+export function AdminScaffold({ activeSection, backAction, children, data, requiredPermissions, subtitle, title }: AdminScaffoldProps) {
   const responsive = useResponsiveLayout()
   const router = useRouter()
   const { tokens } = useAppTheme()
@@ -56,6 +73,7 @@ export function AdminScaffold({ activeSection, children, data, requiredPermissio
       : children
 
   return <AdminScreenLayout contentLabel={`Portal de administración: ${title}`} desktopSidebar={<AdminSidebar activeSection={activeSection} data={data} onSignOut={requestSignOut} />} mobileBottomNavigation={data.portalContext && !data.portalContextError ? <AdminBottomNav active={activeSection} permissions={permissions} /> : null} isDesktop={isDesktop} loading={data.loading} loadingLabel={loadingLabel} refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={data.onRefresh} tintColor={tokens.brand.admin} />}>
+    {backAction ? <View className="mb-4"><AdminButton {...backAction} icon="arrow-back" /></View> : null}
     {isDesktop ? <View className="mb-6 flex-row flex-wrap items-start justify-between gap-4"><View className="min-w-[260px] flex-1"><View className="flex-row items-center gap-3"><Ionicons name={activeIcon} size={42} color={tokens.brand.admin} /><Text accessibilityRole="header" maxFontSizeMultiplier={2} className="min-w-0 flex-1 text-[36px] font-black text-text-primary">{title}</Text></View><Text maxFontSizeMultiplier={2} className="mt-2 text-[14px] leading-5 text-text-secondary">{subtitle}</Text>{data.portalContext ? <Text className="mt-2 text-[11px] font-bold text-text-muted">Rol administrativo: {data.portalContext.role_name}</Text> : null}</View>{hasSectionAccess ? <GlobalSearchButton role="admin" /> : null}</View> : <View className="mb-6 rounded-[28px] border border-border-default bg-surface-default p-5"><View className="flex-row items-start gap-4"><View className="h-14 w-14 items-center justify-center rounded-3xl" style={{ backgroundColor: withAlpha(tokens.brand.admin, '18') }}><Ionicons name={activeIcon} size={30} color={tokens.brand.admin} /></View><View className="min-w-0 flex-1"><Text accessibilityRole="header" maxFontSizeMultiplier={2} className="text-[30px] font-black leading-[38px] text-text-primary" numberOfLines={2}>{title}</Text><Text maxFontSizeMultiplier={2} className="mt-2 text-[14px] leading-5 text-text-secondary" numberOfLines={4}>{subtitle}</Text></View></View><View className="mt-5 flex-row items-center gap-2 rounded-2xl border border-border-default bg-surface-default px-4 py-3"><Ionicons name="lock-closed-outline" size={15} color={tokens.brand.admin} /><Text className="min-w-0 flex-1 text-[12px] font-black uppercase tracking-[0.8px] text-brand-admin">{data.portalContext?.role_name || 'Permisos sin verificar'}</Text></View></View>}
     {accessContent}
   </AdminScreenLayout>
