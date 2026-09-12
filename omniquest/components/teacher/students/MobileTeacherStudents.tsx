@@ -335,7 +335,7 @@ function MobileAttentionStudentCard({
   const status = getStatusMeta(student.status);
   return (
     <View
-      accessibilityLabel={`${student.alias}. ${status.label}. Precisión ${student.hasActivity ? `${student.accuracyPercent}%` : 'sin datos'}. Participación ${student.progress}%`}
+      accessibilityLabel={`${student.alias}. ${status.label}. Precisión ${student.evaluatedAttempts > 0 ? `${student.accuracyPercent}%` : 'sin datos'}. Participación ${student.progress}%`}
       className="rounded-2xl border border-border-default bg-surface-default p-3"
     >
       <View className="flex-row items-center gap-3">
@@ -347,7 +347,7 @@ function MobileAttentionStudentCard({
       </View>
       <View className="mt-2 gap-2">
         <Text className="text-[12px] leading-4 text-text-secondary">
-          Precisión {student.hasActivity ? `${student.accuracyPercent}%` : '—'} · Participación {student.progress}%
+          Precisión {student.evaluatedAttempts > 0 ? `${student.accuracyPercent}%` : '—'} · Participación {student.progress}%
         </Text>
         <View className="flex-row flex-wrap gap-2">
           <Pressable
@@ -423,7 +423,7 @@ function MobileTeacherStudentCard({
       </View>
 
       <View className="mt-3 flex-row gap-2">
-        <MobileStudentMiniMetric label="Precisión" value={student.hasActivity ? `${student.accuracyPercent}%` : '—'} color="#A879FF" icon="analytics" />
+        <MobileStudentMiniMetric label="Precisión" value={student.evaluatedAttempts > 0 ? `${student.accuracyPercent}%` : '—'} color="#A879FF" icon="analytics" />
         <MobileStudentMiniMetric label="Participación" value={`${student.progress}%`} color={progressColor} icon="trending-up" />
       </View>
 

@@ -315,7 +315,7 @@ function getNotificationMetadata(value: Json | null): Record<string, unknown> {
 }
 
 function isNotificationType(value: string): value is NotificationType {
-  return ['enrollment', 'student_activity', 'achievement', 'new_class', 'announcement'].includes(value)
+  return ['enrollment', 'student_activity', 'achievement', 'new_class', 'announcement', 'manual_review'].includes(value)
 }
 
 function getSafeNotificationIcon(icon: string | null | undefined): keyof typeof Ionicons.glyphMap {
@@ -328,6 +328,7 @@ function getNotificationTypeColor(type: NotificationType) {
   if (type === 'student_activity') return '#43D991'
   if (type === 'achievement') return '#F6A64A'
   if (type === 'new_class') return '#58B5FF'
+  if (type === 'manual_review') return '#A78BFA'
   return '#F97316'
 }
 

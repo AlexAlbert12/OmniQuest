@@ -32,7 +32,7 @@ type ActivityCacheSnapshot = {
   topics: StudentActivityTopicFacet[]
 }
 
-const EMPTY_COUNTS: StudentAttemptStatusCounts = { all: 0, correct: 0, incorrect: 0 }
+const EMPTY_COUNTS: StudentAttemptStatusCounts = { all: 0, correct: 0, incorrect: 0, pending: 0 }
 
 export function useStudentActivity() {
   const { locale } = useI18n()

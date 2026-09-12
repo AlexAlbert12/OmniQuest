@@ -123,14 +123,20 @@ function RankingRow({ row, index }: { row: StudentCourseRankingItem; index: numb
 
 function RecentAttemptRow({ attempt, isLast }: { attempt: StudentCourseRecentAttempt; isLast: boolean }) {
   const { tokens } = useAppTheme()
-  const color = attempt.isCorrect ? tokens.semantic.success : tokens.semantic.danger
+  const meta = attempt.evaluationState === 'correct'
+    ? { label: 'Respuesta correcta', color: tokens.semantic.success, icon: 'checkmark' as const }
+    : attempt.evaluationState === 'incorrect'
+      ? { label: 'Respuesta incorrecta', color: tokens.semantic.danger, icon: 'close' as const }
+      : attempt.evaluationState === 'needs_changes'
+        ? { label: 'Necesita cambios', color: tokens.brand.student, icon: 'refresh' as const }
+        : { label: 'Pendiente de revisión', color: tokens.semantic.warning, icon: 'time-outline' as const }
   return (
     <View className={`flex-row items-center gap-3 p-4 ${isLast ? '' : 'border-b border-border-subtle'}`}>
-      <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(color, '26') }}>
-        <Ionicons name={attempt.isCorrect ? 'checkmark' : 'close'} size={26} color={color} />
+      <View className="h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: withAlpha(meta.color, '26') }}>
+        <Ionicons name={meta.icon} size={26} color={meta.color} />
       </View>
       <View className="min-w-0 flex-1">
-        <Text maxFontSizeMultiplier={2} className="text-[14px] font-black text-white">{attempt.isCorrect ? 'Respuesta correcta' : 'Respuesta incorrecta'}</Text>
+        <Text maxFontSizeMultiplier={2} className="text-[14px] font-black text-white">{meta.label}</Text>
         <Text maxFontSizeMultiplier={2} numberOfLines={2} className="mt-1 text-[12px] text-text-secondary">{attempt.topicTitle} · {attempt.questionText}</Text>
       </View>
       <Text className="text-[12px] text-text-muted">{formatRecentAttemptDate(attempt.attemptedAt)}</Text>

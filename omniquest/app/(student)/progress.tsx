@@ -14,7 +14,9 @@ import ProgressOverview from '../../components/student/progress/ProgressOverview
 import PracticeOpportunityList from '../../components/student/progress/PracticeOpportunityList'
 import CourseProgressList from '../../components/student/progress/CourseProgressList'
 import LatestResults from '../../components/student/progress/LatestResults'
+import RecentGames from '../../components/student/progress/RecentGames'
 import { useStudentProgress, type PracticeOpportunity, type StudentCourseProgress } from '../../hooks/student/useStudentProgress'
+import type { StudentRecentGame } from '../../features/student-progress/types'
 import { signOutCurrentDeviceSession } from '../../lib/pushNotifications'
 
 export default function ProgressScreen() {
@@ -41,6 +43,11 @@ export default function ProgressScreen() {
     router.push('/(student)/activity-log' as any)
   }, [router])
 
+
+  const handleOpenRecentGame = useCallback((game: StudentRecentGame) => {
+    router.push({ pathname: '/(student)/review/[attemptId]', params: { attemptId: game.id } } as any)
+  }, [router])
+
   const handleOpenCourse = useCallback((course: StudentCourseProgress) => {
     router.push({
       pathname: '/(student)/class/[id]',
@@ -53,6 +60,7 @@ export default function ProgressScreen() {
 
   const secondarySections = (
     <View className="gap-5">
+      <RecentGames games={progress.recentGames} onOpenGame={handleOpenRecentGame} />
       <LatestResults results={progress.latestResults} onSeeAll={() => router.push('/(student)/activity-log' as any)} />
       <CourseProgressList courses={progress.courseProgress} onOpenCourse={handleOpenCourse} onSeeAll={() => router.push('/(student)/classes' as any)} />
       <StudentDashboardCard title="Logros recientes" actionLabel="Ver todos" onAction={() => router.push('/(student)/badges' as any)}>

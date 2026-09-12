@@ -1,6 +1,6 @@
 import type { SafeStudentAttempt } from '../../../lib/studentSecureData'
 
-export type ActivityFilter = 'all' | 'correct' | 'incorrect'
+export type ActivityFilter = 'all' | 'correct' | 'incorrect' | 'pending'
 
 export type ActivityFilterOption = {
   id: string
@@ -12,6 +12,7 @@ export type ActivityStatusCounts = {
   all: number
   correct: number
   incorrect: number
+  pending: number
 }
 
 export type ActivityAttempt = SafeStudentAttempt

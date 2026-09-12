@@ -26,6 +26,8 @@ function createStudent(overrides: Partial<StudentRow> = {}): StudentRow {
     subjectScore: 280,
     averageScore: 3.4,
     accuracyPercent: 34,
+    evaluatedAttempts: 13,
+    pendingReviewAttempts: 0,
     challenges: 13,
     questions: 13,
     participation: 87,
@@ -76,6 +78,20 @@ describe('teacher student export model', () => {
       classrooms: 'Clase principal',
     }))
     expect(JSON.stringify(rows[0])).not.toContain('bbcd1c8f')
+  })
+
+  test('leaves accuracy empty when the only submitted answers are still pending manual review', () => {
+    const [row] = buildTeacherStudentExportRows([createStudent({
+      alias: 'Alumno pendiente',
+      accuracyPercent: 0,
+      evaluatedAttempts: 0,
+      pendingReviewAttempts: 2,
+      questions: 2,
+      hasActivity: true,
+    })])
+
+    expect(row.accuracy).toBeNull()
+    expect(row.answeredQuestions).toBe(2)
   })
 
   test('leaves accuracy empty when there are no answered questions while participation stays numeric', () => {

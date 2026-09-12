@@ -309,7 +309,7 @@ function safeIcon(value: unknown): keyof typeof Ionicons.glyphMap {
 }
 
 function isNotificationType(value: unknown): value is NotificationType {
-  return value === 'enrollment' || value === 'student_activity' || value === 'achievement' || value === 'new_class' || value === 'announcement'
+  return value === 'enrollment' || value === 'student_activity' || value === 'achievement' || value === 'new_class' || value === 'announcement' || value === 'manual_review'
 }
 
 function mergeById(current: AppNotification[], next: AppNotification[]) {

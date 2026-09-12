@@ -37,7 +37,7 @@ test('teacher student export is teacher-facing, contextual and never exports int
   assert.match(model, /'Última actividad'/)
   assert.match(model, /getStatusMeta\(student\.status\)\.label/)
   assert.doesNotMatch(model, /student\.id/)
-  assert.match(model, /student\.hasActivity && student\.questions > 0 \? toPercentFraction\(student\.accuracyPercent\) : null/)
+  assert.match(model, /student\.evaluatedAttempts > 0 \? toPercentFraction\(student\.accuracyPercent\) : null/)
   assert.match(model, /student\.subjectNames\.join\(' · '\)/)
   assert.match(model, /student\.classroomNames\.join\(' · '\)/)
   assert.match(controller, /scoreScopeLabel: xpScopeLabel/)

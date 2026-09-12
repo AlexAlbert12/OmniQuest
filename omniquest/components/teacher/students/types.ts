@@ -88,6 +88,7 @@ export type StudentRecentAttempt = {
   topicTitle: string
   subjectName: string
   isCorrect: boolean
+  manualReviewStatus?: string | null
   attemptedAt: string | null
   earnedPoints: number
 }
@@ -105,6 +106,8 @@ export type StudentRow = {
   subjectScore: number
   averageScore: number
   accuracyPercent: number
+  evaluatedAttempts: number
+  pendingReviewAttempts: number
   challenges: number
   questions: number
   participation: number

@@ -33,7 +33,7 @@ export function buildTeacherStudentExportRows(students: StudentRow[]): TeacherSt
   return students.map((student) => ({
     student: student.alias,
     status: getStatusMeta(student.status).label,
-    accuracy: student.hasActivity && student.questions > 0 ? toPercentFraction(student.accuracyPercent) : null,
+    accuracy: student.evaluatedAttempts > 0 ? toPercentFraction(student.accuracyPercent) : null,
     participation: toPercentFraction(student.participation),
     answeredQuestions: finiteNumber(student.questions) ?? 0,
     scopeScore: finiteNumber(student.subjectScore) ?? 0,

@@ -105,6 +105,8 @@ export function buildTeacherQuestionReportSheets(input: TeacherQuestionReportExp
     [text('Intentos', 'border'), integer(summary.totalAttempts)],
     [text('Respuestas correctas', 'border'), integer(summary.correctAttempts)],
     [text('Fallos', 'border'), integer(summary.failedAttempts)],
+    [text('Intentos evaluados', 'border'), integer(summary.evaluatedAttempts)],
+    [text('Pendientes de revisión', 'border'), integer(summary.pendingAttempts)],
     [text('Tasa de fallo', 'border'), percent(failureRate)],
     [text('Abandono', 'border'), percent(summary.abandonmentPercent / 100)],
     [text('Tiempo medio (s)', 'border'), decimal(summary.averageTimeSeconds)],
@@ -131,11 +133,12 @@ export function buildTeacherQuestionReportSheets(input: TeacherQuestionReportExp
       text(item.classroom_name, 'wrap'),
       integer(item.attempts),
       integer(item.correct),
-      integer(Math.max(0, item.attempts - item.correct)),
+      integer(item.failed),
+      integer(item.pending),
       percent(item.failure_percent / 100),
       decimal(item.average_time_seconds),
     ])
-    : [[text('Sin datos disponibles', 'wrap'), blank(), blank(), blank(), blank(), blank()]]
+    : [[text('Sin datos disponibles', 'wrap'), blank(), blank(), blank(), blank(), blank(), blank()]]
 
   const trendRows = report.temporalTrend.length
     ? report.temporalTrend.map((item) => [
@@ -167,7 +170,7 @@ export function buildTeacherQuestionReportSheets(input: TeacherQuestionReportExp
       merges: ['A1:B1'],
     },
     dataSheet('Respuestas', ['Respuesta', 'Selecciones', 'Porcentaje', 'Clasificación'], answerRows, [44, 14, 14, 20]),
-    dataSheet('Comparación por clase', ['Clase', 'Intentos', 'Respuestas correctas', 'Fallos', 'Tasa de fallo', 'Tiempo medio (s)'], classRows, [32, 12, 20, 12, 16, 18]),
+    dataSheet('Comparación por clase', ['Clase', 'Intentos', 'Respuestas correctas', 'Fallos', 'Pendientes', 'Tasa de fallo', 'Tiempo medio (s)'], classRows, [32, 12, 20, 12, 14, 16, 18]),
     dataSheet('Tendencia', ['Fecha', 'Intentos', 'Tasa de fallo', 'Tiempo medio (s)'], trendRows, [16, 12, 16, 18]),
     dataSheet('Alumnos afectados', ['Alumno', 'Clase', 'Fallos', 'Intentos', 'Tasa de fallo', 'Tiempo medio (s)', 'Último intento'], affectedRows, [28, 28, 12, 12, 16, 18, 20]),
   ]

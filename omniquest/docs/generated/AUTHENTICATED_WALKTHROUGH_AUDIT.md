@@ -1,13 +1,13 @@
 # Auditoría de recorridos autenticados
 
-Estado acumulado hasta: 20260912213000_teacher_topic_question_lifecycle.sql
+Estado acumulado hasta: 20260912224500_open_answer_review_consistency_recent_games.sql
 
 ## Resumen
 
-- Archivos cliente inspeccionados: 468
-- Llamadas inventariadas: 238
+- Archivos cliente inspeccionados: 471
+- Llamadas inventariadas: 239
 - Tablas detectadas: 18
-- RPC detectadas: 123
+- RPC detectadas: 124
 - Edge Functions detectadas: 19
 - Buckets detectados: 4
 - Incidencias estructurales: 0
@@ -15,7 +15,7 @@ Estado acumulado hasta: 20260912213000_teacher_topic_question_lifecycle.sql
 ## Recursos
 
 - Tablas: account_deletion_requests, attempt_history, classrooms, data_export_requests, enrollments, notification_state, profiles, questions, student_badges, subject_scores, subject_topics, subjects, support_ticket_attachments, teacher_audit_export_requests, topic_scores, user_notification_preferences, user_preferences, user_support_tickets
-- RPC: acknowledge_teacher_audit_alert, add_support_ticket_message, add_teacher_student_note, admin_cancel_push_delivery, admin_retry_push_delivery, admin_update_support_ticket_secured, assign_admin_role, batch_review_manual_attempts, cancel_account_deletion, complete_current_user_onboarding, create_subject_with_default_topic, create_teacher_classroom, create_teacher_notification, deactivate_push_token, delete_notifications, delete_teacher_question, delete_teacher_topic, discard_current_guest_session, duplicate_teacher_subject, ensure_default_classroom, equip_profile_cosmetics, finish_game_attempt, get_activity_attempt_detail, get_admin_account_export_requests_page, get_admin_audit_logs_page_secured, get_admin_audit_policy, get_admin_classrooms_page, get_admin_dashboard_metrics, get_admin_directory_filters, get_admin_export_download_path, get_admin_export_jobs_page, get_admin_portal_context, get_admin_profile_activity_page, get_admin_profiles_page, get_admin_push_delivery_detail, get_admin_push_delivery_metrics, get_admin_push_delivery_page, get_admin_role_assignments_page, get_admin_roles, get_admin_subjects_page, get_admin_support_directory, get_admin_support_tickets_page_secured, get_admin_usage_analytics, get_admin_user_change_history_page, get_attempt_feedback, get_avatar_customization_options, get_class_ranking_profiles, get_game_attempt_review_index, get_manual_review_configuration, get_manual_review_history, get_manual_review_thread, get_notifications_page, get_own_support_email_history, get_own_support_tickets_page, get_profile_cosmetics, get_question_media_manifest, get_ranking_profiles_page, get_safe_game_questions_v2, get_student_attempt_history, get_student_attempt_history_page, get_student_badge_catalog, get_student_home_dashboard, get_student_progress_summary, get_student_question_catalog, get_support_contact_channels, get_support_thread_page, get_teacher_attention_students_page, get_teacher_audit_configuration, get_teacher_audit_logs_page_v2, get_teacher_classrooms_page, get_teacher_courses_page, get_teacher_dashboard_summary, get_teacher_manual_review_queue, get_teacher_notification_center_summary, get_teacher_notification_settings, get_teacher_notifications_page, get_teacher_profile_recent_questions_page, get_teacher_profile_recent_subjects_page, get_teacher_profile_summary, get_teacher_question_affected_students_page, get_teacher_question_report, get_teacher_recent_activity_page, get_teacher_student_history_metrics, get_teacher_student_history_reviews_page, get_teacher_student_history_summary, get_teacher_student_history_timeline_page, get_teacher_student_history_weaknesses, get_teacher_students_page_with_avatars, get_teacher_subject_analytics, get_teacher_subject_overview, get_teacher_subject_questions_page, get_teacher_subject_students_page_with_avatars, get_teacher_subject_topics_page, get_teacher_topic_questions_page, get_teacher_topic_summary, initialize_guest_profile, join_subject_by_code, mark_all_notifications_read, mark_notifications_read, register_push_token, register_user_session, request_account_data_export, request_account_deletion, request_admin_export_job, request_teacher_audit_export, review_manual_review_attempt, revoke_admin_role, save_manual_review_settings, save_teacher_question_v2, search_app_entities, set_analytics_consent, set_teacher_course_notification_preference, set_teacher_digest_preference, set_teacher_notification_preferences, set_teacher_notifications_mute, set_teacher_question_archived, set_teacher_support_preference, set_teacher_topic_archived, start_game_attempt, submit_answer_resumable, sync_student_badges, track_usage_event, verify_admin_audit_chain
+- RPC: acknowledge_teacher_audit_alert, add_support_ticket_message, add_teacher_student_note, admin_cancel_push_delivery, admin_retry_push_delivery, admin_update_support_ticket_secured, assign_admin_role, batch_review_manual_attempts, cancel_account_deletion, complete_current_user_onboarding, create_subject_with_default_topic, create_teacher_classroom, create_teacher_notification, deactivate_push_token, delete_notifications, delete_teacher_question, delete_teacher_topic, discard_current_guest_session, duplicate_teacher_subject, ensure_default_classroom, equip_profile_cosmetics, finish_game_attempt, get_activity_attempt_detail, get_admin_account_export_requests_page, get_admin_audit_logs_page_secured, get_admin_audit_policy, get_admin_classrooms_page, get_admin_dashboard_metrics, get_admin_directory_filters, get_admin_export_download_path, get_admin_export_jobs_page, get_admin_portal_context, get_admin_profile_activity_page, get_admin_profiles_page, get_admin_push_delivery_detail, get_admin_push_delivery_metrics, get_admin_push_delivery_page, get_admin_role_assignments_page, get_admin_roles, get_admin_subjects_page, get_admin_support_directory, get_admin_support_tickets_page_secured, get_admin_usage_analytics, get_admin_user_change_history_page, get_attempt_feedback, get_avatar_customization_options, get_class_ranking_profiles, get_game_attempt_review_index, get_manual_review_configuration, get_manual_review_history, get_manual_review_thread, get_notifications_page, get_own_support_email_history, get_own_support_tickets_page, get_profile_cosmetics, get_question_media_manifest, get_ranking_profiles_page, get_safe_game_questions_v2, get_student_attempt_history, get_student_attempt_history_page, get_student_badge_catalog, get_student_home_dashboard, get_student_progress_summary, get_student_question_catalog, get_student_recent_game_attempts, get_support_contact_channels, get_support_thread_page, get_teacher_attention_students_page, get_teacher_audit_configuration, get_teacher_audit_logs_page_v2, get_teacher_classrooms_page, get_teacher_courses_page, get_teacher_dashboard_summary, get_teacher_manual_review_queue, get_teacher_notification_center_summary, get_teacher_notification_settings, get_teacher_notifications_page, get_teacher_profile_recent_questions_page, get_teacher_profile_recent_subjects_page, get_teacher_profile_summary, get_teacher_question_affected_students_page, get_teacher_question_report, get_teacher_recent_activity_page, get_teacher_student_history_metrics, get_teacher_student_history_reviews_page, get_teacher_student_history_summary, get_teacher_student_history_timeline_page, get_teacher_student_history_weaknesses, get_teacher_students_page_with_avatars, get_teacher_subject_analytics, get_teacher_subject_overview, get_teacher_subject_questions_page, get_teacher_subject_students_page_with_avatars, get_teacher_subject_topics_page, get_teacher_topic_questions_page, get_teacher_topic_summary, initialize_guest_profile, join_subject_by_code, mark_all_notifications_read, mark_notifications_read, register_push_token, register_user_session, request_account_data_export, request_account_deletion, request_admin_export_job, request_teacher_audit_export, review_manual_review_attempt, revoke_admin_role, save_manual_review_settings, save_teacher_question_v2, search_app_entities, set_analytics_consent, set_teacher_course_notification_preference, set_teacher_digest_preference, set_teacher_notification_preferences, set_teacher_notifications_mute, set_teacher_question_archived, set_teacher_support_preference, set_teacher_topic_archived, start_game_attempt, submit_answer_resumable, sync_student_badges, track_usage_event, verify_admin_audit_chain
 - Edge Functions: admin-bulk-operations, admin-create-teacher, admin-delete-student-progress, admin-process-push-delivery, admin-reset-password, auth-attempt-guard, import-students, manage-account-security, process-question-media, profile-update-avatar, send-push-notification, student-reset-own-progress, teacher-archive-subject, teacher-create-topic, teacher-delete-question, teacher-reset-own-data, teacher-student-reminder, teacher-update-subject, teacher-update-topic
 - Buckets: account-exports, admin-exports, avatars, teacher-audit-exports
 
@@ -25,9 +25,9 @@ Estado acumulado hasta: 20260912213000_teacher_topic_question_lifecycle.sql
 |---|---|---|---:|
 | edge | `admin-bulk-operations` | `components/admin/api/adminApi.ts` | 76 |
 | edge | `admin-create-teacher` | `components/admin/users/AdminTeachersSection.tsx` | 74 |
-| edge | `admin-delete-student-progress` | `components/admin/hooks/useAdminActions.ts` | 88 |
+| edge | `admin-delete-student-progress` | `components/admin/hooks/useAdminActions.ts` | 94 |
 | edge | `admin-process-push-delivery` | `components/admin/api/adminApi.ts` | 180 |
-| edge | `admin-reset-password` | `components/admin/hooks/useAdminActions.ts` | 74 |
+| edge | `admin-reset-password` | `components/admin/hooks/useAdminActions.ts` | 80 |
 | edge | `auth-attempt-guard` | `lib/authSecurity.ts` | 109 |
 | edge | `import-students` | `components/teacher/TeacherStudentImportModal.tsx` | 88 |
 | edge | `manage-account-security` | `components/settings/ManagedSessionsCard.tsx` | 46 |
@@ -69,12 +69,12 @@ Estado acumulado hasta: 20260912213000_teacher_topic_question_lifecycle.sql
 | rpc | `duplicate_teacher_subject` | `features/teacher-subject/api.ts` | 108 |
 | rpc | `ensure_default_classroom` | `components/teacher/question-form/useTeacherQuestionForm.ts` | 352 |
 | rpc | `equip_profile_cosmetics` | `lib/avatarCosmetics.ts` | 118 |
-| rpc | `finish_game_attempt` | `hooks/useGame.ts` | 276 |
-| rpc | `get_activity_attempt_detail` | `lib/studentSecureData.ts` | 435 |
+| rpc | `finish_game_attempt` | `hooks/useGame.ts` | 283 |
+| rpc | `get_activity_attempt_detail` | `lib/studentSecureData.ts` | 453 |
 | rpc | `get_admin_account_export_requests_page` | `components/admin/api/adminApi.ts` | 98 |
-| rpc | `get_admin_audit_logs_page_secured` | `components/admin/audit/AdminAuditSection.tsx` | 70 |
+| rpc | `get_admin_audit_logs_page_secured` | `components/admin/audit/AdminAuditSection.tsx` | 72 |
 | rpc | `get_admin_audit_logs_page_secured` | `lib/adminExports.ts` | 232 |
-| rpc | `get_admin_audit_policy` | `components/admin/audit/AdminAuditSection.tsx` | 58 |
+| rpc | `get_admin_audit_policy` | `components/admin/audit/AdminAuditSection.tsx` | 60 |
 | rpc | `get_admin_classrooms_page` | `components/admin/classrooms/AdminClassroomsSection.tsx` | 59 |
 | rpc | `get_admin_dashboard_metrics` | `components/admin/hooks/useAdminData.ts` | 38 |
 | rpc | `get_admin_directory_filters` | `components/admin/shared/AdminAdvancedFilters.tsx` | 49 |
@@ -97,10 +97,10 @@ Estado acumulado hasta: 20260912213000_teacher_topic_question_lifecycle.sql
 | rpc | `get_admin_support_tickets_page_secured` | `lib/adminExports.ts` | 266 |
 | rpc | `get_admin_usage_analytics` | `components/admin/dashboard/AdminUsageAnalyticsPanel.tsx` | 23 |
 | rpc | `get_admin_user_change_history_page` | `components/admin/api/adminApi.ts` | 116 |
-| rpc | `get_attempt_feedback` | `lib/studentSecureData.ts` | 360 |
+| rpc | `get_attempt_feedback` | `lib/studentSecureData.ts` | 375 |
 | rpc | `get_avatar_customization_options` | `lib/avatarCosmetics.ts` | 83 |
-| rpc | `get_class_ranking_profiles` | `app/(student)/class/[id].tsx` | 208 |
-| rpc | `get_game_attempt_review_index` | `lib/studentSecureData.ts` | 376 |
+| rpc | `get_class_ranking_profiles` | `app/(student)/class/[id].tsx` | 209 |
+| rpc | `get_game_attempt_review_index` | `lib/studentSecureData.ts` | 391 |
 | rpc | `get_manual_review_configuration` | `hooks/teacher/useManualReview.ts` | 21 |
 | rpc | `get_manual_review_history` | `hooks/teacher/useManualReview.ts` | 115 |
 | rpc | `get_manual_review_thread` | `hooks/teacher/useManualReview.ts` | 115 |
@@ -110,13 +110,14 @@ Estado acumulado hasta: 20260912213000_teacher_topic_question_lifecycle.sql
 | rpc | `get_profile_cosmetics` | `lib/avatarCosmetics.ts` | 138 |
 | rpc | `get_question_media_manifest` | `lib/questionMedia.ts` | 269 |
 | rpc | `get_ranking_profiles_page` | `hooks/student/useStudentRanking.ts` | 260 |
-| rpc | `get_safe_game_questions_v2` | `hooks/useGame.ts` | 187 |
-| rpc | `get_student_attempt_history` | `lib/studentSecureData.ts` | 189 |
-| rpc | `get_student_attempt_history_page` | `lib/studentSecureData.ts` | 214 |
+| rpc | `get_safe_game_questions_v2` | `hooks/useGame.ts` | 194 |
+| rpc | `get_student_attempt_history` | `lib/studentSecureData.ts` | 196 |
+| rpc | `get_student_attempt_history_page` | `lib/studentSecureData.ts` | 221 |
 | rpc | `get_student_badge_catalog` | `lib/studentBadges.ts` | 129 |
 | rpc | `get_student_home_dashboard` | `features/student-home/api.ts` | 6 |
-| rpc | `get_student_progress_summary` | `features/student-progress/api.ts` | 5 |
-| rpc | `get_student_question_catalog` | `lib/studentSecureData.ts` | 172 |
+| rpc | `get_student_progress_summary` | `features/student-progress/api.ts` | 6 |
+| rpc | `get_student_question_catalog` | `lib/studentSecureData.ts` | 179 |
+| rpc | `get_student_recent_game_attempts` | `features/student-progress/api.ts` | 15 |
 | rpc | `get_support_contact_channels` | `lib/support.ts` | 208 |
 | rpc | `get_support_thread_page` | `lib/support.ts` | 168 |
 | rpc | `get_teacher_attention_students_page` | `features/teacher-dashboard/api.ts` | 14 |
@@ -179,12 +180,12 @@ Estado acumulado hasta: 20260912213000_teacher_topic_question_lifecycle.sql
 | rpc | `set_teacher_topic_archived` | `features/teacher-subject/api.ts` | 65 |
 | rpc | `set_teacher_topic_archived` | `hooks/teacher/useTeacherTopicDetail.ts` | 108 |
 | rpc | `set_teacher_topic_archived` | `hooks/teacher/useTeacherTopicDetail.ts` | 114 |
-| rpc | `start_game_attempt` | `hooks/useGame.ts` | 209 |
-| rpc | `submit_answer_resumable` | `hooks/useGame.ts` | 435 |
+| rpc | `start_game_attempt` | `hooks/useGame.ts` | 216 |
+| rpc | `submit_answer_resumable` | `hooks/useGame.ts` | 442 |
 | rpc | `sync_student_badges` | `lib/offlineMutations.ts` | 295 |
 | rpc | `sync_student_badges` | `lib/studentBadges.ts` | 502 |
 | rpc | `track_usage_event` | `lib/analytics.ts` | 91 |
-| rpc | `verify_admin_audit_chain` | `components/admin/audit/AdminAuditSection.tsx` | 93 |
+| rpc | `verify_admin_audit_chain` | `components/admin/audit/AdminAuditSection.tsx` | 95 |
 | storage | `account-exports` | `components/settings/AccountDataRequestsCard.tsx` | 97 |
 | storage | `admin-exports` | `components/admin/api/adminApi.ts` | 110 |
 | storage | `avatars` | `components/student/profile/StudentAvatarCustomizationModal.tsx` | 115 |
@@ -192,13 +193,13 @@ Estado acumulado hasta: 20260912213000_teacher_topic_question_lifecycle.sql
 | storage | `avatars` | `lib/offlineMutations.ts` | 284 |
 | storage | `teacher-audit-exports` | `hooks/teacher/useTeacherAudit.ts` | 128 |
 | table | `account_deletion_requests` | `components/settings/AccountDataRequestsCard.tsx` | 58 |
-| table | `attempt_history` | `hooks/student/useStudentProgress.ts` | 120 |
+| table | `attempt_history` | `hooks/student/useStudentProgress.ts` | 127 |
 | table | `attempt_history` | `lib/weeklyGoal.ts` | 19 |
 | table | `classrooms` | `components/teacher/question-form/useTeacherQuestionForm.ts` | 340 |
 | table | `classrooms` | `components/teacher/question-form/useTeacherQuestionForm.ts` | 354 |
 | table | `classrooms` | `lib/classCode.ts` | 46 |
 | table | `data_export_requests` | `components/settings/AccountDataRequestsCard.tsx` | 53 |
-| table | `enrollments` | `app/(student)/class/[id].tsx` | 159 |
+| table | `enrollments` | `app/(student)/class/[id].tsx` | 160 |
 | table | `enrollments` | `app/(student)/classes.tsx` | 178 |
 | table | `enrollments` | `components/teacher/TeacherSubjectForm.tsx` | 130 |
 | table | `enrollments` | `hooks/student/useStudentRanking.ts` | 282 |
@@ -214,13 +215,13 @@ Estado acumulado hasta: 20260912213000_teacher_topic_question_lifecycle.sql
 | table | `profiles` | `app/(auth)/login.tsx` | 149 |
 | table | `profiles` | `app/(student)/badges.tsx` | 131 |
 | table | `profiles` | `app/(student)/classes.tsx` | 177 |
-| table | `profiles` | `app/(student)/notifications.tsx` | 100 |
+| table | `profiles` | `app/(student)/notifications.tsx` | 102 |
 | table | `profiles` | `components/support/RoleHelpCenter.tsx` | 148 |
 | table | `profiles` | `components/teacher/TeacherSidebar.tsx` | 76 |
 | table | `profiles` | `components/ui/RoleHeaderAvatar.tsx` | 36 |
 | table | `profiles` | `hooks/student/useStudentActivity.ts` | 95 |
 | table | `profiles` | `hooks/student/useStudentProfile.ts` | 80 |
-| table | `profiles` | `hooks/student/useStudentProgress.ts` | 114 |
+| table | `profiles` | `hooks/student/useStudentProgress.ts` | 121 |
 | table | `profiles` | `hooks/student/useStudentRanking.ts` | 106 |
 | table | `profiles` | `hooks/useNotifications.ts` | 103 |
 | table | `profiles` | `hooks/useSettingsData.ts` | 139 |
@@ -232,12 +233,12 @@ Estado acumulado hasta: 20260912213000_teacher_topic_question_lifecycle.sql
 | table | `questions` | `components/teacher/question-form/useTeacherQuestionForm.ts` | 342 |
 | table | `questions` | `lib/notifications/derivedTeacher.ts` | 40 |
 | table | `student_badges` | `lib/notifications/derivedStudent.ts` | 33 |
-| table | `subject_scores` | `app/(student)/class/[id].tsx` | 196 |
+| table | `subject_scores` | `app/(student)/class/[id].tsx` | 197 |
 | table | `subject_scores` | `components/NotificationBadge.tsx` | 60 |
-| table | `subject_scores` | `hooks/student/useStudentProgress.ts` | 115 |
+| table | `subject_scores` | `hooks/student/useStudentProgress.ts` | 122 |
 | table | `subject_scores` | `lib/notifications/derivedStudent.ts` | 28 |
 | table | `subject_scores` | `lib/notifications/derivedTeacher.ts` | 33 |
-| table | `subject_topics` | `app/(student)/class/[id].tsx` | 178 |
+| table | `subject_topics` | `app/(student)/class/[id].tsx` | 179 |
 | table | `subject_topics` | `components/teacher/question-form/useTeacherQuestionForm.ts` | 793 |
 | table | `subject_topics` | `components/teacher/TeacherTopicForm.tsx` | 89 |
 | table | `subject_topics` | `components/teacher/TeacherTopicForm.tsx` | 106 |
@@ -251,7 +252,7 @@ Estado acumulado hasta: 20260912213000_teacher_topic_question_lifecycle.sql
 | table | `subjects` | `lib/notifications/derivedTeacher.ts` | 13 |
 | table | `support_ticket_attachments` | `lib/support.ts` | 391 |
 | table | `teacher_audit_export_requests` | `hooks/teacher/useTeacherAudit.ts` | 58 |
-| table | `topic_scores` | `app/(student)/class/[id].tsx` | 190 |
+| table | `topic_scores` | `app/(student)/class/[id].tsx` | 191 |
 | table | `user_notification_preferences` | `hooks/useSettingsData.ts` | 396 |
 | table | `user_notification_preferences` | `hooks/useSettingsData.ts` | 482 |
 | table | `user_notification_preferences` | `lib/notifications/preferences.ts` | 14 |

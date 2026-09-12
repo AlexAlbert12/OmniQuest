@@ -253,7 +253,10 @@ export function AdminSupportSection() {
   )
 }
 
-function AttachmentButton({ attachment, onPress }: { attachment: SupportAttachment; onPress: () => void }) { return <Pressable accessibilityRole="button" accessibilityLabel={`Abrir adjunto ${attachment.file_name}`} onPress={onPress} className="mt-3 flex-row items-center gap-2 rounded-lg border border-border-default px-3 py-2"><Ionicons name="document-attach-outline" size={16} /><Text className="min-w-0 flex-1 text-[11px] font-bold text-text-secondary" numberOfLines={1}>{attachment.file_name}</Text></Pressable> }
+function AttachmentButton({ attachment, onPress }: { attachment: SupportAttachment; onPress: () => void }) {
+  const { tokens } = useAppTheme()
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Abrir adjunto ${attachment.file_name}`} onPress={onPress} className="mt-3 flex-row items-center gap-2 rounded-lg border border-border-default px-3 py-2"><Ionicons name="document-attach-outline" size={16} color={tokens.text.primary} /><Text className="min-w-0 flex-1 text-[11px] font-bold text-text-secondary" numberOfLines={1}>{attachment.file_name}</Text></Pressable>
+}
 function getHistoryLabel(value: string) { const labels: Record<string, string> = { response_sent: 'Respuesta pública enviada', internal_comment: 'Comentario interno añadido', ticket_updated: 'Ticket actualizado', user_reply: 'Respuesta del usuario', attachment_added: 'Adjunto añadido' }; return labels[value] || value.replace(/[._-]+/g, ' ') }
 function formatSupportDeadline(value: string | null, completed: boolean) { if (completed) return 'cumplida'; if (!value) return 'sin estimación'; const date = new Date(value); if (Number.isNaN(date.getTime())) return 'sin estimación'; return `${formatAuditDate(value)}${date.getTime() < Date.now() ? ' · vencida' : ''}` }
 export const AdminSupportScreen = AdminSupportSection

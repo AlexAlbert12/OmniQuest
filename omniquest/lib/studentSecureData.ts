@@ -1,5 +1,6 @@
 import type { Json } from '../types/database.types'
 import { supabase } from './supabase'
+import { getStudentAttemptEvaluationState } from './studentAttemptEvaluation'
 
 export type SafeStudentQuestion = {
   id: number
@@ -61,6 +62,7 @@ export type SafeStudentAttempt = {
   was_skipped: boolean | null
   manual_review_status?: string | null
   review_notes?: string | null
+  reviewed_at?: string | null
   review_comments?: SafeManualReviewComment[] | null
   questions: SafeAttemptQuestion | SafeAttemptQuestion[] | null
 }
@@ -75,6 +77,7 @@ export type AttemptFeedback = {
   correct_answer_text?: string | null
   explanation?: string | null
   review_notes?: string | null
+  reviewed_at?: string | null
   review_comments?: SafeManualReviewComment[]
 }
 
@@ -92,6 +95,9 @@ export type GameAttemptReviewIndex = {
   total_score: number
   questions_total: number
   correct_total: number
+  incorrect_total: number
+  evaluated_total: number
+  pending_total: number
   failed_attempt_history_ids: number[]
 }
 
@@ -117,7 +123,7 @@ export type GameAttemptReviewFilters = {
 export type StudentAttemptHistoryPageFilters = {
   page?: number
   pageSize?: number
-  status?: 'all' | 'correct' | 'incorrect'
+  status?: 'all' | 'correct' | 'incorrect' | 'pending'
   search?: string
   subjectId?: number | null
   classroomId?: number | null
@@ -139,6 +145,7 @@ export type StudentAttemptStatusCounts = {
   all: number
   correct: number
   incorrect: number
+  pending: number
 }
 
 export type StudentAttemptHistoryPage = {
@@ -244,6 +251,7 @@ export async function fetchStudentAttemptHistoryPage({
       all: Math.max(0, Number(rawStatusCounts.all || 0)),
       correct: Math.max(0, Number(rawStatusCounts.correct || 0)),
       incorrect: Math.max(0, Number(rawStatusCounts.incorrect || 0)),
+      pending: Math.max(0, Number(rawStatusCounts.pending || 0)),
     },
     subjects: parseRpcArray<Record<string, unknown>>(payload.subjects).map((item) => ({
       id: String(item.id ?? ''),
@@ -284,8 +292,12 @@ async function fetchStudentAttemptHistoryPageFallback({
     total: filtered.length,
     statusCounts: {
       all: statusScope.length,
-      correct: statusScope.filter((attempt) => attempt.is_correct).length,
-      incorrect: statusScope.filter((attempt) => !attempt.is_correct).length,
+      correct: statusScope.filter((attempt) => getStudentAttemptEvaluationState({ manualReviewStatus: attempt.manual_review_status, isCorrect: attempt.is_correct }) === 'correct').length,
+      incorrect: statusScope.filter((attempt) => getStudentAttemptEvaluationState({ manualReviewStatus: attempt.manual_review_status, isCorrect: attempt.is_correct }) === 'incorrect').length,
+      pending: statusScope.filter((attempt) => {
+        const state = getStudentAttemptEvaluationState({ manualReviewStatus: attempt.manual_review_status, isCorrect: attempt.is_correct })
+        return state === 'pending' || state === 'needs_changes'
+      }).length,
     },
     subjects: buildStudentActivitySubjectFacets(subjectScope),
     topics: buildStudentActivityTopicFacets(topicScope),
@@ -294,7 +306,10 @@ async function fetchStudentAttemptHistoryPageFallback({
 
 function matchesStudentAttemptStatus(attempt: SafeStudentAttempt, status: StudentAttemptHistoryPageFilters['status']) {
   if (!status || status === 'all') return true
-  return status === 'correct' ? attempt.is_correct : !attempt.is_correct
+  const state = getStudentAttemptEvaluationState({ manualReviewStatus: attempt.manual_review_status, isCorrect: attempt.is_correct })
+  if (status === 'correct') return state === 'correct'
+  if (status === 'incorrect') return state === 'incorrect'
+  return state === 'pending' || state === 'needs_changes'
 }
 
 function matchesStudentAttemptSearch(attempt: SafeStudentAttempt, search: string) {
@@ -426,6 +441,9 @@ export async function fetchGameAttemptReview({
     total_score: Math.max(0, Number(payload.total_score || 0)),
     questions_total: Math.max(0, Number(payload.questions_total || 0)),
     correct_total: Math.max(0, Number(payload.correct_total || 0)),
+    incorrect_total: Math.max(0, Number(payload.incorrect_total || 0)),
+    evaluated_total: Math.max(0, Number(payload.evaluated_total || 0)),
+    pending_total: Math.max(0, Number(payload.pending_total || 0)),
     failed_attempt_history_ids: failedAttemptIds,
     mistakes,
   }

@@ -6,10 +6,11 @@ import { useAppTheme } from '../../lib/appTheme'
 import type { DesignColorTokens } from '../../lib/designTokens'
 import { readThroughCache } from '../../lib/offlineCache'
 import { fetchStudentAttemptHistory } from '../../lib/studentSecureData'
-import { fetchStudentProgressSummary, type StudentProgressSubject } from '../../lib/studentProgress'
+import { fetchStudentProgressSummary, fetchStudentRecentGames, type StudentProgressSubject, type StudentRecentGame } from '../../lib/studentProgress'
 import { buildStudentBadges, getStudentBadgeMetrics, type StudentBadge, type StudentBadgeScore } from '../../lib/studentBadges'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { formatShortDate } from '../../lib/dateFormat'
+import { getStudentAttemptEvaluationState } from '../../lib/studentAttemptEvaluation'
 
 export type StudentProgressProfile = { id: string; alias: string; avatar: string | null; points: number | null }
 export type StudentProgressScore = {
@@ -35,6 +36,7 @@ export type StudentCourseProgress = {
   totalQuestions: number
   failedQuestions: number
   pendingQuestions: number
+  pendingReviewQuestions: number
   barPercent: number
 }
 export type StudentLatestResult = { label: string; meta: string; value: number }
@@ -70,6 +72,7 @@ type ReinforcementQuestionRelation = {
 type ReinforcementAttemptRow = {
   id: number
   is_correct: boolean | null
+  manual_review_status?: string | null
   attempted_at: string | null
   questions?: ReinforcementQuestionRelation | ReinforcementQuestionRelation[] | null
 }
@@ -80,6 +83,8 @@ type ProgressCacheSnapshot = {
   latestResults: StudentLatestResult[]
   scores: StudentProgressScore[]
   opportunities: PracticeOpportunity[]
+  recentGames: StudentRecentGame[]
+  accuracyPercent: number
 }
 
 export function useStudentProgress() {
@@ -90,6 +95,8 @@ export function useStudentProgress() {
   const [latestResults, setLatestResults] = useState<StudentLatestResult[]>([])
   const [scores, setScores] = useState<StudentProgressScore[]>([])
   const [opportunities, setOpportunities] = useState<PracticeOpportunity[]>([])
+  const [recentGames, setRecentGames] = useState<StudentRecentGame[]>([])
+  const [serverAccuracyPercent, setServerAccuracyPercent] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -110,7 +117,7 @@ export function useStudentProgress() {
         userId,
         resource: 'student:progress',
         fetcher: async () => {
-          const [profileResult, scoresResult, weeklyResult, progressResult, historyResult] = await Promise.all([
+          const [profileResult, scoresResult, weeklyResult, progressResult, historyResult, recentGamesResult] = await Promise.all([
             supabase.from('profiles').select('id, alias, points, avatar').eq('id', userId).single(),
             supabase
               .from('subject_scores')
@@ -125,6 +132,7 @@ export function useStudentProgress() {
               .lte('attempted_at', now.toISOString()),
             fetchStudentProgressSummary(userId),
             fetchStudentAttemptHistory({ limit: 1000, since: thirtyDaysAgo.toISOString() }),
+            fetchStudentRecentGames(5),
           ])
           if (profileResult.error) throw profileResult.error
           if (!profileResult.data) throw new Error('No se pudo cargar el perfil del alumno.')
@@ -138,6 +146,8 @@ export function useStudentProgress() {
             latestResults: buildLatestResults(nextScores),
             scores: nextScores,
             opportunities: buildPracticeOpportunities((historyResult || []) as ReinforcementAttemptRow[], tokens),
+            recentGames: recentGamesResult,
+            accuracyPercent: Math.max(0, Math.min(100, Number(progressResult.accuracyPercent || 0))),
           }
         },
         onData: (snapshot) => {
@@ -147,6 +157,8 @@ export function useStudentProgress() {
           setLatestResults(snapshot.latestResults)
           setScores(snapshot.scores)
           setOpportunities(snapshot.opportunities)
+          setRecentGames(snapshot.recentGames || [])
+          setServerAccuracyPercent(snapshot.accuracyPercent || 0)
           setLoading(false)
         },
       })
@@ -166,8 +178,7 @@ export function useStudentProgress() {
     const totalQuestions = courseProgress.reduce((total, course) => total + course.totalQuestions, 0)
     const failedQuestions = courseProgress.reduce((total, course) => total + course.failedQuestions, 0)
     const progressPercent = totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0
-    const correctAnswers = scores.reduce((total, score) => total + (score.correct_answers ?? 0), 0)
-    const accuracyPercent = answeredQuestions > 0 ? Math.round((correctAnswers / answeredQuestions) * 100) : 0
+    const accuracyPercent = serverAccuracyPercent
     const badgeMetrics = getStudentBadgeMetrics({
       scores: scores as StudentBadgeScore[],
       totalPoints: points,
@@ -188,7 +199,7 @@ export function useStudentProgress() {
       badges,
       recommendation: opportunities[0] || null,
     }
-  }, [courseProgress, opportunities, profile, scores])
+  }, [courseProgress, opportunities, profile, scores, serverAccuracyPercent])
 
   return {
     profile,
@@ -198,6 +209,7 @@ export function useStudentProgress() {
     courseProgress,
     latestResults,
     opportunities,
+    recentGames,
     reload: load,
     ...viewModel,
   }
@@ -233,6 +245,7 @@ function buildCourseProgress(subjects: StudentProgressSubject[], scores: Student
       totalQuestions: subject.totalQuestions,
       failedQuestions: subject.failedQuestions,
       pendingQuestions: subject.pendingQuestions,
+      pendingReviewQuestions: subject.pendingReviewQuestions || 0,
       barPercent: subject.percent,
     }
   })
@@ -254,7 +267,9 @@ function buildPracticeOpportunities(rows: ReinforcementAttemptRow[], tokens: Des
   rows.forEach((row) => {
     const question = normalizeRelation(row.questions)
     if (!question || question.subject_id === null) return
-    const correct = row.is_correct === true
+    const evaluationState = getStudentAttemptEvaluationState({ manualReviewStatus: row.manual_review_status, isCorrect: row.is_correct })
+    if (evaluationState === 'pending' || evaluationState === 'needs_changes') return
+    const correct = evaluationState === 'correct'
     const topic = normalizeRelation(question.subject_topics)
     const subject = normalizeRelation(question.subjects)
     const topicId = question.topic_id ?? null

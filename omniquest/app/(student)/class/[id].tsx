@@ -9,6 +9,7 @@ import StudentBottomNav from '../../../components/student/StudentBottomNav'
 import { MOBILE_BOTTOM_NAV_HEIGHT, MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { GalaxyScreenBackground, TopicGalaxyMap } from '../../../components/student/galaxy/StudentGalaxyMap'
 import { fetchStudentAttemptHistory, fetchStudentQuestionCatalog } from '../../../lib/studentSecureData'
+import { getStudentAttemptEvaluationState, isStudentAttemptFailure } from '../../../lib/studentAttemptEvaluation'
 import { useAppTheme } from '../../../lib/appTheme'
 import { useAppModal } from '../../../components/AppModalProvider'
 import { useResponsiveLayout } from '../../../lib/responsive'
@@ -66,7 +67,7 @@ type DifficultyTopicStats = {
 
 type RecentAttempt = {
   id: string
-  isCorrect: boolean
+  evaluationState: 'pending' | 'needs_changes' | 'correct' | 'incorrect'
   questionText: string
   topicTitle: string
   attemptedAt: string
@@ -228,7 +229,7 @@ export default function StudentClassDetailScreen() {
       const answeredQuestionIds = new Set<number>(latestAttemptByQuestion.keys())
       const failedQuestionIds = new Set(
         Array.from(latestAttemptByQuestion.entries())
-          .filter(([, attempt]) => attempt.is_correct === false)
+          .filter(([, attempt]) => isStudentAttemptFailure({ manualReviewStatus: attempt.manual_review_status, isCorrect: attempt.is_correct }))
           .map(([questionId]) => questionId)
       )
       const scoresByTopic = new Map<number, number>()
@@ -298,7 +299,7 @@ export default function StudentClassDetailScreen() {
 
           return {
             id: String(attempt.id),
-            isCorrect: attempt.is_correct === true,
+            evaluationState: getStudentAttemptEvaluationState({ manualReviewStatus: attempt.manual_review_status, isCorrect: attempt.is_correct }),
             questionText: question?.text || 'Pregunta',
             topicTitle: topicTitleById.get(topicId) || 'Tema',
             attemptedAt: attempt.attempted_at,
@@ -597,7 +598,10 @@ function buildTopicDifficulties(questions: any[], latestAttemptByQuestion: Map<n
         difficulty: option.value,
         questionsCount: questionRows.length,
         answeredQuestions: questionRows.filter((question) => latestAttemptByQuestion.has(Number(question.id))).length,
-        failedQuestions: questionRows.filter((question) => latestAttemptByQuestion.get(Number(question.id))?.is_correct === false).length,
+        failedQuestions: questionRows.filter((question) => {
+          const attempt = latestAttemptByQuestion.get(Number(question.id))
+          return attempt ? isStudentAttemptFailure({ manualReviewStatus: attempt.manual_review_status, isCorrect: attempt.is_correct }) : false
+        }).length,
         lastAttemptAt: getLastAttemptAt(questionRows, latestAttemptByQuestion),
       }
     })

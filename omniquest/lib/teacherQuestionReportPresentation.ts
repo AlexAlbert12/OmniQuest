@@ -36,7 +36,8 @@ export function getDiscriminationLabel(value: number | null) {
 }
 
 export function getQuestionFailureRate(summary: TeacherQuestionReportSummary) {
-  return summary.totalAttempts > 0 ? summary.failedAttempts / summary.totalAttempts : null
+  const evaluated = Math.max(0, Number(summary.evaluatedAttempts ?? (summary.totalAttempts - (summary.pendingAttempts || 0))))
+  return evaluated > 0 ? summary.failedAttempts / evaluated : null
 }
 
 export function getFailureTrendLabel(value: number) {

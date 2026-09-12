@@ -6,6 +6,7 @@ import GameShell from '../../../components/student/game/GameShell'
 import OmniLoadingScreen from '../../../components/ui/OmniLoadingScreen'
 import AppButton from '../../../components/ui/AppButton'
 import AppBackButton from '../../../components/ui/AppBackButton'
+import AppStatusBanner from '../../../components/ui/AppStatusBanner'
 import OmniGuide from '../../../components/OmniGuide'
 import { getQuestionTypeLabel, getSubmittedAnswerText } from '../../../components/student/activity/utils'
 import { getDifficultyMeta, normalizeDifficulty } from '../../../lib/difficulty'
@@ -110,22 +111,10 @@ export default function StudentGameReviewScreen() {
     )
   }
 
-  if (review.mistakes.length === 0) {
-    return (
-      <ReviewState
-        icon="checkmark-circle-outline"
-        title="¡Partida sin fallos!"
-        detail="No hay respuestas incorrectas que revisar en esta partida. Puedes volver a jugarla completa cuando quieras."
-        actionLabel="Jugar tema de nuevo"
-        onAction={replayTopic}
-        onBack={() => router.back()}
-      />
-    )
-  }
-
   const difficultyMeta = review.difficulty ? getDifficultyMeta(normalizeDifficulty(review.difficulty) || 1) : null
   const topicTitle = review.topic_title || topicName || 'Tema general'
-  const accuracy = review.questions_total > 0 ? Math.round((review.correct_total / review.questions_total) * 100) : 0
+  const evaluatedTotal = Math.max(0, review.evaluated_total)
+  const accuracy = evaluatedTotal > 0 ? Math.round((review.correct_total / evaluatedTotal) * 100) : null
 
   return (
     <GameShell>
@@ -158,7 +147,7 @@ export default function StudentGameReviewScreen() {
                 <Text className="text-[12px] font-black uppercase tracking-[0.1em]" style={{ color: tokens.brand.student }}>Revisión de partida</Text>
                 <Text className={`${isDesktop ? 'text-left' : 'text-center'} mt-1 text-[28px] font-black text-white`}>{topicTitle}</Text>
                 <Text className={`${isDesktop ? 'text-left' : 'text-center'} mt-2 text-[13px] leading-5 text-text-secondary`}>
-                  Repasa lo que respondiste y compáralo con la respuesta correcta. Esta pantalla no permite modificar ni volver a enviar respuestas.
+                  Consulta los resultados ya evaluados de esta partida. Las respuestas pendientes pueden actualizar la puntuación cuando el profesor las revise. Esta pantalla es de solo lectura.
                 </Text>
                 <View className="mt-3 flex-row flex-wrap items-center gap-2">
                   {review.subject_name ? <MetaPill icon="book-outline" label={review.subject_name} color={tokens.semantic.info} /> : null}
@@ -169,12 +158,40 @@ export default function StudentGameReviewScreen() {
             </View>
 
             <View className="mt-5 flex-row flex-wrap gap-3">
-              <SummaryMetric icon="close-circle" label="Fallos" value={review.mistakes.length} color={tokens.semantic.danger} />
+              <SummaryMetric icon="close-circle" label="Fallos" value={review.incorrect_total} color={tokens.semantic.danger} />
               <SummaryMetric icon="checkmark-circle" label="Aciertos" value={review.correct_total} color={tokens.semantic.success} />
-              <SummaryMetric icon="analytics" label="Precisión" value={`${accuracy}%`} color={tokens.brand.student} />
-              <SummaryMetric icon="flash" label="XP" value={review.total_score} color={tokens.gamification.xp} />
+              <SummaryMetric icon="analytics" label={review.pending_total > 0 ? 'Precisión provisional' : 'Precisión'} value={accuracy == null ? 'Pendiente' : `${accuracy}%`} color={tokens.brand.student} />
+              {review.pending_total > 0 ? <SummaryMetric icon="time-outline" label="Pendientes" value={review.pending_total} color={tokens.semantic.warning} /> : null}
+              <SummaryMetric icon="flash" label={review.pending_total > 0 ? 'XP hasta ahora' : 'XP'} value={review.total_score} color={tokens.gamification.xp} />
             </View>
           </View>
+
+          {review.pending_total > 0 ? (
+            <View className="mt-4">
+              <AppStatusBanner
+                variant="warning"
+                title={`${review.pending_total} ${review.pending_total === 1 ? 'respuesta pendiente' : 'respuestas pendientes'} de revisión`}
+                message="Tu resultado, la precisión y el XP pueden actualizarse cuando el profesor complete la revisión manual."
+              />
+            </View>
+          ) : null}
+
+          {review.mistakes.length === 0 && review.pending_total === 0 ? (
+            <View className="mt-4">
+              <AppStatusBanner
+                variant="success"
+                title="Partida sin fallos"
+                message="Todas las respuestas evaluadas de esta partida son correctas."
+              />
+            </View>
+          ) : null}
+
+          {review.mistakes.length === 0 && review.pending_total > 0 ? (
+            <View className="mt-6 rounded-3xl border border-border-default bg-surface-raised p-5">
+              <Text className="text-[16px] font-black text-white">No hay fallos evaluados</Text>
+              <Text className="mt-2 text-[13px] leading-5 text-text-secondary">Las respuestas que siguen pendientes todavía no se consideran correctas ni incorrectas.</Text>
+            </View>
+          ) : null}
 
           <View className="mt-6 gap-4">
             {review.mistakes.map((mistake, index) => (

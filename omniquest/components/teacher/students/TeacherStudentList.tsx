@@ -163,7 +163,7 @@ export const StudentCard = React.memo(function StudentCard({
       </View>
 
       <View className="mt-4 flex-row flex-wrap gap-3">
-        <StudentMiniStat label="Precisión" value={student.hasActivity ? `${student.accuracyPercent}%` : '—'} color="#38BDF8" />
+        <StudentMiniStat label="Precisión" value={student.evaluatedAttempts > 0 ? `${student.accuracyPercent}%` : '—'} color="#38BDF8" />
         <StudentMiniStat label="Participación" value={`${student.progress}%`} color={status.color} />
       </View>
 
@@ -369,7 +369,7 @@ export function AttentionRow({ student, onPress }: { student: StudentRow; onPres
         <Text className="text-[11px] text-text-secondary">{reason}</Text>
       </View>
       <View className="rounded-md border px-2 py-1" style={{ borderColor: status.color }}>
-        <Text className="text-[11px] font-black" style={{ color: status.color }}>{student.hasActivity ? `${student.accuracyPercent}%` : '—'}</Text>
+        <Text className="text-[11px] font-black" style={{ color: status.color }}>{student.evaluatedAttempts > 0 ? `${student.accuracyPercent}%` : '—'}</Text>
       </View>
     </Pressable>
   );

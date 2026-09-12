@@ -64,6 +64,7 @@ type GameSummary = {
   answered: number;
   correct: number;
   incorrect: number;
+  pending: number;
   xp: number;
   timeSeconds: number;
   reviewQuestions: { id: number; text: string }[];
@@ -74,6 +75,7 @@ const emptySummary: GameSummary = {
   answered: 0,
   correct: 0,
   incorrect: 0,
+  pending: 0,
   xp: 0,
   timeSeconds: 0,
   reviewQuestions: [],
@@ -157,7 +159,12 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
         setLives(snapshot.lives);
         setStreak(snapshot.streak);
         setTimeLeft(Math.max(0, snapshot.timeLeft));
-        setSummary(snapshot.summary as GameSummary);
+        const restoredSummary = snapshot.summary as Partial<GameSummary> | null;
+        setSummary({
+          ...emptySummary,
+          ...(restoredSummary || {}),
+          pending: Math.max(0, Number(restoredSummary?.pending ?? Math.max(0, Number(restoredSummary?.answered || 0) - Number(restoredSummary?.correct || 0) - Number(restoredSummary?.incorrect || 0)))),
+        });
         setPendingAnswer(snapshot.pendingAnswer);
         setHasAnswered(snapshot.hasAnswered);
         setSelectedAnswerId(snapshot.selectedAnswerId);
@@ -492,6 +499,7 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
           answered: current.answered + 1,
           correct: current.correct + (isCorrect ? 1 : 0),
           incorrect: current.incorrect + (!isCorrect && !requiresManualReview ? 1 : 0),
+          pending: current.pending + (requiresManualReview ? 1 : 0),
           xp: nextScore,
           timeSeconds: current.timeSeconds + timeTaken,
           reviewQuestions,

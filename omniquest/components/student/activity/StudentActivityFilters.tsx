@@ -41,6 +41,7 @@ export default React.memo(function StudentActivityFilters({
     { id: 'all' as const, label: 'Todas', count: statusCounts.all, icon: 'list' as const },
     { id: 'correct' as const, label: 'Correctas', count: statusCounts.correct, icon: 'checkmark-circle' as const },
     { id: 'incorrect' as const, label: 'Incorrectas', count: statusCounts.incorrect, icon: 'close-circle' as const },
+    { id: 'pending' as const, label: 'Pendientes', count: statusCounts.pending, icon: 'time-outline' as const },
   ], [statusCounts])
   const allSubjectsCount = useMemo(
     () => subjectOptions.reduce((sum, option) => sum + option.count, 0),

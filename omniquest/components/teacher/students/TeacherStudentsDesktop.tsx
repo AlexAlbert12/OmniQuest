@@ -191,7 +191,7 @@ export default function TeacherStudentsDesktopTable({
               <Text numberOfLines={2} className="min-w-0 flex-[1.4] pr-3 text-[12px] font-semibold" style={{ color: tokens.text.secondary }}>
                 {mainCourse ? `${mainCourse.subjectName}\n${mainCourse.classroomName}` : 'Sin curso asignado'}
               </Text>
-              <ValueCell value={student.hasActivity ? `${student.accuracyPercent}%` : '—'} color={student.hasActivity ? tokens.semantic.info : tokens.text.muted} />
+              <ValueCell value={student.evaluatedAttempts > 0 ? `${student.accuracyPercent}%` : '—'} color={student.evaluatedAttempts > 0 ? tokens.semantic.info : tokens.text.muted} />
               <View className="w-[120px] pr-3">
                 <Text className="text-right text-[13px] font-black" style={{ color: tokens.semantic.success }}>{student.progress}%</Text>
                 <View className="mt-1 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: tokens.background.primary }}>

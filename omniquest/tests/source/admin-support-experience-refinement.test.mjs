@@ -51,6 +51,10 @@ test('internal support notes use private admin styling instead of warning semant
   assert.doesNotMatch(screen, /border-semantic-warning bg-semantic-surface-warning/)
 })
 
+test('support attachment icon uses the primary high-contrast text color', () => {
+  assert.match(screen, /name="document-attach-outline" size=\{16\} color=\{tokens\.text\.primary\}/)
+})
+
 test('admin search and scaffold keep the role identity purple without overriding semantic states', () => {
   assert.match(search, /const roleAccent = tokens\.brand\[role\]/)
   assert.match(search, /color=\{roleAccent\}/)

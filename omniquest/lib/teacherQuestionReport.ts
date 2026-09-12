@@ -25,6 +25,8 @@ export type TeacherQuestionReportSummary = {
   totalAttempts: number
   correctAttempts: number
   failedAttempts: number
+  evaluatedAttempts: number
+  pendingAttempts: number
   sampleSize: number
   lowSample: boolean
   abandonmentPercent: number
@@ -45,6 +47,9 @@ export type ClassroomComparisonPoint = {
   classroom_name: string
   attempts: number
   correct: number
+  failed: number
+  evaluated: number
+  pending: number
   failure_percent: number
   average_time_seconds: number | null
 }

@@ -6400,6 +6400,7 @@ export type Database = {
       get_student_badge_metrics: { Args: never; Returns: Json }
       get_student_home_dashboard: { Args: never; Returns: Json }
       get_student_progress_summary: { Args: never; Returns: Json }
+      get_student_recent_game_attempts: { Args: { p_limit?: number }; Returns: Json }
       get_student_question_catalog: {
         Args: { p_classroom_id?: number; p_subject_id?: number }
         Returns: Json

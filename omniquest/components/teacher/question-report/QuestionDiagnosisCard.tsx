@@ -8,7 +8,8 @@ import { getDiscriminationLabel, getFailureTrendLabel, getQuestionFailureRate } 
 
 export default function QuestionDiagnosisCard({ summary }: { summary: TeacherQuestionReportSummary }) {
   const { tokens } = useAppTheme()
-  const failureRate = Math.round((getQuestionFailureRate(summary) || 0) * 100)
+  const rawFailureRate = getQuestionFailureRate(summary)
+  const failureRate = rawFailureRate == null ? null : Math.round(rawFailureRate * 100)
   const discriminationLabel = getDiscriminationLabel(summary.discrimination)
   const trend = summary.failureTrendPoints
 
@@ -35,7 +36,8 @@ export default function QuestionDiagnosisCard({ summary }: { summary: TeacherQue
 
       <View className="mt-4 flex-row flex-wrap gap-3">
         <Metric label="Tamaño de muestra" value={String(summary.sampleSize)} detail={`${summary.totalAttempts} intentos`} color={tokens.brand.teacher} />
-        <Metric label="Tasa de fallo" value={`${failureRate}%`} detail={`${summary.failedAttempts} fallos`} color={failureRate >= 50 ? tokens.semantic.danger : tokens.semantic.warning} />
+        <Metric label="Tasa de fallo" value={failureRate == null ? '—' : `${failureRate}%`} detail={`${summary.failedAttempts} fallos · ${summary.evaluatedAttempts} evaluados`} color={failureRate != null && failureRate >= 50 ? tokens.semantic.danger : tokens.semantic.warning} />
+        {summary.pendingAttempts > 0 ? <Metric label="Pendientes" value={String(summary.pendingAttempts)} detail="Revisión manual pendiente" color={tokens.semantic.warning} /> : null}
         <Metric label="Abandono" value={`${Number(summary.abandonmentPercent || 0).toFixed(1)}%`} detail="Respuestas omitidas" color={tokens.semantic.warning} />
         <Metric label="Tiempo medio" value={summary.averageTimeSeconds == null ? '—' : `${summary.averageTimeSeconds}s`} detail="Por intento" color={tokens.semantic.info} />
         <Metric label="Discriminación" value={summary.discrimination == null ? '—' : summary.discrimination.toFixed(2)} detail={discriminationLabel} color={summary.discrimination != null && summary.discrimination >= 0.3 ? tokens.semantic.success : tokens.semantic.warning} />

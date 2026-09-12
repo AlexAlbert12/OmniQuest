@@ -77,8 +77,12 @@ export function useAdminActions(data: AdminData, requestConfirmation?: AdminConf
     })
     if (!approved) return
     try {
-      await invokeAdminAction('admin-reset-password', { profileId: profile.id })
-      feedback.success('Correo enviado', `Se ha enviado un enlace de restablecimiento a ${profile.email}.`)
+      const result = await invokeAdminAction<AdminActionResult & { deliveryMode?: 'real' | 'redirect' }>('admin-reset-password', { profileId: profile.id })
+      if (result.deliveryMode === 'redirect') {
+        feedback.success('Correo de prueba enviado', 'El enlace se ha redirigido al destinatario de pruebas configurado en Supabase.')
+      } else {
+        feedback.success('Correo enviado', `Se ha enviado un enlace de restablecimiento a ${profile.email}.`)
+      }
     } catch (error: unknown) {
       feedback.error('No se pudo restablecer', getErrorMessage(error, 'Revisa la configuración de correo.'))
     }

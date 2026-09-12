@@ -40,7 +40,7 @@ export type StudentCourseTopic = {
 
 export type StudentCourseRecentAttempt = {
   id: string
-  isCorrect: boolean
+  evaluationState: 'pending' | 'needs_changes' | 'correct' | 'incorrect'
   questionText: string
   topicTitle: string
   attemptedAt: string

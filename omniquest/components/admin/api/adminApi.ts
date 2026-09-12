@@ -43,10 +43,32 @@ export async function fetchOptionalRows<T>(
 
 export async function invokeAdminAction<T extends AdminActionResult>(functionName: string, body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke(functionName, { body })
-  if (error) throw error
+  if (error) {
+    const edgeMessage = await readEdgeFunctionErrorMessage(error)
+    if (edgeMessage) throw new Error(edgeMessage)
+    throw error
+  }
   const result = (data || {}) as T
   if (result.error) throw new Error(result.error)
   return result
+}
+
+async function readEdgeFunctionErrorMessage(error: unknown) {
+  if (!error || typeof error !== 'object') return null
+  const context = (error as { context?: unknown }).context
+  if (!context || typeof context !== 'object') return null
+  const response = typeof (context as { clone?: unknown }).clone === 'function'
+    ? (context as { clone: () => unknown }).clone()
+    : context
+  if (!response || typeof response !== 'object' || typeof (response as { json?: unknown }).json !== 'function') return null
+  try {
+    const payload = await (response as { json: () => Promise<unknown> }).json()
+    if (!payload || typeof payload !== 'object') return null
+    const message = (payload as { error?: unknown; message?: unknown }).error ?? (payload as { message?: unknown }).message
+    return typeof message === 'string' && message.trim() ? message.trim() : null
+  } catch {
+    return null
+  }
 }
 
 export async function fetchAdminPortalContext(): Promise<AdminPortalContext> {

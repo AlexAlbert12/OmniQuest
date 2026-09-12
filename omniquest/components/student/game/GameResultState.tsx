@@ -15,6 +15,7 @@ type GameSummary = {
   answered: number
   correct: number
   incorrect: number
+  pending?: number
   xp: number
   timeSeconds: number
   reviewQuestions: { id: number; text: string }[]
@@ -134,14 +135,15 @@ function GameSummaryPanel({
   fallbackScore?: number
   summary: GameSummary
 }) {
-  const answered = Math.max(summary.answered, summary.correct + summary.incorrect)
   const { tokens } = useAppTheme()
   const { isDesktop } = useResponsiveLayout()
-  const precision = answered > 0 ? Math.round((summary.correct / answered) * 100) : 0
+  const evaluated = Math.max(0, summary.correct + summary.incorrect)
+  const answered = Math.max(summary.answered, evaluated)
+  const pending = Math.max(0, Number(summary.pending ?? Math.max(0, answered - evaluated)))
+  const precision = evaluated > 0 ? Math.round((summary.correct / evaluated) * 100) : null
   const xp = summary.xp || fallbackScore || 0
-  const totalQuestions = summary.questionsTotal || answered
   const reviewCount = summary.reviewQuestions.length
-  const circleColor = precision >= 70 ? tokens.brand.student : tokens.gamification.performanceLow
+  const circleColor = precision == null ? tokens.semantic.warning : precision >= 70 ? tokens.brand.student : tokens.gamification.performanceLow
 
   return (
     <View className="my-6">
@@ -152,8 +154,8 @@ function GameSummaryPanel({
             className="h-32 w-32 items-center justify-center rounded-full bg-background-primary"
             style={{ borderColor: circleColor, borderWidth: 10 }}
           >
-            <Text className="text-[38px] font-black text-white">{summary.correct}/{totalQuestions}</Text>
-            <Text className="text-[14px] font-bold text-text-secondary">correctas</Text>
+            <Text className="text-[38px] font-black text-white">{summary.correct}/{evaluated}</Text>
+            <Text className="text-[14px] font-bold text-text-secondary">evaluadas</Text>
           </View>
           <AnimatedXpCounter
             value={xp}
@@ -165,10 +167,16 @@ function GameSummaryPanel({
         </View>
 
         <View className="mt-5 gap-2">
-          <SummaryRow isDesktop={isDesktop} icon="analytics" label="Precisión" value={`${precision}%`} color="#FBBF24" />
+          <SummaryRow isDesktop={isDesktop} icon="analytics" label={pending > 0 ? 'Precisión provisional' : 'Precisión'} value={precision == null ? 'Pendiente' : `${precision}%`} color="#FBBF24" />
+          {pending > 0 ? <SummaryRow isDesktop={isDesktop} icon="time-outline" label="Pendientes de revisión" value={String(pending)} color="#F59E0B" /> : null}
           <SummaryRow isDesktop={isDesktop} icon="timer-outline" label="Tiempo" value={formatDuration(summary.timeSeconds)} color="#A78BFA" />
           <SummaryRow isDesktop={isDesktop} icon="refresh" label="A repasar" value={String(reviewCount)} color="#F97316" />
         </View>
+        {pending > 0 ? (
+          <View className="mt-4 rounded-2xl border border-semantic-warning bg-semantic-surface-warning p-3">
+            <Text className="text-center text-[12px] font-bold leading-5 text-text-secondary">Tu resultado y el XP pueden actualizarse cuando el profesor revise {pending === 1 ? 'la respuesta pendiente' : 'las respuestas pendientes'}.</Text>
+          </View>
+        ) : null}
       </View>
     </View>
   )

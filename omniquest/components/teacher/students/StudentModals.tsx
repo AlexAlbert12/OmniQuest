@@ -6,7 +6,8 @@ import { formatDate, formatRelativeDate, getStatusMeta } from './studentUtils';
 import AppConfirmModal from '../../AppConfirmModal';
 import { useResponsiveLayout } from '../../../lib/responsive';
 import { withAlpha } from '../../../lib/color';
-import { useAppTheme } from '../../../lib/appTheme';
+import { useAppTheme } from '../../../lib/appTheme'
+import { getStudentAttemptEvaluationState } from '../../../lib/studentAttemptEvaluation';
 
 export function StudentActionsModal({
   student,
@@ -164,7 +165,7 @@ export function StudentDetailModal({
           <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
             <View className="gap-3">
               <View className="flex-row flex-wrap gap-2">
-                <DetailMetric label="Precisión" value={student.hasActivity ? `${student.accuracyPercent}%` : 'Sin datos'} color="#38BDF8" />
+                <DetailMetric label="Precisión" value={student.evaluatedAttempts > 0 ? `${student.accuracyPercent}%` : student.pendingReviewAttempts > 0 ? 'Pendiente' : 'Sin datos'} color="#38BDF8" />
                 <DetailMetric label="Intentos" value={student.challenges.toLocaleString()} color="#8B5CF6" />
                 <DetailMetric label="Preguntas respondidas" value={student.questions.toLocaleString()} color="#A78BFA" />
                 <DetailMetric label={xpLabel} value={student.subjectScore.toLocaleString()} color="#FBBF24" />
@@ -231,21 +232,23 @@ export function StudentDetailModal({
 
               <DetailSection title="Últimos intentos">
                 <View className="gap-2">
-                  {student.recentAttempts.slice(0, 5).map((attempt) => (
-                    <View key={attempt.id} className="rounded-xl border border-border-default bg-surface-default p-2.5">
-                      <View className="flex-row items-start gap-3">
-                        <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: attempt.isCorrect ? '#22C55E24' : '#EF444424' }}>
-                          <Ionicons name={attempt.isCorrect ? 'checkmark' : 'close'} size={17} color={attempt.isCorrect ? '#22C55E' : '#FB7185'} />
-                        </View>
-                        <View className="min-w-0 flex-1">
-                          <Text className="text-[13px] font-bold text-white" numberOfLines={2}>{attempt.questionText}</Text>
-                          <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>
-                            {attempt.subjectName} · {attempt.topicTitle} · {formatDate(attempt.attemptedAt)}
-                          </Text>
+                  {student.recentAttempts.slice(0, 5).map((attempt) => {
+                    const attemptMeta = getTeacherAttemptMeta(attempt.manualReviewStatus, attempt.isCorrect)
+                    return (
+                      <View key={attempt.id} className="rounded-xl border border-border-default bg-surface-default p-2.5">
+                        <View className="flex-row items-start gap-3">
+                          <View className="h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: attemptMeta.background }}><Ionicons name={attemptMeta.icon} size={17} color={attemptMeta.color} /></View>
+                          <View className="min-w-0 flex-1">
+                            <Text className="text-[11px] font-black" style={{ color: attemptMeta.color }}>{attemptMeta.label}</Text>
+                            <Text className="mt-0.5 text-[13px] font-bold text-white" numberOfLines={2}>{attempt.questionText}</Text>
+                            <Text className="mt-1 text-[11px] text-text-muted" numberOfLines={2} maxFontSizeMultiplier={2}>
+                              {attempt.subjectName} · {attempt.topicTitle} · {formatDate(attempt.attemptedAt)}
+                            </Text>
+                          </View>
                         </View>
                       </View>
-                    </View>
-                  ))}
+                    )
+                  })}
                   {student.recentAttempts.length === 0 ? (
                     <Text className="text-[13px] text-text-muted">Todavía no hay intentos registrados.</Text>
                   ) : null}
@@ -359,7 +362,16 @@ export function DetailMetric({ label, value, color }: { label: string; value: st
   )
 }
 
-export function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
+export 
+function getTeacherAttemptMeta(manualReviewStatus: string | null | undefined, isCorrect: boolean) {
+  const state = getStudentAttemptEvaluationState({ manualReviewStatus, isCorrect })
+  if (state === 'correct') return { label: manualReviewStatus === 'approved' ? 'Respuesta aprobada' : 'Respuesta correcta', icon: 'checkmark' as const, color: '#22C55E', background: '#22C55E24' }
+  if (state === 'incorrect') return { label: manualReviewStatus === 'rejected' ? 'Respuesta revisada' : 'Respuesta incorrecta', icon: 'close' as const, color: '#FB7185', background: '#EF444424' }
+  if (state === 'needs_changes') return { label: 'Necesita cambios', icon: 'refresh' as const, color: '#A78BFA', background: '#A78BFA24' }
+  return { label: 'Pendiente de revisión', icon: 'time-outline' as const, color: '#F59E0B', background: '#F59E0B24' }
+}
+
+function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View className="rounded-xl border border-border-default bg-surface-default p-3">
       <Text className="mb-2 text-[14px] font-black text-white">{title}</Text>

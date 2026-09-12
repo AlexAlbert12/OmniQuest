@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 
-export type NotificationType = 'enrollment' | 'student_activity' | 'achievement' | 'new_class' | 'announcement'
+export type NotificationType = 'enrollment' | 'student_activity' | 'achievement' | 'new_class' | 'announcement' | 'manual_review'
 export type NotificationAudience = 'teacher' | 'student'
 
 export type NotificationCursor = {

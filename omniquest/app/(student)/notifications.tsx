@@ -29,6 +29,7 @@ const filterOptions: { key: NotificationFilter; label: string; icon: keyof typeo
   { key: 'unread', label: 'Sin leer', icon: 'mail-unread-outline' },
   { key: 'new_class', label: 'Cursos', icon: 'book-outline' },
   { key: 'student_activity', label: 'Actividad', icon: 'checkmark-circle-outline' },
+  { key: 'manual_review', label: 'Revisiones', icon: 'document-text-outline' },
   { key: 'achievement', label: 'Logros', icon: 'trophy-outline' },
   { key: 'announcement', label: 'Avisos', icon: 'alert-circle-outline' },
 ]
@@ -39,6 +40,7 @@ const categoryLabels: Record<NotificationType, string> = {
   achievement: 'Logros',
   new_class: 'Cursos',
   announcement: 'Avisos',
+  manual_review: 'Revisiones',
 }
 
 export default function StudentNotificationsScreen() {

@@ -7,6 +7,7 @@ import QuestionMedia from '../../questions/QuestionMedia'
 import { useAppTheme } from '../../../lib/appTheme'
 import { withAlpha } from '../../../lib/color'
 import { useI18n } from '../../../lib/i18n'
+import { getStudentAttemptEvaluationState } from '../../../lib/studentAttemptEvaluation'
 import type { ActivityAttempt } from './types'
 import {
   formatAttemptDate,
@@ -94,7 +95,7 @@ export default React.memo(function StudentActivityAttemptRow({
           <Text maxFontSizeMultiplier={2} className="text-[12px]" style={{ color: tokens.text.muted }}>{formatAttemptTime(attempt.attempted_at, locale)}</Text>
           <View className="rounded-md px-2 py-0.5" style={{ backgroundColor: withAlpha(reviewStatus.color, '14') }}>
             <Text maxFontSizeMultiplier={2} className="text-[12px] font-black" style={{ color: reviewStatus.color }}>
-              {earnedPoints > 0 ? `+${earnedPoints} XP` : '0 XP'}
+              {reviewStatus.waiting && earnedPoints === 0 ? 'XP pendiente' : earnedPoints > 0 ? `+${earnedPoints} XP` : '0 XP'}
             </Text>
           </View>
           <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={tokens.brand.student} />
@@ -146,10 +147,12 @@ export default React.memo(function StudentActivityAttemptRow({
                 <DetailBlock icon="chatbubble-ellipses" label="Comentario del profesor" value={attempt.review_notes} highlightColor={tokens.brand.student} />
               ) : null}
 
+              {attempt.reviewed_at ? <DetailBlock icon="calendar-outline" label="Revisada el" value={formatAttemptDate(attempt.reviewed_at, locale)} /> : null}
+
               <View className="gap-3">
                 <View className="flex-row gap-3">
                   <CompactMetric isDesktop={isDesktop} icon="timer" label="Tiempo" value={formatTimeTaken(attempt.time_taken_seconds)} />
-                  <CompactMetric isDesktop={isDesktop} icon="flash" label="XP ganado" value={`${earnedPoints} XP`} />
+                  <CompactMetric isDesktop={isDesktop} icon="flash" label={reviewStatus.waiting ? 'XP' : 'XP ganado'} value={reviewStatus.waiting && earnedPoints === 0 ? 'Pendiente' : `${earnedPoints} XP`} />
                 </View>
                 {isDesktop ? (
                   <View className="flex-row gap-3">
@@ -192,14 +195,11 @@ function getStudentReviewStatus(
   isCorrect: boolean,
   tokens: ReturnType<typeof useAppTheme>['tokens'],
 ) {
-  const normalized = status || 'not_required'
-  if (normalized === 'pending') return { label: 'Pendiente de revisión', color: tokens.semantic.warning, icon: 'time' as const, waiting: true, description: 'Tu profesor todavía tiene que revisar esta respuesta abierta.' }
-  if (normalized === 'needs_changes') return { label: 'Necesita cambios', color: tokens.brand.student, icon: 'refresh-circle' as const, waiting: true, description: 'Consulta los comentarios del profesor y vuelve a practicar este tema.' }
-  if (normalized === 'approved') return { label: 'Respuesta aprobada', color: tokens.semantic.success, icon: 'checkmark-circle' as const, waiting: false, description: '' }
-  if (normalized === 'rejected') return { label: 'Respuesta revisada', color: tokens.semantic.danger, icon: 'close-circle' as const, waiting: false, description: '' }
-  return isCorrect
-    ? { label: 'Respuesta correcta', color: tokens.semantic.success, icon: 'checkmark-circle' as const, waiting: false, description: '' }
-    : { label: 'Respuesta incorrecta', color: tokens.semantic.danger, icon: 'close-circle' as const, waiting: false, description: '' }
+  const state = getStudentAttemptEvaluationState({ manualReviewStatus: status, isCorrect })
+  if (state === 'pending') return { label: 'Pendiente de revisión', color: tokens.semantic.warning, icon: 'time' as const, waiting: true, description: 'Tu profesor todavía tiene que revisar esta respuesta abierta.' }
+  if (state === 'needs_changes') return { label: 'Necesita cambios', color: tokens.brand.student, icon: 'refresh-circle' as const, waiting: true, description: 'Consulta los comentarios del profesor y vuelve a practicar este tema.' }
+  if (state === 'correct') return { label: status === 'approved' ? 'Respuesta aprobada' : 'Respuesta correcta', color: tokens.semantic.success, icon: 'checkmark-circle' as const, waiting: false, description: '' }
+  return { label: status === 'rejected' ? 'Respuesta revisada' : 'Respuesta incorrecta', color: tokens.semantic.danger, icon: 'close-circle' as const, waiting: false, description: '' }
 }
 
 function DetailBlock({

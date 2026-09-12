@@ -1,2 +1,2 @@
-export { fetchStudentProgressSummary } from '../features/student-progress/api'
-export type { StudentProgressSubject, StudentProgressSummary } from '../features/student-progress/types'
+export { fetchStudentProgressSummary, fetchStudentRecentGames } from '../features/student-progress/api'
+export type { StudentProgressSubject, StudentProgressSummary, StudentRecentGame } from '../features/student-progress/types'
