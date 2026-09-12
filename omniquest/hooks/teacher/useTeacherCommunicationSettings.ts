@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+import { Platform } from 'react-native'
 import type { TeacherDigestFrequency } from '../../components/settings/SettingsTypes'
 import { deactivateCurrentDevicePushToken, registerCurrentDeviceForPush } from '../../lib/pushNotifications'
 import { supabase } from '../../lib/supabase'
@@ -80,6 +81,11 @@ export function useTeacherCommunicationSettings() {
   }, [load])
 
   const saveGlobalPreferences = useCallback(async (patch: GlobalPreferencePatch) => {
+    if (patch.pushEnabled !== undefined && Platform.OS === 'web') {
+      setPushRegistrationStatus('unsupported')
+      return
+    }
+
     const resolved = { ...global, ...patch }
     const key = Object.keys(patch)[0] || 'alerts'
     setSavingKey(key)
@@ -106,7 +112,6 @@ export function useTeacherCommunicationSettings() {
       }
     } catch (saveError) {
       setError(getErrorMessage(saveError, 'No se pudieron guardar las alertas docentes.'))
-      throw saveError
     } finally {
       setSavingKey(null)
     }
@@ -127,7 +132,6 @@ export function useTeacherCommunicationSettings() {
       applySettingsPayload(data, setGlobal, setCourses, setHistory)
     } catch (saveError) {
       setError(getErrorMessage(saveError, 'No se pudo guardar el resumen docente.'))
-      throw saveError
     } finally {
       setSavingKey(null)
     }
@@ -142,7 +146,6 @@ export function useTeacherCommunicationSettings() {
       applySettingsPayload(data, setGlobal, setCourses, setHistory)
     } catch (saveError) {
       setError(getErrorMessage(saveError, 'No se pudo cambiar el silencio temporal.'))
-      throw saveError
     } finally {
       setSavingKey(null)
     }
@@ -166,7 +169,6 @@ export function useTeacherCommunicationSettings() {
       applySettingsPayload(data, setGlobal, setCourses, setHistory)
     } catch (saveError) {
       setError(getErrorMessage(saveError, 'No se pudieron guardar las preferencias del curso.'))
-      throw saveError
     } finally {
       setSavingKey(null)
     }

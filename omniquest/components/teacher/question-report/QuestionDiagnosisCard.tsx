@@ -4,10 +4,11 @@ import { Ionicons } from '@expo/vector-icons'
 import AppStatusBanner from '../../ui/AppStatusBanner'
 import { useAppTheme } from '../../../lib/appTheme'
 import type { TeacherQuestionReportSummary } from '../../../lib/teacherQuestionReport'
+import { getDiscriminationLabel, getFailureTrendLabel, getQuestionFailureRate } from '../../../lib/teacherQuestionReportPresentation'
 
 export default function QuestionDiagnosisCard({ summary }: { summary: TeacherQuestionReportSummary }) {
   const { tokens } = useAppTheme()
-  const failureRate = summary.totalAttempts ? Math.round((summary.failedAttempts / summary.totalAttempts) * 100) : 0
+  const failureRate = Math.round((getQuestionFailureRate(summary) || 0) * 100)
   const discriminationLabel = getDiscriminationLabel(summary.discrimination)
   const trend = summary.failureTrendPoints
 
@@ -38,7 +39,7 @@ export default function QuestionDiagnosisCard({ summary }: { summary: TeacherQue
         <Metric label="Abandono" value={`${Number(summary.abandonmentPercent || 0).toFixed(1)}%`} detail="Respuestas omitidas" color={tokens.semantic.warning} />
         <Metric label="Tiempo medio" value={summary.averageTimeSeconds == null ? '—' : `${summary.averageTimeSeconds}s`} detail="Por intento" color={tokens.semantic.info} />
         <Metric label="Discriminación" value={summary.discrimination == null ? '—' : summary.discrimination.toFixed(2)} detail={discriminationLabel} color={summary.discrimination != null && summary.discrimination >= 0.3 ? tokens.semantic.success : tokens.semantic.warning} />
-        <Metric label="Tendencia 7 días" value={`${trend > 0 ? '+' : ''}${Number(trend || 0).toFixed(1)} p.p.`} detail={trend > 0 ? 'Empeora' : trend < 0 ? 'Mejora' : 'Estable'} color={trend > 0 ? tokens.semantic.danger : trend < 0 ? tokens.semantic.success : tokens.text.muted} />
+        <Metric label="Tendencia 7 días" value={`${trend > 0 ? '+' : ''}${Number(trend || 0).toFixed(1)} p.p.`} detail={getFailureTrendLabel(trend)} color={trend > 0 ? tokens.semantic.danger : trend < 0 ? tokens.semantic.success : tokens.text.muted} />
       </View>
     </View>
   )
@@ -53,12 +54,4 @@ function Metric({ label, value, detail, color }: { label: string; value: string;
       <Text className="mt-1 text-[11px]" style={{ color: tokens.text.secondary }}>{detail}</Text>
     </View>
   )
-}
-
-function getDiscriminationLabel(value: number | null) {
-  if (value == null) return 'Sin datos suficientes'
-  if (value >= 0.4) return 'Muy buena'
-  if (value >= 0.3) return 'Adecuada'
-  if (value >= 0.2) return 'Revisable'
-  return 'Baja o negativa'
 }

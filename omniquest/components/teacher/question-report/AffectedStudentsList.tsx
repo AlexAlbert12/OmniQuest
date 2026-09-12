@@ -1,6 +1,7 @@
 import React from 'react'
 import { Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import StudentProfileAvatar from '../students/StudentProfileAvatar'
 import AppButton from '../../ui/AppButton'
 import PaginationControls from '../../ui/PaginationControls'
 import { useAppTheme } from '../../../lib/appTheme'
@@ -34,9 +35,7 @@ export default function AffectedStudentsList({
       <View className="mt-4 gap-3">
         {items.length ? items.map((item) => (
           <View key={item.student_id} className="flex-row flex-wrap items-center gap-3 rounded-xl border p-3" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}>
-            <View className="h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: tokens.semanticSurface.warning }}>
-              <Ionicons name="person-outline" size={20} color={tokens.semantic.warning} />
-            </View>
+            <StudentProfileAvatar alias={item.alias} avatar={item.avatar} size={40} accentColor={tokens.semantic.warning} />
             <View className="min-w-[180px] flex-1">
               <Text className="font-black" style={{ color: tokens.text.primary }}>{item.alias}</Text>
               <Text className="mt-1 text-[11px]" style={{ color: tokens.text.muted }}>{item.classroom_name} · {item.failures} fallo{item.failures === 1 ? '' : 's'} · {item.average_time_seconds == null ? 'sin tiempo' : `${item.average_time_seconds}s de media`}</Text>

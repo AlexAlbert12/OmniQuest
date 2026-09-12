@@ -343,21 +343,18 @@ export function ModalActionButton({
 }
 
 export function DetailMetric({ label, value, color }: { label: string; value: string; color: string }) {
-  const { isDesktop } = useResponsiveLayout()
-
   return (
     <View
       accessible
       accessibilityLabel={`${label}: ${value}`}
-      className={`min-w-[100px] flex-1 rounded-xl border px-3 ${isDesktop ? 'py-2' : 'py-2.5'}`}
-      style={{ borderColor: withAlpha(color, '70'), backgroundColor: withAlpha(color, '18') }}
+      className="min-w-[150px] flex-1 rounded-xl border px-3 py-3"
+      style={{ borderColor: withAlpha(color, '70'), backgroundColor: withAlpha(color, '18'), flexBasis: 150 }}
     >
-      <View className="flex-row items-center justify-center gap-2">
+      <View className="flex-row items-center gap-2">
         <Ionicons name="analytics" size={15} color={color} />
-        {isDesktop ? <Text className="min-w-0 text-[10px] font-bold text-text-secondary" style={{ flexShrink: 1 }} maxFontSizeMultiplier={2}>{label}</Text> : null}
-        <Text className={`${isDesktop ? '' : 'flex-1'} min-w-0 text-[18px] font-black text-white`} style={{ flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+        <Text className="min-w-0 flex-1 text-[11px] font-bold leading-4 text-text-secondary" numberOfLines={2} maxFontSizeMultiplier={2}>{label}</Text>
       </View>
-      {!isDesktop ? <Text className="mt-0.5 text-[10px] font-bold text-text-secondary" numberOfLines={2}>{label}</Text> : null}
+      <Text className="mt-2 min-w-0 text-[18px] font-black text-white" numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
     </View>
   )
 }

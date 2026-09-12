@@ -533,7 +533,7 @@ export default function StudentClassDetailScreen() {
         visible={leaveConfirmationVisible}
         variant="danger"
         title="¿Abandonar clase?"
-        message={`Vas a salir de “${subject.name}${classroom?.name ? ` · ${classroom.name}` : ''}”. Si quieres volver, necesitarás el código de invitación.`}
+        message={`Vas a abandonar “${subject.name}${classroom?.name ? ` · ${classroom.name}` : ''}”. Dejarás de tener acceso a la clase, pero tu progreso y resultados se conservarán. Si quieres volver, necesitarás nuevamente el código de invitación de la clase.`}
         cancelLabel="Cancelar"
         confirmLabel="Abandonar clase"
         busy={leavingClass}

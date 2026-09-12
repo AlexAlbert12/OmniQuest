@@ -7,6 +7,7 @@ import type {
   QuestionReportPeriod,
   TeacherQuestionReport,
 } from '../../lib/teacherQuestionReport'
+import { getQuestionReportPeriodRange } from '../../lib/teacherQuestionReportPresentation'
 
 const EMPTY_AFFECTED: AffectedStudentsPage = { items: [], total: 0 }
 
@@ -22,7 +23,7 @@ export function useQuestionReport(questionId: number, affectedPageSize: number) 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const range = useMemo(() => getPeriodRange(period), [period])
+  const range = useMemo(() => getQuestionReportPeriodRange(period), [period])
 
   const load = useCallback(async () => {
     if (!Number.isFinite(questionId)) {
@@ -109,14 +110,5 @@ export function useQuestionReport(questionId: number, affectedPageSize: number) 
     setAffectedPage,
     refresh,
     archive,
-  }
-}
-
-function getPeriodRange(period: QuestionReportPeriod) {
-  if (period === 'all') return { from: null, to: null }
-  const days = period === '7d' ? 7 : period === '30d' ? 30 : 90
-  return {
-    from: new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString(),
-    to: null,
   }
 }

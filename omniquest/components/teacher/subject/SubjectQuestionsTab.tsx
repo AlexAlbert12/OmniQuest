@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { difficultyOptions, getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty'
 import { SubjectPanel } from './SubjectShared'
 import AppButton from '../../ui/AppButton'
+import AppPressable from '../../ui/AppPressable'
 import AppDropdown from '../../ui/AppDropdown'
 import AppTabs from '../../ui/AppTabs'
 import VirtualizedStack from '../../ui/VirtualizedStack'
@@ -173,21 +174,33 @@ const QuestionRow = React.memo(function QuestionRow({ question, index, subjectId
     },
   } as Href), [question.classroom_id, question.difficulty, question.id, question.topic_id, subjectId])
   const openEditor = useCallback(() => router.push(editHref), [editHref, router])
+  const openReport = useCallback(() => router.push(`/(teacher)/question-report/${question.id}` as Href), [question.id, router])
   const deleteQuestion = useCallback(() => onDeleteQuestion(question.id), [onDeleteQuestion, question.id])
 
   return (
     <View className="rounded-xl border border-border-default bg-surface-default p-4">
-      <View className="flex-row flex-wrap items-start gap-3">
-        <View className="h-9 w-9 items-center justify-center rounded-lg bg-surface-interactive"><Text className="font-black text-brand-teacher">{index}</Text></View>
-        <View className="min-w-[220px] flex-1">
-          <Text className="font-black text-white">{question.text}</Text>
-          <Text className="mt-2 text-[12px] text-semantic-success">✓ {answer}</Text>
-          {topicName ? <Text className="mt-1 text-[11px] font-semibold text-text-muted">{topicName}</Text> : null}
-          <Text className="mt-1 text-[11px] font-black" style={{ color: difficulty.color }}>{difficulty.label}</Text>
+      <View className="flex-row flex-wrap items-center gap-3">
+        <AppPressable
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir informe de la pregunta: ${question.text}`}
+          accessibilityHint="Muestra el diagnóstico, las respuestas y los alumnos afectados"
+          onPress={openReport}
+          className="min-w-[220px] flex-1 flex-row items-start gap-3 rounded-lg"
+          style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+        >
+          <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-interactive"><Text className="font-black text-brand-teacher">{index}</Text></View>
+          <View className="min-w-0 flex-1">
+            <Text className="font-black text-white">{question.text}</Text>
+            <Text className="mt-2 text-[12px] text-semantic-success">✓ {answer}</Text>
+            {topicName ? <Text className="mt-1 text-[11px] font-semibold text-text-muted">{topicName}</Text> : null}
+            <Text className="mt-1 text-[11px] font-black" style={{ color: difficulty.color }}>{difficulty.label}</Text>
+          </View>
+          <View className="shrink-0 rounded-lg bg-surface-interactive px-3 py-2"><Text className="text-[11px] font-black text-text-secondary">{question.points_base ?? 0} pts</Text></View>
+        </AppPressable>
+        <View className="flex-row gap-2">
+          <AppButton accessibilityLabel={`Editar pregunta: ${question.text}`} icon="create-outline" iconOnly size="sm" variant="secondary" onPress={openEditor} />
+          <AppButton accessibilityLabel={`Eliminar pregunta: ${question.text}`} icon="trash-outline" iconOnly size="sm" variant="danger" onPress={deleteQuestion} />
         </View>
-        <View className="rounded-lg bg-surface-interactive px-3 py-2"><Text className="text-[11px] font-black text-text-secondary">{question.points_base ?? 0} pts</Text></View>
-        <AppButton accessibilityLabel={`Editar pregunta: ${question.text}`} icon="create-outline" iconOnly size="sm" variant="secondary" onPress={openEditor} />
-        <AppButton accessibilityLabel={`Eliminar pregunta: ${question.text}`} icon="trash-outline" iconOnly size="sm" variant="danger" onPress={deleteQuestion} />
       </View>
     </View>
   )

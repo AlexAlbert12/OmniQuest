@@ -70,6 +70,7 @@ export type TeacherQuestionReport = {
 export type AffectedStudent = {
   student_id: string
   alias: string
+  avatar: string | null
   failures: number
   attempts: number
   average_time_seconds: number | null

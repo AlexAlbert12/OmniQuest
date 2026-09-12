@@ -211,12 +211,10 @@ export default function SubjectDetailScreen() {
             creating={detail.creatingTopic}
             newTopicAvailableUntil={detail.newTopicAvailableUntil}
             newTopicDescription={detail.newTopicDescription}
-            newTopicDifficulty={detail.newTopicDifficulty}
             newTopicTitle={detail.newTopicTitle}
             onAvailableUntilChange={detail.setNewTopicAvailableUntil}
             onCreate={detail.handleCreateTopic}
             onDescriptionChange={detail.setNewTopicDescription}
-            onDifficultyChange={detail.setNewTopicDifficulty}
             onOpenTopic={(topicId) => router.push(`/(teacher)/topic/${topicId}` as never)}
             onSelectTopic={(topicId) => {
               detail.setSelectedTopicId(topicId)
@@ -256,6 +254,14 @@ export default function SubjectDetailScreen() {
             isDesktop={isDesktop}
             isWide={isWide}
             onImportStudents={() => detail.setShowStudentImportModal(true)}
+            onOpenStudent={(studentId) => router.push({
+              pathname: '/(teacher)/student/[id]/history',
+              params: {
+                id: studentId,
+                subjectId: String(subject.id),
+                ...(detail.selectedClassroomId ? { classroomId: String(detail.selectedClassroomId) } : {}),
+              },
+            } as never)}
             onPageChange={detail.setStudentPage}
             onStudentSearchChange={detail.setStudentSearch}
             onStudentSortKeyChange={detail.setStudentSortKey}

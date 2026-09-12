@@ -151,7 +151,7 @@ export default function TeacherReviewsScreen() {
         onSubmit={async (input) => { await review.reviewBatch({ ids: review.selectedIds, ...input }); setBatchOpen(false) }}
       />
 
-      <ManualReviewConfigurationSheet visible={settingsOpen} configuration={review.configuration} busy={review.busy} onClose={() => setSettingsOpen(false)} onSaveSla={review.saveSla} onSaveTemplate={review.saveTemplate} />
+      <ManualReviewConfigurationSheet visible={settingsOpen} configuration={review.configuration} busy={review.busy} onClose={() => setSettingsOpen(false)} onSaveSla={review.saveSla} />
     </>
   )
 }

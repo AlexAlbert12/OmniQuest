@@ -68,7 +68,6 @@ export function RoleSettingsSections({
 
       {!securityOnly && activeSettingsSection === 'preferences' ? (
         <SettingsPreferencesPanel
-          accentColor={accentColor}
           preferences={data.preferences}
           openPreferenceKey={data.openPreferenceKey}
           preferenceOptions={data.preferenceOptions}
@@ -106,7 +105,6 @@ export function RoleSettingsSections({
           isGuest={data.profile?.role_id === 'guest'}
           analyticsEnabled={data.preferences.analyticsEnabled}
           savingAnalytics={data.savingAnalytics}
-          accentColor={accentColor}
           onProfileVisibilityChange={data.handleProfileVisibilityChange}
           onAnalyticsEnabledChange={(enabled) => void data.updateAnalyticsEnabled(enabled)}
           onShowPrivacyCenter={data.showPrivacyCenter}
@@ -126,7 +124,6 @@ export function RoleSettingsSections({
       {securityOnly || activeSettingsSection === 'security' ? (
         <SettingsSecurityPanel
           securityOnly={securityOnly}
-          accentColor={accentColor}
           currentPassword={data.currentPassword}
           newPassword={data.newPassword}
           confirmPassword={data.confirmPassword}

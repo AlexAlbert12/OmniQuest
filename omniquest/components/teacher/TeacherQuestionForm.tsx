@@ -212,7 +212,7 @@ export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
 
               {form.activeStep === 5 ? (
                 <View className={isDesktop ? 'flex-row items-start gap-5' : 'gap-5'}>
-                  <View className="min-w-0 flex-[1.55]">
+                  <View className={isDesktop ? 'min-w-0 flex-[1.55]' : 'min-w-0'}>
                     <QuestionPreview
                       selectedType={form.selectedType}
                       selectedTypeCard={form.selectedTypeCard}
@@ -230,7 +230,7 @@ export default function TeacherQuestionForm(props: TeacherQuestionFormOptions) {
                       points={form.parsedPoints}
                     />
                   </View>
-                  <View className="min-w-0 flex-1"><QuestionValidationPanel issues={form.validationIssues} onOpenStep={form.goToStep} /></View>
+                  <View className={isDesktop ? 'min-w-0 flex-1' : 'min-w-0'}><QuestionValidationPanel issues={form.validationIssues} onOpenStep={form.goToStep} /></View>
                 </View>
               ) : null}
             </View>

@@ -1,7 +1,6 @@
 import React from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { difficultyOptions, type DifficultyLevel } from '../../../lib/difficulty'
 import type { Classroom, TopicRow } from '../../../hooks/teacher/useTeacherSubjectDetail'
 import AppButton from '../../ui/AppButton'
 import AppDropdown from '../../ui/AppDropdown'
@@ -89,12 +88,10 @@ export function SubjectTopicsSection({
   creating,
   newTopicAvailableUntil,
   newTopicDescription,
-  newTopicDifficulty,
   newTopicTitle,
   onAvailableUntilChange,
   onCreate,
   onDescriptionChange,
-  onDifficultyChange,
   onOpenTopic,
   onSelectTopic,
   onTitleChange,
@@ -106,12 +103,10 @@ export function SubjectTopicsSection({
   creating: boolean
   newTopicAvailableUntil: string
   newTopicDescription: string
-  newTopicDifficulty: DifficultyLevel
   newTopicTitle: string
   onAvailableUntilChange: (value: string) => void
   onCreate: () => void
   onDescriptionChange: (value: string) => void
-  onDifficultyChange: (value: DifficultyLevel) => void
   onOpenTopic: (topicId: number) => void
   onSelectTopic: (topicId: number | 'all' | 'general') => void
   onTitleChange: (value: string) => void
@@ -193,18 +188,6 @@ export function SubjectTopicsSection({
           <View className="min-w-[280px] flex-[1.2]">
             <DateTimeCalendarField value={newTopicAvailableUntil} onChange={onAvailableUntilChange} />
           </View>
-          <View className="min-w-[240px] flex-1">
-            <Text className="mb-2 text-[12px] font-semibold text-text-secondary">Dificultad de la primera pregunta</Text>
-            <AppTabs
-              accessibilityLabel="Dificultad de la primera pregunta"
-              compact
-              fill
-              items={difficultyOptions.map((option) => ({ key: option.value, label: option.shortLabel }))}
-              onChange={onDifficultyChange}
-              role="teacher"
-              value={newTopicDifficulty}
-            />
-          </View>
           <AppButton
             label="Crear tema"
             accessibilityLabel={creating ? 'Creando tema' : 'Crear tema'}
@@ -212,6 +195,7 @@ export function SubjectTopicsSection({
             loading={creating}
             disabled={creating}
             role="teacher"
+            style={{ alignSelf: 'flex-end' }}
             onPress={onCreate}
           />
         </View>

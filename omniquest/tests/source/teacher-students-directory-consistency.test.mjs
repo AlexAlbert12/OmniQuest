@@ -44,7 +44,7 @@ test('mobile teacher student filters are explicit selectors and expose every sta
   assert.match(mobile, /if \(status === 'excellent'\) return stats\.excellent/)
 })
 
-test('mobile student directory matches the shared background and uses compact clipped cards', () => {
+test('mobile student directory matches the shared background and keeps detail metrics readable', () => {
   const mobile = read('components/teacher/students/MobileTeacherStudents.tsx')
   const modal = read('components/teacher/students/StudentModals.tsx')
   const dropdown = read('components/ui/AppDropdown.tsx')
@@ -56,7 +56,8 @@ test('mobile student directory matches the shared background and uses compact cl
   assert.ok((mobile.match(/borderRadius: 16, overflow: 'hidden'/g) || []).length >= 2)
   assert.match(mobile, /function MobileStudentMiniMetric[\s\S]*px-3 py-2/)
   assert.doesNotMatch(modal, /MobileMetricCard/)
-  assert.match(modal, /min-w-\[100px\][\s\S]*isDesktop \? 'py-2' : 'py-2\.5'/)
+  assert.match(modal, /min-w-\[150px\][^"\n]*flex-1/)
+  assert.match(modal, /flexBasis: 150/)
   assert.doesNotMatch(modal, /minHeight: 78/)
   assert.match(dropdown, /compact\?: boolean/)
   assert.match(dropdown, /styles\.chevronBox/)

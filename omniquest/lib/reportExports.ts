@@ -20,6 +20,38 @@ export function exportMarkdownFile(filename: string, content: string) {
   return exportTextFile(filename, content, 'text/markdown;charset=utf-8;')
 }
 
+export async function exportBinaryFile(filename: string, content: Uint8Array, mimeType: string) {
+  if (Platform.OS === 'web') return downloadBinaryFile(filename, content, mimeType)
+  return shareBinaryFile(filename, content, mimeType)
+}
+
+export function downloadBinaryFile(filename: string, content: Uint8Array, mimeType: string) {
+  if (Platform.OS !== 'web') return false
+  const blob = new Blob([new Uint8Array(content)], { type: mimeType })
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', filename)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
+  return true
+}
+
+export async function shareBinaryFile(filename: string, content: Uint8Array, mimeType: string) {
+  if (Platform.OS === 'web') return false
+  const sharingAvailable = await Sharing.isAvailableAsync()
+  if (!sharingAvailable) return false
+  const baseDirectory = FileSystem.cacheDirectory || FileSystem.documentDirectory
+  if (!baseDirectory) return false
+  const safeFilename = sanitizeExportFilename(filename)
+  const fileUri = `${baseDirectory}${safeFilename}`
+  await FileSystem.writeAsStringAsync(fileUri, toBase64(content), { encoding: FileSystem.EncodingType.Base64 })
+  await Sharing.shareAsync(fileUri, { mimeType, dialogTitle: safeFilename, UTI: getUniformTypeIdentifier(mimeType) })
+  return true
+}
+
 export async function exportTextFile(filename: string, content: string, mimeType: string) {
   if (Platform.OS === 'web') {
     return downloadTextFile(filename, content, mimeType)
@@ -33,7 +65,7 @@ export function downloadTextFile(filename: string, content: string, mimeType: st
     return false
   }
 
-  const blob = new Blob([content], { type: mimeType })
+  const blob = new Blob([new Uint8Array(content)], { type: mimeType })
   const url = window.URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
@@ -124,11 +156,31 @@ function getUniformTypeIdentifier(mimeType: string) {
     return 'public.comma-separated-values-text'
   }
 
+  if (mimeType.includes('spreadsheetml')) {
+    return 'org.openxmlformats.spreadsheetml.sheet'
+  }
+
   if (mimeType.includes('markdown')) {
     return 'net.daringfireball.markdown'
   }
 
   return 'public.plain-text'
+}
+
+function toBase64(bytes: Uint8Array) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  let output = ''
+  for (let index = 0; index < bytes.length; index += 3) {
+    const a = bytes[index]
+    const b = index + 1 < bytes.length ? bytes[index + 1] : 0
+    const c = index + 2 < bytes.length ? bytes[index + 2] : 0
+    const triple = (a << 16) | (b << 8) | c
+    output += alphabet[(triple >> 18) & 63]
+    output += alphabet[(triple >> 12) & 63]
+    output += index + 1 < bytes.length ? alphabet[(triple >> 6) & 63] : '='
+    output += index + 2 < bytes.length ? alphabet[triple & 63] : '='
+  }
+  return output
 }
 
 function escapeCsvValue(value: CsvValue) {

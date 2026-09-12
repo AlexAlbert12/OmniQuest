@@ -20,8 +20,10 @@ import { useQuestionReport } from '../../../hooks/teacher/useQuestionReport'
 import { useAppTheme } from '../../../lib/appTheme'
 import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { useResponsiveLayout } from '../../../lib/responsive'
-import { exportCsvFile, slugifyFilename } from '../../../lib/reportExports'
+import { exportTeacherQuestionReportXlsx } from '../../../lib/teacherQuestionReportExport'
 import type { ClassroomComparisonPoint, QuestionReportPeriod, TemporalTrendPoint } from '../../../lib/teacherQuestionReport'
+import { getQuestionTypeLabel } from '../../../lib/teacherQuestionReportPresentation'
+import { useAppFeedback } from '../../../hooks/useAppFeedback'
 import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
 
 const PERIODS: { key: QuestionReportPeriod; label: string; icon: any }[] = [
@@ -31,15 +33,6 @@ const PERIODS: { key: QuestionReportPeriod; label: string; icon: any }[] = [
   { key: 'all', label: 'Todo', icon: 'infinite-outline' },
 ]
 
-const TYPE_LABELS: Record<string, string> = {
-  multiple_choice: 'Tipo test',
-  true_false: 'Verdadero/Falso',
-  fill_blank: 'Rellenar huecos',
-  match_pairs: 'Emparejar',
-  ordering: 'Ordenar',
-  open_answer: 'Respuesta abierta',
-  drag_drop: 'Arrastrar y soltar',
-}
 
 export default function TeacherQuestionReportScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>()
@@ -51,7 +44,9 @@ export default function TeacherQuestionReportScreen() {
   const isWide = responsive.width >= 900
   const affectedPageSize = isDesktop ? 12 : 6
   const report = useQuestionReport(questionId, affectedPageSize)
+  const feedback = useAppFeedback()
   const [archiveOpen, setArchiveOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   const handleSignOut = async () => {
     await signOutCurrentDeviceSession()
@@ -59,20 +54,22 @@ export default function TeacherQuestionReportScreen() {
   }
 
   const exportReport = async () => {
-    if (!report.report) return
-    const { question, summary, classComparison, temporalTrend, answerDistribution } = report.report
-    const rows: (string | number | boolean | null | undefined)[][] = [
-      ['RESUMEN', question.id, question.subjectName, question.text, summary.totalAttempts, summary.sampleSize, summary.failedAttempts, summary.abandonmentPercent, summary.averageTimeSeconds, summary.discrimination],
-      ...answerDistribution.map((item) => ['RESPUESTA', item.label, item.count, item.percent, item.correct]),
-      ...classComparison.map((item) => ['CLASE', item.classroom_name, item.attempts, item.failure_percent, item.average_time_seconds]),
-      ...temporalTrend.map((item) => ['TENDENCIA', item.day, item.attempts, item.failure_percent, item.average_time_seconds]),
-    ]
-    await exportCsvFile(
-      `omniquest_pregunta_${question.id}_${slugifyFilename(question.subjectName)}.csv`,
-      ['Sección', 'Campo_1', 'Campo_2', 'Campo_3', 'Campo_4', 'Campo_5', 'Campo_6', 'Campo_7', 'Campo_8', 'Campo_9'],
-      rows,
-    )
+    if (!report.report || exporting) return
+    setExporting(true)
+    try {
+      const result = await exportTeacherQuestionReportXlsx({
+        report: report.report,
+        period: report.period,
+        classroomId: report.classroomId,
+      })
+      feedback.success('Informe exportado', `${result.filename} · ${result.affectedCount} alumno${result.affectedCount === 1 ? '' : 's'} afectado${result.affectedCount === 1 ? '' : 's'}.`)
+    } catch (error) {
+      feedback.error('No se pudo exportar el informe', error instanceof Error ? error : 'Inténtalo de nuevo.')
+    } finally {
+      setExporting(false)
+    }
   }
+
 
   if (report.loading) return <OmniLoadingScreen />
 
@@ -103,7 +100,7 @@ export default function TeacherQuestionReportScreen() {
                 <View className="flex-row flex-wrap items-start gap-4">
                   <View className="min-w-[260px] flex-1">
                     <View className="flex-row flex-wrap gap-2">
-                      <Badge label={TYPE_LABELS[question.type] || question.type} color={tokens.brand.teacher} />
+                      <Badge label={getQuestionTypeLabel(question.type)} color={tokens.brand.teacher} />
                       <Badge label={question.subjectName} color={tokens.semantic.info} />
                       {question.classroomName ? <Badge label={question.classroomName} color={tokens.semantic.success} /> : null}
                       {question.topicName ? <Badge label={question.topicName} color={tokens.semantic.warning} /> : null}
@@ -124,6 +121,7 @@ export default function TeacherQuestionReportScreen() {
                     <QuestionReportActions
                       active={question.active !== false}
                       busy={report.busy}
+                      exporting={exporting}
                       onEdit={() => router.push(`/(teacher)/subject/edit-question?subjectId=${question.subjectId}&questionId=${question.id}` as any)}
                       onCreatePractice={() => router.push(`/(teacher)/subject/add-question?subjectId=${question.subjectId}&sourceQuestionId=${question.id}` as any)}
                       onManualReview={() => router.push('/(teacher)/reviews' as any)}
@@ -174,7 +172,7 @@ export default function TeacherQuestionReportScreen() {
                   page={report.affectedPage}
                   pageSize={affectedPageSize}
                   onPage={report.setAffectedPage}
-                  onOpenStudent={(studentId) => router.push(`/(teacher)/student/${studentId}/history?subjectId=${question.subjectId}` as any)}
+                  onOpenStudent={(studentId) => router.push({ pathname: '/(teacher)/student/[id]/history', params: { id: studentId, subjectId: String(question.subjectId), ...(report.classroomId ? { classroomId: String(report.classroomId) } : {}) } } as any)}
                 />
               </View>
             </>

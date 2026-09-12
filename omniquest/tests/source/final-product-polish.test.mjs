@@ -29,6 +29,9 @@ test('student course leave is a deliberate action inside course detail, not an e
   assert.match(detail, /label="Abandonar clase"/)
   assert.match(detail, /kind: 'class\.leave'/)
   assert.match(detail, /title="¿Abandonar clase\?"/)
+  assert.match(detail, /Dejarás de tener acceso a la clase, pero tu progreso y resultados se conservarán\./)
+  assert.match(detail, /necesitarás nuevamente el código de invitación de la clase\./)
+  assert.doesNotMatch(detail, /Vas a salir de/)
 })
 
 test('full-screen loading uses the shared Omni waiting state', () => {

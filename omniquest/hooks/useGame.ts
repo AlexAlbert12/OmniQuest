@@ -97,6 +97,8 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
   const viewedQuestionsRef = useRef(new Set<string>());
   const hintUsedRef = useRef(false);
   const isSubmittingRef = useRef(false);
+  const snapshotPersistenceBlockedRef = useRef(false);
+  const snapshotWritesRef = useRef(new Set<Promise<void>>());
   const [lives, setLives] = useState(3);
   const [streak, setStreak] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -121,7 +123,15 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
   const [syncError, setSyncError] = useState<string | null>(null);
   const [questionConflict, setQuestionConflict] = useState<GameQuestionConflict | null>(null);
 
+  const discardGameSnapshot = useCallback(async () => {
+    snapshotPersistenceBlockedRef.current = true;
+    const pendingWrites = [...snapshotWritesRef.current];
+    if (pendingWrites.length > 0) await Promise.allSettled(pendingWrites);
+    await clearGameSnapshot(gameSnapshotKey);
+  }, [gameSnapshotKey]);
+
   const loadGame = useCallback(async () => {
+    snapshotPersistenceBlockedRef.current = false;
     setStatus('loading');
     setLoadError(null);
     setSyncError(null);
@@ -322,9 +332,9 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
   const finishGame = useCallback((nextStatus: 'gameOver' | 'finished') => {
     setStatus(nextStatus);
     setPendingAnswer(null);
-    void clearGameSnapshot(gameSnapshotKey);
+    void discardGameSnapshot();
     void finalizeGameAttempt(nextStatus);
-  }, [finalizeGameAttempt, gameSnapshotKey]);
+  }, [discardGameSnapshot, finalizeGameAttempt]);
 
   useEffect(() => {
     if (status !== 'playing') return
@@ -349,9 +359,9 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
 
   const abandonGame = useCallback(async () => {
     setPendingAnswer(null);
-    await clearGameSnapshot(gameSnapshotKey);
+    await discardGameSnapshot();
     await finalizeGameAttempt('gameOver');
-  }, [finalizeGameAttempt, gameSnapshotKey]);
+  }, [discardGameSnapshot, finalizeGameAttempt]);
 
   const nextQuestion = useCallback(() => {
     setSelectedAnswerId(null);
@@ -612,17 +622,17 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
   }, [resumedFromSnapshot]);
 
   useEffect(() => {
-    if (status !== 'playing' || questions.length === 0) return;
+    if (status !== 'playing' || questions.length === 0 || snapshotPersistenceBlockedRef.current) return;
     let cancelled = false;
     const persist = async () => {
       const { data } = await supabase.auth.getSession();
       const userId = data.session?.user.id;
-      if (!userId || cancelled) return;
+      if (!userId || cancelled || snapshotPersistenceBlockedRef.current) return;
       if (data.session?.user.is_anonymous) {
         await clearGameSnapshot(gameSnapshotKey);
         return;
       }
-      await saveGameSnapshot(gameSnapshotKey, {
+      const write = saveGameSnapshot(gameSnapshotKey, {
         userId,
         questions,
         currentIndex,
@@ -641,6 +651,12 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
         feedback,
         feedbackNextStatus,
       });
+      snapshotWritesRef.current.add(write);
+      try {
+        await write;
+      } finally {
+        snapshotWritesRef.current.delete(write);
+      }
     };
     const timer = setTimeout(() => { void persist(); }, 120);
     return () => {
@@ -708,10 +724,10 @@ export function useGame(subjectId: string, topicId?: string, classroomId?: strin
     setSyncError(null);
     setSyncState('idle');
     setStatus('loading');
-    await clearGameSnapshot(gameSnapshotKey);
+    await discardGameSnapshot();
     await finalizeGameAttempt('gameOver');
     await loadGame();
-  }, [finalizeGameAttempt, gameSnapshotKey, loadGame]);
+  }, [discardGameSnapshot, finalizeGameAttempt, loadGame]);
 
   const dismissSyncError = useCallback(() => {
     setSyncError(null);

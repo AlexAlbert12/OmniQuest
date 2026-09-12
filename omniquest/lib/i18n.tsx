@@ -1810,7 +1810,7 @@ export function translateUiText(locale: AppLocale, input: string): string {
     [/^Te faltan (\d+) (.+) para desbloquearlo\.$/, (_m, amount, unit) => `You need ${amount} ${translateFragment(unit)} more to unlock it.`],
     [/^Has conseguido “(.+)” y ganado (\d+) XP\.$/, (_m, badge, xp) => `You earned “${badge}” and ${xp} XP.`],
     [/^Has conseguido "(.+)" y ganado (\d+) XP\.$/, (_m, badge, xp) => `You earned "${badge}" and ${xp} XP.`],
-    [/^Vas a salir de “(.+)”\. Si quieres volver, necesitarás el código de invitación\.$/, (_m, name) => `You are about to leave “${name}”. You will need the invitation code to join again.`],
+    [/^Vas a abandonar “(.+)”\. Dejarás de tener acceso a la clase, pero tu progreso y resultados se conservarán\. Si quieres volver, necesitarás nuevamente el código de invitación de la clase\.$/, (_m, name) => `You are about to leave “${name}”. You will lose access to the class, but your progress and results will be preserved. To join again, you will need the class invitation code.`],
     [/^Has salido de (.+)\. Si quieres volver, necesitarás el código de invitación\.$/, (_m, name) => `You left ${name}. You will need the invitation code to join again.`],
     [/^Puede haber más de (.+)$/, (_m, category) => `There may be more ${translateFragment(category)}`],
     [/^No hay notificaciones de (.+)$/, (_m, category) => `There are no ${translateFragment(category)} notifications`],

@@ -16,6 +16,7 @@ import TeacherBottomNav from '../../../components/teacher/TeacherBottomNav'
 import TeacherPageHeader from '../../../components/teacher/TeacherPageHeader'
 import TeacherTopicOverview, { TeacherTopicAddQuestionCTA } from '../../../components/teacher/topic/TeacherTopicOverview'
 import AppButton from '../../../components/ui/AppButton'
+import AppPressable from '../../../components/ui/AppPressable'
 import AppBackButton from '../../../components/ui/AppBackButton'
 import AppTabs from '../../../components/ui/AppTabs'
 import PaginationControls from '../../../components/ui/PaginationControls'
@@ -154,13 +155,6 @@ export default function TopicDetailScreen() {
                   onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}` as never)}
                 />
                 <AppButton
-                  label={isDesktop ? 'Fecha límite' : ''}
-                  accessibilityLabel="Editar fecha límite del tema"
-                  icon="calendar-outline"
-                  variant="secondary"
-                  onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}&section=availability` as never)}
-                />
-                <AppButton
                   label={isDesktop ? 'Archivar' : ''}
                   accessibilityLabel="Archivar tema"
                   icon="archive-outline"
@@ -254,6 +248,7 @@ export default function TopicDetailScreen() {
                     key={question.id}
                     question={question}
                     number={detail.page * detail.pageSize + index + 1}
+                    onOpen={() => router.push(`/(teacher)/question-report/${question.id}` as never)}
                     onEdit={() => router.push(buildEditQuestionHref(question, subject.id, topic.classroomId, topic.id) as never)}
                     onDelete={() => setQuestionToDelete(question)}
                   />
@@ -301,9 +296,10 @@ export default function TopicDetailScreen() {
 
 function LoadingState() { return <OmniLoadingScreen /> }
 
-function QuestionRow({ question, number, onEdit, onDelete }: {
+function QuestionRow({ question, number, onOpen, onEdit, onDelete }: {
   question: TeacherTopicQuestion
   number: number
+  onOpen: () => void
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -311,27 +307,36 @@ function QuestionRow({ question, number, onEdit, onDelete }: {
   const difficulty = getDifficultyMeta(question.difficulty || 1)
   return (
     <View className="flex-row flex-wrap items-center gap-4 rounded-xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}>
-      <View className="h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: tokens.surface.interactive }}>
-        <Text className="font-bold" style={{ color: tokens.brand.teacher }}>#{number}</Text>
-      </View>
-      <View className="min-w-[260px] flex-1">
-        <View className="flex-row flex-wrap items-center gap-2">
-          <Text className="min-w-0 flex-1 font-semibold" style={{ color: tokens.text.primary }}>{question.text}</Text>
-          <View className="rounded-full px-2 py-1" style={{ backgroundColor: question.active ? tokens.semanticSurface.success : tokens.surface.interactive }}>
-            <Text className="text-[10px] font-black" style={{ color: question.active ? tokens.semantic.success : tokens.text.muted }}>
-              {question.active ? 'VISIBLE' : 'ARCHIVADA'}
-            </Text>
+      <AppPressable
+        accessibilityRole="button"
+        accessibilityLabel={`Abrir informe de la pregunta: ${question.text}`}
+        accessibilityHint="Muestra el diagnóstico, las respuestas y los alumnos afectados"
+        onPress={onOpen}
+        className="min-w-[260px] flex-1 flex-row items-center gap-4 rounded-lg"
+        style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
+      >
+        <View className="h-10 w-10 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: tokens.surface.interactive }}>
+          <Text className="font-bold" style={{ color: tokens.brand.teacher }}>#{number}</Text>
+        </View>
+        <View className="min-w-0 flex-1">
+          <View className="flex-row flex-wrap items-center gap-2">
+            <Text className="min-w-0 flex-1 font-semibold" style={{ color: tokens.text.primary }}>{question.text}</Text>
+            <View className="rounded-full px-2 py-1" style={{ backgroundColor: question.active ? tokens.semanticSurface.success : tokens.surface.interactive }}>
+              <Text className="text-[10px] font-black" style={{ color: question.active ? tokens.semantic.success : tokens.text.muted }}>
+                {question.active ? 'VISIBLE' : 'ARCHIVADA'}
+              </Text>
+            </View>
+          </View>
+          <Text className="mt-2 text-[12px]" style={{ color: tokens.text.muted }}>
+            {question.pointsBase || 0} puntos · {question.answersCount} respuesta{question.answersCount === 1 ? '' : 's'} · {question.attemptsCount} intento{question.attemptsCount === 1 ? '' : 's'}
+          </Text>
+          <View className="mt-2 flex-row flex-wrap gap-3">
+            <Text className="text-[11px] font-black" style={{ color: difficulty.color }}>{difficulty.label}</Text>
+            {question.correctAnswer ? <Text className="text-[11px]" style={{ color: tokens.text.secondary }}>Correcta: {question.correctAnswer}</Text> : null}
+            {question.accuracyPercent !== null ? <Text className="text-[11px]" style={{ color: tokens.semantic.info }}>Precisión: {question.accuracyPercent}%</Text> : null}
           </View>
         </View>
-        <Text className="mt-2 text-[12px]" style={{ color: tokens.text.muted }}>
-          {question.pointsBase || 0} puntos · {question.answersCount} respuesta{question.answersCount === 1 ? '' : 's'} · {question.attemptsCount} intento{question.attemptsCount === 1 ? '' : 's'}
-        </Text>
-        <View className="mt-2 flex-row flex-wrap gap-3">
-          <Text className="text-[11px] font-black" style={{ color: difficulty.color }}>{difficulty.label}</Text>
-          {question.correctAnswer ? <Text className="text-[11px]" style={{ color: tokens.text.secondary }}>Correcta: {question.correctAnswer}</Text> : null}
-          {question.accuracyPercent !== null ? <Text className="text-[11px]" style={{ color: tokens.semantic.info }}>Precisión: {question.accuracyPercent}%</Text> : null}
-        </View>
-      </View>
+      </AppPressable>
       <View className="flex-row flex-wrap gap-2">
         <AppButton label="Editar" icon="create-outline" variant="secondary" onPress={onEdit} />
         <AppButton label="Eliminar" icon="trash-outline" variant="danger" onPress={onDelete} />

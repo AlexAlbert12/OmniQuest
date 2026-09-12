@@ -111,11 +111,6 @@ export function useManualReview(pageSize: number, context?: { studentId?: string
     if (result.error) throw result.error
   }), [run])
 
-  const saveTemplate = useCallback((input: { id?: string | null; title: string; body: string; audience: 'student' | 'internal' }) => run(async () => {
-    const result = await callPlatformRpc('save_manual_review_template', { p_id: input.id ?? undefined, p_title: input.title, p_body: input.body, p_audience: input.audience })
-    if (result.error) throw result.error
-  }), [run])
-
   const loadDetail = useCallback(async (row: ManualReviewQueueRow) => {
     const [thread, history] = await Promise.all([callPlatformRpc<ManualReviewComment[]>('get_manual_review_thread', { p_attempt_history_id: row.id }), callPlatformRpc<ManualReviewHistoryItem[]>('get_manual_review_history', { p_attempt_history_id: row.id })])
     if (thread.error) throw thread.error
@@ -126,7 +121,7 @@ export function useManualReview(pageSize: number, context?: { studentId?: string
   const visibleClassrooms = useMemo(() => filters.subjectId ? configuration.classrooms.filter((item) => item.subject_id === filters.subjectId) : configuration.classrooms, [configuration.classrooms, filters.subjectId])
   const selectedRows = useMemo(() => queue.items.filter((row) => selectedIds.includes(row.id)), [queue.items, selectedIds])
 
-  return { queue, configuration, filters, visibleClassrooms, selectedRows, page, loading, refreshing, busy, error, selectedIds, setPage, setError, updateFilters, toggleSelected, selectPage, clearSelection, refresh: () => refresh(true), reviewOne, reviewBatch, saveSla, saveTemplate, loadDetail }
+  return { queue, configuration, filters, visibleClassrooms, selectedRows, page, loading, refreshing, busy, error, selectedIds, setPage, setError, updateFilters, toggleSelected, selectPage, clearSelection, refresh: () => refresh(true), reviewOne, reviewBatch, saveSla, loadDetail }
 }
 
 function isBatchEligible(status: ManualReviewStatus) { return status === 'pending' || status === 'needs_changes' }

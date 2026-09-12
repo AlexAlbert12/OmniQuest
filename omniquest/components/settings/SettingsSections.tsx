@@ -1,5 +1,5 @@
 import React from 'react'
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Platform, Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
@@ -187,7 +187,6 @@ export function SettingsProfilePanel({
 }
 
 export function SettingsPreferencesPanel({
-  accentColor,
   preferences,
   openPreferenceKey,
   preferenceOptions,
@@ -199,7 +198,6 @@ export function SettingsPreferencesPanel({
   formatPreferenceLabel,
   guestMode = false,
 }: {
-  accentColor: string
   preferences: UserPreferencesState
   openPreferenceKey: PreferenceKey | null
   preferenceOptions: PreferenceOptions
@@ -240,26 +238,6 @@ export function SettingsPreferencesPanel({
         />
       </View>
 
-      {!guestMode ? (['dateFormat', 'timeFormat', 'weekStart'] as PreferenceKey[]).map((key) => (
-        <PreferenceRow
-          key={key}
-          label={{
-            dateFormat: t('settings.preference.dateFormat'),
-            timeFormat: t('settings.preference.timeFormat'),
-            weekStart: t('settings.preference.weekStart'),
-            language: t('settings.preference.language'),
-          }[key]}
-          value={formatPreferenceLabel(key, preferences[key])}
-          selectedValue={preferences[key]}
-          open={openPreferenceKey === key}
-          onToggle={() => onTogglePreferenceMenu(key)}
-          options={preferenceOptions[key]}
-          onSelect={(value) => onSelectPreference(key, value)}
-          optionLabel={(value) => formatPreferenceLabel(key, value)}
-          disabled={Boolean(savingPreference)}
-          loading={savingPreference === key}
-        />
-      )) : null}
     </Panel>
   )
 }
@@ -311,19 +289,21 @@ export function SettingsNotificationsPanel({
           />
         </View>
       </View>
-      <NotificationRow
-        icon="notifications-outline"
-        title={t('settings.notifications.push.title')}
-        description={pushRegistrationStatus === 'unsupported'
-          ? t('settings.notifications.push.unsupported')
-          : notificationSettings.push
-            ? t('settings.notifications.push.enabled')
-            : t('settings.notifications.push.disabled')}
-        enabled={notificationSettings.push}
-        onPress={() => onToggleNotification('push')}
-        disabled={Boolean(savingNotificationKey)}
-        loading={savingNotificationKey === 'push'}
-      />
+      {Platform.OS !== 'web' ? (
+        <NotificationRow
+          icon="notifications-outline"
+          title={t('settings.notifications.push.title')}
+          description={pushRegistrationStatus === 'unsupported'
+              ? t('settings.notifications.push.unsupported')
+              : notificationSettings.push
+              ? t('settings.notifications.push.enabled')
+              : t('settings.notifications.push.disabled')}
+          enabled={notificationSettings.push}
+          onPress={() => onToggleNotification('push')}
+          disabled={Boolean(savingNotificationKey)}
+          loading={savingNotificationKey === 'push'}
+        />
+      ) : null}
       <NotificationRow
         icon="mail-outline"
         title={t('settings.notifications.email.title')}
@@ -376,7 +356,6 @@ export function SettingsPrivacyPanel({
   isGuest = false,
   analyticsEnabled,
   savingAnalytics,
-  accentColor,
   onProfileVisibilityChange,
   onAnalyticsEnabledChange,
   onShowPrivacyCenter,
@@ -388,7 +367,6 @@ export function SettingsPrivacyPanel({
   isGuest?: boolean
   analyticsEnabled: boolean
   savingAnalytics: boolean
-  accentColor: string
   onProfileVisibilityChange: (visibility: ProfileVisibility) => void
   onAnalyticsEnabledChange: (enabled: boolean) => void
   onShowPrivacyCenter: () => void
@@ -424,7 +402,7 @@ export function SettingsPrivacyPanel({
 
       <View className="rounded-xl border p-4" style={{ borderColor: colors.borderStrong, backgroundColor: colors.surfaceRaised }}>
         <View className="flex-row gap-3">
-          <Ionicons name="shield-checkmark-outline" size={22} color={accentColor} />
+          <Ionicons name="shield-checkmark-outline" size={22} color={colors.text} />
           <View className="min-w-0 flex-1">
             <Text className="font-black" style={{ color: colors.text }}>{t('settings.privacy.important')}</Text>
             <Text className="mt-1 text-[12px] leading-5" style={{ color: colors.textSecondary }}>
@@ -432,7 +410,7 @@ export function SettingsPrivacyPanel({
             </Text>
             <Pressable onPress={onShowPrivacyCenter} className="mt-2 flex-row items-center gap-1">
               <Text className="text-[12px] font-bold" style={{ color: colors.textSecondary }}>{t('settings.privacy.center')}</Text>
-              <Ionicons name="open-outline" size={13} color={accentColor} />
+              <Ionicons name="open-outline" size={13} color={colors.text} />
             </Pressable>
           </View>
         </View>

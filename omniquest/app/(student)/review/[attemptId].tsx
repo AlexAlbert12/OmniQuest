@@ -148,7 +148,7 @@ export default function StudentGameReviewScreen() {
 
           <View
             className="mt-5 overflow-hidden rounded-[28px] border p-5"
-            style={{ borderColor: withAlpha(tokens.brand.student, '80'), backgroundColor: tokens.surface.default }}
+            style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}
           >
             <View className={`${isDesktop ? 'flex-row items-center' : 'items-center'} gap-5`}>
               <View className="h-24 w-24 items-center justify-center rounded-3xl" style={{ backgroundColor: withAlpha(tokens.brand.student, '1F') }}>
@@ -184,7 +184,7 @@ export default function StudentGameReviewScreen() {
 
           <View
             className="mt-6 flex-row flex-wrap items-center gap-4 rounded-3xl border p-5"
-            style={{ borderColor: tokens.border.active, backgroundColor: tokens.surface.raised }}
+            style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}
           >
             <View className="min-w-[220px] flex-1">
               <Text className="text-[17px] font-black text-white">¿Quieres intentarlo otra vez?</Text>
@@ -205,7 +205,7 @@ function MistakeReviewCard({ mistake, index, total }: { mistake: GameAttemptRevi
   const correctAnswer = mistake.feedback.correct_answer_text?.trim() || 'La solución todavía no está disponible.'
 
   return (
-    <View className="overflow-hidden rounded-3xl border" style={{ borderColor: tokens.border.active, backgroundColor: tokens.surface.default }}>
+    <View className="overflow-hidden rounded-3xl border" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.default }}>
       <View className="flex-row flex-wrap items-center justify-between gap-3 border-b px-5 py-4" style={{ borderBottomColor: tokens.border.default, backgroundColor: tokens.surface.raised }}>
         <View className="flex-row items-center gap-3">
           <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: tokens.semanticSurface.danger }}>
@@ -289,7 +289,7 @@ function ReviewState({ icon, title, detail, actionLabel, onAction, onBack }: { i
   return (
     <GameShell>
       <View className="flex-1 items-center justify-center px-5 py-10">
-        <View className="w-full max-w-[560px] items-center rounded-[28px] border bg-surface-default p-7" style={{ borderColor: tokens.border.active }}>
+        <View className="w-full max-w-[560px] items-center rounded-[28px] border bg-surface-default p-7" style={{ borderColor: tokens.border.default }}>
           <View className="h-20 w-20 items-center justify-center rounded-3xl" style={{ backgroundColor: tokens.semanticSurface.info }}><Ionicons name={icon} size={38} color={tokens.semantic.info} /></View>
           <Text className="mt-5 text-center text-[25px] font-black text-white">{title}</Text>
           <Text className="mt-2 text-center text-[14px] leading-6 text-text-secondary">{detail}</Text>

@@ -2,6 +2,7 @@ import React from 'react'
 import { Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import AppButton from '../../ui/AppButton'
+import AppPressable from '../../ui/AppPressable'
 import AppDropdown from '../../ui/AppDropdown'
 import PaginationControls from '../../ui/PaginationControls'
 import VirtualizedStack from '../../ui/VirtualizedStack'
@@ -44,6 +45,7 @@ export function SubjectStudentsTab({
   isDesktop,
   isWide,
   onImportStudents,
+  onOpenStudent,
   onPageChange,
   onStudentSearchChange,
   onStudentSortKeyChange,
@@ -84,6 +86,7 @@ export function SubjectStudentsTab({
   onStudentStatusFilterChange: (value: StudentStatusFilter) => void
   onStudentSortKeyChange: (value: StudentSortKey) => void
   onImportStudents: () => void
+  onOpenStudent: (studentId: string) => void
   onPageChange: (page: number) => void
 }) {
   const weeklyActivePercent = enrollmentsCount > 0 ? Math.round((activeThisWeek / enrollmentsCount) * 100) : 0
@@ -136,7 +139,7 @@ export function SubjectStudentsTab({
           <VirtualizedStack
             data={studentListRows}
             keyExtractor={(student) => student.id}
-            renderItem={(student, index) => <StudentClassRow student={student} index={(page * pageSize) + index} mobile={!isWide} />}
+            renderItem={(student, index) => <StudentClassRow student={student} index={(page * pageSize) + index} mobile={!isWide} onOpen={() => onOpenStudent(student.id)} />}
             emptyComponent={(
               <View className="items-center justify-center rounded-xl border border-dashed border-border-default bg-surface-default p-8">
                 <Ionicons name="people-outline" size={44} color="#64748B" />
@@ -188,14 +191,21 @@ function StudentTableHeader({ label, flex }: { label: string; flex: number }) {
   return <Text className="text-[10px] font-black uppercase text-text-muted" style={{ flex }}>{label}</Text>
 }
 
-function StudentClassRow({ student, index, mobile = false }: { student: StudentReport; index: number; mobile?: boolean }) {
+function StudentClassRow({ student, index, mobile = false, onOpen }: { student: StudentReport; index: number; mobile?: boolean; onOpen: () => void }) {
   const status = getStudentStatus(student)
   const statusMeta = getStudentStatusMeta(status)
   const gradeColor = getGradeColor(student.grade)
 
   if (mobile) {
     return (
-      <View className="rounded-2xl border border-border-default bg-surface-default p-4">
+      <AppPressable
+        accessibilityRole="button"
+        accessibilityLabel={`Abrir historial de ${student.name}`}
+        accessibilityHint="Muestra el historial del alumno en este curso y clase"
+        onPress={onOpen}
+        className="rounded-2xl border border-border-default bg-surface-default p-4"
+        style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
+      >
         <View className="flex-row items-start gap-3">
           <View>
             <StudentProfileAvatar alias={student.name} avatar={student.avatar} size={46} accentColor={index < 3 ? '#F59E0B' : '#38BDF8'} />
@@ -216,24 +226,31 @@ function StudentClassRow({ student, index, mobile = false }: { student: StudentR
           <StudentMobileStat label="Partidas" value={String(student.playedSessions)} color="#FFFFFF" />
           <StudentMobileStat label="Nota" value={student.hasActivity ? student.grade.toFixed(1) : 'Sin evaluar'} color={student.hasActivity ? gradeColor : '#8FA7C7'} />
         </View>
-      </View>
+      </AppPressable>
     )
   }
 
   return (
-    <View className="flex-row flex-wrap items-center gap-y-3 border-b border-border-subtle px-2 py-4">
+    <AppPressable
+      accessibilityRole="button"
+      accessibilityLabel={`Abrir historial de ${student.name}`}
+      accessibilityHint="Muestra el historial del alumno en este curso y clase"
+      onPress={onOpen}
+      className="flex-row flex-wrap items-center gap-y-3 border-b border-border-subtle px-2 py-4"
+      style={({ pressed }) => ({ opacity: pressed ? 0.84 : 1 })}
+    >
       <View className="min-w-[45px] flex-[0.35]"><View className="h-7 w-7 items-center justify-center rounded-full" style={{ backgroundColor: index < 3 ? '#F59E0B' : '#1E3356' }}><Text className="text-[11px] font-black text-white">{index + 1}</Text></View></View>
       <View className="min-w-[180px] flex-[1.4] flex-row items-center gap-3">
         <StudentProfileAvatar alias={student.name} avatar={student.avatar} size={40} />
         <View className="min-w-0 flex-1"><Text className="font-black text-white" numberOfLines={1}>{student.name}</Text><Text className="mt-1 text-[11px] text-text-muted" numberOfLines={1}>@{slugifyStudentName(student.name)}</Text></View>
       </View>
-      <View className="min-w-[130px] flex-[1] flex-row items-center gap-3"><View className="h-2 flex-1 overflow-hidden rounded-full bg-surface-interactive"><View className="h-full rounded-full bg-brand-teacher" style={{ width: `${student.participation}%` }} /></View><Text className="w-10 text-right text-[12px] font-bold text-white">{student.participation}%</Text></View>
+      <View className="min-w-[130px] flex-[1] flex-row items-center gap-3 pr-4"><View className="h-2 flex-1 overflow-hidden rounded-full bg-surface-interactive"><View className="h-full rounded-full bg-brand-teacher" style={{ width: `${student.participation}%` }} /></View><Text className="w-10 text-right text-[12px] font-bold text-white">{student.participation}%</Text></View>
       <View className="min-w-[90px] flex-[0.75]"><Text className="text-[12px] font-black text-white">{student.score.toLocaleString('es-ES')} XP</Text></View>
       <Text className="min-w-[60px] flex-[0.55] text-[12px] font-bold text-white">{student.playedSessions}</Text>
       <View className="min-w-[90px] flex-[0.8]"><View className="self-start rounded-md border px-2 py-1" style={{ borderColor: student.hasActivity ? gradeColor : '#60799C' }}><Text className="text-[12px] font-black" style={{ color: student.hasActivity ? gradeColor : '#8FA7C7' }}>{student.hasActivity ? student.grade.toFixed(1) : '—'}</Text></View></View>
       <View className="min-w-[105px] flex-[0.85] flex-row items-center gap-2"><View className="h-2 w-2 rounded-full" style={{ backgroundColor: statusMeta.color }} /><Text className="text-[12px] font-semibold" style={{ color: statusMeta.color }}>{statusMeta.label}</Text></View>
       <Text className="min-w-[110px] flex-[0.9] text-[12px] text-text-secondary">{formatRelative(student.lastActivity, index)}</Text>
-    </View>
+    </AppPressable>
   )
 }
 

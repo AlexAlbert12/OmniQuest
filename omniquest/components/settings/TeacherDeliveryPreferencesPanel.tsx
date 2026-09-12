@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Platform, Text, TextInput, View } from 'react-native'
 import { useTeacherCommunicationSettings } from '../../hooks/teacher/useTeacherCommunicationSettings'
 import { useAppTheme } from '../../lib/appTheme'
 import { useI18n } from '../../lib/i18n'
@@ -19,13 +19,13 @@ const WEEKDAYS = [
   { value: 7, es: 'Domingo', en: 'Sunday' },
 ]
 
-export default function TeacherDeliveryPreferencesPanel({ dateFormat, timeFormat, weekStart }: { dateFormat: string; timeFormat: string; weekStart: string }) {
+export default function TeacherDeliveryPreferencesPanel() {
   const { tokens } = useAppTheme()
   const { locale, t } = useI18n()
   const settings = useTeacherCommunicationSettings()
   const [emailDraft, setEmailDraft] = useState('')
-  const orderedWeekdays = weekStart === 'sunday' ? [WEEKDAYS[6], ...WEEKDAYS.slice(0, 6)] : WEEKDAYS
-  const formatConfiguredDate = (value: Date | string | number) => formatTeacherDate(value, locale, dateFormat, timeFormat)
+  const orderedWeekdays = WEEKDAYS
+  const formatConfiguredDate = (value: Date | string | number) => formatTeacherDate(value, locale)
 
   useEffect(() => setEmailDraft(settings.global.reminderEmail), [settings.global.reminderEmail])
 
@@ -89,25 +89,27 @@ export default function TeacherDeliveryPreferencesPanel({ dateFormat, timeFormat
         </View>
       </Section>
 
-      <Section
+      {Platform.OS !== 'web' ? (
+        <Section
         icon="phone-portrait-outline"
         title="Canales"
         description="Controla la entrega push en este dispositivo. El correo se gestiona directamente desde el resumen docente."
-      >
-        <NotificationRow
-          icon="notifications-outline"
-          title="Notificaciones push"
-          description={settings.pushRegistrationStatus === 'unsupported'
-            ? 'Este dispositivo no admite notificaciones push.'
-            : settings.global.pushEnabled
-              ? 'Este dispositivo puede recibir avisos docentes.'
-              : 'Actívalas para recibir avisos docentes fuera de la aplicación.'}
-          enabled={settings.global.pushEnabled}
-          disabled={settings.savingKey !== null}
-          loading={settings.savingKey === 'pushEnabled'}
-          onPress={() => void settings.saveGlobalPreferences({ pushEnabled: !settings.global.pushEnabled })}
-        />
-      </Section>
+        >
+          <NotificationRow
+            icon="notifications-outline"
+            title="Notificaciones push"
+            description={settings.pushRegistrationStatus === 'unsupported'
+                ? 'Este dispositivo no admite notificaciones push.'
+                : settings.global.pushEnabled
+                ? 'Este dispositivo puede recibir avisos docentes.'
+                : 'Actívalas para recibir avisos docentes fuera de la aplicación.'}
+            enabled={settings.global.pushEnabled}
+            disabled={settings.savingKey !== null}
+            loading={settings.savingKey === 'pushEnabled'}
+            onPress={() => void settings.saveGlobalPreferences({ pushEnabled: !settings.global.pushEnabled })}
+          />
+        </Section>
+      ) : null}
 
       <Section
         icon="mail-outline"
@@ -262,15 +264,10 @@ function deliveryStatusLabel(status: string, locale: 'es-ES' | 'en-US') {
   return locale === 'en-US' ? 'Queued' : 'En cola'
 }
 
-function formatTeacherDate(value: Date | string | number, locale: 'es-ES' | 'en-US', dateFormat: string, timeFormat: string) {
+function formatTeacherDate(value: Date | string | number, locale: 'es-ES' | 'en-US') {
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
-  const day = String(date.getDate()).padStart(2, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const year = String(date.getFullYear())
-  const dateText = dateFormat === 'MM/DD/YYYY' ? `${month}/${day}/${year}` : dateFormat === 'YYYY-MM-DD' ? `${year}-${month}-${day}` : `${day}/${month}/${year}`
-  const timeText = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' }).format(date)
-  return `${dateText}, ${timeText}`
+  return new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: locale === 'en-US' }).format(date)
 }
 
 function Section({ icon, title, description, children }: { icon: keyof typeof Ionicons.glyphMap; title: string; description: string; children: React.ReactNode }) {

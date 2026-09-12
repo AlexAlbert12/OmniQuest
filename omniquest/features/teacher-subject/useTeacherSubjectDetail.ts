@@ -30,7 +30,6 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
   const [newTopicTitle, setNewTopicTitle] = useState('')
   const [newTopicDescription, setNewTopicDescription] = useState('')
   const [newTopicAvailableUntil, setNewTopicAvailableUntil] = useState('')
-  const [newTopicDifficulty, setNewTopicDifficulty] = useState<DifficultyLevel>(1)
   const [creatingTopic, setCreatingTopic] = useState(false)
   const [showStudentImportModal, setShowStudentImportModal] = useState(false)
 
@@ -224,18 +223,20 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
 
     setCreatingTopic(true)
     try {
-      const topic = await createTeacherTopic({ subjectId: subjectIdNumber, classroomId: selectedClassroomId, title: newTopicTitle.trim(), description: newTopicDescription.trim() || null, sortOrder: topicsResource.data.total + 1, availableUntil: parsedAvailableUntil?.toISOString() || null })
+      await createTeacherTopic({ subjectId: subjectIdNumber, classroomId: selectedClassroomId, title: newTopicTitle.trim(), description: newTopicDescription.trim() || null, sortOrder: topicsResource.data.total + 1, availableUntil: parsedAvailableUntil?.toISOString() || null })
       setNewTopicTitle('')
       setNewTopicDescription('')
       setNewTopicAvailableUntil('')
       await topicsResource.refresh()
-      router.push(`/(teacher)/subject/add-question?subjectId=${subjectIdNumber}&classroomId=${selectedClassroomId}&topicId=${topic.id}&difficulty=${newTopicDifficulty}` as any)
+      setActiveTab('topics')
+      router.setParams({ tab: 'topics', classroomId: String(selectedClassroomId) } as any)
+      showModal({ title: 'Tema creado', message: 'El tema se ha añadido a la clase. Ya puedes crear preguntas cuando lo necesites.', variant: 'success' })
     } catch (error) {
       showAlert('No se pudo crear el tema', error instanceof Error ? error.message : 'Inténtalo de nuevo.')
     } finally {
       setCreatingTopic(false)
     }
-  }, [newTopicAvailableUntil, newTopicDescription, newTopicDifficulty, newTopicTitle, router, selectedClassroomId, showAlert, subjectIdNumber, topicsResource])
+  }, [newTopicAvailableUntil, newTopicDescription, newTopicTitle, router, selectedClassroomId, showAlert, showModal, subjectIdNumber, topicsResource])
 
   const handleDelete = useCallback((questionId: number) => {
     showModal({
@@ -363,7 +364,6 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
     newClassroomName,
     newTopicAvailableUntil,
     newTopicDescription,
-    newTopicDifficulty,
     newTopicTitle,
     onRefresh: refreshCurrent,
     overview: overview.data,
@@ -381,7 +381,6 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
     setNewClassroomName,
     setNewTopicAvailableUntil,
     setNewTopicDescription,
-    setNewTopicDifficulty,
     setNewTopicTitle,
     setSelectedClassroomId: handleClassroomChange,
     setSelectedDifficulty: questionsResource.setDifficulty as (value: DifficultyLevel | 'all') => void,

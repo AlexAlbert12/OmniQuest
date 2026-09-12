@@ -651,6 +651,11 @@ export function useSettingsData({ forcedRole }: { forcedRole?: AppRole }) {
   }
 
   const updateNotificationToggle = async (key: NotificationSettingKey) => {
+    if (key === 'push' && Platform.OS === 'web') {
+      setPushRegistrationStatus('unsupported')
+      return
+    }
+
     if (!userId) {
       showAlert('Sesión no disponible', 'No se pudo identificar el usuario para guardar notificaciones.')
       return

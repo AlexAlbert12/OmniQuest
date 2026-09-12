@@ -57,7 +57,6 @@ export default function TeacherSettingsSections({
             onOpenSecurity={onOpenSecurity}
           />
           <SettingsPreferencesPanel
-            accentColor={accentColor}
             preferences={data.preferences}
             openPreferenceKey={data.openPreferenceKey}
             preferenceOptions={data.preferenceOptions}
@@ -74,7 +73,7 @@ export default function TeacherSettingsSections({
       {!securityOnly && activeSettingsSection === 'teaching' ? (
         <>
           <SettingsSectionIntro icon="school-outline" title="Preferencias docentes" description={t('settings.teacher.teaching.description')} />
-          <TeacherDeliveryPreferencesPanel dateFormat={data.preferences.dateFormat} timeFormat={data.preferences.timeFormat} weekStart={data.preferences.weekStart} />
+          <TeacherDeliveryPreferencesPanel />
         </>
       ) : null}
 
@@ -87,8 +86,7 @@ export default function TeacherSettingsSections({
             profileVisibilityAvailable={data.profileVisibilityAvailable}
             analyticsEnabled={data.preferences.analyticsEnabled}
             savingAnalytics={data.savingAnalytics}
-            accentColor={accentColor}
-            onProfileVisibilityChange={data.handleProfileVisibilityChange}
+              onProfileVisibilityChange={data.handleProfileVisibilityChange}
             onAnalyticsEnabledChange={(enabled) => void data.updateAnalyticsEnabled(enabled)}
             onShowPrivacyCenter={data.showPrivacyCenter}
           />
@@ -105,7 +103,6 @@ export default function TeacherSettingsSections({
       {securityOnly ? (
         <SettingsSecurityPanel
           securityOnly
-          accentColor={accentColor}
           currentPassword={data.currentPassword}
           newPassword={data.newPassword}
           confirmPassword={data.confirmPassword}
