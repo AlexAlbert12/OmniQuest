@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react'
 import { callTeacherRpc, type PagedPayload, type TeacherSubjectQuestion } from '../../../lib/teacherServerData'
 import { useTeacherSubjectResource } from './useTeacherSubjectResource'
 
+export type TeacherQuestionVisibility = 'visible' | 'archived'
+
 const EMPTY: PagedPayload<TeacherSubjectQuestion> = { items: [], total: 0, limit: 50, offset: 0 }
 
 export function useTeacherSubjectQuestions({ subjectId, classroomId, enabled }: {
@@ -12,6 +14,7 @@ export function useTeacherSubjectQuestions({ subjectId, classroomId, enabled }: 
   const [topicId, setTopicId] = useState<number | 'all' | 'general'>('all')
   const [difficulty, setDifficulty] = useState<number | 'all'>('all')
   const [search, setSearch] = useState('')
+  const [visibility, setVisibility] = useState<TeacherQuestionVisibility>('visible')
 
   const loader = useCallback(() => callTeacherRpc<PagedPayload<TeacherSubjectQuestion>>('get_teacher_subject_questions_page', {
     p_subject_id: subjectId,
@@ -22,9 +25,10 @@ export function useTeacherSubjectQuestions({ subjectId, classroomId, enabled }: 
     p_search: search.trim() || undefined,
     p_limit: 100,
     p_offset: 0,
-  }), [classroomId, difficulty, search, subjectId, topicId])
+    p_visibility: visibility,
+  }), [classroomId, difficulty, search, subjectId, topicId, visibility])
 
   const resource = useTeacherSubjectResource({ enabled: enabled && Boolean(classroomId), initialValue: EMPTY, loader })
 
-  return { ...resource, difficulty, search, setDifficulty, setSearch, setTopicId, topicId }
+  return { ...resource, difficulty, search, setDifficulty, setSearch, setTopicId, setVisibility, topicId, visibility }
 }

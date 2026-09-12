@@ -8,11 +8,11 @@ import { useAppModal } from '../../components/AppModalProvider'
 import { useAppFeedback } from '../../hooks/useAppFeedback'
 import type { StudentReport, SubjectScore } from '../../lib/teacherSubjectAnalytics'
 import { useTeacherSubjectOverview } from '../../hooks/teacher/subject/useTeacherSubjectOverview'
-import { useTeacherSubjectTopics } from '../../hooks/teacher/subject/useTeacherSubjectTopics'
-import { useTeacherSubjectQuestions } from '../../hooks/teacher/subject/useTeacherSubjectQuestions'
+import { useTeacherSubjectTopics, type TeacherTopicVisibility } from '../../hooks/teacher/subject/useTeacherSubjectTopics'
+import { useTeacherSubjectQuestions, type TeacherQuestionVisibility } from '../../hooks/teacher/subject/useTeacherSubjectQuestions'
 import { useTeacherSubjectStudents } from '../../hooks/teacher/subject/useTeacherSubjectStudents'
 import { useTeacherSubjectAnalytics } from '../../hooks/teacher/subject/useTeacherSubjectAnalytics'
-import { archiveTeacherSubject, createTeacherClassroom, createTeacherTopic, deleteTeacherQuestion, duplicateTeacherSubject, signOutTeacherSubject } from './api'
+import { archiveTeacherQuestion, archiveTeacherSubject, createTeacherClassroom, createTeacherTopic, deleteTeacherQuestion, deleteTeacherTopic, duplicateTeacherSubject, restoreTeacherQuestion, restoreTeacherTopic, signOutTeacherSubject } from './api'
 import { teacherSubjectTabItems, type ActivityItem, type Classroom, type Question, type Subject, type SubjectTabKey, type Topic, type TopicRow } from './types'
 
 export * from './types'
@@ -31,6 +31,7 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
   const [newTopicDescription, setNewTopicDescription] = useState('')
   const [newTopicAvailableUntil, setNewTopicAvailableUntil] = useState('')
   const [creatingTopic, setCreatingTopic] = useState(false)
+  const [topicVisibility, setTopicVisibility] = useState<TeacherTopicVisibility>('active')
   const [showStudentImportModal, setShowStudentImportModal] = useState(false)
 
   useEffect(() => setActiveTab(getSubjectTabFromParam(tab)), [tab])
@@ -50,6 +51,7 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
     subjectId: subjectIdNumber,
     classroomId: selectedClassroomId,
     enabled: activeTab === 'topics' || activeTab === 'questions',
+    visibility: activeTab === 'topics' ? topicVisibility : 'active',
   })
   const questionsResource = useTeacherSubjectQuestions({
     subjectId: subjectIdNumber,
@@ -96,6 +98,7 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
 
   const topicRows = useMemo<TopicRow[]>(() => topicsResource.data.items.map((row) => ({
     id: row.id,
+    active: row.active,
     title: row.title,
     description: row.description,
     icon: row.icon,
@@ -119,6 +122,7 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
 
   const questions = useMemo<Question[]>(() => questionsResource.data.items.map((row) => ({
     id: row.id,
+    active: row.active,
     text: row.text,
     type: row.type,
     points_base: row.points_base,
@@ -238,31 +242,111 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
     }
   }, [newTopicAvailableUntil, newTopicDescription, newTopicTitle, router, selectedClassroomId, showAlert, showModal, subjectIdNumber, topicsResource])
 
-  const handleDelete = useCallback((questionId: number) => {
+  const refreshQuestionLifecycle = useCallback(async () => {
+    await Promise.all([questionsResource.refresh(), topicsResource.refresh(), overview.refresh()])
+  }, [overview, questionsResource, topicsResource])
+
+  const handleArchiveQuestion = useCallback((questionId: number) => {
     showModal({
-      title: 'Borrar pregunta',
-      message: 'Esta acción no se puede deshacer.',
+      title: 'Archivar pregunta',
+      message: 'La pregunta dejará de utilizarse en nuevas partidas, pero conservará sus resultados e histórico. Podrás restaurarla posteriormente.',
       variant: 'warning',
       buttons: [
         { label: 'Cancelar', role: 'cancel' },
-        {
-          label: 'Borrar',
-          role: 'danger',
-          onPress: () => {
-            void (async () => {
-              try {
-                await deleteTeacherQuestion(questionId)
-                questionsResource.setData((current) => ({ ...current, items: current.items.filter((item) => item.id !== questionId), total: Math.max(0, current.total - 1) }))
-                await overview.refresh()
-              } catch (error) {
-                showAlert('No se pudo borrar', error instanceof Error ? error.message : 'Inténtalo de nuevo.')
-              }
-            })()
-          },
-        },
+        { label: 'Archivar', role: 'danger', onPress: () => { void (async () => {
+          try {
+            await archiveTeacherQuestion(questionId)
+            await refreshQuestionLifecycle()
+            feedback.success('Pregunta archivada', 'La pregunta se conserva y puedes restaurarla desde Archivadas.')
+          } catch (error) {
+            showAlert('No se pudo archivar', error instanceof Error ? error.message : 'Inténtalo de nuevo.')
+          }
+        })() } },
       ],
     })
-  }, [overview, questionsResource, showAlert, showModal])
+  }, [feedback, refreshQuestionLifecycle, showAlert, showModal])
+
+  const handleRestoreQuestion = useCallback((questionId: number) => {
+    showModal({
+      title: 'Restaurar pregunta',
+      message: 'La pregunta volverá a estar disponible para nuevas partidas.',
+      variant: 'info',
+      buttons: [
+        { label: 'Cancelar', role: 'cancel' },
+        { label: 'Restaurar', role: 'primary', onPress: () => { void (async () => {
+          try {
+            await restoreTeacherQuestion(questionId)
+            await refreshQuestionLifecycle()
+            feedback.success('Pregunta restaurada', 'La pregunta vuelve a estar disponible.')
+          } catch (error) {
+            showAlert('No se pudo restaurar', error instanceof Error ? error.message : 'Inténtalo de nuevo.')
+          }
+        })() } },
+      ],
+    })
+  }, [feedback, refreshQuestionLifecycle, showAlert, showModal])
+
+  const handleDeleteQuestion = useCallback((questionId: number) => {
+    showModal({
+      title: 'Eliminar pregunta definitivamente',
+      message: 'Esta acción eliminará permanentemente la pregunta y no podrás recuperarla. Solo puede eliminarse si no forma parte del histórico de ningún alumno.',
+      variant: 'warning',
+      buttons: [
+        { label: 'Cancelar', role: 'cancel' },
+        { label: 'Eliminar definitivamente', role: 'danger', onPress: () => { void (async () => {
+          try {
+            await deleteTeacherQuestion(questionId)
+            await refreshQuestionLifecycle()
+            feedback.success('Pregunta eliminada', 'La pregunta se ha eliminado definitivamente.')
+          } catch (error) {
+            showAlert('No se pudo eliminar', error instanceof Error ? error.message : 'Inténtalo de nuevo.')
+          }
+        })() } },
+      ],
+    })
+  }, [feedback, refreshQuestionLifecycle, showAlert, showModal])
+
+  const handleRestoreTopic = useCallback((topicId: number) => {
+    showModal({
+      title: 'Restaurar tema',
+      message: 'El tema volverá a estar disponible. Las preguntas archivadas individualmente permanecerán archivadas.',
+      variant: 'info',
+      buttons: [
+        { label: 'Cancelar', role: 'cancel' },
+        { label: 'Restaurar', role: 'primary', onPress: () => { void (async () => {
+          try {
+            await restoreTeacherTopic(topicId)
+            await topicsResource.refresh()
+            await overview.refresh()
+            feedback.success('Tema restaurado', 'El tema vuelve a aparecer entre los temas activos.')
+          } catch (error) {
+            showAlert('No se pudo restaurar', error instanceof Error ? error.message : 'Inténtalo de nuevo.')
+          }
+        })() } },
+      ],
+    })
+  }, [feedback, overview, showAlert, showModal, topicsResource])
+
+  const handleDeleteTopic = useCallback((topicId: number) => {
+    showModal({
+      title: 'Eliminar tema definitivamente',
+      message: 'Esta acción eliminará permanentemente el tema y sus preguntas que no tengan histórico asociado. No podrás recuperarlo.',
+      variant: 'warning',
+      buttons: [
+        { label: 'Cancelar', role: 'cancel' },
+        { label: 'Eliminar definitivamente', role: 'danger', onPress: () => { void (async () => {
+          try {
+            await deleteTeacherTopic(topicId)
+            await topicsResource.refresh()
+            await overview.refresh()
+            feedback.success('Tema eliminado', 'El tema se ha eliminado definitivamente.')
+          } catch (error) {
+            showAlert('No se pudo eliminar', error instanceof Error ? error.message : 'Inténtalo de nuevo.')
+          }
+        })() } },
+      ],
+    })
+  }, [feedback, overview, showAlert, showModal, topicsResource])
 
   const handleArchive = useCallback(() => {
     if (!subject) return
@@ -320,7 +404,9 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
 
   const handleClassroomChange = useCallback((nextClassroomId: number) => {
     setSelectedClassroomId(nextClassroomId)
+    setTopicVisibility('active')
     questionsResource.setTopicId('all')
+    questionsResource.setVisibility('visible')
     router.setParams({ classroomId: String(nextClassroomId) } as any)
   }, [questionsResource, router])
 
@@ -358,7 +444,11 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
     handleCreateClassroom,
     handleCreateTopic,
     handleShareCode,
-    handleDelete,
+    handleArchiveQuestion,
+    handleRestoreQuestion,
+    handleDeleteQuestion,
+    handleRestoreTopic,
+    handleDeleteTopic,
     handleSignOut,
     loading: overview.loading,
     newClassroomName,
@@ -376,6 +466,7 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
     selectedClassroomId,
     selectedDifficulty: questionsResource.difficulty as DifficultyLevel | 'all',
     selectedTopicId: questionsResource.topicId,
+    questionVisibility: questionsResource.visibility as TeacherQuestionVisibility,
     selectedTopicLabel,
     setActiveTab,
     setNewClassroomName,
@@ -385,6 +476,8 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
     setSelectedClassroomId: handleClassroomChange,
     setSelectedDifficulty: questionsResource.setDifficulty as (value: DifficultyLevel | 'all') => void,
     setSelectedTopicId: questionsResource.setTopicId,
+    setQuestionVisibility: questionsResource.setVisibility as (value: TeacherQuestionVisibility) => void,
+    setTopicVisibility,
     setShowStudentImportModal,
     setStudentPage: studentsResource.setPage,
     setStudentSearch: studentsResource.setSearch,
@@ -406,6 +499,7 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
     tabError: currentResource.error,
     tabLoading: activeTab !== 'summary' && currentResource.loading,
     topicRows,
+    topicVisibility,
     topics,
   }
 }

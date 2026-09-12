@@ -24,6 +24,7 @@ test('admin audit is immutable, partitioned, retained and chained by the server'
   assert.match(screen, /Verificar integridad/)
   assert.match(screen, /Verificar integridad'\} icon="shield-checkmark-outline" size="sm" variant="primary"/)
   assert.match(screen, /Integridad del registro/)
+  assert.match(screen, /color=\{integrity\.valid \? tokens\.semantic\.success : tokens\.semantic\.danger\}/)
   assert.match(screen, /Ver detalles técnicos/)
   assert.doesNotMatch(screen, /JSON\.stringify\(log\.metadata \|\| \{\}, null, 2\)/)
   assert.match(utils, /notification_delivery_queue: 'Entrega push'/)

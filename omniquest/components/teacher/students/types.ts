@@ -158,7 +158,7 @@ export const statusFilterOptions: { value: StudentStatusFilter; label: string }[
 export const sortOptions: { value: StudentSortKey; label: string }[] = [
   { value: 'attention', label: 'Necesitan atención' },
   { value: 'accuracy', label: 'Precisión' },
-  { value: 'xp', label: 'XP' },
+  { value: 'xp', label: 'Puntuación' },
   { value: 'last_activity', label: 'Última actividad' },
   { value: 'name', label: 'Nombre' },
 ];

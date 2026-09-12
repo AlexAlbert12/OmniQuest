@@ -11,6 +11,7 @@ import { supabase } from '../../../lib/supabase'
 import { useAppFeedback } from '../../../hooks/useAppFeedback'
 import { getErrorMessage, isRecord } from '../../../lib/typeGuards'
 import { useResponsiveLayout } from '../../../lib/responsive'
+import { useAppTheme } from '../../../lib/appTheme'
 import { useAdminData } from '../hooks/useAdminData'
 import { useAdminExportJobs } from '../hooks/useAdminExportJobs'
 import { useAdminRpcPage } from '../hooks/useAdminRpcPage'
@@ -25,6 +26,7 @@ type IntegrityResult = { valid?: boolean; checked_rows?: number; first_invalid_i
 
 export function AdminAuditSection() {
   const responsive = useResponsiveLayout()
+  const { tokens } = useAppTheme()
   const auditPageSize = responsive.isDesktop ? 25 : 8
   const feedback = useAppFeedback()
   const data = useAdminData()
@@ -128,7 +130,7 @@ export function AdminAuditSection() {
           <View className="mt-4 flex-row flex-wrap items-center gap-2">{policy.append_only ? <MiniPill icon="lock-closed-outline" label="No editable" /> : null}{typeof policy.retention_months === 'number' ? <MiniPill icon="calendar-outline" label={`Conservación: ${policy.retention_months} meses`} /> : null}{policy.capture_request_context === false ? <MiniPill icon="eye-off-outline" label="IP y navegador no almacenados" /> : policy.capture_request_context === true ? <MiniPill icon="shield-outline" label="Contexto de solicitud protegido" /> : null}<AdminButton label={showPolicyTechnical ? 'Ocultar detalles técnicos' : 'Detalles técnicos'} icon="code-slash-outline" size="sm" variant="ghost" onPress={() => setShowPolicyTechnical((value) => !value)} /></View>
           {showPolicyTechnical ? <View className="mt-3 flex-row flex-wrap gap-2">{policy.append_only ? <MiniPill icon="lock-closed-outline" label="Append-only" /> : null}{policy.partitioned ? <MiniPill icon="layers-outline" label="Particionado mensual" /> : null}{policy.strong_integrity ? <MiniPill icon="link-outline" label="Encadenamiento SHA-256" /> : null}{policy.retention_checkpoints ? <MiniPill icon="bookmark-outline" label="Anclajes de retención" /> : null}</View> : null}
         </> : null}
-        {integrity ? <View className={`mt-4 flex-row items-center gap-2 rounded-xl border px-4 py-3 ${integrity.valid ? 'border-semantic-success bg-semantic-surface-success' : 'border-semantic-danger bg-semantic-surface-danger'}`}><Ionicons name={integrity.valid ? 'checkmark-circle' : 'warning'} size={18} /><Text className="min-w-0 flex-1 text-[12px] font-black text-text-primary">{integrity.valid ? `Integridad correcta · ${integrity.checked_rows || 0} registros verificados${integrity.verified_at ? ` · ${formatAuditDate(integrity.verified_at)}` : ''}` : `Integridad comprometida · registro #${integrity.first_invalid_id || '—'}${integrity.verified_at ? ` · ${formatAuditDate(integrity.verified_at)}` : ''}`}</Text></View> : null}
+        {integrity ? <View className={`mt-4 flex-row items-center gap-2 rounded-xl border px-4 py-3 ${integrity.valid ? 'border-semantic-success bg-semantic-surface-success' : 'border-semantic-danger bg-semantic-surface-danger'}`}><Ionicons name={integrity.valid ? 'checkmark-circle' : 'warning'} size={18} color={integrity.valid ? tokens.semantic.success : tokens.semantic.danger} /><Text className="min-w-0 flex-1 text-[12px] font-black text-text-primary">{integrity.valid ? `Integridad correcta · ${integrity.checked_rows || 0} registros verificados${integrity.verified_at ? ` · ${formatAuditDate(integrity.verified_at)}` : ''}` : `Integridad comprometida · registro #${integrity.first_invalid_id || '—'}${integrity.verified_at ? ` · ${formatAuditDate(integrity.verified_at)}` : ''}`}</Text></View> : null}
       </Panel>
 
       <Panel title="Registro de auditoría" icon="shield-checkmark-outline" className="mt-5">

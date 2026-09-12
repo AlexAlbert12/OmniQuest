@@ -1,5 +1,4 @@
 import { statusFilterOptions, type MobileStudentsStats, type StudentRow, type StudentStatusFilter } from './types'
-import { formatDate } from '../../components/teacher/students/studentUtils'
 
 export function parsePositiveNumberParam(value?: string | string[]) {
   const raw = Array.isArray(value) ? value[0] : value
@@ -42,26 +41,3 @@ export function buildStudentActivityRoute(student: StudentRow, selectedSubjectId
   }
 }
 
-export function buildTeacherStudentsCsv(students: StudentRow[]) {
-  const rows = students.map((student) => [
-    student.id,
-    student.alias,
-    student.subjectScore,
-    student.globalPoints,
-    student.accuracyPercent,
-    student.participation,
-    student.questions,
-    student.status,
-    student.lastActivityAt ? formatDate(student.lastActivityAt) : 'Sin actividad',
-    student.subjectNames.join(' | '),
-    student.classroomNames.join(' | '),
-  ])
-  return [['ID', 'Alias', 'XP en selección', 'XP global', 'Precisión', 'Participación', 'Preguntas respondidas', 'Estado', 'Última actividad', 'Cursos', 'Clases'], ...rows]
-    .map((row) => row.map(escapeCsv).join(','))
-    .join('\n')
-}
-
-function escapeCsv(value: unknown) {
-  const text = String(value ?? '')
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
-}

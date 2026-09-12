@@ -5427,6 +5427,19 @@ export type Database = {
         Returns: Json
       }
       archive_teacher_topic: { Args: { p_topic_id: number }; Returns: Json }
+      delete_teacher_question: {
+        Args: { p_question_id: number }
+        Returns: Json
+      }
+      delete_teacher_topic: { Args: { p_topic_id: number }; Returns: Json }
+      set_teacher_question_archived: {
+        Args: { p_archived: boolean; p_question_id: number }
+        Returns: Json
+      }
+      set_teacher_topic_archived: {
+        Args: { p_archived: boolean; p_topic_id: number }
+        Returns: Json
+      }
       assert_topic_playable: {
         Args: { p_topic_id: number }
         Returns: undefined
@@ -6646,6 +6659,7 @@ export type Database = {
           p_search?: string
           p_subject_id: number
           p_topic_id?: number
+          p_visibility?: string
         }
         Returns: Json
       }
@@ -6679,6 +6693,7 @@ export type Database = {
           p_limit?: number
           p_offset?: number
           p_subject_id: number
+          p_visibility?: string
         }
         Returns: Json
       }

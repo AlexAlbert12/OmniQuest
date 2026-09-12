@@ -8,7 +8,7 @@ import { useAppTheme } from '../../../lib/appTheme'
 export type AdminTypedConfirmationOptions = {
   title: string
   message: string
-  confirmationText: string
+  confirmationText?: string
   confirmLabel: string
   destructive?: boolean
   icon?: keyof typeof Ionicons.glyphMap
@@ -78,10 +78,13 @@ function AdminTypedConfirmationModal({
   onConfirm: () => void
 }) {
   const { tokens } = useAppTheme()
-  const expected = state.confirmationText.trim().toUpperCase() || 'CONFIRMAR'
+  const expected = state.confirmationText?.trim().toUpperCase() || ''
+  const requiresTypedConfirmation = expected.length > 0
   const confirmLabel = state.confirmLabel.trim() || 'Confirmar'
-  const matches = typedValue.trim().toUpperCase() === expected
-  const dangerColor = state.destructive === false ? tokens.semantic.warning : tokens.semantic.danger
+  const matches = !requiresTypedConfirmation || typedValue.trim().toUpperCase() === expected
+  const accentColor = state.destructive === false
+    ? requiresTypedConfirmation ? tokens.semantic.warning : tokens.brand.admin
+    : tokens.semantic.danger
 
   return (
     <Modal visible={state.visible} transparent animationType="fade" onRequestClose={onCancel}>
@@ -93,7 +96,7 @@ function AdminTypedConfirmationModal({
             styles.card,
             {
               backgroundColor: tokens.background.primary,
-              borderColor: dangerColor,
+              borderColor: accentColor,
             },
           ]}
         >
@@ -103,11 +106,11 @@ function AdminTypedConfirmationModal({
             showsVerticalScrollIndicator={false}
           >
           <View style={styles.header}>
-            <View style={[styles.iconBox, { backgroundColor: `${dangerColor}22` }]}>
-              <Ionicons name={state.icon || 'warning-outline'} size={27} color={dangerColor} />
+            <View style={[styles.iconBox, { backgroundColor: `${accentColor}22` }]}>
+              <Ionicons name={state.icon || 'warning-outline'} size={27} color={accentColor} />
             </View>
             <View style={styles.headerText}>
-              <Text style={[styles.eyebrow, { color: dangerColor }]}>CONFIRMACIÓN SENSIBLE</Text>
+              <Text style={[styles.eyebrow, { color: accentColor }]}>{requiresTypedConfirmation ? 'CONFIRMACIÓN SENSIBLE' : 'CONFIRMACIÓN ADMINISTRATIVA'}</Text>
               <Text style={[styles.title, { color: tokens.text.primary }]}>{state.title}</Text>
             </View>
             <AdminButton accessibilityLabel="Cerrar" icon="close" iconOnly size="sm" variant="ghost" onPress={onCancel} />
@@ -115,37 +118,37 @@ function AdminTypedConfirmationModal({
 
           <Text style={[styles.message, { color: tokens.text.secondary }]}>{state.message}</Text>
 
-          <View style={[styles.instruction, { backgroundColor: tokens.surface.raised, borderColor: tokens.border.default }]}>
-            <Ionicons name="keypad-outline" size={18} color={tokens.text.secondary} />
-            <Text style={[styles.instructionText, { color: tokens.text.secondary }]}>Escribe </Text>
-            <Text style={[styles.code, { color: dangerColor }]}>{expected}</Text>
-            <Text style={[styles.instructionText, { color: tokens.text.secondary }]}> para continuar.</Text>
-          </View>
+          {requiresTypedConfirmation ? <>
+            <View style={[styles.instruction, { backgroundColor: tokens.surface.raised, borderColor: tokens.border.default }]}>
+              <Ionicons name="keypad-outline" size={18} color={tokens.text.secondary} />
+              <Text style={[styles.instructionText, { color: tokens.text.secondary }]}>Escribe <Text style={[styles.code, { color: accentColor }]}>{expected}</Text> para continuar.</Text>
+            </View>
 
-          <TextInput
-            autoCapitalize="characters"
-            autoCorrect={false}
-            accessibilityLabel={`Escribe ${expected} para confirmar`}
-            value={typedValue}
-            onChangeText={onChangeTypedValue}
-            placeholder={expected}
-            placeholderTextColor={tokens.text.muted}
-            style={[
-              styles.input,
-              {
-                color: tokens.text.primary,
-                backgroundColor: tokens.surface.interactive,
-                borderColor: matches ? tokens.semantic.success : tokens.border.default,
-              },
-            ]}
-          />
+            <TextInput
+              autoCapitalize="characters"
+              autoCorrect={false}
+              accessibilityLabel={`Escribe ${expected} para confirmar`}
+              value={typedValue}
+              onChangeText={onChangeTypedValue}
+              placeholder={expected}
+              placeholderTextColor={tokens.text.muted}
+              style={[
+                styles.input,
+                {
+                  color: tokens.text.primary,
+                  backgroundColor: tokens.surface.interactive,
+                  borderColor: matches ? tokens.semantic.success : tokens.border.default,
+                },
+              ]}
+            />
+          </> : null}
 
           <View style={styles.actions}>
             <AdminButton label="Cancelar" variant="secondary" onPress={onCancel} />
             <AdminButton
               label={confirmLabel}
               icon={state.destructive === false ? 'checkmark-circle-outline' : 'warning-outline'}
-              variant={state.destructive === false ? 'secondary' : 'danger'}
+              variant={state.destructive === false ? requiresTypedConfirmation ? 'secondary' : 'primary' : 'danger'}
               disabled={!matches}
               onPress={onConfirm}
             />
@@ -217,13 +220,16 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 14,
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
+    gap: 8,
   },
   instructionText: {
+    minWidth: 0,
+    flex: 1,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',
+    includeFontPadding: false,
   },
   code: {
     fontSize: 13,

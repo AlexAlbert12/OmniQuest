@@ -209,6 +209,7 @@ export type TeacherSubjectOverview = {
 
 export type TeacherSubjectTopic = {
   id: number | 'general'
+  active: boolean
   title: string
   description: string | null
   icon: string | null
@@ -235,6 +236,7 @@ export type TeacherSubjectQuestion = {
   media_path: string | null
   media_alt_text: string | null
   media_caption: string | null
+  active: boolean
   topicTitle: string | null
   answers: Array<{ id: number; text: string; is_correct: boolean; sort_order: number }>
 }

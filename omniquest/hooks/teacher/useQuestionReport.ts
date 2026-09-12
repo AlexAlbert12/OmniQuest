@@ -77,17 +77,45 @@ export function useQuestionReport(questionId: number, affectedPageSize: number) 
     void load()
   }, [load])
 
-  const archive = useCallback(async () => {
-    if (!report?.question || report.question.active === false) return
+  const setArchived = useCallback(async (archived: boolean) => {
+    if (!report?.question) return
     try {
       setBusy(true)
       setError(null)
-      const { data, error: archiveError } = await supabase.functions.invoke('teacher-delete-question', { body: { questionId: report.question.id } })
-      if (archiveError) throw archiveError
-      if ((data as { error?: string } | null)?.error) throw new Error((data as { error: string }).error)
-      setReport((current) => current ? { ...current, question: { ...current.question, active: false } } : current)
+      const { data, error: lifecycleError } = await callPlatformRpc<{ id: number; active: boolean }>('set_teacher_question_archived', {
+        p_question_id: report.question.id,
+        p_archived: archived,
+      })
+      if (lifecycleError) throw lifecycleError
+      setReport((current) => current ? { ...current, question: { ...current.question, active: data?.active ?? !archived } } : current)
     } catch (nextError: any) {
-      setError(nextError?.message || 'No se pudo archivar la pregunta.')
+      setError(nextError?.message || (archived ? 'No se pudo archivar la pregunta.' : 'No se pudo restaurar la pregunta.'))
+      throw nextError
+    } finally {
+      setBusy(false)
+    }
+  }, [report?.question])
+
+  const archive = useCallback(async () => {
+    if (!report?.question || report.question.active === false) return
+    await setArchived(true)
+  }, [report?.question, setArchived])
+
+  const restore = useCallback(async () => {
+    if (!report?.question || report.question.active !== false) return
+    await setArchived(false)
+  }, [report?.question, setArchived])
+
+  const deletePermanent = useCallback(async () => {
+    if (!report?.question || report.question.active !== false) return
+    try {
+      setBusy(true)
+      setError(null)
+      const { data, error: deleteError } = await supabase.functions.invoke('teacher-delete-question', { body: { questionId: report.question.id } })
+      if (deleteError) throw new Error(await getEdgeFunctionErrorMessage(deleteError, 'No se pudo eliminar la pregunta definitivamente.'))
+      if ((data as { error?: string } | null)?.error) throw new Error((data as { error: string }).error)
+    } catch (nextError: any) {
+      setError(nextError?.message || 'No se pudo eliminar la pregunta definitivamente.')
       throw nextError
     } finally {
       setBusy(false)
@@ -110,5 +138,21 @@ export function useQuestionReport(questionId: number, affectedPageSize: number) 
     setAffectedPage,
     refresh,
     archive,
+    restore,
+    deletePermanent,
   }
+}
+
+
+async function getEdgeFunctionErrorMessage(error: unknown, fallback: string) {
+  const context = (error as { context?: { json?: () => Promise<unknown> } } | null)?.context
+  if (typeof context?.json === 'function') {
+    try {
+      const payload = await context.json()
+      if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') return payload.error
+    } catch {
+      // The Edge Function response body is not guaranteed to remain readable after supabase-js handles it.
+    }
+  }
+  return error instanceof Error && error.message ? error.message : fallback
 }

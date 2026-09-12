@@ -105,22 +105,30 @@ export function useTeacherTopicDetail(topicId: number | null) {
 
   const archiveTopic = useCallback(async () => {
     if (!topicId) return
-    await callTeacherRpc<{ id: number; active: boolean }>('archive_teacher_topic', { p_topic_id: topicId })
+    await callTeacherRpc<{ id: number; active: boolean }>('set_teacher_topic_archived', { p_topic_id: topicId, p_archived: true })
     await loadSummary()
   }, [loadSummary, topicId])
 
-  const removeQuestion = useCallback((questionId: number) => {
-    setQuestions((current) => current.filter((question) => question.id !== questionId))
-    setTotal((current) => Math.max(0, current - 1))
-    setSummary((current) => current ? {
-      ...current,
-      summary: {
-        ...current.summary,
-        questionsCount: Math.max(0, current.summary.questionsCount - 1),
-        visibleQuestionsCount: Math.max(0, current.summary.visibleQuestionsCount - 1),
-      },
-    } : current)
-  }, [])
+  const restoreTopic = useCallback(async () => {
+    if (!topicId) return
+    await callTeacherRpc<{ id: number; active: boolean }>('set_teacher_topic_archived', { p_topic_id: topicId, p_archived: false })
+    await loadSummary()
+  }, [loadSummary, topicId])
+
+  const deleteTopic = useCallback(async () => {
+    if (!topicId) return
+    await callTeacherRpc<{ id: number; deleted: boolean }>('delete_teacher_topic', { p_topic_id: topicId })
+  }, [topicId])
+
+  const setQuestionArchived = useCallback(async (questionId: number, archived: boolean) => {
+    await callTeacherRpc<{ id: number; active: boolean }>('set_teacher_question_archived', { p_question_id: questionId, p_archived: archived })
+    await Promise.all([loadSummary(), loadQuestions()])
+  }, [loadQuestions, loadSummary])
+
+  const deleteQuestion = useCallback(async (questionId: number) => {
+    await callTeacherRpc<{ id: number; deleted: boolean }>('delete_teacher_question', { p_question_id: questionId })
+    await Promise.all([loadSummary(), loadQuestions()])
+  }, [loadQuestions, loadSummary])
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const safePage = Math.min(page, pageCount - 1)
@@ -131,6 +139,8 @@ export function useTeacherTopicDetail(topicId: number | null) {
 
   return useMemo(() => ({
     archiveTopic,
+    deleteQuestion,
+    deleteTopic,
     difficulty,
     error,
     loadingQuestions,
@@ -141,7 +151,8 @@ export function useTeacherTopicDetail(topicId: number | null) {
     questions,
     refresh: () => loadAll(true),
     refreshing,
-    removeQuestion,
+    restoreTopic,
+    setQuestionArchived,
     search,
     setDifficulty,
     setPage,
@@ -152,6 +163,8 @@ export function useTeacherTopicDetail(topicId: number | null) {
     visibility,
   }), [
     archiveTopic,
+    deleteQuestion,
+    deleteTopic,
     difficulty,
     error,
     loadAll,
@@ -160,7 +173,8 @@ export function useTeacherTopicDetail(topicId: number | null) {
     pageCount,
     questions,
     refreshing,
-    removeQuestion,
+    restoreTopic,
+    setQuestionArchived,
     safePage,
     search,
     summary,

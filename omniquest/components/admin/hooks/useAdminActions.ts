@@ -41,7 +41,13 @@ export function useAdminActions(data: AdminData, requestConfirmation?: AdminConf
       return
     }
     const approved = nextActive
-      ? await feedback.confirm({ title: 'Activar usuario', message: `Se activará la cuenta de ${profile.alias}.`, confirmLabel: 'Activar' })
+      ? await requestSensitiveConfirmation({
+          title: 'Activar usuario',
+          message: `Se activará la cuenta de ${profile.alias}.`,
+          confirmLabel: 'Activar',
+          destructive: false,
+          icon: 'checkmark-circle-outline',
+        })
       : await requestSensitiveConfirmation({
           title: 'Desactivar usuario',
           message: `La cuenta de ${profile.alias} dejará de poder acceder. Motivo: ${governance?.reason || 'No especificado'}.`,

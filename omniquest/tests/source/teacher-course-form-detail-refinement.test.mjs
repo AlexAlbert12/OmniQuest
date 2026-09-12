@@ -187,7 +187,7 @@ test('question management has one contextual create CTA and a real topic selecto
   const structure = read('components/teacher/subject/SubjectCourseStructure.tsx')
   assert.doesNotMatch(screen, /SubjectAddQuestionCTA/)
   assert.doesNotMatch(structure, /SubjectAddQuestionCTA/)
-  assert.match(questions, /headerAction=\{<AppButton label="Añadir pregunta"/)
+  assert.match(questions, /headerAction=\{!archived \? <AppButton label="Añadir pregunta"/)
   assert.match(questions, /<AppDropdown<TopicFilter>/)
   assert.match(questions, /label="Tema"/)
   assert.match(questions, /Todos los temas/)

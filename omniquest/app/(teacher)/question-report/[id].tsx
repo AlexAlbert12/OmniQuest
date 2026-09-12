@@ -45,7 +45,7 @@ export default function TeacherQuestionReportScreen() {
   const affectedPageSize = isDesktop ? 12 : 6
   const report = useQuestionReport(questionId, affectedPageSize)
   const feedback = useAppFeedback()
-  const [archiveOpen, setArchiveOpen] = useState(false)
+  const [questionAction, setQuestionAction] = useState<'archive' | 'restore' | 'delete' | null>(null)
   const [exporting, setExporting] = useState(false)
 
   const handleSignOut = async () => {
@@ -67,6 +67,31 @@ export default function TeacherQuestionReportScreen() {
       feedback.error('No se pudo exportar el informe', error instanceof Error ? error : 'Inténtalo de nuevo.')
     } finally {
       setExporting(false)
+    }
+  }
+
+  const handleQuestionAction = async () => {
+    if (!questionAction || !question) return
+    try {
+      if (questionAction === 'archive') {
+        await report.archive()
+        feedback.success('Pregunta archivada', 'La pregunta deja de estar disponible en nuevas partidas, pero conserva su histórico.')
+      } else if (questionAction === 'restore') {
+        await report.restore()
+        feedback.success('Pregunta restaurada', 'La pregunta vuelve a estar disponible para nuevas partidas.')
+      } else {
+        await report.deletePermanent()
+        feedback.success('Pregunta eliminada', 'La pregunta se ha eliminado definitivamente.')
+        setQuestionAction(null)
+        router.back()
+        return
+      }
+      setQuestionAction(null)
+    } catch (error) {
+      feedback.error(
+        questionAction === 'archive' ? 'No se pudo archivar la pregunta' : questionAction === 'restore' ? 'No se pudo restaurar la pregunta' : 'No se pudo eliminar la pregunta',
+        error instanceof Error ? error : 'Inténtalo de nuevo.',
+      )
     }
   }
 
@@ -126,7 +151,9 @@ export default function TeacherQuestionReportScreen() {
                       onCreatePractice={() => router.push(`/(teacher)/subject/add-question?subjectId=${question.subjectId}&sourceQuestionId=${question.id}` as any)}
                       onManualReview={() => router.push('/(teacher)/reviews' as any)}
                       onExport={() => void exportReport()}
-                      onArchive={() => setArchiveOpen(true)}
+                      onArchive={() => setQuestionAction('archive')}
+                      onRestore={() => setQuestionAction('restore')}
+                      onDelete={() => setQuestionAction('delete')}
                     />
                   </View>
                 </View>
@@ -182,14 +209,18 @@ export default function TeacherQuestionReportScreen() {
       {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
 
       <AppConfirmModal
-        visible={archiveOpen}
-        title="Archivar pregunta"
-        message="La pregunta dejará de aparecer en nuevas partidas, pero conservará sus datos históricos."
-        confirmLabel="Archivar"
-        variant="danger"
+        visible={Boolean(questionAction)}
+        title={questionAction === 'archive' ? 'Archivar pregunta' : questionAction === 'restore' ? 'Restaurar pregunta' : 'Eliminar pregunta definitivamente'}
+        message={questionAction === 'archive'
+          ? 'La pregunta dejará de estar disponible para nuevas partidas, pero se conservarán sus respuestas, resultados e histórico. Podrás restaurarla posteriormente.'
+          : questionAction === 'restore'
+            ? 'La pregunta volverá a estar disponible para nuevas partidas.'
+            : 'Esta acción eliminará permanentemente la pregunta y no podrás recuperarla. Solo puede eliminarse si no forma parte del histórico de ningún alumno.'}
+        confirmLabel={questionAction === 'archive' ? 'Archivar' : questionAction === 'restore' ? 'Restaurar' : 'Eliminar definitivamente'}
+        variant={questionAction === 'restore' ? 'info' : 'danger'}
         busy={report.busy}
-        onCancel={() => setArchiveOpen(false)}
-        onConfirm={() => void report.archive().then(() => setArchiveOpen(false))}
+        onCancel={() => setQuestionAction(null)}
+        onConfirm={() => { void handleQuestionAction() }}
       />
     </SafeAreaView>
   )

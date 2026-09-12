@@ -56,3 +56,21 @@ test('admin profile paging is shorter and password recovery is not styled as des
   assert.match(students, /label: 'Resetear contraseña', icon: 'key-outline', disabled:/)
   assert.match(actions, /confirmationText: 'RESET'.*destructive: false/)
 })
+
+test('admin profile activation uses the themed administrative modal without typed confirmation', () => {
+  const actions = read('components/admin/hooks/useAdminActions.ts')
+  const confirmation = read('components/admin/shared/AdminTypedConfirmation.tsx')
+  const profileActivation = actions.match(/const toggleProfileActive[\s\S]*?const resetPassword/)?.[0] || ''
+  assert.match(profileActivation, /title: 'Activar usuario'[\s\S]*confirmLabel: 'Activar'[\s\S]*icon: 'checkmark-circle-outline'/)
+  assert.doesNotMatch(profileActivation, /feedback\.confirm/)
+  assert.match(confirmation, /confirmationText\?: string/)
+  assert.match(confirmation, /CONFIRMACIÓN ADMINISTRATIVA/)
+  assert.match(confirmation, /!requiresTypedConfirmation \|\| typedValue/)
+})
+
+test('typed administrative confirmation keeps its instruction aligned as one text row', () => {
+  const confirmation = read('components/admin/shared/AdminTypedConfirmation.tsx')
+  assert.match(confirmation, /Escribe <Text style=\{\[styles\.code/)
+  assert.match(confirmation, /instruction: \{[\s\S]*alignItems: 'center',[\s\S]*gap: 8/)
+  assert.match(confirmation, /instructionText: \{[\s\S]*flex: 1,[\s\S]*includeFontPadding: false/)
+})

@@ -120,7 +120,13 @@ export function AdminFilterRow({ label, onChange, options, value }: {
 
 export type AdminChoiceChipTone = 'admin' | 'info' | 'success' | 'warning' | 'danger' | 'neutral'
 
-export function AdminChoiceChip({ active, label, onPress, tone = 'admin' }: { active: boolean; label: string; onPress: () => void; tone?: AdminChoiceChipTone }) {
+export function AdminChoiceChip({ active, label, onPress, tone = 'admin', useDefaultBorder = false }: {
+  active: boolean
+  label: string
+  onPress: () => void
+  tone?: AdminChoiceChipTone
+  useDefaultBorder?: boolean
+}) {
   const { tokens } = useAppTheme()
   const palette: Record<AdminChoiceChipTone, { color: string; surface: string }> = {
     admin: { color: tokens.brand.admin, surface: withAlpha(tokens.brand.admin, '24') },
@@ -139,9 +145,10 @@ export function AdminChoiceChip({ active, label, onPress, tone = 'admin' }: { ac
       accessibilityHint="Selecciona esta opción"
       accessibilityState={{ selected: active }}
       onPress={onPress}
-      className="min-h-[42px] flex-row items-center justify-center gap-2 rounded-xl border px-3.5 py-2.5"
+      className="min-h-[42px] flex-row items-center justify-center gap-2 rounded-xl px-3.5 py-2.5"
       style={({ pressed }) => ({
-        borderColor: active ? selected.color : tokens.border.default,
+        borderWidth: 1,
+        borderColor: useDefaultBorder ? tokens.border.default : active ? selected.color : tokens.border.default,
         backgroundColor: active ? selected.surface : tokens.surface.interactive,
         opacity: pressed ? 0.78 : 1,
         transform: [{ scale: pressed ? 0.985 : 1 }],

@@ -11,6 +11,8 @@ export default function QuestionReportActions({
   onManualReview,
   onExport,
   onArchive,
+  onRestore,
+  onDelete,
 }: {
   active: boolean
   busy: boolean
@@ -20,14 +22,23 @@ export default function QuestionReportActions({
   onManualReview: () => void
   onExport: () => void
   onArchive: () => void
+  onRestore: () => void
+  onDelete: () => void
 }) {
   return (
     <View className="flex-row flex-wrap gap-2">
-      <AppButton label="Editar" icon="create-outline" role="teacher" onPress={onEdit} />
-      <AppButton label="Crear variante" icon="add-circle-outline" variant="secondary" onPress={onCreatePractice} />
+      {active ? <AppButton label="Editar" icon="create-outline" role="teacher" onPress={onEdit} /> : null}
+      {active ? <AppButton label="Crear variante" icon="add-circle-outline" variant="secondary" onPress={onCreatePractice} /> : null}
       <AppButton label="Revisión manual" icon="chatbox-ellipses-outline" variant="secondary" onPress={onManualReview} />
       <AppButton label="Exportar informe" icon="download-outline" variant="secondary" loading={exporting} disabled={exporting} onPress={onExport} />
-      <AppButton label={active ? 'Archivar' : 'Archivada'} icon="archive-outline" variant="danger" loading={busy} disabled={!active} onPress={onArchive} />
+      {active ? (
+        <AppButton label="Archivar" accessibilityLabel="Archivar pregunta" accessibilityHint="Conserva el histórico y permite restaurar la pregunta más adelante" icon="archive-outline" variant="danger" loading={busy} disabled={busy} onPress={onArchive} />
+      ) : (
+        <>
+          <AppButton label="Restaurar" accessibilityLabel="Restaurar pregunta" icon="refresh-outline" variant="secondary" loading={busy} disabled={busy} onPress={onRestore} />
+          <AppButton label="Eliminar definitivamente" accessibilityLabel="Eliminar pregunta definitivamente" accessibilityHint="Solo se eliminará si no forma parte del histórico de ningún alumno" icon="trash-outline" variant="danger" disabled={busy} onPress={onDelete} />
+        </>
+      )}
     </View>
   )
 }

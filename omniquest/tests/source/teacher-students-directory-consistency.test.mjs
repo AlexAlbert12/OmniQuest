@@ -29,6 +29,7 @@ test('mobile teacher student filters are explicit selectors and expose every sta
   const types = read('components/teacher/students/types.ts')
 
   assert.match(types, /StudentStatusFilter = 'all' \| 'attention' \| StudentStatus/)
+  assert.match(types, /value: 'xp', label: 'Puntuación'/)
   assert.match(types, /value: 'attention', label: 'Necesitan atención'/)
   assert.match(mobile, /AppDropdown<StudentStatusFilter>/)
   assert.match(mobile, /AppDropdown<StudentSortKey>/)
@@ -77,7 +78,7 @@ test('student metrics distinguish XP scope, attempts and accuracy equivalence', 
   assert.match(modal, /label="Preguntas respondidas"/)
   assert.match(modal, /label=\{xpLabel\}/)
   assert.match(modal, /label="Equivalencia \/10"/)
-  assert.match(controller, /XP en cursos seleccionados/)
+  assert.match(controller, /Puntuación en cursos seleccionados/)
 })
 
 test('no-activity bulk actions operate on the whole server-filtered selection', () => {

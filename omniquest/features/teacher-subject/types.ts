@@ -15,6 +15,7 @@ export type Subject = {
 
 export type Question = {
   id: number
+  active: boolean
   text: string
   type?: string
   points_base: number | null
@@ -67,6 +68,7 @@ export type FailedQuestionReport = {
 
 export type TopicRow = {
   id: number | 'general'
+  active: boolean
   title: string
   description: string | null
   icon: string | null

@@ -215,28 +215,36 @@ export default function SubjectDetailScreen() {
             onAvailableUntilChange={detail.setNewTopicAvailableUntil}
             onCreate={detail.handleCreateTopic}
             onDescriptionChange={detail.setNewTopicDescription}
+            onDeleteTopic={detail.handleDeleteTopic}
             onOpenTopic={(topicId) => router.push(`/(teacher)/topic/${topicId}` as never)}
+            onRestoreTopic={detail.handleRestoreTopic}
             onSelectTopic={(topicId) => {
               detail.setSelectedTopicId(topicId)
               changeTab('questions')
             }}
             onTitleChange={detail.setNewTopicTitle}
+            onVisibilityChange={detail.setTopicVisibility}
             selectedClassroomName={detail.selectedClassroom?.name}
             isMobile={!isDesktop}
             selectedTopicId={detail.selectedTopicId}
             topicRows={detail.topicRows}
+            topicVisibility={detail.topicVisibility}
           />
         ) : null}
 
         {!detail.tabLoading && !detail.tabError && detail.activeTab === 'questions' ? (
           <SubjectQuestionsTab
             filteredQuestions={detail.questions}
-            onDeleteQuestion={detail.handleDelete}
+            onArchiveQuestion={detail.handleArchiveQuestion}
+            onDeleteQuestion={detail.handleDeleteQuestion}
+            onRestoreQuestion={detail.handleRestoreQuestion}
             onDifficultyChange={detail.setSelectedDifficulty}
             onTopicChange={detail.setSelectedTopicId}
+            onVisibilityChange={detail.setQuestionVisibility}
             selectedClassroomId={detail.selectedClassroomId}
             selectedDifficulty={detail.selectedDifficulty}
             selectedTopicId={detail.selectedTopicId}
+            selectedVisibility={detail.questionVisibility}
             subjectId={subject.id}
             topics={detail.topics}
           />

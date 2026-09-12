@@ -1765,6 +1765,7 @@ export function translateUiText(locale: AppLocale, input: string): string {
     [/^Recordar a (\d+)$/, (_m, count) => `Remind ${count}`],
     [/^(\d+) activos · (\d+) excelentes · (\d+) en seguimiento$/, (_m, active, excellent, attention) => `${active} active · ${excellent} excellent · ${attention} being monitored`],
     [/^XP en (.+)$/, (_m, scope) => `XP in ${translateFragment(scope)}`],
+    [/^Puntuación en (.+)$/, (_m, scope) => `Score in ${translateFragment(scope)}`],
     [/^(\d+) de (\d+) alumnos sin actividad recibieron el recordatorio\.$/, (_m, sent, total) => `${sent} of ${total} students without activity received the reminder.`],
     [/^El progreso de (.+) se ha reiniciado en (.+)\.$/, (_m, student, scope) => `${student}'s progress has been reset in ${translateFragment(scope)}.`],
     [/^Se eliminarán las puntuaciones y los intentos de (.+) en (.+)\.$/, (_m, student, scope) => `Scores and attempts for ${student} will be deleted in ${translateFragment(scope)}.`],

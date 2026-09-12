@@ -26,11 +26,11 @@ import { MOBILE_BOTTOM_NAV_SPACER } from '../../../lib/mobileLayout'
 import { useResponsiveLayout } from '../../../lib/responsive'
 import { getDifficultyMeta, type DifficultyLevel } from '../../../lib/difficulty'
 import { useAppTheme } from '../../../lib/appTheme'
-import { supabase } from '../../../lib/supabase'
 import { useTeacherTopicDetail, type VisibilityFilter } from '../../../hooks/teacher/useTeacherTopicDetail'
 import type { TeacherTopicQuestion } from '../../../lib/teacherServerData'
 import { signOutCurrentDeviceSession } from '../../../lib/pushNotifications'
 import OmniLoadingScreen from '../../../components/ui/OmniLoadingScreen'
+import { useAppFeedback } from '../../../hooks/useAppFeedback'
 
 const difficultyItems: { key: DifficultyLevel | 'all'; label: string }[] = [
   { key: 'all', label: 'Todas' },
@@ -52,11 +52,12 @@ export default function TopicDetailScreen() {
   const router = useRouter()
   const responsive = useResponsiveLayout()
   const { tokens } = useAppTheme()
-  const [archiveOpen, setArchiveOpen] = useState(false)
-  const [archiveBusy, setArchiveBusy] = useState(false)
-  const [questionToDelete, setQuestionToDelete] = useState<TeacherTopicQuestion | null>(null)
-  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [topicAction, setTopicAction] = useState<'archive' | 'restore' | 'delete' | null>(null)
+  const [topicBusy, setTopicBusy] = useState(false)
+  const [questionAction, setQuestionAction] = useState<{ question: TeacherTopicQuestion; action: 'archive' | 'restore' | 'delete' } | null>(null)
+  const [questionBusy, setQuestionBusy] = useState(false)
   const detail = useTeacherTopicDetail(topicId)
+  const feedback = useAppFeedback()
   const isDesktop = responsive.isDesktop
 
   const summary = detail.summary
@@ -76,30 +77,48 @@ export default function TopicDetailScreen() {
     router.replace('/(auth)/login' as never)
   }
 
-  const handleArchive = async () => {
-    setArchiveBusy(true)
+  const handleTopicAction = async () => {
+    if (!topicAction || !subject) return
+    setTopicBusy(true)
     try {
-      await detail.archiveTopic()
-      setArchiveOpen(false)
-      router.replace(`/(teacher)/subject/${subject?.id}` as never)
+      if (topicAction === 'archive') {
+        await detail.archiveTopic()
+        feedback.success('Tema archivado', 'El tema se conserva y puedes restaurarlo desde Temas > Archivados.')
+      } else if (topicAction === 'restore') {
+        await detail.restoreTopic()
+        feedback.success('Tema restaurado', 'El tema vuelve a estar disponible. Las preguntas archivadas individualmente siguen archivadas.')
+      } else {
+        await detail.deleteTopic()
+        feedback.success('Tema eliminado', 'El tema se ha eliminado definitivamente.')
+      }
+      setTopicAction(null)
+      router.replace({ pathname: '/(teacher)/subject/[id]', params: { id: String(subject.id), tab: 'topics', ...(topic.classroomId ? { classroomId: String(topic.classroomId) } : {}) } } as never)
+    } catch (error) {
+      feedback.error(topicAction === 'archive' ? 'No se pudo archivar el tema' : topicAction === 'restore' ? 'No se pudo restaurar el tema' : 'No se pudo eliminar el tema', error instanceof Error ? error : 'Inténtalo de nuevo.')
     } finally {
-      setArchiveBusy(false)
+      setTopicBusy(false)
     }
   }
 
-  const handleDeleteQuestion = async () => {
-    if (!questionToDelete) return
-    setDeleteBusy(true)
+  const handleQuestionAction = async () => {
+    if (!questionAction) return
+    setQuestionBusy(true)
     try {
-      const { data, error } = await supabase.functions.invoke('teacher-delete-question', {
-        body: { questionId: questionToDelete.id },
-      })
-      if (error) throw error
-      if ((data as { error?: string } | null)?.error) throw new Error((data as { error: string }).error)
-      detail.removeQuestion(questionToDelete.id)
-      setQuestionToDelete(null)
+      if (questionAction.action === 'archive') {
+        await detail.setQuestionArchived(questionAction.question.id, true)
+        feedback.success('Pregunta archivada', 'La pregunta conserva sus resultados e histórico.')
+      } else if (questionAction.action === 'restore') {
+        await detail.setQuestionArchived(questionAction.question.id, false)
+        feedback.success('Pregunta restaurada', 'La pregunta vuelve a estar disponible para nuevas partidas.')
+      } else {
+        await detail.deleteQuestion(questionAction.question.id)
+        feedback.success('Pregunta eliminada', 'La pregunta se ha eliminado definitivamente.')
+      }
+      setQuestionAction(null)
+    } catch (error) {
+      feedback.error(questionAction.action === 'archive' ? 'No se pudo archivar la pregunta' : questionAction.action === 'restore' ? 'No se pudo restaurar la pregunta' : 'No se pudo eliminar la pregunta', error instanceof Error ? error : 'Inténtalo de nuevo.')
     } finally {
-      setDeleteBusy(false)
+      setQuestionBusy(false)
     }
   }
 
@@ -147,22 +166,44 @@ export default function TopicDetailScreen() {
             )}
             actions={(
               <View className="flex-row flex-wrap gap-2">
-                <AppButton
-                  label={isDesktop ? 'Editar' : ''}
-                  accessibilityLabel="Editar tema"
-                  icon="create-outline"
-                  variant="secondary"
-                  onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}` as never)}
-                />
-                <AppButton
-                  label={isDesktop ? 'Archivar' : ''}
-                  accessibilityLabel="Archivar tema"
-                  icon="archive-outline"
-                  variant="danger"
-                  disabled={!topic.active}
-                  onPress={() => setArchiveOpen(true)}
-                />
-                {isDesktop && addQuestionHref ? <TeacherTopicAddQuestionCTA href={addQuestionHref} isDesktop /> : null}
+                {topic.active ? (
+                  <>
+                    <AppButton
+                      label={isDesktop ? 'Editar' : ''}
+                      accessibilityLabel="Editar tema"
+                      icon="create-outline"
+                      variant="secondary"
+                      onPress={() => router.push(`/(teacher)/edit-topic?id=${topic.id}` as never)}
+                    />
+                    <AppButton
+                      label={isDesktop ? 'Archivar' : ''}
+                      accessibilityLabel="Archivar tema"
+                      accessibilityHint="Conserva preguntas e histórico y permite restaurar el tema más adelante"
+                      icon="archive-outline"
+                      variant="danger"
+                      onPress={() => setTopicAction('archive')}
+                    />
+                    {isDesktop && addQuestionHref ? <TeacherTopicAddQuestionCTA href={addQuestionHref} isDesktop /> : null}
+                  </>
+                ) : (
+                  <>
+                    <AppButton
+                      label={isDesktop ? 'Restaurar' : ''}
+                      accessibilityLabel="Restaurar tema"
+                      icon="refresh-outline"
+                      variant="secondary"
+                      onPress={() => setTopicAction('restore')}
+                    />
+                    <AppButton
+                      label={isDesktop ? 'Eliminar definitivamente' : ''}
+                      accessibilityLabel="Eliminar tema definitivamente"
+                      accessibilityHint="Solo se eliminará si no contiene histórico académico"
+                      icon="trash-outline"
+                      variant="danger"
+                      onPress={() => setTopicAction('delete')}
+                    />
+                  </>
+                )}
               </View>
             )}
           />
@@ -236,10 +277,14 @@ export default function TopicDetailScreen() {
               </View>
             ) : detail.questions.length === 0 ? (
               <View className="mt-5 items-center rounded-xl border border-dashed p-8" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}>
-                <Ionicons name="help-circle-outline" size={44} color={tokens.text.muted} />
-                <Text className="mt-3 text-center font-bold" style={{ color: tokens.text.primary }}>No hay preguntas con estos filtros</Text>
-                <Text className="mt-1 text-center text-[12px]" style={{ color: tokens.text.muted }}>Cambia los filtros o añade una nueva pregunta.</Text>
-                {addQuestionHref ? <AppButton label="Añadir pregunta" icon="add" role="teacher" style={{ marginTop: 18 }} onPress={() => router.push(addQuestionHref as never)} /> : null}
+                <Ionicons name={detail.visibility === 'archived' ? 'archive-outline' : 'help-circle-outline'} size={44} color={tokens.text.muted} />
+                <Text className="mt-3 text-center font-bold" style={{ color: tokens.text.primary }}>
+                  {detail.visibility === 'archived' ? 'No hay preguntas archivadas' : 'No hay preguntas con estos filtros'}
+                </Text>
+                <Text className="mt-1 text-center text-[12px]" style={{ color: tokens.text.muted }}>
+                  {detail.visibility === 'archived' ? 'Las preguntas que archives aparecerán aquí.' : 'Cambia los filtros o añade una nueva pregunta.'}
+                </Text>
+                {topic.active && detail.visibility !== 'archived' && addQuestionHref ? <AppButton label="Añadir pregunta" icon="add" role="teacher" style={{ marginTop: 18 }} onPress={() => router.push(addQuestionHref as never)} /> : null}
               </View>
             ) : (
               <View className="mt-5 gap-3">
@@ -250,7 +295,10 @@ export default function TopicDetailScreen() {
                     number={detail.page * detail.pageSize + index + 1}
                     onOpen={() => router.push(`/(teacher)/question-report/${question.id}` as never)}
                     onEdit={() => router.push(buildEditQuestionHref(question, subject.id, topic.classroomId, topic.id) as never)}
-                    onDelete={() => setQuestionToDelete(question)}
+                    parentTopicActive={topic.active}
+                    onArchive={() => setQuestionAction({ question, action: 'archive' })}
+                    onRestore={() => setQuestionAction({ question, action: 'restore' })}
+                    onDelete={() => setQuestionAction({ question, action: 'delete' })}
                   />
                 ))}
               </View>
@@ -268,27 +316,35 @@ export default function TopicDetailScreen() {
       </View>
 
       {!isDesktop ? <TeacherBottomNav active="classes" /> : null}
-      {!isDesktop && addQuestionHref ? <TeacherTopicAddQuestionCTA href={addQuestionHref} isDesktop={false} /> : null}
+      {!isDesktop && topic.active && addQuestionHref ? <TeacherTopicAddQuestionCTA href={addQuestionHref} isDesktop={false} /> : null}
 
       <AppConfirmModal
-        visible={archiveOpen}
-        busy={archiveBusy}
-        title="Archivar tema"
-        message="El tema y sus preguntas dejarán de estar disponibles para el alumnado. Los resultados históricos se conservarán."
-        confirmLabel="Archivar tema"
-        variant="danger"
-        onCancel={() => setArchiveOpen(false)}
-        onConfirm={handleArchive}
+        visible={Boolean(topicAction)}
+        busy={topicBusy}
+        title={topicAction === 'archive' ? 'Archivar tema' : topicAction === 'restore' ? 'Restaurar tema' : 'Eliminar tema definitivamente'}
+        message={topicAction === 'archive'
+          ? 'El tema dejará de estar disponible para los alumnos, pero conservará sus preguntas e histórico. Podrás restaurarlo posteriormente.'
+          : topicAction === 'restore'
+            ? 'El tema volverá a estar disponible. Las preguntas archivadas individualmente permanecerán archivadas.'
+            : 'Esta acción eliminará permanentemente el tema y sus preguntas que no tengan histórico asociado. No podrás recuperarlo.'}
+        confirmLabel={topicAction === 'archive' ? 'Archivar tema' : topicAction === 'restore' ? 'Restaurar' : 'Eliminar definitivamente'}
+        variant={topicAction === 'restore' ? 'info' : 'danger'}
+        onCancel={() => setTopicAction(null)}
+        onConfirm={() => { void handleTopicAction() }}
       />
       <AppConfirmModal
-        visible={Boolean(questionToDelete)}
-        busy={deleteBusy}
-        title="Eliminar pregunta"
-        message={`Se eliminará “${questionToDelete?.text || 'esta pregunta'}” y no podrá recuperarse.`}
-        confirmLabel="Eliminar"
-        variant="danger"
-        onCancel={() => setQuestionToDelete(null)}
-        onConfirm={handleDeleteQuestion}
+        visible={Boolean(questionAction)}
+        busy={questionBusy}
+        title={questionAction?.action === 'archive' ? 'Archivar pregunta' : questionAction?.action === 'restore' ? 'Restaurar pregunta' : 'Eliminar pregunta definitivamente'}
+        message={questionAction?.action === 'archive'
+          ? 'La pregunta dejará de utilizarse en nuevas partidas, pero conservará sus resultados e histórico. Podrás restaurarla posteriormente.'
+          : questionAction?.action === 'restore'
+            ? 'La pregunta volverá a estar disponible para nuevas partidas.'
+            : 'Esta acción eliminará permanentemente la pregunta y no podrás recuperarla. Solo puede eliminarse si no forma parte del histórico de ningún alumno.'}
+        confirmLabel={questionAction?.action === 'archive' ? 'Archivar' : questionAction?.action === 'restore' ? 'Restaurar' : 'Eliminar definitivamente'}
+        variant={questionAction?.action === 'restore' ? 'info' : 'danger'}
+        onCancel={() => setQuestionAction(null)}
+        onConfirm={() => { void handleQuestionAction() }}
       />
     </SafeAreaView>
   )
@@ -296,15 +352,19 @@ export default function TopicDetailScreen() {
 
 function LoadingState() { return <OmniLoadingScreen /> }
 
-function QuestionRow({ question, number, onOpen, onEdit, onDelete }: {
+function QuestionRow({ question, number, parentTopicActive, onOpen, onEdit, onArchive, onRestore, onDelete }: {
   question: TeacherTopicQuestion
   number: number
+  parentTopicActive: boolean
   onOpen: () => void
   onEdit: () => void
+  onArchive: () => void
+  onRestore: () => void
   onDelete: () => void
 }) {
   const { tokens } = useAppTheme()
   const difficulty = getDifficultyMeta(question.difficulty || 1)
+  const archived = question.active === false
   return (
     <View className="flex-row flex-wrap items-center gap-4 rounded-xl border p-4" style={{ borderColor: tokens.border.default, backgroundColor: tokens.surface.raised }}>
       <AppPressable
@@ -321,9 +381,9 @@ function QuestionRow({ question, number, onOpen, onEdit, onDelete }: {
         <View className="min-w-0 flex-1">
           <View className="flex-row flex-wrap items-center gap-2">
             <Text className="min-w-0 flex-1 font-semibold" style={{ color: tokens.text.primary }}>{question.text}</Text>
-            <View className="rounded-full px-2 py-1" style={{ backgroundColor: question.active ? tokens.semanticSurface.success : tokens.surface.interactive }}>
-              <Text className="text-[10px] font-black" style={{ color: question.active ? tokens.semantic.success : tokens.text.muted }}>
-                {question.active ? 'VISIBLE' : 'ARCHIVADA'}
+            <View className="rounded-full px-2 py-1" style={{ backgroundColor: archived ? tokens.surface.interactive : tokens.semanticSurface.success }}>
+              <Text className="text-[10px] font-black" style={{ color: archived ? tokens.text.muted : tokens.semantic.success }}>
+                {archived ? 'ARCHIVADA' : 'VISIBLE'}
               </Text>
             </View>
           </View>
@@ -338,8 +398,17 @@ function QuestionRow({ question, number, onOpen, onEdit, onDelete }: {
         </View>
       </AppPressable>
       <View className="flex-row flex-wrap gap-2">
-        <AppButton label="Editar" icon="create-outline" variant="secondary" onPress={onEdit} />
-        <AppButton label="Eliminar" icon="trash-outline" variant="danger" onPress={onDelete} />
+        {!archived ? (
+          <>
+            <AppButton label="Editar" accessibilityLabel={`Editar pregunta: ${question.text}`} icon="create-outline" variant="secondary" onPress={onEdit} />
+            <AppButton label="Archivar" accessibilityLabel={`Archivar pregunta: ${question.text}`} accessibilityHint="Conserva los resultados y el histórico" icon="archive-outline" variant="danger" onPress={onArchive} />
+          </>
+        ) : (
+          <>
+            <AppButton label="Restaurar" accessibilityLabel={`Restaurar pregunta: ${question.text}`} accessibilityHint={parentTopicActive ? 'Vuelve a habilitar la pregunta' : 'Restaura primero el tema para poder habilitar esta pregunta'} icon="refresh-outline" variant="secondary" disabled={!parentTopicActive} onPress={onRestore} />
+            <AppButton label="Eliminar definitivamente" accessibilityLabel={`Eliminar pregunta definitivamente: ${question.text}`} accessibilityHint="Solo se eliminará si no forma parte del histórico de ningún alumno" icon="trash-outline" variant="danger" onPress={onDelete} />
+          </>
+        )}
       </View>
     </View>
   )

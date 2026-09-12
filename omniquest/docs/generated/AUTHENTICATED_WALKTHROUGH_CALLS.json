@@ -1,6 +1,6 @@
 {
-  "generatedAt": "20260908120000_guest_play_only_sessions.sql",
-  "sourceFiles": 463,
+  "generatedAt": "20260912213000_teacher_topic_question_lifecycle.sql",
+  "sourceFiles": 468,
   "calls": [
     {
       "kind": "edge",
@@ -90,7 +90,7 @@
       "kind": "edge",
       "resource": "teacher-archive-subject",
       "path": "features/teacher-subject/api.ts",
-      "line": 42
+      "line": 88
     },
     {
       "kind": "edge",
@@ -101,20 +101,14 @@
     {
       "kind": "edge",
       "resource": "teacher-delete-question",
-      "path": "app/(teacher)/topic/[id].tsx",
-      "line": 93
-    },
-    {
-      "kind": "edge",
-      "resource": "teacher-delete-question",
       "path": "features/teacher-subject/api.ts",
-      "line": 35
+      "line": 50
     },
     {
       "kind": "edge",
       "resource": "teacher-delete-question",
       "path": "hooks/teacher/useQuestionReport.ts",
-      "line": 84
+      "line": 114
     },
     {
       "kind": "edge",
@@ -190,12 +184,6 @@
     },
     {
       "kind": "rpc",
-      "resource": "archive_teacher_topic",
-      "path": "hooks/teacher/useTeacherTopicDetail.ts",
-      "line": 108
-    },
-    {
-      "kind": "rpc",
       "resource": "assign_admin_role",
       "path": "components/admin/api/adminApi.ts",
       "line": 138
@@ -250,6 +238,24 @@
     },
     {
       "kind": "rpc",
+      "resource": "delete_teacher_question",
+      "path": "hooks/teacher/useTeacherTopicDetail.ts",
+      "line": 129
+    },
+    {
+      "kind": "rpc",
+      "resource": "delete_teacher_topic",
+      "path": "features/teacher-subject/api.ts",
+      "line": 72
+    },
+    {
+      "kind": "rpc",
+      "resource": "delete_teacher_topic",
+      "path": "hooks/teacher/useTeacherTopicDetail.ts",
+      "line": 120
+    },
+    {
+      "kind": "rpc",
       "resource": "discard_current_guest_session",
       "path": "lib/pushNotifications.ts",
       "line": 127
@@ -258,7 +264,7 @@
       "kind": "rpc",
       "resource": "duplicate_teacher_subject",
       "path": "features/teacher-subject/api.ts",
-      "line": 49
+      "line": 108
     },
     {
       "kind": "rpc",
@@ -276,7 +282,7 @@
       "kind": "rpc",
       "resource": "finish_game_attempt",
       "path": "hooks/useGame.ts",
-      "line": 266
+      "line": 276
     },
     {
       "kind": "rpc",
@@ -348,7 +354,7 @@
       "kind": "rpc",
       "resource": "get_admin_profile_activity_page",
       "path": "components/admin/users/AdminProfileActivityScreen.tsx",
-      "line": 77
+      "line": 76
     },
     {
       "kind": "rpc",
@@ -360,7 +366,7 @@
       "kind": "rpc",
       "resource": "get_admin_profiles_page",
       "path": "components/admin/users/AdminProfileActivityScreen.tsx",
-      "line": 59
+      "line": 58
     },
     {
       "kind": "rpc",
@@ -474,13 +480,13 @@
       "kind": "rpc",
       "resource": "get_manual_review_history",
       "path": "hooks/teacher/useManualReview.ts",
-      "line": 120
+      "line": 115
     },
     {
       "kind": "rpc",
       "resource": "get_manual_review_thread",
       "path": "hooks/teacher/useManualReview.ts",
-      "line": 120
+      "line": 115
     },
     {
       "kind": "rpc",
@@ -522,7 +528,7 @@
       "kind": "rpc",
       "resource": "get_safe_game_questions_v2",
       "path": "hooks/useGame.ts",
-      "line": 177
+      "line": 187
     },
     {
       "kind": "rpc",
@@ -630,7 +636,7 @@
       "kind": "rpc",
       "resource": "get_teacher_notification_settings",
       "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
-      "line": 68
+      "line": 69
     },
     {
       "kind": "rpc",
@@ -660,13 +666,19 @@
       "kind": "rpc",
       "resource": "get_teacher_question_affected_students_page",
       "path": "hooks/teacher/useQuestionReport.ts",
-      "line": 42
+      "line": 43
+    },
+    {
+      "kind": "rpc",
+      "resource": "get_teacher_question_affected_students_page",
+      "path": "lib/teacherQuestionReportExport.ts",
+      "line": 55
     },
     {
       "kind": "rpc",
       "resource": "get_teacher_question_report",
       "path": "hooks/teacher/useQuestionReport.ts",
-      "line": 36
+      "line": 37
     },
     {
       "kind": "rpc",
@@ -726,7 +738,7 @@
       "kind": "rpc",
       "resource": "get_teacher_subject_questions_page",
       "path": "hooks/teacher/subject/useTeacherSubjectQuestions.ts",
-      "line": 16
+      "line": 19
     },
     {
       "kind": "rpc",
@@ -738,7 +750,7 @@
       "kind": "rpc",
       "resource": "get_teacher_subject_topics_page",
       "path": "hooks/teacher/subject/useTeacherSubjectTopics.ts",
-      "line": 12
+      "line": 15
     },
     {
       "kind": "rpc",
@@ -756,7 +768,7 @@
       "kind": "rpc",
       "resource": "initialize_guest_profile",
       "path": "app/_layout.tsx",
-      "line": 188
+      "line": 186
     },
     {
       "kind": "rpc",
@@ -838,12 +850,6 @@
     },
     {
       "kind": "rpc",
-      "resource": "save_manual_review_template",
-      "path": "hooks/teacher/useManualReview.ts",
-      "line": 115
-    },
-    {
-      "kind": "rpc",
       "resource": "save_teacher_question_v2",
       "path": "components/teacher/question-form/useTeacherQuestionForm.ts",
       "line": 656
@@ -864,25 +870,25 @@
       "kind": "rpc",
       "resource": "set_teacher_course_notification_preference",
       "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
-      "line": 158
+      "line": 161
     },
     {
       "kind": "rpc",
       "resource": "set_teacher_digest_preference",
       "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
-      "line": 120
+      "line": 125
     },
     {
       "kind": "rpc",
       "resource": "set_teacher_notification_preferences",
       "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
-      "line": 94
+      "line": 100
     },
     {
       "kind": "rpc",
       "resource": "set_teacher_notifications_mute",
       "path": "hooks/teacher/useTeacherCommunicationSettings.ts",
-      "line": 140
+      "line": 144
     },
     {
       "kind": "rpc",
@@ -892,21 +898,57 @@
     },
     {
       "kind": "rpc",
+      "resource": "set_teacher_question_archived",
+      "path": "features/teacher-subject/api.ts",
+      "line": 43
+    },
+    {
+      "kind": "rpc",
+      "resource": "set_teacher_question_archived",
+      "path": "hooks/teacher/useQuestionReport.ts",
+      "line": 85
+    },
+    {
+      "kind": "rpc",
+      "resource": "set_teacher_question_archived",
+      "path": "hooks/teacher/useTeacherTopicDetail.ts",
+      "line": 124
+    },
+    {
+      "kind": "rpc",
       "resource": "set_teacher_support_preference",
       "path": "components/support/RoleHelpCenter.tsx",
       "line": 294
     },
     {
       "kind": "rpc",
+      "resource": "set_teacher_topic_archived",
+      "path": "features/teacher-subject/api.ts",
+      "line": 65
+    },
+    {
+      "kind": "rpc",
+      "resource": "set_teacher_topic_archived",
+      "path": "hooks/teacher/useTeacherTopicDetail.ts",
+      "line": 108
+    },
+    {
+      "kind": "rpc",
+      "resource": "set_teacher_topic_archived",
+      "path": "hooks/teacher/useTeacherTopicDetail.ts",
+      "line": 114
+    },
+    {
+      "kind": "rpc",
       "resource": "start_game_attempt",
       "path": "hooks/useGame.ts",
-      "line": 199
+      "line": 209
     },
     {
       "kind": "rpc",
       "resource": "submit_answer_resumable",
       "path": "hooks/useGame.ts",
-      "line": 425
+      "line": 435
     },
     {
       "kind": "rpc",
@@ -1080,13 +1122,13 @@
       "kind": "table",
       "resource": "profiles",
       "path": "app/_layout.tsx",
-      "line": 175
+      "line": 173
     },
     {
       "kind": "table",
       "resource": "profiles",
       "path": "app/_layout.tsx",
-      "line": 193
+      "line": 191
     },
     {
       "kind": "table",
@@ -1296,7 +1338,7 @@
       "kind": "table",
       "resource": "subjects",
       "path": "hooks/teacher/useQuestionReport.ts",
-      "line": 59
+      "line": 60
     },
     {
       "kind": "table",
@@ -1416,7 +1458,6 @@
     "admin_cancel_push_delivery",
     "admin_retry_push_delivery",
     "admin_update_support_ticket_secured",
-    "archive_teacher_topic",
     "assign_admin_role",
     "batch_review_manual_attempts",
     "cancel_account_deletion",
@@ -1426,6 +1467,8 @@
     "create_teacher_notification",
     "deactivate_push_token",
     "delete_notifications",
+    "delete_teacher_question",
+    "delete_teacher_topic",
     "discard_current_guest_session",
     "duplicate_teacher_subject",
     "ensure_default_classroom",
@@ -1517,7 +1560,6 @@
     "review_manual_review_attempt",
     "revoke_admin_role",
     "save_manual_review_settings",
-    "save_manual_review_template",
     "save_teacher_question_v2",
     "search_app_entities",
     "set_analytics_consent",
@@ -1525,7 +1567,9 @@
     "set_teacher_digest_preference",
     "set_teacher_notification_preferences",
     "set_teacher_notifications_mute",
+    "set_teacher_question_archived",
     "set_teacher_support_preference",
+    "set_teacher_topic_archived",
     "start_game_attempt",
     "submit_answer_resumable",
     "sync_student_badges",

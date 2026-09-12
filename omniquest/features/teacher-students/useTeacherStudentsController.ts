@@ -2,10 +2,11 @@ import { useCallback, useMemo, useState } from 'react'
 import { Platform } from 'react-native'
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
 import { fetchTeacherStudentsPage, removeStudentFromClasses, resetStudentProgress, sendTeacherStudentMessage, signOutTeacherStudents } from './api'
-import { buildStudentActivityRoute, buildStudentHistoryRoute, buildTeacherStudentPageView, buildTeacherStudentsCsv, parsePositiveNumberParam, parseStudentStatusParam } from './model'
+import { buildStudentActivityRoute, buildStudentHistoryRoute, buildTeacherStudentPageView, parsePositiveNumberParam, parseStudentStatusParam } from './model'
 import { useTeacherStudentsPage } from './useTeacherStudentsPage'
 import type { ConfirmDialog, StudentRow, StudentStatusFilter } from './types'
 import { useAppFeedback } from '../../hooks/useAppFeedback'
+import { exportTeacherStudentsXlsx } from './export'
 
 export function useTeacherStudentsController(pageSize: number) {
   const router = useRouter()
@@ -29,7 +30,7 @@ export function useTeacherStudentsController(pageSize: number) {
   const selectedClassroomSubject = selectedClassroom ? directory.subjects.find((subject) => subject.id === selectedClassroom.subject_id) || null : null
   const scopeSubjectName = selectedSubject?.name || selectedClassroomSubject?.name || null
   const scopeLabel = selectedClassroom ? `${scopeSubjectName || 'Curso'} · ${selectedClassroom.name}` : scopeSubjectName || 'todos los cursos mostrados'
-  const xpScopeLabel = selectedClassroom ? `XP en ${scopeLabel}` : scopeSubjectName ? `XP en ${scopeSubjectName}` : 'XP en cursos seleccionados'
+  const xpScopeLabel = selectedClassroom ? `Puntuación en ${scopeLabel}` : scopeSubjectName ? `Puntuación en ${scopeSubjectName}` : 'Puntuación en cursos seleccionados'
 
   const loadAllStudents = useCallback(async (statusOverride?: StudentStatusFilter) => {
     const collected: StudentRow[] = []
@@ -162,7 +163,7 @@ export function useTeacherStudentsController(pageSize: number) {
 
   const exportStudents = useCallback(async (statusOverride?: StudentStatusFilter) => {
     if (Platform.OS !== 'web') {
-      feedback.warning('Exportación disponible en web', 'La descarga CSV está disponible desde la versión web.')
+      feedback.warning('Exportación disponible en web', 'La descarga del informe de alumnos está disponible desde la versión web.')
       return
     }
     try {
@@ -171,20 +172,24 @@ export function useTeacherStudentsController(pageSize: number) {
         feedback.warning('Sin datos', 'No hay alumnos en la selección actual para exportar.')
         return
       }
-      const blob = new Blob([`\uFEFF${buildTeacherStudentsCsv(students)}`], { type: 'text/csv;charset=utf-8;' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      const suffix = statusOverride === 'no_activity' ? 'sin_actividad' : 'seleccion'
-      link.download = `omniquest_alumnos_${suffix}_${new Date().toISOString().slice(0, 10)}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
+      const exportStatus = statusOverride || directory.selectedStatus
+      const exportedAt = new Date()
+      const result = await exportTeacherStudentsXlsx(students, {
+        subjectName: scopeSubjectName,
+        classroomName: selectedClassroom?.name || null,
+        scopeLabel,
+        scoreScopeLabel: xpScopeLabel,
+        status: exportStatus,
+        sort: directory.selectedSort,
+        search: directory.search.trim(),
+        exportedAt,
+        kind: statusOverride === 'no_activity' ? 'no_activity' : 'selection',
+      })
+      feedback.success('Informe exportado', `Se han exportado ${result.count} alumno${result.count === 1 ? '' : 's'} en formato Excel.`)
     } catch (error) {
       feedback.error('No se pudo exportar', error instanceof Error ? error : 'Inténtalo de nuevo más tarde.')
     }
-  }, [feedback, loadAllStudents])
+  }, [directory.search, directory.selectedSort, directory.selectedStatus, feedback, loadAllStudents, scopeLabel, scopeSubjectName, selectedClassroom?.name, xpScopeLabel])
 
   const exportCurrentSelection = useCallback(() => { void exportStudents() }, [exportStudents])
   const exportNoActivity = useCallback(() => { void exportStudents('no_activity') }, [exportStudents])

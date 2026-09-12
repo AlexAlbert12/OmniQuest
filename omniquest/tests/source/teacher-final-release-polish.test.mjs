@@ -27,10 +27,10 @@ test('topic detail removes the redundant deadline shortcut and question rows ope
   assert.match(topic, /Abrir informe de la pregunta:/)
   assert.match(topic, /question-report\/\$\{question\.id\}/)
   assert.match(topic, /label="Editar"/)
-  assert.match(topic, /label="Eliminar"/)
+  assert.match(topic, /label="Eliminar definitivamente"/)
 })
 
-test('course students open contextual history and course questions open their report without removing edit/delete', () => {
+test('course students open contextual history and course questions separate report, edit, archive, restore and permanent delete', () => {
   const subject = read('app/(teacher)/subject/[id].tsx')
   const students = read('components/teacher/subject/SubjectStudentsTab.tsx')
   const questions = read('components/teacher/subject/SubjectQuestionsTab.tsx')
@@ -42,7 +42,9 @@ test('course students open contextual history and course questions open their re
   assert.match(questions, /Abrir informe de la pregunta:/)
   assert.match(questions, /question-report\/\$\{question\.id\}/)
   assert.match(questions, /Editar pregunta:/)
-  assert.match(questions, /Eliminar pregunta:/)
+  assert.match(questions, /Archivar pregunta:/)
+  assert.match(questions, /Restaurar pregunta:/)
+  assert.match(questions, /Eliminar pregunta definitivamente:/)
 })
 
 test('affected students include profile avatars through the secured paged RPC', () => {

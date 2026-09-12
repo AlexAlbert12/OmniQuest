@@ -31,8 +31,45 @@ export async function createTeacherTopic(input: {
   return result.topic
 }
 
+export async function archiveTeacherQuestion(questionId: number) {
+  await setTeacherQuestionArchived(questionId, true)
+}
+
+export async function restoreTeacherQuestion(questionId: number) {
+  await setTeacherQuestionArchived(questionId, false)
+}
+
+async function setTeacherQuestionArchived(questionId: number, archived: boolean) {
+  const { data, error } = await supabase.rpc('set_teacher_question_archived', { p_question_id: questionId, p_archived: archived })
+  if (error) throw error
+  const result = (data || {}) as { error?: string }
+  if (result.error) throw new Error(result.error)
+}
+
 export async function deleteTeacherQuestion(questionId: number) {
   const { data, error } = await supabase.functions.invoke('teacher-delete-question', { body: { questionId } })
+  if (error) throw new Error(await getEdgeFunctionErrorMessage(error, 'No se pudo eliminar la pregunta definitivamente.'))
+  const result = (data || {}) as { error?: string }
+  if (result.error) throw new Error(result.error)
+}
+
+export async function archiveTeacherTopic(topicId: number) {
+  await setTeacherTopicArchived(topicId, true)
+}
+
+export async function restoreTeacherTopic(topicId: number) {
+  await setTeacherTopicArchived(topicId, false)
+}
+
+async function setTeacherTopicArchived(topicId: number, archived: boolean) {
+  const { data, error } = await supabase.rpc('set_teacher_topic_archived', { p_topic_id: topicId, p_archived: archived })
+  if (error) throw error
+  const result = (data || {}) as { error?: string }
+  if (result.error) throw new Error(result.error)
+}
+
+export async function deleteTeacherTopic(topicId: number) {
+  const { data, error } = await supabase.rpc('delete_teacher_topic', { p_topic_id: topicId })
   if (error) throw error
   const result = (data || {}) as { error?: string }
   if (result.error) throw new Error(result.error)

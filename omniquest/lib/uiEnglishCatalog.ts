@@ -1,4 +1,7 @@
 export const uiEnglishCatalog: Record<string, string> = {
+  "Informe exportado": "Report exported",
+  "La descarga del informe de alumnos está disponible desde la versión web.": "The student report can be downloaded from the web version.",
+  "Puntuación": "Score",
   '12 meses': '12 months',
   'Abiertos': 'Open',
   'Administrador global': 'Global administrator',

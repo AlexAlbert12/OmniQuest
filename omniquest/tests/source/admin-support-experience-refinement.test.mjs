@@ -17,6 +17,9 @@ test('admin support uses compact responsive filters and keeps the ticket queue a
   assert.match(screen, /const showQueue = isDesktop \|\| !selectedTicket/)
   assert.match(screen, /Volver a soporte/)
   assert.match(screen, /Volver a la cola/)
+  assert.match(screen, /label="Volver a la cola" role="admin"/)
+  assert.match(screen, /Prioridad[\s\S]*useDefaultBorder[\s\S]*Etiquetas[\s\S]*useDefaultBorder/)
+  assert.match(primitives, /borderColor: useDefaultBorder \? tokens\.border\.default/)
   assert.match(advancedFilters, /export function AdminMobileFilterShell/)
 })
 
