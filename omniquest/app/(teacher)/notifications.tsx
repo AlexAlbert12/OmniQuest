@@ -124,8 +124,8 @@ export default function TeacherNotificationsScreen() {
       ) : null}
 
       <View style={{ marginBottom: 12, flexDirection: 'row', flexWrap: responsive.isDesktop ? 'wrap' : 'nowrap', gap: responsive.isDesktop ? 10 : 8 }}>
-        <MobileMetricCard compact dense={!responsive.isDesktop} className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} semantic="attention" label={responsive.isDesktop ? 'Pendientes de revisar' : 'Pendientes'} value={notifications.summary.pendingReviews} onPress={() => router.push('/(teacher)/reviews' as never)} />
-        <MobileMetricCard compact dense={!responsive.isDesktop} className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} icon="time" color={tokens.semantic.info} label="Sin actividad" value={notifications.summary.inactiveStudents} onPress={() => router.push('/(teacher)/students?status=no_activity' as never)} />
+        <MobileMetricCard compact dense={!responsive.isDesktop} className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} semantic="attention" label={responsive.isDesktop ? 'Revisiones pendientes' : 'Pendientes'} value={notifications.summary.pendingReviews} onPress={() => router.push('/(teacher)/reviews' as never)} />
+        <MobileMetricCard compact dense={!responsive.isDesktop} className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} icon="time" color={tokens.semantic.info} label="Alumnos sin actividad" value={notifications.summary.inactiveStudents} onPress={() => router.push('/(teacher)/students?status=no_activity' as never)} />
         <MobileMetricCard compact dense={!responsive.isDesktop} className={responsive.isDesktop ? 'min-w-[165px] flex-1' : 'min-w-0 flex-1'} semantic="audit" label={responsive.isDesktop ? 'Alertas de auditoría' : 'Alertas'} value={notifications.summary.sensitiveActions} onPress={() => router.push('/(teacher)/audit' as never)} />
       </View>
 

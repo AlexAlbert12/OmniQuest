@@ -12,6 +12,11 @@ export function buildTeacherCourseItems(rows: TeacherCourseRow[]): TeacherCatalo
       code: row.code,
       theme_color: row.themeColor,
       created_at: row.createdAt,
+      active: row.active,
+      is_archived: row.isArchived,
+      archived_at: row.archivedAt,
+      archive_reason: row.archiveReason,
+      retention_until: row.retentionUntil,
       analytics: row.analytics,
     },
   }))

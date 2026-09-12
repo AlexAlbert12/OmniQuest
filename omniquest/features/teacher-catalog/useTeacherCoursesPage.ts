@@ -7,7 +7,7 @@ import type { TeacherCourseFilter, TeacherCourseSort } from './types'
 const EMPTY: TeacherCoursesPayload = {
   items: [], total: 0, limit: 12, offset: 0,
   summary: {
-    courses: 0, students: 0, activeStudents: 0, questions: 0, played: 0,
+    courses: 0, archivedCourses: 0, students: 0, activeStudents: 0, questions: 0, played: 0,
     answeredQuestions: 0, availableQuestions: 0, weightedScore: 0,
     enrolledThisWeek: 0, activeStudentsThisWeek: 0, playedThisWeek: 0, questionsThisWeek: 0,
   },
@@ -46,6 +46,20 @@ export function useTeacherCoursesPage({ page, pageSize, search, status, sort, en
     }
   }, [enabled, page, pageSize, search, sort, status])
 
+  const markCourseRestored = useCallback((courseId: number) => {
+    setPayload((current) => ({
+      ...current,
+      items: current.items.filter((course) => course.id !== courseId),
+      total: Math.max(0, current.total - 1),
+      summary: {
+        ...current.summary,
+        courses: current.summary.courses + 1,
+        archivedCourses: Math.max(0, current.summary.archivedCourses - 1),
+      },
+    }))
+  }, [])
+
   useFocusEffect(useCallback(() => { void load(false) }, [load]))
-  return { ...payload, error, loading, refreshing, refresh: () => { void load(true) } }
+  const refresh = useCallback(() => load(true), [load])
+  return { ...payload, error, loading, refreshing, markCourseRestored, refresh }
 }

@@ -39,15 +39,37 @@ export async function deleteTeacherQuestion(questionId: number) {
 }
 
 export async function archiveTeacherSubject(subjectId: number) {
-  const { data, error } = await supabase.functions.invoke('teacher-archive-subject', { body: { archive: true, subjectId } })
-  if (error) throw error
+  await setTeacherSubjectArchived(subjectId, true)
+}
+
+export async function restoreTeacherSubject(subjectId: number) {
+  await setTeacherSubjectArchived(subjectId, false)
+}
+
+async function setTeacherSubjectArchived(subjectId: number, archive: boolean) {
+  const fallback = archive ? 'No se pudo archivar el curso.' : 'No se pudo restaurar el curso.'
+  const { data, error } = await supabase.functions.invoke('teacher-archive-subject', { body: { archive, subjectId } })
+  if (error) throw new Error(await getEdgeFunctionErrorMessage(error, fallback))
   const result = (data || {}) as { error?: string }
   if (result.error) throw new Error(result.error)
 }
 
+async function getEdgeFunctionErrorMessage(error: unknown, fallback: string) {
+  const context = (error as { context?: { json?: () => Promise<unknown> } } | null)?.context
+  if (typeof context?.json === 'function') {
+    try {
+      const payload = await context.json()
+      if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') return payload.error
+    } catch {
+      // The response body is not always available after supabase-js handles it.
+    }
+  }
+  return error instanceof Error && error.message ? error.message : fallback
+}
+
 export async function duplicateTeacherSubject(subjectId: number) {
   const { data, error } = await supabase.rpc('duplicate_teacher_subject', { p_subject_id: subjectId, p_name_suffix: ' (Copia)' })
-  if (error) throw error
+  if (error) throw new Error(error.message || 'No se pudo duplicar el curso.')
   const id = data && typeof data === 'object' && !Array.isArray(data) ? Number((data as { id?: number }).id) : 0
   if (!id) throw new Error('No se pudo obtener el curso duplicado.')
   return id

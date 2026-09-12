@@ -115,6 +115,19 @@ test('duplicate-course modal exposes async loading while the operation is runnin
   assert.match(hook, /\{ label: 'Duplicar', role: 'primary', onPress: handleDuplicate \}/)
 })
 
+test('duplicate-course RPC maps copied relations in memory and surfaces database errors', () => {
+  const migration = read('supabase/migrations/20260912123000_finalize_teacher_subject_duplication.sql')
+  const api = read('features/teacher-subject/api.ts')
+  assert.match(migration, /v_classroom_id_map jsonb := '\{\}'::jsonb/)
+  assert.match(migration, /v_topic_id_map jsonb := '\{\}'::jsonb/)
+  assert.doesNotMatch(migration, /create temporary table/)
+  assert.match(migration, /jsonb_build_object\(v_classroom\.id::text, v_new_classroom_id\)/)
+  assert.match(migration, /where answer\.question_id = v_question\.id/)
+  assert.match(migration, /available_until/)
+  assert.match(migration, /v_question\.hint/)
+  assert.match(api, /if \(error\) throw new Error\(error\.message \|\| 'No se pudo duplicar el curso\.'\)/)
+})
+
 test('course detail mobile header gives the course identity its own row and keeps the active classroom above every tab', () => {
   const screen = read('app/(teacher)/subject/[id].tsx')
   const header = read('components/ui/RolePageHeader.tsx')

@@ -6,6 +6,11 @@ export type TeacherCourse = {
   code: string
   theme_color: string | null
   created_at?: string | null
+  active?: boolean
+  is_archived?: boolean
+  archived_at?: string | null
+  archive_reason?: string | null
+  retention_until?: string | null
 }
 
 export type TeacherCourseAnalytics = {

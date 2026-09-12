@@ -267,7 +267,7 @@ export function useTeacherSubjectDetail({ subjectId, tab, classroomId }: { subje
     if (!subject) return
     showModal({
       title: 'Archivar curso',
-      message: 'El curso se ocultará de los cursos activos.',
+      message: 'El curso dejará de aparecer entre tus cursos activos y los alumnos no podrán iniciar nuevas partidas. No se eliminarán alumnos, preguntas, resultados ni el histórico. Podrás restaurarlo posteriormente desde Cursos > Archivados.',
       variant: 'warning',
       buttons: [
         { label: 'Cancelar', role: 'cancel' },

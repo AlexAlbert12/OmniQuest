@@ -1,7 +1,7 @@
 import type { Ionicons } from '@expo/vector-icons'
 import type { TeacherClassroom, TeacherClassroomAnalytics, TeacherCourse, TeacherCourseAnalytics } from '../../components/teacher/classes/types'
 
-export type TeacherCourseFilter = 'all' | 'unconfigured' | 'no_activity' | 'in_progress' | 'completed'
+export type TeacherCourseFilter = 'all' | 'unconfigured' | 'no_activity' | 'in_progress' | 'completed' | 'archived'
 export type TeacherCourseSort = 'recent' | 'name' | 'participation'
 export type TeacherCatalogTab = 'courses' | 'classrooms'
 
@@ -17,6 +17,7 @@ export const teacherCourseFilters: { key: TeacherCourseFilter; label: string; ic
   { key: 'no_activity', label: 'Sin actividad', icon: 'pause-circle-outline' },
   { key: 'in_progress', label: 'En curso', icon: 'time-outline' },
   { key: 'completed', label: 'Completadas', icon: 'checkmark-done-outline' },
+  { key: 'archived', label: 'Archivados', icon: 'archive-outline' },
 ]
 
 export const teacherCourseSorts: { key: TeacherCourseSort; label: string }[] = [

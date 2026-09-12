@@ -23,6 +23,11 @@ export type TeacherCourseRow = {
   code: string
   themeColor: string | null
   createdAt: string | null
+  active: boolean
+  isArchived: boolean
+  archivedAt: string | null
+  archiveReason: string | null
+  retentionUntil: string | null
   status: 'unconfigured' | 'no_activity' | 'in_progress' | 'completed'
   analytics: TeacherCourseAnalytics
 }
@@ -129,6 +134,7 @@ export type PagedPayload<T> = {
 export type TeacherCoursesPayload = PagedPayload<TeacherCourseRow> & {
   summary: {
     courses: number
+    archivedCourses: number
     students: number
     activeStudents: number
     questions: number
