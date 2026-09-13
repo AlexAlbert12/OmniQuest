@@ -4,7 +4,7 @@
 
 ## Resumen
 
-- Migraciones: **117**
+- Migraciones: **118**
 - Tablas públicas detectadas: **65**
 - Funciones/RPC públicas detectadas: **251**
 - Edge Functions: **34**
