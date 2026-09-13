@@ -122,6 +122,7 @@ MAIL_FROM=OmniQuest Demo <demo@dominio-verificado.example>
 ADMIN_EXPORT_QUEUE_SECRET=omniquest-demo-export
 SITE_URL=http://127.0.0.1:8081
 PASSWORD_RESET_REDIRECT_TO=http://127.0.0.1:8081/update-password
+ADMIN_INVITE_REDIRECT_TO=http://127.0.0.1:8081/update-password
 ```
 
 Servir las funciones con esas variables en una terminal independiente:

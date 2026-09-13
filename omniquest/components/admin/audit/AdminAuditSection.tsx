@@ -13,13 +13,13 @@ import { getErrorMessage, isRecord } from '../../../lib/typeGuards'
 import { useResponsiveLayout } from '../../../lib/responsive'
 import { useAppTheme } from '../../../lib/appTheme'
 import { useAdminData } from '../hooks/useAdminData'
-import { useAdminExportJobs } from '../hooks/useAdminExportJobs'
 import { useAdminRpcPage } from '../hooks/useAdminRpcPage'
 import { AdminScaffold } from '../shared/AdminScaffold'
 import { AdminPaginationControls, EmptyState, ListLoadingState, MiniPill, Panel } from '../shared/AdminPrimitives'
 import { AuditLogCard, AuditTechnicalDetailsSheet } from './AdminAuditComponents'
 import type { AdminAuditLogRow } from '../types/admin'
-import { formatAuditDate, getAuditActionLabel, getAuditTargetTypeLabel, getSearchParam } from '../utils/adminUtils'
+import { exportAdminAudit } from '../../../lib/adminExports'
+import { formatAuditDate, getAuditActionLabel, getAuditTargetTypeLabel, getSearchParam, runAdminExport } from '../utils/adminUtils'
 
 type AuditPolicy = { retention_months?: number; capture_request_context?: boolean; strong_integrity?: boolean; append_only?: boolean; partitioned?: boolean; context_storage?: string; retention_checkpoints?: boolean }
 type IntegrityResult = { valid?: boolean; checked_rows?: number; first_invalid_id?: number | null; verified_at?: string }
@@ -30,7 +30,6 @@ export function AdminAuditSection() {
   const auditPageSize = responsive.isDesktop ? 25 : 8
   const feedback = useAppFeedback()
   const data = useAdminData()
-  const exportJobs = useAdminExportJobs()
   const canExport = data.portalContext?.permissions.includes('audit.export') === true
   const { directory } = useAdminDirectoryFilters()
   const params = useLocalSearchParams<{ targetTable?: string; targetId?: string; actorId?: string; search?: string }>()
@@ -48,6 +47,7 @@ export function AdminAuditSection() {
   const [showPolicyTechnical, setShowPolicyTechnical] = useState(false)
   const [integrity, setIntegrity] = useState<IntegrityResult | null>(null)
   const [verifying, setVerifying] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [technicalLog, setTechnicalLog] = useState<AdminAuditLogRow | null>(null)
 
@@ -88,7 +88,7 @@ export function AdminAuditSection() {
   const activeFilterCount = activeFilters.length
 
   const clearFilters = useCallback(() => { setActorId(''); setAction(''); setEntity(''); setTargetId(''); setSeverity(''); setCreatedFrom(''); setCreatedTo('') }, [])
-  const handleExport = useCallback(() => exportJobs.request('audit', { search, actorId: actorId || null, action: action || null, targetTable: entity || null, targetId: targetId || null, from: toAdminFilterTimestamp(createdFrom), to: toAdminFilterTimestamp(createdTo, true), severity: severity || null }), [action, actorId, createdFrom, createdTo, entity, exportJobs, search, severity, targetId])
+  const handleExport = useCallback(() => runAdminExport(feedback, setExporting, () => exportAdminAudit({ search, actorId: actorId || null, action: action || null, targetTable: entity || null, targetId: targetId || null, from: toAdminFilterTimestamp(createdFrom), to: toAdminFilterTimestamp(createdTo, true), severity: severity || null })), [action, actorId, createdFrom, createdTo, entity, feedback, search, severity, targetId])
   const verifyIntegrity = useCallback(async () => {
     setVerifying(true)
     try {
@@ -115,7 +115,7 @@ export function AdminAuditSection() {
     <AdminFilterSelect label="Severidad" icon="warning-outline" value={severity} onChange={setSeverity} options={severityOptions} minWidth={mobile ? 0 : 180} />
     <AdminDateRangeFields from={createdFrom} to={createdTo} onChangeFrom={setCreatedFrom} onChangeTo={setCreatedTo} />
   </>
-  const mobileExportAction = canExport ? <View style={{ flex: 1 }}><AdminButton label={exportJobs.loading ? 'Preparando...' : 'Exportar CSV'} icon="download-outline" variant="secondary" loading={exportJobs.loading} disabled={exportJobs.loading} fullWidth onPress={() => void handleExport()} /></View> : undefined
+  const mobileExportAction = canExport ? <View style={{ flex: 1 }}><AdminButton label={exporting ? 'Preparando...' : 'Exportar Excel'} icon="download-outline" variant="secondary" loading={exporting} disabled={exporting} fullWidth onPress={() => void handleExport()} /></View> : undefined
 
   return (
     <AdminScaffold activeSection="audit" title="Auditoría" subtitle="Consulta y verifica los cambios administrativos registrados en el portal." data={data}>
@@ -134,7 +134,7 @@ export function AdminAuditSection() {
       </Panel>
 
       <Panel title="Registro de auditoría" icon="shield-checkmark-outline" className="mt-5">
-        <AdminSearchBar search={search} onChangeSearch={setSearch} placeholder="Buscar actor, acción, contenido o cambios..." exporting={exportJobs.loading} onExport={!responsive.isMobile && canExport ? () => void handleExport() : undefined} />
+        <AdminSearchBar search={search} onChangeSearch={setSearch} placeholder="Buscar actor, acción, contenido o cambios..." exporting={exporting} exportLabel="Exportar Excel" onExport={!responsive.isMobile && canExport ? () => void handleExport() : undefined} />
         {!responsive.isMobile ? <View className="mt-4 flex-row flex-wrap items-end gap-3">{filterFields(false)}</View> : <AdminMobileFilterShell actionFirst activeFilters={activeFilters} applyLabel="Aplicar" mobileAction={mobileExportAction} onClear={clearFilters} open={mobileFiltersOpen} setOpen={setMobileFiltersOpen} description="Refina el registro por usuario, acción, entidad, severidad y fechas.">{filterFields(true)}</AdminMobileFilterShell>}
         {targetId ? <View className="mt-3 flex-row flex-wrap items-center justify-between gap-3 rounded-xl border border-border-active bg-surface-interactive px-4 py-3"><Text className="min-w-0 flex-1 text-[12px] font-bold text-text-secondary">Auditoría relacionada con {getAuditTargetTypeLabel(entity)} · referencia {targetId.length > 18 ? `…${targetId.slice(-12)}` : targetId}</Text><AdminButton label="Quitar relación" size="sm" variant="ghost" icon="close" onPress={() => setTargetId('')} /></View> : null}
         {!responsive.isMobile && activeFilterCount > 0 ? <View className="mt-3 flex-row items-center justify-between gap-3"><Text className="text-[11px] font-bold text-text-muted">{activeFilterCount} {activeFilterCount === 1 ? 'filtro avanzado activo' : 'filtros avanzados activos'}</Text><AdminButton label="Limpiar filtros" size="sm" variant="ghost" icon="refresh-outline" onPress={clearFilters} /></View> : null}

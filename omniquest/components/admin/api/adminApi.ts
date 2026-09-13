@@ -6,6 +6,7 @@ import type {
   AdminBulkAction,
   AdminBulkEntity,
   AdminExportJob,
+  AdminInviteResult,
   AdminPortalContext,
   AdminPushDeliveryDetail,
   AdminPushDeliveryMetrics,
@@ -154,6 +155,10 @@ export async function fetchAdminRoleAssignments(limit = 50, offset = 0) {
   const { data, error } = await supabase.rpc('get_admin_role_assignments_page', { p_limit: limit, p_offset: offset })
   if (error) throw error
   return (data || []) as unknown as import('../types/admin').AdminRoleAssignmentRow[]
+}
+
+export async function inviteAdmin(input: { email: string; alias: string; roleId: string; reason: string }) {
+  return invokeAdminAction<AdminInviteResult>('admin-invite-admin', input)
 }
 
 export async function assignAdminRole(userId: string, roleId: string, reason: string) {

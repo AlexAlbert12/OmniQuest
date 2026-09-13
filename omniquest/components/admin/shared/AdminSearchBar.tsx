@@ -7,12 +7,14 @@ export default function AdminSearchBar({
   placeholder,
   exporting = false,
   onExport,
+  exportLabel,
 }: {
   search: string
   onChangeSearch: (value: string) => void
   placeholder: string
   exporting?: boolean
   onExport?: () => void
+  exportLabel?: string
 }) {
   return (
     <AdminListToolbar
@@ -21,6 +23,7 @@ export default function AdminSearchBar({
       placeholder={placeholder}
       exporting={exporting}
       onExport={onExport}
+      exportLabel={exportLabel}
     />
   )
 }

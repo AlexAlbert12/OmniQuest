@@ -17,12 +17,12 @@ import VirtualizedStack from '../../ui/VirtualizedStack'
 import AppBackButton from '../../ui/AppBackButton'
 import { AdminFilterSelect, AdminMobileFilterShell } from '../shared/AdminAdvancedFilters'
 import { useAdminData } from '../hooks/useAdminData'
-import { useAdminExportJobs } from '../hooks/useAdminExportJobs'
 import { useAdminRpcPage } from '../hooks/useAdminRpcPage'
 import { AdminScaffold } from '../shared/AdminScaffold'
 import { AdminChoiceChip, AdminPaginationControls, EmptyState, ListLoadingState, MiniPill, Panel, SupportPriorityPill, SupportSlaPill, SupportStatusPill, SupportTicketCard, type AdminChoiceChipTone } from '../shared/AdminPrimitives'
 import type { AdminSupportTicketRow } from '../types/admin'
-import { formatAdminCount, formatAuditDate, getSupportStatusLabel } from '../utils/adminUtils'
+import { exportAdminSupport } from '../../../lib/adminExports'
+import { formatAdminCount, formatAuditDate, getSupportStatusLabel, runAdminExport } from '../utils/adminUtils'
 
 const EMPTY_DIRECTORY: SupportDirectory = { admins: [], tags: [], templates: [] }
 const STATUS_OPTIONS = [{ value: 'all', label: 'Todos' }, { value: 'open', label: 'Abiertos' }, { value: 'in_progress', label: 'En proceso' }, { value: 'resolved', label: 'Resueltos' }, { value: 'closed', label: 'Cerrados' }]
@@ -47,7 +47,6 @@ export function AdminSupportSection() {
     { value: 'low', label: t('support.priority.low') },
   ], [locale, t])
   const data = useAdminData()
-  const exportJobs = useAdminExportJobs()
   const canRead = Boolean(data.portalContext?.permissions.includes('support.read'))
   const canManage = Boolean(data.portalContext?.permissions.includes('support.manage'))
   const [directory, setDirectory] = useState<SupportDirectory>(EMPTY_DIRECTORY)
@@ -70,6 +69,7 @@ export function AdminSupportSection() {
   const [internalComment, setInternalComment] = useState('')
   const [pickedAttachment, setPickedAttachment] = useState<PickedSupportAttachment | null>(null)
   const [saving, setSaving] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [threadLoading, setThreadLoading] = useState(false)
   const [messages, setMessages] = useState<SupportMessage[]>([])
   const [attachments, setAttachments] = useState<SupportAttachment[]>([])
@@ -181,6 +181,7 @@ export function AdminSupportSection() {
   }, [adminResponse, assignedAdminId, canManage, data, directory.admins, directory.tags, editPriority, editStatus, feedback, internalComment, loadThread, pickedAttachment, selectedTagSlugs, selectedTicket, supportPage, templateId])
 
   const exportFilters = useMemo(() => ({ search: debouncedSearch, status: statusFilter === 'all' ? null : statusFilter, priority: priorityFilter === 'all' ? null : priorityFilter, role: roleFilter === 'all' ? null : roleFilter, assignedAdminId: assigneeFilter === 'all' ? null : assigneeFilter, tag: tagFilter === 'all' ? null : tagFilter, slaState: slaFilter === 'all' ? null : slaFilter }), [assigneeFilter, debouncedSearch, priorityFilter, roleFilter, slaFilter, statusFilter, tagFilter])
+  const handleExport = useCallback(() => runAdminExport(feedback, setExporting, () => exportAdminSupport(exportFilters)), [exportFilters, feedback])
   const notifiesUser = Boolean(adminResponse.trim()) || selectedTicket?.status !== editStatus
   const currentAdminId = data.portalContext?.user_id || ''
   const assigneeOptions = useMemo(() => {
@@ -210,7 +211,7 @@ export function AdminSupportSection() {
     return <View className={stacked ? 'gap-4' : 'flex-row flex-wrap gap-3'}>{configs.map((config) => <View key={config.key} style={stacked ? undefined : { minWidth: 240, flexBasis: 250, flexGrow: 1 }}><AdminFilterSelect minWidth={0} label={config.label} icon={config.icon} value={config.value} onChange={config.onChange} options={config.options} /></View>)}</View>
   }
 
-  const exportButton = <View style={{ flex: 1 }}><AdminButton label={exportJobs.loading ? 'Preparando...' : 'Exportar CSV'} icon="download-outline" variant="secondary" loading={exportJobs.loading} disabled={exportJobs.loading} fullWidth onPress={() => void exportJobs.request('support', exportFilters)} /></View>
+  const exportButton = <View style={{ flex: 1 }}><AdminButton label={exporting ? 'Preparando...' : 'Exportar Excel'} icon="download-outline" variant="secondary" loading={exporting} disabled={exporting} fullWidth onPress={() => void handleExport()} /></View>
   const showQueue = isDesktop || !selectedTicket
 
   return (
@@ -244,7 +245,7 @@ export function AdminSupportSection() {
       </Panel> : null}
 
       {showQueue ? <Panel title="Cola de tickets" icon="headset-outline" className="mt-5">
-        <AdminSearchBar search={search} onChangeSearch={setSearch} placeholder="Buscar tickets..." exporting={exportJobs.loading} onExport={isDesktop ? () => void exportJobs.request('support', exportFilters) : undefined} />
+        <AdminSearchBar search={search} onChangeSearch={setSearch} placeholder="Buscar tickets..." exporting={exporting} exportLabel="Exportar Excel" onExport={isDesktop ? () => void handleExport() : undefined} />
         {isDesktop ? <View className="mt-3">{filterFields(false)}</View> : <AdminMobileFilterShell activeFilters={activeFilters} mobileAction={exportButton} open={mobileFiltersOpen} setOpen={setMobileFiltersOpen} description="Refina la cola por estado, prioridad, rol, SLA, responsable o etiqueta.">{filterFields(true)}</AdminMobileFilterShell>}
         <View className="mt-4">{supportPage.loading && !supportPage.refreshing ? <ListLoadingState /> : null}<VirtualizedStack data={supportPage.rows} keyExtractor={(ticket) => String(ticket.id)} renderItem={(ticket) => <SupportTicketCard ticket={ticket} onManage={() => void openTicket(ticket)} />} emptyComponent={!supportPage.loading ? <EmptyState label="No hay tickets que coincidan con los filtros." /> : null} accessibilityLabel="Cola de tickets de soporte" /></View>
         <AdminPaginationControls page={supportPage.page} pageSize={supportPage.pageSize} total={supportPage.total} hasPrevious={supportPage.hasPrevious} hasNext={supportPage.hasNext} onPrevious={supportPage.previousPage} onNext={supportPage.nextPage} />

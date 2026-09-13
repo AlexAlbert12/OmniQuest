@@ -12,7 +12,8 @@ const localWebUrl = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${proce
 values.SITE_URL ||= localWebUrl
 values.PASSWORD_RESET_REDIRECT_TO ||= `${localWebUrl}/reset-password`
 values.PASSWORD_RECOVERY_REDIRECT_URL ||= values.PASSWORD_RESET_REDIRECT_TO
-const order = [...secretNames, 'EMAIL_DELIVERY_MODE', 'SITE_URL', 'PASSWORD_RESET_REDIRECT_TO', 'PASSWORD_RECOVERY_REDIRECT_URL']
+values.ADMIN_INVITE_REDIRECT_TO ||= `${localWebUrl}/update-password`
+const order = [...secretNames, 'EMAIL_DELIVERY_MODE', 'SITE_URL', 'PASSWORD_RESET_REDIRECT_TO', 'PASSWORD_RECOVERY_REDIRECT_URL', 'ADMIN_INVITE_REDIRECT_TO']
 const outputNames = [...order, ...Object.keys(values).filter((name) => !order.includes(name))]
 const output = `${outputNames.map((name) => `${name}=${values[name]}`).join('\n')}\n`
 await mkdir(dirname(path), { recursive: true })

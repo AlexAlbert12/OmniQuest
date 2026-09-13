@@ -64,7 +64,12 @@ Como mínimo, configura los secretos que utilicen las funciones habilitadas:
 npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY="..."
 npx supabase secrets set RESEND_API_KEY="..."
 npx supabase secrets set MAIL_FROM="OmniQuest <no-reply@dominio.example>"
+npx supabase secrets set SITE_URL="https://tu-dominio.example"
+npx supabase secrets set ADMIN_INVITE_REDIRECT_TO="https://tu-dominio.example/update-password"
 ```
+
+
+Para probar correos con cuentas demo sin enviar mensajes al destinatario real, usa `EMAIL_DELIVERY_MODE=redirect` y configura `RESEND_TEST_TO`. La invitación de nuevos administradores se genera en servidor con Supabase Auth y utiliza `ADMIN_INVITE_REDIRECT_TO` (o `SITE_URL/update-password` como fallback).
 
 Los procesadores programados requieren además su secreto compartido correspondiente en Edge Functions y Vault:
 

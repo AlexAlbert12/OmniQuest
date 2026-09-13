@@ -55,9 +55,7 @@ export default function RecentGames({ games, onOpenGame }: { games: StudentRecen
               </AppPressable>
             )
           })}
-          {games.some((game) => game.pendingTotal > 0) ? (
-            <Text className="px-1 text-[11px] leading-4 text-text-muted">* El XP y el resultado pueden actualizarse cuando el profesor revise las respuestas pendientes.</Text>
-          ) : null}
+          {games.some((game) => game.pendingTotal > 0) }
         </View>
       ) : (
         <View className="items-center rounded-xl border border-dashed border-border-default bg-surface-raised px-4 py-6">

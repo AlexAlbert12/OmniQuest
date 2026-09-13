@@ -6,8 +6,9 @@ import { useAppTheme } from '../../lib/appTheme'
 import type { DesignColorTokens } from '../../lib/designTokens'
 import { readThroughCache } from '../../lib/offlineCache'
 import { fetchStudentAttemptHistory } from '../../lib/studentSecureData'
-import { fetchStudentProgressSummary, fetchStudentRecentGames, type StudentProgressSubject, type StudentRecentGame } from '../../lib/studentProgress'
-import { buildStudentBadges, getStudentBadgeMetrics, type StudentBadge, type StudentBadgeScore } from '../../lib/studentBadges'
+import { fetchStudentProgressSummary, fetchStudentRecentGames } from '../../features/student-progress/api'
+import type { StudentProgressSubject, StudentRecentGame } from '../../features/student-progress/types'
+import { getStudentBadgeMetrics, type StudentBadgeScore } from '../../lib/studentBadges'
 import { getNextLevelProgress, getStudentLevel } from '../../lib/studentLevel'
 import { formatShortDate } from '../../lib/dateFormat'
 import { getStudentAttemptEvaluationState } from '../../lib/studentAttemptEvaluation'
@@ -132,7 +133,10 @@ export function useStudentProgress() {
               .lte('attempted_at', now.toISOString()),
             fetchStudentProgressSummary(userId),
             fetchStudentAttemptHistory({ limit: 1000, since: thirtyDaysAgo.toISOString() }),
-            fetchStudentRecentGames(5),
+            fetchStudentRecentGames(5).catch((recentGamesError) => {
+              console.warn('No se pudieron cargar las partidas recientes:', recentGamesError)
+              return [] as StudentRecentGame[]
+            }),
           ])
           if (profileResult.error) throw profileResult.error
           if (!profileResult.data) throw new Error('No se pudo cargar el perfil del alumno.')
@@ -184,7 +188,6 @@ export function useStudentProgress() {
       totalPoints: points,
       subjectsCount: courseProgress.length,
     })
-    const badges = buildStudentBadges(badgeMetrics)
     return {
       points,
       alias: profile?.alias || 'Alumno',
@@ -196,7 +199,6 @@ export function useStudentProgress() {
       progressPercent: clampPercent(progressPercent),
       accuracyPercent: clampPercent(accuracyPercent),
       streakDays: badgeMetrics.streakDays,
-      badges,
       recommendation: opportunities[0] || null,
     }
   }, [courseProgress, opportunities, profile, scores, serverAccuracyPercent])

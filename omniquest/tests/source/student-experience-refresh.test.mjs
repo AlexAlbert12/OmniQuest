@@ -44,6 +44,14 @@ test('student progress leads with an actionable daily recommendation', () => {
   assert.doesNotMatch(progress, /Este formato de pregunta está reduciendo tu precisión global/)
 })
 
+test('student progress omits the recent achievements section and its unused badge model', () => {
+  const progress = read('app/(student)/progress.tsx')
+  const hook = read('hooks/student/useStudentProgress.ts')
+  assert.doesNotMatch(progress, /Logros recientes/)
+  assert.doesNotMatch(progress, /progress\.badges/)
+  assert.doesNotMatch(hook, /buildStudentBadges/)
+})
+
 test('ranking highlights the current student and keeps server pagination', () => {
   const ranking = read('app/(student)/ranking.tsx') + read('hooks/student/useStudentRanking.ts') + read('components/student/ranking/RankingTabs.tsx') + read('components/student/ranking/CurrentPositionCard.tsx')
 

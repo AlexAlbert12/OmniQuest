@@ -1,13 +1,10 @@
 import React, { useCallback } from 'react'
-import { Text, View } from 'react-native'
+import { View } from 'react-native'
 import { useRouter } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 import { useAppTheme } from '../../lib/appTheme'
 import { useResponsiveLayout } from '../../lib/responsive'
 import StudentLayout from '../../components/student/StudentLayout'
 import StudentPageHeader from '../../components/student/StudentPageHeader'
-import StudentDashboardCard from '../../components/student/StudentDashboardCard'
-import AppPressable from '../../components/ui/AppPressable'
 import { AppStatusBanner } from '../../components/ui'
 import DailyPracticeRecommendation from '../../components/student/progress/DailyPracticeRecommendation'
 import ProgressOverview from '../../components/student/progress/ProgressOverview'
@@ -63,27 +60,6 @@ export default function ProgressScreen() {
       <RecentGames games={progress.recentGames} onOpenGame={handleOpenRecentGame} />
       <LatestResults results={progress.latestResults} onSeeAll={() => router.push('/(student)/activity-log' as any)} />
       <CourseProgressList courses={progress.courseProgress} onOpenCourse={handleOpenCourse} onSeeAll={() => router.push('/(student)/classes' as any)} />
-      <StudentDashboardCard title="Logros recientes" actionLabel="Ver todos" onAction={() => router.push('/(student)/badges' as any)}>
-        <View className="gap-2">
-          {progress.badges.slice(0, 4).map((badge) => (
-            <AppPressable
-              key={badge.id}
-              accessibilityLabel={`${badge.title}. ${badge.statusLabel}`}
-              onPress={() => router.push('/(student)/badges' as any)}
-              className="flex-row items-center gap-3 rounded-xl border border-border-subtle bg-surface-raised p-3"
-            >
-              <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${accentColor}20` }}>
-                <Ionicons name={badge.icon} size={20} color={accentColor} />
-              </View>
-              <View className="min-w-0 flex-1">
-                <Text className="font-black text-text-primary">{badge.title}</Text>
-                <Text className="mt-1 text-[12px] text-text-secondary">{badge.requirement}</Text>
-              </View>
-              <Text className="text-[12px] font-black text-gamification-xp">{badge.xp}</Text>
-            </AppPressable>
-          ))}
-        </View>
-      </StudentDashboardCard>
     </View>
   )
 

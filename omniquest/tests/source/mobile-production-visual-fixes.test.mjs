@@ -13,7 +13,10 @@ test('game results and bottom sheets keep their final actions above Android syst
   assert.ok(result.includes('useSafeAreaInsets()'))
   assert.ok(result.includes('paddingBottom: Math.max(insets.bottom + 24, 40)'))
   assert.ok(sheet.includes('useSafeAreaInsets()'))
-  assert.ok(sheet.includes('isCompact ? { paddingBottom: insets.bottom + 16 } : null'))
+  assert.ok(sheet.includes("const bottomSafeInset = Platform.OS === 'web' ? 0 : insets.bottom"))
+  assert.ok(sheet.includes('const compactFooterBottomPadding = bottomSafeInset + 12'))
+  assert.ok(sheet.includes('isCompact ? { paddingBottom: compactFooterBottomPadding } : null'))
+  assert.ok(sheet.includes('isCompact && !footer ? { paddingBottom: compactContentBottomPadding } : null'))
 })
 
 test('mobile web navigation remains fixed to the viewport', () => {

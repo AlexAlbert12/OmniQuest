@@ -7,7 +7,7 @@
 - Migraciones: **117**
 - Tablas públicas detectadas: **65**
 - Funciones/RPC públicas detectadas: **251**
-- Edge Functions: **33**
+- Edge Functions: **34**
 
 ## Edge Functions
 
@@ -18,6 +18,7 @@
 | `admin-create-teacher` | JWT requerido |
 | `admin-deactivate-classroom` | JWT requerido |
 | `admin-delete-student-progress` | JWT requerido |
+| `admin-invite-admin` | JWT requerido |
 | `admin-process-push-delivery` | JWT requerido |
 | `admin-reset-password` | JWT requerido |
 | `admin-toggle-user` | JWT requerido |

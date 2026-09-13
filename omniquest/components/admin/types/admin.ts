@@ -357,6 +357,18 @@ export type AdminData = {
 
 export type AdminActionResult = { error?: string; ok?: boolean }
 
+export type AdminInviteResult = AdminActionResult & {
+  status?: 'invited'
+  deliveryMode?: 'real' | 'redirect'
+  admin?: {
+    id: string
+    alias: string
+    email: string
+    roleId: string
+    roleName: string
+  }
+}
+
 export type RowAction = {
   label: string
   icon: IconName

@@ -1,6 +1,7 @@
 import React from 'react'
 import {
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -43,6 +44,9 @@ export default function AppBottomSheet({
   const insets = useSafeAreaInsets()
   const { tokens } = useAppTheme()
   const isCompact = responsive.isMobile || responsive.isTablet
+  const bottomSafeInset = Platform.OS === 'web' ? 0 : insets.bottom
+  const compactContentBottomPadding = bottomSafeInset + 16
+  const compactFooterBottomPadding = bottomSafeInset + 12
   const content = scrollable ? (
     <ScrollView
       style={[
@@ -52,7 +56,7 @@ export default function AppBottomSheet({
       contentContainerStyle={[
         styles.content,
         contentStyle,
-        isCompact ? { paddingBottom: insets.bottom + 16 } : null,
+        isCompact && !footer ? { paddingBottom: compactContentBottomPadding } : null,
       ]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -60,7 +64,15 @@ export default function AppBottomSheet({
       {children}
     </ScrollView>
   ) : (
-    <View style={[styles.content, contentStyle]}>{children}</View>
+    <View
+      style={[
+        styles.content,
+        contentStyle,
+        isCompact && !footer ? { paddingBottom: compactContentBottomPadding } : null,
+      ]}
+    >
+      {children}
+    </View>
   )
 
   return (
@@ -106,7 +118,15 @@ export default function AppBottomSheet({
           ) : null}
           {content}
           {footer ? (
-            <View style={[styles.footer, { borderTopColor: tokens.border.subtle }]}>{footer}</View>
+            <View
+              style={[
+                styles.footer,
+                { borderTopColor: tokens.border.subtle },
+                isCompact ? { paddingBottom: compactFooterBottomPadding } : null,
+              ]}
+            >
+              {footer}
+            </View>
           ) : null}
         </View>
       </View>
@@ -136,7 +156,6 @@ const styles = StyleSheet.create({
     maxHeight: '92%',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    paddingBottom: 12,
   },
   desktopSheet: {
     width: '100%',

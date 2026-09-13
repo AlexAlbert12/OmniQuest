@@ -99,6 +99,7 @@ const ADMIN_AUDIT_ACTION_LABELS: Record<string, string> = {
   'admin.user.activate': 'Usuario activado',
   'admin.user.deactivate': 'Usuario desactivado',
   'admin.user.reset_password': 'Contraseña restablecida',
+  'admin.user.invite': 'Administrador invitado',
   'admin.student.delete_progress': 'Progreso eliminado',
   'admin.teacher.create': 'Profesor creado',
   'admin.teacher.update_existing': 'Profesor existente actualizado',

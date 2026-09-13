@@ -67,7 +67,9 @@ test('student progress exposes recent game sessions and reuses the existing revi
   const review = read('app/(student)/review/[attemptId].tsx')
 
   assert.match(api, /get_student_recent_game_attempts/)
-  assert.match(progressHook, /fetchStudentRecentGames\(5\)/)
+  assert.match(progressHook, /from '\.\.\/\.\.\/features\/student-progress\/api'/)
+  assert.match(progressHook, /fetchStudentRecentGames\(5\)\.catch/)
+  assert.match(progressHook, /return \[\] as StudentRecentGame\[\]/)
   assert.match(progressScreen, /<RecentGames/)
   assert.match(progressScreen, /pathname: '\/\(student\)\/review\/\[attemptId\]'/)
   assert.match(recentGames, /Partidas recientes/)
