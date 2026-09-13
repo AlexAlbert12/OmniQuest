@@ -18,7 +18,7 @@ select ok(
 
 select ok(
   position($needle$'unassessed'$needle$ in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0
-  and position('where has_activity and grade < 5' in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0,
+  and position('where evaluated_answers > 0 and grade < 5' in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0,
   'student distribution keeps no-activity students outside failing grades'
 );
 

@@ -20,6 +20,8 @@ function createPayload(overrides: Partial<StudentHomeDashboardPayload> = {}): St
       totalQuestions: 0,
       answeredQuestions: 0,
       totalAttempts: 0,
+      evaluatedAttempts: 0,
+      pendingReviewAttempts: 0,
       correctAttempts: 0,
       accuracyPercent: 0,
       overallPercent: 0,

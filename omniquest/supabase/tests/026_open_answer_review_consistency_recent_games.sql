@@ -96,10 +96,14 @@ select is((public.get_teacher_question_affected_students_page(926002, 926001, nu
 
 select lives_ok($$select public.review_manual_review_attempt(926002, 'approved', null, 'student')$$, 'teacher can approve a pending open answer');
 select ok((select is_correct and earned_points = 20 and manual_review_status = 'approved' from public.attempt_history where id = 926002), 'approval makes the attempt correct and grants its base XP');
+reset role;
 select ok((select total_score = 30 and correct_answers = 2 from public.game_attempts where id = '26000000-0000-0000-0000-000000000010'), 'approval updates the original game attempt totals');
+set local role authenticated;
 select lives_ok($$select public.review_manual_review_attempt(926002, 'approved', null, 'student')$$, 'saving the same approval again is idempotent');
+reset role;
 select ok((select total_score = 30 and correct_answers = 2 from public.game_attempts where id = '26000000-0000-0000-0000-000000000010'), 'repeated approval does not duplicate XP or correct answers');
 select is((select count(*) from public.notifications where user_id = '26000000-0000-0000-0000-000000000002' and type = 'manual_review' and fingerprint = 'manual-review-status:926002:approved'), 1::bigint, 'approval status notification is emitted once');
+set local role authenticated;
 
 select lives_ok($$select public.review_manual_review_attempt(926002, 'needs_changes', 'Revisa el razonamiento.', 'student')$$, 'teacher can request changes after approval and scores are recalculated');
 select ok((select not is_correct and earned_points = 0 and manual_review_status = 'needs_changes' from public.attempt_history where id = 926002), 'needs changes becomes unresolved with no awarded XP');
@@ -111,8 +115,10 @@ select is((public.get_student_progress_summary()->>'accuracyPercent')::integer, 
 select set_config('request.jwt.claim.sub', '26000000-0000-0000-0000-000000000001', true);
 select lives_ok($$select public.review_manual_review_attempt(926002, 'rejected', 'La respuesta no es correcta.', 'student')$$, 'teacher can make a final rejected decision after needs changes');
 select ok((select not is_correct and earned_points = 0 and manual_review_status = 'rejected' from public.attempt_history where id = 926002), 'rejection is a definitive incorrect answer with zero XP');
+reset role;
 select ok((select total_score = 10 and correct_answers = 1 from public.game_attempts where id = '26000000-0000-0000-0000-000000000010'), 'rejection keeps the previously granted approval XP removed from the game');
 select is((select count(*) from public.notifications where user_id = '26000000-0000-0000-0000-000000000002' and type = 'manual_review' and fingerprint = 'manual-review-status:926002:rejected'), 1::bigint, 'rejection creates its manual-review status notification');
+set local role authenticated;
 
 select set_config('request.jwt.claim.sub', '26000000-0000-0000-0000-000000000002', true);
 select is((public.get_student_progress_summary()->>'evaluatedAttempts')::integer, 2, 'rejected answer becomes evaluated student progress');

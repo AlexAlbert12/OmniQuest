@@ -24,12 +24,12 @@ select ok(
 );
 
 select ok(
-  position('100.0 * sum(correct_answers) / sum(total_answers)' in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0,
+  position('100.0 * sum(correct_answers) / sum(evaluated_answers)' in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0,
   'student analytics uses global answer accuracy instead of averaging individual percentages'
 );
 
 select ok(
-  position('where has_activity and grade < 5' in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0,
+  position('where evaluated_answers > 0 and grade < 5' in pg_get_functiondef('public.get_teacher_subject_students_page(bigint,bigint,text,text,text,integer,integer)'::regprocedure)) > 0,
   'students without answers are not classified as failed grades'
 );
 
