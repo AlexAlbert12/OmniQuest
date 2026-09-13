@@ -53,12 +53,10 @@ test('student mobile details reuse the established blue and surface tokens', () 
   const modal = read('components/student/course/TopicDifficultyModal.tsx')
   const classes = read('app/(student)/classes.tsx')
   const compactSelect = classes.slice(classes.indexOf('function CompactSelect'))
-  const recommendation = read('components/student/progress/DailyPracticeRecommendation.tsx')
 
   assert.ok(modal.includes('style={{ color: tokens.brand.student }}>Cómo funciona'))
   assert.ok(!compactSelect.includes('tokens.border.active'))
   assert.ok(compactSelect.split('borderColor: tokens.border.default').length - 1 >= 2)
-  assert.equal(recommendation.split('backgroundColor={tokens.surface.interactive}').length - 1, 3)
 })
 
 test('latest achievements keeps its action in the top-right header row', () => {

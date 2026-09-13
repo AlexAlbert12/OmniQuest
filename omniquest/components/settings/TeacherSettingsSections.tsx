@@ -103,6 +103,7 @@ export default function TeacherSettingsSections({
       {securityOnly ? (
         <SettingsSecurityPanel
           securityOnly
+          accentColor={accentColor}
           currentPassword={data.currentPassword}
           newPassword={data.newPassword}
           confirmPassword={data.confirmPassword}

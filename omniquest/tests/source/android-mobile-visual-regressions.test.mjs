@@ -15,7 +15,7 @@ test('achievement modal centers its label, has no close icon and clips the rewar
   assert.match(modal, /role="student"[\s\S]*variant="primary"/)
 })
 
-test('role page headers hide supporting copy and reuse one blue back button', () => {
+test('role page headers hide supporting copy and reuse a blue-default role-aware back button', () => {
   const header = read('components/ui/RolePageHeader.tsx')
   const backButton = read('components/ui/AppBackButton.tsx')
 
@@ -23,7 +23,8 @@ test('role page headers hide supporting copy and reuse one blue back button', ()
   assert.doesNotMatch(header, /\{supportingCopy\}/)
   assert.doesNotMatch(header, /subtitle/)
   assert.match(header, /<AppBackButton/)
-  assert.match(backButton, /role="teacher"/)
+  assert.match(backButton, /role = 'teacher'/)
+  assert.match(backButton, /role=\{role\}/)
   assert.match(backButton, /variant="primary"/)
 })
 

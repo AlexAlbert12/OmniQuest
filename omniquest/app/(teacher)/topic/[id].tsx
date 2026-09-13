@@ -78,7 +78,7 @@ export default function TopicDetailScreen() {
   }
 
   const handleTopicAction = async () => {
-    if (!topicAction || !subject) return
+    if (!topicAction || !subject || !topic) return
     setTopicBusy(true)
     try {
       if (topicAction === 'archive') {

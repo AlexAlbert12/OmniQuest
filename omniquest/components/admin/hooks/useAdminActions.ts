@@ -5,7 +5,7 @@ import { useAppFeedback } from '../../../hooks/useAppFeedback'
 import { getErrorMessage } from '../../../lib/typeGuards'
 import type { AdminConfirmationRequester } from '../shared/AdminTypedConfirmation'
 import { invokeAdminAction, runAdminBulkAction } from '../api/adminApi'
-import type { AdminBulkAction, AdminData, ClassroomRow, ProfileRow, SubjectRow } from '../types/admin'
+import type { AdminActionResult, AdminBulkAction, AdminData, ClassroomRow, ProfileRow, SubjectRow } from '../types/admin'
 
 export function useAdminActions(data: AdminData, requestConfirmation?: AdminConfirmationRequester) {
   const router = useRouter()

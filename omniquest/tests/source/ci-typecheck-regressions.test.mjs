@@ -19,3 +19,17 @@ test('web fixed bottom navigation isolates the react-native-web compatibility ca
   assert.match(source, /Platform\.OS === 'web' \? WEB_FIXED_STYLE : null/)
   assert.doesNotMatch(source, /\{ position: 'fixed' \} as ViewStyle/)
 })
+
+test('reported topic, admin, settings and text export type regressions stay fixed', () => {
+  const topic = read('app/(teacher)/topic/[id].tsx')
+  const adminActions = read('components/admin/hooks/useAdminActions.ts')
+  const studentSettings = read('components/settings/StudentSettingsSections.tsx')
+  const teacherSettings = read('components/settings/TeacherSettingsSections.tsx')
+  const exports = read('lib/reportExports.ts')
+
+  assert.match(topic, /if \(!topicAction \|\| !subject \|\| !topic\) return/)
+  assert.match(adminActions, /import type \{ AdminActionResult,/)
+  assert.match(studentSettings, /<SettingsSecurityPanel[\s\S]*accentColor=\{accentColor\}/)
+  assert.match(teacherSettings, /<SettingsSecurityPanel[\s\S]*accentColor=\{accentColor\}/)
+  assert.match(exports, /function downloadTextFile[\s\S]*new Blob\(\[content\]/)
+})

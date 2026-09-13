@@ -124,6 +124,7 @@ export function RoleSettingsSections({
       {securityOnly || activeSettingsSection === 'security' ? (
         <SettingsSecurityPanel
           securityOnly={securityOnly}
+          accentColor={accentColor}
           currentPassword={data.currentPassword}
           newPassword={data.newPassword}
           confirmPassword={data.confirmPassword}

@@ -100,6 +100,7 @@ describe('teacher student export model', () => {
       status: 'no_activity',
       hasActivity: false,
       questions: 0,
+      evaluatedAttempts: 0,
       accuracyPercent: 0,
       participation: 0,
       globalPoints: 0,
